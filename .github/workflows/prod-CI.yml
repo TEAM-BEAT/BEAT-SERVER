@@ -1,0 +1,74 @@
+name: prod-CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  prod-ci:
+    # Using Environment - prod 환경
+    environment: prod
+
+    # Operating system - ubuntu-22.04
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+
+    steps:
+      # Checkout - 가상 머신에 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # JDK setting - JDK 17 설정
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # gradle caching - 빌드 시간 향상
+      - name: Gradle Caching
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # Inject environment variables - 환경 변수를 yml 파일에 주입
+      - name: Inject environment variables into application-prod.yml
+        env:
+          PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
+          PROD_DB_USERNAME: ${{ secrets.PROD_DB_USERNAME }}
+          PROD_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+        run: |
+          cd ./src/main/resources
+          envsubst < application-prod.yml > application-prod.tmp.yml && mv application-prod.tmp.yml application-prod.yml
+
+      # gradle build - 테스트 없이 gradle 빌드
+      - name: Build with Gradle
+        run: |
+          chmod +x gradlew
+          ./gradlew build -x test
+        shell: bash
+
+      # Set up Docker Buildx - Docker Buildx 설치
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2.9.1
+
+      # Log in to Docker Hub - Docker Hub 로그인
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2.2.0
+        with:
+          username: ${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}
+          password: ${{ secrets.PROD_DOCKER_LOGIN_ACCESSTOKEN }}
+
+      # Build and push Docker image - Docker image 빌드 및 푸시
+      - name: Build and push Docker image
+        run: |
+          docker build --platform linux/amd64 -t donghoon0203/beat-prod .
+          docker push donghoon0203/beat-prod

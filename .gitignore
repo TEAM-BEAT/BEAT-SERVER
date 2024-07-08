@@ -5,6 +5,9 @@
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 
+# 예외
+!gradle/wrapper/gradle-wrapper.jar
+
 # User-specific stuff
 .idea/**/workspace.xml
 .idea/**/tasks.xml
@@ -173,4 +176,5 @@ Temporary Items
 # iCloud generated files
 *.icloud
 
-# End of https://www.toptal.com/developers/gitignore/api/intellij,java,macos
+# End of https://www.toptal.com/developers/gitignore/api/intellij,java,macos.gradle/
+.idea/
