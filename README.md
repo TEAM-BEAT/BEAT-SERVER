@@ -1,5 +1,6 @@
-# BEAT-Server
-# 💗 BEAT 💗
+# BEAT-SERVER
+
+## 💗 BEAT Information 💗
 
 ```
 모두를 위한, 그래서 대학생을 위한 공연 예매 플랫폼
@@ -24,7 +25,7 @@
 
 ### 📁 Foldering
 ```
-src
+       src
 	├── main
 	│   ├── java
 	│   │   └── com
@@ -112,8 +113,10 @@ src
 ```
 
 ## 🔗 ERD
+<img width="1131" alt="erd_beat" src="https://github.com/TEAM-BEAT/BEAT-SERVER/assets/125895298/a3dd8812-bc55-4680-b497-942f9213a8f6">
 
 ## 📄 API 명세서
+[API specification](https://jiwoothejay.notion.site/1-API-c34df726fd464899a31841d35a69ab32?pvs=4)
 
 ## 🛠️ Tech
 
