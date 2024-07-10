@@ -72,8 +72,8 @@ pipeline {
                         remote.allowAnyHosts = true
 
                         // 원격 서버에서 Docker 로그인
-                        sshCommand remote: remote, command:
-                            'echo ' + DOCKER_HUB_PW + ' | docker login -u ' + DOCKER_HUB_ID + ' --password-stdin'
+//                         sshCommand remote: remote, command:
+//                             'echo ' + DOCKER_HUB_PW + ' | docker login -u ' + DOCKER_HUB_ID + ' --password-stdin'
 
                         // Docker 이미지 pull
                         sshCommand remote: remote, command:
