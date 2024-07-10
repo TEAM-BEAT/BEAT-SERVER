@@ -27,7 +27,15 @@ pipeline {
                     SSH_HOST_CREDENTIAL_ID = OPERATION_ENV.toUpperCase() + '_SSH_HOST'
 
                     // PORT
-                    INTERNAL_PORT = '8080'
+                    PORT_PROPERTIES_FILE = 'application-' + OPERATION_ENV + '.yml'
+                }
+            }
+        }
+
+        stage('Parse Internal Port') {
+            steps {
+                script {
+                    INTERNAL_PORT = sh(script: "yq e '.server.port' ./src/main/resources/${PORT_PROPERTIES_FILE}", returnStdout: true).trim()
                 }
             }
         }
