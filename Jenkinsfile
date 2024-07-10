@@ -36,6 +36,7 @@ pipeline {
             steps {
                 script {
                     INTERNAL_PORT = sh(script: "yq e '.server.port' ./src/main/resources/${PORT_PROPERTIES_FILE}", returnStdout: true).trim()
+                    echo "Internal port: ${INTERNAL_PORT}"
                 }
             }
         }
@@ -81,13 +82,26 @@ pipeline {
                         sshCommand remote: remote, failOnError: false, command: 'docker rm -f springboot'
 
                         // 새로운 컨테이너 실행
-                        sshCommand remote: remote, command: ('docker run -d --name springboot'
-                            + ' -p 80:' + INTERNAL_PORT
-                            + ' -e "SPRING_PROFILES_ACTIVE=' + OPERATION_ENV + '"'
-                            + ' ' + DOCKER_IMAGE_NAME + ':latest')
+                        sshCommand remote: remote, command: (
+                            'docker run -d --name springboot' +
+                            ' -p 80:' + INTERNAL_PORT +
+                            ' -e "SPRING_PROFILES_ACTIVE=' + OPERATION_ENV + '"' +
+                            ' ' + DOCKER_IMAGE_NAME + ':latest'
+                        )
                     }
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            sh 'echo "success"'
+            slackSend(color: '#00FF00', message: "SUCCESS: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+        }
+        unsuccessful {
+            sh 'echo "fail"'
+            slackSend(color: '#FF0000', message: "FAIL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
         }
     }
 }
