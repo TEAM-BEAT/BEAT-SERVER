@@ -19,7 +19,7 @@ pipeline {
                     DOCKER_HUB_FULL_URL = 'https://' + DOCKER_HUB_URL
                     DOCKER_HUB_DEV_CREDENTIAL_ID = 'DOCKER_HUB_DEV_CREDENTIALS'
                     DOCKER_HUB_PROD_CREDENTIAL_ID = 'DOCKER_HUB_PROD_CREDENTIALS'
-                    DOCKER_IMAGE_NAME = BRANCH_NAME.equals(PROD_BRANCH) ? 'donghoon0203/beat-Prod' : 'hoonyworld/beat-dev'
+                    DOCKER_IMAGE_NAME = BRANCH_NAME.equals(PROD_BRANCH) ? 'donghoon0203/beat-prod' : 'hoonyworld/beat-dev'
 
                     // SSH
                     SSH_CREDENTIAL_ID = OPERATION_ENV.toUpperCase() + '_SSH'
