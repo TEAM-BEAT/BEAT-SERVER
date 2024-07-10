@@ -1,9 +1,88 @@
 pipeline {
     agent any
+
     stages {
-        stage('Hello') {
+        stage('Set Variables') {
             steps {
-                echo 'Hello World'
+                echo 'Set Variables'
+                script {
+                    // BASIC
+                    PROJECT_NAME = 'beat'
+                    REPOSITORY_URL = 'https://github.com/TEAM-BEAT/BEAT-SERVER.git'
+                    PROD_BRANCH = 'main'
+                    DEV_BRANCH = 'develop'
+                    BRANCH_NAME = env.BRANCH_NAME
+                    OPERATION_ENV = BRANCH_NAME.equals(PROD_BRANCH) ? 'prod' : 'dev'
+
+                    // DOCKER
+                    DOCKER_HUB_URL = 'registry.hub.docker.com'
+                    DOCKER_HUB_FULL_URL = 'https://' + DOCKER_HUB_URL
+                    DOCKER_HUB_DEV_CREDENTIAL_ID = 'DOCKER_HUB_DEV_CREDENTIALS'
+                    DOCKER_HUB_PROD_CREDENTIAL_ID = 'DOCKER_HUB_PROD_CREDENTIALS'
+                    DOCKER_IMAGE_NAME = BRANCH_NAME.equals(PROD_BRANCH) ? 'donghoon0203/beat-Prod' : 'hoonyworld/beat-dev'
+
+                    // SSH
+                    SSH_CREDENTIAL_ID = OPERATION_ENV.toUpperCase() + '_SSH'
+                    SSH_PORT_CREDENTIAL_ID = OPERATION_ENV.toUpperCase() + '_SSH_PORT'
+                    SSH_HOST_CREDENTIAL_ID = OPERATION_ENV.toUpperCase() + '_SSH_HOST'
+
+                    // PORT
+                    INTERNAL_PORT = '8080'
+                }
+            }
+        }
+
+        stage('Git Checkout') {
+            steps {
+                echo 'Checkout Remote Repository'
+                git branch: "${BRANCH_NAME}",
+                    url: REPOSITORY_URL
+            }
+        }
+
+        stage('Deploy to Server') {
+            steps {
+                echo 'Deploy to Server'
+                script {
+                    def DOCKER_HUB_CREDENTIAL_ID = BRANCH_NAME.equals(PROD_BRANCH) ? DOCKER_HUB_PROD_CREDENTIAL_ID : DOCKER_HUB_DEV_CREDENTIAL_ID
+                    withCredentials([
+                        usernamePassword(credentialsId: DOCKER_HUB_CREDENTIAL_ID,
+                                         usernameVariable: 'DOCKER_HUB_ID',
+                                         passwordVariable: 'DOCKER_HUB_PW'),
+                        sshUserPrivateKey(credentialsId: SSH_CREDENTIAL_ID,
+                                          keyFileVariable: 'KEY_FILE',
+                                          usernameVariable: 'USERNAME'),
+                        string(credentialsId: SSH_HOST_CREDENTIAL_ID, variable: 'HOST'),
+                        string(credentialsId: SSH_PORT_CREDENTIAL_ID, variable: 'PORT')]) {
+
+                        def remote = [:]
+                        remote.name = OPERATION_ENV
+                        remote.host = HOST
+                        remote.user = USERNAME
+                        remote.identityFile = KEY_FILE
+                        remote.port = PORT as Integer
+                        remote.allowAnyHosts = true
+
+                        // 원격 서버에서 Docker 로그인
+                        sshCommand remote: remote, command:
+                            'echo ' + DOCKER_HUB_PW + ' | docker login -u ' + DOCKER_HUB_ID + ' --password-stdin'
+
+                        // Docker 이미지 pull
+                        sshCommand remote: remote, command:
+                            'docker pull ' + DOCKER_IMAGE_NAME + ":latest"
+
+                        // 기존 컨테이너 제거
+                        sshCommand remote: remote, failOnError: false,
+                            command: 'docker rm -f springboot'
+
+                        // 새로운 컨테이너 실행
+                        sshCommand remote: remote, command:
+                            ('docker run -d --name springboot'
+                            + ' -p 80:' + INTERNAL_PORT
+                            + ' -e "SPRING_PROFILES_ACTIVE=' + OPERATION_ENV + '"'
+                            + ' ' + DOCKER_IMAGE_NAME + ':latest')
+                    }
+                }
             }
         }
     }
