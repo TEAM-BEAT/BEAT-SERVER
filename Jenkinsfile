@@ -68,7 +68,7 @@ pipeline {
                         remote.host = HOST
                         remote.user = USERNAME
                         remote.identityFile = KEY_FILE
-                        remote.port = PORT as Integer
+                        remote.port = 22
                         remote.allowAnyHosts = true
 
                         // SSH 연결 테스트
