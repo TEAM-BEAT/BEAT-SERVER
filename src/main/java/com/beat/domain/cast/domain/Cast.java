@@ -1,6 +1,5 @@
 package com.beat.domain.cast.domain;
 
-import com.beat.domain.BaseTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -13,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Cast extends BaseTimeEntity {
+public class Cast{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
