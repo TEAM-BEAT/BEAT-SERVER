@@ -11,7 +11,7 @@ public record SuccessResponse<T>(
         return new SuccessResponse(baseSuccessCode.getStatus(), baseSuccessCode.getMessage(), data);
     }
 
-    public static SuccessResponse of(final BaseSuccessCode baseSuccessCode) {
+    public static SuccessResponse from(final BaseSuccessCode baseSuccessCode) {
         return new SuccessResponse(baseSuccessCode.getStatus(), baseSuccessCode.getMessage(), null);
     }
 }
