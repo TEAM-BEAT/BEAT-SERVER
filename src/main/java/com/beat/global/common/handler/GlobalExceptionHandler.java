@@ -2,6 +2,7 @@ package com.beat.global.common.handler;
 
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.common.exception.ConflictException;
 import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
 import com.beat.global.common.exception.UnauthorizedException;
@@ -39,6 +40,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     protected ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), Objects.requireNonNull(e.getBindingResult().getFieldError()).getDefaultMessage()));
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    protected ResponseEntity<ErrorResponse> handleConflictException(final ConflictException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse.from(e.getBaseErrorCode()));
     }
 
     @ExceptionHandler(Exception.class)
