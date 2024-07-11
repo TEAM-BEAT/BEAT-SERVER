@@ -13,8 +13,9 @@ spring:
     password: ${PROD_DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: validate
-    show-sql: false
+      ddl-auto: create
+    show-sql: true
     properties:
       hibernate:
-        format_sql: false
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
