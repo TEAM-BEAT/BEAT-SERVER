@@ -23,7 +23,7 @@ public class BookingController {
     private final BookingService bookingService;
 
     @PostMapping("/guest/retrieve")
-    public ResponseEntity<SuccessResponse<List<BookingRetrieveResponse>>> findGuestBookings(
+    public ResponseEntity<SuccessResponse<List<BookingRetrieveResponse>>> getGuestBookings(
             @RequestBody BookingRetrieveRequest bookingRetrieveRequest) {
         List<BookingRetrieveResponse> response = bookingService.findGuestBookings(bookingRetrieveRequest);
         return ResponseEntity.status(HttpStatus.OK)
