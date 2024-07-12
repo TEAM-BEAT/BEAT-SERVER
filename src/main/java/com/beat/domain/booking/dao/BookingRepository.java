@@ -13,4 +13,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             String password,
             String birthDate
     );
+
+    Optional<Booking> findFirstByBookerNameAndBookerPhoneNumberAndBirthDateAndPassword(
+            String bookerName,
+            String bookerPhoneNumber,
+            String birthDate,
+            String password
+    );
 }
