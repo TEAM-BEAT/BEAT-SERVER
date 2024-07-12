@@ -26,7 +26,7 @@ public class Booking {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long bookingId;
+    private Long id;
 
     @Column(nullable = false)
     private int purchaseTicketCount;

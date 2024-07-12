@@ -17,7 +17,7 @@ public class Performance extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long performanceId;
+    private Long id;
 
     @Column(nullable = false)
     private String performanceTitle;
@@ -64,7 +64,7 @@ public class Performance extends BaseTimeEntity {
     private int totalScheduleCount;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = true) // 테스트를 위한 false
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Users users;
 
