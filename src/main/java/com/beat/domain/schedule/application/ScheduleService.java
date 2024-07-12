@@ -32,7 +32,7 @@ public class ScheduleService {
         }
 
         return TicketAvailabilityResponse.of(
-                schedule.getScheduleId(),
+                schedule.getId(),
                 schedule.getScheduleNumber().getDisplayName(),
                 schedule.getTotalTicketCount(),
                 schedule.getSoldTicketCount(),
