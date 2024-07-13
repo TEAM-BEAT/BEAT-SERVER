@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import static com.beat.global.auth.jwt.provider.JwtValidationType.VALID_JWT;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -39,10 +41,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         } catch (Exception exception) {
             try {
+
                 throw new Exception();
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                log.info(e.getMessage());
             }
+//                throw new Exception();
+//            } catch (Exception e) {
+//                throw new RuntimeException(e);
         }
         // 다음 필터로 요청 전달
         filterChain.doFilter(request, response);

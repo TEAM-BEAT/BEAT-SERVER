@@ -22,7 +22,9 @@ import org.springframework.stereotype.Service;
 public class KakaoSocialService implements SocialService {
 
     private static final String AUTH_CODE = "authorization_code";
-    private static final String REDIRECT_URI = "http://localhost:8080/kakao/callback";
+
+    @Value("${spring.security.oauth2.client.registration.kakao.redirect-uri}")
+    private String REDIRECT_URI;
 
     @Value("${spring.security.oauth2.client.registration.kakao.client-id}")
     private String clientId;
@@ -42,7 +44,7 @@ public class KakaoSocialService implements SocialService {
             accessToken = getOAuth2Authentication(authorizationCode);
         } catch (FeignException e) {
 //            log.info("Error during OAuth2 authentication", e);
-            throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+             throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
         }
         // Access Token으로 유저 정보 불러오기
         return getLoginDto(loginRequest.socialType(), getUserInfo(accessToken));
@@ -58,7 +60,7 @@ public class KakaoSocialService implements SocialService {
                 REDIRECT_URI,
                 authorizationCode
         );
-//        log.debug("Received OAuth2 authentication response: {}", response);
+        log.info("Received OAuth2 authentication response: {}", response);
         return response.accessToken();
     }
 

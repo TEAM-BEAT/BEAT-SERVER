@@ -32,8 +32,7 @@ public class MemberController {
 
     @GetMapping("/refresh-token")
     public ResponseEntity<SuccessResponse<AccessTokenGetSuccess>> refreshToken(
-//            @RequestParam final String refreshToken
-            @RequestBody final String refreshToken
+            @RequestParam final String refreshToken
     ) {
         AccessTokenGetSuccess accessTokenGetSuccess = memberService.refreshToken(refreshToken);
         return ResponseEntity.status(HttpStatus.OK)

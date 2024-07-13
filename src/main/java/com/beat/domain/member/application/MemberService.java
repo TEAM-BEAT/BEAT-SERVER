@@ -16,9 +16,11 @@ import com.beat.global.auth.jwt.provider.JwtTokenProvider;
 import com.beat.global.auth.security.MemberAuthentication;
 import com.beat.global.common.exception.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @RequiredArgsConstructor
 @Transactional
 @Service
@@ -48,7 +50,7 @@ public class MemberService {
         }
     }
 
-    @Transactional
+//    @Transactional
     public Long createUser(final MemberInfoResponse userResponse) {
         // Users 엔티티를 먼저 생성
         Users users = Users.create();
@@ -65,7 +67,7 @@ public class MemberService {
 
         memberRepository.save(member);
 
-        return member.getMemberId();
+        return member.getId();
     }
 
     public Member getBySocialId(
@@ -98,18 +100,20 @@ public class MemberService {
     }
 
     public LoginSuccessResponse getTokenByMemberId(
-            final Long id
+            final Long id,
+            final MemberInfoResponse memberInfoResponse
     ) {
         MemberAuthentication memberAuthentication = new MemberAuthentication(id, null, null);
         String refreshToken = jwtTokenProvider.issueRefreshToken(memberAuthentication);
         tokenService.saveRefreshToken(id, refreshToken);
+        String nickname = memberInfoResponse.nickname();
         return LoginSuccessResponse.of(
                 jwtTokenProvider.issueAccessToken(memberAuthentication),
-                refreshToken
+                refreshToken, nickname
         );
     }
 
-    @jakarta.transaction.Transactional
+    @Transactional
     public void deleteUser(
             final Long id
     ) {
@@ -124,10 +128,11 @@ public class MemberService {
             final MemberInfoResponse userResponse
     ) {
         if (isExistingMember(userResponse.socialId(), userResponse.socialType())) {
-            return getTokenByMemberId(getBySocialId(userResponse.socialId(), userResponse.socialType()).getMemberId());
+            return getTokenByMemberId(getBySocialId(userResponse.socialId(), userResponse.socialType()).getId(), userResponse);
         } else {
+            log.info("{}", userResponse);
             Long id = createUser(userResponse);
-            return getTokenByMemberId(id);
+            return getTokenByMemberId(id, userResponse);
         }
     }
 }

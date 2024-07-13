@@ -15,9 +15,9 @@ public class TokenService {
     private final TokenRepository tokenRepository;
 
     @Transactional
-    public void saveRefreshToken(final Long userId, final String refreshToken) {
+    public void saveRefreshToken(final Long memberId, final String refreshToken) {
         tokenRepository.save(
-                Token.of(userId, refreshToken)
+                Token.of(memberId, refreshToken)
         );
     }
 
@@ -30,8 +30,8 @@ public class TokenService {
     }
 
     @Transactional
-    public void deleteRefreshToken(final Long userId) {
-        Token token = tokenRepository.findById(userId)
+    public void deleteRefreshToken(final Long memberId) {
+        Token token = tokenRepository.findById(memberId)
                 .orElseThrow(
                         () -> new NotFoundException(TokenErrorCode.REFRESH_TOKEN_NOT_FOUND)
                 );

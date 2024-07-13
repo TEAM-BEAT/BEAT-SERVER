@@ -16,7 +16,7 @@ public class Member extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long memberId;
+    private Long id;
 
     @Column(nullable = false)
     private String nickname;
@@ -28,7 +28,7 @@ public class Member extends BaseTimeEntity {
     private LocalDateTime deletedAt;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = true)
     private Users user;
 
     @Column(nullable = false)
@@ -39,6 +39,15 @@ public class Member extends BaseTimeEntity {
 
 
     @Builder
+    public Member(String nickname, String email, LocalDateTime deletedAt, Users user, Long socialId, SocialType socialType) {
+        this.nickname = nickname;
+        this.email = email;
+        this.deletedAt = deletedAt;
+        this.user = user;
+        this.socialId = socialId;
+        this.socialType = socialType;
+    }
+
     public static Member create(
             final String nickname,
             final String email,
