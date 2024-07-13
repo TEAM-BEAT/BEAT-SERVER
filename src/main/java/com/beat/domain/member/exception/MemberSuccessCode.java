@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum MemberSuccessCode implements BaseSuccessCode {
-//    LOGIN_SUCCESS(200, "로그인 성공"),
     SIGN_UP_SUCCESS(200, "로그인 성공"),
     ISSUE_ACCESS_TOKEN_SUCCESS(200, "엑세스토큰 발급 성공"),
     ISSUE_REFRESH_TOKEN_SUCCESS(200, "리프레쉬토큰 발급 성공"),

@@ -43,7 +43,6 @@ public class KakaoSocialService implements SocialService {
             // 인가 코드로 Access Token + Refresh Token 받아오기
             accessToken = getOAuth2Authentication(authorizationCode);
         } catch (FeignException e) {
-//            log.info("Error during OAuth2 authentication", e);
              throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
         }
         // Access Token으로 유저 정보 불러오기
@@ -53,7 +52,6 @@ public class KakaoSocialService implements SocialService {
     private String getOAuth2Authentication(
             final String authorizationCode
     ) {
-//        log.debug("Requesting OAuth2 authentication with code: {}", authorizationCode);
         KakaoAccessTokenResponse response = kakaoAuthApiClient.getOAuth2AccessToken(
                 AUTH_CODE,
                 clientId,
@@ -67,9 +65,7 @@ public class KakaoSocialService implements SocialService {
     private KakaoUserResponse getUserInfo(
             final String accessToken
     ) {
-//        log.debug("Requesting user information with access token: {}", accessToken);
         KakaoUserResponse kakaoUserResponse = kakaoApiClient.getUserInformation("Bearer " + accessToken);
-//        log.debug("Received user information response: {}", userResponse);
         return kakaoUserResponse;
     }
 

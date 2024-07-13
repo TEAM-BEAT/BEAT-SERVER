@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 @Service
 public class MemberService {
     private final UserRepository userRepository;
@@ -50,7 +50,7 @@ public class MemberService {
         }
     }
 
-//    @Transactional
+    @Transactional
     public Long createUser(final MemberInfoResponse userResponse) {
         // Users 엔티티를 먼저 생성
         Users users = Users.create();
@@ -130,7 +130,6 @@ public class MemberService {
         if (isExistingMember(userResponse.socialId(), userResponse.socialType())) {
             return getTokenByMemberId(getBySocialId(userResponse.socialId(), userResponse.socialType()).getId(), userResponse);
         } else {
-            log.info("{}", userResponse);
             Long id = createUser(userResponse);
             return getTokenByMemberId(id, userResponse);
         }
