@@ -13,12 +13,12 @@ spring:
     password: ${PROD_DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create
     show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
-        format_sql: false
+        format_sql: true
 
   data:
     redis:

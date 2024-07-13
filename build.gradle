@@ -51,8 +51,6 @@ dependencies {
 	// External API
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign:4.1.3'
 
-	// Swagger
-
 	// JWT
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
 	implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
@@ -68,6 +66,9 @@ dependencies {
 
 	// Oauth2
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+  
+  // Swagger
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 }
 
 jar {
