@@ -136,6 +136,7 @@ public class PerformanceService {
                 })
                 .collect(Collectors.toList());
 
+        // 두 개의 스트림을 각각 처리하여 병합
         List<HomePerformanceDetail> positiveDueDates = performanceDetails.stream()
                 .filter(detail -> detail.dueDate() >= 0)
                 .sorted((p1, p2) -> Integer.compare(p1.dueDate(), p2.dueDate()))
@@ -146,6 +147,7 @@ public class PerformanceService {
                 .sorted((p1, p2) -> Integer.compare(p2.dueDate(), p1.dueDate()))
                 .collect(Collectors.toList());
 
+        // 병합된 리스트
         positiveDueDates.addAll(negativeDueDates);
 
         List<HomePromotionDetail> promotions = getPromotions();
@@ -163,6 +165,5 @@ public class PerformanceService {
                 ))
                 .collect(Collectors.toList());
     }
-
 
 }
