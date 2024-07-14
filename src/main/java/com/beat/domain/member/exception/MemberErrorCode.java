@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum MemberErrorCode implements BaseErrorCode {
-    MEMBER_NOT_FOUND(404, "유저가 없습니다"),
+    MEMBER_NOT_FOUND(404, "회원이 없습니다"),
     SOCIAL_TYPE_BAD_REQUEST(400, "로그인 요청이 유효하지 않습니다.");
 
     private final int status;
