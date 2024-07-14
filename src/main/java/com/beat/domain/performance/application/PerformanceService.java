@@ -1,6 +1,9 @@
 package com.beat.domain.performance.application;
 
+import com.beat.domain.performance.application.dto.PerformanceDetailCast;
 import com.beat.domain.performance.application.dto.PerformanceDetailResponse;
+import com.beat.domain.performance.application.dto.PerformanceDetailSchedule;
+import com.beat.domain.performance.application.dto.PerformanceDetailStaff;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
@@ -29,23 +32,23 @@ public class PerformanceService {
         Performance performance = performanceRepository.findById(performanceId)
                 .orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-        List<PerformanceDetailResponse.ScheduleDetail> scheduleList = scheduleRepository.findByPerformanceId(performanceId).stream()
-                .map(schedule -> PerformanceDetailResponse.ScheduleDetail.of(
+        List<PerformanceDetailSchedule> scheduleList = scheduleRepository.findByPerformanceId(performanceId).stream()
+                .map(schedule -> PerformanceDetailSchedule.of(
                         schedule.getId(),
                         schedule.getPerformanceDate(),
                         schedule.getScheduleNumber().name()
                 )).collect(Collectors.toList());
 
-        List<PerformanceDetailResponse.CastDetail> castList = castRepository.findByPerformanceId(performanceId).stream()
-                .map(cast -> PerformanceDetailResponse.CastDetail.of(
+        List<PerformanceDetailCast> castList = castRepository.findByPerformanceId(performanceId).stream()
+                .map(cast -> PerformanceDetailCast.of(
                         cast.getId(),
                         cast.getCastName(),
                         cast.getCastRole(),
                         cast.getCastPhoto()
                 )).collect(Collectors.toList());
 
-        List<PerformanceDetailResponse.StaffDetail> staffList = staffRepository.findByPerformanceId(performanceId).stream()
-                .map(staff -> PerformanceDetailResponse.StaffDetail.of(
+        List<PerformanceDetailStaff> staffList = staffRepository.findByPerformanceId(performanceId).stream()
+                .map(staff -> PerformanceDetailStaff.of(
                         staff.getId(),
                         staff.getStaffName(),
                         staff.getStaffRole(),
