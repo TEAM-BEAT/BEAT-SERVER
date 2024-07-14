@@ -8,7 +8,7 @@ import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.repository.UserRepository;
+import com.beat.domain.user.dao.UserRepository;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +28,7 @@ public class GuestBookingService {
     private final UserRepository userRepository;
 
     @Transactional
-    public GuestBookingResponse createGuestBooking(GuestBookingRequest guestBookingRequest) {
+        public GuestBookingResponse createGuestBooking(GuestBookingRequest guestBookingRequest) {
         Schedule schedule = scheduleRepository.lockById(guestBookingRequest.scheduleId())
                 .orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
 
@@ -70,15 +70,15 @@ public class GuestBookingService {
 
         return GuestBookingResponse.of(
                 booking.getId(),
-                booking.getSchedule().getId(),
+                schedule.getId(),
                 booking.getUsers().getId(),
                 booking.getPurchaseTicketCount(),
-                booking.getSchedule().getScheduleNumber().getDisplayName(),
+                schedule.getScheduleNumber().getDisplayName(),
                 booking.getBookerName(),
                 booking.getBookerPhoneNumber(),
                 booking.isPaymentCompleted(),
-                booking.getSchedule().getPerformance().getBankName().getDisplayName(),
-                booking.getSchedule().getPerformance().getAccountNumber(),
+                schedule.getPerformance().getBankName().getDisplayName(),
+                schedule.getPerformance().getAccountNumber(),
                 totalPaymentAmount,
                 booking.getCreatedAt()
         );
