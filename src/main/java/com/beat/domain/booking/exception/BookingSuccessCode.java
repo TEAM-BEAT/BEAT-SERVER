@@ -9,7 +9,8 @@ import lombok.RequiredArgsConstructor;
 public enum BookingSuccessCode implements BaseSuccessCode {
     MEMBER_BOOKING_SUCCESS(201, "회원 예매가 성공적으로 완료되었습니다"),
     GUEST_BOOKING_SUCCESS(201, "비회원 예매가 성공적으로 완료되었습니다"),
-    BOOKING_RETRIEVE_SUCCESS(200, "비회원 예매 조회가 성공적으로 완료되었습니다.")
+    MEMBER_BOOKING_RETRIEVE_SUCCESS(200, "회원 예매 조회가 성공적으로 완료되었습니다."),
+    GUEST_BOOKING_RETRIEVE_SUCCESS(200, "비회원 예매 조회가 성공적으로 완료되었습니다.")
     ;
 
     private final int status;
