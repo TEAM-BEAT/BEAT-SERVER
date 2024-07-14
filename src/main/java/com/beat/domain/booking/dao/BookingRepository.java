@@ -20,4 +20,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             String birthDate,
             String password
     );
+
+    List<Booking> findByUsersId(Long userId);
 }

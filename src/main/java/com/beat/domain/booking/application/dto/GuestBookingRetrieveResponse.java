@@ -2,7 +2,7 @@ package com.beat.domain.booking.application.dto;
 
 import java.time.LocalDateTime;
 
-public record BookingRetrieveResponse(
+public record GuestBookingRetrieveResponse(
         Long bookingId,
         Long scheduleId,
         String performanceTitle,
@@ -18,7 +18,7 @@ public record BookingRetrieveResponse(
         boolean isPaymentCompleted,
         LocalDateTime createdAt
 ) {
-    public static BookingRetrieveResponse of(
+    public static GuestBookingRetrieveResponse of(
             Long bookingId,
             Long scheduleId,
             String performanceTitle,
@@ -34,7 +34,7 @@ public record BookingRetrieveResponse(
             boolean isPaymentCompleted,
             LocalDateTime createdAt
     ) {
-        return new BookingRetrieveResponse(
+        return new GuestBookingRetrieveResponse(
                 bookingId,
                 scheduleId,
                 performanceTitle,

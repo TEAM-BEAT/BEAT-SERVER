@@ -1,7 +1,7 @@
 package com.beat.domain.booking.application;
 
-import com.beat.domain.booking.application.dto.BookingRetrieveRequest;
-import com.beat.domain.booking.application.dto.BookingRetrieveResponse;
+import com.beat.domain.booking.application.dto.GuestBookingRetrieveRequest;
+import com.beat.domain.booking.application.dto.GuestBookingRetrieveResponse;
 import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.exception.BookingErrorCode;
@@ -17,16 +17,16 @@ import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
-public class BookingRetrieveService {
+public class GuestBookingRetrieveService {
 
     private final BookingRepository bookingRepository;
 
-    public List<BookingRetrieveResponse> findGuestBookings(BookingRetrieveRequest bookingRetrieveRequest) {
+    public List<GuestBookingRetrieveResponse> findGuestBookings(GuestBookingRetrieveRequest guestBookingRetrieveRequest) {
 
-        validateRequest(bookingRetrieveRequest);
+        validateRequest(guestBookingRetrieveRequest);
 
         List<Booking> bookings = bookingRepository.findByBookerNameAndBookerPhoneNumberAndPasswordAndBirthDate(
-                        bookingRetrieveRequest.bookerName(), bookingRetrieveRequest.bookerPhoneNumber(), bookingRetrieveRequest.password(), bookingRetrieveRequest.birthDate()).orElseThrow(
+                        guestBookingRetrieveRequest.bookerName(), guestBookingRetrieveRequest.bookerPhoneNumber(), guestBookingRetrieveRequest.password(), guestBookingRetrieveRequest.birthDate()).orElseThrow(
                                 () -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
         if (bookings.isEmpty()) {
@@ -38,33 +38,33 @@ public class BookingRetrieveService {
                 .toList();
     }
 
-    private void validateRequest(BookingRetrieveRequest bookingRetrieveRequest) {
-        if (bookingRetrieveRequest.bookerName() == null || bookingRetrieveRequest.bookerPhoneNumber() == null || bookingRetrieveRequest.password() == null || bookingRetrieveRequest.birthDate() == null) {
+    private void validateRequest(GuestBookingRetrieveRequest guestBookingRetrieveRequest) {
+        if (guestBookingRetrieveRequest.bookerName() == null || guestBookingRetrieveRequest.bookerPhoneNumber() == null || guestBookingRetrieveRequest.password() == null || guestBookingRetrieveRequest.birthDate() == null) {
             throw new BadRequestException(BookingErrorCode.REQUIRED_DATA_MISSING);
         }
 
-        if (!Pattern.matches("^[a-zA-Z가-힣]+$", bookingRetrieveRequest.bookerName())) { // 예매자 이름은 알파벳, 한글 형식
+        if (!Pattern.matches("^[a-zA-Z가-힣]+$", guestBookingRetrieveRequest.bookerName())) { // 예매자 이름은 알파벳, 한글 형식
             throw new BadRequestException(BookingErrorCode.INVALID_REQUEST_FORMAT);
         }
 
-        if (!Pattern.matches("^\\d{3}-\\d{4}-\\d{4}$", bookingRetrieveRequest.bookerPhoneNumber())) { // 전화번호는 010-1234-5678 형식
+        if (!Pattern.matches("^\\d{3}-\\d{4}-\\d{4}$", guestBookingRetrieveRequest.bookerPhoneNumber())) { // 전화번호는 010-1234-5678 형식
             throw new BadRequestException(BookingErrorCode.INVALID_REQUEST_FORMAT);
         }
 
-        if (!Pattern.matches("^\\d{4}$", bookingRetrieveRequest.password())) { // 비밀번호는 4자리 숫자 형식
+        if (!Pattern.matches("^\\d{4}$", guestBookingRetrieveRequest.password())) { // 비밀번호는 4자리 숫자 형식
             throw new BadRequestException(BookingErrorCode.INVALID_REQUEST_FORMAT);
         }
 
-        if (!Pattern.matches("^\\d{6}$", bookingRetrieveRequest.birthDate())) { // 생년월일은 6자리 숫자 형식
+        if (!Pattern.matches("^\\d{6}$", guestBookingRetrieveRequest.birthDate())) { // 생년월일은 6자리 숫자 형식
             throw new BadRequestException(BookingErrorCode.INVALID_REQUEST_FORMAT);
         }
     }
 
-    private BookingRetrieveResponse toBookingResponse(Booking booking) {
+    private GuestBookingRetrieveResponse toBookingResponse(Booking booking) {
         Schedule schedule = booking.getSchedule();
         Performance performance = schedule.getPerformance();
 
-        return BookingRetrieveResponse.of(
+        return GuestBookingRetrieveResponse.of(
                 booking.getId(),
                 schedule.getId(),
                 performance.getPerformanceTitle(),
