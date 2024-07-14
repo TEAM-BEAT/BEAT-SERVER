@@ -1,5 +1,6 @@
 package com.beat.domain.performance.api;
 
+import com.beat.domain.performance.application.dto.BookingPerformanceDetailResponse;
 import com.beat.domain.performance.application.dto.PerformanceDetailResponse;
 import com.beat.domain.performance.exception.PerformanceSuccessCode;
 import com.beat.domain.performance.application.PerformanceService;
@@ -23,5 +24,12 @@ public class PerformanceController {
             @PathVariable Long performanceId) {
         PerformanceDetailResponse performanceDetail = performanceService.getPerformanceDetail(performanceId);
         return ResponseEntity.ok(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_RETRIEVE_SUCCESS, performanceDetail));
+    }
+
+    @GetMapping("/booking/{performanceId}")
+    public ResponseEntity<SuccessResponse<BookingPerformanceDetailResponse>> getBookingPerformanceDetail(
+            @PathVariable Long performanceId) {
+        BookingPerformanceDetailResponse bookingPerformanceDetail = performanceService.getBookingPerformanceDetail(performanceId);
+        return ResponseEntity.ok(SuccessResponse.of(PerformanceSuccessCode.BOOKING_PERFORMANCE_RETRIEVE_SUCCESS, bookingPerformanceDetail));
     }
 }
