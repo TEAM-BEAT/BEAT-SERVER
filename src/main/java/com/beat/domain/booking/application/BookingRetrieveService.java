@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
-public class BookingService {
+public class BookingRetrieveService {
 
     private final BookingRepository bookingRepository;
 
@@ -65,8 +65,8 @@ public class BookingService {
         Performance performance = schedule.getPerformance();
 
         return BookingRetrieveResponse.of(
-                booking.getBookingId(),
-                schedule.getScheduleId(),
+                booking.getId(),
+                schedule.getId(),
                 performance.getPerformanceTitle(),
                 schedule.getPerformanceDate(),
                 performance.getPerformanceVenue(),
@@ -76,7 +76,7 @@ public class BookingService {
                 booking.getBookerPhoneNumber(),
                 performance.getBankName().name(),
                 performance.getAccountNumber(),
-                schedule.getScheduleId().intValue(),
+                schedule.getId().intValue(),
                 booking.isPaymentCompleted(),
                 booking.getCreatedAt()
         );

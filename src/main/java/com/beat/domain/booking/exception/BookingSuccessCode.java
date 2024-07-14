@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum BookingSuccessCode implements BaseSuccessCode {
+    BOOKING_SUCCESS(200, "비회원 예매가 성공적으로 완료되었습니다"),
     BOOKING_RETRIEVE_SUCCESS(200, "비회원 예매 조회가 성공적으로 완료되었습니다.")
     ;
 

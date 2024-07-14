@@ -16,7 +16,7 @@ public class Cast{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long castId;
+    private Long id;
 
     @Column(nullable = false)
     private String castName;
