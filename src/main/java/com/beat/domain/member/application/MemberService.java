@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional(readOnly = false)
 @Service
 public class MemberService {
     private final UserRepository userRepository;
