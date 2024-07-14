@@ -27,7 +27,7 @@ public class ScheduleService {
                 () -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND)
         );
 
-        int availableTicketCount = schedule.getTotalTicketCount() - schedule.getSoldTicketCount();
+        int availableTicketCount = getAvailableTicketCount(schedule);
         boolean isAvailable = availableTicketCount >= ticketAvailabilityRequest.purchaseTicketCount();
 
         if (!isAvailable) {
