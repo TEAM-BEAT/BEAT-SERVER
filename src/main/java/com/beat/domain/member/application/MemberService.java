@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @RequiredArgsConstructor
-@Transactional(readOnly = false)
+@Transactional(readOnly = true)
 @Service
 public class MemberService {
     private final UserRepository userRepository;
@@ -31,6 +31,7 @@ public class MemberService {
     private final TokenService tokenService;
     private final KakaoSocialService kakaoSocialService;
 
+    @Transactional
     public LoginSuccessResponse create(
             final String authorizationCode,
             final MemberLoginRequest loginRequest
@@ -79,6 +80,7 @@ public class MemberService {
         return member;
     }
 
+    @Transactional
     public AccessTokenGetSuccess refreshToken(
             final String refreshToken
     ) {
