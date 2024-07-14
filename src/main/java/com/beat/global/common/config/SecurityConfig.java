@@ -32,7 +32,8 @@ public class SecurityConfig {
             "/api/v1/v3/api-docs/**",
             "/api/v1/swagger-ui/**",
             "/api/v1/swagger-resources/**",
-            "/api/performances/detail/**"
+            "/api/performances/detail/**",
+            "/api/performances/booking/**",
 //            "/login/oauth2/code/kakao",
 //            "/kakao/callback"
     };
