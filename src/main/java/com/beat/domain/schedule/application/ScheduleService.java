@@ -1,5 +1,4 @@
 package com.beat.domain.schedule.application;
-
 import com.beat.domain.schedule.application.dto.TicketAvailabilityRequest;
 import com.beat.domain.schedule.application.dto.TicketAvailabilityResponse;
 import com.beat.domain.schedule.dao.ScheduleRepository;
@@ -12,7 +11,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.OptionalInt;
 
 @Service
 @RequiredArgsConstructor
@@ -68,4 +71,27 @@ public class ScheduleService {
             scheduleRepository.save(schedule);
         }
     }
+
+    public int calculateDueDate(Schedule schedule) {
+        // LocalDate 객체를 사용하여 날짜 차이만 계산
+        int dueDate = (int) ChronoUnit.DAYS.between(LocalDate.now(), schedule.getPerformanceDate().toLocalDate());
+        return dueDate;
+    }
+
+    public int getMinDueDate(List<Schedule> schedules) {
+        OptionalInt minPositiveDueDate = schedules.stream()
+                .mapToInt(this::calculateDueDate)
+                .filter(dueDate -> dueDate >= 0)
+                .min();
+
+        if (minPositiveDueDate.isPresent()) {
+            return minPositiveDueDate.getAsInt();
+        } else {
+            return schedules.stream()
+                    .mapToInt(this::calculateDueDate)
+                    .min()
+                    .orElse(Integer.MAX_VALUE);
+        }
+    }
+
 }
