@@ -32,10 +32,6 @@ public class MemberBookingService {
     private final UserRepository userRepository;
 
     @Transactional(timeout = 200)
-    @Retryable(
-            value = {PessimisticLockException.class},
-            maxAttempts = 5,
-            backoff = @Backoff(delay = 1000))
     public MemberBookingResponse createMemberBooking(Long memberId, MemberBookingRequest memberBookingRequest) {
         Schedule schedule = scheduleRepository.lockById(memberBookingRequest.scheduleId())
                 .orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));

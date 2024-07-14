@@ -28,7 +28,7 @@ public class GuestBookingService {
     private final UserRepository userRepository;
 
     @Transactional
-        public GuestBookingResponse createGuestBooking(GuestBookingRequest guestBookingRequest) {
+    public GuestBookingResponse createGuestBooking(GuestBookingRequest guestBookingRequest) {
         Schedule schedule = scheduleRepository.lockById(guestBookingRequest.scheduleId())
                 .orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
 
