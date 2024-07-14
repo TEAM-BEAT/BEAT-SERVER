@@ -15,10 +15,7 @@ import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.exception.UserErrorCode;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.NotFoundException;
-import jakarta.persistence.PessimisticLockException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
