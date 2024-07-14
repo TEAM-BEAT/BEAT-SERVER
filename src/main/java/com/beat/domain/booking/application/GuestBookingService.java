@@ -70,15 +70,15 @@ public class GuestBookingService {
 
         return GuestBookingResponse.of(
                 booking.getId(),
-                booking.getSchedule().getId(),
+                schedule.getId(),
                 booking.getUsers().getId(),
                 booking.getPurchaseTicketCount(),
-                booking.getSchedule().getScheduleNumber().getDisplayName(),
+                schedule.getScheduleNumber().getDisplayName(),
                 booking.getBookerName(),
                 booking.getBookerPhoneNumber(),
                 booking.isPaymentCompleted(),
-                booking.getSchedule().getPerformance().getBankName().getDisplayName(),
-                booking.getSchedule().getPerformance().getAccountNumber(),
+                schedule.getPerformance().getBankName().getDisplayName(),
+                schedule.getPerformance().getAccountNumber(),
                 totalPaymentAmount,
                 booking.getCreatedAt()
         );

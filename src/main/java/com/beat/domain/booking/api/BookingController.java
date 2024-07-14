@@ -2,11 +2,15 @@ package com.beat.domain.booking.api;
 
 import com.beat.domain.booking.application.BookingRetrieveService;
 import com.beat.domain.booking.application.GuestBookingService;
+import com.beat.domain.booking.application.MemberBookingService;
 import com.beat.domain.booking.application.dto.BookingRetrieveRequest;
 import com.beat.domain.booking.application.dto.BookingRetrieveResponse;
 import com.beat.domain.booking.application.dto.GuestBookingRequest;
 import com.beat.domain.booking.application.dto.GuestBookingResponse;
+import com.beat.domain.booking.application.dto.MemberBookingRequest;
+import com.beat.domain.booking.application.dto.MemberBookingResponse;
 import com.beat.domain.booking.exception.BookingSuccessCode;
+import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,13 +29,23 @@ public class BookingController {
 
     private final BookingRetrieveService bookingRetrieveService;
     private final GuestBookingService guestBookingService;
+    private final MemberBookingService memberBookingService;
+
+    @PostMapping("/member")
+    public ResponseEntity<SuccessResponse<MemberBookingResponse>> createMemberBooking(
+            @CurrentMember Long memberId,
+            @RequestBody MemberBookingRequest memberBookingRequest) {
+        MemberBookingResponse response = memberBookingService.createMemberBooking(memberId, memberBookingRequest);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(SuccessResponse.of(BookingSuccessCode.MEMBER_BOOKING_SUCCESS, response));
+    }
 
     @PostMapping("/guest")
     public ResponseEntity<SuccessResponse<GuestBookingResponse>> createGuestBookings(
             @RequestBody GuestBookingRequest guestBookingRequest) {
         GuestBookingResponse response = guestBookingService.createGuestBooking(guestBookingRequest);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(SuccessResponse.of(BookingSuccessCode.BOOKING_SUCCESS, response));
+                .body(SuccessResponse.of(BookingSuccessCode.GUEST_BOOKING_SUCCESS, response));
     }
 
     @PostMapping("/guest/retrieve")
