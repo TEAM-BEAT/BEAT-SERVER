@@ -11,7 +11,7 @@ import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.booking.dao.BookingRepository;
-import com.beat.domain.user.repository.UserRepository;
+import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
 
 import org.junit.jupiter.api.BeforeEach;
