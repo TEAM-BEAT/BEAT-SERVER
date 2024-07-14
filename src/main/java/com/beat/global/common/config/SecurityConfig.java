@@ -6,6 +6,7 @@ import com.beat.global.auth.security.CustomJwtAuthenticationEntryPoint;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -31,6 +32,7 @@ public class SecurityConfig {
             "/api/v1/v3/api-docs/**",
             "/api/v1/swagger-ui/**",
             "/api/v1/swagger-resources/**",
+            "/api/performances/detail/**"
 //            "/login/oauth2/code/kakao",
 //            "/kakao/callback"
     };
