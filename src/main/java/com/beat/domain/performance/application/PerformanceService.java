@@ -1,12 +1,10 @@
 package com.beat.domain.performance.application;
 
-import com.beat.domain.performance.application.dto.PerformanceDetailCast;
-import com.beat.domain.performance.application.dto.PerformanceDetailResponse;
-import com.beat.domain.performance.application.dto.PerformanceDetailSchedule;
-import com.beat.domain.performance.application.dto.PerformanceDetailStaff;
+import com.beat.domain.performance.application.dto.*;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
+import com.beat.domain.schedule.application.ScheduleService;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.cast.dao.CastRepository;
 import com.beat.domain.staff.dao.StaffRepository;
@@ -26,6 +24,7 @@ public class PerformanceService {
     private final ScheduleRepository scheduleRepository;
     private final CastRepository castRepository;
     private final StaffRepository staffRepository;
+    private final ScheduleService scheduleService;
 
     @Transactional(readOnly = true)
     public PerformanceDetailResponse getPerformanceDetail(Long performanceId) {
@@ -71,6 +70,36 @@ public class PerformanceService {
                 performance.getPerformanceTeamName(),
                 castList,
                 staffList
+        );
+    }
+
+    @Transactional
+    public BookingPerformanceDetailResponse getBookingPerformanceDetail(Long performanceId) {
+        Performance performance = performanceRepository.findById(performanceId)
+                .orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+
+        List<BookingPerformanceDetailSchedule> scheduleList = scheduleRepository.findByPerformanceId(performanceId).stream()
+                .map(schedule -> {
+                    scheduleService.updateBookingStatus(schedule);
+                    return BookingPerformanceDetailSchedule.of(
+                            schedule.getId(),
+                            schedule.getPerformanceDate(),
+                            schedule.getScheduleNumber().name(),
+                            scheduleService.getAvailableTicketCount(schedule),
+                            schedule.isBooking()
+                    );
+                }).collect(Collectors.toList());
+
+        return BookingPerformanceDetailResponse.of(
+                performance.getId(),
+                performance.getPerformanceTitle(),
+                performance.getPerformancePeriod(),
+                scheduleList,
+                performance.getTicketPrice(),
+                performance.getGenre().name(),
+                performance.getPosterImage(),
+                performance.getPerformanceVenue(),
+                performance.getPerformanceTeamName()
         );
     }
 }
