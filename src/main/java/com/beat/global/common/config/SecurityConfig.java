@@ -3,17 +3,14 @@ package com.beat.global.common.config;
 import com.beat.global.auth.jwt.filter.JwtAuthenticationFilter;
 import com.beat.global.auth.security.CustomAccessDeniedHandler;
 import com.beat.global.auth.security.CustomJwtAuthenticationEntryPoint;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @EnableWebSecurity
@@ -34,6 +31,8 @@ public class SecurityConfig {
             "/api/v1/swagger-resources/**",
             "/api/performances/detail/**",
             "/api/performances/booking/**",
+            "/api/bookings/guest/**",
+            "/api/schedules/**"
 //            "/login/oauth2/code/kakao",
 //            "/kakao/callback"
     };
