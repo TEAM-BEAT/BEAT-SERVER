@@ -25,24 +25,24 @@ spring:
     redis:
       host: localhost
       port: 6379
-  security:
-    oauth2:
-      client:
-        registration:
-          kakao:
-            client-id: ${KAKAO_CLIENT_ID}
-            client-secret: ${KAKAO_CLIENT_SECRET}
-            redirect-uri: ${KAKAO_REDIRECT_URI}
-            client-authentication-method: POST
-            authorization-grant-type: authorization_code
-            scope: profile_nickname, account_email
-            client-name: Kakao
-        provider:
-          kakao:
-            authorization-uri: https://kauth.kakao.com/oauth/authorize
-            token-uri: https://kauth.kakao.com/oauth/token
-            user-info-uri: https://kapi.kakao.com/v2/user/me
-            user-name-attribute: id
+    security:
+      oauth2:
+        client:
+          registration:
+            kakao:
+              client-id: ${KAKAO_CLIENT_ID}
+              client-secret: ${KAKAO_CLIENT_SECRET}
+              redirect-uri: ${KAKAO_REDIRECT_URI}
+              client-authentication-method: POST
+              authorization-grant-type: authorization_code
+              scope: profile_nickname, account_email
+              client-name: Kakao
+          provider:
+            kakao:
+              authorization-uri: https://kauth.kakao.com/oauth/authorize
+              token-uri: https://kauth.kakao.com/oauth/token
+              user-info-uri: https://kapi.kakao.com/v2/user/me
+              user-name-attribute: id
 
 jwt:
   secret: ${JWT_SECRET}
