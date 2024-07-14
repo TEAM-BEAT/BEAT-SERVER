@@ -10,7 +10,7 @@ import com.beat.domain.booking.application.dto.GuestBookingResponse;
 import com.beat.domain.booking.application.dto.MemberBookingRequest;
 import com.beat.domain.booking.application.dto.MemberBookingResponse;
 import com.beat.domain.booking.exception.BookingSuccessCode;
-import com.beat.global.auth.annotation.CurrentUser;
+import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,7 +33,7 @@ public class BookingController {
 
     @PostMapping("/member")
     public ResponseEntity<SuccessResponse<MemberBookingResponse>> createMemberBooking(
-            @CurrentUser Long memberId,
+            @CurrentMember Long memberId,
             @RequestBody MemberBookingRequest memberBookingRequest) {
         MemberBookingResponse response = memberBookingService.createMemberBooking(memberId, memberBookingRequest);
         return ResponseEntity.status(HttpStatus.CREATED)

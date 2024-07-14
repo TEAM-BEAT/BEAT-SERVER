@@ -1,6 +1,6 @@
 package com.beat.global.auth.resolver;
 
-import com.beat.global.auth.annotation.CurrentUser;
+import com.beat.global.auth.annotation.CurrentMember;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.MethodParameter;
 import org.springframework.security.core.Authentication;
@@ -17,7 +17,7 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
-        return parameter.getParameterAnnotation(CurrentUser.class) != null && parameter.getParameterType().equals(Long.class);
+        return parameter.getParameterAnnotation(CurrentMember.class) != null && parameter.getParameterType().equals(Long.class);
     }
 
     @Override
