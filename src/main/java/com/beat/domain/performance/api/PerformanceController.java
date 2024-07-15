@@ -1,9 +1,11 @@
 package com.beat.domain.performance.api;
 
 import com.beat.domain.performance.application.dto.BookingPerformanceDetailResponse;
+import com.beat.domain.performance.application.dto.MakerPerformanceResponse;
 import com.beat.domain.performance.application.dto.PerformanceDetailResponse;
 import com.beat.domain.performance.exception.PerformanceSuccessCode;
 import com.beat.domain.performance.application.PerformanceService;
+import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -34,5 +36,12 @@ public class PerformanceController {
             @PathVariable Long performanceId) {
         BookingPerformanceDetailResponse bookingPerformanceDetail = performanceService.getBookingPerformanceDetail(performanceId);
         return ResponseEntity.ok(SuccessResponse.of(PerformanceSuccessCode.BOOKING_PERFORMANCE_RETRIEVE_SUCCESS, bookingPerformanceDetail));
+    }
+
+    @Operation(summary = "회원이 등록한 공연 목록 조회 API", description = "회원이 등록한 공연 목록을 조회하는 GET API입니다.")
+    @GetMapping("/user")
+    public ResponseEntity<SuccessResponse<MakerPerformanceResponse>> getUserPerformances(@CurrentMember Long memberId) {
+        MakerPerformanceResponse response = performanceService.getMemberPerformances(memberId);
+        return ResponseEntity.ok(SuccessResponse.of(PerformanceSuccessCode.MAKER_PERFORMANCE_RETRIEVE_SUCCESS, response));
     }
 }
