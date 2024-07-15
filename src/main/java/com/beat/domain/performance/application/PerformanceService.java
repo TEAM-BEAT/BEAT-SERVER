@@ -1,4 +1,7 @@
 package com.beat.domain.performance.application;
+import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.domain.Member;
+import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.application.dto.*;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
@@ -10,6 +13,9 @@ import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.cast.dao.CastRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.staff.dao.StaffRepository;
+import com.beat.domain.user.dao.UserRepository;
+import com.beat.domain.user.domain.Users;
+import com.beat.domain.user.exception.UserErrorCode;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +33,8 @@ public class PerformanceService {
     private final StaffRepository staffRepository;
     private final ScheduleService scheduleService;
     private final PromotionRepository promotionRepository;
+    private final MemberRepository memberRepository;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public PerformanceDetailResponse getPerformanceDetail(Long performanceId) {
@@ -166,6 +174,29 @@ public class PerformanceService {
                         promotion.getPerformance().getId()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public MakerPerformanceResponse getMemberPerformances(Long memberId) {
+        Member member = memberRepository.findById(memberId).orElseThrow(
+                () -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        Users user = userRepository.findById(member.getUser().getId()).orElseThrow(
+                () -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+
+        List<Performance> performances = performanceRepository.findByUsersId(user.getId());
+
+        List<MakerPerformanceDetail> performanceDetails = performances.stream()
+                .map(performance -> MakerPerformanceDetail.of(
+                        performance.getId(),
+                        performance.getGenre().name(),
+                        performance.getPerformanceTitle(),
+                        performance.getPosterImage(),
+                        performance.getPerformancePeriod()
+                ))
+                .collect(Collectors.toList());
+
+        return MakerPerformanceResponse.of(user.getId(), performanceDetails);
     }
 
 }
