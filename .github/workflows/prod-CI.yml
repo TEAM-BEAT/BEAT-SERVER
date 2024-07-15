@@ -43,6 +43,10 @@ jobs:
           PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
           PROD_DB_USERNAME: ${{ secrets.PROD_DB_USERNAME }}
           PROD_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+          PROD_JWT_SECRET: ${{ secrets.PROD_JWT_SECRET }}
+          PROD_KAKAO_CLIENT_ID: ${{ secrets.PROD_KAKAO_CLIENT_ID }}
+          PROD_KAKAO_CLIENT_SECRET: ${{ secrets.PROD_KAKAO_CLIENT_SECRET }}
+          PROD_KAKAO_REDIRECT_URI: ${{ secrets.PROD_KAKAO_REDIRECT_URI }}
         run: |
           cd ./src/main/resources
           envsubst < application-prod.yml > application-prod.tmp.yml && mv application-prod.tmp.yml application-prod.yml
