@@ -43,6 +43,10 @@ jobs:
           DEV_DB_URL: ${{ secrets.DEV_DB_URL }}
           DEV_DB_USERNAME: ${{ secrets.DEV_DB_USERNAME }}
           DEV_DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
+          DEV_JWT_SECRET: ${{ secrets.DEV_JWT_SECRET }}
+          DEV_KAKAO_CLIENT_ID: ${{ secrets.DEV_KAKAO_CLIENT_ID }}
+          DEV_KAKAO_CLIENT_SECRET: ${{ secrets.DEV_KAKAO_CLIENT_SECRET }}
+          DEV_KAKAO_REDIRECT_URI: ${{ secrets.DEV_KAKAO_REDIRECT_URI }}
         run: |
           cd ./src/main/resources
           envsubst < application-dev.yml > application-dev.tmp.yml && mv application-dev.tmp.yml application-dev.yml
