@@ -1,0 +1,117 @@
+package com.beat.domain.booking.application;
+
+import com.beat.domain.booking.application.dto.*;
+import com.beat.domain.booking.dao.TicketRepository;
+import com.beat.domain.booking.domain.Booking;
+import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.domain.Member;
+import com.beat.domain.member.exception.MemberErrorCode;
+import com.beat.domain.performance.dao.PerformanceRepository;
+import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.domain.booking.exception.BookingErrorCode;
+import com.beat.global.common.exception.NotFoundException;
+import com.beat.domain.user.dao.UserRepository;
+import com.beat.domain.user.domain.Users;
+import com.beat.domain.user.exception.UserErrorCode;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class TicketService {
+
+    private final TicketRepository ticketRepository;
+    private final PerformanceRepository performanceRepository;
+    private final MemberRepository memberRepository;
+    private final UserRepository userRepository;
+
+    public TicketRetrieveResponse getTickets(Long memberId, Long performanceId, ScheduleNumber scheduleNumber, Boolean isPaymentCompleted) {
+        Member member = memberRepository.findById(memberId).orElseThrow(
+                () -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        Users user = userRepository.findById(member.getUser().getId()).orElseThrow(
+                () -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+
+        Performance performance = performanceRepository.findById(performanceId)
+                .orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
+
+        List<Booking> bookings;
+
+        if (scheduleNumber != null && isPaymentCompleted != null) {
+            bookings = ticketRepository.findBySchedulePerformanceIdAndScheduleScheduleNumberAndIsPaymentCompleted(performanceId, scheduleNumber, isPaymentCompleted);
+        } else if (scheduleNumber != null) {
+            bookings = ticketRepository.findBySchedulePerformanceIdAndScheduleScheduleNumber(performanceId, scheduleNumber);
+        } else if (isPaymentCompleted != null) {
+            bookings = ticketRepository.findBySchedulePerformanceIdAndIsPaymentCompleted(performanceId, isPaymentCompleted);
+        } else {
+            bookings = ticketRepository.findBySchedulePerformanceId(performanceId);
+        }
+
+        if (bookings.isEmpty()) {
+            throw new NotFoundException(BookingErrorCode.NO_TICKETS_FOUND);
+        }
+
+        List<TicketDetail> bookingList = bookings.stream()
+                .map(booking -> TicketDetail.of(
+                        booking.getId(),
+                        booking.getBookerName(),
+                        booking.getBookerPhoneNumber(),
+                        booking.getSchedule().getId(),
+                        booking.getPurchaseTicketCount(),
+                        booking.getCreatedAt(),
+                        booking.isPaymentCompleted(),
+                        booking.getSchedule().getScheduleNumber().name()
+                ))
+                .collect(Collectors.toList());
+
+        return TicketRetrieveResponse.of(
+                performance.getPerformanceTitle(),
+                performance.getTotalScheduleCount(),
+                bookingList
+        );
+    }
+
+    @Transactional
+    public void updateTickets(Long memberId, TicketUpdateRequest request) {
+        Member member = memberRepository.findById(memberId).orElseThrow(
+                () -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        Users user = userRepository.findById(member.getUser().getId()).orElseThrow(
+                () -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+
+        Performance performance = performanceRepository.findById(request.performanceId())
+                .orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_PERFORMANCE_FOUND));
+
+        for (TicketUpdateDetail detail : request.bookingList()) {
+            Booking booking = ticketRepository.findById(detail.bookingId())
+                    .orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
+
+            booking.setIsPaymentCompleted(detail.isPaymentCompleted());
+            ticketRepository.save(booking);
+        }
+    }
+
+    @Transactional
+    public void deleteTickets(Long memberId, TicketDeleteRequest request) {
+        Member member = memberRepository.findById(memberId).orElseThrow(
+                () -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        Users user = userRepository.findById(member.getUser().getId()).orElseThrow(
+                () -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+
+        Performance performance = performanceRepository.findById(request.performanceId())
+                .orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_PERFORMANCE_FOUND));
+
+        for (Long bookingId : request.bookingList()) {
+            Booking booking = ticketRepository.findById(bookingId)
+                    .orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
+
+            ticketRepository.delete(booking);
+        }
+    }
+}

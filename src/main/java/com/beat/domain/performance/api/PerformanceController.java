@@ -5,6 +5,7 @@ import com.beat.domain.performance.application.dto.PerformanceDetailResponse;
 import com.beat.domain.performance.exception.PerformanceSuccessCode;
 import com.beat.domain.performance.application.PerformanceService;
 import com.beat.global.common.dto.SuccessResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +20,7 @@ public class PerformanceController {
 
     private final PerformanceService performanceService;
 
+    @Operation(summary = "공연 상세정보 조회 API", description = "공연 상세페이지의 공연 상세정보를 조회하는 GET API입니다.")
     @GetMapping("/detail/{performanceId}")
     public ResponseEntity<SuccessResponse<PerformanceDetailResponse>> getPerformanceDetail(
             @PathVariable Long performanceId) {
@@ -26,6 +28,7 @@ public class PerformanceController {
         return ResponseEntity.ok(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_RETRIEVE_SUCCESS, performanceDetail));
     }
 
+    @Operation(summary = "예매하기 관련 공연 정보 조회 API", description = "예매하기 페이지에서 필요한 예매 관련 공연 정보를 조회하는 GET API입니다.")
     @GetMapping("/booking/{performanceId}")
     public ResponseEntity<SuccessResponse<BookingPerformanceDetailResponse>> getBookingPerformanceDetail(
             @PathVariable Long performanceId) {

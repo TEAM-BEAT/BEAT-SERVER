@@ -6,6 +6,7 @@ import com.beat.domain.performance.application.dto.HomeResponse;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.exception.PerformanceSuccessCode;
 import com.beat.global.common.dto.SuccessResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,7 @@ public class HomeController {
 
     private final PerformanceService performanceService;
 
+    @Operation(summary = "전체공연목록, 홍보목록 조회 API", description = "홈화면에서 전체공연목록, 홍보목록을 조회하는 GET API입니다.")
     @GetMapping
     public ResponseEntity<SuccessResponse<HomeResponse>> getHomePerformanceList(@RequestParam(required = false) String genre) {
         HomeRequest homeRequest;

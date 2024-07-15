@@ -83,4 +83,9 @@ public class Booking {
                 .users(users)
                 .build();
     }
+
+    public void setIsPaymentCompleted(boolean isPaymentCompleted) {
+        this.isPaymentCompleted = isPaymentCompleted;
+    }
+
 }

@@ -6,6 +6,7 @@ import com.beat.domain.member.exception.MemberSuccessCode;
 import com.beat.global.auth.client.dto.MemberLoginRequest;
 import com.beat.global.auth.jwt.application.TokenService;
 import com.beat.global.common.dto.SuccessResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,7 @@ public class MemberController {
     private final static int COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
     private final static String REFRESH_TOKEN = "refreshToken";
 
+    @Operation(summary = "로그인/회원가입 API", description = "로그인/회원가입하는 POST API입니다.")
     @PostMapping("/sign-up")
     public ResponseEntity<SuccessResponse<LoginSuccessResponse>> signUp(
             @RequestParam final String authorizationCode,
@@ -43,6 +45,7 @@ public class MemberController {
                 .body(SuccessResponse.of(MemberSuccessCode.SIGN_UP_SUCCESS, LoginSuccessResponse.of(loginSuccessResponse.accessToken(), null, loginSuccessResponse.nickname())));
     }
 
+    @Operation(summary = "access token 재발급 API", description = "refresh token으로 access token을 재발급하는 GET API입니다.")
     @GetMapping("/refresh-token")
     public ResponseEntity<SuccessResponse<AccessTokenGetSuccess>> refreshToken(
             @RequestParam final String refreshToken
@@ -52,6 +55,7 @@ public class MemberController {
                 .body(SuccessResponse.of(MemberSuccessCode.ISSUE_REFRESH_TOKEN_SUCCESS, accessTokenGetSuccess));
     }
 
+    @Operation(summary = "로그아웃 API", description = "로그아웃하는 POST API입니다.")
     @PostMapping("/sign-out")
     public ResponseEntity<SuccessResponse<Void>> signOut(
             final Principal principal
