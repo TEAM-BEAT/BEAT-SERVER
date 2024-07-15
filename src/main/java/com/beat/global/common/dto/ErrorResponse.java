@@ -10,7 +10,7 @@ public record  ErrorResponse(
         return new ErrorResponse(status, message);
     }
 
-    public static ErrorResponse of(final BaseErrorCode baseErrorCode) {
+    public static ErrorResponse from(final BaseErrorCode baseErrorCode) {
         return new ErrorResponse(baseErrorCode.getStatus(), baseErrorCode.getMessage());
     }
 }

@@ -13,8 +13,38 @@ spring:
     password: ${PROD_DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create
     show-sql: false
     properties:
       hibernate:
-        format_sql: false
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${PROD_KAKAO_CLIENT_ID}
+            client-secret: ${PROD_KAKAO_CLIENT_SECRET}
+            redirect-uri: ${PROD_KAKAO_REDIRECT_URI}
+            client-authentication-method: POST
+            authorization-grant-type: authorization_code
+            scope: profile_nickname, account_email
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+jwt:
+  secret: ${PROD_JWT_SECRET}
+  access-token-expire-time: 31536000000 # 365일 (1년) 밀리초
+  refresh-token-expire-time: 1209600000 # 14일 밀리초

@@ -84,7 +84,7 @@ pipeline {
                         // 새로운 컨테이너 실행
                         sshCommand remote: remote, command: (
                             'docker run -d --name springboot' +
-                            ' -p 80:' + INTERNAL_PORT +
+                            ' -p 8080:' + INTERNAL_PORT +
                             ' -e "SPRING_PROFILES_ACTIVE=' + OPERATION_ENV + '"' +
                             ' ' + DOCKER_IMAGE_NAME + ':latest'
                         )
