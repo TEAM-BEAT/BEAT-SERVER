@@ -8,6 +8,7 @@ import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.booking.exception.BookingErrorCode;
 import com.beat.global.common.exception.NotFoundException;
@@ -38,7 +39,7 @@ public class TicketService {
                 () -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
 
         Performance performance = performanceRepository.findById(performanceId)
-                .orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
+                .orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
         List<Booking> bookings;
 
@@ -50,10 +51,6 @@ public class TicketService {
             bookings = ticketRepository.findBySchedulePerformanceIdAndIsPaymentCompleted(performanceId, isPaymentCompleted);
         } else {
             bookings = ticketRepository.findBySchedulePerformanceId(performanceId);
-        }
-
-        if (bookings.isEmpty()) {
-            throw new NotFoundException(BookingErrorCode.NO_TICKETS_FOUND);
         }
 
         List<TicketDetail> bookingList = bookings.stream()
