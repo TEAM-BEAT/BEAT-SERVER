@@ -25,16 +25,14 @@ public class SecurityConfig {
             "/api/users/sign-up",
             "/api/users/refresh-token",
             "/api/users/sign-out",
-            "/api/v1/actuator/health",
-            "/api/v3/api-docs/**",
-            "/api/v1/swagger-ui/**",
-            "/api/v1/swagger-resources/**",
+            "/actuator/health",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-resources/**",
             "/api/performances/detail/**",
             "/api/performances/booking/**",
             "/api/bookings/guest/**",
             "/api/schedules/**"
-//            "/login/oauth2/code/kakao",
-//            "/kakao/callback"
     };
 
     @Bean
