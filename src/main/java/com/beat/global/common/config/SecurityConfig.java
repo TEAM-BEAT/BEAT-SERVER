@@ -26,7 +26,7 @@ public class SecurityConfig {
             "/api/users/refresh-token",
             "/api/users/sign-out",
             "/api/v1/actuator/health",
-            "/api/v1/v3/api-docs/**",
+            "/api/v3/api-docs/**",
             "/api/v1/swagger-ui/**",
             "/api/v1/swagger-resources/**",
             "/api/performances/detail/**",
