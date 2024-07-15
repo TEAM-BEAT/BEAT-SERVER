@@ -42,6 +42,9 @@ public class Performance extends BaseTimeEntity {
     @Column(nullable = true)
     private String accountNumber;
 
+    @Column(nullable = true)
+    private String accountHolder;
+
     @Column(nullable = false)
     private String posterImage;
 
@@ -70,7 +73,7 @@ public class Performance extends BaseTimeEntity {
 
     @Builder
     public Performance(String performanceTitle, Genre genre, int runningTime, String performanceDescription, String performanceAttentionNote,
-                       BankName bankName, String accountNumber, String posterImage, String performanceTeamName, String performanceVenue, String performanceContact,
+                       BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName, String performanceVenue, String performanceContact,
                        String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
         this.performanceTitle = performanceTitle;
         this.genre = genre;
@@ -79,6 +82,7 @@ public class Performance extends BaseTimeEntity {
         this.performanceAttentionNote = performanceAttentionNote;
         this.bankName = bankName;
         this.accountNumber = accountNumber;
+        this.accountHolder = accountHolder;
         this.posterImage = posterImage;
         this.performanceTeamName = performanceTeamName;
         this.performanceVenue = performanceVenue;
@@ -91,7 +95,7 @@ public class Performance extends BaseTimeEntity {
 
     public static Performance create(
             String performanceTitle, Genre genre, int runningTime, String performanceDescription, String performanceAttentionNote,
-            BankName bankName, String accountNumber, String posterImage, String performanceTeamName, String performanceVenue, String performanceContact,
+            BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName, String performanceVenue, String performanceContact,
             String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
         return Performance.builder()
                 .performanceTitle(performanceTitle)
@@ -101,6 +105,7 @@ public class Performance extends BaseTimeEntity {
                 .performanceAttentionNote(performanceAttentionNote)
                 .bankName(bankName)
                 .accountNumber(accountNumber)
+                .accountHolder(accountHolder)
                 .posterImage(posterImage)
                 .performanceTeamName(performanceTeamName)
                 .performanceVenue(performanceVenue)
