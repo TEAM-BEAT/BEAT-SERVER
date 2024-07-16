@@ -8,6 +8,7 @@ import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
 import javax.crypto.SecretKey;
@@ -30,7 +31,7 @@ public class JwtTokenProvider {
 
     @PostConstruct
     protected void init() {
-        byte[] keyBytes = Base64.getDecoder().decode(JWT_SECRET);
+        byte[] keyBytes = Base64.getEncoder().encode(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
@@ -41,7 +42,8 @@ public class JwtTokenProvider {
     public String issueRefreshToken(final Authentication authentication) {
         return issueToken(authentication, REFRESH_TOKEN_EXPIRE_TIME);
     }
-    private String issueToken(final Authentication authentication, final Long expiredTime) {
+
+    private String issueToken(final Authentication authentication, final long expiredTime) {
         final Date now = new Date();
 
         final Claims claims = Jwts.claims()
@@ -55,9 +57,11 @@ public class JwtTokenProvider {
                 .signWith(secretKey)
                 .compact();
     }
+
     public JwtValidationType validateToken(String token) {
         try {
-            final Claims claims = getBody(token);
+            Claims claims = getBody(token);
+
             return JwtValidationType.VALID_JWT;
         } catch (MalformedJwtException ex) {
             return JwtValidationType.INVALID_JWT_TOKEN;
