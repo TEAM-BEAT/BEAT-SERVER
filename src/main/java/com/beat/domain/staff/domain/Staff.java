@@ -1,13 +1,13 @@
 package com.beat.domain.staff.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.beat.domain.performance.domain.Performance;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Getter
@@ -27,6 +27,25 @@ public class Staff {
     @Column(nullable = false)
     private String staffPhoto;
 
-    @Column(nullable = false)
-    private Long performanceId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "performance_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Performance performance;
+
+    @Builder
+    public Staff(String staffName, String staffRole, String staffPhoto, Performance performance) {
+        this.staffName = staffName;
+        this.staffRole = staffRole;
+        this.staffPhoto = staffPhoto;
+        this.performance = performance;
+    }
+
+    public static Staff create(String staffName, String staffRole, String staffPhoto, Performance performance) {
+        return Staff.builder()
+                .staffName(staffName)
+                .staffRole(staffRole)
+                .staffPhoto(staffPhoto)
+                .performance(performance)
+                .build();
+    }
 }
