@@ -31,7 +31,6 @@ public class JwtTokenProvider {
 
     @PostConstruct
     protected void init() {
-        // 평문 문자열을 Base64로 인코딩
         byte[] keyBytes = Base64.getEncoder().encode(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
@@ -62,6 +61,7 @@ public class JwtTokenProvider {
     public JwtValidationType validateToken(String token) {
         try {
             Claims claims = getBody(token);
+
             return JwtValidationType.VALID_JWT;
         } catch (MalformedJwtException ex) {
             return JwtValidationType.INVALID_JWT_TOKEN;
