@@ -24,7 +24,6 @@ public class SecurityConfig {
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
     private static final String[] AUTH_WHITELIST = {
-            //로그인 관련
             "/api/**",
             "/health-check",
             "/actuator/health",
