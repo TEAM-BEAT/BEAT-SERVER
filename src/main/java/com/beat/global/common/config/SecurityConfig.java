@@ -30,6 +30,7 @@ public class SecurityConfig {
             "/api/performances/booking/**",
             "/api/schedules/**",
             "/api/notifications/**",
+            "/api/performances/detail/**",
             "/health-check",
             "/actuator/health",
             "/v3/api-docs/**",
