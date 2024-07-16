@@ -54,7 +54,7 @@ public class BookingController {
                 .body(SuccessResponse.of(BookingSuccessCode.MEMBER_BOOKING_SUCCESS, response));
     }
 
-    @Operation(summary = "회원 예매 API", description = "비회원이 예매를 요청하는 POST API입니다.")
+    @Operation(summary = "비회원 예매 API", description = "비회원이 예매를 요청하는 POST API입니다.")
     @PostMapping("/guest")
     public ResponseEntity<SuccessResponse<GuestBookingResponse>> createGuestBookings(
             @RequestBody GuestBookingRequest guestBookingRequest) {
