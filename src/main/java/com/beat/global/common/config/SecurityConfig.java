@@ -1,5 +1,6 @@
 package com.beat.global.common.config;
 
+
 import com.beat.global.auth.jwt.filter.JwtAuthenticationFilter;
 import com.beat.global.auth.security.CustomAccessDeniedHandler;
 import com.beat.global.auth.security.CustomJwtAuthenticationEntryPoint;
@@ -17,24 +18,19 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 @Configuration
 public class SecurityConfig {
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomJwtAuthenticationEntryPoint customJwtAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
     private static final String[] AUTH_WHITELIST = {
-            "/api/users/sign-up",
-            "/api/users/refresh-token",
-            "/api/users/sign-out",
+            //로그인 관련
+            "/api/**",
+            "/health-check",
             "/actuator/health",
             "/v3/api-docs/**",
             "/swagger-ui/**",
-            "/swagger-resources/**",
-            "/api/performances/detail/**",
-            "/api/performances/booking/**",
-            "/api/bookings/guest/**",
-            "/api/schedules/**",
-            "/api/main",
-            "/api/performances/booking/**"
+            "/swagger-resources/**"
     };
 
     @Bean
