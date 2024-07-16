@@ -27,12 +27,10 @@ public class JwtTokenProvider {
     private long REFRESH_TOKEN_EXPIRE_TIME;
 
     private static final String MEMBER_ID = "memberId";
-    private SecretKey secretKey;
 
     @PostConstruct
     protected void init() {
-        byte[] keyBytes = Base64.getEncoder().encode(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
-        this.secretKey = Keys.hmacShaKeyFor(keyBytes);
+        JWT_SECRET = Base64.getEncoder().encodeToString(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
     }
 
     public String issueAccessToken(final Authentication authentication) {
@@ -54,8 +52,13 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setHeaderParam(Header.TYPE, Header.JWT_TYPE)
                 .setClaims(claims)
-                .signWith(secretKey)
+                .signWith(getSigningKey())
                 .compact();
+    }
+
+    private SecretKey getSigningKey() {
+        String encodedKey = Base64.getEncoder().encodeToString(JWT_SECRET.getBytes()); //SecretKey 통해 서명 생성
+        return Keys.hmacShaKeyFor(encodedKey.getBytes());   //일반적으로 HMAC (Hash-based Message Authentication Code) 알고리즘 사용
     }
 
     public JwtValidationType validateToken(String token) {
@@ -76,7 +79,7 @@ public class JwtTokenProvider {
 
     private Claims getBody(final String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(secretKey)
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
