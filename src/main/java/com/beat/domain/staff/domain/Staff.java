@@ -3,6 +3,7 @@ package com.beat.domain.staff.domain;
 import com.beat.domain.performance.domain.Performance;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
@@ -30,4 +31,21 @@ public class Staff {
     @JoinColumn(name = "performance_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Performance performance;
+
+    @Builder
+    public Staff(String staffName, String staffRole, String staffPhoto, Performance performance) {
+        this.staffName = staffName;
+        this.staffRole = staffRole;
+        this.staffPhoto = staffPhoto;
+        this.performance = performance;
+    }
+
+    public static Staff create(String staffName, String staffRole, String staffPhoto, Performance performance) {
+        return Staff.builder()
+                .staffName(staffName)
+                .staffRole(staffRole)
+                .staffPhoto(staffPhoto)
+                .performance(performance)
+                .build();
+    }
 }
