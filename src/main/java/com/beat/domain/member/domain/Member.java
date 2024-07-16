@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
@@ -29,6 +31,7 @@ public class Member extends BaseTimeEntity {
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Users user;
 
     @Column(nullable = false)
@@ -36,7 +39,6 @@ public class Member extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     private SocialType socialType;
-
 
     @Builder
     public Member(String nickname, String email, LocalDateTime deletedAt, Users user, Long socialId, SocialType socialType) {

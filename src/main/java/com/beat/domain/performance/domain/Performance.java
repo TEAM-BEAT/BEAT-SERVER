@@ -67,7 +67,7 @@ public class Performance extends BaseTimeEntity {
     private int totalScheduleCount;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = true) // 테스트를 위한 false
+    @JoinColumn(name = "user_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Users users;
 
