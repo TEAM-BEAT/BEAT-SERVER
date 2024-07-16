@@ -8,7 +8,6 @@ import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
 import javax.crypto.SecretKey;
@@ -31,7 +30,6 @@ public class JwtTokenProvider {
 
     @PostConstruct
     protected void init() {
-        // 평문 문자열을 Base64로 인코딩
         byte[] keyBytes = Base64.getEncoder().encode(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
