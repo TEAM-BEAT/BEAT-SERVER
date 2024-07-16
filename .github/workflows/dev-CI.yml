@@ -47,6 +47,7 @@ jobs:
           DEV_KAKAO_CLIENT_ID: ${{ secrets.DEV_KAKAO_CLIENT_ID }}
           DEV_KAKAO_CLIENT_SECRET: ${{ secrets.DEV_KAKAO_CLIENT_SECRET }}
           DEV_KAKAO_REDIRECT_URI: ${{ secrets.DEV_KAKAO_REDIRECT_URI }}
+          DEV_REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
         run: |
           cd ./src/main/resources
           envsubst < application-dev.yml > application-dev.tmp.yml && mv application-dev.tmp.yml application-dev.yml
