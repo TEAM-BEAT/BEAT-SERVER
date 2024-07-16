@@ -1,6 +1,5 @@
 package com.beat.global.common.config;
 
-
 import com.beat.global.auth.jwt.filter.JwtAuthenticationFilter;
 import com.beat.global.auth.security.CustomAccessDeniedHandler;
 import com.beat.global.auth.security.CustomJwtAuthenticationEntryPoint;
@@ -9,7 +8,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -23,9 +21,14 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomJwtAuthenticationEntryPoint customJwtAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
-
     private static final String[] AUTH_WHITELIST = {
-            "/api/**",
+            "/api/users/sign-up",
+            "/api/users/refresh-token",
+            "/api/bookings/guest/**",
+            "/api/main",
+            "/api/performances/booking/**",
+            "/api/schedules/**",
+            "/api/notifications/**",
             "/health-check",
             "/actuator/health",
             "/v3/api-docs/**",
@@ -54,10 +57,5 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-    }
-
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return web -> web.ignoring().requestMatchers(AUTH_WHITELIST);
     }
 }

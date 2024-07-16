@@ -8,7 +8,6 @@ import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
 import javax.crypto.SecretKey;
@@ -27,10 +26,12 @@ public class JwtTokenProvider {
     private long REFRESH_TOKEN_EXPIRE_TIME;
 
     private static final String MEMBER_ID = "memberId";
+    private SecretKey secretKey;
 
     @PostConstruct
     protected void init() {
-        JWT_SECRET = Base64.getEncoder().encodeToString(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
+        byte[] keyBytes = Base64.getDecoder().decode(JWT_SECRET);
+        this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String issueAccessToken(final Authentication authentication) {
@@ -40,11 +41,7 @@ public class JwtTokenProvider {
     public String issueRefreshToken(final Authentication authentication) {
         return issueToken(authentication, REFRESH_TOKEN_EXPIRE_TIME);
     }
-
-    private String issueToken(
-            final Authentication authentication,
-            final Long expiredTime
-    ) {
+    private String issueToken(final Authentication authentication, final Long expiredTime) {
         final Date now = new Date();
 
         final Claims claims = Jwts.claims()
@@ -55,15 +52,9 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setHeaderParam(Header.TYPE, Header.JWT_TYPE)
                 .setClaims(claims)
-                .signWith(getSigningKey())
+                .signWith(secretKey)
                 .compact();
     }
-
-    private SecretKey getSigningKey() {
-        String encodedKey = Base64.getEncoder().encodeToString(JWT_SECRET.getBytes());
-        return Keys.hmacShaKeyFor(encodedKey.getBytes());
-    }
-
     public JwtValidationType validateToken(String token) {
         try {
             final Claims claims = getBody(token);
@@ -81,7 +72,7 @@ public class JwtTokenProvider {
 
     private Claims getBody(final String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
+                .setSigningKey(secretKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
