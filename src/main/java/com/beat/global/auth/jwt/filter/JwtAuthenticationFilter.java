@@ -32,20 +32,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
         try {
             final String token = getJwtFromRequest(request);
-            if (jwtTokenProvider.validateToken(token) == VALID_JWT) {
+            if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token) == VALID_JWT) {
                 Long memberId = jwtTokenProvider.getUserFromJwt(token);
-                // authentication 객체 생성 -> principal에 유저정보를 담는다.
+                // authentication 객체 생성 -> principal에 유저 정보를 담는다.
                 MemberAuthentication authentication = new MemberAuthentication(memberId.toString(), null, null);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
-                log.info(e.getMessage());
+            log.error("JwtAuthentication Authentication Exception Occurs! - {}", e.getClass(), e);
+
         }
         // 다음 필터로 요청 전달
         filterChain.doFilter(request, response);
     }
-
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
