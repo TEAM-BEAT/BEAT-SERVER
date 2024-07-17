@@ -3,15 +3,14 @@ package com.beat.global.external.s3.service;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.beat.domain.performance.domain.Performance;
-import com.beat.global.external.s3.dao.FileRepository;
-import com.beat.global.external.s3.domain.File;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.URL;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -23,21 +22,36 @@ public class FileService {
     private String bucket;
 
     private final AmazonS3 amazonS3;
-    private final FileRepository fileRepository;
 
-    public Map<String, String> getPresignedUrl(String prefix, String fileName) {
-        String filePath = fileName;
-        if (!prefix.isEmpty()) {
-            filePath = createPath(prefix, fileName);
+    public Map<String, Map<String, String>> getPresignedUrls(String posterImage, List<String> castImages, List<String> staffImages) {
+        Map<String, Map<String, String>> presignedUrls = new HashMap<>();
+
+        // Poster Image URL
+        Map<String, String> posterUrl = new HashMap<>();
+        String posterFilePath = createPath("poster", posterImage);
+        URL posterPresignedUrl = amazonS3.generatePresignedUrl(getGeneratePresignedUrlRequest(bucket, posterFilePath));
+        posterUrl.put(posterImage, posterPresignedUrl.toString());
+        presignedUrls.put("poster", posterUrl);
+
+        // Cast Images URLs
+        Map<String, String> castUrls = new HashMap<>();
+        for (String castImage : castImages) {
+            String castFilePath = createPath("cast", castImage);
+            URL castPresignedUrl = amazonS3.generatePresignedUrl(getGeneratePresignedUrlRequest(bucket, castFilePath));
+            castUrls.put(castImage, castPresignedUrl.toString());
         }
+        presignedUrls.put("cast", castUrls);
 
-        GeneratePresignedUrlRequest generatePresignedUrlRequest = getGeneratePresignedUrlRequest(bucket, filePath);
-        URL url = amazonS3.generatePresignedUrl(generatePresignedUrlRequest);
+        // Staff Images URLs
+        Map<String, String> staffUrls = new HashMap<>();
+        for (String staffImage : staffImages) {
+            String staffFilePath = createPath("staff", staffImage);
+            URL staffPresignedUrl = amazonS3.generatePresignedUrl(getGeneratePresignedUrlRequest(bucket, staffFilePath));
+            staffUrls.put(staffImage, staffPresignedUrl.toString());
+        }
+        presignedUrls.put("staff", staffUrls);
 
-        // 파일 정보를 데이터베이스에 저장
-        saveFileToDB(fileName, filePath);
-
-        return Map.of("url", url.toString());
+        return presignedUrls;
     }
 
     private GeneratePresignedUrlRequest getGeneratePresignedUrlRequest(String bucket, String fileName) {
@@ -62,16 +76,5 @@ public class FileService {
     private String createPath(String prefix, String fileName) {
         String fileId = createFileId();
         return String.format("%s/%s", prefix, fileId + "-" + fileName);
-    }
-
-    private void saveFileToDB(String fileName, String filePath) {
-//        Performance performance = new Performance();
-//        performance.setPosterImage(filePath);
-        File file = new File();
-        file.setFileName(fileName);
-        file.setFilePath(filePath);
-        file.setUploadTime(new Date());
-
-        fileRepository.save(file);
     }
 }
