@@ -54,3 +54,14 @@ jwt:
   secret: ${DEV_JWT_SECRET}
   access-token-expire-time: 31536000000 # 365일 (1년) 밀리초
   refresh-token-expire-time: 1209600000 # 14일 밀리초
+
+cloud:
+  aws:
+    region: ap-northeast-2
+    credentials:
+      access-key: ${DEV_S3_ACCESS_KEY}
+      secret-key: ${DEV_S3_SECRET_KEY}
+  s3:
+    bucket: beat-dev-bucket
+  stack:
+    auto: false
