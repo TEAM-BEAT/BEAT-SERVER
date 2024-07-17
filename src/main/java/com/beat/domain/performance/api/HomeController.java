@@ -1,8 +1,8 @@
 package com.beat.domain.performance.api;
 
 import com.beat.domain.performance.application.PerformanceService;
-import com.beat.domain.performance.application.dto.HomeRequest;
-import com.beat.domain.performance.application.dto.HomeResponse;
+import com.beat.domain.performance.application.dto.home.HomeRequest;
+import com.beat.domain.performance.application.dto.home.HomeResponse;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.exception.PerformanceSuccessCode;
 import com.beat.global.common.dto.SuccessResponse;

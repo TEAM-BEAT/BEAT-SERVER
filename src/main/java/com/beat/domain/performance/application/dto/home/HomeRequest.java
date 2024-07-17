@@ -1,4 +1,4 @@
-package com.beat.domain.performance.application.dto;
+package com.beat.domain.performance.application.dto.home;
 
 import com.beat.domain.performance.domain.Genre;
 
