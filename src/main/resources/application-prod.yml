@@ -6,6 +6,11 @@ spring:
     activate:
       on-profile: prod
 
+management:
+  endpoint:
+    health:
+      show-details: always
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${PROD_DB_URL}
