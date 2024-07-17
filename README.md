@@ -121,3 +121,4 @@
 ## 🛠️ Tech
 
 ## 🔨 Architecture
+<img width="918" alt="image" src="https://github.com/user-attachments/assets/14575f6d-4f3d-4b54-9c3c-6a302db2a5a4">
