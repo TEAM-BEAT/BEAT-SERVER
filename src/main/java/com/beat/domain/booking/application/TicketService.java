@@ -16,6 +16,7 @@ import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.exception.UserErrorCode;
 import lombok.RequiredArgsConstructor;
+import net.nurigo.java_sdk.exceptions.CoolsmsException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ public class TicketService {
     private final PerformanceRepository performanceRepository;
     private final MemberRepository memberRepository;
     private final UserRepository userRepository;
+    private final CoolSmsService coolSmsService;
 
     public TicketRetrieveResponse getTickets(Long memberId, Long performanceId, ScheduleNumber scheduleNumber, Boolean isPaymentCompleted) {
         Member member = memberRepository.findById(memberId).orElseThrow(
@@ -88,8 +90,19 @@ public class TicketService {
             Booking booking = ticketRepository.findById(detail.bookingId())
                     .orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
+            boolean wasPaymentCompleted = booking.isPaymentCompleted();
             booking.setIsPaymentCompleted(detail.isPaymentCompleted());
             ticketRepository.save(booking);
+
+            if (!wasPaymentCompleted && detail.isPaymentCompleted()) {
+                String message = String.format("%s님, BEAT에서의 %s의 예매가 확정되었습니다.", detail.bookerName(), request.performanceTitle());
+                try {
+                    coolSmsService.sendSms(detail.bookerPhoneNumber(), message);
+                } catch (CoolsmsException e) {
+                    // 문자 발송 실패 시 로깅 또는 다른 처리를 추가할 수 있습니다.
+                    e.printStackTrace();
+                }
+            }
         }
     }
 

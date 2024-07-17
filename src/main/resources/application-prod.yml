@@ -49,6 +49,11 @@ spring:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
+  coolsms:
+    api:
+      key: ${PROD_COOLSMS_KEY}
+      secret: ${PROD_COOLSMS_SECRET}
+      number: ${PROD_COOLSMS_NUMBER}
 
 jwt:
   secret: ${PROD_JWT_SECRET}
@@ -65,4 +70,3 @@ cloud:
     bucket: beat-prod-bucket
   stack:
     auto: false
-

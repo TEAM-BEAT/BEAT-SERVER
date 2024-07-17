@@ -73,6 +73,7 @@ public class GuestBookingServiceConcurrencyTest {
                 "Performance Attention Note",
                 BankName.BUSAN,
                 "2342-234234-2344",
+                "이동훈",
                 "poster.jpg",
                 "Performance Team",
                 "Performance Venue",

@@ -73,6 +73,10 @@ dependencies {
 	// aws
 	implementation 'io.awspring.cloud:spring-cloud-starter-aws:2.4.4'
 	implementation 'io.awspring.cloud:spring-cloud-starter-aws-secrets-manager-config:2.4.4'
+
+	//coolsms
+	implementation 'net.nurigo:sdk:4.3.0'
+	implementation 'net.nurigo:javaSDK:2.2'
 }
 
 jar {
