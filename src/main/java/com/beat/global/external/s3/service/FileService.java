@@ -63,7 +63,7 @@ public class FileService {
     private Date getPresignedUrlExpiration() {
         Date expiration = new Date();
         long expTimeMillis = expiration.getTime();
-        expTimeMillis += 1000 * 60 * 2;
+        expTimeMillis += 1000 * 60 * 60 * 2;
         expiration.setTime(expTimeMillis);
 
         return expiration;
