@@ -6,6 +6,11 @@ spring:
     activate:
       on-profile: dev
 
+management:
+  endpoint:
+    health:
+      show-details: always
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${DEV_DB_URL}
@@ -23,7 +28,7 @@ spring:
 
   data:
     redis:
-      host: ${DEV_REDIS_HOST}
+      host: redis
       port: 6379
 
   security:
