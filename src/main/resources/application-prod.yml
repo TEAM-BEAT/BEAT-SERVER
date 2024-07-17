@@ -28,7 +28,7 @@ spring:
 
   data:
     redis:
-      host: redis
+      host: beat-prod-redis
       port: 6379
 
   security:
