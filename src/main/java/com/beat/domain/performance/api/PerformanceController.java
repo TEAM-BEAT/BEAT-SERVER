@@ -5,6 +5,7 @@ import com.beat.domain.performance.application.PerformanceUpdateService;
 import com.beat.domain.performance.application.dto.BookingPerformanceDetailResponse;
 import com.beat.domain.performance.application.dto.MakerPerformanceResponse;
 import com.beat.domain.performance.application.dto.PerformanceDetailResponse;
+import com.beat.domain.performance.application.dto.PerformanceEditResponse;
 import com.beat.domain.performance.application.dto.create.PerformanceRequest;
 import com.beat.domain.performance.application.dto.create.PerformanceResponse;
 import com.beat.domain.performance.application.dto.update.PerformanceUpdateRequest;
@@ -34,8 +35,7 @@ public class PerformanceController {
     private final PerformanceService performanceService;
     private final PerformanceManagementService performanceManagementService;
     private final PerformanceUpdateService performanceUpdateService;
-
-
+  
     @Operation(summary = "공연 생성 API", description = "공연을 생성하는 POST API입니다.")
     @PostMapping
     public ResponseEntity<SuccessResponse<PerformanceResponse>> createPerformance(
@@ -45,6 +45,7 @@ public class PerformanceController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_CREATE_SUCCESS, response));
     }
+
     @Operation(summary = "공연 정보 수정 API", description = "공연 정보를 수정하는 PUT API입니다.")
     @PutMapping
     public ResponseEntity<SuccessResponse<PerformanceUpdateResponse>> updatePerformance(
@@ -53,6 +54,15 @@ public class PerformanceController {
         PerformanceUpdateResponse response = performanceUpdateService.updatePerformance(memberId, performanceUpdateRequest);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_UPDATE_SUCCESS, response));
+    }
+
+    @Operation(summary = "공연 수정 페이지 정보 조회 API", description = "공연 정보를 조회하는 GET API입니다.")
+    @GetMapping("/{performanceId}")
+    public ResponseEntity<SuccessResponse<PerformanceEditResponse>> getPerformanceForEdit(
+            @CurrentMember Long memberId,
+            @PathVariable Long performanceId) {
+        PerformanceEditResponse response = performanceService.getPerformanceEdit(memberId, performanceId);
+        return ResponseEntity.ok(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_MODIFY_PAGE_SUCCESS, response));
     }
 
     @Operation(summary = "공연 상세정보 조회 API", description = "공연 상세페이지의 공연 상세정보를 조회하는 GET API입니다.")

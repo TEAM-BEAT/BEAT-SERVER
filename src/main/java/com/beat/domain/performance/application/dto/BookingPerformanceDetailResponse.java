@@ -11,7 +11,10 @@ public record BookingPerformanceDetailResponse(
         String genre,
         String posterImage,
         String performanceVenue,
-        String performanceTeamName
+        String performanceTeamName,
+        String bankName,
+        String accountNumber,
+        String accountHolder
 ) {
     public static BookingPerformanceDetailResponse of(
             Long performanceId,
@@ -22,9 +25,12 @@ public record BookingPerformanceDetailResponse(
             String genre,
             String posterImage,
             String performanceVenue,
-            String performanceTeamName
+            String performanceTeamName,
+            String bankName,
+            String accountNumber,
+            String accountHolder
     ) {
-        return new BookingPerformanceDetailResponse(performanceId, performanceTitle, performancePeriod, scheduleList, ticketPrice, genre, posterImage, performanceVenue, performanceTeamName);
+        return new BookingPerformanceDetailResponse(performanceId, performanceTitle, performancePeriod, scheduleList, ticketPrice, genre, posterImage, performanceVenue, performanceTeamName, bankName, accountNumber, accountHolder);
     }
 
 }

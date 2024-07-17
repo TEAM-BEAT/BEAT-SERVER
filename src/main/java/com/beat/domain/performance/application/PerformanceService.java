@@ -1,8 +1,13 @@
 package com.beat.domain.performance.application;
+import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.member.dao.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.application.dto.*;
+import com.beat.domain.performance.application.dto.create.CastResponse;
+import com.beat.domain.performance.application.dto.create.ScheduleResponse;
+import com.beat.domain.performance.application.dto.create.StaffResponse;
 import com.beat.domain.performance.application.dto.home.HomePerformanceDetail;
 import com.beat.domain.performance.application.dto.home.HomePromotionDetail;
 import com.beat.domain.performance.application.dto.home.HomeRequest;
@@ -17,6 +22,7 @@ import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.cast.dao.CastRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.staff.dao.StaffRepository;
+import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.exception.UserErrorCode;
@@ -25,6 +31,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,6 +48,7 @@ public class PerformanceService {
     private final PromotionRepository promotionRepository;
     private final MemberRepository memberRepository;
     private final UserRepository userRepository;
+    private final BookingRepository bookingRepository;
 
     @Transactional(readOnly = true)
     public PerformanceDetailResponse getPerformanceDetail(Long performanceId) {
@@ -113,7 +123,10 @@ public class PerformanceService {
                 performance.getGenre().name(),
                 performance.getPosterImage(),
                 performance.getPerformanceVenue(),
-                performance.getPerformanceTeamName()
+                performance.getPerformanceTeamName(),
+                performance.getBankName() != null ? performance.getBankName().name() : null,
+                performance.getAccountNumber(),
+                performance.getAccountHolder()
         );
     }
 
@@ -203,4 +216,78 @@ public class PerformanceService {
         return MakerPerformanceResponse.of(user.getId(), performanceDetails);
     }
 
+    @Transactional
+    public PerformanceEditResponse getPerformanceEdit(Long memberId, Long performanceId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        Performance performance = performanceRepository.findById(performanceId)
+                .orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+
+        boolean isBookerExist = bookingRepository.existsBySchedulePerformanceId(performanceId);
+
+        List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
+        List<Cast> casts = castRepository.findAllByPerformanceId(performanceId);
+        List<Staff> staffs = staffRepository.findAllByPerformanceId(performanceId);
+
+        return mapToPerformanceEditResponse(performance, schedules, casts, staffs, isBookerExist);
+    }
+
+    private PerformanceEditResponse mapToPerformanceEditResponse(Performance performance, List<Schedule> schedules, List<Cast> casts, List<Staff> staffs, boolean isBookerExist) {
+        List<ScheduleResponse> scheduleResponses = schedules.stream()
+                .map(schedule -> ScheduleResponse.of(
+                        schedule.getId(),
+                        schedule.getPerformanceDate(),
+                        schedule.getTotalTicketCount(),
+                        calculateDueDate(schedule.getPerformanceDate()),
+                        schedule.getScheduleNumber()
+                ))
+                .collect(Collectors.toList());
+
+        List<CastResponse> castResponses = casts.stream()
+                .map(cast -> CastResponse.of(
+                        cast.getId(),
+                        cast.getCastName(),
+                        cast.getCastRole(),
+                        cast.getCastPhoto()
+                ))
+                .collect(Collectors.toList());
+
+        List<StaffResponse> staffResponses = staffs.stream()
+                .map(staff -> StaffResponse.of(
+                        staff.getId(),
+                        staff.getStaffName(),
+                        staff.getStaffRole(),
+                        staff.getStaffPhoto()
+                ))
+                .collect(Collectors.toList());
+
+        return PerformanceEditResponse.of(
+                performance.getUsers().getId(),
+                performance.getId(),
+                performance.getPerformanceTitle(),
+                performance.getGenre(),
+                performance.getRunningTime(),
+                performance.getPerformanceDescription(),
+                performance.getPerformanceAttentionNote(),
+                performance.getBankName(),
+                performance.getAccountNumber(),
+                performance.getAccountHolder(),
+                performance.getPosterImage(),
+                performance.getPerformanceTeamName(),
+                performance.getPerformanceVenue(),
+                performance.getPerformanceContact(),
+                performance.getPerformancePeriod(),
+                performance.getTicketPrice(),
+                performance.getTotalScheduleCount(),
+                isBookerExist,
+                scheduleResponses,
+                castResponses,
+                staffResponses
+        );
+    }
+
+    private int calculateDueDate(LocalDateTime performanceDate) {
+        return (int) ChronoUnit.DAYS.between(LocalDate.now(), performanceDate.toLocalDate());
+    }
 }
