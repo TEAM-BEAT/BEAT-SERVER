@@ -116,4 +116,24 @@ public class Performance extends BaseTimeEntity {
                 .users(users)
                 .build();
     }
+
+    public void update(
+            String performanceTitle, Genre genre, int runningTime, String performanceDescription, String performanceAttentionNote,
+            BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName, String performanceVenue, String performanceContact,
+            String performancePeriod, int totalScheduleCount) {
+        this.performanceTitle = performanceTitle;
+        this.genre = genre;
+        this.runningTime = runningTime;
+        this.performanceDescription = performanceDescription;
+        this.performanceAttentionNote = performanceAttentionNote;
+        this.bankName = bankName;
+        this.accountNumber = accountNumber;
+        this.accountHolder = accountHolder;
+        this.posterImage = posterImage;
+        this.performanceTeamName = performanceTeamName;
+        this.performanceVenue = performanceVenue;
+        this.performanceContact = performanceContact;
+        this.performancePeriod = performancePeriod;
+        this.totalScheduleCount = totalScheduleCount;
+    }
 }

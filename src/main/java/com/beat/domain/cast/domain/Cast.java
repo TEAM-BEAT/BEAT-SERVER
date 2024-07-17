@@ -55,4 +55,10 @@ public class Cast{
                 .performance(performance)
                 .build();
     }
+
+    public void update(String castName, String castRole, String castPhoto) {
+        this.castName = castName;
+        this.castRole = castRole;
+        this.castPhoto = castPhoto;
+    }
 }
