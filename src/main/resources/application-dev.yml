@@ -65,3 +65,4 @@ cloud:
     bucket: beat-dev-bucket
   stack:
     auto: false
+
