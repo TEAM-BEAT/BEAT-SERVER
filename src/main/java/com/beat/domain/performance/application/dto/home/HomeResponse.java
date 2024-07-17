@@ -1,4 +1,4 @@
-package com.beat.domain.performance.application.dto;
+package com.beat.domain.performance.application.dto.home;
 
 import java.util.List;
 
