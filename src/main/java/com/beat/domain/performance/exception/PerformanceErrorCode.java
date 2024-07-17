@@ -12,6 +12,7 @@ public enum PerformanceErrorCode implements BaseErrorCode {
     INVALID_DATA_FORMAT(400, "잘못된 데이터 형식입니다."),
     INVALID_REQUEST_FORMAT(400, "잘못된 요청 형식입니다."),
     NO_PERFORMANCE_FOUND(404, "공연을 찾을 수 없습니다."),
+    PERFORMANCE_DELETE_FAILED(400, "예매자가 1명 이상 있을 경우, 공연을 삭제할 수 없습니다."),
     INTERNAL_SERVER_ERROR(500, "서버 내부 오류입니다.")
     ;
 
