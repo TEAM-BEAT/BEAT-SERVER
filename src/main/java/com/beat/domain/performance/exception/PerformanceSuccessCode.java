@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum PerformanceSuccessCode implements BaseSuccessCode {
     PERFORMANCE_CREATE_SUCCESS(201, "공연이 성공적으로 생성되었습니다."),
+    PERFORMANCE_UPDATE_SUCCESS(200, "공연이 성공적으로 수정되었습니다."),
     PERFORMANCE_RETRIEVE_SUCCESS(200, "공연 상세 정보 조회가 성공적으로 완료되었습니다."),
     PERFORMANCE_DELETE_SUCCESS(200, "공연이 성공적으로 삭제되었습니다."),
     BOOKING_PERFORMANCE_RETRIEVE_SUCCESS(200, "예매 관련 공연 정보 조회가 성공적으로 완료되었습니다."),

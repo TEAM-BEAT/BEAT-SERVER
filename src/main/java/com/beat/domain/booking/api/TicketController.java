@@ -31,7 +31,7 @@ public class TicketController {
         return ResponseEntity.ok(SuccessResponse.of(BookingSuccessCode.TICKET_RETRIEVE_SUCCESS, response));
     }
 
-    @Operation(summary = "예매자 입금여부 수정 API", description = "메이커가 자신의 공연에 대한 예매자의 입금여부 정보를 수정하는 PUT API입니다.")
+    @Operation(summary = "예매자 입금여부 수정 및 웹발신 API", description = "메이커가 자신의 공연에 대한 예매자의 입금여부 정보를 수정한 뒤 예매확정 웹발신을 보내는 PUT API입니다.")
     @PutMapping("/{performanceId}")
     public ResponseEntity<SuccessResponse<Void>> updateTickets(
             @CurrentMember Long memberId,
