@@ -72,4 +72,10 @@ public class Schedule {
                 .performance(performance)
                 .build();
     }
+
+    public void update(LocalDateTime performanceDate, int totalTicketCount, ScheduleNumber scheduleNumber) {
+        this.performanceDate = performanceDate;
+        this.totalTicketCount = totalTicketCount;
+        this.scheduleNumber = scheduleNumber;
+    }
 }
