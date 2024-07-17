@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface StaffRepository extends JpaRepository<Staff, Long> {
     List<Staff> findByPerformanceId(Long performanceId);
+
+    List<Staff> findAllByPerformanceId(Long performanceId);
 }
