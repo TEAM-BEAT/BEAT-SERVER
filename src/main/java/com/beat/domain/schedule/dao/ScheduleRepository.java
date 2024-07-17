@@ -17,4 +17,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     Optional<Schedule> lockById(@Param("id") Long id);
 
     List<Schedule> findByPerformanceId(Long performanceId);
+
+    List<Schedule> findAllByPerformanceId(Long performanceId);
+
 }
