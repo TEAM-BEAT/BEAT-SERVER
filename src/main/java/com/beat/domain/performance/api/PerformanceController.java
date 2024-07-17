@@ -1,7 +1,6 @@
 package com.beat.domain.performance.api;
 
 import com.beat.domain.performance.application.PerformanceManagementService;
-import com.beat.domain.performance.application.PerformanceCreateService;
 import com.beat.domain.performance.application.PerformanceUpdateService;
 import com.beat.domain.performance.application.dto.BookingPerformanceDetailResponse;
 import com.beat.domain.performance.application.dto.MakerPerformanceResponse;
@@ -34,7 +33,6 @@ public class PerformanceController {
 
     private final PerformanceService performanceService;
     private final PerformanceManagementService performanceManagementService;
-    private final PerformanceCreateService performanceCreateService;
     private final PerformanceUpdateService performanceUpdateService;
 
     @Operation(summary = "공연 생성 API", description = "공연을 생성하는 POST API입니다.")
