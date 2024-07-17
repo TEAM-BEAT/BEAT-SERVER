@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface CastRepository extends JpaRepository<Cast, Long> {
     List<Cast> findByPerformanceId(Long performanceId);
+
+    List<Cast> findAllByPerformanceId(Long performanceId);
 }
