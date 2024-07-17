@@ -48,4 +48,10 @@ public class Staff {
                 .performance(performance)
                 .build();
     }
+
+    public void update(String staffName, String staffRole, String staffPhoto) {
+        this.staffName = staffName;
+        this.staffRole = staffRole;
+        this.staffPhoto = staffPhoto;
+    }
 }
