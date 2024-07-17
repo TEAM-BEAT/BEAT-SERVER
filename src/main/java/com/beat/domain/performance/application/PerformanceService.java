@@ -113,7 +113,10 @@ public class PerformanceService {
                 performance.getGenre().name(),
                 performance.getPosterImage(),
                 performance.getPerformanceVenue(),
-                performance.getPerformanceTeamName()
+                performance.getPerformanceTeamName(),
+                performance.getBankName() != null ? performance.getBankName().name() : null,
+                performance.getAccountNumber(),
+                performance.getAccountHolder()
         );
     }
 
