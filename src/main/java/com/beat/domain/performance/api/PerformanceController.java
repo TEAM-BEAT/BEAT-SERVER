@@ -45,15 +45,6 @@ public class PerformanceController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_CREATE_SUCCESS, response));
     }
-    @Operation(summary = "공연 정보 수정 API", description = "공연 정보를 수정하는 PUT API입니다.")
-    @PutMapping
-    public ResponseEntity<SuccessResponse<PerformanceUpdateResponse>> updatePerformance(
-            @CurrentMember Long memberId,
-            @RequestBody PerformanceUpdateRequest performanceUpdateRequest) {
-        PerformanceUpdateResponse response = performanceUpdateService.updatePerformance(memberId, performanceUpdateRequest);
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_UPDATE_SUCCESS, response));
-    }
 
     @Operation(summary = "공연 정보 수정 API", description = "공연 정보를 수정하는 PUT API입니다.")
     @PutMapping
