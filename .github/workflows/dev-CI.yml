@@ -50,6 +50,9 @@ jobs:
           DEV_REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
           DEV_S3_ACCESS_KEY: ${{ secrets.DEV_S3_ACCESS_KEY }}
           DEV_S3_SECRET_KEY: ${{ secrets.DEV_S3_SECRET_KEY }}
+          DEV_COOLSMS_KEY: ${{ secrets.DEV_COOLSMS_KEY }}
+          DEV_COOLSMS_NUMBER: ${{ secrets.DEV_COOLSMS_NUMBER }}
+          DEV_COOLSMS_SECRET: ${{ secrets.DEV_COOLSMS_SECRET }}
         run: |
           cd ./src/main/resources
           envsubst < application-dev.yml > application-dev.tmp.yml && mv application-dev.tmp.yml application-dev.yml
