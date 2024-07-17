@@ -28,7 +28,7 @@ management:
 
   data:
     redis:
-      host: ${DEV_REDIS_HOST}
+      host: redis
       port: 6379
 
   security:
