@@ -48,6 +48,8 @@ jobs:
           PROD_KAKAO_CLIENT_SECRET: ${{ secrets.PROD_KAKAO_CLIENT_SECRET }}
           PROD_KAKAO_REDIRECT_URI: ${{ secrets.PROD_KAKAO_REDIRECT_URI }}
           PROD_REDIS_HOST: ${{ secrets.PROD_REDIS_HOST }}
+          PROD_S3_ACCESS_KEY: ${{ secrets.PROD_S3_ACCESS_KEY }}
+          PROD_S3_SECRET_KEY: ${{ secrets.PROD_S3_SECRET_KEY }}
         run: |
           cd ./src/main/resources
           envsubst < application-prod.yml > application-prod.tmp.yml && mv application-prod.tmp.yml application-prod.yml
