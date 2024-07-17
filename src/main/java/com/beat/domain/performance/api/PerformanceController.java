@@ -35,6 +35,7 @@ public class PerformanceController {
     private final PerformanceManagementService performanceManagementService;
     private final PerformanceUpdateService performanceUpdateService;
 
+
     @Operation(summary = "공연 생성 API", description = "공연을 생성하는 POST API입니다.")
     @PostMapping
     public ResponseEntity<SuccessResponse<PerformanceResponse>> createPerformance(
@@ -44,7 +45,6 @@ public class PerformanceController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_CREATE_SUCCESS, response));
     }
-
     @Operation(summary = "공연 정보 수정 API", description = "공연 정보를 수정하는 PUT API입니다.")
     @PutMapping
     public ResponseEntity<SuccessResponse<PerformanceUpdateResponse>> updatePerformance(
