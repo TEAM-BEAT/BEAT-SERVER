@@ -1,7 +1,11 @@
 package com.beat.domain.performance.application;
 
+import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.cast.dao.CastRepository;
 import com.beat.domain.cast.domain.Cast;
+import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.domain.Member;
+import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.application.dto.create.CastResponse;
 import com.beat.domain.performance.application.dto.create.PerformanceRequest;
 import com.beat.domain.performance.application.dto.create.PerformanceResponse;
@@ -9,6 +13,7 @@ import com.beat.domain.performance.application.dto.create.ScheduleResponse;
 import com.beat.domain.performance.application.dto.create.StaffResponse;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.staff.dao.StaffRepository;
@@ -16,6 +21,7 @@ import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.exception.UserErrorCode;
+import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,18 +34,21 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class PerformanceCreateService {
+public class PerformanceManagementService {
 
     private final PerformanceRepository performanceRepository;
     private final ScheduleRepository scheduleRepository;
-    private final UserRepository userRepository;
     private final CastRepository castRepository;
     private final StaffRepository staffRepository;
+    private final BookingRepository bookingRepository;
+    private final MemberRepository memberRepository;
 
     @Transactional
-    public PerformanceResponse createPerformance(Long userId, PerformanceRequest request) {
-        Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+    public PerformanceResponse createPerformance(Long memberId, PerformanceRequest request) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        Users user = member.getUser();
 
         Performance performance = Performance.create(
                 request.performanceTitle(),
@@ -151,5 +160,20 @@ public class PerformanceCreateService {
 
     private int calculateDueDate(LocalDate performanceDate) {
         return (int) ChronoUnit.DAYS.between(LocalDate.now(), performanceDate);
+    }
+
+    @Transactional
+    public void deletePerformance(Long memberId, Long performanceId) {
+        memberRepository.findById(memberId).orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+
+        Performance performance = performanceRepository.findById(performanceId)
+                .orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+
+        boolean hasBookings = bookingRepository.existsBySchedulePerformanceId(performanceId);
+        if (hasBookings) {
+            throw new BadRequestException(PerformanceErrorCode.PERFORMANCE_DELETE_FAILED);
+        }
+
+        performanceRepository.delete(performance);
     }
 }
