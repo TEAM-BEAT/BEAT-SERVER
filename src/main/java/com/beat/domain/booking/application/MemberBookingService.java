@@ -64,11 +64,11 @@ public class MemberBookingService {
                 schedule.getId(),
                 member.getId(),
                 booking.getPurchaseTicketCount(),
-                schedule.getScheduleNumber().getDisplayName(),
+                schedule.getScheduleNumber(),
                 booking.getBookerName(),
                 booking.getBookerPhoneNumber(),
                 booking.isPaymentCompleted(),
-                schedule.getPerformance().getBankName().name(),
+                schedule.getPerformance().getBankName(),
                 schedule.getPerformance().getAccountNumber(),
                 memberBookingRequest.totalPaymentAmount(),
                 booking.getCreatedAt()
