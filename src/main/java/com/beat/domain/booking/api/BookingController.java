@@ -51,7 +51,7 @@ public class BookingController {
             @CurrentMember Long memberId) {
         List<MemberBookingRetrieveResponse> response = memberBookingRetrieveService.findMemberBookings(memberId);
         return ResponseEntity.status(HttpStatus.OK)
-                .body(SuccessResponse.of(BookingSuccessCode.MEMBER_BOOKING_SUCCESS, response));
+                .body(SuccessResponse.of(BookingSuccessCode.MEMBER_BOOKING_RETRIEVE_SUCCESS, response));
     }
 
     @Operation(summary = "비회원 예매 API", description = "비회원이 예매를 요청하는 POST API입니다.")
