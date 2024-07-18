@@ -23,9 +23,14 @@ public class FileController {
     @GetMapping("/presigned-url")
     public ResponseEntity<Map<String, Map<String, String>>> getPresignedUrls(
             @RequestParam String posterImage,
-            @RequestParam List<String> castImages,
-            @RequestParam List<String> staffImages) {
-
+            @RequestParam(required = false) List<String> castImages,
+            @RequestParam(required = false) List<String> staffImages) {
+        if (castImages == null) {
+            castImages = List.of();
+        }
+        if (staffImages == null) {
+            staffImages = List.of();
+        }
         Map<String, Map<String, String>> response = fileService.getPresignedUrls(posterImage, castImages, staffImages);
         return ResponseEntity.ok(response);
     }
