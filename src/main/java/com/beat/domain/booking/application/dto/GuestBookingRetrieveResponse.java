@@ -1,54 +1,66 @@
 package com.beat.domain.booking.application.dto;
 
+import com.beat.domain.performance.domain.BankName;
+import com.beat.domain.schedule.domain.ScheduleNumber;
+
 import java.time.LocalDateTime;
 
 public record GuestBookingRetrieveResponse(
         Long bookingId,
         Long scheduleId,
+        Long performanceId,
         String performanceTitle,
         LocalDateTime performanceDate,
         String performanceVenue,
         int purchaseTicketCount,
-        String scheduleNumber,
+        ScheduleNumber scheduleNumber,
         String bookerName,
-        String bookerPhoneNumber,
-        String bankName,
+        String performanceContact,
+        BankName bankName,
         String accountNumber,
         int dueDate,
         boolean isPaymentCompleted,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String posterImage,
+        int totalPaymentAmount
 ) {
     public static GuestBookingRetrieveResponse of(
             Long bookingId,
             Long scheduleId,
+            Long performanceId,
             String performanceTitle,
             LocalDateTime performanceDate,
             String performanceVenue,
             int purchaseTicketCount,
-            String scheduleNumber,
+            ScheduleNumber scheduleNumber,
             String bookerName,
-            String bookerPhoneNumber,
-            String bankName,
+            String performanceContact,
+            BankName bankName,
             String accountNumber,
             int dueDate,
             boolean isPaymentCompleted,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            String posterImage,
+            int totalPaymentAmount
     ) {
         return new GuestBookingRetrieveResponse(
                 bookingId,
                 scheduleId,
+                performanceId,
                 performanceTitle,
                 performanceDate,
                 performanceVenue,
                 purchaseTicketCount,
                 scheduleNumber,
                 bookerName,
-                bookerPhoneNumber,
+                performanceContact,
                 bankName,
                 accountNumber,
                 dueDate,
                 isPaymentCompleted,
-                createdAt
+                createdAt,
+                posterImage,
+                totalPaymentAmount
         );
     }
 }
