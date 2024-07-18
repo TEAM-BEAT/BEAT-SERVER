@@ -15,6 +15,9 @@ import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,23 +46,31 @@ public class MemberBookingRetrieveService {
     private MemberBookingRetrieveResponse toMemberBookingResponse(Booking booking) {
         Schedule schedule = booking.getSchedule();
         Performance performance = schedule.getPerformance();
+        int totalPaymentAmount = booking.getPurchaseTicketCount() * performance.getTicketPrice();
 
         return MemberBookingRetrieveResponse.of(
                 booking.getUsers().getId(),
                 booking.getId(),
                 schedule.getId(),
+                performance.getId(),
                 performance.getPerformanceTitle(),
                 schedule.getPerformanceDate(),
                 performance.getPerformanceVenue(),
                 booking.getPurchaseTicketCount(),
-                schedule.getScheduleNumber().name(),
+                schedule.getScheduleNumber(),
                 booking.getBookerName(),
-                booking.getBookerPhoneNumber(),
-                performance.getBankName().name(),
+                performance.getPerformanceContact(),
+                performance.getBankName(),
                 performance.getAccountNumber(),
-                schedule.getId().intValue(),
+                calculateDueDate(schedule.getPerformanceDate()),
                 booking.isPaymentCompleted(),
-                booking.getCreatedAt()
+                booking.getCreatedAt(),
+                performance.getPosterImage(),
+                totalPaymentAmount
         );
+    }
+
+    private int calculateDueDate(LocalDateTime performanceDate) {
+        return (int) ChronoUnit.DAYS.between(LocalDate.now(), performanceDate.toLocalDate());
     }
 }

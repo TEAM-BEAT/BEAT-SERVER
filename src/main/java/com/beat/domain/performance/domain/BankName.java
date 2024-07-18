@@ -20,7 +20,8 @@ public enum BankName {
     SINHYEOP("신협"),
     WOOCHAEGUK("우체국"),
     SCJEIL("SC제일"),
-    SUHYEOP("수협");
+    SUHYEOP("수협"),
+    NONE("");
 
     private final String displayName;
 }

@@ -73,11 +73,11 @@ public class GuestBookingService {
                 schedule.getId(),
                 booking.getUsers().getId(),
                 booking.getPurchaseTicketCount(),
-                schedule.getScheduleNumber().getDisplayName(),
+                schedule.getScheduleNumber(),
                 booking.getBookerName(),
                 booking.getBookerPhoneNumber(),
                 booking.isPaymentCompleted(),
-                schedule.getPerformance().getBankName().getDisplayName(),
+                schedule.getPerformance().getBankName(),
                 schedule.getPerformance().getAccountNumber(),
                 totalPaymentAmount,
                 booking.getCreatedAt()

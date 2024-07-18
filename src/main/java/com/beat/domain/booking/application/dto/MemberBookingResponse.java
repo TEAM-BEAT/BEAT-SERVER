@@ -1,5 +1,8 @@
 package com.beat.domain.booking.application.dto;
 
+import com.beat.domain.performance.domain.BankName;
+import com.beat.domain.schedule.domain.ScheduleNumber;
+
 import java.time.LocalDateTime;
 
 public record MemberBookingResponse(
@@ -7,11 +10,11 @@ public record MemberBookingResponse(
         Long scheduleId,
         Long userId,
         int purchaseTicketCount,
-        String scheduleNumber,
+        ScheduleNumber scheduleNumber,
         String bookerName,
         String bookerPhoneNumber,
         boolean isPaymentCompleted,
-        String bankName,
+        BankName bankName,
         String accountNumber,
         int totalPaymentAmount,
         LocalDateTime createdAt
@@ -21,11 +24,11 @@ public record MemberBookingResponse(
             Long scheduleId,
             Long userId,
             int purchaseTicketCount,
-            String scheduleNumber,
+            ScheduleNumber scheduleNumber,
             String bookerName,
             String bookerPhoneNumber,
             boolean isPaymentCompleted,
-            String bankName,
+            BankName bankName,
             String accountNumber,
             int totalPaymentAmount,
             LocalDateTime createdAt
