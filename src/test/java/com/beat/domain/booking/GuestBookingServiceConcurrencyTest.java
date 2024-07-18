@@ -123,7 +123,7 @@ public class GuestBookingServiceConcurrencyTest {
                     GuestBookingRequest request = GuestBookingRequest.of(
                             schedule1.getId(), // 회차 1번 스케줄 ID를 사용
                             2,  // purchaseTicketCount
-                            "FIRST",
+                            ScheduleNumber.FIRST,
                             "서지우",
                             "010-2222-7196",
                             "1990-01-01",
@@ -146,7 +146,7 @@ public class GuestBookingServiceConcurrencyTest {
                     GuestBookingRequest request = GuestBookingRequest.of(
                             schedule2.getId(), // 회차 2번 스케줄 ID를 사용
                             1,  // purchaseTicketCount
-                            "SECOND",
+                            ScheduleNumber.SECOND,
                             "서지우",
                             "010-2222-7196",
                             "1990-01-01",
