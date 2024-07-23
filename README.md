@@ -13,6 +13,10 @@
 **📌 Official Account |** [BEAT Instagram](https://www.instagram.com/be_at_beat?igsh=MTJmank3N3phZHYzeA==) </br>
 **💌 Email |** [beatlebeatle.official@gmail.com](mailto:beatlebeatle.official@gmail.com)
 
+<br></br>
+<br></br>
+
+
 ## 💓 Introduction 
 ![intro1](https://github.com/user-attachments/assets/229ca2dd-9fd0-4177-87dd-ce41b4a5186c)
 ![intro2](https://github.com/user-attachments/assets/7c083b82-6f97-424e-9c70-83706d16e345)
@@ -24,13 +28,13 @@
 ![intro4](https://github.com/user-attachments/assets/7002609e-d4c6-45dd-9fd2-db1547929d1a)
 
 학생 공연 단체들은 대부분 구글폼을 사용하여 공연을 등록하고 관리하고 있습니다. <br>
-하지만 예매자의 입금 여부와 다양한 문의사항을 개별적 연락을 통해 처리해야 하므로 번거로움과 혼란스러움을 겪고 있죠 😭
+하지만 예매자의 입금여부를 직접 추적하고 다양한 문의사항을 개인 연락처를 통해 처리해야 하므로 번거로움과 부담을 느끼고 있죠 😭
 
 BEAT는 이러한 문제를 해결하기 위해 탄생했습니다. <br>
-**공연 등록, 관리, 예매, 조회까지 한 번에 할 수 있는 통합 플랫폼 BEAT**를 소개합니다. <br>
+**공연 등록, 관리, 예매, 조회까지 한 번에 할 수 있는 통합 플랫폼 BEAT**를 소개합니다! <br>
 공연 단체들은 기존의 번거롭고 복잡한 구글폼 대신, BEAT를 사용하여 더 쉽고 편리하게 공연을 관리할 수 있습니다 😁
 
-- **공연 등록**: 간편하게 공연을 등록하고 필요한 정보를 입력할 수 있습니다.
+- **공연 등록**: 등록한 공연 정보를 수정 업데이트 할 수 있으며, 예매자 관리까지 한 곳에서 할 수 있습니다.
 - **공연 관리**: 모든 공연 정보를 한 곳에서 관리하고 업데이트할 수 있습니다.
 - **공연 예매**: 회원과 비회원 모두 쉽게 사용할 수 있는 예매 시스템으로 관객들이 편리하게 티켓을 구매할 수 있습니다.
 - **공연 조회**: 실시간으로 내가 예매한 공연 내역을 조회할 수 있습니다.
@@ -92,16 +96,13 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 <img src="https://img.shields.io/badge/JUnit5-25A162?style=flat-square&logo=junit5&logoColor=white">
 
 #### Database
-<img src="https://img.shields.io/badge/MySQL-4479A1.svg?style=flat-square&logo=MySQL&logoColor=white">
-<img src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white">
+<img src="https://img.shields.io/badge/MySQL-4479A1.svg?style=flat-square&logo=MySQL&logoColor=white"> <img src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white">
 
 #### AWS
 <img src ="https://img.shields.io/badge/AWS EC2-FF9900?style=flat-square&logo=amazonec2&logoColor=white">  <img src ="https://img.shields.io/badge/AWS S3-69A31?style=flat-square&logo=amazons3&logoColor=white">  <img src="https://img.shields.io/badge/AWS RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white">
 
 #### CI/CD
-<img src="https://img.shields.io/badge/GitHub%20Actions-0?style=flat-square&logo=GitHub%20Actions&logoColor=white&color=%232088FF">
-<img src="https://img.shields.io/badge/Jenkins-0?style=flat-square&logo=Jenkins&logoColor=white&color=%23D24939">
-<img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white">
+<img src="https://img.shields.io/badge/GitHub%20Actions-0?style=flat-square&logo=GitHub%20Actions&logoColor=white&color=%232088FF"> <img src="https://img.shields.io/badge/Jenkins-0?style=flat-square&logo=Jenkins&logoColor=white&color=%23D24939"> <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white">
 
 #### Monitoring
 <img src="https://img.shields.io/badge/Slack-4A154B?style=flat-square&logo=slack&logoColor=white">
@@ -110,7 +111,7 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 <img src="https://img.shields.io/badge/ Swagger-6DB33F?style=flat-square&logo=swagger&logoColor=white">
 
 ## 🔨 Architecture
-<img width="918" alt="image" src="https://github.com/user-attachments/assets/78020ddf-d3df-47bd-a4be-0cb7263b78ac">
+<img src="https://github.com/user-attachments/assets/35b618b6-932e-4ef8-99bc-857f4e45d610">
 
 ## 👥 Contributors
 - [BEAT Client Repository](https://github.com/TEAM-BEAT/BEAT-Client)
