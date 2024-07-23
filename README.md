@@ -1,34 +1,11 @@
-# BEAT - 간편하게 소규모 공연을 등록하고 관리할 수 있는 티켓 예매 플랫폼
+# BEAT - 소규모 공연을 등록하고 관리할 수 있는 티켓 예매 플랫폼
 
+# BEAT <a href="https://www.beatlive.kr"><img src="https://github.com/user-attachments/assets/49b52b5a-1859-486e-aaf5-e8bee25f64ca" align="left" width="100"></a>
+<a href="https://hits.seeyoufarm.com">
+  <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FTEAM-BEAT%2FBEAT-SERVER&count_bg=%23FD28C0&title_bg=%230F0F0F&icon=beatport.svg&icon_color=%23E7E7E7&title=hits&edge_flat=false" alt="Hits">
+</a>
 
-<div align="left">
-  <div style="width: 90%; display: flex; gap: 25px; margin: 10px 0; align-items: flex-start;">
-    <svg width="100" height="100" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-top: 13px;">
-      <g clip-path="url(#clip0_3999_41443)">
-        <rect width="192" height="192" rx="8" fill="#0F0F0F"/>
-        <path d="M125.859 96.856L112.182 53.9171L105.474 32L98.9363 54.2286L84.3723 111.844L73.0839 82.05L66.2455 60.3145L57.3845 81.7515L50.1807 96.856H37V108.976H60.3599L66.0889 98.1926L78.8912 137.187L86.6952 159L92.098 136.733L106.362 80.2852L115.497 108.976H155V96.856H125.859Z" fill="url(#paint0_linear_3999_41443)"/>
-      </g>
-      <defs>
-        <linearGradient id="paint0_linear_3999_41443" x1="92.2133" y1="32" x2="89.0426" y2="180.753" gradientUnits="userSpaceOnUse">
-          <stop offset="0.257954" stop-color="#FF006B"/>
-          <stop offset="1" stop-color="#FF006B" stop-opacity="0.16"/>
-        </linearGradient>
-        <clipPath id="clip0_3999_41443">
-          <rect width="192" height="192" fill="white"/>
-        </clipPath>
-      </defs>
-    </svg>
-    <div style="display: flex; flex-direction: column; gap: 8px;">
-      <h1 style="margin: 0;">BEAT</h1>
-      <hr style="margin: 0;">
-      <div style="margin-top: 11px;">
-        <a href="https://hits.seeyoufarm.com"><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FTEAM-BEAT%2FBEAT-SERVER&count_bg=%23FD28C0&title_bg=%230F0F0F&icon=beatport.svg&icon_color=%23E7E7E7&title=hits&edge_flat=false" alt="Hits"></a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<br>
+<br></br>
 
 **📱 BEAT |** [사이트 바로가기](https://www.beatlive.kr/)
 </br></br>
