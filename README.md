@@ -1,18 +1,87 @@
-# BEAT-SERVER
+# BEAT - 간편하게 소규모 공연을 등록하고 관리할 수 있는 티켓 예매 플랫폼
 
-## 💗 BEAT Information 💗
 
-```
-모두를 위한, 그래서 대학생을 위한 공연 예매 플랫폼
-```
+<div align="left">
+  <div style="width: 90%; display: flex; gap: 25px; margin: 10px 0; align-items: flex-start;">
+    <svg width="100" height="100" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-top: 13px;">
+      <g clip-path="url(#clip0_3999_41443)">
+        <rect width="192" height="192" rx="8" fill="#0F0F0F"/>
+        <path d="M125.859 96.856L112.182 53.9171L105.474 32L98.9363 54.2286L84.3723 111.844L73.0839 82.05L66.2455 60.3145L57.3845 81.7515L50.1807 96.856H37V108.976H60.3599L66.0889 98.1926L78.8912 137.187L86.6952 159L92.098 136.733L106.362 80.2852L115.497 108.976H155V96.856H125.859Z" fill="url(#paint0_linear_3999_41443)"/>
+      </g>
+      <defs>
+        <linearGradient id="paint0_linear_3999_41443" x1="92.2133" y1="32" x2="89.0426" y2="180.753" gradientUnits="userSpaceOnUse">
+          <stop offset="0.257954" stop-color="#FF006B"/>
+          <stop offset="1" stop-color="#FF006B" stop-opacity="0.16"/>
+        </linearGradient>
+        <clipPath id="clip0_3999_41443">
+          <rect width="192" height="192" fill="white"/>
+        </clipPath>
+      </defs>
+    </svg>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <h1 style="margin: 0;">BEAT</h1>
+      <hr style="margin: 0;">
+      <div style="margin-top: 11px;">
+        <a href="https://hits.seeyoufarm.com"><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FTEAM-BEAT%2FBEAT-SERVER&count_bg=%23FD28C0&title_bg=%230F0F0F&icon=beatport.svg&icon_color=%23E7E7E7&title=hits&edge_flat=false" alt="Hits"></a>
+      </div>
+    </div>
+  </div>
+</div>
 
-## 🥁 BEAT Server Developers 🥁
+<br>
 
-|                                                                                                    이동훈                                                                                                    | 황혜린 | 
-|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:| :---: | 
-|                                    <img width="200" alt="branch" src="https://github.com/TEAM-BEAT/BEAT-SERVER/assets/144998449/43e18ca0-5eca-46bf-a108-db662cb3ce9b">                                    |<img width="200" alt="branch" src="https://github.com/TEAM-BEAT/BEAT-SERVER/assets/144998449/e678429a-6a1b-4a0b-8457-7eb4b6f9de29"> | 
-|                                                                                [hoonyworld](https://github.com/hoonyworld)                                                                                | [hyerinhwang-sailin](https://github.com/hyerinhwang-sailin) |
-| prod 서버용 EC2, RDS 구축 <br> dev, prod github action <br> CI 구축(~dockerhub push) <br>Jenkins multibranch pipeline<br> dev 서버에서 dev, prod CD <br> prod 서버 nginx 무중단배포<br> ERD 및 DB 설계 <br> Entity 초기 세팅 | dev 서버용 EC2, RDS 구축 <br> ERD 및 DB 설계 <br> 인증 / 인가 구현 (Redis) <br> 웹 발신 <br> Entity 초기 세팅 <br> 카카오 소셜 로그인 <br> Swagger 세팅 | 
+**📱 BEAT |** [사이트 바로가기](https://www.beatlive.kr/)
+</br></br>
+**📝 Team Blog |** [BEAT Blog](https://team-beat.tistory.com/) </br>
+**📌 Official Account |** [BEAT Instagram](https://www.instagram.com/be_at_beat?igsh=MTJmank3N3phZHYzeA==) </br>
+**💌 Email |** [beatlebeatle.official@gmail.com](mailto:beatlebeatle.official@gmail.com)
+
+## 💓 Introduction 
+![intro1](https://github.com/user-attachments/assets/229ca2dd-9fd0-4177-87dd-ce41b4a5186c)
+![intro2](https://github.com/user-attachments/assets/7c083b82-6f97-424e-9c70-83706d16e345)
+
+<br></br>
+
+### 🎤 학생 여러분, 아직도 구글폼으로 공연 등록하세요? BEAT로 더 쉽고 빠르게!
+![intro3](https://github.com/user-attachments/assets/7a0009a4-a73d-40fb-8976-2b1fa1d7d5f7)
+![intro4](https://github.com/user-attachments/assets/7002609e-d4c6-45dd-9fd2-db1547929d1a)
+
+학생 공연 단체들은 대부분 구글폼을 사용하여 공연을 등록하고 관리하고 있습니다. <br>
+하지만 예매자의 입금 여부와 다양한 문의사항을 개별적 연락을 통해 처리해야 하므로 번거로움과 혼란스러움을 겪고 있죠 😭
+
+BEAT는 이러한 문제를 해결하기 위해 탄생했습니다. <br>
+**공연 등록, 관리, 예매, 조회까지 한 번에 할 수 있는 통합 플랫폼 BEAT**를 소개합니다. <br>
+공연 단체들은 기존의 번거롭고 복잡한 구글폼 대신, BEAT를 사용하여 더 쉽고 편리하게 공연을 관리할 수 있습니다 😁
+
+- **공연 등록**: 간편하게 공연을 등록하고 필요한 정보를 입력할 수 있습니다.
+- **공연 관리**: 모든 공연 정보를 한 곳에서 관리하고 업데이트할 수 있습니다.
+- **공연 예매**: 회원과 비회원 모두 쉽게 사용할 수 있는 예매 시스템으로 관객들이 편리하게 티켓을 구매할 수 있습니다.
+- **공연 조회**: 실시간으로 내가 예매한 공연 내역을 조회할 수 있습니다.
+
+BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? 👏
+
+</br></br>
+</br></br>
+
+## ✨ Main Feature
+![feature1](https://github.com/user-attachments/assets/3a9cba25-e481-427e-85dd-3231e98a0c30)
+![feature2](https://github.com/user-attachments/assets/a2ad201f-80b5-4115-b13a-9f8521f3b984)
+
+</br></br>
+</br></br>
+
+## 🧑🏻‍💻 Developers
+
+|                                                                                   이동훈                                                                                    |                                                             황혜린                                                              | 
+|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------:| 
+|                           <img width="250" alt="branch" src="https://github.com/user-attachments/assets/bb69bc1c-50d1-44cb-bdcd-febe11fc1a66">                           |     <img width="250" alt="branch" src="https://github.com/user-attachments/assets/fa31601a-48f8-4af8-9690-b8f4f351c04a">     | 
+|                                                               [hoonyworld](https://github.com/hoonyworld)                                                                |                                 [hyerinhwang-sailin](https://github.com/hyerinhwang-sailin)                                  |
+| 티켓 예매 동시성 처리 <br> github action CI 구축 <br> Jenkins multibranch pipeline CD 구축 <br> Jenkins Pipeline에 Slack 연동 <br> Presigned Url(S3) 이미지 서비스 <br> ERD 및 DB 설계 <br> Entity 초기 세팅 | 운영 및 테스트 서버 EC2, RDS 구축 <br> 카카오 소셜 로그인 <br> 인증 / 인가 구현 (Redis) <br> 웹 발신 <br> Swagger 세팅 <br> ERD 및 DB 설계 <br> Entity 초기 세팅 | 
+
+</br></br>
+</br></br>
+
+## 🤝 Convention
 
 ### 🏡 Git Convention
 [Git Convention](https://www.notion.so/jiwoothejay/git-convention-9bee60c3bb0a45f1913616b3e72b87b7)
@@ -23,102 +92,48 @@
 ### 🌳 Commit Convention
 [Commit Convention](https://www.notion.so/jiwoothejay/issue-pr-templates-44f118ed82904febae246518ef150e25)
 
-### 📁 Foldering
-```
-       src
-	├── main
-	│   ├── java
-	│   │   └── com
-	│   │       └── beat
-	│   │           ├── domain
-	│   │           │   ├── booking
-	│   │           │   │   ├── api
-	│   │           │   │   ├── application
-	│   │           │   │   ├── dao
-	│   │           │   │   ├── domain
-	│   │           │   │   └── exception
-	│   │           │   ├── cast
-	│   │           │   │   ├── api
-	│   │           │   │   ├── application
-	│   │           │   │   ├── dao
-	│   │           │   │   ├── domain
-	│   │           │   │   └── exception
-	│   │           │   ├── member
-	│   │           │   │   ├── api
-	│   │           │   │   ├── application
-	│   │           │   │   ├── dao
-	│   │           │   │   ├── domain
-	│   │           │   │   └── exception
-	│   │           │   ├── performance
-	│   │           │   │   ├── api
-	│   │           │   │   ├── application
-	│   │           │   │   ├── dao
-	│   │           │   │   ├── domain
-	│   │           │   │   └── exception
-	│   │           │   ├── promotion
-	│   │           │   │   ├── api
-	│   │           │   │   ├── application
-	│   │           │   │   ├── dao
-	│   │           │   │   ├── domain
-	│   │           │   │   └── exception
-	│   │           │   ├── schedule
-	│   │           │   │   ├── api
-	│   │           │   │   ├── application
-	│   │           │   │   ├── dao
-	│   │           │   │   ├── domain
-	│   │           │   │   └── exception
-	│   │           │   ├── staff
-	│   │           │   │   ├── api
-	│   │           │   │   ├── application
-	│   │           │   │   ├── dao
-	│   │           │   │   ├── domain
-	│   │           │   │   └── exception
-	│   │           │   ├── users
-	│   │           │   │   ├── api
-	│   │           │   │   ├── application
-	│   │           │   │   ├── dao
-	│   │           │   │   ├── domain
-	│   │           │   │   └── exception
-	│   │           ├── global
-	│   │           │   ├── common
-	│   │           │   │   ├── config
-	│   │           │   │   ├── dto
-	│   │           │   │   └── exception
-	│   │           │   │       ├── base
-	│   │           │   │       └── handler
-	│   │           │   ├── auth
-	│   │           │   │   ├── feign
-	│   │           │   │   │   └── kakao
-	│   │           │   │   ├── filter
-	│   │           │   │   ├── jwt
-	│   │           │   │   ├── redis
-	│   │           │   │   ├── security
-	│   │           │   ├── external
-	│   │           │   │   ├── discord
-	│   │           │   │   │   ├── exception
-	│   │           │   │   │   └── model
-	│   │           │   │   ├── s3
-	│   │           │   │   │   ├── dto
-	│   │           │   │   │   ├── exception
-	│   │           │   │   │   └── service
-	│   │           ├── infra
-	│   │           │   ├── email
-	│   │           │   └── sms
-	│   │           └── BeatApplication
-	│   └── resources
-	│       ├── application.yml
-	│       ├── application-dev.yml
-	│       ├── application-local.yml
-	│       └── application-prod.yml
-```
+<br></br>
+<br></br>
 
-## 🔗 ERD
-<img width="1131" alt="erd_beat" src="https://github.com/TEAM-BEAT/BEAT-SERVER/assets/125895298/a3dd8812-bc55-4680-b497-942f9213a8f6">
+## 📄 API Specification
+<img width="948" alt="api_spec" src="https://github.com/user-attachments/assets/cebac4ae-1104-4a81-b8f6-6ddddfee8e92">
 
-## 📄 API 명세서
-[API specification](https://jiwoothejay.notion.site/1-API-c34df726fd464899a31841d35a69ab32?pvs=4)
+## 📈 ERD
+<img width="1742" alt="erd" src="https://github.com/user-attachments/assets/0ac54737-9d8a-4c2d-b46c-1d110414d8eb">
 
-## 🛠️ Tech
+## 🖥️ Tech Stack
+#### Framework
+<img src="https://img.shields.io/badge/Spring_Boot_3-0?style=flat-square&logo=spring-boot&logoColor=white&color=%236DB33F">   <img src="https://img.shields.io/badge/Gradle-0?style=flat-square&logo=gradle&logoColor=white&color=%2302303A">
+
+#### ORM
+<img src="https://img.shields.io/badge/Spring Data JPA-6DB33F?style=flat-square&logo=Databricks&logoColor=white">
+
+#### Authorization
+<img src="https://img.shields.io/badge/Spring Security-6DB33F?style=flat-square&logo=springsecurity&logoColor=white">  <img src="https://img.shields.io/badge/JSON Web Tokens-000000?style=flat-square&logo=JSON Web Tokens&logoColor=white">
+
+#### Test
+<img src="https://img.shields.io/badge/JUnit5-25A162?style=flat-square&logo=junit5&logoColor=white">
+
+#### Database
+<img src="https://img.shields.io/badge/MySQL-4479A1.svg?style=flat-square&logo=MySQL&logoColor=white">
+<img src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white">
+
+#### AWS
+<img src ="https://img.shields.io/badge/AWS EC2-FF9900?style=flat-square&logo=amazonec2&logoColor=white">  <img src ="https://img.shields.io/badge/AWS S3-69A31?style=flat-square&logo=amazons3&logoColor=white">  <img src="https://img.shields.io/badge/AWS RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white">
+
+#### CI/CD
+<img src="https://img.shields.io/badge/GitHub%20Actions-0?style=flat-square&logo=GitHub%20Actions&logoColor=white&color=%232088FF">
+<img src="https://img.shields.io/badge/Jenkins-0?style=flat-square&logo=Jenkins&logoColor=white&color=%23D24939">
+<img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white">
+
+#### Monitoring
+<img src="https://img.shields.io/badge/Slack-4A154B?style=flat-square&logo=slack&logoColor=white">
+
+#### Other
+<img src="https://img.shields.io/badge/ Swagger-6DB33F?style=flat-square&logo=swagger&logoColor=white">
 
 ## 🔨 Architecture
-<img width="918" alt="image" src="https://github.com/user-attachments/assets/14575f6d-4f3d-4b54-9c3c-6a302db2a5a4">
+<img width="918" alt="image" src="https://github.com/user-attachments/assets/78020ddf-d3df-47bd-a4be-0cb7263b78ac">
+
+## 👥 Contributors
+- [BEAT Client Repository](https://github.com/TEAM-BEAT/BEAT-Client)
