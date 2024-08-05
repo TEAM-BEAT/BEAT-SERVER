@@ -20,4 +20,5 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     List<Schedule> findAllByPerformanceId(Long performanceId);
 
-}
+    @Query("SELECT s.id FROM Schedule s WHERE s.performance.id = :performanceId")
+    List<Long> findIdsByPerformanceId(@Param("performanceId") Long performanceId);}
