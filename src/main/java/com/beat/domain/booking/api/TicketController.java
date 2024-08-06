@@ -32,7 +32,7 @@ public class TicketController {
     }
 
     @Operation(summary = "예매자 입금여부 수정 및 웹발신 API", description = "메이커가 자신의 공연에 대한 예매자의 입금여부 정보를 수정한 뒤 예매확정 웹발신을 보내는 PUT API입니다.")
-    @PutMapping("/{performanceId}")
+    @PutMapping("/{performanceId}") // 이 부분 body로 performanceId를 넘기기에 수정 필요!!
     public ResponseEntity<SuccessResponse<Void>> updateTickets(
             @CurrentMember Long memberId,
             @PathVariable Long performanceId,
@@ -42,12 +42,11 @@ public class TicketController {
     }
 
     @Operation(summary = "예매자 삭제 API", description = "메이커가 자신의 공연에 대한 예매자의 정보를 삭제하는 DELETE API입니다.")
-    @DeleteMapping("/{performanceId}")
+    @DeleteMapping
     public ResponseEntity<SuccessResponse<Void>> deleteTickets(
             @CurrentMember Long memberId,
-            @PathVariable Long performanceId,
-            @RequestBody TicketDeleteRequest request) {
-        ticketService.deleteTickets(memberId, request);
-        return ResponseEntity.ok(SuccessResponse.of(BookingSuccessCode.TICKET_DELETE_SUCCESS, null));
+            @RequestBody TicketDeleteRequest ticketDeleteRequest) {
+        ticketService.deleteTickets(memberId, ticketDeleteRequest);
+        return ResponseEntity.ok(SuccessResponse.from(BookingSuccessCode.TICKET_DELETE_SUCCESS));
     }
 }

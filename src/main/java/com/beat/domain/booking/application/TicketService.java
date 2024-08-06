@@ -11,6 +11,7 @@ import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.booking.exception.BookingErrorCode;
+import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
 import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
@@ -107,17 +108,20 @@ public class TicketService {
     }
 
     @Transactional
-    public void deleteTickets(Long memberId, TicketDeleteRequest request) {
-        Member member = memberRepository.findById(memberId).orElseThrow(
-                () -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+    public void deleteTickets(Long memberId, TicketDeleteRequest ticketDeleteRequest) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-        Users user = userRepository.findById(member.getUser().getId()).orElseThrow(
-                () -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+        Long userId = member.getUser().getId();
 
-        Performance performance = performanceRepository.findById(request.performanceId())
+        Performance performance = performanceRepository.findById(ticketDeleteRequest.performanceId())
                 .orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_PERFORMANCE_FOUND));
 
-        for (Long bookingId : request.bookingList()) {
+        if (!performance.getUsers().getId().equals(userId)) {
+            throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
+        }
+
+        for (Long bookingId : ticketDeleteRequest.bookingList()) {
             Booking booking = ticketRepository.findById(bookingId)
                     .orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 

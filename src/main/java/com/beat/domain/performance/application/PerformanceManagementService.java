@@ -18,10 +18,8 @@ import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.staff.dao.StaffRepository;
 import com.beat.domain.staff.domain.Staff;
-import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.exception.UserErrorCode;
-import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -164,14 +162,24 @@ public class PerformanceManagementService {
 
     @Transactional
     public void deletePerformance(Long memberId, Long performanceId) {
-        memberRepository.findById(memberId).orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        Long userId = member.getUser().getId();
 
         Performance performance = performanceRepository.findById(performanceId)
                 .orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-        boolean hasBookings = bookingRepository.existsBySchedulePerformanceId(performanceId);
+        if (!performance.getUsers().getId().equals(userId)) {
+            throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
+        }
+
+        List<Long> scheduleIds = scheduleRepository.findIdsByPerformanceId(performanceId);
+
+        boolean hasBookings = bookingRepository.existsByScheduleIdIn(scheduleIds);
+
         if (hasBookings) {
-            throw new BadRequestException(PerformanceErrorCode.PERFORMANCE_DELETE_FAILED);
+            throw new ForbiddenException(PerformanceErrorCode.PERFORMANCE_DELETE_FAILED);
         }
 
         performanceRepository.delete(performance);
