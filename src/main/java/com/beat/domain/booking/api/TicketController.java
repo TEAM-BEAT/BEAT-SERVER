@@ -32,10 +32,9 @@ public class TicketController {
     }
 
     @Operation(summary = "예매자 입금여부 수정 및 웹발신 API", description = "메이커가 자신의 공연에 대한 예매자의 입금여부 정보를 수정한 뒤 예매확정 웹발신을 보내는 PUT API입니다.")
-    @PutMapping("/{performanceId}") // 이 부분 body로 performanceId를 넘기기에 수정 필요!!
+    @PutMapping
     public ResponseEntity<SuccessResponse<Void>> updateTickets(
             @CurrentMember Long memberId,
-            @PathVariable Long performanceId,
             @RequestBody TicketUpdateRequest request) {
         ticketService.updateTickets(memberId, request);
         return ResponseEntity.ok(SuccessResponse.of(BookingSuccessCode.TICKET_UPDATE_SUCCESS, null));
