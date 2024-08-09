@@ -100,7 +100,6 @@ public class TicketService {
                 try {
                     coolSmsService.sendSms(detail.bookerPhoneNumber(), message);
                 } catch (CoolsmsException e) {
-                    // 문자 발송 실패 시 로깅 또는 다른 처리를 추가할 수 있습니다.
                     e.printStackTrace();
                 }
             }
