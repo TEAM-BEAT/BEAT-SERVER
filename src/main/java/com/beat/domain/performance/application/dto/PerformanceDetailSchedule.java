@@ -5,9 +5,10 @@ import java.time.LocalDateTime;
 public record PerformanceDetailSchedule(
         Long scheduleId,
         LocalDateTime performanceDate,
-        String scheduleNumber
+        String scheduleNumber,
+        int dueDate
 ) {
-    public static PerformanceDetailSchedule of(Long scheduleId, LocalDateTime performanceDate, String scheduleNumber) {
-        return new PerformanceDetailSchedule(scheduleId, performanceDate, scheduleNumber);
+    public static PerformanceDetailSchedule of(Long scheduleId, LocalDateTime performanceDate, String scheduleNumber, int dueDate) {
+        return new PerformanceDetailSchedule(scheduleId, performanceDate, scheduleNumber, dueDate);
     }
 }
