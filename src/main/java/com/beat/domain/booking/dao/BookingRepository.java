@@ -32,5 +32,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByUsersId(Long userId);
 
-    boolean existsBySchedulePerformanceId(Long performanceId);
+    @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.schedule.id IN :scheduleIds")
+    boolean existsByScheduleIdIn(@Param("scheduleIds") List<Long> scheduleIds);
 }

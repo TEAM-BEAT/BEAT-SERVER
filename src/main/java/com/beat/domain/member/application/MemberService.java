@@ -53,11 +53,9 @@ public class MemberService {
 
     @Transactional
     public Long createUser(final MemberInfoResponse userResponse) {
-        // Users 엔티티를 먼저 생성
         Users users = Users.create();
         users = userRepository.save(users);
 
-        // Users 엔티티가 생성된 후 Member 엔티티 생성
         Member member = Member.create(
                 userResponse.nickname(),
                 userResponse.email(),

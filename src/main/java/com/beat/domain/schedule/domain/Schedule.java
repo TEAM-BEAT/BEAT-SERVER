@@ -1,6 +1,8 @@
 package com.beat.domain.schedule.domain;
 
 import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.schedule.exception.ScheduleErrorCode;
+import com.beat.global.common.exception.ConflictException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -78,4 +80,13 @@ public class Schedule {
         this.totalTicketCount = totalTicketCount;
         this.scheduleNumber = scheduleNumber;
     }
+
+    public void decreaseSoldTicketCount(int count) {
+        if (this.soldTicketCount >= count) {
+            this.soldTicketCount -= count;
+        } else {
+            throw new ConflictException(ScheduleErrorCode.EXCESS_TICKET_DELETE);
+        }
+    }
+
 }

@@ -94,6 +94,6 @@ public class PerformanceController {
             @CurrentMember Long memberId,
             @PathVariable Long performanceId) {
         performanceManagementService.deletePerformance(memberId, performanceId);
-        return ResponseEntity.ok(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_DELETE_SUCCESS, null));
+        return ResponseEntity.ok(SuccessResponse.from(PerformanceSuccessCode.PERFORMANCE_DELETE_SUCCESS));
     }
 }

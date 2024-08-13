@@ -1,6 +1,7 @@
 package com.beat.domain.performance.domain;
 
 import com.beat.domain.BaseTimeEntity;
+import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.user.domain.Users;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -9,6 +10,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -65,6 +69,9 @@ public class Performance extends BaseTimeEntity {
 
     @Column(nullable = false)
     private int totalScheduleCount;
+
+    @OneToMany(mappedBy = "performance", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Promotion> promotions = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

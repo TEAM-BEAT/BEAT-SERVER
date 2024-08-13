@@ -89,6 +89,12 @@ pipeline {
                             ' -e "SPRING_PROFILES_ACTIVE=' + OPERATION_ENV + '"' +
                             ' ' + DOCKER_IMAGE_NAME + ':latest'
                         )
+
+                        // Docker dangling 이미지 정리
+                        sshCommand remote: remote, command: '''
+                            docker images -f "dangling=true" -q | \
+                            xargs -r docker rmi
+                        '''
                     }
                 }
             }
