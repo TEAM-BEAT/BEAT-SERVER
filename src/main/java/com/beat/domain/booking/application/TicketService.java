@@ -9,6 +9,8 @@ import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
+import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.booking.exception.BookingErrorCode;
 import com.beat.global.common.exception.ForbiddenException;
@@ -32,6 +34,7 @@ public class TicketService {
     private final PerformanceRepository performanceRepository;
     private final MemberRepository memberRepository;
     private final UserRepository userRepository;
+    private final ScheduleRepository scheduleRepository;
     private final CoolSmsService coolSmsService;
 
     public TicketRetrieveResponse getTickets(Long memberId, Long performanceId, ScheduleNumber scheduleNumber, Boolean isPaymentCompleted) {
@@ -125,6 +128,13 @@ public class TicketService {
                     .orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
             ticketRepository.delete(booking);
+
+            Schedule schedule = booking.getSchedule();
+
+            ticketRepository.delete(booking);
+
+            schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
+            scheduleRepository.save(schedule);
         }
     }
 }
