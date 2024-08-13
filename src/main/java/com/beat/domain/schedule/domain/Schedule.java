@@ -78,4 +78,13 @@ public class Schedule {
         this.totalTicketCount = totalTicketCount;
         this.scheduleNumber = scheduleNumber;
     }
+
+    public void decreaseSoldTicketCount(int count) {
+        if (this.soldTicketCount >= count) {
+            this.soldTicketCount -= count;
+        } else {
+            throw new IllegalArgumentException("Sold ticket count cannot be less than zero.");
+        }
+    }
+
 }
