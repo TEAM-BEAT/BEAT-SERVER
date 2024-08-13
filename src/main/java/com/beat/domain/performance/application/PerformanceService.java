@@ -36,6 +36,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -58,11 +59,17 @@ public class PerformanceService {
                 .orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
         List<PerformanceDetailSchedule> scheduleList = scheduleRepository.findByPerformanceId(performanceId).stream()
-                .map(schedule -> PerformanceDetailSchedule.of(
-                        schedule.getId(),
-                        schedule.getPerformanceDate(),
-                        schedule.getScheduleNumber().name()
-                )).collect(Collectors.toList());
+                .map(schedule -> {
+                    int dueDate = scheduleService.calculateDueDate(schedule);
+                    return PerformanceDetailSchedule.of(
+                            schedule.getId(),
+                            schedule.getPerformanceDate(),
+                            schedule.getScheduleNumber().name(),
+                            dueDate
+                    );
+                }).collect(Collectors.toList());
+
+        int minDueDate = scheduleService.getMinDueDate(scheduleRepository.findAllByPerformanceId(performanceId));
 
         List<PerformanceDetailCast> castList = castRepository.findByPerformanceId(performanceId).stream()
                 .map(cast -> PerformanceDetailCast.of(
@@ -95,7 +102,8 @@ public class PerformanceService {
                 performance.getPerformanceContact(),
                 performance.getPerformanceTeamName(),
                 castList,
-                staffList
+                staffList,
+                minDueDate
         );
     }
 
@@ -107,12 +115,14 @@ public class PerformanceService {
         List<BookingPerformanceDetailSchedule> scheduleList = scheduleRepository.findByPerformanceId(performanceId).stream()
                 .map(schedule -> {
                     scheduleService.updateBookingStatus(schedule);
+                    int dueDate = scheduleService.calculateDueDate(schedule);
                     return BookingPerformanceDetailSchedule.of(
                             schedule.getId(),
                             schedule.getPerformanceDate(),
                             schedule.getScheduleNumber().name(),
                             scheduleService.getAvailableTicketCount(schedule),
-                            schedule.isBooking()
+                            schedule.isBooking(),
+                            dueDate
                     );
                 }).collect(Collectors.toList());
 
@@ -206,17 +216,39 @@ public class PerformanceService {
         List<Performance> performances = performanceRepository.findByUsersId(user.getId());
 
         List<MakerPerformanceDetail> performanceDetails = performances.stream()
-                .map(performance -> MakerPerformanceDetail.of(
-                        performance.getId(),
-                        performance.getGenre().name(),
-                        performance.getPerformanceTitle(),
-                        performance.getPosterImage(),
-                        performance.getPerformancePeriod()
-                ))
+                .map(performance -> {
+                    List<Schedule> schedules = scheduleRepository.findByPerformanceId(performance.getId());
+                    int minDueDate = scheduleService.getMinDueDate(schedules);
+
+                    return MakerPerformanceDetail.of(
+                            performance.getId(),
+                            performance.getGenre().name(),
+                            performance.getPerformanceTitle(),
+                            performance.getPosterImage(),
+                            performance.getPerformancePeriod(),
+                            minDueDate
+                    );
+                })
                 .collect(Collectors.toList());
 
-        return MakerPerformanceResponse.of(user.getId(), performanceDetails);
+        // 양수 minDueDate 정렬
+        List<MakerPerformanceDetail> positiveDueDates = performanceDetails.stream()
+                .filter(detail -> detail.minDueDate() >= 0)
+                .sorted(Comparator.comparingInt(MakerPerformanceDetail::minDueDate))
+                .collect(Collectors.toList());
+
+        // 음수 minDueDate 정렬
+        List<MakerPerformanceDetail> negativeDueDates = performanceDetails.stream()
+                .filter(detail -> detail.minDueDate() < 0)
+                .sorted(Comparator.comparingInt(MakerPerformanceDetail::minDueDate).reversed())
+                .collect(Collectors.toList());
+
+        // 병합된 리스트
+        positiveDueDates.addAll(negativeDueDates);
+
+        return MakerPerformanceResponse.of(user.getId(), positiveDueDates);
     }
+
 
     @Transactional
     public PerformanceEditResponse getPerformanceEdit(Long memberId, Long performanceId) {
