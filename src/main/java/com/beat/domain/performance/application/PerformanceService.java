@@ -200,7 +200,9 @@ public class PerformanceService {
                 .map(promotion -> HomePromotionDetail.of(
                         promotion.getId(),
                         promotion.getPromotionPhoto(),
-                        promotion.getPerformance().getId()
+                        promotion.getPerformance().getId(),
+                        promotion.getRedirectUrl(),
+                        promotion.isExternal()
                 ))
                 .collect(Collectors.toList());
     }
