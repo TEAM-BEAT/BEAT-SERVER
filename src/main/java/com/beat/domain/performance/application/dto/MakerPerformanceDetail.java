@@ -5,14 +5,16 @@ public record MakerPerformanceDetail(
         String genre,
         String performanceTitle,
         String posterImage,
-        String performancePeriod
+        String performancePeriod,
+        int minDueDate
 ) {
     public static MakerPerformanceDetail of(
             Long performanceId,
             String genre,
             String performanceTitle,
             String posterImage,
-            String performancePeriod) {
-        return new MakerPerformanceDetail(performanceId, genre, performanceTitle, posterImage, performancePeriod);
+            String performancePeriod,
+            int minDueDate) {  // minDueDate 매개변수 추가
+        return new MakerPerformanceDetail(performanceId, genre, performanceTitle, posterImage, performancePeriod, minDueDate);
     }
 }
