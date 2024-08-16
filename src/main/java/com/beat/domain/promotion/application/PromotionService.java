@@ -27,16 +27,17 @@ public class PromotionService {
         List<Promotion> promotions = promotionRepository.findAll();
 
         for (Promotion promotion : promotions) {
-            if (promotion.getPerformance() != null) {
-                Performance performance = promotion.getPerformance();
+            Performance performance = promotion.getPerformance();
 
-                List<Schedule> schedules = scheduleRepository.findByPerformanceId(performance.getId());
-                int minDueDate = scheduleService.getMinDueDate(schedules);
+            if (performance == null) {
+                return;
+            }
 
-                // MinDueDate가 음수일 경우 Promotion 삭제
-                if (minDueDate < 0) {
-                    promotionRepository.delete(promotion);
-                }
+            List<Schedule> schedules = scheduleRepository.findByPerformanceId(performance.getId());
+            int minDueDate = scheduleService.getMinDueDate(schedules);
+
+            if (minDueDate < 0) {
+                promotionRepository.delete(promotion);
             }
         }
     }
