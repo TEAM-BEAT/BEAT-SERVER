@@ -60,7 +60,8 @@ public class ScheduleService {
 
     public boolean isBookingAvailable(Schedule schedule) {
         int availableTicketCount = getAvailableTicketCount(schedule);
-        return schedule.isBooking() && availableTicketCount > 0 && schedule.getPerformanceDate().isAfter(LocalDateTime.now());
+        LocalDateTime performanceEndTime = schedule.getPerformanceDate().plusMinutes(schedule.getPerformance().getRunningTime());
+        return schedule.isBooking() && availableTicketCount > 0 && LocalDateTime.now().isBefore(performanceEndTime);
     }
 
     @Transactional
