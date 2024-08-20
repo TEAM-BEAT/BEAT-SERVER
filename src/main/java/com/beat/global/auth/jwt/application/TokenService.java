@@ -6,8 +6,10 @@ import com.beat.global.auth.redis.Token;
 import com.beat.global.common.exception.NotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class TokenService {
@@ -36,5 +38,6 @@ public class TokenService {
                         () -> new NotFoundException(TokenErrorCode.REFRESH_TOKEN_NOT_FOUND)
                 );
         tokenRepository.delete(token);
+        log.info("Deleted refresh token: {}", token);
     }
 }
