@@ -23,15 +23,20 @@ public record PerformanceUpdateResponse(
         String performancePeriod,
         int ticketPrice,
         int totalScheduleCount,
-        List<ScheduleUpdateResponse> scheduleList,
-        List<CastUpdateResponse> castList,
-        List<StaffUpdateResponse> staffList
+        List<ScheduleAddResponse> addedSchedules,
+        List<ScheduleDeleteResponse> deletedSchedules,
+        List<CastAddResponse> addedCasts,
+        List<CastDeleteResponse> deletedCasts,
+        List<StaffAddResponse> addedStaffs,
+        List<StaffDeleteResponse> deletedStaffs
 ) {
     public static PerformanceUpdateResponse of(Long userId, Long performanceId, String performanceTitle, Genre genre, int runningTime,
                                                String performanceDescription, String performanceAttentionNote, BankName bankName, String accountNumber, String accountHolder,
                                                String posterImage, String performanceTeamName, String performanceVenue, String performanceContact, String performancePeriod,
-                                               int ticketPrice, int totalScheduleCount, List<ScheduleUpdateResponse> scheduleList, List<CastUpdateResponse> castList, List<StaffUpdateResponse> staffList) {
+                                               int ticketPrice, int totalScheduleCount, List<ScheduleAddResponse> addedSchedules, List<ScheduleDeleteResponse> deletedSchedules,
+                                               List<CastAddResponse> addedCasts, List<CastDeleteResponse> deletedCasts, List<StaffAddResponse> addedStaffs, List<StaffDeleteResponse> deletedStaffs) {
         return new PerformanceUpdateResponse(userId, performanceId, performanceTitle, genre, runningTime, performanceDescription, performanceAttentionNote, bankName, accountNumber,
-                accountHolder, posterImage, performanceTeamName, performanceVenue, performanceContact, performancePeriod, ticketPrice, totalScheduleCount, scheduleList, castList, staffList);
+                accountHolder, posterImage, performanceTeamName, performanceVenue, performanceContact, performancePeriod, ticketPrice, totalScheduleCount, addedSchedules, deletedSchedules,
+                addedCasts, deletedCasts, addedStaffs, deletedStaffs);
     }
 }
