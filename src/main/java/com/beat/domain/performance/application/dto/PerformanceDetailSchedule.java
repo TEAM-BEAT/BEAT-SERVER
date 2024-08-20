@@ -6,9 +6,10 @@ public record PerformanceDetailSchedule(
         Long scheduleId,
         LocalDateTime performanceDate,
         String scheduleNumber,
-        int dueDate
+        int dueDate,
+        boolean isBooking
 ) {
-    public static PerformanceDetailSchedule of(Long scheduleId, LocalDateTime performanceDate, String scheduleNumber, int dueDate) {
-        return new PerformanceDetailSchedule(scheduleId, performanceDate, scheduleNumber, dueDate);
+    public static PerformanceDetailSchedule of(Long scheduleId, LocalDateTime performanceDate, String scheduleNumber, int dueDate, boolean isBooking) {
+        return new PerformanceDetailSchedule(scheduleId, performanceDate, scheduleNumber, dueDate, isBooking);
     }
 }
