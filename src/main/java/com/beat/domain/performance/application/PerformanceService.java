@@ -61,11 +61,13 @@ public class PerformanceService {
         List<PerformanceDetailSchedule> scheduleList = scheduleRepository.findByPerformanceId(performanceId).stream()
                 .map(schedule -> {
                     int dueDate = scheduleService.calculateDueDate(schedule);
+                    scheduleService.updateBookingStatus(schedule);
                     return PerformanceDetailSchedule.of(
                             schedule.getId(),
                             schedule.getPerformanceDate(),
                             schedule.getScheduleNumber().name(),
-                            dueDate
+                            dueDate,
+                            schedule.isBooking()
                     );
                 }).collect(Collectors.toList());
 
