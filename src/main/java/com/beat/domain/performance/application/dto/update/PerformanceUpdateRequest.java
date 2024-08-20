@@ -21,7 +21,10 @@ public record PerformanceUpdateRequest(
         String performanceContact,
         String performancePeriod,
         int totalScheduleCount,
-        List<ScheduleUpdateRequest> scheduleList,
-        List<CastUpdateRequest> castList,
-        List<StaffUpdateRequest> staffList
+        List<ScheduleAddRequest> scheduleAddRequests,
+        List<ScheduleDeleteRequest> scheduleDeleteRequests,
+        List<CastAddRequest> castAddRequests,
+        List<CastDeleteRequest> castDeleteRequests,
+        List<StaffAddRequest> staffAddRequests,
+        List<StaffDeleteRequest> staffDeleteRequests
 ) {}
