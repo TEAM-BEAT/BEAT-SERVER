@@ -1,8 +1,10 @@
 package com.beat.domain.performance.domain;
 
 import com.beat.domain.BaseTimeEntity;
+import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.user.domain.Users;
+import com.beat.global.common.exception.BadRequestException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -142,5 +144,12 @@ public class Performance extends BaseTimeEntity {
         this.performanceContact = performanceContact;
         this.performancePeriod = performancePeriod;
         this.totalScheduleCount = totalScheduleCount;
+    }
+
+    public void updateTicketPrice(int newTicketPrice) {
+        if (newTicketPrice < 0) {
+            throw new BadRequestException(PerformanceErrorCode.NEGATIVE_TICKET_PRICE);
+        }
+        this.ticketPrice = newTicketPrice;
     }
 }
