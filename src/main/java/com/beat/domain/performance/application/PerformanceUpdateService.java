@@ -4,6 +4,7 @@ import com.beat.domain.cast.dao.CastRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.exception.CastErrorCode;
 import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.application.dto.update.*;
 import com.beat.domain.performance.application.dto.update.cast.CastAddRequest;
@@ -34,6 +35,7 @@ import com.beat.domain.staff.dao.StaffRepository;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.staff.exception.StaffErrorCode;
 import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,9 +63,12 @@ public class PerformanceUpdateService {
     public PerformanceUpdateResponse updatePerformance(Long memberId, PerformanceUpdateRequest request) {
         log.info("Starting updatePerformance for memberId: {}, performanceId: {}", memberId, request.performanceId());
 
-        validateMember(memberId);
+        Member member = validateMember(memberId);
+        Long userId = member.getUser().getId();
 
         Performance performance = findPerformance(request.performanceId());
+
+        validateOwnership(userId, performance);
 
         updatePerformanceDetails(performance, request);
 
@@ -87,9 +92,9 @@ public class PerformanceUpdateService {
         return response;
     }
 
-    private void validateMember(Long memberId) {
+    private Member validateMember(Long memberId) {
         log.debug("Validating memberId: {}", memberId);
-        memberRepository.findById(memberId)
+        return memberRepository.findById(memberId)
                 .orElseThrow(() -> {
                     log.error("Member not found: memberId: {}", memberId);
                     return new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND);
@@ -103,6 +108,13 @@ public class PerformanceUpdateService {
                     log.error("Performance not found: performanceId: {}", performanceId);
                     return new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND);
                 });
+    }
+
+    private void validateOwnership(Long userId, Performance performance) {
+        if (!performance.getUsers().getId().equals(userId)) {
+            log.error("User ID {} does not own performance ID {}", userId, performance.getId());
+            throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
+        }
     }
 
     private void updatePerformanceDetails(Performance performance, PerformanceUpdateRequest request) {
