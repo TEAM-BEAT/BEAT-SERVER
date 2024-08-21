@@ -23,8 +23,11 @@ public record PerformanceUpdateRequest(
         int totalScheduleCount,
         List<ScheduleAddRequest> scheduleAddRequests,
         List<ScheduleDeleteRequest> scheduleDeleteRequests,
+        List<ScheduleUpdateRequest> scheduleUpdateRequests,
         List<CastAddRequest> castAddRequests,
         List<CastDeleteRequest> castDeleteRequests,
+        List<CastUpdateRequest> castUpdateRequests,
         List<StaffAddRequest> staffAddRequests,
-        List<StaffDeleteRequest> staffDeleteRequests
+        List<StaffDeleteRequest> staffDeleteRequests,
+        List<StaffUpdateRequest> staffUpdateRequests
 ) {}
