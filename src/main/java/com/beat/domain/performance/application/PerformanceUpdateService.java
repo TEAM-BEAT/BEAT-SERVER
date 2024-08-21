@@ -1,5 +1,6 @@
 package com.beat.domain.performance.application;
 
+import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.cast.dao.CastRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.exception.CastErrorCode;
@@ -58,6 +59,7 @@ public class PerformanceUpdateService {
     private final MemberRepository memberRepository;
     private final CastRepository castRepository;
     private final StaffRepository staffRepository;
+    private final BookingRepository bookingRepository;
 
     @Transactional
     public PerformanceUpdateResponse updatePerformance(Long memberId, PerformanceUpdateRequest request) {
@@ -70,7 +72,15 @@ public class PerformanceUpdateService {
 
         validateOwnership(userId, performance);
 
-        updatePerformanceDetails(performance, request);
+        List<Long> scheduleIds = scheduleRepository.findIdsByPerformanceId(request.performanceId());
+        boolean isBookerExist = bookingRepository.existsByScheduleIdIn(scheduleIds);
+
+        if (isBookerExist && request.ticketPrice() != performance.getTicketPrice()) {
+            log.error("Ticket price update failed due to existing bookings for performanceId: {}", performance.getId());
+            throw new BadRequestException(PerformanceErrorCode.PRICE_UPDATE_NOT_ALLOWED);
+        }
+
+        updatePerformanceDetails(performance, request, isBookerExist);
 
         List<ScheduleDeleteResponse> deletedSchedules = deleteSchedules(request.scheduleDeleteRequests());
         List<ScheduleUpdateResponse> updatedSchedules = updateSchedules(request.scheduleUpdateRequests());
@@ -117,8 +127,9 @@ public class PerformanceUpdateService {
         }
     }
 
-    private void updatePerformanceDetails(Performance performance, PerformanceUpdateRequest request) {
+    private void updatePerformanceDetails(Performance performance, PerformanceUpdateRequest request, boolean isBookerExist) {
         log.debug("Updating performance details for performanceId: {}", performance.getId());
+
         performance.update(
                 request.performanceTitle(),
                 request.genre(),
@@ -135,6 +146,12 @@ public class PerformanceUpdateService {
                 request.performancePeriod(),
                 request.totalScheduleCount()
         );
+
+        if (!isBookerExist) {
+            log.debug("Updating ticket price to {}", request.ticketPrice());
+            performance.updateTicketPrice(request.ticketPrice());
+        }
+
         performanceRepository.save(performance);
         log.debug("Performance details updated for performanceId: {}", performance.getId());
     }
