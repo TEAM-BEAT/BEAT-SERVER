@@ -33,6 +33,7 @@ import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.staff.dao.StaffRepository;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.staff.exception.StaffErrorCode;
+import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -128,6 +129,13 @@ public class PerformanceUpdateService {
 
     private List<ScheduleAddResponse> addSchedules(List<ScheduleAddRequest> requests, Performance performance) {
         log.debug("Adding schedules for performanceId: {}", performance.getId());
+
+        long existingSchedulesCount = scheduleRepository.countByPerformanceId(performance.getId());
+
+        if (requests != null && (existingSchedulesCount + requests.size()) > 3) {
+            throw new BadRequestException(PerformanceErrorCode.MAX_SCHEDULE_LIMIT_EXCEEDED);
+        }
+
         if (requests == null || requests.isEmpty()) {
             log.debug("No schedules to add for performanceId: {}", performance.getId());
             return List.of();
