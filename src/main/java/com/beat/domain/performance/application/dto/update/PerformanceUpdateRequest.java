@@ -30,6 +30,7 @@ public record PerformanceUpdateRequest(
         String performanceContact,
         String performancePeriod,
         int totalScheduleCount,
+        int ticketPrice,
         List<ScheduleAddRequest> scheduleAddRequests,
         List<ScheduleDeleteRequest> scheduleDeleteRequests,
         List<ScheduleUpdateRequest> scheduleUpdateRequests,
