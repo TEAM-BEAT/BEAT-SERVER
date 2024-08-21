@@ -17,8 +17,7 @@ import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.staff.exception.StaffErrorCode;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,12 +27,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PerformanceUpdateService {
-
-    private static final Logger logger = LoggerFactory.getLogger(PerformanceUpdateService.class);
-
+    
     private final PerformanceRepository performanceRepository;
     private final ScheduleRepository scheduleRepository;
     private final MemberRepository memberRepository;
@@ -42,7 +40,7 @@ public class PerformanceUpdateService {
 
     @Transactional
     public PerformanceUpdateResponse updatePerformance(Long memberId, PerformanceUpdateRequest request) {
-        logger.info("Starting updatePerformance for memberId: {}, performanceId: {}", memberId, request.performanceId());
+        log.info("Starting updatePerformance for memberId: {}, performanceId: {}", memberId, request.performanceId());
 
         validateMember(memberId);
 
@@ -66,30 +64,30 @@ public class PerformanceUpdateService {
                 addedCasts, updatedCasts, deletedCasts,
                 addedStaffs, updatedStaffs, deletedStaffs);
 
-        logger.info("Successfully completed updatePerformance for performanceId: {}", request.performanceId());
+        log.info("Successfully completed updatePerformance for performanceId: {}", request.performanceId());
         return response;
     }
 
     private void validateMember(Long memberId) {
-        logger.debug("Validating memberId: {}", memberId);
+        log.debug("Validating memberId: {}", memberId);
         memberRepository.findById(memberId)
                 .orElseThrow(() -> {
-                    logger.error("Member not found: memberId: {}", memberId);
+                    log.error("Member not found: memberId: {}", memberId);
                     return new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND);
                 });
     }
 
     private Performance findPerformance(Long performanceId) {
-        logger.debug("Finding performance with performanceId: {}", performanceId);
+        log.debug("Finding performance with performanceId: {}", performanceId);
         return performanceRepository.findById(performanceId)
                 .orElseThrow(() -> {
-                    logger.error("Performance not found: performanceId: {}", performanceId);
+                    log.error("Performance not found: performanceId: {}", performanceId);
                     return new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND);
                 });
     }
 
     private void updatePerformanceDetails(Performance performance, PerformanceUpdateRequest request) {
-        logger.debug("Updating performance details for performanceId: {}", performance.getId());
+        log.debug("Updating performance details for performanceId: {}", performance.getId());
         performance.update(
                 request.performanceTitle(),
                 request.genre(),
@@ -107,13 +105,13 @@ public class PerformanceUpdateService {
                 request.totalScheduleCount()
         );
         performanceRepository.save(performance);
-        logger.debug("Performance details updated for performanceId: {}", performance.getId());
+        log.debug("Performance details updated for performanceId: {}", performance.getId());
     }
 
     private List<ScheduleAddResponse> addSchedules(List<ScheduleAddRequest> requests, Performance performance) {
-        logger.debug("Adding schedules for performanceId: {}", performance.getId());
+        log.debug("Adding schedules for performanceId: {}", performance.getId());
         if (requests == null || requests.isEmpty()) {
-            logger.debug("No schedules to add for performanceId: {}", performance.getId());
+            log.debug("No schedules to add for performanceId: {}", performance.getId());
             return List.of();
         }
 
@@ -128,7 +126,7 @@ public class PerformanceUpdateService {
                             performance
                     );
                     Schedule savedSchedule = scheduleRepository.save(schedule);
-                    logger.debug("Added schedule with scheduleId: {} for performanceId: {}", savedSchedule.getId(), performance.getId());
+                    log.debug("Added schedule with scheduleId: {} for performanceId: {}", savedSchedule.getId(), performance.getId());
                     return ScheduleAddResponse.of(
                             savedSchedule.getId(),
                             savedSchedule.getPerformanceDate(),
@@ -141,9 +139,9 @@ public class PerformanceUpdateService {
     }
 
     private List<ScheduleUpdateResponse> updateSchedules(List<ScheduleUpdateRequest> requests) {
-        logger.debug("Updating schedules");
+        log.debug("Updating schedules");
         if (requests == null || requests.isEmpty()) {
-            logger.debug("No schedules to update");
+            log.debug("No schedules to update");
             return List.of();
         }
 
@@ -151,7 +149,7 @@ public class PerformanceUpdateService {
                 .map(request -> {
                     Schedule schedule = scheduleRepository.findById(request.scheduleId())
                             .orElseThrow(() -> {
-                                logger.error("Schedule not found: scheduleId: {}", request.scheduleId());
+                                log.error("Schedule not found: scheduleId: {}", request.scheduleId());
                                 return new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
                             });
                     schedule.update(
@@ -160,7 +158,7 @@ public class PerformanceUpdateService {
                             request.scheduleNumber()
                     );
                     scheduleRepository.save(schedule);
-                    logger.debug("Updated schedule with scheduleId: {}", schedule.getId());
+                    log.debug("Updated schedule with scheduleId: {}", schedule.getId());
                     return ScheduleUpdateResponse.of(
                             schedule.getId(),
                             schedule.getPerformanceDate(),
@@ -173,9 +171,9 @@ public class PerformanceUpdateService {
     }
 
     private List<ScheduleDeleteResponse> deleteSchedules(List<ScheduleDeleteRequest> requests) {
-        logger.debug("Deleting schedules");
+        log.debug("Deleting schedules");
         if (requests == null || requests.isEmpty()) {
-            logger.debug("No schedules to delete");
+            log.debug("No schedules to delete");
             return List.of();
         }
 
@@ -183,20 +181,20 @@ public class PerformanceUpdateService {
                 .map(request -> {
                     Schedule schedule = scheduleRepository.findById(request.scheduleId())
                             .orElseThrow(() -> {
-                                logger.error("Schedule not found: scheduleId: {}", request.scheduleId());
+                                log.error("Schedule not found: scheduleId: {}", request.scheduleId());
                                 return new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
                             });
                     scheduleRepository.delete(schedule);
-                    logger.debug("Deleted schedule with scheduleId: {}", schedule.getId());
+                    log.debug("Deleted schedule with scheduleId: {}", schedule.getId());
                     return ScheduleDeleteResponse.from(schedule.getId());
                 })
                 .collect(Collectors.toList());
     }
 
     private List<CastAddResponse> addCasts(List<CastAddRequest> requests, Performance performance) {
-        logger.debug("Adding casts for performanceId: {}", performance.getId());
+        log.debug("Adding casts for performanceId: {}", performance.getId());
         if (requests == null || requests.isEmpty()) {
-            logger.debug("No casts to add for performanceId: {}", performance.getId());
+            log.debug("No casts to add for performanceId: {}", performance.getId());
             return List.of();
         }
 
@@ -209,7 +207,7 @@ public class PerformanceUpdateService {
                             performance
                     );
                     Cast savedCast = castRepository.save(cast);
-                    logger.debug("Added cast with castId: {} for performanceId: {}", savedCast.getId(), performance.getId());
+                    log.debug("Added cast with castId: {} for performanceId: {}", savedCast.getId(), performance.getId());
                     return CastAddResponse.of(
                             savedCast.getId(),
                             savedCast.getCastName(),
@@ -221,9 +219,9 @@ public class PerformanceUpdateService {
     }
 
     private List<CastUpdateResponse> updateCasts(List<CastUpdateRequest> requests) {
-        logger.debug("Updating casts");
+        log.debug("Updating casts");
         if (requests == null || requests.isEmpty()) {
-            logger.debug("No casts to update");
+            log.debug("No casts to update");
             return List.of();
         }
 
@@ -231,7 +229,7 @@ public class PerformanceUpdateService {
                 .map(request -> {
                     Cast cast = castRepository.findById(request.castId())
                             .orElseThrow(() -> {
-                                logger.error("Cast not found: castId: {}", request.castId());
+                                log.error("Cast not found: castId: {}", request.castId());
                                 return new NotFoundException(CastErrorCode.CAST_NOT_FOUND);
                             });
                     cast.update(
@@ -240,7 +238,7 @@ public class PerformanceUpdateService {
                             request.castPhoto()
                     );
                     castRepository.save(cast);
-                    logger.debug("Updated cast with castId: {}", cast.getId());
+                    log.debug("Updated cast with castId: {}", cast.getId());
                     return CastUpdateResponse.of(
                             cast.getId(),
                             cast.getCastName(),
@@ -252,9 +250,9 @@ public class PerformanceUpdateService {
     }
 
     private List<CastDeleteResponse> deleteCasts(List<CastDeleteRequest> requests) {
-        logger.debug("Deleting casts");
+        log.debug("Deleting casts");
         if (requests == null || requests.isEmpty()) {
-            logger.debug("No casts to delete");
+            log.debug("No casts to delete");
             return List.of();
         }
 
@@ -262,20 +260,20 @@ public class PerformanceUpdateService {
                 .map(request -> {
                     Cast cast = castRepository.findById(request.castId())
                             .orElseThrow(() -> {
-                                logger.error("Cast not found: castId: {}", request.castId());
+                                log.error("Cast not found: castId: {}", request.castId());
                                 return new NotFoundException(CastErrorCode.CAST_NOT_FOUND);
                             });
                     castRepository.delete(cast);
-                    logger.debug("Deleted cast with castId: {}", cast.getId());
+                    log.debug("Deleted cast with castId: {}", cast.getId());
                     return CastDeleteResponse.from(cast.getId());
                 })
                 .collect(Collectors.toList());
     }
 
     private List<StaffAddResponse> addStaffs(List<StaffAddRequest> requests, Performance performance) {
-        logger.debug("Adding staffs for performanceId: {}", performance.getId());
+        log.debug("Adding staffs for performanceId: {}", performance.getId());
         if (requests == null || requests.isEmpty()) {
-            logger.debug("No staffs to add for performanceId: {}", performance.getId());
+            log.debug("No staffs to add for performanceId: {}", performance.getId());
             return List.of();
         }
 
@@ -288,7 +286,7 @@ public class PerformanceUpdateService {
                             performance
                     );
                     Staff savedStaff = staffRepository.save(staff);
-                    logger.debug("Added staff with staffId: {} for performanceId: {}", savedStaff.getId(), performance.getId());
+                    log.debug("Added staff with staffId: {} for performanceId: {}", savedStaff.getId(), performance.getId());
                     return StaffAddResponse.of(
                             savedStaff.getId(),
                             savedStaff.getStaffName(),
@@ -300,9 +298,9 @@ public class PerformanceUpdateService {
     }
 
     private List<StaffUpdateResponse> updateStaffs(List<StaffUpdateRequest> requests) {
-        logger.debug("Updating staffs");
+        log.debug("Updating staffs");
         if (requests == null || requests.isEmpty()) {
-            logger.debug("No staffs to update");
+            log.debug("No staffs to update");
             return List.of();
         }
 
@@ -310,7 +308,7 @@ public class PerformanceUpdateService {
                 .map(request -> {
                     Staff staff = staffRepository.findById(request.staffId())
                             .orElseThrow(() -> {
-                                logger.error("Staff not found: staffId: {}", request.staffId());
+                                log.error("Staff not found: staffId: {}", request.staffId());
                                 return new NotFoundException(StaffErrorCode.STAFF_NOT_FOUND);
                             });
                     staff.update(
@@ -319,7 +317,7 @@ public class PerformanceUpdateService {
                             request.staffPhoto()
                     );
                     staffRepository.save(staff);
-                    logger.debug("Updated staff with staffId: {}", staff.getId());
+                    log.debug("Updated staff with staffId: {}", staff.getId());
                     return StaffUpdateResponse.of(
                             staff.getId(),
                             staff.getStaffName(),
@@ -331,9 +329,9 @@ public class PerformanceUpdateService {
     }
 
     private List<StaffDeleteResponse> deleteStaffs(List<StaffDeleteRequest> requests) {
-        logger.debug("Deleting staffs");
+        log.debug("Deleting staffs");
         if (requests == null || requests.isEmpty()) {
-            logger.debug("No staffs to delete");
+            log.debug("No staffs to delete");
             return List.of();
         }
 
@@ -341,11 +339,11 @@ public class PerformanceUpdateService {
                 .map(request -> {
                     Staff staff = staffRepository.findById(request.staffId())
                             .orElseThrow(() -> {
-                                logger.error("Staff not found: staffId: {}", request.staffId());
+                                log.error("Staff not found: staffId: {}", request.staffId());
                                 return new NotFoundException(StaffErrorCode.STAFF_NOT_FOUND);
                             });
                     staffRepository.delete(staff);
-                    logger.debug("Deleted staff with staffId: {}", staff.getId());
+                    log.debug("Deleted staff with staffId: {}", staff.getId());
                     return StaffDeleteResponse.from(staff.getId());
                 })
                 .collect(Collectors.toList());
@@ -367,7 +365,7 @@ public class PerformanceUpdateService {
             List<StaffUpdateResponse> updatedStaffs,
             List<StaffDeleteResponse> deletedStaffs
     ) {
-        logger.debug("Creating PerformanceUpdateResponse for performanceId: {}", performance.getId());
+        log.debug("Creating PerformanceUpdateResponse for performanceId: {}", performance.getId());
         PerformanceUpdateResponse response = PerformanceUpdateResponse.of(
                 performance.getUsers().getId(),
                 performance.getId(),
@@ -396,7 +394,7 @@ public class PerformanceUpdateService {
                 deletedStaffs,
                 updatedStaffs
         );
-        logger.info("PerformanceUpdateResponse created successfully for performanceId: {}", performance.getId());
+        log.info("PerformanceUpdateResponse created successfully for performanceId: {}", performance.getId());
         return response;
     }
 }
