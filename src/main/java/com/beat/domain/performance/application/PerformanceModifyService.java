@@ -37,6 +37,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -140,20 +141,30 @@ public class PerformanceModifyService {
         // 현재 존재하는 스케줄 ID를 가져옵니다.
         List<Long> existingScheduleIds = scheduleRepository.findIdsByPerformanceId(performance.getId());
 
+        // 요청에 포함된 스케줄 ID만 남기고 나머지는 삭제합니다.
+        List<Long> requestScheduleIds = scheduleRequests.stream()
+                .map(ScheduleModifyRequest::scheduleId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        // 삭제할 스케줄 ID를 결정합니다.
+        List<Long> schedulesToDelete = existingScheduleIds.stream()
+                .filter(id -> !requestScheduleIds.contains(id))
+                .collect(Collectors.toList());
+
+        // 요청에 포함되지 않은 기존 스케줄은 삭제합니다.
+        deleteRemainingSchedules(schedulesToDelete);
+
         // 스케줄 요청에 따라 추가 또는 업데이트된 스케줄 객체를 생성합니다.
         List<Schedule> schedules = scheduleRequests.stream()
                 .map(request -> {
                     if (request.scheduleId() == null) {
                         return addSchedule(request, performance);
                     } else {
-                        existingScheduleIds.remove(request.scheduleId());
                         return updateSchedule(request, performance);
                     }
                 })
                 .collect(Collectors.toList());
-
-        // 요청에 포함되지 않은 기존 스케줄은 삭제합니다.
-        deleteRemainingSchedules(existingScheduleIds);
 
         // 스케줄 번호를 할당합니다.
         assignScheduleNumbers(schedules);
@@ -258,7 +269,7 @@ public class PerformanceModifyService {
                         return updateCast(request, performance);
                     }
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         deleteRemainingCasts(existingCastIds);
 
