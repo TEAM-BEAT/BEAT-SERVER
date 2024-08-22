@@ -71,3 +71,6 @@ cloud:
   stack:
     auto: false
 
+logging:
+  level:
+    root: info # 추후 debug로 변경

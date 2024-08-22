@@ -15,6 +15,8 @@ import com.beat.domain.performance.application.PerformanceService;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,6 +49,19 @@ public class PerformanceController {
     }
 
     @Operation(summary = "공연 정보 수정 API", description = "공연 정보를 수정하는 PUT API입니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "공연 정보 수정 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 - 회차 최대 개수 초과"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 - 티켓 가격은 음수일 수 없습니다."),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 - 예매자가 존재하여 가격을 수정할 수 없습니다."),
+            @ApiResponse(responseCode = "403", description = "권한 없음 - 해당 공연의 소유자가 아닙니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 공연 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 회원 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 회차 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 등장인물 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 스태프 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     @PutMapping
     public ResponseEntity<SuccessResponse<PerformanceUpdateResponse>> updatePerformance(
             @CurrentMember Long memberId,

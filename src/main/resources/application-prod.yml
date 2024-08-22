@@ -70,3 +70,7 @@ cloud:
     bucket: beat-prod-bucket
   stack:
     auto: false
+
+logging:
+  level:
+    root: info
