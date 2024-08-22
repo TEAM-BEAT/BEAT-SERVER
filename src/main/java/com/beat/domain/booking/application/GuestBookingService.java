@@ -79,7 +79,7 @@ public class GuestBookingService {
                 booking.isPaymentCompleted(),
                 schedule.getPerformance().getBankName(),
                 schedule.getPerformance().getAccountNumber(),
-                totalPaymentAmount,
+                totalPaymentAmount, // 회원 예매랑 다른 부분 확인하기
                 booking.getCreatedAt()
         );
     }
