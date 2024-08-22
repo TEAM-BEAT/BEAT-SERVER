@@ -66,7 +66,7 @@ public class PerformanceController {
     public ResponseEntity<SuccessResponse<PerformanceModifyResponse>> updatePerformance(
             @CurrentMember Long memberId,
             @RequestBody PerformanceModifyRequest performanceModifyRequest) {
-        PerformanceModifyResponse response = performanceModifyService.updatePerformance(memberId, performanceModifyRequest);
+        PerformanceModifyResponse response = performanceModifyService.modifyPerformance(memberId, performanceModifyRequest);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_UPDATE_SUCCESS, response));
     }
