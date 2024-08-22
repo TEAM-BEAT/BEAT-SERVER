@@ -138,24 +138,19 @@ public class PerformanceModifyService {
     }
 
     private List<ScheduleModifyResponse> processSchedules(List<ScheduleModifyRequest> scheduleRequests, Performance performance) {
-        // 현재 존재하는 스케줄 ID를 가져옵니다.
         List<Long> existingScheduleIds = scheduleRepository.findIdsByPerformanceId(performance.getId());
 
-        // 요청에 포함된 스케줄 ID만 남기고 나머지는 삭제합니다.
         List<Long> requestScheduleIds = scheduleRequests.stream()
                 .map(ScheduleModifyRequest::scheduleId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        // 삭제할 스케줄 ID를 결정합니다.
         List<Long> schedulesToDelete = existingScheduleIds.stream()
                 .filter(id -> !requestScheduleIds.contains(id))
                 .collect(Collectors.toList());
 
-        // 요청에 포함되지 않은 기존 스케줄은 삭제합니다.
         deleteRemainingSchedules(schedulesToDelete);
 
-        // 스케줄 요청에 따라 추가 또는 업데이트된 스케줄 객체를 생성합니다.
         List<Schedule> schedules = scheduleRequests.stream()
                 .map(request -> {
                     if (request.scheduleId() == null) {
@@ -166,10 +161,8 @@ public class PerformanceModifyService {
                 })
                 .collect(Collectors.toList());
 
-        // 스케줄 번호를 할당합니다.
         assignScheduleNumbers(schedules);
 
-        // Schedule 리스트를 ScheduleModifyResponse 리스트로 변환하여 반환합니다.
         return schedules.stream()
                 .map(schedule -> ScheduleModifyResponse.of(
                         schedule.getId(),
@@ -182,10 +175,8 @@ public class PerformanceModifyService {
     }
 
     private void assignScheduleNumbers(List<Schedule> schedules) {
-        // 스케줄을 날짜 순서대로 정렬합니다.
         schedules.sort(Comparator.comparing(Schedule::getPerformanceDate));
 
-        // 각 스케줄에 번호를 부여합니다.
         for (int i = 0; i < schedules.size(); i++) {
             ScheduleNumber scheduleNumber = ScheduleNumber.values()[i];
             schedules.get(i).updateScheduleNumber(scheduleNumber);
@@ -197,7 +188,6 @@ public class PerformanceModifyService {
 
         long existingSchedulesCount = scheduleRepository.countByPerformanceId(performance.getId());
 
-        // 스케줄 최대 개수 초과 여부 확인
         if ((existingSchedulesCount + 1) > 3) {
             throw new BadRequestException(PerformanceErrorCode.MAX_SCHEDULE_LIMIT_EXCEEDED);
         }
@@ -225,7 +215,6 @@ public class PerformanceModifyService {
                     return new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
                 });
 
-        // 공연에 속해 있는지 검증
         if (!schedule.getPerformance().equals(performance)) {
             throw new ForbiddenException(ScheduleErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE);
         }
@@ -265,7 +254,7 @@ public class PerformanceModifyService {
                     if (request.castId() == null) {
                         return addCast(request, performance);
                     } else {
-                        existingCastIds.remove(request.castId()); // 요청에 포함된 ID는 삭제 후보에서 제거
+                        existingCastIds.remove(request.castId());
                         return updateCast(request, performance);
                     }
                 })
@@ -304,7 +293,6 @@ public class PerformanceModifyService {
                     return new NotFoundException(CastErrorCode.CAST_NOT_FOUND);
                 });
 
-        // 공연에 속해 있는지 검증
         if (!cast.getPerformance().equals(performance)) {
             throw new ForbiddenException(CastErrorCode.CAST_NOT_BELONG_TO_PERFORMANCE);
         }
@@ -390,7 +378,6 @@ public class PerformanceModifyService {
                     return new NotFoundException(StaffErrorCode.STAFF_NOT_FOUND);
                 });
 
-        // 공연에 속해 있는지 검증
         if (!staff.getPerformance().equals(performance)) {
             throw new ForbiddenException(StaffErrorCode.STAFF_NOT_BELONG_TO_PERFORMANCE);
         }
