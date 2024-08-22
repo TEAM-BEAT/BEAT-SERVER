@@ -54,12 +54,12 @@ public class PerformanceController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청 - 회차 최대 개수 초과"),
             @ApiResponse(responseCode = "400", description = "잘못된 요청 - 티켓 가격은 음수일 수 없습니다."),
             @ApiResponse(responseCode = "400", description = "잘못된 요청 - 예매자가 존재하여 가격을 수정할 수 없습니다."),
-            @ApiResponse(responseCode = "403", description = "권한 없음 - 해당 공연의 소유자가 아님"),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 공연 ID"),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 회원 ID"),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 회차 ID"),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 등장인물 ID"),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 스태프 ID"),
+            @ApiResponse(responseCode = "403", description = "권한 없음 - 해당 공연의 소유자가 아닙니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 공연 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 회원 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 회차 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 등장인물 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 스태프 ID로 수정 요청을 보낼 수 없습니다."),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
     @PutMapping
