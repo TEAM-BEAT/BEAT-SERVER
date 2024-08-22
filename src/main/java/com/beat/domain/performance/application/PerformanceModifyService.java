@@ -147,7 +147,7 @@ public class PerformanceModifyService {
                         return addSchedule(request, performance);
                     } else {
                         existingScheduleIds.remove(request.scheduleId());
-                        return updateSchedule(request);
+                        return updateSchedule(request, performance);
                     }
                 })
                 .collect(Collectors.toList());
@@ -205,7 +205,7 @@ public class PerformanceModifyService {
         return savedSchedule;
     }
 
-    private Schedule updateSchedule(ScheduleModifyRequest request) {
+    private Schedule updateSchedule(ScheduleModifyRequest request, Performance performance) {
         log.debug("Updating schedules for scheduleId: {}", request.scheduleId());
 
         Schedule schedule = scheduleRepository.findById(request.scheduleId())
@@ -213,6 +213,12 @@ public class PerformanceModifyService {
                     log.error("Schedule not found: scheduleId: {}", request.scheduleId());
                     return new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
                 });
+
+        // 공연에 속해 있는지 검증
+        if (!schedule.getPerformance().equals(performance)) {
+            throw new ForbiddenException(ScheduleErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE);
+        }
+
         schedule.update(
                 request.performanceDate(),
                 request.totalTicketCount(),
@@ -249,7 +255,7 @@ public class PerformanceModifyService {
                         return addCast(request, performance);
                     } else {
                         existingCastIds.remove(request.castId()); // 요청에 포함된 ID는 삭제 후보에서 제거
-                        return updateCast(request);
+                        return updateCast(request, performance);
                     }
                 })
                 .collect(Collectors.toList());
@@ -278,7 +284,7 @@ public class PerformanceModifyService {
         );
     }
 
-    private CastModifyResponse updateCast(CastModifyRequest request) {
+    private CastModifyResponse updateCast(CastModifyRequest request, Performance performance) {
         log.debug("Updating casts for castId: {}", request.castId());
 
         Cast cast = castRepository.findById(request.castId())
@@ -286,6 +292,12 @@ public class PerformanceModifyService {
                     log.error("Cast not found: castId: {}", request.castId());
                     return new NotFoundException(CastErrorCode.CAST_NOT_FOUND);
                 });
+
+        // 공연에 속해 있는지 검증
+        if (!cast.getPerformance().equals(performance)) {
+            throw new ForbiddenException(CastErrorCode.CAST_NOT_BELONG_TO_PERFORMANCE);
+        }
+
         cast.update(
                 request.castName(),
                 request.castRole(),
@@ -329,7 +341,7 @@ public class PerformanceModifyService {
                         return addStaff(request, performance);
                     } else {
                         existingStaffIds.remove(request.staffId()); // 요청에 포함된 ID는 삭제 후보에서 제거
-                        return updateStaff(request);
+                        return updateStaff(request, performance);
                     }
                 })
                 .collect(Collectors.toList());
@@ -358,7 +370,7 @@ public class PerformanceModifyService {
         );
     }
 
-    private StaffModifyResponse updateStaff(StaffModifyRequest request) {
+    private StaffModifyResponse updateStaff(StaffModifyRequest request, Performance performance) {
         log.debug("Updating staffs for staffId: {}", request.staffId());
 
         Staff staff = staffRepository.findById(request.staffId())
@@ -366,6 +378,12 @@ public class PerformanceModifyService {
                     log.error("Staff not found: staffId: {}", request.staffId());
                     return new NotFoundException(StaffErrorCode.STAFF_NOT_FOUND);
                 });
+
+        // 공연에 속해 있는지 검증
+        if (!staff.getPerformance().equals(performance)) {
+            throw new ForbiddenException(StaffErrorCode.STAFF_NOT_BELONG_TO_PERFORMANCE);
+        }
+
         staff.update(
                 request.staffName(),
                 request.staffRole(),
