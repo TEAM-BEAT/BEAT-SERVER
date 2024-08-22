@@ -99,7 +99,7 @@ public class TicketService {
             ticketRepository.save(booking);
 
             if (!wasPaymentCompleted && detail.isPaymentCompleted()) {
-                String message = String.format("%s님, BEAT에서의 %s의 예매가 확정되었습니다.", detail.bookerName(), request.performanceTitle());
+                String message = String.format("[BEAT] %s님 %s 예매 확정되었습니다.", detail.bookerName(), request.performanceTitle());
                 try {
                     coolSmsService.sendSms(detail.bookerPhoneNumber(), message);
                 } catch (CoolsmsException e) {
