@@ -24,14 +24,20 @@ public class FileController {
     public ResponseEntity<Map<String, Map<String, String>>> getPresignedUrls(
             @RequestParam String posterImage,
             @RequestParam(required = false) List<String> castImages,
-            @RequestParam(required = false) List<String> staffImages) {
+            @RequestParam(required = false) List<String> staffImages,
+            @RequestParam(required = false) List<String> performanceImages
+    )
+    {
         if (castImages == null) {
             castImages = List.of();
         }
         if (staffImages == null) {
             staffImages = List.of();
         }
-        Map<String, Map<String, String>> response = fileService.getPresignedUrls(posterImage, castImages, staffImages);
+        if (performanceImages == null) {
+            performanceImages = List.of();
+        }
+        Map<String, Map<String, String>> response = fileService.getPresignedUrls(posterImage, castImages, staffImages, performanceImages);
         return ResponseEntity.ok(response);
     }
 }
