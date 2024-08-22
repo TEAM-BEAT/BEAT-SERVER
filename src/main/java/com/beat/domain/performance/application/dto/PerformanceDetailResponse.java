@@ -18,7 +18,8 @@ public record PerformanceDetailResponse(
         String performanceTeamName,
         List<PerformanceDetailCast> castList,
         List<PerformanceDetailStaff> staffList,
-        int minDueDate
+        int minDueDate,
+        List<PerformanceDetailImage> performanceImageList
 ) {
     public static PerformanceDetailResponse of(
             Long performanceId,
@@ -36,7 +37,8 @@ public record PerformanceDetailResponse(
             String performanceTeamName,
             List<PerformanceDetailCast> castList,
             List<PerformanceDetailStaff> staffList,
-            int minDueDate
+            int minDueDate,
+            List<PerformanceDetailImage> performanceImageList
     ) {
         return new PerformanceDetailResponse(
                 performanceId,
@@ -54,7 +56,8 @@ public record PerformanceDetailResponse(
                 performanceTeamName,
                 castList,
                 staffList,
-                minDueDate
+                minDueDate,
+                performanceImageList
         );
     }
 }
