@@ -6,14 +6,17 @@ import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.application.dto.*;
 import com.beat.domain.performance.application.dto.create.CastResponse;
+import com.beat.domain.performance.application.dto.create.PerformanceImageResponse;
 import com.beat.domain.performance.application.dto.create.ScheduleResponse;
 import com.beat.domain.performance.application.dto.create.StaffResponse;
 import com.beat.domain.performance.application.dto.home.HomePerformanceDetail;
 import com.beat.domain.performance.application.dto.home.HomePromotionDetail;
 import com.beat.domain.performance.application.dto.home.HomeRequest;
 import com.beat.domain.performance.application.dto.home.HomeResponse;
+import com.beat.domain.performance.dao.PerformanceImageRepository;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.promotion.dao.PromotionRepository;
 import com.beat.domain.promotion.domain.Promotion;
@@ -52,6 +55,7 @@ public class PerformanceService {
     private final MemberRepository memberRepository;
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
+    private final PerformanceImageRepository performanceImageRepository;
 
     @Transactional(readOnly = true)
     public PerformanceDetailResponse getPerformanceDetail(Long performanceId) {
@@ -89,6 +93,13 @@ public class PerformanceService {
                         staff.getStaffPhoto()
                 )).collect(Collectors.toList());
 
+        List<PerformanceDetailImage> performanceImageList = performanceImageRepository.findAllByPerformanceId(performanceId).stream()
+                .map(image -> PerformanceDetailImage.of(
+                        image.getId(),
+                        image.getPerformanceImage()
+                ))
+                .collect(Collectors.toList());
+
         return PerformanceDetailResponse.of(
                 performance.getId(),
                 performance.getPerformanceTitle(),
@@ -105,7 +116,8 @@ public class PerformanceService {
                 performance.getPerformanceTeamName(),
                 castList,
                 staffList,
-                minDueDate
+                minDueDate,
+                performanceImageList
         );
     }
 
@@ -275,11 +287,12 @@ public class PerformanceService {
         List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
         List<Cast> casts = castRepository.findAllByPerformanceId(performanceId);
         List<Staff> staffs = staffRepository.findAllByPerformanceId(performanceId);
+        List<PerformanceImage> performanceImages = performanceImageRepository.findAllByPerformanceId(performanceId);
 
-        return mapToPerformanceEditResponse(performance, schedules, casts, staffs, isBookerExist);
+        return mapToPerformanceEditResponse(performance, schedules, casts, staffs, performanceImages, isBookerExist);
     }
 
-    private PerformanceEditResponse mapToPerformanceEditResponse(Performance performance, List<Schedule> schedules, List<Cast> casts, List<Staff> staffs, boolean isBookerExist) {
+    private PerformanceEditResponse mapToPerformanceEditResponse(Performance performance, List<Schedule> schedules, List<Cast> casts, List<Staff> staffs, List<PerformanceImage> performanceImages, boolean isBookerExist) {
         List<ScheduleResponse> scheduleResponses = schedules.stream()
                 .map(schedule -> ScheduleResponse.of(
                         schedule.getId(),
@@ -308,6 +321,13 @@ public class PerformanceService {
                 ))
                 .collect(Collectors.toList());
 
+        List<PerformanceImageResponse> performanceImageResponses = performanceImages.stream()
+                .map(performanceImage -> PerformanceImageResponse.of(
+                        performanceImage.getId(),
+                        performanceImage.getPerformanceImage()
+                ))
+                .collect(Collectors.toList());
+
         return PerformanceEditResponse.of(
                 performance.getUsers().getId(),
                 performance.getId(),
@@ -329,7 +349,8 @@ public class PerformanceService {
                 isBookerExist,
                 scheduleResponses,
                 castResponses,
-                staffResponses
+                staffResponses,
+                performanceImageResponses
         );
     }
 
