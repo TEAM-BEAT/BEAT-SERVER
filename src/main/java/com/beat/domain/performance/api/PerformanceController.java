@@ -1,15 +1,15 @@
 package com.beat.domain.performance.api;
 
 import com.beat.domain.performance.application.PerformanceManagementService;
-import com.beat.domain.performance.application.PerformanceUpdateService;
+import com.beat.domain.performance.application.PerformanceModifyService;
 import com.beat.domain.performance.application.dto.BookingPerformanceDetailResponse;
 import com.beat.domain.performance.application.dto.MakerPerformanceResponse;
 import com.beat.domain.performance.application.dto.PerformanceDetailResponse;
 import com.beat.domain.performance.application.dto.PerformanceEditResponse;
 import com.beat.domain.performance.application.dto.create.PerformanceRequest;
 import com.beat.domain.performance.application.dto.create.PerformanceResponse;
-import com.beat.domain.performance.application.dto.update.PerformanceUpdateRequest;
-import com.beat.domain.performance.application.dto.update.PerformanceUpdateResponse;
+import com.beat.domain.performance.application.dto.modify.PerformanceModifyRequest;
+import com.beat.domain.performance.application.dto.modify.PerformanceModifyResponse;
 import com.beat.domain.performance.exception.PerformanceSuccessCode;
 import com.beat.domain.performance.application.PerformanceService;
 import com.beat.global.auth.annotation.CurrentMember;
@@ -36,7 +36,7 @@ public class PerformanceController {
 
     private final PerformanceService performanceService;
     private final PerformanceManagementService performanceManagementService;
-    private final PerformanceUpdateService performanceUpdateService;
+    private final PerformanceModifyService performanceModifyService;
   
     @Operation(summary = "공연 생성 API", description = "공연을 생성하는 POST API입니다.")
     @PostMapping
@@ -63,10 +63,10 @@ public class PerformanceController {
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
     @PutMapping
-    public ResponseEntity<SuccessResponse<PerformanceUpdateResponse>> updatePerformance(
+    public ResponseEntity<SuccessResponse<PerformanceModifyResponse>> updatePerformance(
             @CurrentMember Long memberId,
-            @RequestBody PerformanceUpdateRequest performanceUpdateRequest) {
-        PerformanceUpdateResponse response = performanceUpdateService.updatePerformance(memberId, performanceUpdateRequest);
+            @RequestBody PerformanceModifyRequest performanceModifyRequest) {
+        PerformanceModifyResponse response = performanceModifyService.updatePerformance(memberId, performanceModifyRequest);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_UPDATE_SUCCESS, response));
     }
