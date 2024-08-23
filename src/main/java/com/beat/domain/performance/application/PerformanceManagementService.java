@@ -6,13 +6,11 @@ import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.member.dao.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
-import com.beat.domain.performance.application.dto.create.CastResponse;
-import com.beat.domain.performance.application.dto.create.PerformanceRequest;
-import com.beat.domain.performance.application.dto.create.PerformanceResponse;
-import com.beat.domain.performance.application.dto.create.ScheduleResponse;
-import com.beat.domain.performance.application.dto.create.StaffResponse;
+import com.beat.domain.performance.application.dto.create.*;
+import com.beat.domain.performance.dao.PerformanceImageRepository;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
@@ -40,6 +38,7 @@ public class PerformanceManagementService {
     private final StaffRepository staffRepository;
     private final BookingRepository bookingRepository;
     private final MemberRepository memberRepository;
+    private final PerformanceImageRepository performanceImageRepository;
 
     @Transactional
     public PerformanceResponse createPerformance(Long memberId, PerformanceRequest request) {
@@ -100,10 +99,18 @@ public class PerformanceManagementService {
                 .collect(Collectors.toList());
         staffRepository.saveAll(staffs);
 
-        return mapToPerformanceResponse(performance, schedules, casts, staffs);
+        List<PerformanceImage> performanceImageList = request.performanceImageList().stream()
+                .map(performanceImageRequest -> PerformanceImage.create(
+                        performanceImageRequest.performanceImage(),
+                        performance
+                ))
+                .collect(Collectors.toList());
+        performanceImageRepository.saveAll(performanceImageList);
+
+        return mapToPerformanceResponse(performance, schedules, casts, staffs, performanceImageList);
     }
 
-    private PerformanceResponse mapToPerformanceResponse(Performance performance, List<Schedule> schedules, List<Cast> casts, List<Staff> staffs) {
+    private PerformanceResponse mapToPerformanceResponse(Performance performance, List<Schedule> schedules, List<Cast> casts, List<Staff> staffs, List<PerformanceImage> performanceImages) {
         List<ScheduleResponse> scheduleResponses = schedules.stream()
                 .map(schedule -> ScheduleResponse.of(
                         schedule.getId(),
@@ -132,6 +139,13 @@ public class PerformanceManagementService {
                 ))
                 .collect(Collectors.toList());
 
+        List<PerformanceImageResponse> performanceImageResponses = performanceImages.stream()
+                .map(image -> PerformanceImageResponse.of(
+                        image.getId(),
+                        image.getPerformanceImage()
+                ))
+                .collect(Collectors.toList());
+
         return PerformanceResponse.of(
                 performance.getUsers().getId(),
                 performance.getId(),
@@ -152,7 +166,8 @@ public class PerformanceManagementService {
                 performance.getTotalScheduleCount(),
                 scheduleResponses,
                 castResponses,
-                staffResponses
+                staffResponses,
+                performanceImageResponses
         );
     }
 

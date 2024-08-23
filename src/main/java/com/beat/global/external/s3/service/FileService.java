@@ -23,7 +23,7 @@ public class FileService {
 
     private final AmazonS3 amazonS3;
 
-    public Map<String, Map<String, String>> getPresignedUrls(String posterImage, List<String> castImages, List<String> staffImages) {
+    public Map<String, Map<String, String>> getPresignedUrls(String posterImage, List<String> castImages, List<String> staffImages, List<String> performanceImages) {
         Map<String, Map<String, String>> presignedUrls = new HashMap<>();
 
         // Poster Image URL
@@ -50,6 +50,15 @@ public class FileService {
             staffUrls.put(staffImage, staffPresignedUrl.toString());
         }
         presignedUrls.put("staff", staffUrls);
+
+        // Performance Images URLs
+        Map<String, String> performanceImageUrls = new HashMap<>();
+        for (String performanceImage : performanceImages) {
+            String performanceImageFilePath = createPath("performance", performanceImage);
+            URL performanceImagePresignedUrl = amazonS3.generatePresignedUrl(getGeneratePresignedUrlRequest(bucket, performanceImageFilePath));
+            performanceImageUrls.put(performanceImage, performanceImagePresignedUrl.toString());
+        }
+        presignedUrls.put("performance", performanceImageUrls);
 
         return presignedUrls;
     }

@@ -80,6 +80,9 @@ public class Performance extends BaseTimeEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Users users;
 
+    @OneToMany(mappedBy = "performance", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PerformanceImage> performanceImageList = new ArrayList<>();
+
     @Builder
     public Performance(String performanceTitle, Genre genre, int runningTime, String performanceDescription, String performanceAttentionNote,
                        BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName, String performanceVenue, String performanceContact,

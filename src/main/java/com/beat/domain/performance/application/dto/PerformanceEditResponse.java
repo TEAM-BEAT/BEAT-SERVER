@@ -1,6 +1,7 @@
 package com.beat.domain.performance.application.dto;
 
 import com.beat.domain.performance.application.dto.create.CastResponse;
+import com.beat.domain.performance.application.dto.create.PerformanceImageResponse;
 import com.beat.domain.performance.application.dto.create.ScheduleResponse;
 import com.beat.domain.performance.application.dto.create.StaffResponse;
 import com.beat.domain.performance.domain.BankName;
@@ -29,7 +30,8 @@ public record PerformanceEditResponse(
         boolean isBookerExist,
         List<ScheduleResponse> scheduleList,
         List<CastResponse> castList,
-        List<StaffResponse> staffList
+        List<StaffResponse> staffList,
+        List<PerformanceImageResponse> performanceImageList
 ) {
     public static PerformanceEditResponse of(
             Long userId,
@@ -52,7 +54,8 @@ public record PerformanceEditResponse(
             boolean isBookerExist,
             List<ScheduleResponse> scheduleList,
             List<CastResponse> castList,
-            List<StaffResponse> staffList
+            List<StaffResponse> staffList,
+            List<PerformanceImageResponse> performanceImageList
     ) {
         return new PerformanceEditResponse(
                 userId,
@@ -75,7 +78,8 @@ public record PerformanceEditResponse(
                 isBookerExist,
                 scheduleList,
                 castList,
-                staffList
+                staffList,
+                performanceImageList
         );
     }
 }
