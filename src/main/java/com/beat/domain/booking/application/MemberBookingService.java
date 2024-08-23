@@ -70,7 +70,7 @@ public class MemberBookingService {
                 booking.isPaymentCompleted(),
                 schedule.getPerformance().getBankName(),
                 schedule.getPerformance().getAccountNumber(),
-                memberBookingRequest.totalPaymentAmount(),
+                memberBookingRequest.totalPaymentAmount(), //  비회원 예매처럼 int totalPaymentAmount = ticketPrice * guestBookingRequest.purchaseTicketCount();로 계산해서 반영하기 + 요청한 총 가격 == 티켓 가격 * 수 같은지 검증하는 로직 추가하기
                 booking.getCreatedAt()
         );
     }

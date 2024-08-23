@@ -89,4 +89,7 @@ public class Schedule {
         }
     }
 
+    public void updateScheduleNumber(ScheduleNumber scheduleNumber) {
+        this.scheduleNumber = scheduleNumber;
+    }
 }
