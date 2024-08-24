@@ -60,6 +60,7 @@ public class PerformanceController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 회차 ID로 수정 요청을 보낼 수 없습니다."),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 등장인물 ID로 수정 요청을 보낼 수 없습니다."),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 스태프 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 상세이미지 ID로 수정 요청을 보낼 수 없습니다."),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
     @PutMapping
