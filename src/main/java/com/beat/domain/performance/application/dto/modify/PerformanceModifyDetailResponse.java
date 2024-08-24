@@ -1,4 +1,4 @@
-package com.beat.domain.performance.application.dto;
+package com.beat.domain.performance.application.dto.modify;
 
 import com.beat.domain.performance.application.dto.create.CastResponse;
 import com.beat.domain.performance.application.dto.create.PerformanceImageResponse;
@@ -9,7 +9,7 @@ import com.beat.domain.performance.domain.Genre;
 
 import java.util.List;
 
-public record PerformanceEditResponse(
+public record PerformanceModifyDetailResponse(
         Long userId,
         Long performanceId,
         String performanceTitle,
@@ -33,7 +33,7 @@ public record PerformanceEditResponse(
         List<StaffResponse> staffList,
         List<PerformanceImageResponse> performanceImageList
 ) {
-    public static PerformanceEditResponse of(
+    public static PerformanceModifyDetailResponse of(
             Long userId,
             Long performanceId,
             String performanceTitle,
@@ -57,7 +57,7 @@ public record PerformanceEditResponse(
             List<StaffResponse> staffList,
             List<PerformanceImageResponse> performanceImageList
     ) {
-        return new PerformanceEditResponse(
+        return new PerformanceModifyDetailResponse(
                 userId,
                 performanceId,
                 performanceTitle,

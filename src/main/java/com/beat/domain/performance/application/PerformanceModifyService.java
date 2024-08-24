@@ -10,13 +10,18 @@ import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.application.dto.modify.*;
 import com.beat.domain.performance.application.dto.modify.cast.CastModifyRequest;
 import com.beat.domain.performance.application.dto.modify.cast.CastModifyResponse;
+import com.beat.domain.performance.application.dto.modify.performanceImage.PerformanceImageModifyRequest;
+import com.beat.domain.performance.application.dto.modify.performanceImage.PerformanceImageModifyResponse;
 import com.beat.domain.performance.application.dto.modify.schedule.ScheduleModifyRequest;
 import com.beat.domain.performance.application.dto.modify.schedule.ScheduleModifyResponse;
 import com.beat.domain.performance.application.dto.modify.staff.StaffModifyRequest;
 import com.beat.domain.performance.application.dto.modify.staff.StaffModifyResponse;
+import com.beat.domain.performance.dao.PerformanceImageRepository;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
+import com.beat.domain.performance.exception.PerformanceImageErrorCode;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
@@ -51,6 +56,7 @@ public class PerformanceModifyService {
     private final CastRepository castRepository;
     private final StaffRepository staffRepository;
     private final BookingRepository bookingRepository;
+    private final PerformanceImageRepository performanceImageRepository;
 
     @Transactional
     public PerformanceModifyResponse modifyPerformance(Long memberId, PerformanceModifyRequest request) {
@@ -76,8 +82,9 @@ public class PerformanceModifyService {
         List<ScheduleModifyResponse> modifiedSchedules = processSchedules(request.scheduleModifyRequests(), performance);
         List<CastModifyResponse> modifiedCasts = processCasts(request.castModifyRequests(), performance);
         List<StaffModifyResponse> modifiedStaffs = processStaffs(request.staffModifyRequests(), performance);
+        List<PerformanceImageModifyResponse> modifiedPerformanceImages = processPerformanceImages(request.performanceImageModifyRequests(), performance);
 
-        PerformanceModifyResponse response = completeModifyResponse(performance, modifiedSchedules, modifiedCasts, modifiedStaffs);
+        PerformanceModifyResponse response = completeModifyResponse(performance, modifiedSchedules, modifiedCasts, modifiedStaffs, modifiedPerformanceImages);
 
         log.info("Successfully completed updatePerformance for performanceId: {}", request.performanceId());
         return response;
@@ -418,11 +425,89 @@ public class PerformanceModifyService {
         return (int) ChronoUnit.DAYS.between(LocalDate.now(), performanceDate.toLocalDate());
     }
 
+    private List<PerformanceImageModifyResponse> processPerformanceImages(List<PerformanceImageModifyRequest> performanceImageRequests, Performance performance){
+        log.debug("Processing performanceImages for performanceId: {}", performance.getId());
+
+        List<Long> existingPerformanceImageIds = performanceImageRepository.findIdsByPerformanceId(performance.getId());
+
+        List<PerformanceImageModifyResponse> responses = performanceImageRequests.stream()
+                .map(request -> {
+                    if (request.performanceImageId() == null){
+                        return addPerformanceImage(request, performance);
+                    } else {
+                        existingPerformanceImageIds.remove(request.performanceImageId());
+                        return updatePerformanceImage(request, performance);
+                    }
+                })
+                .toList();
+
+        deleteRemainingPerformanceImages(existingPerformanceImageIds);
+
+        return responses;
+    }
+
+    private PerformanceImageModifyResponse addPerformanceImage(PerformanceImageModifyRequest request, Performance performance) {
+        log.debug("Adding performanceImages for performanceId: {}", performance.getId());
+
+        PerformanceImage performanceImage = PerformanceImage.create(
+                request.performanceImage(),
+                performance
+        );
+        PerformanceImage savedPerformanceImage = performanceImageRepository.save(performanceImage);
+        log.debug("Added performanceImage: {}", savedPerformanceImage.getId());
+        return PerformanceImageModifyResponse.of(
+                savedPerformanceImage.getId(),
+                savedPerformanceImage.getPerformanceImage()
+        );
+    }
+
+    private PerformanceImageModifyResponse updatePerformanceImage(PerformanceImageModifyRequest request, Performance performance) {
+        log.debug("Updating performanceImages for performanceId: {}", performance.getId());
+
+        PerformanceImage performanceImage = performanceImageRepository.findById(request.performanceImageId())
+                .orElseThrow(() -> {
+                    log.error("PerformanceImage not found: performanceId: {}", request.performanceImageId());
+                    return new NotFoundException(PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_FOUND);
+                });
+
+        if (!performanceImage.getPerformance().equals(performance)) {
+            throw new ForbiddenException(PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_BELONG_TO_PERFORMANCE);
+        }
+
+        performanceImage.update(
+                request.performanceImage()
+        );
+        performanceImageRepository.save(performanceImage);
+        log.debug("Updated performanceImage: {}", performanceImage.getId());
+        return PerformanceImageModifyResponse.of(
+                performanceImage.getId(),
+                performanceImage.getPerformanceImage()
+        );
+    }
+
+    private void deleteRemainingPerformanceImages(List<Long> performanceImageIds) {
+        if (performanceImageIds == null || performanceImageIds.isEmpty()) {
+            log.debug("No performanceImages to delete");
+            return;
+        }
+
+        performanceImageIds.forEach(performanceImageId -> {
+            PerformanceImage performanceImage = performanceImageRepository.findById(performanceImageId)
+                    .orElseThrow(() -> {
+                        log.error("PerformanceImage not found: performanceImageId: {}", performanceImageId);
+                        return new NotFoundException(PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_FOUND);
+                    });
+            performanceImageRepository.delete(performanceImage);
+            log.debug("Deleted performanceImage: {}", performanceImageId);
+        });
+    }
+
     private PerformanceModifyResponse completeModifyResponse(
             Performance performance,
             List<ScheduleModifyResponse> scheduleModifyResponses,
             List<CastModifyResponse> castModifyResponses,
-            List<StaffModifyResponse> staffModifyResponses
+            List<StaffModifyResponse> staffModifyResponses,
+            List<PerformanceImageModifyResponse> performanceImageModifyResponses
     ) {
         log.debug("Creating PerformanceModifyResponse for performanceId: {}", performance.getId());
         PerformanceModifyResponse response = PerformanceModifyResponse.of(
@@ -445,7 +530,8 @@ public class PerformanceModifyService {
                 performance.getTotalScheduleCount(),
                 scheduleModifyResponses,
                 castModifyResponses,
-                staffModifyResponses
+                staffModifyResponses,
+                performanceImageModifyResponses
         );
         log.info("PerformanceModifyResponse created successfully for performanceId: {}", performance.getId());
         return response;

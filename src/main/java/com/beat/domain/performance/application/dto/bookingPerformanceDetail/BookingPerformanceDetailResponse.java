@@ -1,4 +1,4 @@
-package com.beat.domain.performance.application.dto;
+package com.beat.domain.performance.application.dto.bookingPerformanceDetail;
 
 import java.util.List;
 
@@ -6,7 +6,7 @@ public record BookingPerformanceDetailResponse(
         Long performanceId,
         String performanceTitle,
         String performancePeriod,
-        List<BookingPerformanceDetailSchedule> scheduleList,
+        List<BookingPerformanceDetailScheduleResponse> scheduleList,
         int ticketPrice,
         String genre,
         String posterImage,
@@ -20,7 +20,7 @@ public record BookingPerformanceDetailResponse(
             Long performanceId,
             String performanceTitle,
             String performancePeriod,
-            List<BookingPerformanceDetailSchedule> scheduleList,
+            List<BookingPerformanceDetailScheduleResponse> scheduleList,
             int ticketPrice,
             String genre,
             String posterImage,

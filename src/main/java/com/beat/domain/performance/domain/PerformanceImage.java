@@ -28,10 +28,14 @@ public class PerformanceImage {
         this.performance = performance;
     }
 
-    public static PerformanceImage create(String imageUrl, Performance performance) {
+    public static PerformanceImage create(String perforemanceImage, Performance performance) {
         return PerformanceImage.builder()
-                .performanceImage(imageUrl)
+                .performanceImage(perforemanceImage)
                 .performance(performance)
                 .build();
+    }
+
+    public void update(String performanceImage) {
+        this.performanceImage = performanceImage;
     }
 }
