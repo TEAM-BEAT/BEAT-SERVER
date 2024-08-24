@@ -1,4 +1,4 @@
-package com.beat.domain.performance.application.dto;
+package com.beat.domain.performance.application.dto.performanceDetail;
 
 import java.util.List;
 
@@ -6,7 +6,7 @@ public record PerformanceDetailResponse(
         Long performanceId,
         String performanceTitle,
         String performancePeriod,
-        List<PerformanceDetailSchedule> scheduleList,
+        List<PerformanceDetailScheduleResponse> scheduleList,
         int ticketPrice,
         String genre,
         String posterImage,
@@ -16,16 +16,16 @@ public record PerformanceDetailResponse(
         String performanceAttentionNote,
         String performanceContact,
         String performanceTeamName,
-        List<PerformanceDetailCast> castList,
-        List<PerformanceDetailStaff> staffList,
+        List<PerformanceDetailCastResponse> castList,
+        List<PerformanceDetailStaffResponse> staffList,
         int minDueDate,
-        List<PerformanceDetailImage> performanceImageList
+        List<PerformanceDetailImageResponse> performanceImageList
 ) {
     public static PerformanceDetailResponse of(
             Long performanceId,
             String performanceTitle,
             String performancePeriod,
-            List<PerformanceDetailSchedule> scheduleList,
+            List<PerformanceDetailScheduleResponse> scheduleList,
             int ticketPrice,
             String genre,
             String posterImage,
@@ -35,10 +35,10 @@ public record PerformanceDetailResponse(
             String performanceAttentionNote,
             String performanceContact,
             String performanceTeamName,
-            List<PerformanceDetailCast> castList,
-            List<PerformanceDetailStaff> staffList,
+            List<PerformanceDetailCastResponse> castList,
+            List<PerformanceDetailStaffResponse> staffList,
             int minDueDate,
-            List<PerformanceDetailImage> performanceImageList
+            List<PerformanceDetailImageResponse> performanceImageList
     ) {
         return new PerformanceDetailResponse(
                 performanceId,

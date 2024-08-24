@@ -4,7 +4,8 @@ import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.member.dao.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
-import com.beat.domain.performance.application.dto.*;
+import com.beat.domain.performance.application.dto.bookingPerformanceDetail.BookingPerformanceDetailResponse;
+import com.beat.domain.performance.application.dto.bookingPerformanceDetail.BookingPerformanceDetailScheduleResponse;
 import com.beat.domain.performance.application.dto.create.CastResponse;
 import com.beat.domain.performance.application.dto.create.PerformanceImageResponse;
 import com.beat.domain.performance.application.dto.create.ScheduleResponse;
@@ -13,6 +14,10 @@ import com.beat.domain.performance.application.dto.home.HomePerformanceDetail;
 import com.beat.domain.performance.application.dto.home.HomePromotionDetail;
 import com.beat.domain.performance.application.dto.home.HomeRequest;
 import com.beat.domain.performance.application.dto.home.HomeResponse;
+import com.beat.domain.performance.application.dto.makerPerformance.MakerPerformanceDetailResponse;
+import com.beat.domain.performance.application.dto.makerPerformance.MakerPerformanceResponse;
+import com.beat.domain.performance.application.dto.modify.PerformanceModifyDetailResponse;
+import com.beat.domain.performance.application.dto.performanceDetail.*;
 import com.beat.domain.performance.dao.PerformanceImageRepository;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
@@ -64,11 +69,11 @@ public class PerformanceService {
         Performance performance = performanceRepository.findById(performanceId)
                 .orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-        List<PerformanceDetailSchedule> scheduleList = scheduleRepository.findByPerformanceId(performanceId).stream()
+        List<PerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findByPerformanceId(performanceId).stream()
                 .map(schedule -> {
                     int dueDate = scheduleService.calculateDueDate(schedule);
                     scheduleService.updateBookingStatus(schedule);
-                    return PerformanceDetailSchedule.of(
+                    return PerformanceDetailScheduleResponse.of(
                             schedule.getId(),
                             schedule.getPerformanceDate(),
                             schedule.getScheduleNumber().name(),
@@ -79,24 +84,24 @@ public class PerformanceService {
 
         int minDueDate = scheduleService.getMinDueDate(scheduleRepository.findAllByPerformanceId(performanceId));
 
-        List<PerformanceDetailCast> castList = castRepository.findByPerformanceId(performanceId).stream()
-                .map(cast -> PerformanceDetailCast.of(
+        List<PerformanceDetailCastResponse> castList = castRepository.findByPerformanceId(performanceId).stream()
+                .map(cast -> PerformanceDetailCastResponse.of(
                         cast.getId(),
                         cast.getCastName(),
                         cast.getCastRole(),
                         cast.getCastPhoto()
                 )).collect(Collectors.toList());
 
-        List<PerformanceDetailStaff> staffList = staffRepository.findByPerformanceId(performanceId).stream()
-                .map(staff -> PerformanceDetailStaff.of(
+        List<PerformanceDetailStaffResponse> staffList = staffRepository.findByPerformanceId(performanceId).stream()
+                .map(staff -> PerformanceDetailStaffResponse.of(
                         staff.getId(),
                         staff.getStaffName(),
                         staff.getStaffRole(),
                         staff.getStaffPhoto()
                 )).collect(Collectors.toList());
 
-        List<PerformanceDetailImage> performanceImageList = performanceImageRepository.findAllByPerformanceId(performanceId).stream()
-                .map(image -> PerformanceDetailImage.of(
+        List<PerformanceDetailImageResponse> performanceImageList = performanceImageRepository.findAllByPerformanceId(performanceId).stream()
+                .map(image -> PerformanceDetailImageResponse.of(
                         image.getId(),
                         image.getPerformanceImage()
                 ))
@@ -129,11 +134,11 @@ public class PerformanceService {
         Performance performance = performanceRepository.findById(performanceId)
                 .orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-        List<BookingPerformanceDetailSchedule> scheduleList = scheduleRepository.findByPerformanceId(performanceId).stream()
+        List<BookingPerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findByPerformanceId(performanceId).stream()
                 .map(schedule -> {
                     scheduleService.updateBookingStatus(schedule);
                     int dueDate = scheduleService.calculateDueDate(schedule);
-                    return BookingPerformanceDetailSchedule.of(
+                    return BookingPerformanceDetailScheduleResponse.of(
                             schedule.getId(),
                             schedule.getPerformanceDate(),
                             schedule.getScheduleNumber().name(),
@@ -234,12 +239,12 @@ public class PerformanceService {
 
         List<Performance> performances = performanceRepository.findByUsersId(user.getId());
 
-        List<MakerPerformanceDetail> performanceDetails = performances.stream()
+        List<MakerPerformanceDetailResponse> performanceDetails = performances.stream()
                 .map(performance -> {
                     List<Schedule> schedules = scheduleRepository.findByPerformanceId(performance.getId());
                     int minDueDate = scheduleService.getMinDueDate(schedules);
 
-                    return MakerPerformanceDetail.of(
+                    return MakerPerformanceDetailResponse.of(
                             performance.getId(),
                             performance.getGenre().name(),
                             performance.getPerformanceTitle(),
@@ -251,15 +256,15 @@ public class PerformanceService {
                 .collect(Collectors.toList());
 
         // 양수 minDueDate 정렬
-        List<MakerPerformanceDetail> positiveDueDates = performanceDetails.stream()
+        List<MakerPerformanceDetailResponse> positiveDueDates = performanceDetails.stream()
                 .filter(detail -> detail.minDueDate() >= 0)
-                .sorted(Comparator.comparingInt(MakerPerformanceDetail::minDueDate))
+                .sorted(Comparator.comparingInt(MakerPerformanceDetailResponse::minDueDate))
                 .collect(Collectors.toList());
 
         // 음수 minDueDate 정렬
-        List<MakerPerformanceDetail> negativeDueDates = performanceDetails.stream()
+        List<MakerPerformanceDetailResponse> negativeDueDates = performanceDetails.stream()
                 .filter(detail -> detail.minDueDate() < 0)
-                .sorted(Comparator.comparingInt(MakerPerformanceDetail::minDueDate).reversed())
+                .sorted(Comparator.comparingInt(MakerPerformanceDetailResponse::minDueDate).reversed())
                 .collect(Collectors.toList());
 
         // 병합된 리스트
@@ -270,7 +275,7 @@ public class PerformanceService {
 
 
     @Transactional
-    public PerformanceEditResponse getPerformanceEdit(Long memberId, Long performanceId) {
+    public PerformanceModifyDetailResponse getPerformanceEdit(Long memberId, Long performanceId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 
@@ -295,7 +300,7 @@ public class PerformanceService {
         return mapToPerformanceEditResponse(performance, schedules, casts, staffs, performanceImages, isBookerExist);
     }
 
-    private PerformanceEditResponse mapToPerformanceEditResponse(Performance performance, List<Schedule> schedules, List<Cast> casts, List<Staff> staffs, List<PerformanceImage> performanceImages, boolean isBookerExist) {
+    private PerformanceModifyDetailResponse mapToPerformanceEditResponse(Performance performance, List<Schedule> schedules, List<Cast> casts, List<Staff> staffs, List<PerformanceImage> performanceImages, boolean isBookerExist) {
         List<ScheduleResponse> scheduleResponses = schedules.stream()
                 .map(schedule -> ScheduleResponse.of(
                         schedule.getId(),
@@ -331,7 +336,7 @@ public class PerformanceService {
                 ))
                 .collect(Collectors.toList());
 
-        return PerformanceEditResponse.of(
+        return PerformanceModifyDetailResponse.of(
                 performance.getUsers().getId(),
                 performance.getId(),
                 performance.getPerformanceTitle(),

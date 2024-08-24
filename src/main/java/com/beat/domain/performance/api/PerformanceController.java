@@ -2,10 +2,10 @@ package com.beat.domain.performance.api;
 
 import com.beat.domain.performance.application.PerformanceManagementService;
 import com.beat.domain.performance.application.PerformanceModifyService;
-import com.beat.domain.performance.application.dto.BookingPerformanceDetailResponse;
-import com.beat.domain.performance.application.dto.MakerPerformanceResponse;
-import com.beat.domain.performance.application.dto.PerformanceDetailResponse;
-import com.beat.domain.performance.application.dto.PerformanceEditResponse;
+import com.beat.domain.performance.application.dto.bookingPerformanceDetail.BookingPerformanceDetailResponse;
+import com.beat.domain.performance.application.dto.makerPerformance.MakerPerformanceResponse;
+import com.beat.domain.performance.application.dto.performanceDetail.PerformanceDetailResponse;
+import com.beat.domain.performance.application.dto.modify.PerformanceModifyDetailResponse;
 import com.beat.domain.performance.application.dto.create.PerformanceRequest;
 import com.beat.domain.performance.application.dto.create.PerformanceResponse;
 import com.beat.domain.performance.application.dto.modify.PerformanceModifyRequest;
@@ -74,10 +74,10 @@ public class PerformanceController {
 
     @Operation(summary = "공연 수정 페이지 정보 조회 API", description = "공연 정보를 조회하는 GET API입니다.")
     @GetMapping("/{performanceId}")
-    public ResponseEntity<SuccessResponse<PerformanceEditResponse>> getPerformanceForEdit(
+    public ResponseEntity<SuccessResponse<PerformanceModifyDetailResponse>> getPerformanceForEdit(
             @CurrentMember Long memberId,
             @PathVariable Long performanceId) {
-        PerformanceEditResponse response = performanceService.getPerformanceEdit(memberId, performanceId);
+        PerformanceModifyDetailResponse response = performanceService.getPerformanceEdit(memberId, performanceId);
         return ResponseEntity.ok(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_MODIFY_PAGE_SUCCESS, response));
     }
 
