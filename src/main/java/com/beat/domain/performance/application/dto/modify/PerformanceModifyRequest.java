@@ -1,6 +1,7 @@
 package com.beat.domain.performance.application.dto.modify;
 
 import com.beat.domain.performance.application.dto.modify.cast.CastModifyRequest;
+import com.beat.domain.performance.application.dto.modify.performanceImage.PerformanceImageModifyRequest;
 import com.beat.domain.performance.application.dto.modify.schedule.ScheduleModifyRequest;
 import com.beat.domain.performance.application.dto.modify.staff.StaffModifyRequest;
 import com.beat.domain.performance.domain.BankName;
@@ -27,5 +28,6 @@ public record PerformanceModifyRequest(
         int ticketPrice,
         List<ScheduleModifyRequest> scheduleModifyRequests,
         List<CastModifyRequest> castModifyRequests,
-        List<StaffModifyRequest> staffModifyRequests
+        List<StaffModifyRequest> staffModifyRequests,
+        List<PerformanceImageModifyRequest> performanceImageModifyRequests
 ) {}
