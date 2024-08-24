@@ -1,6 +1,7 @@
 package com.beat.domain.performance.application.dto.modify;
 
 import com.beat.domain.performance.application.dto.modify.cast.CastModifyResponse;
+import com.beat.domain.performance.application.dto.modify.performanceImage.PerformanceImageModifyResponse;
 import com.beat.domain.performance.application.dto.modify.schedule.ScheduleModifyResponse;
 import com.beat.domain.performance.application.dto.modify.staff.StaffModifyResponse;
 import com.beat.domain.performance.domain.BankName;
@@ -28,7 +29,8 @@ public record PerformanceModifyResponse(
         int totalScheduleCount,
         List<ScheduleModifyResponse> scheduleModifyResponses,
         List<CastModifyResponse> castModifyResponses,
-        List<StaffModifyResponse> staffModifyResponses
+        List<StaffModifyResponse> staffModifyResponses,
+        List<PerformanceImageModifyResponse> performanceImageModifyResponses
 ) {
     public static PerformanceModifyResponse of(
             Long userId,
@@ -48,9 +50,10 @@ public record PerformanceModifyResponse(
             String performancePeriod,
             int ticketPrice,
             int totalScheduleCount,
-            List<ScheduleModifyResponse> scheduleModifyRespons,
-            List<CastModifyResponse> castModifyRespons,
-            List<StaffModifyResponse> staffModifyRespons)
+            List<ScheduleModifyResponse> scheduleModifyResponses,
+            List<CastModifyResponse> castModifyResponses,
+            List<StaffModifyResponse> staffModifyResponses,
+            List<PerformanceImageModifyResponse> performanceImageModifyResponses)
             {
 
         return new PerformanceModifyResponse(
@@ -71,9 +74,10 @@ public record PerformanceModifyResponse(
                 performancePeriod,
                 ticketPrice,
                 totalScheduleCount,
-                scheduleModifyRespons,
-                castModifyRespons,
-                staffModifyRespons
+                scheduleModifyResponses,
+                castModifyResponses,
+                staffModifyResponses,
+                performanceImageModifyResponses
         );
     }
 }
