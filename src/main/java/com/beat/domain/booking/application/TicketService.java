@@ -3,6 +3,8 @@ package com.beat.domain.booking.application;
 import com.beat.domain.booking.application.dto.*;
 import com.beat.domain.booking.dao.TicketRepository;
 import com.beat.domain.booking.domain.Booking;
+import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.domain.booking.exception.TicketErrorCode;
 import com.beat.domain.member.dao.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
@@ -13,6 +15,7 @@ import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.booking.exception.BookingErrorCode;
+import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
 import com.beat.domain.user.dao.UserRepository;
@@ -20,9 +23,11 @@ import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.exception.UserErrorCode;
 import lombok.RequiredArgsConstructor;
 import net.nurigo.java_sdk.exceptions.CoolsmsException;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,7 +42,7 @@ public class TicketService {
     private final ScheduleRepository scheduleRepository;
     private final CoolSmsService coolSmsService;
 
-    public TicketRetrieveResponse getTickets(Long memberId, Long performanceId, ScheduleNumber scheduleNumber, Boolean isPaymentCompleted) {
+    public TicketRetrieveResponse getTickets(Long memberId, Long performanceId, ScheduleNumber scheduleNumber, BookingStatus bookingStatus) {
         Member member = memberRepository.findById(memberId).orElseThrow(
                 () -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 
@@ -49,12 +54,12 @@ public class TicketService {
 
         List<Booking> bookings;
 
-        if (scheduleNumber != null && isPaymentCompleted != null) {
-            bookings = ticketRepository.findBySchedulePerformanceIdAndScheduleScheduleNumberAndIsPaymentCompleted(performanceId, scheduleNumber, isPaymentCompleted);
+        if (scheduleNumber != null && bookingStatus != null) {
+            bookings = ticketRepository.findBySchedulePerformanceIdAndScheduleScheduleNumberAndBookingStatus(performanceId, scheduleNumber, bookingStatus);
         } else if (scheduleNumber != null) {
             bookings = ticketRepository.findBySchedulePerformanceIdAndScheduleScheduleNumber(performanceId, scheduleNumber);
-        } else if (isPaymentCompleted != null) {
-            bookings = ticketRepository.findBySchedulePerformanceIdAndIsPaymentCompleted(performanceId, isPaymentCompleted);
+        } else if (bookingStatus != null) {
+            bookings = ticketRepository.findBySchedulePerformanceIdAndBookingStatus(performanceId, bookingStatus);
         } else {
             bookings = ticketRepository.findBySchedulePerformanceId(performanceId);
         }
@@ -67,7 +72,7 @@ public class TicketService {
                         booking.getSchedule().getId(),
                         booking.getPurchaseTicketCount(),
                         booking.getCreatedAt(),
-                        booking.isPaymentCompleted(),
+                        booking.getBookingStatus(),
                         booking.getSchedule().getScheduleNumber().name()
                 ))
                 .collect(Collectors.toList());
@@ -94,11 +99,14 @@ public class TicketService {
             Booking booking = ticketRepository.findById(detail.bookingId())
                     .orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
-            boolean wasPaymentCompleted = booking.isPaymentCompleted();
-            booking.setIsPaymentCompleted(detail.isPaymentCompleted());
-            ticketRepository.save(booking);
+            if (booking.getBookingStatus() == BookingStatus.BOOKING_CONFIRMED && detail.bookingStatus() != BookingStatus.BOOKING_CONFIRMED) {
+                throw new BadRequestException(TicketErrorCode.PAYMENT_COMPLETED_TICKET_UPDATE_NOT_ALLOWED);
+            }
 
-            if (!wasPaymentCompleted && detail.isPaymentCompleted()) {
+            if (booking.getBookingStatus() == BookingStatus.CHECKING_PAYMENT && detail.bookingStatus() == BookingStatus.BOOKING_CONFIRMED) {
+                booking.setBookingStatus(BookingStatus.BOOKING_CONFIRMED);
+                ticketRepository.save(booking);
+
                 String message = String.format("[BEAT] %s님 %s 예매 확정되었습니다.", detail.bookerName(), request.performanceTitle());
                 try {
                     coolSmsService.sendSms(detail.bookerPhoneNumber(), message);
@@ -110,31 +118,37 @@ public class TicketService {
     }
 
     @Transactional
-    public void deleteTickets(Long memberId, TicketDeleteRequest ticketDeleteRequest) {
+    public void cancelTickets(Long memberId, TicketCancelRequest ticketCancelRequest) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         Long userId = member.getUser().getId();
 
-        Performance performance = performanceRepository.findById(ticketDeleteRequest.performanceId())
+        Performance performance = performanceRepository.findById(ticketCancelRequest.performanceId())
                 .orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_PERFORMANCE_FOUND));
 
         if (!performance.getUsers().getId().equals(userId)) {
             throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
         }
 
-        for (Long bookingId : ticketDeleteRequest.bookingList()) {
+        for (Long bookingId : ticketCancelRequest.bookingList()) {
             Booking booking = ticketRepository.findById(bookingId)
                     .orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
-            ticketRepository.delete(booking);
+            booking.setBookingStatus(BookingStatus.BOOKING_CANCELLED);
+            ticketRepository.save(booking);
 
             Schedule schedule = booking.getSchedule();
-
-            ticketRepository.delete(booking);
-
             schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
             scheduleRepository.save(schedule);
         }
+    }
+
+    @Scheduled(cron = "0 0 0 * * ?")
+    @Transactional
+    public void deleteOldCancelledBookings() {
+        LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
+        List<Booking> oldCancelledBookings = ticketRepository.findByBookingStatusAndCancellationDateBefore(BookingStatus.BOOKING_CANCELLED, oneYearAgo);
+        ticketRepository.deleteAll(oldCancelledBookings);
     }
 }
