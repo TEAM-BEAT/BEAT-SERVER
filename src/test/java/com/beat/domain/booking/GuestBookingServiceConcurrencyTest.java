@@ -3,6 +3,7 @@ package com.beat.domain.booking;
 import com.beat.domain.booking.application.GuestBookingService;
 import com.beat.domain.booking.application.dto.GuestBookingRequest;
 import com.beat.domain.booking.application.dto.GuestBookingResponse;
+import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;
@@ -129,7 +130,7 @@ public class GuestBookingServiceConcurrencyTest {
                             "1990-01-01",
                             generateRandomPassword(),
                             35000,
-                            false
+                            BookingStatus.CHECKING_PAYMENT
                     );
                     GuestBookingResponse response = guestBookingService.createGuestBooking(request);
                     assertNotNull(response);
@@ -152,7 +153,7 @@ public class GuestBookingServiceConcurrencyTest {
                             "1990-01-01",
                             generateRandomPassword(),
                             35000,
-                            false
+                            BookingStatus.CHECKING_PAYMENT
                     );
                     GuestBookingResponse response = guestBookingService.createGuestBooking(request);
                     assertNotNull(response);
