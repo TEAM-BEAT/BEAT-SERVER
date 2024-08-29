@@ -219,13 +219,19 @@ public class PerformanceService {
     private List<HomePromotionDetail> getPromotions() {
         List<Promotion> promotionList = promotionRepository.findAll();
         return promotionList.stream()
-                .map(promotion -> HomePromotionDetail.of(
-                        promotion.getId(),
-                        promotion.getPromotionPhoto(),
-                        promotion.getPerformance().getId(),
-                        promotion.getRedirectUrl(),
-                        promotion.isExternal()
-                ))
+                .map(promotion -> {
+                    Long performanceId = null;
+                    if (promotion.getPerformance() != null) {
+                        performanceId = promotion.getPerformance().getId();
+                    }
+                    return HomePromotionDetail.of(
+                            promotion.getId(),
+                            promotion.getPromotionPhoto(),
+                            performanceId,
+                            promotion.getRedirectUrl(),
+                            promotion.isExternal()
+                    );
+                })
                 .collect(Collectors.toList());
     }
 
