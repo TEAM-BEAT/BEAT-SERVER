@@ -38,7 +38,7 @@ public class TicketController {
             @CurrentMember Long memberId,
             @RequestBody TicketUpdateRequest request) {
         ticketService.updateTickets(memberId, request);
-        return ResponseEntity.ok(SuccessResponse.of(BookingSuccessCode.TICKET_UPDATE_SUCCESS, null));
+        return ResponseEntity.ok(SuccessResponse.from(BookingSuccessCode.TICKET_UPDATE_SUCCESS));
     }
 
     @Operation(summary = "예매자 취소 API", description = "메이커가 자신의 공연에 대한 1명 이상의 예매자의 정보를 취소 상태로 변경하는 PATCH API입니다.")
