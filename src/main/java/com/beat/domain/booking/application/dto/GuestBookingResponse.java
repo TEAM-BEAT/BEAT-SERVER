@@ -1,5 +1,6 @@
 package com.beat.domain.booking.application.dto;
 
+import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 
@@ -13,7 +14,7 @@ public record GuestBookingResponse(
         ScheduleNumber scheduleNumber,
         String bookerName,
         String bookerPhoneNumber,
-        boolean isPaymentCompleted,
+        BookingStatus bookingStatus,
         BankName bankName,
         String accountNumber,
         int totalPaymentAmount,
@@ -27,7 +28,7 @@ public record GuestBookingResponse(
             ScheduleNumber scheduleNumber,
             String bookerName,
             String bookerPhoneNumber,
-            boolean isPaymentCompleted,
+            BookingStatus bookingStatus,
             BankName bankName,
             String accountNumber,
             int totalPaymentAmount,
@@ -40,7 +41,7 @@ public record GuestBookingResponse(
                 scheduleNumber,
                 bookerName,
                 bookerPhoneNumber,
-                isPaymentCompleted,
+                bookingStatus,
                 bankName,
                 accountNumber,
                 totalPaymentAmount,

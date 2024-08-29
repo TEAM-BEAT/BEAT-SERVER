@@ -58,7 +58,7 @@ public class GuestBookingService {
                 guestBookingRequest.purchaseTicketCount(),
                 guestBookingRequest.bookerName(),
                 guestBookingRequest.bookerPhoneNumber(),
-                guestBookingRequest.isPaymentCompleted(),
+                guestBookingRequest.bookingStatus(),
                 guestBookingRequest.birthDate(),
                 guestBookingRequest.password(),
                 schedule,
@@ -76,7 +76,7 @@ public class GuestBookingService {
                 schedule.getScheduleNumber(),
                 booking.getBookerName(),
                 booking.getBookerPhoneNumber(),
-                booking.isPaymentCompleted(),
+                booking.getBookingStatus(),
                 schedule.getPerformance().getBankName(),
                 schedule.getPerformance().getAccountNumber(),
                 totalPaymentAmount, // 회원 예매랑 다른 부분 확인하기
