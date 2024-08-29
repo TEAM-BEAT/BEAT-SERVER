@@ -52,17 +52,7 @@ public class TicketService {
         Performance performance = performanceRepository.findById(performanceId)
                 .orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-        List<Booking> bookings;
-
-        if (scheduleNumber != null && bookingStatus != null) {
-            bookings = ticketRepository.findBySchedulePerformanceIdAndScheduleScheduleNumberAndBookingStatus(performanceId, scheduleNumber, bookingStatus);
-        } else if (scheduleNumber != null) {
-            bookings = ticketRepository.findBySchedulePerformanceIdAndScheduleScheduleNumber(performanceId, scheduleNumber);
-        } else if (bookingStatus != null) {
-            bookings = ticketRepository.findBySchedulePerformanceIdAndBookingStatus(performanceId, bookingStatus);
-        } else {
-            bookings = ticketRepository.findBySchedulePerformanceId(performanceId);
-        }
+        List<Booking> bookings = findBookings(performanceId, scheduleNumber, bookingStatus);
 
         List<TicketDetail> bookingList = bookings.stream()
                 .map(booking -> TicketDetail.of(
@@ -82,6 +72,18 @@ public class TicketService {
                 performance.getTotalScheduleCount(),
                 bookingList
         );
+    }
+
+    private List<Booking> findBookings(Long performanceId, ScheduleNumber scheduleNumber, BookingStatus bookingStatus) {
+        if (scheduleNumber != null && bookingStatus != null) {
+            return ticketRepository.findBySchedulePerformanceIdAndScheduleScheduleNumberAndBookingStatus(performanceId, scheduleNumber, bookingStatus);
+        } else if (scheduleNumber != null) {
+            return ticketRepository.findBySchedulePerformanceIdAndScheduleScheduleNumber(performanceId, scheduleNumber);
+        } else if (bookingStatus != null) {
+            return ticketRepository.findBySchedulePerformanceIdAndBookingStatus(performanceId, bookingStatus);
+        } else {
+            return ticketRepository.findBySchedulePerformanceId(performanceId);
+        }
     }
 
     @Transactional
@@ -144,7 +146,7 @@ public class TicketService {
         }
     }
 
-    @Scheduled(cron = "0 0 0 * * ?")
+    @Scheduled(cron = "0 0 4 * * ?")
     @Transactional
     public void deleteOldCancelledBookings() {
         LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
