@@ -92,4 +92,8 @@ public class Schedule {
     public void updateScheduleNumber(ScheduleNumber scheduleNumber) {
         this.scheduleNumber = scheduleNumber;
     }
+
+    public void updateIsBooking(boolean isBooking) {
+        this.isBooking = isBooking;
+    }
 }
