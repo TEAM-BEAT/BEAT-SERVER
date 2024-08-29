@@ -17,6 +17,8 @@ public enum PerformanceErrorCode implements BaseErrorCode {
     PERFORMANCE_DELETE_FAILED(403, "예매자가 1명 이상 있을 경우, 공연을 삭제할 수 없습니다."),
     NOT_PERFORMANCE_OWNER(403, "해당 공연의 메이커가 아닙니다."),
     MAX_SCHEDULE_LIMIT_EXCEEDED(400, "공연 회차는 최대 3개까지 추가할 수 있습니다."),
+    INVALID_PERFORMANCE_DESCRIPTION_LENGTH(400, "공연 소개 글자수가 500자를 초과했습니다."),
+    INVALID_ATTENTION_NOTE_LENGTH(400, "공연 유의사항 글자수가 500자를 초과했습니다."),
     INTERNAL_SERVER_ERROR(500, "서버 내부 오류입니다.")
     ;
 
