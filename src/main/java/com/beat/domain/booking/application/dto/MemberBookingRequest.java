@@ -1,5 +1,6 @@
 package com.beat.domain.booking.application.dto;
 
+import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 
 public record MemberBookingRequest(
@@ -8,6 +9,6 @@ public record MemberBookingRequest(
         int purchaseTicketCount,
         String bookerName,
         String bookerPhoneNumber,
-        boolean isPaymentCompleted,
+        BookingStatus bookingStatus,
         int totalPaymentAmount
 ) { }
