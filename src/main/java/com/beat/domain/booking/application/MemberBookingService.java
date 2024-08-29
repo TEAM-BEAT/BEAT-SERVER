@@ -50,7 +50,7 @@ public class MemberBookingService {
                 memberBookingRequest.purchaseTicketCount(),
                 memberBookingRequest.bookerName(),
                 memberBookingRequest.bookerPhoneNumber(),
-                memberBookingRequest.isPaymentCompleted(),
+                memberBookingRequest.bookingStatus(),
                 null,
                 null,
                 schedule,
@@ -67,7 +67,7 @@ public class MemberBookingService {
                 schedule.getScheduleNumber(),
                 booking.getBookerName(),
                 booking.getBookerPhoneNumber(),
-                booking.isPaymentCompleted(),
+                booking.getBookingStatus(),
                 schedule.getPerformance().getBankName(),
                 schedule.getPerformance().getAccountNumber(),
                 memberBookingRequest.totalPaymentAmount(), //  비회원 예매처럼 int totalPaymentAmount = ticketPrice * guestBookingRequest.purchaseTicketCount();로 계산해서 반영하기 + 요청한 총 가격 == 티켓 가격 * 수 같은지 검증하는 로직 추가하기
