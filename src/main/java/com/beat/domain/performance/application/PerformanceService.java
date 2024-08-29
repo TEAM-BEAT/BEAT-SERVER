@@ -64,7 +64,7 @@ public class PerformanceService {
     private final BookingRepository bookingRepository;
     private final PerformanceImageRepository performanceImageRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PerformanceDetailResponse getPerformanceDetail(Long performanceId) {
         Performance performance = performanceRepository.findById(performanceId)
                 .orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
@@ -197,7 +197,6 @@ public class PerformanceService {
                 })
                 .collect(Collectors.toList());
 
-        // 두 개의 스트림을 각각 처리하여 병합
         List<HomePerformanceDetail> positiveDueDates = performanceDetails.stream()
                 .filter(detail -> detail.dueDate() >= 0)
                 .sorted((p1, p2) -> Integer.compare(p1.dueDate(), p2.dueDate()))
@@ -208,7 +207,6 @@ public class PerformanceService {
                 .sorted((p1, p2) -> Integer.compare(p2.dueDate(), p1.dueDate()))
                 .collect(Collectors.toList());
 
-        // 병합된 리스트
         positiveDueDates.addAll(negativeDueDates);
 
         List<HomePromotionDetail> promotions = getPromotions();
@@ -261,19 +259,16 @@ public class PerformanceService {
                 })
                 .collect(Collectors.toList());
 
-        // 양수 minDueDate 정렬
         List<MakerPerformanceDetailResponse> positiveDueDates = performanceDetails.stream()
                 .filter(detail -> detail.minDueDate() >= 0)
                 .sorted(Comparator.comparingInt(MakerPerformanceDetailResponse::minDueDate))
                 .collect(Collectors.toList());
 
-        // 음수 minDueDate 정렬
         List<MakerPerformanceDetailResponse> negativeDueDates = performanceDetails.stream()
                 .filter(detail -> detail.minDueDate() < 0)
                 .sorted(Comparator.comparingInt(MakerPerformanceDetailResponse::minDueDate).reversed())
                 .collect(Collectors.toList());
 
-        // 병합된 리스트
         positiveDueDates.addAll(negativeDueDates);
 
         return MakerPerformanceResponse.of(user.getId(), positiveDueDates);
