@@ -1,9 +1,10 @@
 package com.beat.domain.booking.api;
 
 import com.beat.domain.booking.application.TicketService;
-import com.beat.domain.booking.application.dto.TicketDeleteRequest;
+import com.beat.domain.booking.application.dto.TicketCancelRequest;
 import com.beat.domain.booking.application.dto.TicketRetrieveResponse;
 import com.beat.domain.booking.application.dto.TicketUpdateRequest;
+import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.exception.BookingSuccessCode;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
@@ -26,8 +27,8 @@ public class TicketController {
             @CurrentMember Long memberId,
             @PathVariable Long performanceId,
             @RequestParam(required = false) ScheduleNumber scheduleNumber,
-            @RequestParam(required = false) Boolean isPaymentCompleted) {
-        TicketRetrieveResponse response = ticketService.getTickets(memberId, performanceId, scheduleNumber, isPaymentCompleted);
+            @RequestParam(required = false) BookingStatus bookingStatus) {
+        TicketRetrieveResponse response = ticketService.getTickets(memberId, performanceId, scheduleNumber, bookingStatus);
         return ResponseEntity.ok(SuccessResponse.of(BookingSuccessCode.TICKET_RETRIEVE_SUCCESS, response));
     }
 
@@ -40,12 +41,12 @@ public class TicketController {
         return ResponseEntity.ok(SuccessResponse.of(BookingSuccessCode.TICKET_UPDATE_SUCCESS, null));
     }
 
-    @Operation(summary = "예매자 삭제 API", description = "메이커가 자신의 공연에 대한 예매자의 정보를 삭제하는 DELETE API입니다.")
-    @DeleteMapping
-    public ResponseEntity<SuccessResponse<Void>> deleteTickets(
+    @Operation(summary = "예매자 취소 API", description = "메이커가 자신의 공연에 대한 1명 이상의 예매자의 정보를 취소 상태로 변경하는 PATCH API입니다.")
+    @PatchMapping
+    public ResponseEntity<SuccessResponse<Void>> cancelTickets(
             @CurrentMember Long memberId,
-            @RequestBody TicketDeleteRequest ticketDeleteRequest) {
-        ticketService.deleteTickets(memberId, ticketDeleteRequest);
-        return ResponseEntity.ok(SuccessResponse.from(BookingSuccessCode.TICKET_DELETE_SUCCESS));
+            @RequestBody TicketCancelRequest ticketCancelRequest) {
+        ticketService.cancelTickets(memberId, ticketCancelRequest);
+        return ResponseEntity.ok(SuccessResponse.from(BookingSuccessCode.TICKET_CANCEL_SUCCESS));
     }
 }
