@@ -64,7 +64,7 @@ public class MemberBookingRetrieveService {
                 performance.getAccountNumber(),
                 performance.getAccountHolder(),
                 calculateDueDate(schedule.getPerformanceDate()),
-                booking.isPaymentCompleted(),
+                booking.getBookingStatus(),
                 booking.getCreatedAt(),
                 performance.getPosterImage(),
                 totalPaymentAmount
