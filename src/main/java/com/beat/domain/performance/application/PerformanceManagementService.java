@@ -17,6 +17,7 @@ import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.staff.dao.StaffRepository;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.user.domain.Users;
+import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,14 @@ public class PerformanceManagementService {
                 .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 
         Users user = member.getUser();
+
+        if (request.performanceDescription().length() > 500) {
+            throw new BadRequestException(PerformanceErrorCode.INVALID_PERFORMANCE_DESCRIPTION_LENGTH);
+        }
+
+        if (request.performanceAttentionNote().length() > 500) {
+            throw new BadRequestException(PerformanceErrorCode.INVALID_ATTENTION_NOTE_LENGTH);
+        }
 
         Performance performance = Performance.create(
                 request.performanceTitle(),

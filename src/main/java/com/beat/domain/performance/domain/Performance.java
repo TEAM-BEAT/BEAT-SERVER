@@ -35,10 +35,10 @@ public class Performance extends BaseTimeEntity {
     @Column(nullable = false)
     private int runningTime;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String performanceDescription;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String performanceAttentionNote;
 
     @Enumerated(EnumType.STRING)
