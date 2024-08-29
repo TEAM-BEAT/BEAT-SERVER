@@ -1,5 +1,6 @@
 package com.beat.domain.booking.application.dto;
 
+import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 
@@ -21,7 +22,7 @@ public record MemberBookingRetrieveResponse(
         String accountNumber,
         String accountHolder,
         int dueDate,
-        boolean isPaymentCompleted,
+        BookingStatus bookingStatus,
         LocalDateTime createdAt,
         String posterImage,
         int totalPaymentAmount
@@ -42,7 +43,7 @@ public record MemberBookingRetrieveResponse(
             String accountNumber,
             String accountHolder,
             int dueDate,
-            boolean isPaymentCompleted,
+            BookingStatus bookingStatus,
             LocalDateTime createdAt,
             String posterImage,
             int totalPaymentAmount
@@ -63,7 +64,7 @@ public record MemberBookingRetrieveResponse(
                 accountNumber,
                 accountHolder,
                 dueDate,
-                isPaymentCompleted,
+                bookingStatus,
                 createdAt,
                 posterImage,
                 totalPaymentAmount
