@@ -1,7 +1,9 @@
 package com.beat.global.external.s3.controller;
 
+import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.external.s3.exception.FileSuccessCode;
 import com.beat.global.external.s3.service.FileService;
-import io.swagger.v3.oas.annotations.Operation;
+import com.beat.global.external.s3.service.dto.PresignedUrlFindAllResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,24 +12,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/files")
 @RequiredArgsConstructor
-public class FileController {
+public class FileController implements FileApi {
 
     private final FileService fileService;
 
-    @Operation(summary = "presigned-url API", description = "S3에 업로드 할 수 있는 유효한 url을 주는 GET API입니다.")
     @GetMapping("/presigned-url")
-    public ResponseEntity<Map<String, Map<String, String>>> getPresignedUrls(
+    @Override
+    public ResponseEntity<SuccessResponse<PresignedUrlFindAllResponse>> generateAllPresignedUrls(
             @RequestParam String posterImage,
             @RequestParam(required = false) List<String> castImages,
             @RequestParam(required = false) List<String> staffImages,
-            @RequestParam(required = false) List<String> performanceImages
-    )
-    {
+            @RequestParam(required = false) List<String> performanceImages) {
         if (castImages == null) {
             castImages = List.of();
         }
@@ -37,7 +36,8 @@ public class FileController {
         if (performanceImages == null) {
             performanceImages = List.of();
         }
-        Map<String, Map<String, String>> response = fileService.getPresignedUrls(posterImage, castImages, staffImages, performanceImages);
-        return ResponseEntity.ok(response);
+
+        PresignedUrlFindAllResponse response = fileService.issueAllPresignedUrls(posterImage, castImages, staffImages, performanceImages);
+        return ResponseEntity.ok(SuccessResponse.of(FileSuccessCode.PRESIGNED_URL_GENERATED, response));
     }
 }
