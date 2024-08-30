@@ -3,6 +3,7 @@ package com.beat.global.external.s3.service;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.beat.global.external.s3.service.dto.PresignedUrlFindAllResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,7 @@ public class FileService {
 
     private final AmazonS3 amazonS3;
 
-    public Map<String, Map<String, String>> getPresignedUrls(String posterImage, List<String> castImages, List<String> staffImages, List<String> performanceImages) {
+    public PresignedUrlFindAllResponse issueAllPresignedUrls(String posterImage, List<String> castImages, List<String> staffImages, List<String> performanceImages) {
         Map<String, Map<String, String>> presignedUrls = new HashMap<>();
 
         // Poster Image URL
@@ -60,7 +61,7 @@ public class FileService {
         }
         presignedUrls.put("performance", performanceImageUrls);
 
-        return presignedUrls;
+        return PresignedUrlFindAllResponse.from(presignedUrls);
     }
 
     private GeneratePresignedUrlRequest getGeneratePresignedUrlRequest(String bucket, String fileName) {
