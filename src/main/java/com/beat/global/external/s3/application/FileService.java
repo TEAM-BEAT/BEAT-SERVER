@@ -1,9 +1,9 @@
-package com.beat.global.external.s3.service;
+package com.beat.global.external.s3.application;
 
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.beat.global.external.s3.service.dto.PresignedUrlFindAllResponse;
+import com.beat.global.external.s3.application.dto.PresignedUrlFindAllResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

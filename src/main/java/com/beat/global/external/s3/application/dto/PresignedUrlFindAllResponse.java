@@ -1,4 +1,4 @@
-package com.beat.global.external.s3.service.dto;
+package com.beat.global.external.s3.application.dto;
 
 import java.util.Map;
 

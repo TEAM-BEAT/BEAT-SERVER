@@ -1,9 +1,9 @@
-package com.beat.global.external.s3.controller;
+package com.beat.global.external.s3.api;
 
 import com.beat.global.common.dto.SuccessResponse;
 import com.beat.global.external.s3.exception.FileSuccessCode;
-import com.beat.global.external.s3.service.FileService;
-import com.beat.global.external.s3.service.dto.PresignedUrlFindAllResponse;
+import com.beat.global.external.s3.application.FileService;
+import com.beat.global.external.s3.application.dto.PresignedUrlFindAllResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
