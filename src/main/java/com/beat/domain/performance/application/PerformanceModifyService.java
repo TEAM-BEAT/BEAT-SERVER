@@ -195,7 +195,7 @@ public class PerformanceModifyService {
 
         long existingSchedulesCount = scheduleRepository.countByPerformanceId(performance.getId());
 
-        if ((existingSchedulesCount + 1) > 3) {
+        if ((existingSchedulesCount + 1) > 10) {
             throw new BadRequestException(PerformanceErrorCode.MAX_SCHEDULE_LIMIT_EXCEEDED);
         }
 
