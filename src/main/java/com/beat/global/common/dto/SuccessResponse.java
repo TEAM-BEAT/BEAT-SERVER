@@ -7,11 +7,11 @@ public record SuccessResponse<T>(
         String message,
         T data
 ) {
-    public static <T> SuccessResponse of(final BaseSuccessCode baseSuccessCode, final T data) {
-        return new SuccessResponse(baseSuccessCode.getStatus(), baseSuccessCode.getMessage(), data);
+    public static <T> SuccessResponse<T> of(final BaseSuccessCode baseSuccessCode, final T data) {
+        return new SuccessResponse<>(baseSuccessCode.getStatus(), baseSuccessCode.getMessage(), data);
     }
 
-    public static SuccessResponse from(final BaseSuccessCode baseSuccessCode) {
-        return new SuccessResponse(baseSuccessCode.getStatus(), baseSuccessCode.getMessage(), null);
+    public static <T> SuccessResponse<T> from(final BaseSuccessCode baseSuccessCode) {
+        return new SuccessResponse<>(baseSuccessCode.getStatus(), baseSuccessCode.getMessage(), null);
     }
 }
