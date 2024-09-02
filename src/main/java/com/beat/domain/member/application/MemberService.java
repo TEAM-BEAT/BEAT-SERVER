@@ -9,7 +9,7 @@ import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
 import com.beat.global.auth.client.dto.MemberInfoResponse;
 import com.beat.global.auth.client.dto.MemberLoginRequest;
-import com.beat.global.auth.client.service.KakaoSocialService;
+import com.beat.global.auth.client.application.KakaoSocialService;
 import com.beat.global.auth.jwt.application.TokenService;
 import com.beat.global.auth.jwt.exception.TokenErrorCode;
 import com.beat.global.auth.jwt.provider.JwtTokenProvider;

@@ -1,4 +1,4 @@
-package com.beat.global.auth.client.service;
+package com.beat.global.auth.client.application;
 
 import com.beat.domain.member.domain.SocialType;
 import com.beat.global.auth.client.dto.MemberInfoResponse;
