@@ -33,23 +33,17 @@ public class MemberService {
     private final KakaoSocialService kakaoSocialService;
 
     @Transactional
-    public LoginSuccessResponse handleSocialLogin(
-            final String authorizationCode,
-            final MemberLoginRequest loginRequest
-    ) {
-        MemberInfoResponse memberInfoResponse = getMemberInfoResponse(authorizationCode, loginRequest);
-        return generateLoginResponse(memberInfoResponse);
+    public LoginSuccessResponse handleSocialLogin(final String authorizationCode, final MemberLoginRequest loginRequest) {
+        MemberInfoResponse memberInfoResponse = findMemberInfoFromSocialService(authorizationCode, loginRequest);
+        return generateLoginResponseFromMemberInfo(memberInfoResponse);
     }
 
-    public MemberInfoResponse getMemberInfoResponse(
-            final String authorizationCode,
-            final MemberLoginRequest loginRequest
-    ) {
-        SocialService socialService = getSocialService(loginRequest.socialType());
+    public MemberInfoResponse findMemberInfoFromSocialService(final String authorizationCode, final MemberLoginRequest loginRequest) {
+        SocialService socialService = findSocialService(loginRequest.socialType());
         return socialService.login(authorizationCode, loginRequest);
     }
 
-    private SocialService getSocialService(SocialType socialType) {
+    private SocialService findSocialService(SocialType socialType) {
         return switch (socialType) {
             case KAKAO -> kakaoSocialService;
             // case GOOGLE -> googleSocialService;
@@ -59,7 +53,7 @@ public class MemberService {
     }
 
     @Transactional
-    public Long createUser(final MemberInfoResponse userResponse) {
+    public Long registerMemberWithUserInfo(final MemberInfoResponse userResponse) {
         Users users = Users.create();
         users = userRepository.save(users);
 
@@ -72,32 +66,23 @@ public class MemberService {
         );
 
         memberRepository.save(member);
-
         return member.getId();
     }
 
     @Transactional
-    public AccessTokenGetSuccess refreshToken(
-            final String refreshToken
-    ) {
+    public AccessTokenGetSuccess generateAccessTokenFromRefreshToken(final String refreshToken) {
         Long memberId = jwtTokenProvider.getUserFromJwt(refreshToken);
         if (!memberId.equals(tokenService.findIdByRefreshToken(refreshToken))) {
             throw new BadRequestException(TokenErrorCode.TOKEN_INCORRECT_ERROR);
         }
         MemberAuthentication memberAuthentication = new MemberAuthentication(memberId, null, null);
-        return AccessTokenGetSuccess.of(
-                jwtTokenProvider.issueAccessToken(memberAuthentication)
-        );
+        return AccessTokenGetSuccess.of(jwtTokenProvider.issueAccessToken(memberAuthentication));
     }
 
     @Transactional
-    public void deleteUser(
-            final Long id
-    ) {
+    public void deleteUser(final Long id) {
         Users users = userRepository.findById(id)
-                .orElseThrow(
-                        () -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND)
-                );
+                .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
         userRepository.delete(users);
     }
 
@@ -107,38 +92,27 @@ public class MemberService {
         return refreshToken;
     }
 
-    private LoginSuccessResponse generateLoginResponse(
-            final MemberInfoResponse memberInfoResponse) {
+    private LoginSuccessResponse generateLoginResponseFromMemberInfo(final MemberInfoResponse memberInfoResponse) {
         Long memberId = findOrRegisterMember(memberInfoResponse);
-        return createLoginSuccessResponse(memberId, memberInfoResponse);
+        return generateLoginSuccessResponse(memberId, memberInfoResponse);
     }
 
-    private Long findOrRegisterMember(
-            final MemberInfoResponse memberInfoResponse) {
-        boolean isExisting = isExistingMember(memberInfoResponse.socialId(), memberInfoResponse.socialType());
+    private Long findOrRegisterMember(final MemberInfoResponse memberInfoResponse) {
+        boolean memberExists = checkMemberExistsBySocialIdAndSocialType(memberInfoResponse.socialId(), memberInfoResponse.socialType());
 
-        if (isExisting) {
-            return getMemberIdBySocialInfo(memberInfoResponse.socialId(), memberInfoResponse.socialType());
+        if (memberExists) {
+            Member existingMember = findMemberBySocialIdAndSocialType(memberInfoResponse.socialId(), memberInfoResponse.socialType());
+            return existingMember.getId();
         }
 
-        return createUser(memberInfoResponse);
+        return registerMemberWithUserInfo(memberInfoResponse);
     }
 
-    public boolean isExistingMember(
-            final Long socialId,
-            final SocialType socialType) {
+    public boolean checkMemberExistsBySocialIdAndSocialType(final Long socialId, final SocialType socialType) {
         return memberRepository.findBySocialTypeAndSocialId(socialId, socialType).isPresent();
     }
 
-    private Long getMemberIdBySocialInfo(
-            Long socialId,
-            SocialType socialType) {
-        return getMemberBySocialId(socialId, socialType).getId();
-    }
-
-    private LoginSuccessResponse createLoginSuccessResponse(
-            Long memberId,
-            MemberInfoResponse memberInfoResponse) {
+    private LoginSuccessResponse generateLoginSuccessResponse(final Long memberId, final MemberInfoResponse memberInfoResponse) {
         String nickname = memberInfoResponse.nickname();
         MemberAuthentication memberAuthentication = new MemberAuthentication(memberId, null, null);
 
@@ -148,11 +122,8 @@ public class MemberService {
         return LoginSuccessResponse.of(accessToken, refreshToken, nickname);
     }
 
-    public Member getMemberBySocialId(
-            final Long socialId,
-            final SocialType socialType) {
-        Member member = memberRepository.findBySocialTypeAndSocialId(socialId, socialType)
+    public Member findMemberBySocialIdAndSocialType(final Long socialId, final SocialType socialType) {
+        return memberRepository.findBySocialTypeAndSocialId(socialId, socialType)
                 .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
-        return member;
     }
 }
