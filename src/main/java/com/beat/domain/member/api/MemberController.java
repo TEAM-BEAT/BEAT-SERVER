@@ -1,6 +1,8 @@
 package com.beat.domain.member.api;
 
+import com.beat.domain.member.application.AuthenticationService;
 import com.beat.domain.member.application.MemberService;
+import com.beat.domain.member.application.SocialLoginService;
 import com.beat.domain.member.dto.*;
 import com.beat.domain.member.exception.MemberSuccessCode;
 import com.beat.global.auth.client.dto.MemberLoginRequest;
@@ -20,8 +22,10 @@ import java.security.Principal;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class MemberController {
-    private final MemberService memberService;
     private final TokenService tokenService;
+    private final AuthenticationService authenticationService;
+    private final SocialLoginService socialLoginService;
+
     private final static int COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
     private final static String REFRESH_TOKEN = "refreshToken";
 
@@ -32,7 +36,7 @@ public class MemberController {
             @RequestBody final MemberLoginRequest loginRequest,
             HttpServletResponse response
     ) {
-        LoginSuccessResponse loginSuccessResponse = memberService.handleSocialLogin(authorizationCode, loginRequest);
+        LoginSuccessResponse loginSuccessResponse = socialLoginService.handleSocialLogin(authorizationCode, loginRequest);
         ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN, loginSuccessResponse.refreshToken())
                 .maxAge(COOKIE_MAX_AGE)
                 .path("/")
@@ -50,7 +54,7 @@ public class MemberController {
     public ResponseEntity<SuccessResponse<AccessTokenGetSuccess>> refreshToken(
             @RequestParam final String refreshToken
     ) {
-        AccessTokenGetSuccess accessTokenGetSuccess = memberService.generateAccessTokenFromRefreshToken(refreshToken);
+        AccessTokenGetSuccess accessTokenGetSuccess = authenticationService.generateAccessTokenFromRefreshToken(refreshToken);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(SuccessResponse.of(MemberSuccessCode.ISSUE_REFRESH_TOKEN_SUCCESS, accessTokenGetSuccess));
     }
