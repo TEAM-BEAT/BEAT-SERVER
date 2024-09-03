@@ -32,7 +32,7 @@ public class MemberController {
             @RequestBody final MemberLoginRequest loginRequest,
             HttpServletResponse response
     ) {
-        LoginSuccessResponse loginSuccessResponse = memberService.create(authorizationCode, loginRequest);
+        LoginSuccessResponse loginSuccessResponse = memberService.handleSocialLogin(authorizationCode, loginRequest);
         ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN, loginSuccessResponse.refreshToken())
                 .maxAge(COOKIE_MAX_AGE)
                 .path("/")
@@ -50,7 +50,7 @@ public class MemberController {
     public ResponseEntity<SuccessResponse<AccessTokenGetSuccess>> refreshToken(
             @RequestParam final String refreshToken
     ) {
-        AccessTokenGetSuccess accessTokenGetSuccess = memberService.refreshToken(refreshToken);
+        AccessTokenGetSuccess accessTokenGetSuccess = memberService.generateAccessTokenFromRefreshToken(refreshToken);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(SuccessResponse.of(MemberSuccessCode.ISSUE_REFRESH_TOKEN_SUCCESS, accessTokenGetSuccess));
     }
