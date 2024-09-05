@@ -46,7 +46,7 @@ public class MemberController {
                 .build();
         response.setHeader("Set-Cookie", cookie.toString());
         return ResponseEntity.status(HttpStatus.OK)
-                .body(SuccessResponse.of(MemberSuccessCode.SIGN_UP_SUCCESS, LoginSuccessResponse.of(loginSuccessResponse.accessToken(), null, loginSuccessResponse.nickname())));
+                .body(SuccessResponse.of(MemberSuccessCode.SIGN_UP_SUCCESS, LoginSuccessResponse.of(loginSuccessResponse.accessToken(), null, loginSuccessResponse.nickname(), loginSuccessResponse.role())));
     }
 
     @Operation(summary = "access token 재발급 API", description = "refresh token으로 access token을 재발급하는 GET API입니다.")
