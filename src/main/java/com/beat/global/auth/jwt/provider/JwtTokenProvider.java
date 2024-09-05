@@ -1,5 +1,6 @@
 package com.beat.global.auth.jwt.provider;
 
+import com.beat.domain.user.domain.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
@@ -12,33 +13,40 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
 import javax.crypto.SecretKey;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class JwtTokenProvider {
 
     @Value("${jwt.secret}")
-    private String JWT_SECRET;
+    private String jwtSecret;
+
     @Value("${jwt.access-token-expire-time}")
-    private long ACCESS_TOKEN_EXPIRE_TIME;
+    private long accessTokenExpireTime;
+
     @Value("${jwt.refresh-token-expire-time}")
-    private long REFRESH_TOKEN_EXPIRE_TIME;
+    private long refreshTokenExpireTime;
 
     private static final String MEMBER_ID = "memberId";
+    private static final String ROLE_KEY = "role";
 
     @PostConstruct
     protected void init() {
-        JWT_SECRET = Base64.getEncoder().encodeToString(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
+        jwtSecret = Base64.getEncoder().encodeToString(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String issueAccessToken(final Authentication authentication) {
-        return issueToken(authentication, ACCESS_TOKEN_EXPIRE_TIME);
+        return issueToken(authentication, accessTokenExpireTime);
     }
 
     public String issueRefreshToken(final Authentication authentication) {
-        return issueToken(authentication, REFRESH_TOKEN_EXPIRE_TIME);
+        return issueToken(authentication, refreshTokenExpireTime);
     }
 
     private String issueToken(final Authentication authentication, final long expiredTime) {
@@ -49,6 +57,11 @@ public class JwtTokenProvider {
                 .setExpiration(new Date(now.getTime() + expiredTime));
 
         claims.put(MEMBER_ID, authentication.getPrincipal());
+        claims.put(ROLE_KEY, "ROLE_" + authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No authorities found for user")));
+
         return Jwts.builder()
                 .setHeaderParam(Header.TYPE, Header.JWT_TYPE)
                 .setClaims(claims)
@@ -57,14 +70,13 @@ public class JwtTokenProvider {
     }
 
     private SecretKey getSigningKey() {
-        String encodedKey = Base64.getEncoder().encodeToString(JWT_SECRET.getBytes()); //SecretKey 통해 서명 생성
-        return Keys.hmacShaKeyFor(encodedKey.getBytes());   //일반적으로 HMAC (Hash-based Message Authentication Code) 알고리즘 사용
+        String encodedKey = Base64.getEncoder().encodeToString(jwtSecret.getBytes());
+        return Keys.hmacShaKeyFor(encodedKey.getBytes());
     }
 
     public JwtValidationType validateToken(String token) {
         try {
             Claims claims = getBody(token);
-
             return JwtValidationType.VALID_JWT;
         } catch (MalformedJwtException ex) {
             return JwtValidationType.INVALID_JWT_TOKEN;
@@ -85,8 +97,24 @@ public class JwtTokenProvider {
                 .getBody();
     }
 
-    public Long getUserFromJwt(String token) {
+    public Long getMemberIdFromJwt(String token) {
         Claims claims = getBody(token);
-        return Long.valueOf(claims.get(MEMBER_ID).toString());
+        Long memberId = Long.valueOf(claims.get(MEMBER_ID).toString());
+
+        // 로그 추가: memberId 확인
+        log.info("Extracted memberId from JWT: {}", memberId);
+
+        return memberId;
+    }
+
+    public Role getRoleFromJwt(String token) {
+        Claims claims = getBody(token);
+        String roleName = claims.get(ROLE_KEY, String.class);
+
+        // "ROLE_" 접두사 제거
+        String enumValue = roleName.replace("ROLE_", "");
+        log.info("Extracted role from JWT: {}", enumValue);
+
+        return Role.valueOf(enumValue.toUpperCase());
     }
 }
