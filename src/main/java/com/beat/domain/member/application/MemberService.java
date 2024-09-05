@@ -36,4 +36,9 @@ public class MemberService {
         return memberRepository.findBySocialTypeAndSocialId(socialId, socialType)
                 .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
     }
+
+    public Users findUserByMemberId(final Long memberId) {
+        return userRepository.findById(memberId)
+                .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+    }
 }
