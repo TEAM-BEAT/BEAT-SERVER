@@ -17,10 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 @Slf4j
-public class AdminController {
+public class AdminController implements AdminApi {
 
     private final AdminService adminService;
 
+    @Override
     @GetMapping("/users")
     public ResponseEntity<SuccessResponse<UserFindAllResponse>> readAllUsers(
             @CurrentMember Long memberId) {
