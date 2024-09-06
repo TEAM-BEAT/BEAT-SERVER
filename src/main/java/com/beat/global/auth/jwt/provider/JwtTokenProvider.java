@@ -8,6 +8,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -79,13 +80,20 @@ public class JwtTokenProvider {
             Claims claims = getBody(token);
             return JwtValidationType.VALID_JWT;
         } catch (MalformedJwtException ex) {
+            log.error("Invalid JWT Token: {}", ex.getMessage());
             return JwtValidationType.INVALID_JWT_TOKEN;
         } catch (ExpiredJwtException ex) {
+            log.error("Expired JWT Token: {}", ex.getMessage());
             return JwtValidationType.EXPIRED_JWT_TOKEN;
         } catch (UnsupportedJwtException ex) {
+            log.error("Unsupported JWT Token: {}", ex.getMessage());
             return JwtValidationType.UNSUPPORTED_JWT_TOKEN;
         } catch (IllegalArgumentException ex) {
+            log.error("Empty JWT Token or Illegal Argument: {}", ex.getMessage());
             return JwtValidationType.EMPTY_JWT;
+        } catch (SignatureException ex) {
+            log.error("Invalid JWT Signature: {}", ex.getMessage());
+            return JwtValidationType.INVALID_JWT_SIGNATURE;
         }
     }
 
