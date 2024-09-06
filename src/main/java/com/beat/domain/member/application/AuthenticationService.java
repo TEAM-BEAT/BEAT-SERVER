@@ -12,7 +12,10 @@ import com.beat.global.auth.jwt.provider.JwtValidationType;
 import com.beat.global.auth.security.AdminAuthentication;
 import com.beat.global.auth.security.MemberAuthentication;
 import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.common.exception.BeatException;
+import com.beat.global.common.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collection;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
@@ -39,14 +43,16 @@ public class AuthenticationService {
      */
     public LoginSuccessResponse generateLoginSuccessResponse(final Long memberId, final Users user, final MemberInfoResponse memberInfoResponse) {
         String nickname = memberInfoResponse.nickname();
-
         Role role = user.getRole();
-
         Collection<GrantedAuthority> authorities = List.of(role.toGrantedAuthority());
+
+        log.info("Starting login success response generation for memberId: {}, nickname: {}, role: {}", memberId, nickname, role.getRoleName());
 
         UsernamePasswordAuthenticationToken authenticationToken = createAuthenticationToken(memberId, role, authorities);
         String refreshToken = issueAndSaveRefreshToken(memberId, authenticationToken);
         String accessToken = jwtTokenProvider.issueAccessToken(authenticationToken);
+
+        log.info("Login success for authorities: {}, accessToken: {}, refreshToken: {}", authorities, accessToken, refreshToken);
 
         return LoginSuccessResponse.of(accessToken, refreshToken, nickname, role.getRoleName());
     }
@@ -62,13 +68,25 @@ public class AuthenticationService {
      */
     @Transactional
     public AccessTokenGetSuccess generateAccessTokenFromRefreshToken(final String refreshToken) {
-        Long memberId = jwtTokenProvider.getMemberIdFromJwt(refreshToken);
+        log.info("Validation result for refresh token: {}", jwtTokenProvider.validateToken(refreshToken));
 
-        if (!jwtTokenProvider.validateToken(refreshToken).equals(JwtValidationType.VALID_JWT)) {
-            throw new BadRequestException(TokenErrorCode.REFRESH_TOKEN_EXPIRED_ERROR);
+        JwtValidationType validationType = jwtTokenProvider.validateToken(refreshToken);
+        if (!validationType.equals(JwtValidationType.VALID_JWT)) {
+            log.warn("Invalid refresh token: {}", validationType);
+            throw switch (validationType) {
+                case EXPIRED_JWT_TOKEN -> new UnauthorizedException(TokenErrorCode.REFRESH_TOKEN_EXPIRED_ERROR);
+                case INVALID_JWT_TOKEN -> new BadRequestException(TokenErrorCode.TOKEN_INCORRECT_ERROR);
+                case INVALID_JWT_SIGNATURE -> new BadRequestException(TokenErrorCode.TOKEN_SIGNATURE_ERROR);
+                case UNSUPPORTED_JWT_TOKEN -> new BadRequestException(TokenErrorCode.UNSUPPORTED_TOKEN_ERROR);
+                case EMPTY_JWT -> new BadRequestException(TokenErrorCode.TOKEN_EMPTY_ERROR);
+                default -> new BeatException(TokenErrorCode.UNKNOWN_TOKEN_ERROR);
+            };
         }
 
+        Long memberId = jwtTokenProvider.getMemberIdFromJwt(refreshToken);
+
         if (!memberId.equals(tokenService.findIdByRefreshToken(refreshToken))) {
+            log.error("MemberId mismatch: token does not match the stored refresh token");
             throw new BadRequestException(TokenErrorCode.TOKEN_INCORRECT_ERROR);
         }
 
@@ -76,6 +94,8 @@ public class AuthenticationService {
         Collection<GrantedAuthority> authorities = List.of(role.toGrantedAuthority());
 
         UsernamePasswordAuthenticationToken authenticationToken = createAuthenticationToken(memberId, role, authorities);
+        log.info("Generated new access token for memberId: {}, role: {}, authorities: {}",
+                memberId, role.getRoleName(), authorities);
         return AccessTokenGetSuccess.of(jwtTokenProvider.issueAccessToken(authenticationToken));
     }
 
@@ -89,6 +109,7 @@ public class AuthenticationService {
      */
     private String issueAndSaveRefreshToken(Long memberId, UsernamePasswordAuthenticationToken authenticationToken) {
         String refreshToken = jwtTokenProvider.issueRefreshToken(authenticationToken);
+        log.info("Issued new refresh token for memberId: {}", memberId);
         tokenService.saveRefreshToken(memberId, refreshToken);
         return refreshToken;
     }
@@ -103,8 +124,10 @@ public class AuthenticationService {
      */
     private UsernamePasswordAuthenticationToken createAuthenticationToken(Long memberId, Role role, Collection<GrantedAuthority> authorities) {
         if (role == Role.ADMIN) {
+            log.info("Creating AdminAuthentication for memberId: {}", memberId);
             return new AdminAuthentication(memberId, null, authorities);
         } else {
+            log.info("Creating MemberAuthentication for memberId: {}", memberId);
             return new MemberAuthentication(memberId, null, authorities);
         }
     }
