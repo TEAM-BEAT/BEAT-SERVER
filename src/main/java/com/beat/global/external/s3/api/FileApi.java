@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
-@Tag(name = "Image - Performance PreSigned Url", description = "이미지 업로드 할 Performance PreSigned Url 받기")
+@Tag(name = "Image - Performance PreSigned Url", description = "Performance PreSigned Url 발급 API")
 public interface FileApi {
 
-    @Operation(summary = "공연 이미지 업로드 presigned url")
+    @Operation(summary = "공연 이미지 업로드 presigned url 발급")
     @ApiResponses(
             value = {
                     @ApiResponse(
