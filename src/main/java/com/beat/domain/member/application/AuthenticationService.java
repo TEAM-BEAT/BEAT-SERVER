@@ -75,11 +75,11 @@ public class AuthenticationService {
             log.warn("Invalid refresh token: {}", validationType);
             throw switch (validationType) {
                 case EXPIRED_JWT_TOKEN -> new UnauthorizedException(TokenErrorCode.REFRESH_TOKEN_EXPIRED_ERROR);
-                case INVALID_JWT_TOKEN -> new BadRequestException(TokenErrorCode.TOKEN_INCORRECT_ERROR);
-                case INVALID_JWT_SIGNATURE -> new BadRequestException(TokenErrorCode.TOKEN_SIGNATURE_ERROR);
-                case UNSUPPORTED_JWT_TOKEN -> new BadRequestException(TokenErrorCode.UNSUPPORTED_TOKEN_ERROR);
-                case EMPTY_JWT -> new BadRequestException(TokenErrorCode.TOKEN_EMPTY_ERROR);
-                default -> new BeatException(TokenErrorCode.UNKNOWN_TOKEN_ERROR);
+                case INVALID_JWT_TOKEN -> new BadRequestException(TokenErrorCode.INVALID_REFRESH_TOKEN_ERROR);
+                case INVALID_JWT_SIGNATURE -> new BadRequestException(TokenErrorCode.REFRESH_TOKEN_SIGNATURE_ERROR);
+                case UNSUPPORTED_JWT_TOKEN -> new BadRequestException(TokenErrorCode.UNSUPPORTED_REFRESH_TOKEN_ERROR);
+                case EMPTY_JWT -> new BadRequestException(TokenErrorCode.REFRESH_TOKEN_EMPTY_ERROR);
+                default -> new BeatException(TokenErrorCode.UNKNOWN_REFRESH_TOKEN_ERROR);
             };
         }
 
@@ -87,7 +87,7 @@ public class AuthenticationService {
 
         if (!memberId.equals(tokenService.findIdByRefreshToken(refreshToken))) {
             log.error("MemberId mismatch: token does not match the stored refresh token");
-            throw new BadRequestException(TokenErrorCode.TOKEN_INCORRECT_ERROR);
+            throw new BadRequestException(TokenErrorCode.REFRESH_TOKEN_MEMBER_ID_MISMATCH_ERROR);
         }
 
         Role role = jwtTokenProvider.getRoleFromJwt(refreshToken);
