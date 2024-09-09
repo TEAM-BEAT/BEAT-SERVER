@@ -2,7 +2,7 @@ package com.beat.global.external.s3.api;
 
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
-import com.beat.global.external.s3.application.dto.PresignedUrlFindAllResponse;
+import com.beat.global.external.s3.application.dto.PerformanceMakerPresignedUrlFindAllResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -32,7 +32,7 @@ public interface FileApi {
                     )
             }
     )
-    ResponseEntity<SuccessResponse<PresignedUrlFindAllResponse>> generateAllPresignedUrls(
+    ResponseEntity<SuccessResponse<PerformanceMakerPresignedUrlFindAllResponse>> generateAllPresignedUrls(
             @RequestParam String posterImage,
             @RequestParam(required = false) List<String> castImages,
             @RequestParam(required = false) List<String> staffImages,
