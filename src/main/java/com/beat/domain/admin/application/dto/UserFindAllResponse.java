@@ -6,12 +6,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public record UserFindAllResponse(
-        List<UserResponse> users
+        List<UserFindResponse> users
 ) {
     public static UserFindAllResponse of(List<Users> users) {
-        List<UserResponse> userResponses = users.stream()
-                .map(user -> new UserResponse(user.getId(), user.getRole().getRoleName()))
+        List<UserFindResponse> userFindResponses = users.stream()
+                .map(user -> new UserFindResponse(user.getId(), user.getRole().getRoleName()))
                 .collect(Collectors.toList());
-        return new UserFindAllResponse(userResponses);
+        return new UserFindAllResponse(userFindResponses);
     }
 }
