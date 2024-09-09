@@ -3,7 +3,7 @@ package com.beat.global.external.s3.api;
 import com.beat.global.common.dto.SuccessResponse;
 import com.beat.global.external.s3.exception.FileSuccessCode;
 import com.beat.global.external.s3.application.FileService;
-import com.beat.global.external.s3.application.dto.PresignedUrlFindAllResponse;
+import com.beat.global.external.s3.application.dto.PerformanceMakerPresignedUrlFindAllResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,11 +22,12 @@ public class FileController implements FileApi {
 
     @GetMapping("/presigned-url")
     @Override
-    public ResponseEntity<SuccessResponse<PresignedUrlFindAllResponse>> generateAllPresignedUrls(
+    public ResponseEntity<SuccessResponse<PerformanceMakerPresignedUrlFindAllResponse>> generateAllPresignedUrls(
             @RequestParam String posterImage,
             @RequestParam(required = false) List<String> castImages,
             @RequestParam(required = false) List<String> staffImages,
             @RequestParam(required = false) List<String> performanceImages) {
+        // 토큰 주도록 변경이 필요
         if (castImages == null) {
             castImages = List.of();
         }
@@ -37,7 +38,7 @@ public class FileController implements FileApi {
             performanceImages = List.of();
         }
 
-        PresignedUrlFindAllResponse response = fileService.issueAllPresignedUrls(posterImage, castImages, staffImages, performanceImages);
-        return ResponseEntity.ok(SuccessResponse.of(FileSuccessCode.PRESIGNED_URL_GENERATED, response));
+        PerformanceMakerPresignedUrlFindAllResponse response = fileService.issueAllPresignedUrlsForPerformanceMaker(posterImage, castImages, staffImages, performanceImages);
+        return ResponseEntity.ok(SuccessResponse.of(FileSuccessCode.PERFORMANCE_MAKER_PRESIGNED_URL_ISSUED, response));
     }
 }
