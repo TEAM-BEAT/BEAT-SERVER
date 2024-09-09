@@ -3,7 +3,12 @@ package com.beat.global.external.s3.application;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.beat.global.external.s3.application.dto.PresignedUrlFindAllResponse;
+import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.exception.MemberErrorCode;
+import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.external.s3.application.dto.BannerPresignedUrlFindResponse;
+import com.beat.global.external.s3.application.dto.CarouselPresignedUrlFindAllResponse;
+import com.beat.global.external.s3.application.dto.PerformanceMakerPresignedUrlFindAllResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,54 +28,84 @@ public class FileService {
     private String bucket;
 
     private final AmazonS3 amazonS3;
+    private final MemberRepository memberRepository;
 
-    public PresignedUrlFindAllResponse issueAllPresignedUrls(String posterImage, List<String> castImages, List<String> staffImages, List<String> performanceImages) {
-        Map<String, Map<String, String>> presignedUrls = new HashMap<>();
+    public PerformanceMakerPresignedUrlFindAllResponse issueAllPresignedUrlsForPerformanceMaker(String posterImage, List<String> castImages, List<String> staffImages, List<String> performanceImages) {
+        Map<String, Map<String, String>> performanceMakerPresignedUrls = new HashMap<>();
 
         // Poster Image URL
         Map<String, String> posterUrl = new HashMap<>();
-        String posterFilePath = createPath("poster", posterImage);
-        URL posterPresignedUrl = amazonS3.generatePresignedUrl(getGeneratePresignedUrlRequest(bucket, posterFilePath));
+        String posterFilePath = generatePath("poster", posterImage);
+        URL posterPresignedUrl = amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, posterFilePath));
         posterUrl.put(posterImage, posterPresignedUrl.toString());
-        presignedUrls.put("poster", posterUrl);
+        performanceMakerPresignedUrls.put("poster", posterUrl);
 
         // Cast Images URLs
         Map<String, String> castUrls = new HashMap<>();
         for (String castImage : castImages) {
-            String castFilePath = createPath("cast", castImage);
-            URL castPresignedUrl = amazonS3.generatePresignedUrl(getGeneratePresignedUrlRequest(bucket, castFilePath));
+            String castFilePath = generatePath("cast", castImage);
+            URL castPresignedUrl = amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, castFilePath));
             castUrls.put(castImage, castPresignedUrl.toString());
         }
-        presignedUrls.put("cast", castUrls);
+        performanceMakerPresignedUrls.put("cast", castUrls);
 
         // Staff Images URLs
         Map<String, String> staffUrls = new HashMap<>();
         for (String staffImage : staffImages) {
-            String staffFilePath = createPath("staff", staffImage);
-            URL staffPresignedUrl = amazonS3.generatePresignedUrl(getGeneratePresignedUrlRequest(bucket, staffFilePath));
+            String staffFilePath = generatePath("staff", staffImage);
+            URL staffPresignedUrl = amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, staffFilePath));
             staffUrls.put(staffImage, staffPresignedUrl.toString());
         }
-        presignedUrls.put("staff", staffUrls);
+        performanceMakerPresignedUrls.put("staff", staffUrls);
 
         // Performance Images URLs
         Map<String, String> performanceImageUrls = new HashMap<>();
         for (String performanceImage : performanceImages) {
-            String performanceImageFilePath = createPath("performance", performanceImage);
-            URL performanceImagePresignedUrl = amazonS3.generatePresignedUrl(getGeneratePresignedUrlRequest(bucket, performanceImageFilePath));
+            String performanceImageFilePath = generatePath("performance", performanceImage);
+            URL performanceImagePresignedUrl = amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, performanceImageFilePath));
             performanceImageUrls.put(performanceImage, performanceImagePresignedUrl.toString());
         }
-        presignedUrls.put("performance", performanceImageUrls);
+        performanceMakerPresignedUrls.put("performance", performanceImageUrls);
 
-        return PresignedUrlFindAllResponse.from(presignedUrls);
+        return PerformanceMakerPresignedUrlFindAllResponse.from(performanceMakerPresignedUrls);
     }
 
-    private GeneratePresignedUrlRequest getGeneratePresignedUrlRequest(String bucket, String fileName) {
+    // Carousel Images URLs
+    public CarouselPresignedUrlFindAllResponse issueAllPresignedUrlsForCarousel(Long memberId, List<String> carouselImages) {
+        memberRepository.findById(memberId)
+                .ifPresentOrElse(member -> {},
+                        () -> {throw new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND);});
+
+        Map<String, String> carouselPresignedUrls = new HashMap<>();
+
+        for (String carouselImage : carouselImages) {
+            String carouselFilePath = generatePath("carousel", carouselImage);
+            URL carouselPresignedUrl = amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, carouselFilePath));
+            carouselPresignedUrls.put(carouselImage, carouselPresignedUrl.toString());
+        }
+
+        return CarouselPresignedUrlFindAllResponse.from(carouselPresignedUrls);
+    }
+
+    // Banner Image URL
+    public BannerPresignedUrlFindResponse issuePresignedUrlForBanner(Long memberId, String bannerImage) {
+        memberRepository.findById(memberId)
+                .ifPresentOrElse(member -> {},
+                        () -> {throw new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND);});
+
+        String bannerFilePath = generatePath("banner", bannerImage);
+        URL bannerPresignedUrl = amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, bannerFilePath));
+
+        return BannerPresignedUrlFindResponse.from(bannerPresignedUrl.toString());
+    }
+
+    private GeneratePresignedUrlRequest buildPresignedUrlRequest(String bucket, String fileName) {
         return new GeneratePresignedUrlRequest(bucket, fileName)
                 .withMethod(HttpMethod.PUT)
-                .withExpiration(getPresignedUrlExpiration());
+                .withExpiration(generatePresignedUrlExpiration());
     }
 
-    private Date getPresignedUrlExpiration() {
+    private Date generatePresignedUrlExpiration() {
         Date expiration = new Date();
         long expTimeMillis = expiration.getTime();
         expTimeMillis += 1000 * 60 * 60 * 2;
@@ -79,12 +114,12 @@ public class FileService {
         return expiration;
     }
 
-    private String createFileId() {
+    private String generateFileId() {
         return UUID.randomUUID().toString();
     }
 
-    private String createPath(String prefix, String fileName) {
-        String fileId = createFileId();
+    private String generatePath(String prefix, String fileName) {
+        String fileId = generateFileId();
         return String.format("%s/%s", prefix, fileId + "-" + fileName);
     }
 }
