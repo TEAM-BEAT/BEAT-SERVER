@@ -6,20 +6,18 @@ import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.user.dao.UserRepository;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class AdminService {
+public class AdminUserManagementService {
     private final UserRepository userRepository;
     private final MemberRepository memberRepository;
 
     public UserFindAllResponse findAllUsers(Long memberId) {
-
         memberRepository.findById(memberId)
-                .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
-
+                .ifPresentOrElse(member -> {},
+                        () -> {throw new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND);});
         return UserFindAllResponse.of(userRepository.findAll());
     }
 }
