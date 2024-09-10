@@ -96,5 +96,4 @@ public class Booking {
             this.cancellationDate = LocalDateTime.now();
         }
     }
-
 }

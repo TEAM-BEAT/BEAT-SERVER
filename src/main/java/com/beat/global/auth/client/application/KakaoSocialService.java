@@ -1,4 +1,4 @@
-package com.beat.global.auth.client.service;
+package com.beat.global.auth.client.application;
 
 import com.beat.domain.member.domain.SocialType;
 import com.beat.global.auth.client.dto.MemberInfoResponse;
@@ -24,10 +24,11 @@ public class KakaoSocialService implements SocialService {
     private static final String AUTH_CODE = "authorization_code";
 
     @Value("${spring.security.oauth2.client.registration.kakao.redirect-uri}")
-    private String REDIRECT_URI;
+    private String redirectUri;
 
     @Value("${spring.security.oauth2.client.registration.kakao.client-id}")
     private String clientId;
+
     private final KakaoApiClient kakaoApiClient;
     private final KakaoAuthApiClient kakaoAuthApiClient;
 
@@ -55,7 +56,7 @@ public class KakaoSocialService implements SocialService {
         KakaoAccessTokenResponse response = kakaoAuthApiClient.getOAuth2AccessToken(
                 AUTH_CODE,
                 clientId,
-                REDIRECT_URI,
+                redirectUri,
                 authorizationCode
         );
         log.info("Received OAuth2 authentication response: {}", response);
