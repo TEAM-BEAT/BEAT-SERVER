@@ -8,7 +8,6 @@ import com.beat.global.common.dto.SuccessResponse;
 import com.beat.global.external.s3.application.FileService;
 import com.beat.global.external.s3.application.dto.BannerPresignedUrlFindResponse;
 import com.beat.global.external.s3.application.dto.CarouselPresignedUrlFindAllResponse;
-import com.beat.global.external.s3.exception.FileSuccessCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,8 +35,8 @@ public class AdminController implements AdminApi {
                 .body(SuccessResponse.of(AdminSuccessCode.FETCH_ALL_USERS_SUCCESS, response));
     }
 
-    @GetMapping("/carousel/presigned-url")
     @Override
+    @GetMapping("/carousels/presigned-url")
     public ResponseEntity<SuccessResponse<CarouselPresignedUrlFindAllResponse>> createAllCarouselPresignedUrls(
             @CurrentMember Long memberId,
             @RequestParam List<String> carouselImages) {
@@ -45,8 +44,8 @@ public class AdminController implements AdminApi {
         return ResponseEntity.ok(SuccessResponse.of(AdminSuccessCode.CAROUSEL_PRESIGNED_URL_ISSUED, response));
     }
 
-    @GetMapping("/banner/presigned-url")
     @Override
+    @GetMapping("/banner/presigned-url")
     public ResponseEntity<SuccessResponse<BannerPresignedUrlFindResponse>> createBannerPresignedUrl(
             @CurrentMember Long memberId,
             @RequestParam String bannerImage) {
