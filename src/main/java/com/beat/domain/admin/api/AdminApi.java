@@ -20,7 +20,7 @@ import java.util.List;
 @Tag(name = "Admin", description = "관리자 제어 API")
 public interface AdminApi {
 
-    @Operation(summary = "유저 정보 조회")
+    @Operation(summary = "유저 정보 조회", description = "관리자가 유저들의 정보를 조회하는 GET API")
     @ApiResponses(
             value = {
                     @ApiResponse(
@@ -39,12 +39,12 @@ public interface AdminApi {
             @CurrentMember Long memberId
     );
 
-    @Operation(summary = "캐러셀 이미지 프리사인드 URL 생성", description = "관리자가 캐러셀 이미지의 프리사인드 URL을 생성합니다.")
+    @Operation(summary = "캐러셀에 업로드 할 이미지에 대한 presigned URL 발급", description = "관리자가 캐러셀에 업로드 할 이미지에 대한 presigned URL을 발급 받는 GET API")
     @ApiResponses(
             value = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "프리사인드 URL 생성에 성공하였습니다.",
+                            description = "캐러셀 Presigned URL 발급 성공",
                             content = @Content(schema = @Schema(implementation = SuccessResponse.class))
                     ),
                     @ApiResponse(
@@ -59,12 +59,12 @@ public interface AdminApi {
             @RequestParam List<String> carouselImages
     );
 
-    @Operation(summary = "배너 이미지 프리사인드 URL 생성", description = "관리자가 배너 이미지의 프리사인드 URL을 생성합니다.")
+    @Operation(summary = "배너에 업로드 할 이미지에 대한 presigned URL 발급", description = "관리자가 배너에 업로드 할 이미지에 대한 presigned URL을 발급 받는 GET API")
     @ApiResponses(
             value = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "프리사인드 URL 생성에 성공하였습니다.",
+                            description = "배너 Presigned URL 발급 성공",
                             content = @Content(schema = @Schema(implementation = SuccessResponse.class))
                     ),
                     @ApiResponse(
