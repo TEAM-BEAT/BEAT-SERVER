@@ -1,5 +1,6 @@
 package com.beat.domain.admin.api;
 
+import com.beat.domain.admin.application.dto.CarouselFindAllResponse;
 import com.beat.domain.admin.application.dto.UserFindAllResponse;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
@@ -77,5 +78,24 @@ public interface AdminApi {
     ResponseEntity<SuccessResponse<BannerPresignedUrlFindResponse>> createBannerPresignedUrl(
             @CurrentMember Long memberId,
             @RequestParam String bannerImage
+    );
+
+    @Operation(summary = "캐러셀에 등록된 모든 공연 정보 조회", description = "관리자가 현재 캐러셀에 등록된 모든 공연 정보를 조회하는 GET API")
+    @ApiResponses(
+            value = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "관리자 권한으로 현재 캐러셀에 등록된 모든 공연 조회에 성공하였습니다.",
+                            content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "회원이 없습니다.",
+                            content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+                    )
+            }
+    )
+    ResponseEntity<SuccessResponse<CarouselFindAllResponse>> readAllCarouselImages(
+            @CurrentMember Long memberId
     );
 }
