@@ -3,12 +3,8 @@ package com.beat.global.external.s3.application;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.beat.domain.member.dao.MemberRepository;
-import com.beat.domain.member.exception.MemberErrorCode;
-import com.beat.global.common.exception.NotFoundException;
-import com.beat.global.external.s3.application.dto.BannerPresignedUrlFindResponse;
-import com.beat.global.external.s3.application.dto.CarouselPresignedUrlFindAllResponse;
 import com.beat.global.external.s3.application.dto.PerformanceMakerPresignedUrlFindAllResponse;
+import com.beat.global.external.s3.port.in.FileUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -22,14 +18,14 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class FileService {
+public class FileService implements FileUseCase {
 
     @Value("${cloud.s3.bucket}")
     private String bucket;
 
     private final AmazonS3 amazonS3;
-    private final MemberRepository memberRepository;
 
+    @Override
     public PerformanceMakerPresignedUrlFindAllResponse issueAllPresignedUrlsForPerformanceMaker(String posterImage, List<String> castImages, List<String> staffImages, List<String> performanceImages) {
         Map<String, Map<String, String>> performanceMakerPresignedUrls = new HashMap<>();
 
@@ -71,11 +67,8 @@ public class FileService {
     }
 
     // Carousel Images URLs
-    public CarouselPresignedUrlFindAllResponse issueAllPresignedUrlsForCarousel(Long memberId, List<String> carouselImages) {
-        memberRepository.findById(memberId)
-                .ifPresentOrElse(member -> {},
-                        () -> {throw new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND);});
-
+    @Override
+    public Map<String, String> issueAllPresignedUrlsForCarousel(List<String> carouselImages) {
         Map<String, String> carouselPresignedUrls = new HashMap<>();
 
         for (String carouselImage : carouselImages) {
@@ -84,19 +77,16 @@ public class FileService {
             carouselPresignedUrls.put(carouselImage, carouselPresignedUrl.toString());
         }
 
-        return CarouselPresignedUrlFindAllResponse.from(carouselPresignedUrls);
+        return carouselPresignedUrls;
     }
 
     // Banner Image URL
-    public BannerPresignedUrlFindResponse issuePresignedUrlForBanner(Long memberId, String bannerImage) {
-        memberRepository.findById(memberId)
-                .ifPresentOrElse(member -> {},
-                        () -> {throw new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND);});
-
+    @Override
+    public String issuePresignedUrlForBanner(String bannerImage) {
         String bannerFilePath = generatePath("banner", bannerImage);
         URL bannerPresignedUrl = amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, bannerFilePath));
 
-        return BannerPresignedUrlFindResponse.from(bannerPresignedUrl.toString());
+        return bannerPresignedUrl.toString();
     }
 
     private GeneratePresignedUrlRequest buildPresignedUrlRequest(String bucket, String fileName) {
