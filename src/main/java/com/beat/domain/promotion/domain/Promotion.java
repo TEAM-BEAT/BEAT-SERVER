@@ -32,7 +32,7 @@ public class Promotion {
     @JoinColumn(name = "performance_id", nullable = true)
     private Performance performance;
 
-    @Column(nullable = true)
+    @Column(nullable = false)
     private String redirectUrl;
 
     @Column(nullable = false)
