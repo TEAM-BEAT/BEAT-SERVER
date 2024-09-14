@@ -1,11 +1,11 @@
 package com.beat.domain.admin.api;
 
-import com.beat.domain.admin.application.AdminUserManagementService;
+import com.beat.domain.admin.application.dto.CarouselFindAllResponse;
 import com.beat.domain.admin.exception.AdminSuccessCode;
 import com.beat.domain.admin.application.dto.UserFindAllResponse;
+import com.beat.domain.admin.facade.AdminFacade;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
-import com.beat.global.external.s3.application.FileService;
 import com.beat.global.external.s3.application.dto.BannerPresignedUrlFindResponse;
 import com.beat.global.external.s3.application.dto.CarouselPresignedUrlFindAllResponse;
 import lombok.RequiredArgsConstructor;
@@ -23,14 +23,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminController implements AdminApi {
 
-    private final AdminUserManagementService adminUserManagementService;
-    private final FileService fileService;
+    private final AdminFacade adminFacade;
 
     @Override
     @GetMapping("/users")
     public ResponseEntity<SuccessResponse<UserFindAllResponse>> readAllUsers(
             @CurrentMember Long memberId) {
-        UserFindAllResponse response = adminUserManagementService.findAllUsers(memberId);
+        UserFindAllResponse response = adminFacade.checkMemberAndFindAllUsers(memberId);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(SuccessResponse.of(AdminSuccessCode.FETCH_ALL_USERS_SUCCESS, response));
     }
@@ -40,7 +39,7 @@ public class AdminController implements AdminApi {
     public ResponseEntity<SuccessResponse<CarouselPresignedUrlFindAllResponse>> createAllCarouselPresignedUrls(
             @CurrentMember Long memberId,
             @RequestParam List<String> carouselImages) {
-        CarouselPresignedUrlFindAllResponse response = fileService.issueAllPresignedUrlsForCarousel(memberId, carouselImages);
+        CarouselPresignedUrlFindAllResponse response = adminFacade.checkMemberAndIssueAllPresignedUrlsForCarousel(memberId, carouselImages);
         return ResponseEntity.ok(SuccessResponse.of(AdminSuccessCode.CAROUSEL_PRESIGNED_URL_ISSUED, response));
     }
 
@@ -49,8 +48,17 @@ public class AdminController implements AdminApi {
     public ResponseEntity<SuccessResponse<BannerPresignedUrlFindResponse>> createBannerPresignedUrl(
             @CurrentMember Long memberId,
             @RequestParam String bannerImage) {
-        BannerPresignedUrlFindResponse response = fileService.issuePresignedUrlForBanner(memberId, bannerImage);
+        BannerPresignedUrlFindResponse response = adminFacade.checkMemberAndIssuePresignedUrlForBanner(memberId, bannerImage);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(SuccessResponse.of(AdminSuccessCode.BANNER_PRESIGNED_URL_ISSUED, response));
+    }
+
+    @Override
+    @GetMapping("/carousels")
+    public ResponseEntity<SuccessResponse<CarouselFindAllResponse>> readAllCarouselImages(
+            @CurrentMember Long memberId) {
+        CarouselFindAllResponse response = adminFacade.checkMemberAndFindAllPromotionsSortedByCarouselNumber(memberId);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(SuccessResponse.of(AdminSuccessCode.FETCH_ALL_CAROUSEL_PROMOTIONS_SUCCESS, response));
     }
 }
