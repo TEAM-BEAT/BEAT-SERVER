@@ -20,6 +20,7 @@ import com.beat.domain.user.domain.Users;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.common.scheduler.application.JobSchedulerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +41,7 @@ public class PerformanceManagementService {
     private final BookingRepository bookingRepository;
     private final MemberRepository memberRepository;
     private final PerformanceImageRepository performanceImageRepository;
+    private final JobSchedulerService jobSchedulerService;
 
     @Transactional
     public PerformanceResponse createPerformance(Long memberId, PerformanceRequest request) {
@@ -87,6 +89,8 @@ public class PerformanceManagementService {
                 ))
                 .collect(Collectors.toList());
         scheduleRepository.saveAll(schedules);
+
+        schedules.forEach(jobSchedulerService::addScheduleIfNotExists);
 
         List<Cast> casts = request.castList().stream()
                 .map(castRequest -> Cast.create(
@@ -204,6 +208,12 @@ public class PerformanceManagementService {
 
         if (hasBookings) {
             throw new ForbiddenException(PerformanceErrorCode.PERFORMANCE_DELETE_FAILED);
+        }
+
+        // 모든 스케줄에 대해 등록된 TaskScheduler 작업을 취소
+        List<Schedule> schedules = scheduleRepository.findByPerformanceId(performanceId);
+        for (Schedule schedule : schedules) {
+            jobSchedulerService.cancelScheduledTaskForPerformance(schedule);
         }
 
         performanceRepository.delete(performance);
