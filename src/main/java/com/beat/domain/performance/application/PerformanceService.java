@@ -64,7 +64,7 @@ public class PerformanceService {
     private final BookingRepository bookingRepository;
     private final PerformanceImageRepository performanceImageRepository;
 
-    @Transactional
+    @Transactional(readOnly = true)
     public PerformanceDetailResponse getPerformanceDetail(Long performanceId) {
         Performance performance = performanceRepository.findById(performanceId)
                 .orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
@@ -72,7 +72,6 @@ public class PerformanceService {
         List<PerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findByPerformanceId(performanceId).stream()
                 .map(schedule -> {
                     int dueDate = scheduleService.calculateDueDate(schedule);
-                    scheduleService.updateBookingStatus(schedule);
                     return PerformanceDetailScheduleResponse.of(
                             schedule.getId(),
                             schedule.getPerformanceDate(),
@@ -129,14 +128,13 @@ public class PerformanceService {
         );
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public BookingPerformanceDetailResponse getBookingPerformanceDetail(Long performanceId) {
         Performance performance = performanceRepository.findById(performanceId)
                 .orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
         List<BookingPerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findByPerformanceId(performanceId).stream()
                 .map(schedule -> {
-                    scheduleService.updateBookingStatus(schedule);
                     int dueDate = scheduleService.calculateDueDate(schedule);
                     return BookingPerformanceDetailScheduleResponse.of(
                             schedule.getId(),
