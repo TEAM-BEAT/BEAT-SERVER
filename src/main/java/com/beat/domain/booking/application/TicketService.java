@@ -142,6 +142,7 @@ public class TicketService {
 
             Schedule schedule = booking.getSchedule();
             schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
+            schedule.updateIsBooking(true);
             scheduleRepository.save(schedule);
         }
     }
