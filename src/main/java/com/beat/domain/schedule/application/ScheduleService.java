@@ -9,10 +9,8 @@ import com.beat.global.common.exception.ConflictException;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.OptionalInt;
@@ -56,21 +54,6 @@ public class ScheduleService {
 
     public int getAvailableTicketCount(Schedule schedule) {
         return schedule.getTotalTicketCount() - schedule.getSoldTicketCount();
-    }
-
-    public boolean isBookingAvailable(Schedule schedule) {
-        int availableTicketCount = getAvailableTicketCount(schedule);
-        LocalDateTime performanceEndTime = schedule.getPerformanceDate().plusMinutes(schedule.getPerformance().getRunningTime());
-        return schedule.isBooking() && availableTicketCount > 0 && LocalDateTime.now().isBefore(performanceEndTime);
-    }
-
-    @Transactional
-    public void updateBookingStatus(Schedule schedule) {
-        boolean isBookingAvailable = isBookingAvailable(schedule);
-        if (schedule.isBooking() != isBookingAvailable) {
-            schedule.updateIsBooking(isBookingAvailable);
-            scheduleRepository.save(schedule);
-        }
     }
 
     public int calculateDueDate(Schedule schedule) {
