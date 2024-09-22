@@ -10,6 +10,6 @@ import java.util.List;
 public interface AdminUseCase {
 	List<Promotion> findAllPromotionsSortedByCarouselNumber();
 
-	List<Promotion> handlePromotions(List<PromotionModifyRequest> modifyRequests,
+	List<Promotion> processPromotionsAndSortByCarouselNumber(List<PromotionModifyRequest> modifyRequests,
 		List<PromotionGenerateRequest> generateRequests, List<CarouselNumber> deleteCarouselNumbers);
 }
