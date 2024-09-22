@@ -2,6 +2,8 @@ package com.beat.domain.admin.api;
 
 import com.beat.domain.admin.application.dto.CarouselFindAllResponse;
 import com.beat.domain.admin.application.dto.UserFindAllResponse;
+import com.beat.domain.admin.application.dto.request.CarouselProcessRequest;
+import com.beat.domain.admin.application.dto.response.CarouselProcessAllResponse;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
@@ -14,6 +16,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
@@ -97,5 +101,36 @@ public interface AdminApi {
     )
     ResponseEntity<SuccessResponse<CarouselFindAllResponse>> readAllCarouselImages(
             @CurrentMember Long memberId
+    );
+
+    @Operation(summary = "캐러셀 이미지 수정", description = "관리자가 캐러셀 이미지를 수정하는 PUT API")
+    @ApiResponses(
+        value = {
+            @ApiResponse(
+                responseCode = "200",
+                description = "캐러셀 이미지 수정 성공",
+                content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+            ),
+            @ApiResponse(
+                responseCode = "404",
+                description = "회원이 없습니다.",
+                content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                responseCode = "404",
+                description = "해당 홍보 정보를 찾을 수 없습니다.",
+                content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                responseCode = "404",
+                description = "해당 공연 정보를 찾을 수 없습니다.",
+                content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+        }
+    )
+    @PutMapping("/carousels")
+    ResponseEntity<SuccessResponse<CarouselProcessAllResponse>> processCarouselImages(
+        @CurrentMember Long memberId,
+        @RequestBody CarouselProcessRequest request
     );
 }
