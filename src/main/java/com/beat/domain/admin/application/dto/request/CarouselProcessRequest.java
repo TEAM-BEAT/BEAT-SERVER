@@ -7,6 +7,7 @@ import com.beat.domain.promotion.domain.CarouselNumber;
 public record CarouselProcessRequest(
 	List<PromotionHandleRequest> carousels
 ) {
+
 	public record PromotionModifyRequest(
 		Long promotionId,
 		CarouselNumber carouselNumber,
@@ -14,7 +15,8 @@ public record CarouselProcessRequest(
 		boolean isExternal,
 		String redirectUrl,
 		Long performanceId
-	) implements PromotionHandleRequest {}
+	) implements PromotionHandleRequest {
+	}
 
 	public record PromotionGenerateRequest(
 		CarouselNumber carouselNumber,
@@ -22,9 +24,6 @@ public record CarouselProcessRequest(
 		boolean isExternal,
 		String redirectUrl,
 		Long performanceId
-	) implements PromotionHandleRequest {}
-
-	public sealed interface PromotionHandleRequest permits PromotionModifyRequest, PromotionGenerateRequest {
-		CarouselNumber carouselNumber();
+	) implements PromotionHandleRequest {
 	}
 }
