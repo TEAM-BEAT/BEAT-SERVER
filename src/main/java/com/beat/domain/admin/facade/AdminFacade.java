@@ -1,10 +1,10 @@
 package com.beat.domain.admin.facade;
 
+import com.beat.domain.admin.application.dto.request.PromotionHandleRequest;
 import com.beat.domain.admin.application.dto.response.CarouselFindAllResponse;
 import com.beat.domain.admin.application.dto.response.UserFindAllResponse;
 import com.beat.domain.admin.application.dto.request.CarouselProcessRequest;
 import com.beat.domain.admin.application.dto.request.CarouselProcessRequest.PromotionGenerateRequest;
-import com.beat.domain.admin.application.dto.request.CarouselProcessRequest.PromotionHandleRequest;
 import com.beat.domain.admin.application.dto.request.CarouselProcessRequest.PromotionModifyRequest;
 import com.beat.domain.admin.application.dto.response.CarouselProcessAllResponse;
 import com.beat.domain.admin.port.in.AdminUseCase;
@@ -90,7 +90,7 @@ public class AdminFacade {
 
 		List<Promotion> sortedPromotions = adminUsecase.
 			processPromotionsAndSortByCarouselNumber(modifyRequests, generateRequests,
-			deleteCarouselNumbers);
+				deleteCarouselNumbers);
 
 		return CarouselProcessAllResponse.from(sortedPromotions);
 	}
