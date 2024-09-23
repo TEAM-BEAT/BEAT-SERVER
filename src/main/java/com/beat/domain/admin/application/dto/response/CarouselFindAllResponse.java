@@ -1,4 +1,4 @@
-package com.beat.domain.admin.application.dto;
+package com.beat.domain.admin.application.dto.response;
 
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.promotion.domain.CarouselNumber;
