@@ -1,8 +1,8 @@
-package com.beat.domain.admin.application;
+package com.beat.admin.application;
 
-import com.beat.domain.admin.application.dto.request.CarouselProcessRequest.PromotionGenerateRequest;
-import com.beat.domain.admin.application.dto.request.CarouselProcessRequest.PromotionModifyRequest;
-import com.beat.domain.admin.port.in.AdminUseCase;
+import com.beat.admin.application.dto.request.CarouselProcessRequest.PromotionGenerateRequest;
+import com.beat.admin.application.dto.request.CarouselProcessRequest.PromotionModifyRequest;
+import com.beat.admin.port.in.AdminUseCase;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.port.in.PerformanceUseCase;
 import com.beat.domain.promotion.domain.CarouselNumber;
@@ -37,6 +37,7 @@ public class AdminService implements AdminUseCase {
 	@Transactional
 	public List<Promotion> processPromotionsAndSortByCarouselNumber(List<PromotionModifyRequest> modifyRequests,
 		List<PromotionGenerateRequest> generateRequests, List<CarouselNumber> deleteCarouselNumbers) {
+
 		List<Promotion> modifiedPromotions = handlePromotionModification(modifyRequests);
 		List<Promotion> addedPromotions = handlePromotionGeneration(generateRequests);
 		handlePromotionDeletion(deleteCarouselNumbers);

@@ -1,4 +1,4 @@
-package com.beat.domain.admin.application.dto.request;
+package com.beat.admin.application.dto.request;
 
 import java.util.List;
 

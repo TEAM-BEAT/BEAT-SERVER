@@ -1,6 +1,6 @@
-package com.beat.domain.admin.application.dto.request;
+package com.beat.admin.application.dto.request;
 
-import static com.beat.domain.admin.application.dto.request.CarouselProcessRequest.*;
+import static com.beat.admin.application.dto.request.CarouselProcessRequest.*;
 
 import com.beat.domain.promotion.domain.CarouselNumber;
 import com.fasterxml.jackson.annotation.JsonSubTypes;

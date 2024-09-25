@@ -1,4 +1,4 @@
-package com.beat.domain.admin.application.dto.response;
+package com.beat.admin.application.dto.response;
 
 import com.beat.domain.user.domain.Users;
 

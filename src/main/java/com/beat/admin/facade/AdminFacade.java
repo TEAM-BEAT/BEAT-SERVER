@@ -1,13 +1,13 @@
-package com.beat.domain.admin.facade;
+package com.beat.admin.facade;
 
-import com.beat.domain.admin.application.dto.request.PromotionHandleRequest;
-import com.beat.domain.admin.application.dto.response.CarouselFindAllResponse;
-import com.beat.domain.admin.application.dto.response.UserFindAllResponse;
-import com.beat.domain.admin.application.dto.request.CarouselProcessRequest;
-import com.beat.domain.admin.application.dto.request.CarouselProcessRequest.PromotionGenerateRequest;
-import com.beat.domain.admin.application.dto.request.CarouselProcessRequest.PromotionModifyRequest;
-import com.beat.domain.admin.application.dto.response.CarouselProcessAllResponse;
-import com.beat.domain.admin.port.in.AdminUseCase;
+import com.beat.admin.application.dto.request.PromotionHandleRequest;
+import com.beat.admin.application.dto.response.CarouselFindAllResponse;
+import com.beat.admin.application.dto.response.UserFindAllResponse;
+import com.beat.admin.application.dto.request.CarouselProcessRequest;
+import com.beat.admin.application.dto.request.CarouselProcessRequest.PromotionGenerateRequest;
+import com.beat.admin.application.dto.request.CarouselProcessRequest.PromotionModifyRequest;
+import com.beat.admin.application.dto.response.CarouselProcessAllResponse;
+import com.beat.admin.port.in.AdminUseCase;
 import com.beat.domain.member.port.in.MemberUseCase;
 import com.beat.domain.promotion.domain.CarouselNumber;
 import com.beat.domain.promotion.domain.Promotion;

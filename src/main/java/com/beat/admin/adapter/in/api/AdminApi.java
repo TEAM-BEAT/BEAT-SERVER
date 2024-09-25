@@ -1,9 +1,9 @@
-package com.beat.domain.admin.api;
+package com.beat.admin.adapter.in.api;
 
-import com.beat.domain.admin.application.dto.response.CarouselFindAllResponse;
-import com.beat.domain.admin.application.dto.response.UserFindAllResponse;
-import com.beat.domain.admin.application.dto.request.CarouselProcessRequest;
-import com.beat.domain.admin.application.dto.response.CarouselProcessAllResponse;
+import com.beat.admin.application.dto.response.CarouselFindAllResponse;
+import com.beat.admin.application.dto.response.UserFindAllResponse;
+import com.beat.admin.application.dto.request.CarouselProcessRequest;
+import com.beat.admin.application.dto.response.CarouselProcessAllResponse;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;

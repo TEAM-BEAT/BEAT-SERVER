@@ -1,4 +1,4 @@
-package com.beat.domain.admin.exception;
+package com.beat.admin.exception;
 
 import com.beat.global.common.exception.base.BaseSuccessCode;
 import lombok.Getter;

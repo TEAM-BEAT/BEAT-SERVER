@@ -1,4 +1,4 @@
-package com.beat.domain.admin.application.dto.response;
+package com.beat.admin.application.dto.response;
 
 import java.util.List;
 import java.util.stream.Collectors;
