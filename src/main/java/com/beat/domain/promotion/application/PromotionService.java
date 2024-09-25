@@ -1,13 +1,16 @@
 package com.beat.domain.promotion.application;
 
+import com.beat.admin.application.dto.request.CarouselProcessRequest.PromotionModifyRequest;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.promotion.dao.PromotionRepository;
+import com.beat.domain.promotion.domain.CarouselNumber;
 import com.beat.domain.promotion.domain.Promotion;
-import com.beat.domain.schedule.application.ScheduleService;
-import com.beat.domain.schedule.dao.ScheduleRepository;
-import com.beat.domain.schedule.domain.Schedule;
+import com.beat.domain.promotion.exception.PromotionErrorCode;
+import com.beat.domain.promotion.port.in.PromotionUseCase;
+import com.beat.global.common.exception.NotFoundException;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.scheduling.annotation.Scheduled;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,30 +18,59 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class PromotionService {
+public class PromotionService implements PromotionUseCase {
 
-    private final PromotionRepository promotionRepository;
-    private final ScheduleRepository scheduleRepository;
-    private final ScheduleService scheduleService;
+	private final PromotionRepository promotionRepository;
 
-    @Scheduled(cron = "1 0 0 * * ?")
-    @Transactional
-    public void checkAndDeleteInvalidPromotions() {
-        List<Promotion> promotions = promotionRepository.findAll();
+	@Override
+	@Transactional(readOnly = true)
+	public Promotion findById(Long promotionId) {
+		return promotionRepository.findById(promotionId)
+			.orElseThrow(() -> new NotFoundException(PromotionErrorCode.PROMOTION_NOT_FOUND));
+	}
 
-        for (Promotion promotion : promotions) {
-            Performance performance = promotion.getPerformance();
+	@Override
+	@Transactional(readOnly = true)
+	public List<Promotion> findAllPromotions() {
+		return promotionRepository.findAll();
+	}
 
-            if (performance == null) {
-                return;
-            }
+	@Override
+	@Transactional
+	public Promotion createPromotion(String newImageUrl, Performance performance, String redirectUrl,
+		boolean isExternal, CarouselNumber carouselNumber) {
+		Promotion newPromotion = Promotion.create(
+			newImageUrl,
+			performance,
+			redirectUrl,
+			isExternal,
+			carouselNumber
+		);
+		return promotionRepository.save(newPromotion);
+	}
 
-            List<Schedule> schedules = scheduleRepository.findByPerformanceId(performance.getId());
-            int minDueDate = scheduleService.getMinDueDate(schedules);
+	@Override
+	@Transactional
+	public Promotion modifyPromotion(Promotion promotion, Performance performance, PromotionModifyRequest request) {
+		promotion.updatePromotionDetails(
+			request.carouselNumber(),
+			request.newImageUrl(),
+			request.isExternal(),
+			request.redirectUrl(),
+			performance
+		);
+		return promotionRepository.save(promotion);
+	}
 
-            if (minDueDate < 0) {
-                promotionRepository.delete(promotion);
-            }
-        }
-    }
+	@Override
+	@Transactional
+	public void deleteByCarouselNumber(CarouselNumber carouselNumber) {
+		promotionRepository.deleteByCarouselNumber(carouselNumber);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<CarouselNumber> findAllCarouselNumbers() {
+		return promotionRepository.findAllCarouselNumbers();
+	}
 }

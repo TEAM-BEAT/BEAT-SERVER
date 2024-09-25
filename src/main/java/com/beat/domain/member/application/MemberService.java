@@ -4,6 +4,7 @@ import com.beat.domain.member.dao.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
 import com.beat.domain.member.exception.MemberErrorCode;
+import com.beat.domain.member.port.in.MemberUseCase;
 import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
 import com.beat.global.common.exception.*;
@@ -16,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 @Service
-public class MemberService {
+public class MemberService implements MemberUseCase {
     private final UserRepository userRepository;
     private final MemberRepository memberRepository;
 
@@ -39,6 +40,12 @@ public class MemberService {
 
     public Users findUserByMemberId(final Long memberId) {
         return userRepository.findById(memberId)
+                .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+    }
+
+    @Override
+    public Member findMemberById(Long memberId) {
+        return memberRepository.findById(memberId)
                 .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
     }
 }

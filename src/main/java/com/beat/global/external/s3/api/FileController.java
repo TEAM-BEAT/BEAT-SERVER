@@ -2,8 +2,8 @@ package com.beat.global.external.s3.api;
 
 import com.beat.global.common.dto.SuccessResponse;
 import com.beat.global.external.s3.exception.FileSuccessCode;
-import com.beat.global.external.s3.application.FileService;
 import com.beat.global.external.s3.application.dto.PerformanceMakerPresignedUrlFindAllResponse;
+import com.beat.global.external.s3.port.in.FileUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FileController implements FileApi {
 
-    private final FileService fileService;
+    private final FileUseCase fileUseCase;
 
     @GetMapping("/presigned-url")
     @Override
@@ -38,7 +38,7 @@ public class FileController implements FileApi {
             performanceImages = List.of();
         }
 
-        PerformanceMakerPresignedUrlFindAllResponse response = fileService.issueAllPresignedUrlsForPerformanceMaker(posterImage, castImages, staffImages, performanceImages);
+        PerformanceMakerPresignedUrlFindAllResponse response = fileUseCase.issueAllPresignedUrlsForPerformanceMaker(posterImage, castImages, staffImages, performanceImages);
         return ResponseEntity.ok(SuccessResponse.of(FileSuccessCode.PERFORMANCE_MAKER_PRESIGNED_URL_ISSUED, response));
     }
 }
