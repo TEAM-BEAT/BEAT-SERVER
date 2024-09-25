@@ -178,3 +178,6 @@ Temporary Items
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,java,macos.gradle/
 .idea/
+
+# Ignore application-local.yml
+src/main/resources/application-local.yml

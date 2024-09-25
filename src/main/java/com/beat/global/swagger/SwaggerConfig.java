@@ -31,6 +31,6 @@ public class SwaggerConfig {
         return new Info()
                 .title("BEAT Project API")
                 .description("간편하게 소규모 공연을 등록하고 관리할 수 있는 티켓 예매 플랫폼")
-                .version("1.0.0");
+                .version("1.0.1");
     }
 }

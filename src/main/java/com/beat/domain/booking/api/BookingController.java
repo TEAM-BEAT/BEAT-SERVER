@@ -47,7 +47,7 @@ public class BookingController {
 
     @Operation(summary = "회원 예매 조회 API", description = "회원이 예매를 조회하는 GET API입니다.")
     @GetMapping("/member/retrieve")
-    public ResponseEntity<SuccessResponse<MemberBookingRetrieveResponse>> getMemberBookings(
+    public ResponseEntity<SuccessResponse<List<MemberBookingRetrieveResponse>>> getMemberBookings(
             @CurrentMember Long memberId) {
         List<MemberBookingRetrieveResponse> response = memberBookingRetrieveService.findMemberBookings(memberId);
         return ResponseEntity.status(HttpStatus.OK)

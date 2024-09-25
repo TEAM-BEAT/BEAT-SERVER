@@ -1,4 +1,4 @@
-package com.beat.global.external.s3;
+package com.beat.global.external.s3.config;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;

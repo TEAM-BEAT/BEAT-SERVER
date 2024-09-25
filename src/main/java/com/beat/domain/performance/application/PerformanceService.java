@@ -40,6 +40,7 @@ import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
+import com.beat.domain.performance.port.in.PerformanceUseCase;
 import com.beat.domain.promotion.dao.PromotionRepository;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.schedule.application.ScheduleService;
@@ -59,7 +60,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PerformanceService {
+public class PerformanceService implements PerformanceUseCase {
 	private final PerformanceRepository performanceRepository;
 	private final ScheduleRepository scheduleRepository;
 	private final CastRepository castRepository;
@@ -205,7 +206,7 @@ public class PerformanceService {
 				);
 			})
 			.collect(Collectors.toList());
-
+    
 		List<HomePerformanceDetail> positiveDueDates = performanceDetails.stream()
 			.filter(detail -> detail.dueDate() >= 0)
 			.sorted((p1, p2) -> Integer.compare(p1.dueDate(), p2.dueDate()))
@@ -283,6 +284,13 @@ public class PerformanceService {
 		return MakerPerformanceResponse.of(user.getId(), positiveDueDates);
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public Performance findById(Long performanceId) {
+		return performanceRepository.findById(performanceId)
+			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+	}
+  
 	@Transactional
 	public PerformanceModifyDetailResponse getPerformanceEdit(Long memberId, Long performanceId) {
 		Member member = memberRepository.findById(memberId)
