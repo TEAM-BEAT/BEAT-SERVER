@@ -32,6 +32,7 @@ import com.beat.domain.staff.exception.StaffErrorCode;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.common.scheduler.application.JobSchedulerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -57,6 +58,7 @@ public class PerformanceModifyService {
     private final StaffRepository staffRepository;
     private final BookingRepository bookingRepository;
     private final PerformanceImageRepository performanceImageRepository;
+    private final JobSchedulerService jobSchedulerService;
 
     @Transactional
     public PerformanceModifyResponse modifyPerformance(Long memberId, PerformanceModifyRequest request) {
@@ -160,11 +162,15 @@ public class PerformanceModifyService {
 
         List<Schedule> schedules = scheduleRequests.stream()
                 .map(request -> {
+                    Schedule schedule;
                     if (request.scheduleId() == null) {
-                        return addSchedule(request, performance);
+                        schedule = addSchedule(request, performance);
                     } else {
-                        return updateSchedule(request, performance);
+                        schedule = updateSchedule(request, performance);
                     }
+                    jobSchedulerService.addScheduleIfNotExists(schedule);
+
+                    return schedule;
                 })
                 .collect(Collectors.toList());
 
@@ -226,6 +232,8 @@ public class PerformanceModifyService {
             throw new ForbiddenException(ScheduleErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE);
         }
 
+        jobSchedulerService.cancelScheduledTaskForPerformance(schedule);
+
         schedule.update(
                 request.performanceDate(),
                 request.totalTicketCount(),
@@ -246,6 +254,9 @@ public class PerformanceModifyService {
                         log.error("Schedule not found: scheduleId: {}", scheduleId);
                         return new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
                     });
+
+            jobSchedulerService.cancelScheduledTaskForPerformance(schedule);
+
             scheduleRepository.delete(schedule);
             log.debug("Deleted schedule with scheduleId: {}", scheduleId);
         });

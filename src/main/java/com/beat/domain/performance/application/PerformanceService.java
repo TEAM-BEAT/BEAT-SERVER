@@ -1,6 +1,18 @@
 package com.beat.domain.performance.application;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.cast.dao.CastRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.member.dao.MemberRepository;
 import com.beat.domain.member.domain.Member;
@@ -18,7 +30,11 @@ import com.beat.domain.performance.application.dto.home.HomeResponse;
 import com.beat.domain.performance.application.dto.makerPerformance.MakerPerformanceDetailResponse;
 import com.beat.domain.performance.application.dto.makerPerformance.MakerPerformanceResponse;
 import com.beat.domain.performance.application.dto.modify.PerformanceModifyDetailResponse;
-import com.beat.domain.performance.application.dto.performanceDetail.*;
+import com.beat.domain.performance.application.dto.performanceDetail.PerformanceDetailCastResponse;
+import com.beat.domain.performance.application.dto.performanceDetail.PerformanceDetailImageResponse;
+import com.beat.domain.performance.application.dto.performanceDetail.PerformanceDetailResponse;
+import com.beat.domain.performance.application.dto.performanceDetail.PerformanceDetailScheduleResponse;
+import com.beat.domain.performance.application.dto.performanceDetail.PerformanceDetailStaffResponse;
 import com.beat.domain.performance.dao.PerformanceImageRepository;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
@@ -29,7 +45,6 @@ import com.beat.domain.promotion.dao.PromotionRepository;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.schedule.application.ScheduleService;
 import com.beat.domain.schedule.dao.ScheduleRepository;
-import com.beat.domain.cast.dao.CastRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.staff.dao.StaffRepository;
 import com.beat.domain.staff.domain.Staff;
@@ -41,17 +56,6 @@ import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -77,7 +81,6 @@ public class PerformanceService implements PerformanceUseCase {
 			.stream()
 			.map(schedule -> {
 				int dueDate = scheduleService.calculateDueDate(schedule);
-				scheduleService.updateBookingStatus(schedule);
 				return PerformanceDetailScheduleResponse.of(
 					schedule.getId(),
 					schedule.getPerformanceDate(),
@@ -136,7 +139,7 @@ public class PerformanceService implements PerformanceUseCase {
 		);
 	}
 
-	@Transactional
+	@Transactional(readOnly = true)
 	public BookingPerformanceDetailResponse getBookingPerformanceDetail(Long performanceId) {
 		Performance performance = performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
@@ -144,7 +147,6 @@ public class PerformanceService implements PerformanceUseCase {
 		List<BookingPerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findByPerformanceId(
 				performanceId).stream()
 			.map(schedule -> {
-				scheduleService.updateBookingStatus(schedule);
 				int dueDate = scheduleService.calculateDueDate(schedule);
 				return BookingPerformanceDetailScheduleResponse.of(
 					schedule.getId(),
@@ -204,8 +206,7 @@ public class PerformanceService implements PerformanceUseCase {
 				);
 			})
 			.collect(Collectors.toList());
-
-		// 두 개의 스트림을 각각 처리하여 병합
+    
 		List<HomePerformanceDetail> positiveDueDates = performanceDetails.stream()
 			.filter(detail -> detail.dueDate() >= 0)
 			.sorted((p1, p2) -> Integer.compare(p1.dueDate(), p2.dueDate()))
@@ -216,7 +217,6 @@ public class PerformanceService implements PerformanceUseCase {
 			.sorted((p1, p2) -> Integer.compare(p2.dueDate(), p1.dueDate()))
 			.collect(Collectors.toList());
 
-		// 병합된 리스트
 		positiveDueDates.addAll(negativeDueDates);
 
 		List<HomePromotionDetail> promotions = getPromotions();
@@ -269,19 +269,16 @@ public class PerformanceService implements PerformanceUseCase {
 			})
 			.collect(Collectors.toList());
 
-		// 양수 minDueDate 정렬
 		List<MakerPerformanceDetailResponse> positiveDueDates = performanceDetails.stream()
 			.filter(detail -> detail.minDueDate() >= 0)
 			.sorted(Comparator.comparingInt(MakerPerformanceDetailResponse::minDueDate))
 			.collect(Collectors.toList());
 
-		// 음수 minDueDate 정렬
 		List<MakerPerformanceDetailResponse> negativeDueDates = performanceDetails.stream()
 			.filter(detail -> detail.minDueDate() < 0)
 			.sorted(Comparator.comparingInt(MakerPerformanceDetailResponse::minDueDate).reversed())
 			.collect(Collectors.toList());
 
-		// 병합된 리스트
 		positiveDueDates.addAll(negativeDueDates);
 
 		return MakerPerformanceResponse.of(user.getId(), positiveDueDates);
@@ -293,7 +290,7 @@ public class PerformanceService implements PerformanceUseCase {
 		return performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 	}
-
+  
 	@Transactional
 	public PerformanceModifyDetailResponse getPerformanceEdit(Long memberId, Long performanceId) {
 		Member member = memberRepository.findById(memberId)
