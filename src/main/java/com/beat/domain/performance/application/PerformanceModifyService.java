@@ -176,7 +176,11 @@ public class PerformanceModifyService {
 				} else {
 					schedule = updateSchedule(request, performance);
 				}
-				jobSchedulerService.addScheduleIfNotExists(schedule);
+
+				// isBooking이 true인 경우만 스케줄러에 등록
+				if (schedule.isBooking()) {
+					jobSchedulerService.addScheduleIfNotExists(schedule);
+				}
 
 				return schedule;
 			})
@@ -245,8 +249,37 @@ public class PerformanceModifyService {
 			throw new ForbiddenException(ScheduleErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE);
 		}
 
+		// 종료된 스케줄(기존 스케쥴 날짜가 과거인 경우)은 날짜 변경 불가
+		if (schedule.getPerformanceDate().isBefore(LocalDateTime.now())) {
+			if (!schedule.getPerformanceDate().isEqual(request.performanceDate())) {
+				throw new BadRequestException(
+					PerformanceErrorCode.SCHEDULE_MODIFICATION_NOT_ALLOWED_FOR_ENDED_SCHEDULE);
+			}
+			// 날짜 변경이 없으면 그대로 반환
+			return schedule;
+		}
+
+		// 종료되지 않은 스케줄을 과거 날짜로 수정 시 에러 발생
 		if (request.performanceDate().isBefore(LocalDateTime.now())) {
 			throw new BadRequestException(PerformanceErrorCode.PAST_SCHEDULE_NOT_ALLOWED);
+		}
+
+		// 티켓 수 관련 검증
+		if (request.totalTicketCount() != schedule.getTotalTicketCount()) {
+			// 판매된 티켓 수보다 적은 totalTicketCount로 변경하려는 경우 예외 처리
+			if (request.totalTicketCount() < schedule.getSoldTicketCount()) {
+				throw new BadRequestException(PerformanceErrorCode.INVALID_TICKET_COUNT);
+			}
+
+			// 매진 상태로 변경 (soldTicketCount와 totalTicketCount가 동일하고, 기존 isBooking이 true인 경우)
+			if (request.totalTicketCount() == schedule.getSoldTicketCount() && schedule.isBooking()) {
+				schedule.updateIsBooking(false);  // 매진 처리 (isBooking = false)
+			}
+
+			// 매진이 풀리는 경우 (totalTicketCount 증가, 기존 isBooking이 false인 경우)
+			else if (request.totalTicketCount() > schedule.getTotalTicketCount() && !schedule.isBooking()) {
+				schedule.updateIsBooking(true);  // 매진 풀림 처리 (isBooking = true)
+			}
 		}
 
 		jobSchedulerService.cancelScheduledTaskForPerformance(schedule);
