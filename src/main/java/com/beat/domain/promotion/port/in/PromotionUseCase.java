@@ -17,7 +17,9 @@ public interface PromotionUseCase {
 
 	Promotion modifyPromotion(Promotion promotion, Performance performance, PromotionModifyRequest request);
 
-	void deleteByCarouselNumber(CarouselNumber carouselNumber);
+	void deleteByCarouselNumber(List<CarouselNumber> carouselNumbers);
 
 	List<CarouselNumber> findAllCarouselNumbers();
+
+	Promotion findPromotionByCarouselNumber(CarouselNumber carouselNumber);
 }
