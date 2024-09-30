@@ -11,5 +11,5 @@ public interface AdminUseCase {
 	List<Promotion> findAllPromotionsSortedByCarouselNumber();
 
 	List<Promotion> processPromotionsAndSortByCarouselNumber(List<PromotionModifyRequest> modifyRequests,
-		List<PromotionGenerateRequest> generateRequests, List<CarouselNumber> deleteCarouselNumbers);
+		List<PromotionGenerateRequest> generateRequests, List<CarouselNumber> deleteCarouselNumbers, List<CarouselNumber> overlappingCarouselNumbers);
 }
