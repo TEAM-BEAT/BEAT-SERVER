@@ -55,6 +55,7 @@ jobs:
           DEV_COOLSMS_SECRET: ${{ secrets.DEV_COOLSMS_SECRET }}
           DEV_ACCESS_TOKEN_EXPIRE_TIME: ${{ secrets.DEV_ACCESS_TOKEN_EXPIRE_TIME }}
           DEV_REFRESH_TOKEN_EXPIRE_TIME: ${{ secrets.DEV_REFRESH_TOKEN_EXPIRE_TIME }}
+          DEV_ALLOWED_ORIGINS: ${{ secrets.DEV_ALLOWED_ORIGINS }}
         run: |
           cd ./src/main/resources
           envsubst < application-dev.yml > application-dev.tmp.yml && mv application-dev.tmp.yml application-dev.yml
