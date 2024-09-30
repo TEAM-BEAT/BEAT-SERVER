@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class PromotionService implements PromotionUseCase {
 
@@ -36,41 +37,34 @@ public class PromotionService implements PromotionUseCase {
 	}
 
 	@Override
-	@Transactional
 	public Promotion createPromotion(String newImageUrl, Performance performance, String redirectUrl,
 		boolean isExternal, CarouselNumber carouselNumber) {
-		Promotion newPromotion = Promotion.create(
-			newImageUrl,
-			performance,
-			redirectUrl,
-			isExternal,
-			carouselNumber
-		);
+		Promotion newPromotion = Promotion.create(newImageUrl, performance, redirectUrl, isExternal, carouselNumber);
 		return promotionRepository.save(newPromotion);
 	}
 
 	@Override
-	@Transactional
 	public Promotion modifyPromotion(Promotion promotion, Performance performance, PromotionModifyRequest request) {
-		promotion.updatePromotionDetails(
-			request.carouselNumber(),
-			request.newImageUrl(),
-			request.isExternal(),
-			request.redirectUrl(),
-			performance
-		);
+		promotion.updatePromotionDetails(request.carouselNumber(), request.newImageUrl(), request.isExternal(),
+			request.redirectUrl(), performance);
 		return promotionRepository.save(promotion);
 	}
 
 	@Override
-	@Transactional
-	public void deleteByCarouselNumber(CarouselNumber carouselNumber) {
-		promotionRepository.deleteByCarouselNumber(carouselNumber);
+	public void deleteByCarouselNumber(List<CarouselNumber> carouselNumber) {
+		promotionRepository.deleteByCarouselNumbers(carouselNumber);
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public List<CarouselNumber> findAllCarouselNumbers() {
 		return promotionRepository.findAllCarouselNumbers();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Promotion findPromotionByCarouselNumber(CarouselNumber carouselNumber) {
+		return promotionRepository.findByCarouselNumber(carouselNumber)
+			.orElseThrow(() -> new NotFoundException(PromotionErrorCode.PROMOTION_NOT_FOUND));
 	}
 }
