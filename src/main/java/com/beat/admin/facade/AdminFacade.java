@@ -66,11 +66,31 @@ public class AdminFacade {
 
 	public CarouselProcessAllResponse checkMemberAndProcessAllPromotionsSortedByCarouselNumber(Long memberId,
 		CarouselProcessRequest request) {
+
 		memberUseCase.findMemberById(memberId);
 
 		List<PromotionModifyRequest> modifyRequests = new ArrayList<>();
 		List<PromotionGenerateRequest> generateRequests = new ArrayList<>();
 		Set<CarouselNumber> requestCarouselNumbers = new HashSet<>();
+
+		categorizePromotionRequests(request, modifyRequests, generateRequests, requestCarouselNumbers);
+
+		List<CarouselNumber> allExistingCarouselNumbers = promotionUseCase.findAllCarouselNumbers();
+
+		List<CarouselNumber> deleteCarouselNumbers = findDeleteCarouselNumbers(requestCarouselNumbers,
+			allExistingCarouselNumbers);
+		List<CarouselNumber> overlappingCarouselNumbers = findOverlappingCarouselNumbers(requestCarouselNumbers,
+			allExistingCarouselNumbers, request);
+
+		List<Promotion> sortedPromotions = adminUsecase.processPromotionsAndSortByCarouselNumber(modifyRequests,
+			generateRequests, deleteCarouselNumbers, overlappingCarouselNumbers);
+
+		return CarouselProcessAllResponse.from(sortedPromotions);
+	}
+
+	private void categorizePromotionRequests(CarouselProcessRequest request,
+		List<PromotionModifyRequest> modifyRequests, List<PromotionGenerateRequest> generateRequests,
+		Set<CarouselNumber> requestCarouselNumbers) {
 
 		for (PromotionHandleRequest promotionRequest : request.carousels()) {
 			requestCarouselNumbers.add(promotionRequest.carouselNumber());
@@ -81,17 +101,27 @@ public class AdminFacade {
 				generateRequests.add(generateRequest);
 			}
 		}
+	}
 
-		List<CarouselNumber> allExistingCarouselNumbers = promotionUseCase.findAllCarouselNumbers();
-
-		List<CarouselNumber> deleteCarouselNumbers = allExistingCarouselNumbers.stream()
+	private List<CarouselNumber> findDeleteCarouselNumbers(Set<CarouselNumber> requestCarouselNumbers,
+		List<CarouselNumber> allExistingCarouselNumbers) {
+		return allExistingCarouselNumbers.stream()
 			.filter(existingCarouselNumber -> !requestCarouselNumbers.contains(existingCarouselNumber))
 			.toList();
+	}
 
-		List<Promotion> sortedPromotions = adminUsecase.
-			processPromotionsAndSortByCarouselNumber(modifyRequests, generateRequests,
-				deleteCarouselNumbers);
-
-		return CarouselProcessAllResponse.from(sortedPromotions);
+	private List<CarouselNumber> findOverlappingCarouselNumbers(Set<CarouselNumber> requestCarouselNumbers,
+		List<CarouselNumber> allExistingCarouselNumbers, CarouselProcessRequest request) {
+		return allExistingCarouselNumbers.stream()
+			.filter(requestCarouselNumbers::contains)
+			.filter(existingCarouselNumber -> {
+				Promotion existingPromotion = promotionUseCase.findPromotionByCarouselNumber(existingCarouselNumber);
+				return request.carousels()
+					.stream()
+					.filter(req -> req instanceof CarouselProcessRequest.PromotionModifyRequest)
+					.map(req -> (CarouselProcessRequest.PromotionModifyRequest)req)
+					.noneMatch(req -> req.promotionId() != null && req.promotionId().equals(existingPromotion.getId()));
+			})
+			.toList();
 	}
 }

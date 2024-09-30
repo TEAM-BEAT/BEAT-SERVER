@@ -36,11 +36,13 @@ public class AdminService implements AdminUseCase {
 	@Override
 	@Transactional
 	public List<Promotion> processPromotionsAndSortByCarouselNumber(List<PromotionModifyRequest> modifyRequests,
-		List<PromotionGenerateRequest> generateRequests, List<CarouselNumber> deleteCarouselNumbers) {
+		List<PromotionGenerateRequest> generateRequests, List<CarouselNumber> deleteCarouselNumbers,
+		List<CarouselNumber> overlappingCarouselNumbers) {
 
+		handleOverlappingCarouselNumbersPromotionDeletion(overlappingCarouselNumbers);
+		handlePromotionDeletion(deleteCarouselNumbers);
 		List<Promotion> modifiedPromotions = handlePromotionModification(modifyRequests);
 		List<Promotion> addedPromotions = handlePromotionGeneration(generateRequests);
-		handlePromotionDeletion(deleteCarouselNumbers);
 
 		List<Promotion> applyPromotionChanges = new ArrayList<>(modifiedPromotions);
 		applyPromotionChanges.addAll(addedPromotions);
@@ -48,9 +50,23 @@ public class AdminService implements AdminUseCase {
 		return sortPromotionsByCarouselNumber(applyPromotionChanges);
 	}
 
+	private void handleOverlappingCarouselNumbersPromotionDeletion(List<CarouselNumber> overlappingCarouselNumbers) {
+		if (!overlappingCarouselNumbers.isEmpty()) {
+			promotionUseCase.deleteByCarouselNumber(overlappingCarouselNumbers);
+		}
+	}
+
+	private void handlePromotionDeletion(List<CarouselNumber> deleteCarouselNumbers) {
+		if (!deleteCarouselNumbers.isEmpty()) {
+			promotionUseCase.deleteByCarouselNumber(deleteCarouselNumbers);
+		}
+	}
+
 	private List<Promotion> handlePromotionModification(List<PromotionModifyRequest> modifyRequests) {
 		return modifyRequests.stream().map(modifyRequest -> {
+
 			Promotion promotion = promotionUseCase.findById(modifyRequest.promotionId());
+
 			Performance performance = Optional.ofNullable(modifyRequest.performanceId())
 				.map(performanceUseCase::findById)
 				.orElse(null);
@@ -68,10 +84,6 @@ public class AdminService implements AdminUseCase {
 			return promotionUseCase.createPromotion(generateRequest.newImageUrl(), performance,
 				generateRequest.redirectUrl(), generateRequest.isExternal(), generateRequest.carouselNumber());
 		}).toList();
-	}
-
-	private void handlePromotionDeletion(List<CarouselNumber> deleteCarouselNumbers) {
-		deleteCarouselNumbers.forEach(promotionUseCase::deleteByCarouselNumber);
 	}
 
 	private List<Promotion> sortPromotionsByCarouselNumber(List<Promotion> promotions) {
