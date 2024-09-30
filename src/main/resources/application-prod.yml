@@ -74,3 +74,6 @@ cloud:
 logging:
   level:
     root: info
+
+cors:
+  allowed-origins: ${PROD_ALLOWED_ORIGINS}
