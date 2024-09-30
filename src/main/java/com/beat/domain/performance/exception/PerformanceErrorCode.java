@@ -21,8 +21,8 @@ public enum PerformanceErrorCode implements BaseErrorCode {
 	INVALID_PERFORMANCE_DESCRIPTION_LENGTH(400, "공연 소개 글자수가 500자를 초과했습니다."),
 	INVALID_ATTENTION_NOTE_LENGTH(400, "공연 유의사항 글자수가 500자를 초과했습니다."),
 	INTERNAL_SERVER_ERROR(500, "서버 내부 오류입니다."),
-	PAST_SCHEDULE_NOT_ALLOWED(400, "과거 날짜 스케쥴을 포함한 공연을 생성할 수 없습니다."),
-	SCHEDULE_MODIFICATION_NOT_ALLOWED_FOR_ENDED_SCHEDULE(400, "종료된 스케쥴을 수정할 수 없습니다."),
+	PAST_SCHEDULE_NOT_ALLOWED(400, "과거 날짜 회차를 포함한 공연을 생성할 수 없습니다."),
+	SCHEDULE_MODIFICATION_NOT_ALLOWED_FOR_ENDED_SCHEDULE(400, "종료된 회차를 수정할 수 없습니다."),
 	INVALID_TICKET_COUNT(400, "판매된 티켓 수보다 적은 수로 판매할 티켓 매수를 수정할 수 없습니다.");
 
 	private final int status;
