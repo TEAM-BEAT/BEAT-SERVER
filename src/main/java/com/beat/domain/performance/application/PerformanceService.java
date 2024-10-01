@@ -3,7 +3,6 @@ package com.beat.domain.performance.application;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,10 +22,6 @@ import com.beat.domain.performance.application.dto.create.CastResponse;
 import com.beat.domain.performance.application.dto.create.PerformanceImageResponse;
 import com.beat.domain.performance.application.dto.create.ScheduleResponse;
 import com.beat.domain.performance.application.dto.create.StaffResponse;
-import com.beat.domain.performance.application.dto.home.HomePerformanceDetail;
-import com.beat.domain.performance.application.dto.home.HomePromotionDetail;
-import com.beat.domain.performance.application.dto.home.HomeRequest;
-import com.beat.domain.performance.application.dto.home.HomeResponse;
 import com.beat.domain.performance.application.dto.makerPerformance.MakerPerformanceDetailResponse;
 import com.beat.domain.performance.application.dto.makerPerformance.MakerPerformanceResponse;
 import com.beat.domain.performance.application.dto.modify.PerformanceModifyDetailResponse;
@@ -41,8 +36,6 @@ import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.port.in.PerformanceUseCase;
-import com.beat.domain.promotion.dao.PromotionRepository;
-import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.schedule.application.ScheduleService;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
@@ -66,7 +59,6 @@ public class PerformanceService implements PerformanceUseCase {
 	private final CastRepository castRepository;
 	private final StaffRepository staffRepository;
 	private final ScheduleService scheduleService;
-	private final PromotionRepository promotionRepository;
 	private final MemberRepository memberRepository;
 	private final UserRepository userRepository;
 	private final BookingRepository bookingRepository;
@@ -81,62 +73,38 @@ public class PerformanceService implements PerformanceUseCase {
 			.stream()
 			.map(schedule -> {
 				int dueDate = scheduleService.calculateDueDate(schedule);
-				return PerformanceDetailScheduleResponse.of(
-					schedule.getId(),
-					schedule.getPerformanceDate(),
-					schedule.getScheduleNumber().name(),
-					dueDate,
-					schedule.isBooking()
-				);
+				return PerformanceDetailScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
+					schedule.getScheduleNumber().name(), dueDate, schedule.isBooking());
 			})
 			.collect(Collectors.toList());
 
 		int minDueDate = scheduleService.getMinDueDate(scheduleRepository.findAllByPerformanceId(performanceId));
 
-		List<PerformanceDetailCastResponse> castList = castRepository.findByPerformanceId(performanceId).stream()
-			.map(cast -> PerformanceDetailCastResponse.of(
-				cast.getId(),
-				cast.getCastName(),
-				cast.getCastRole(),
-				cast.getCastPhoto()
-			)).collect(Collectors.toList());
+		List<PerformanceDetailCastResponse> castList = castRepository.findByPerformanceId(performanceId)
+			.stream()
+			.map(cast -> PerformanceDetailCastResponse.of(cast.getId(), cast.getCastName(), cast.getCastRole(),
+				cast.getCastPhoto()))
+			.collect(Collectors.toList());
 
-		List<PerformanceDetailStaffResponse> staffList = staffRepository.findByPerformanceId(performanceId).stream()
-			.map(staff -> PerformanceDetailStaffResponse.of(
-				staff.getId(),
-				staff.getStaffName(),
-				staff.getStaffRole(),
-				staff.getStaffPhoto()
-			)).collect(Collectors.toList());
+		List<PerformanceDetailStaffResponse> staffList = staffRepository.findByPerformanceId(performanceId)
+			.stream()
+			.map(staff -> PerformanceDetailStaffResponse.of(staff.getId(), staff.getStaffName(), staff.getStaffRole(),
+				staff.getStaffPhoto()))
+			.collect(Collectors.toList());
 
 		List<PerformanceDetailImageResponse> performanceImageList = performanceImageRepository.findAllByPerformanceId(
-				performanceId).stream()
-			.map(image -> PerformanceDetailImageResponse.of(
-				image.getId(),
-				image.getPerformanceImage()
-			))
+				performanceId)
+			.stream()
+			.map(image -> PerformanceDetailImageResponse.of(image.getId(), image.getPerformanceImage()))
 			.collect(Collectors.toList());
 
 		log.info("Successfully completed getPerformanceDetail for performanceId: {}", performanceId);
-		return PerformanceDetailResponse.of(
-			performance.getId(),
-			performance.getPerformanceTitle(),
-			performance.getPerformancePeriod(),
-			scheduleList,
-			performance.getTicketPrice(),
-			performance.getGenre().name(),
-			performance.getPosterImage(),
-			performance.getRunningTime(),
-			performance.getPerformanceVenue(),
-			performance.getPerformanceDescription(),
-			performance.getPerformanceAttentionNote(),
-			performance.getPerformanceContact(),
-			performance.getPerformanceTeamName(),
-			castList,
-			staffList,
-			minDueDate,
-			performanceImageList
-		);
+		return PerformanceDetailResponse.of(performance.getId(), performance.getPerformanceTitle(),
+			performance.getPerformancePeriod(), scheduleList, performance.getTicketPrice(),
+			performance.getGenre().name(), performance.getPosterImage(), performance.getRunningTime(),
+			performance.getPerformanceVenue(), performance.getPerformanceDescription(),
+			performance.getPerformanceAttentionNote(), performance.getPerformanceContact(),
+			performance.getPerformanceTeamName(), castList, staffList, minDueDate, performanceImageList);
 	}
 
 	@Transactional(readOnly = true)
@@ -145,129 +113,39 @@ public class PerformanceService implements PerformanceUseCase {
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
 		List<BookingPerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findByPerformanceId(
-				performanceId).stream()
-			.map(schedule -> {
-				int dueDate = scheduleService.calculateDueDate(schedule);
-				return BookingPerformanceDetailScheduleResponse.of(
-					schedule.getId(),
-					schedule.getPerformanceDate(),
-					schedule.getScheduleNumber().name(),
-					scheduleService.getAvailableTicketCount(schedule),
-					schedule.isBooking(),
-					dueDate
-				);
-			}).collect(Collectors.toList());
+			performanceId).stream().map(schedule -> {
+			int dueDate = scheduleService.calculateDueDate(schedule);
+			return BookingPerformanceDetailScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
+				schedule.getScheduleNumber().name(), scheduleService.getAvailableTicketCount(schedule),
+				schedule.isBooking(), dueDate);
+		}).collect(Collectors.toList());
 
-		return BookingPerformanceDetailResponse.of(
-			performance.getId(),
-			performance.getPerformanceTitle(),
-			performance.getPerformancePeriod(),
-			scheduleList,
-			performance.getTicketPrice(),
-			performance.getGenre().name(),
-			performance.getPosterImage(),
-			performance.getPerformanceVenue(),
+		return BookingPerformanceDetailResponse.of(performance.getId(), performance.getPerformanceTitle(),
+			performance.getPerformancePeriod(), scheduleList, performance.getTicketPrice(),
+			performance.getGenre().name(), performance.getPosterImage(), performance.getPerformanceVenue(),
 			performance.getPerformanceTeamName(),
-			performance.getBankName() != null ? performance.getBankName().name() : null,
-			performance.getAccountNumber(),
-			performance.getAccountHolder()
-		);
-	}
-
-	@Transactional(readOnly = true)
-	public HomeResponse getHomePerformanceList(HomeRequest homeRequest) {
-		List<Performance> performances;
-
-		if (homeRequest.genre() != null) {
-			performances = performanceRepository.findByGenre(homeRequest.genre());
-		} else {
-			performances = performanceRepository.findAll();
-		}
-
-		if (performances.isEmpty()) {
-			List<HomePromotionDetail> promotions = getPromotions();
-			return HomeResponse.of(promotions, new ArrayList<>());
-		}
-
-		List<HomePerformanceDetail> performanceDetails = performances.stream()
-			.map(performance -> {
-				List<Schedule> schedules = scheduleRepository.findByPerformanceId(performance.getId());
-				int minDueDate = scheduleService.getMinDueDate(schedules);
-
-				return HomePerformanceDetail.of(
-					performance.getId(),
-					performance.getPerformanceTitle(),
-					performance.getPerformancePeriod(),
-					performance.getTicketPrice(),
-					minDueDate,
-					performance.getGenre().name(),
-					performance.getPosterImage(),
-					performance.getPerformanceVenue()
-				);
-			})
-			.collect(Collectors.toList());
-    
-		List<HomePerformanceDetail> positiveDueDates = performanceDetails.stream()
-			.filter(detail -> detail.dueDate() >= 0)
-			.sorted((p1, p2) -> Integer.compare(p1.dueDate(), p2.dueDate()))
-			.collect(Collectors.toList());
-
-		List<HomePerformanceDetail> negativeDueDates = performanceDetails.stream()
-			.filter(detail -> detail.dueDate() < 0)
-			.sorted((p1, p2) -> Integer.compare(p2.dueDate(), p1.dueDate()))
-			.collect(Collectors.toList());
-
-		positiveDueDates.addAll(negativeDueDates);
-
-		List<HomePromotionDetail> promotions = getPromotions();
-
-		return HomeResponse.of(promotions, positiveDueDates);
-	}
-
-	private List<HomePromotionDetail> getPromotions() {
-		List<Promotion> promotionList = promotionRepository.findAll();
-		return promotionList.stream()
-			.map(promotion -> {
-				Long performanceId = null;
-				if (promotion.getPerformance() != null) {
-					performanceId = promotion.getPerformance().getId();
-				}
-				return HomePromotionDetail.of(
-					promotion.getId(),
-					promotion.getPromotionPhoto(),
-					performanceId,
-					promotion.getRedirectUrl(),
-					promotion.isExternal()
-				);
-			})
-			.collect(Collectors.toList());
+			performance.getBankName() != null ? performance.getBankName().name() : null, performance.getAccountNumber(),
+			performance.getAccountHolder());
 	}
 
 	@Transactional(readOnly = true)
 	public MakerPerformanceResponse getMemberPerformances(Long memberId) {
-		Member member = memberRepository.findById(memberId).orElseThrow(
-			() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+		Member member = memberRepository.findById(memberId)
+			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-		Users user = userRepository.findById(member.getUser().getId()).orElseThrow(
-			() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+		Users user = userRepository.findById(member.getUser().getId())
+			.orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
 
 		List<Performance> performances = performanceRepository.findByUsersId(user.getId());
 
-		List<MakerPerformanceDetailResponse> performanceDetails = performances.stream()
-			.map(performance -> {
-				List<Schedule> schedules = scheduleRepository.findByPerformanceId(performance.getId());
-				int minDueDate = scheduleService.getMinDueDate(schedules);
+		List<MakerPerformanceDetailResponse> performanceDetails = performances.stream().map(performance -> {
+			List<Schedule> schedules = scheduleRepository.findByPerformanceId(performance.getId());
+			int minDueDate = scheduleService.getMinDueDate(schedules);
 
-				return MakerPerformanceDetailResponse.of(
-					performance.getId(),
-					performance.getGenre().name(),
-					performance.getPerformanceTitle(),
-					performance.getPosterImage(),
-					performance.getPerformancePeriod(),
-					minDueDate
-				);
-			})
-			.collect(Collectors.toList());
+			return MakerPerformanceDetailResponse.of(performance.getId(), performance.getGenre().name(),
+				performance.getPerformanceTitle(), performance.getPosterImage(), performance.getPerformancePeriod(),
+				minDueDate);
+		}).collect(Collectors.toList());
 
 		List<MakerPerformanceDetailResponse> positiveDueDates = performanceDetails.stream()
 			.filter(detail -> detail.minDueDate() >= 0)
@@ -290,7 +168,7 @@ public class PerformanceService implements PerformanceUseCase {
 		return performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 	}
-  
+
 	@Transactional
 	public PerformanceModifyDetailResponse getPerformanceEdit(Long memberId, Long performanceId) {
 		Member member = memberRepository.findById(memberId)
@@ -321,64 +199,33 @@ public class PerformanceService implements PerformanceUseCase {
 		List<Schedule> schedules, List<Cast> casts, List<Staff> staffs, List<PerformanceImage> performanceImages,
 		boolean isBookerExist) {
 		List<ScheduleResponse> scheduleResponses = schedules.stream()
-			.map(schedule -> ScheduleResponse.of(
-				schedule.getId(),
-				schedule.getPerformanceDate(),
-				schedule.getTotalTicketCount(),
-				calculateDueDate(schedule.getPerformanceDate()),
-				schedule.getScheduleNumber()
-			))
+			.map(schedule -> ScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
+				schedule.getTotalTicketCount(), calculateDueDate(schedule.getPerformanceDate()),
+				schedule.getScheduleNumber()))
 			.collect(Collectors.toList());
 
 		List<CastResponse> castResponses = casts.stream()
-			.map(cast -> CastResponse.of(
-				cast.getId(),
-				cast.getCastName(),
-				cast.getCastRole(),
-				cast.getCastPhoto()
-			))
+			.map(cast -> CastResponse.of(cast.getId(), cast.getCastName(), cast.getCastRole(), cast.getCastPhoto()))
 			.collect(Collectors.toList());
 
 		List<StaffResponse> staffResponses = staffs.stream()
-			.map(staff -> StaffResponse.of(
-				staff.getId(),
-				staff.getStaffName(),
-				staff.getStaffRole(),
-				staff.getStaffPhoto()
-			))
+			.map(staff -> StaffResponse.of(staff.getId(), staff.getStaffName(), staff.getStaffRole(),
+				staff.getStaffPhoto()))
 			.collect(Collectors.toList());
 
 		List<PerformanceImageResponse> performanceImageResponses = performanceImages.stream()
-			.map(performanceImage -> PerformanceImageResponse.of(
-				performanceImage.getId(),
-				performanceImage.getPerformanceImage()
-			))
+			.map(performanceImage -> PerformanceImageResponse.of(performanceImage.getId(),
+				performanceImage.getPerformanceImage()))
 			.collect(Collectors.toList());
 
-		return PerformanceModifyDetailResponse.of(
-			performance.getUsers().getId(),
-			performance.getId(),
-			performance.getPerformanceTitle(),
-			performance.getGenre(),
-			performance.getRunningTime(),
-			performance.getPerformanceDescription(),
-			performance.getPerformanceAttentionNote(),
-			performance.getBankName(),
-			performance.getAccountNumber(),
-			performance.getAccountHolder(),
-			performance.getPosterImage(),
-			performance.getPerformanceTeamName(),
-			performance.getPerformanceVenue(),
-			performance.getPerformanceContact(),
-			performance.getPerformancePeriod(),
-			performance.getTicketPrice(),
-			performance.getTotalScheduleCount(),
-			isBookerExist,
-			scheduleResponses,
-			castResponses,
-			staffResponses,
-			performanceImageResponses
-		);
+		return PerformanceModifyDetailResponse.of(performance.getUsers().getId(), performance.getId(),
+			performance.getPerformanceTitle(), performance.getGenre(), performance.getRunningTime(),
+			performance.getPerformanceDescription(), performance.getPerformanceAttentionNote(),
+			performance.getBankName(), performance.getAccountNumber(), performance.getAccountHolder(),
+			performance.getPosterImage(), performance.getPerformanceTeamName(), performance.getPerformanceVenue(),
+			performance.getPerformanceContact(), performance.getPerformancePeriod(), performance.getTicketPrice(),
+			performance.getTotalScheduleCount(), isBookerExist, scheduleResponses, castResponses, staffResponses,
+			performanceImageResponses);
 	}
 
 	private int calculateDueDate(LocalDateTime performanceDate) {
