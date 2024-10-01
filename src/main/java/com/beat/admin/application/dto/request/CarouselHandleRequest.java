@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.beat.domain.promotion.domain.CarouselNumber;
 
-public record CarouselProcessRequest(
+public record CarouselHandleRequest(
 	List<PromotionHandleRequest> carousels
 ) {
 

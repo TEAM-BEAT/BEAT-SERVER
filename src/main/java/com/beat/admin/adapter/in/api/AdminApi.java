@@ -2,8 +2,8 @@ package com.beat.admin.adapter.in.api;
 
 import com.beat.admin.application.dto.response.CarouselFindAllResponse;
 import com.beat.admin.application.dto.response.UserFindAllResponse;
-import com.beat.admin.application.dto.request.CarouselProcessRequest;
-import com.beat.admin.application.dto.response.CarouselProcessAllResponse;
+import com.beat.admin.application.dto.request.CarouselHandleRequest;
+import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
@@ -129,8 +129,8 @@ public interface AdminApi {
         }
     )
     @PutMapping("/carousels")
-    ResponseEntity<SuccessResponse<CarouselProcessAllResponse>> processCarouselImages(
+    ResponseEntity<SuccessResponse<CarouselHandleAllResponse>> processCarouselImages(
         @CurrentMember Long memberId,
-        @RequestBody CarouselProcessRequest request
+        @RequestBody CarouselHandleRequest request
     );
 }

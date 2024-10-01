@@ -5,15 +5,15 @@ import java.util.stream.Collectors;
 
 import com.beat.domain.promotion.domain.Promotion;
 
-public record CarouselProcessAllResponse(
+public record CarouselHandleAllResponse(
 	List<PromotionResponse> modifiedPromotions
 ) {
 
-	public static CarouselProcessAllResponse from(List<Promotion> promotions) {
+	public static CarouselHandleAllResponse from(List<Promotion> promotions) {
 		List<PromotionResponse> modifiedPromotions = promotions.stream()
 			.map(PromotionResponse::from)
 			.collect(Collectors.toList());
-		return new CarouselProcessAllResponse(modifiedPromotions);
+		return new CarouselHandleAllResponse(modifiedPromotions);
 	}
 
 	public record PromotionResponse(

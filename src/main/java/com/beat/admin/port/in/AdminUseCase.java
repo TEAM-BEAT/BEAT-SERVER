@@ -1,7 +1,7 @@
 package com.beat.admin.port.in;
 
-import com.beat.admin.application.dto.request.CarouselProcessRequest.PromotionGenerateRequest;
-import com.beat.admin.application.dto.request.CarouselProcessRequest.PromotionModifyRequest;
+import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
+import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
 import com.beat.domain.promotion.domain.CarouselNumber;
 import com.beat.domain.promotion.domain.Promotion;
 
