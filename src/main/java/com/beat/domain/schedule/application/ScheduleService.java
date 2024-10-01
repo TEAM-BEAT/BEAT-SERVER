@@ -46,12 +46,6 @@ public class ScheduleService {
         );
     }
 
-    private void validateRequest(Long scheduleId, TicketAvailabilityRequest ticketAvailabilityRequest) {
-        if (ticketAvailabilityRequest.purchaseTicketCount() <= 0 || scheduleId <= 0) {
-            throw new BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT);
-        }
-    }
-
     public int getAvailableTicketCount(Schedule schedule) {
         return schedule.getTotalTicketCount() - schedule.getSoldTicketCount();
     }
@@ -59,6 +53,11 @@ public class ScheduleService {
     public int calculateDueDate(Schedule schedule) {
         int dueDate = (int) ChronoUnit.DAYS.between(LocalDate.now(), schedule.getPerformanceDate().toLocalDate());
         return dueDate;
+    }
+
+    public int getMinDueDateForPerformance(Long performanceId) {
+        List<Schedule> schedules = scheduleRepository.findByPerformanceId(performanceId);
+        return getMinDueDate(schedules);
     }
 
     public int getMinDueDate(List<Schedule> schedules) {
@@ -77,4 +76,9 @@ public class ScheduleService {
         }
     }
 
+    private void validateRequest(Long scheduleId, TicketAvailabilityRequest ticketAvailabilityRequest) {
+        if (ticketAvailabilityRequest.purchaseTicketCount() <= 0 || scheduleId <= 0) {
+            throw new BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT);
+        }
+    }
 }
