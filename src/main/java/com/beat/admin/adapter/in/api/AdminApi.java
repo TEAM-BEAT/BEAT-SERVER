@@ -2,8 +2,8 @@ package com.beat.admin.adapter.in.api;
 
 import com.beat.admin.application.dto.response.CarouselFindAllResponse;
 import com.beat.admin.application.dto.response.UserFindAllResponse;
-import com.beat.admin.application.dto.request.CarouselProcessRequest;
-import com.beat.admin.application.dto.response.CarouselProcessAllResponse;
+import com.beat.admin.application.dto.request.CarouselHandleRequest;
+import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
@@ -16,7 +16,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -128,9 +127,8 @@ public interface AdminApi {
             )
         }
     )
-    @PutMapping("/carousels")
-    ResponseEntity<SuccessResponse<CarouselProcessAllResponse>> processCarouselImages(
+    ResponseEntity<SuccessResponse<CarouselHandleAllResponse>> processCarouselImages(
         @CurrentMember Long memberId,
-        @RequestBody CarouselProcessRequest request
+        @RequestBody CarouselHandleRequest request
     );
 }

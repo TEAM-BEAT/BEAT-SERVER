@@ -1,8 +1,8 @@
 package com.beat.admin.adapter.in.api;
 
 import com.beat.admin.application.dto.response.CarouselFindAllResponse;
-import com.beat.admin.application.dto.request.CarouselProcessRequest;
-import com.beat.admin.application.dto.response.CarouselProcessAllResponse;
+import com.beat.admin.application.dto.request.CarouselHandleRequest;
+import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
 import com.beat.admin.exception.AdminSuccessCode;
 import com.beat.admin.application.dto.response.UserFindAllResponse;
 import com.beat.admin.facade.AdminFacade;
@@ -69,10 +69,10 @@ public class AdminController implements AdminApi {
 
 	@Override
 	@PutMapping("/carousels")
-	public ResponseEntity<SuccessResponse<CarouselProcessAllResponse>> processCarouselImages(
+	public ResponseEntity<SuccessResponse<CarouselHandleAllResponse>> processCarouselImages(
 		@CurrentMember Long memberId,
-		@RequestBody CarouselProcessRequest request) {
-		CarouselProcessAllResponse response = adminFacade.checkMemberAndProcessAllPromotionsSortedByCarouselNumber(memberId, request);
+		@RequestBody CarouselHandleRequest request) {
+		CarouselHandleAllResponse response = adminFacade.checkMemberAndProcessAllPromotionsSortedByCarouselNumber(memberId, request);
 		return ResponseEntity.status(HttpStatus.OK)
 			.body(SuccessResponse.of(AdminSuccessCode.UPDATE_ALL_CAROUSEL_PROMOTIONS_SUCCESS, response));
 	}

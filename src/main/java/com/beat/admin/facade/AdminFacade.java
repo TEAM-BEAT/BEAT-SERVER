@@ -3,10 +3,10 @@ package com.beat.admin.facade;
 import com.beat.admin.application.dto.request.PromotionHandleRequest;
 import com.beat.admin.application.dto.response.CarouselFindAllResponse;
 import com.beat.admin.application.dto.response.UserFindAllResponse;
-import com.beat.admin.application.dto.request.CarouselProcessRequest;
-import com.beat.admin.application.dto.request.CarouselProcessRequest.PromotionGenerateRequest;
-import com.beat.admin.application.dto.request.CarouselProcessRequest.PromotionModifyRequest;
-import com.beat.admin.application.dto.response.CarouselProcessAllResponse;
+import com.beat.admin.application.dto.request.CarouselHandleRequest;
+import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
+import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
+import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
 import com.beat.admin.port.in.AdminUseCase;
 import com.beat.domain.member.port.in.MemberUseCase;
 import com.beat.domain.promotion.domain.CarouselNumber;
@@ -64,8 +64,8 @@ public class AdminFacade {
 		return CarouselFindAllResponse.from(promotions);
 	}
 
-	public CarouselProcessAllResponse checkMemberAndProcessAllPromotionsSortedByCarouselNumber(Long memberId,
-		CarouselProcessRequest request) {
+	public CarouselHandleAllResponse checkMemberAndProcessAllPromotionsSortedByCarouselNumber(Long memberId,
+		CarouselHandleRequest request) {
 
 		memberUseCase.findMemberById(memberId);
 
@@ -85,10 +85,10 @@ public class AdminFacade {
 		List<Promotion> sortedPromotions = adminUsecase.processPromotionsAndSortByCarouselNumber(modifyRequests,
 			generateRequests, deleteCarouselNumbers, overlappingCarouselNumbers);
 
-		return CarouselProcessAllResponse.from(sortedPromotions);
+		return CarouselHandleAllResponse.from(sortedPromotions);
 	}
 
-	private void categorizePromotionRequests(CarouselProcessRequest request,
+	private void categorizePromotionRequests(CarouselHandleRequest request,
 		List<PromotionModifyRequest> modifyRequests, List<PromotionGenerateRequest> generateRequests,
 		Set<CarouselNumber> requestCarouselNumbers) {
 
@@ -111,15 +111,15 @@ public class AdminFacade {
 	}
 
 	private List<CarouselNumber> findOverlappingCarouselNumbers(Set<CarouselNumber> requestCarouselNumbers,
-		List<CarouselNumber> allExistingCarouselNumbers, CarouselProcessRequest request) {
+		List<CarouselNumber> allExistingCarouselNumbers, CarouselHandleRequest request) {
 		return allExistingCarouselNumbers.stream()
 			.filter(requestCarouselNumbers::contains)
 			.filter(existingCarouselNumber -> {
 				Promotion existingPromotion = promotionUseCase.findPromotionByCarouselNumber(existingCarouselNumber);
 				return request.carousels()
 					.stream()
-					.filter(req -> req instanceof CarouselProcessRequest.PromotionModifyRequest)
-					.map(req -> (CarouselProcessRequest.PromotionModifyRequest)req)
+					.filter(req -> req instanceof CarouselHandleRequest.PromotionModifyRequest)
+					.map(req -> (CarouselHandleRequest.PromotionModifyRequest)req)
 					.noneMatch(req -> req.promotionId() != null && req.promotionId().equals(existingPromotion.getId()));
 			})
 			.toList();
