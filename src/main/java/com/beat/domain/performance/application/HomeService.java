@@ -44,9 +44,8 @@ public class HomeService {
 				int minDueDate = scheduleService.getMinDueDateForPerformance(performance.getId());
 				return HomePerformanceDetail.of(performance, minDueDate);
 			})
-			.sorted(Comparator.comparingInt(HomePerformanceDetail::dueDate)
-				.reversed()
-				.thenComparingInt(detail -> detail.dueDate() >= 0 ? -1 : 1))
+			.sorted(Comparator.<HomePerformanceDetail>comparingInt(detail -> detail.dueDate() < 0 ? 1 : 0)
+				.thenComparingInt(detail -> Math.abs(detail.dueDate())))
 			.toList();
 
 		return HomeFindAllResponse.of(promotions, sortedPerformances);
@@ -63,7 +62,8 @@ public class HomeService {
 	}
 
 	private List<HomePromotionDetail> findAllPromotionsSortedByCarouselNumber() {
-		return promotionUseCase.findAllPromotions().stream()
+		return promotionUseCase.findAllPromotions()
+			.stream()
 			.sorted(Comparator.comparing(Promotion::getCarouselNumber, Comparator.comparingInt(Enum::ordinal)))
 			.map(HomePromotionDetail::from)
 			.toList();
