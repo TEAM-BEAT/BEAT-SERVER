@@ -9,7 +9,6 @@ import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionMod
 import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
 import com.beat.admin.port.in.AdminUseCase;
 import com.beat.domain.member.port.in.MemberUseCase;
-import com.beat.domain.promotion.domain.CarouselNumber;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.port.in.PromotionUseCase;
 import com.beat.domain.user.domain.Users;
@@ -28,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -71,57 +71,41 @@ public class AdminFacade {
 
 		List<PromotionModifyRequest> modifyRequests = new ArrayList<>();
 		List<PromotionGenerateRequest> generateRequests = new ArrayList<>();
-		Set<CarouselNumber> requestCarouselNumbers = new HashSet<>();
+		Set<Long> requestPromotionIds = new HashSet<>();
 
-		categorizePromotionRequests(request, modifyRequests, generateRequests, requestCarouselNumbers);
+		categorizePromotionRequestsByPromotionId(request, modifyRequests, generateRequests, requestPromotionIds);
 
-		List<CarouselNumber> allExistingCarouselNumbers = promotionUseCase.findAllCarouselNumbers();
+		List<Promotion> allExistingPromotions = promotionUseCase.findAllPromotions();
 
-		List<CarouselNumber> deleteCarouselNumbers = findDeleteCarouselNumbers(requestCarouselNumbers,
-			allExistingCarouselNumbers);
-		List<CarouselNumber> overlappingCarouselNumbers = findOverlappingCarouselNumbers(requestCarouselNumbers,
-			allExistingCarouselNumbers, request);
+		List<Long> deletePromotionIds = extractDeletePromotionIds(allExistingPromotions, requestPromotionIds);
 
-		List<Promotion> sortedPromotions = adminUsecase.processPromotionsAndSortByCarouselNumber(modifyRequests,
-			generateRequests, deleteCarouselNumbers, overlappingCarouselNumbers);
+		List<Promotion> sortedPromotions = adminUsecase.processPromotionsAndSortByPromotionId(modifyRequests,
+			generateRequests, deletePromotionIds);
 
 		return CarouselHandleAllResponse.from(sortedPromotions);
 	}
 
-	private void categorizePromotionRequests(CarouselHandleRequest request,
+	private void categorizePromotionRequestsByPromotionId(CarouselHandleRequest request,
 		List<PromotionModifyRequest> modifyRequests, List<PromotionGenerateRequest> generateRequests,
-		Set<CarouselNumber> requestCarouselNumbers) {
+		Set<Long> requestPromotionIds) {
 
 		for (PromotionHandleRequest promotionRequest : request.carousels()) {
-			requestCarouselNumbers.add(promotionRequest.carouselNumber());
-
 			if (promotionRequest instanceof PromotionModifyRequest modifyRequest) {
 				modifyRequests.add(modifyRequest);
+				requestPromotionIds.add(modifyRequest.promotionId());
 			} else if (promotionRequest instanceof PromotionGenerateRequest generateRequest) {
 				generateRequests.add(generateRequest);
 			}
 		}
 	}
 
-	private List<CarouselNumber> findDeleteCarouselNumbers(Set<CarouselNumber> requestCarouselNumbers,
-		List<CarouselNumber> allExistingCarouselNumbers) {
-		return allExistingCarouselNumbers.stream()
-			.filter(existingCarouselNumber -> !requestCarouselNumbers.contains(existingCarouselNumber))
-			.toList();
-	}
+	private List<Long> extractDeletePromotionIds(List<Promotion> allExistingPromotions, Set<Long> requestPromotionIds) {
+		Set<Long> allExistingPromotionIds = allExistingPromotions.stream()
+			.map(Promotion::getId)
+			.collect(Collectors.toSet());
 
-	private List<CarouselNumber> findOverlappingCarouselNumbers(Set<CarouselNumber> requestCarouselNumbers,
-		List<CarouselNumber> allExistingCarouselNumbers, CarouselHandleRequest request) {
-		return allExistingCarouselNumbers.stream()
-			.filter(requestCarouselNumbers::contains)
-			.filter(existingCarouselNumber -> {
-				Promotion existingPromotion = promotionUseCase.findPromotionByCarouselNumber(existingCarouselNumber);
-				return request.carousels()
-					.stream()
-					.filter(req -> req instanceof CarouselHandleRequest.PromotionModifyRequest)
-					.map(req -> (CarouselHandleRequest.PromotionModifyRequest)req)
-					.noneMatch(req -> req.promotionId() != null && req.promotionId().equals(existingPromotion.getId()));
-			})
+		return allExistingPromotionIds.stream()
+			.filter(existingId -> !requestPromotionIds.contains(existingId))
 			.toList();
 	}
 }
