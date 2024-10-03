@@ -5,7 +5,6 @@ import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionMod
 import com.beat.admin.port.in.AdminUseCase;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.port.in.PerformanceUseCase;
-import com.beat.domain.promotion.domain.CarouselNumber;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.port.in.PromotionUseCase;
 
@@ -35,12 +34,10 @@ public class AdminService implements AdminUseCase {
 
 	@Override
 	@Transactional
-	public List<Promotion> processPromotionsAndSortByCarouselNumber(List<PromotionModifyRequest> modifyRequests,
-		List<PromotionGenerateRequest> generateRequests, List<CarouselNumber> deleteCarouselNumbers,
-		List<CarouselNumber> overlappingCarouselNumbers) {
+	public List<Promotion> processPromotionsAndSortByPromotionId(List<PromotionModifyRequest> modifyRequests,
+		List<PromotionGenerateRequest> generateRequests, List<Long> deletePromotionIds) {
 
-		handleOverlappingCarouselNumbersPromotionDeletion(overlappingCarouselNumbers);
-		handlePromotionDeletion(deleteCarouselNumbers);
+		handlePromotionDeletion(deletePromotionIds);
 		List<Promotion> modifiedPromotions = handlePromotionModification(modifyRequests);
 		List<Promotion> addedPromotions = handlePromotionGeneration(generateRequests);
 
@@ -50,40 +47,38 @@ public class AdminService implements AdminUseCase {
 		return sortPromotionsByCarouselNumber(applyPromotionChanges);
 	}
 
-	private void handleOverlappingCarouselNumbersPromotionDeletion(List<CarouselNumber> overlappingCarouselNumbers) {
-		if (!overlappingCarouselNumbers.isEmpty()) {
-			promotionUseCase.deleteByCarouselNumber(overlappingCarouselNumbers);
-		}
-	}
-
-	private void handlePromotionDeletion(List<CarouselNumber> deleteCarouselNumbers) {
-		if (!deleteCarouselNumbers.isEmpty()) {
-			promotionUseCase.deleteByCarouselNumber(deleteCarouselNumbers);
+	private void handlePromotionDeletion(List<Long> deletePromotionIds) {
+		if (!deletePromotionIds.isEmpty()) {
+			promotionUseCase.deletePromotionsByPromotionIds(deletePromotionIds);
 		}
 	}
 
 	private List<Promotion> handlePromotionModification(List<PromotionModifyRequest> modifyRequests) {
-		return modifyRequests.stream().map(modifyRequest -> {
+		return modifyRequests.stream()
+			.map(modifyRequest -> {
 
-			Promotion promotion = promotionUseCase.findById(modifyRequest.promotionId());
+				Promotion promotion = promotionUseCase.findById(modifyRequest.promotionId());
 
-			Performance performance = Optional.ofNullable(modifyRequest.performanceId())
-				.map(performanceUseCase::findById)
-				.orElse(null);
+				Performance performance = Optional.ofNullable(modifyRequest.performanceId())
+					.map(performanceUseCase::findById)
+					.orElse(null);
 
-			return promotionUseCase.modifyPromotion(promotion, performance, modifyRequest);
-		}).toList();
+				return promotionUseCase.modifyPromotion(promotion, performance, modifyRequest);
+			})
+			.toList();
 	}
 
 	private List<Promotion> handlePromotionGeneration(List<PromotionGenerateRequest> generateRequests) {
-		return generateRequests.stream().map(generateRequest -> {
-			Performance performance = Optional.ofNullable(generateRequest.performanceId())
-				.map(performanceUseCase::findById)
-				.orElse(null);
+		return generateRequests.stream()
+			.map(generateRequest -> {
+				Performance performance = Optional.ofNullable(generateRequest.performanceId())
+					.map(performanceUseCase::findById)
+					.orElse(null);
 
-			return promotionUseCase.createPromotion(generateRequest.newImageUrl(), performance,
-				generateRequest.redirectUrl(), generateRequest.isExternal(), generateRequest.carouselNumber());
-		}).toList();
+				return promotionUseCase.createPromotion(generateRequest.newImageUrl(), performance,
+					generateRequest.redirectUrl(), generateRequest.isExternal(), generateRequest.carouselNumber());
+			})
+			.toList();
 	}
 
 	private List<Promotion> sortPromotionsByCarouselNumber(List<Promotion> promotions) {

@@ -51,20 +51,7 @@ public class PromotionService implements PromotionUseCase {
 	}
 
 	@Override
-	public void deleteByCarouselNumber(List<CarouselNumber> carouselNumber) {
-		promotionRepository.deleteByCarouselNumbers(carouselNumber);
-	}
-
-	@Override
-	@Transactional(readOnly = true)
-	public List<CarouselNumber> findAllCarouselNumbers() {
-		return promotionRepository.findAllCarouselNumbers();
-	}
-
-	@Override
-	@Transactional(readOnly = true)
-	public Promotion findPromotionByCarouselNumber(CarouselNumber carouselNumber) {
-		return promotionRepository.findByCarouselNumber(carouselNumber)
-			.orElseThrow(() -> new NotFoundException(PromotionErrorCode.PROMOTION_NOT_FOUND));
+	public void deletePromotionsByPromotionIds(List<Long> promotionIds) {
+		promotionRepository.deleteByPromotionIds(promotionIds);
 	}
 }

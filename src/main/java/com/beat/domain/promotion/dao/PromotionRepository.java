@@ -14,13 +14,10 @@ import java.util.Optional;
 public interface PromotionRepository extends JpaRepository<Promotion, Long> {
     List<Promotion> findAll();
 
-    @Query("SELECT p.carouselNumber FROM Promotion p")
-    List<CarouselNumber> findAllCarouselNumbers();
-
     @Modifying(clearAutomatically = true)
     @Transactional
-    @Query("DELETE FROM Promotion p WHERE p.carouselNumber IN :carouselNumbers")
-    void deleteByCarouselNumbers(@Param("carouselNumbers") List<CarouselNumber> carouselNumbers);
+    @Query("DELETE FROM Promotion p WHERE p.id IN :promotionIds")
+    void deleteByPromotionIds(@Param("promotionIds") List<Long> promotionIds);
 
     @Query("SELECT p FROM Promotion p WHERE p.carouselNumber = :carouselNumber")
     Optional<Promotion> findByCarouselNumber(@Param("carouselNumber") CarouselNumber carouselNumber);
