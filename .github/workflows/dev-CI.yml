@@ -84,11 +84,11 @@ jobs:
           docker build -f Dockerfile-dev --platform linux/amd64 -t hoonyworld/beat-dev .
           docker push hoonyworld/beat-dev
 
-      # Trigger Jenkins job - Jenkins 작업 트리거
-      - name: Trigger Jenkins job
-        uses: appleboy/jenkins-action@master
-        with:
-          url: ${{ secrets.DEV_WEBHOOK_URL }}
-          user: "beat"
-          token: ${{ secrets.DEV_JENKINS_API_TOKEN }}
-          job: "beat-project"
+#      # Trigger Jenkins job - Jenkins 작업 트리거
+#      - name: Trigger Jenkins job
+#        uses: appleboy/jenkins-action@master
+#        with:
+#          url: ${{ secrets.DEV_WEBHOOK_URL }}
+#          user: "beat"
+#          token: ${{ secrets.DEV_JENKINS_API_TOKEN }}
+#          job: "beat-project"
