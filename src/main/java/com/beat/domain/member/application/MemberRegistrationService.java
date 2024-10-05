@@ -28,6 +28,7 @@ public class MemberRegistrationService {
 		log.info("Granting MEMBER role to new user with role: {}", users.getRole());
 
 		users = userRepository.save(users);
+		userRepository.flush();
 
 		log.info("Registering new user with role: {}", users.getRole());
 

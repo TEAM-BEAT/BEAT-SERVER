@@ -11,8 +11,6 @@ import com.beat.global.auth.client.dto.MemberInfoResponse;
 import com.beat.global.auth.client.dto.MemberLoginRequest;
 import com.beat.global.common.exception.BadRequestException;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,9 +26,6 @@ public class SocialLoginService {
 	private final MemberRegistrationService memberRegistrationService;
 	private final AuthenticationService authenticationService;
 	private final KakaoSocialService kakaoSocialService;
-
-	@PersistenceContext
-	private final EntityManager entityManager;
 
 	/**
 	 * 소셜 로그인 또는 회원가입을 처리하는 메서드.
@@ -86,7 +81,6 @@ public class SocialLoginService {
 	 */
 	private LoginSuccessResponse generateLoginResponseFromMemberInfo(final MemberInfoResponse memberInfoResponse) {
 		Long memberId = findOrRegisterMember(memberInfoResponse);
-		entityManager.flush();
 
 		Users user = memberService.findUserByMemberId(memberId);
 
