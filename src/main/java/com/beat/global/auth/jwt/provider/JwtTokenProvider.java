@@ -57,15 +57,21 @@ public class JwtTokenProvider {
 	private String issueToken(final Authentication authentication, final long expiredTime) {
 		final Date now = new Date();
 
-		final Claims claims = Jwts.claims()
-			.setIssuedAt(now)
-			.setExpiration(new Date(now.getTime() + expiredTime));
+		final Claims claims = Jwts.claims().setIssuedAt(now).setExpiration(new Date(now.getTime() + expiredTime));
 
 		claims.put(MEMBER_ID, authentication.getPrincipal());
-		claims.put(ROLE_KEY, authentication.getAuthorities().stream()
+
+		log.info("Authorities before token generation: {}", authentication.getAuthorities());
+
+		String role = authentication.getAuthorities()
+			.stream()
 			.map(GrantedAuthority::getAuthority)
 			.findFirst()
-			.orElseThrow(() -> new IllegalArgumentException("No authorities found for user")));
+			.orElseThrow(() -> new IllegalArgumentException("No authorities found for user"));
+
+		log.info("Selected role for token: {}", role);
+
+		claims.put(ROLE_KEY, role);
 
 		return Jwts.builder()
 			.setHeaderParam(Header.TYPE, Header.JWT_TYPE)
@@ -102,11 +108,7 @@ public class JwtTokenProvider {
 	}
 
 	private Claims getBody(final String token) {
-		return Jwts.parserBuilder()
-			.setSigningKey(getSigningKey())
-			.build()
-			.parseClaimsJws(token)
-			.getBody();
+		return Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getBody();
 	}
 
 	public Long getMemberIdFromJwt(String token) {
@@ -123,9 +125,11 @@ public class JwtTokenProvider {
 		Claims claims = getBody(token);
 		String roleName = claims.get(ROLE_KEY, String.class);
 
+		log.info("Extracted role from JWT: {}", roleName);
+
 		// "ROLE_" 접두사 제거
 		String enumValue = roleName.replace("ROLE_", "");
-		log.info("Extracted role from JWT: {}", enumValue);
+		log.info("Final role after processing: {}", enumValue);
 
 		return Role.valueOf(enumValue.toUpperCase());
 	}
