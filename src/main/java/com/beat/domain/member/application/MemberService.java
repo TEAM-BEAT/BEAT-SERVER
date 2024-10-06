@@ -8,8 +8,10 @@ import com.beat.domain.member.port.in.MemberUseCase;
 import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
 import com.beat.global.common.exception.*;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,34 +20,34 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 @Service
 public class MemberService implements MemberUseCase {
-    private final UserRepository userRepository;
-    private final MemberRepository memberRepository;
+	private final UserRepository userRepository;
+	private final MemberRepository memberRepository;
 
-    @Transactional
-    public void deleteUser(final Long id) {
-        Users users = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+	@Override
+	@Transactional(readOnly = true)
+	public Member findMemberByMemberId(Long memberId) {
+		return memberRepository.findById(memberId)
+			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+	}
 
-        userRepository.delete(users);
-    }
+	@Override
+	@Transactional(readOnly = true)
+	public boolean checkMemberExistsBySocialIdAndSocialType(final Long socialId, final SocialType socialType) {
+		return memberRepository.findBySocialTypeAndSocialId(socialId, socialType).isPresent();
+	}
 
-    public boolean checkMemberExistsBySocialIdAndSocialType(final Long socialId, final SocialType socialType) {
-        return memberRepository.findBySocialTypeAndSocialId(socialId, socialType).isPresent();
-    }
+	@Override
+	@Transactional(readOnly = true)
+	public Member findMemberBySocialIdAndSocialType(final Long socialId, final SocialType socialType) {
+		return memberRepository.findBySocialTypeAndSocialId(socialId, socialType)
+			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+	}
 
-    public Member findMemberBySocialIdAndSocialType(final Long socialId, final SocialType socialType) {
-        return memberRepository.findBySocialTypeAndSocialId(socialId, socialType)
-                .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
-    }
+	@Transactional
+	public void deleteUser(final Long id) {
+		Users users = userRepository.findById(id)
+			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-    public Users findUserByMemberId(final Long memberId) {
-        return userRepository.findById(memberId)
-                .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
-    }
-
-    @Override
-    public Member findMemberById(Long memberId) {
-        return memberRepository.findById(memberId)
-                .orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
-    }
+		userRepository.delete(users);
+	}
 }
