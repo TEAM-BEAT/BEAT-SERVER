@@ -40,26 +40,26 @@ public class AdminFacade {
 	private final PromotionUseCase promotionUseCase;
 
 	public UserFindAllResponse checkMemberAndFindAllUsers(Long memberId) {
-		memberUseCase.findMemberById(memberId);
+		memberUseCase.findMemberByMemberId(memberId);
 		List<Users> users = userUseCase.findAllUsers();
 		return UserFindAllResponse.from(users);
 	}
 
 	public CarouselPresignedUrlFindAllResponse checkMemberAndIssueAllPresignedUrlsForCarousel(Long memberId,
 		List<String> carouselImages) {
-		memberUseCase.findMemberById(memberId);
+		memberUseCase.findMemberByMemberId(memberId);
 		Map<String, String> carouselPresignedUrls = fileUseCase.issueAllPresignedUrlsForCarousel(carouselImages);
 		return CarouselPresignedUrlFindAllResponse.from(carouselPresignedUrls);
 	}
 
 	public BannerPresignedUrlFindResponse checkMemberAndIssuePresignedUrlForBanner(Long memberId, String bannerImage) {
-		memberUseCase.findMemberById(memberId);
+		memberUseCase.findMemberByMemberId(memberId);
 		String bannerPresignedUrl = fileUseCase.issuePresignedUrlForBanner(bannerImage);
 		return BannerPresignedUrlFindResponse.from(bannerPresignedUrl);
 	}
 
 	public CarouselFindAllResponse checkMemberAndFindAllPromotionsSortedByCarouselNumber(Long memberId) {
-		memberUseCase.findMemberById(memberId);
+		memberUseCase.findMemberByMemberId(memberId);
 		List<Promotion> promotions = adminUsecase.findAllPromotionsSortedByCarouselNumber();
 		return CarouselFindAllResponse.from(promotions);
 	}
@@ -67,7 +67,7 @@ public class AdminFacade {
 	public CarouselHandleAllResponse checkMemberAndProcessAllPromotionsSortedByCarouselNumber(Long memberId,
 		CarouselHandleRequest request) {
 
-		memberUseCase.findMemberById(memberId);
+		memberUseCase.findMemberByMemberId(memberId);
 
 		List<PromotionModifyRequest> modifyRequests = new ArrayList<>();
 		List<PromotionGenerateRequest> generateRequests = new ArrayList<>();
