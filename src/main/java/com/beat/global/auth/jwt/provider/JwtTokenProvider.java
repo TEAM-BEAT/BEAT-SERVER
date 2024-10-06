@@ -60,7 +60,7 @@ public class JwtTokenProvider {
 		final Claims claims = Jwts.claims().setIssuedAt(now).setExpiration(new Date(now.getTime() + expiredTime));
 
 		claims.put(MEMBER_ID, authentication.getPrincipal());
-
+		log.info("Added member ID to claims: {}", authentication.getPrincipal());
 		log.info("Authorities before token generation: {}", authentication.getAuthorities());
 
 		String role = authentication.getAuthorities()
@@ -72,6 +72,7 @@ public class JwtTokenProvider {
 		log.info("Selected role for token: {}", role);
 
 		claims.put(ROLE_KEY, role);
+		log.info("Added role to claims: {}", role);
 
 		return Jwts.builder()
 			.setHeaderParam(Header.TYPE, Header.JWT_TYPE)
