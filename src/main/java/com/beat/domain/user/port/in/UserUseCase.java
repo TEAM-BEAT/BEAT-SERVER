@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface UserUseCase {
     List<Users> findAllUsers();
+
+    Users findUserByUserId(final Long userId);
 }
