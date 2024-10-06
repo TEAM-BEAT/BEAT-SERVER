@@ -80,9 +80,14 @@ public class SocialLoginService {
 	 * @return 로그인 성공 응답(LoginSuccessResponse)
 	 */
 	private LoginSuccessResponse generateLoginResponseFromMemberInfo(final MemberInfoResponse memberInfoResponse) {
+		log.info("Attempting to find or register member for socialId: {}, socialType: {}",
+			memberInfoResponse.socialId(), memberInfoResponse.socialType());
+
 		Long memberId = findOrRegisterMember(memberInfoResponse);
+		log.info("Found or registered member with memberId: {}", memberId);
 
 		Users user = memberService.findUserByMemberId(memberId);
+		log.info("User role before generating token: {}", user.getRole());
 
 		return authenticationService.generateLoginSuccessResponse(memberId, user, memberInfoResponse);
 	}
@@ -101,6 +106,7 @@ public class SocialLoginService {
 		if (memberExists) {
 			Member existingMember = memberService.findMemberBySocialIdAndSocialType(memberInfoResponse.socialId(),
 				memberInfoResponse.socialType());
+			log.info("Existing member role: {}", existingMember.getUser().getRole());
 			return existingMember.getId();
 		}
 
