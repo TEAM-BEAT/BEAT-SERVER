@@ -4,7 +4,9 @@ import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
 import com.beat.domain.member.dto.LoginSuccessResponse;
 import com.beat.domain.member.exception.MemberErrorCode;
+import com.beat.domain.member.port.in.MemberUseCase;
 import com.beat.domain.user.domain.Users;
+import com.beat.domain.user.port.in.UserUseCase;
 import com.beat.global.auth.client.application.KakaoSocialService;
 import com.beat.global.auth.client.application.SocialService;
 import com.beat.global.auth.client.dto.MemberInfoResponse;
@@ -22,10 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SocialLoginService {
 
-	private final MemberService memberService;
 	private final MemberRegistrationService memberRegistrationService;
 	private final AuthenticationService authenticationService;
 	private final KakaoSocialService kakaoSocialService;
+	private final UserUseCase userUseCase;
+	private final MemberUseCase memberUseCase;
 
 	/**
 	 * 소셜 로그인 또는 회원가입을 처리하는 메서드.
@@ -86,7 +89,9 @@ public class SocialLoginService {
 		Long memberId = findOrRegisterMember(memberInfoResponse);
 		log.info("Found or registered member with memberId: {}", memberId);
 
-		Users user = memberService.findUserByMemberId(memberId);
+		Member member = memberUseCase.findMemberByMemberId(memberId);
+		Users user = userUseCase.findUserByUserId(member.getUser().getId());
+
 		log.info("User role before generating token: {}", user.getRole());
 
 		return authenticationService.generateLoginSuccessResponse(memberId, user, memberInfoResponse);
@@ -100,11 +105,11 @@ public class SocialLoginService {
 	 * @return 등록된 회원 또는 기존 회원의 ID
 	 */
 	private Long findOrRegisterMember(final MemberInfoResponse memberInfoResponse) {
-		boolean memberExists = memberService.checkMemberExistsBySocialIdAndSocialType(memberInfoResponse.socialId(),
+		boolean memberExists = memberUseCase.checkMemberExistsBySocialIdAndSocialType(memberInfoResponse.socialId(),
 			memberInfoResponse.socialType());
 
 		if (memberExists) {
-			Member existingMember = memberService.findMemberBySocialIdAndSocialType(memberInfoResponse.socialId(),
+			Member existingMember = memberUseCase.findMemberBySocialIdAndSocialType(memberInfoResponse.socialId(),
 				memberInfoResponse.socialType());
 			log.info("Existing member role: {}", existingMember.getUser().getRole());
 			return existingMember.getId();
