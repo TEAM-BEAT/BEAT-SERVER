@@ -27,7 +27,6 @@ public class SocialLoginService {
 	private final MemberRegistrationService memberRegistrationService;
 	private final AuthenticationService authenticationService;
 	private final KakaoSocialService kakaoSocialService;
-	private final UserUseCase userUseCase;
 	private final MemberUseCase memberUseCase;
 
 	/**
@@ -90,7 +89,7 @@ public class SocialLoginService {
 		log.info("Found or registered member with memberId: {}", memberId);
 
 		Member member = memberUseCase.findMemberByMemberId(memberId);
-		Users user = userUseCase.findUserByUserId(member.getUser().getId());
+		Users user = member.getUser();
 
 		log.info("User role before generating token: {}", user.getRole());
 
