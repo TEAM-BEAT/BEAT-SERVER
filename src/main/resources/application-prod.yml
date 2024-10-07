@@ -77,3 +77,7 @@ logging:
 
 cors:
   allowed-origins: ${PROD_ALLOWED_ORIGINS}
+
+app:
+  server:
+    url: ${PROD_SERVER_URL}

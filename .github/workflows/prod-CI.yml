@@ -56,6 +56,7 @@ jobs:
           PROD_ACCESS_TOKEN_EXPIRE_TIME: ${{ secrets.PROD_ACCESS_TOKEN_EXPIRE_TIME }}
           PROD_REFRESH_TOKEN_EXPIRE_TIME: ${{ secrets.PROD_REFRESH_TOKEN_EXPIRE_TIME }}
           PROD_ALLOWED_ORIGINS: ${{ secrets.PROD_ALLOWED_ORIGINS }}
+          PROD_SERVER_URL: ${{ secrets.PROD_SERVER_URL }}
         run: |
           cd ./src/main/resources
           envsubst < application-prod.yml > application-prod.tmp.yml && mv application-prod.tmp.yml application-prod.yml
