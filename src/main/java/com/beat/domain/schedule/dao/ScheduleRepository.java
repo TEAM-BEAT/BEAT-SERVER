@@ -21,4 +21,11 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     List<Schedule> findAllByPerformanceId(Long performanceId);
 
     @Query("SELECT s.id FROM Schedule s WHERE s.performance.id = :performanceId")
-    List<Long> findIdsByPerformanceId(@Param("performanceId") Long performanceId);}
+    List<Long> findIdsByPerformanceId(@Param("performanceId") Long performanceId);
+
+    int countByPerformanceId(Long performanceId);
+
+    // 기존의 PENDING 상태인 스케줄들을 조회하는 메소드
+    @Query("SELECT s FROM Schedule s WHERE s.isBooking = true")
+    List<Schedule> findPendingSchedules();
+}

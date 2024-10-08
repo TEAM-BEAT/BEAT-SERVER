@@ -25,7 +25,8 @@ public record PerformanceResponse(
         int totalScheduleCount,
         List<ScheduleResponse> scheduleList,
         List<CastResponse> castList,
-        List<StaffResponse> staffList
+        List<StaffResponse> staffList,
+        List<PerformanceImageResponse> performanceImageList
 ) {
     public static PerformanceResponse of(
             Long userId,
@@ -47,7 +48,8 @@ public record PerformanceResponse(
             int totalScheduleCount,
             List<ScheduleResponse> scheduleList,
             List<CastResponse> castList,
-            List<StaffResponse> staffList
+            List<StaffResponse> staffList,
+            List<PerformanceImageResponse> performanceImageList
     ) {
         return new PerformanceResponse(
                 userId,
@@ -69,7 +71,8 @@ public record PerformanceResponse(
                 totalScheduleCount,
                 scheduleList,
                 castList,
-                staffList
+                staffList,
+                performanceImageList
         );
     }
 }

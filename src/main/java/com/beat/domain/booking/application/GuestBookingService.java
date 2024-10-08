@@ -12,16 +12,14 @@ import com.beat.domain.user.domain.Users;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GuestBookingService {
-
-    private static final Logger logger = LoggerFactory.getLogger(GuestBookingService.class);
 
     private final ScheduleRepository scheduleRepository;
     private final BookingRepository bookingRepository;
@@ -37,7 +35,7 @@ public class GuestBookingService {
             throw new BadRequestException(ScheduleErrorCode.INSUFFICIENT_TICKETS);
         }
 
-        schedule.setSoldTicketCount(schedule.getSoldTicketCount() + guestBookingRequest.purchaseTicketCount());
+        updateSoldTicketCountAndIsBooking(schedule, guestBookingRequest.purchaseTicketCount());
 
         Users users = bookingRepository.findFirstByBookerNameAndBookerPhoneNumberAndBirthDateAndPassword(
                 guestBookingRequest.bookerName(),
@@ -58,7 +56,7 @@ public class GuestBookingService {
                 guestBookingRequest.purchaseTicketCount(),
                 guestBookingRequest.bookerName(),
                 guestBookingRequest.bookerPhoneNumber(),
-                guestBookingRequest.isPaymentCompleted(),
+                guestBookingRequest.bookingStatus(),
                 guestBookingRequest.birthDate(),
                 guestBookingRequest.password(),
                 schedule,
@@ -66,7 +64,7 @@ public class GuestBookingService {
         );
         bookingRepository.save(booking);
 
-        logger.info("Booking created: {}", booking);
+        log.info("Guest Booking created: {}", booking);
 
         return GuestBookingResponse.of(
                 booking.getId(),
@@ -76,11 +74,19 @@ public class GuestBookingService {
                 schedule.getScheduleNumber(),
                 booking.getBookerName(),
                 booking.getBookerPhoneNumber(),
-                booking.isPaymentCompleted(),
+                booking.getBookingStatus(),
                 schedule.getPerformance().getBankName(),
                 schedule.getPerformance().getAccountNumber(),
                 totalPaymentAmount,
                 booking.getCreatedAt()
         );
+    }
+
+    private void updateSoldTicketCountAndIsBooking(Schedule schedule, int purchaseTicketCount) {
+        schedule.setSoldTicketCount(schedule.getSoldTicketCount() + purchaseTicketCount);
+
+        if (schedule.getTotalTicketCount() == schedule.getSoldTicketCount()) {
+            schedule.updateIsBooking(false);
+        }
     }
 }

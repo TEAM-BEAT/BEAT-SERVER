@@ -1,20 +1,22 @@
 package com.beat.domain.performance.api;
 
 import com.beat.domain.performance.application.PerformanceManagementService;
-import com.beat.domain.performance.application.PerformanceUpdateService;
-import com.beat.domain.performance.application.dto.BookingPerformanceDetailResponse;
-import com.beat.domain.performance.application.dto.MakerPerformanceResponse;
-import com.beat.domain.performance.application.dto.PerformanceDetailResponse;
-import com.beat.domain.performance.application.dto.PerformanceEditResponse;
+import com.beat.domain.performance.application.PerformanceModifyService;
+import com.beat.domain.performance.application.dto.bookingPerformanceDetail.BookingPerformanceDetailResponse;
+import com.beat.domain.performance.application.dto.makerPerformance.MakerPerformanceResponse;
+import com.beat.domain.performance.application.dto.performanceDetail.PerformanceDetailResponse;
+import com.beat.domain.performance.application.dto.modify.PerformanceModifyDetailResponse;
 import com.beat.domain.performance.application.dto.create.PerformanceRequest;
 import com.beat.domain.performance.application.dto.create.PerformanceResponse;
-import com.beat.domain.performance.application.dto.update.PerformanceUpdateRequest;
-import com.beat.domain.performance.application.dto.update.PerformanceUpdateResponse;
+import com.beat.domain.performance.application.dto.modify.PerformanceModifyRequest;
+import com.beat.domain.performance.application.dto.modify.PerformanceModifyResponse;
 import com.beat.domain.performance.exception.PerformanceSuccessCode;
 import com.beat.domain.performance.application.PerformanceService;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +36,7 @@ public class PerformanceController {
 
     private final PerformanceService performanceService;
     private final PerformanceManagementService performanceManagementService;
-    private final PerformanceUpdateService performanceUpdateService;
+    private final PerformanceModifyService performanceModifyService;
   
     @Operation(summary = "공연 생성 API", description = "공연을 생성하는 POST API입니다.")
     @PostMapping
@@ -47,21 +49,35 @@ public class PerformanceController {
     }
 
     @Operation(summary = "공연 정보 수정 API", description = "공연 정보를 수정하는 PUT API입니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "공연 정보 수정 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 - 회차 최대 개수 초과"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 - 티켓 가격은 음수일 수 없습니다."),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 - 예매자가 존재하여 가격을 수정할 수 없습니다."),
+            @ApiResponse(responseCode = "403", description = "권한 없음 - 해당 공연의 소유자가 아닙니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 공연 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 회원 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 회차 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 등장인물 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 스태프 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 상세이미지 ID로 수정 요청을 보낼 수 없습니다."),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     @PutMapping
-    public ResponseEntity<SuccessResponse<PerformanceUpdateResponse>> updatePerformance(
+    public ResponseEntity<SuccessResponse<PerformanceModifyResponse>> updatePerformance(
             @CurrentMember Long memberId,
-            @RequestBody PerformanceUpdateRequest performanceUpdateRequest) {
-        PerformanceUpdateResponse response = performanceUpdateService.updatePerformance(memberId, performanceUpdateRequest);
+            @RequestBody PerformanceModifyRequest performanceModifyRequest) {
+        PerformanceModifyResponse response = performanceModifyService.modifyPerformance(memberId, performanceModifyRequest);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_UPDATE_SUCCESS, response));
     }
 
     @Operation(summary = "공연 수정 페이지 정보 조회 API", description = "공연 정보를 조회하는 GET API입니다.")
     @GetMapping("/{performanceId}")
-    public ResponseEntity<SuccessResponse<PerformanceEditResponse>> getPerformanceForEdit(
+    public ResponseEntity<SuccessResponse<PerformanceModifyDetailResponse>> getPerformanceForEdit(
             @CurrentMember Long memberId,
             @PathVariable Long performanceId) {
-        PerformanceEditResponse response = performanceService.getPerformanceEdit(memberId, performanceId);
+        PerformanceModifyDetailResponse response = performanceService.getPerformanceEdit(memberId, performanceId);
         return ResponseEntity.ok(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_MODIFY_PAGE_SUCCESS, response));
     }
 

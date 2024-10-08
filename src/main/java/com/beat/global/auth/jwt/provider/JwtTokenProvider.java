@@ -1,5 +1,7 @@
 package com.beat.global.auth.jwt.provider;
 
+import com.beat.domain.user.domain.Role;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
@@ -7,86 +9,129 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
+
 import javax.crypto.SecretKey;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret}")
-    private String JWT_SECRET;
-    @Value("${jwt.access-token-expire-time}")
-    private long ACCESS_TOKEN_EXPIRE_TIME;
-    @Value("${jwt.refresh-token-expire-time}")
-    private long REFRESH_TOKEN_EXPIRE_TIME;
+	@Value("${jwt.secret}")
+	private String jwtSecret;
 
-    private static final String MEMBER_ID = "memberId";
+	@Value("${jwt.access-token-expire-time}")
+	private long accessTokenExpireTime;
 
-    @PostConstruct
-    protected void init() {
-        JWT_SECRET = Base64.getEncoder().encodeToString(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
-    }
+	@Value("${jwt.refresh-token-expire-time}")
+	private long refreshTokenExpireTime;
 
-    public String issueAccessToken(final Authentication authentication) {
-        return issueToken(authentication, ACCESS_TOKEN_EXPIRE_TIME);
-    }
+	private static final String MEMBER_ID = "memberId";
+	private static final String ROLE_KEY = "role";
 
-    public String issueRefreshToken(final Authentication authentication) {
-        return issueToken(authentication, REFRESH_TOKEN_EXPIRE_TIME);
-    }
+	@PostConstruct
+	protected void init() {
+		jwtSecret = Base64.getEncoder().encodeToString(jwtSecret.getBytes(StandardCharsets.UTF_8));
+	}
 
-    private String issueToken(final Authentication authentication, final long expiredTime) {
-        final Date now = new Date();
+	public String issueAccessToken(final Authentication authentication) {
+		return issueToken(authentication, accessTokenExpireTime);
+	}
 
-        final Claims claims = Jwts.claims()
-                .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + expiredTime));
+	public String issueRefreshToken(final Authentication authentication) {
+		return issueToken(authentication, refreshTokenExpireTime);
+	}
 
-        claims.put(MEMBER_ID, authentication.getPrincipal());
-        return Jwts.builder()
-                .setHeaderParam(Header.TYPE, Header.JWT_TYPE)
-                .setClaims(claims)
-                .signWith(getSigningKey())
-                .compact();
-    }
+	private String issueToken(final Authentication authentication, final long expiredTime) {
+		final Date now = new Date();
 
-    private SecretKey getSigningKey() {
-        String encodedKey = Base64.getEncoder().encodeToString(JWT_SECRET.getBytes()); //SecretKey 통해 서명 생성
-        return Keys.hmacShaKeyFor(encodedKey.getBytes());   //일반적으로 HMAC (Hash-based Message Authentication Code) 알고리즘 사용
-    }
+		final Claims claims = Jwts.claims().setIssuedAt(now).setExpiration(new Date(now.getTime() + expiredTime));
 
-    public JwtValidationType validateToken(String token) {
-        try {
-            Claims claims = getBody(token);
+		claims.put(MEMBER_ID, authentication.getPrincipal());
+		log.info("Added member ID to claims: {}", authentication.getPrincipal());
+		log.info("Authorities before token generation: {}", authentication.getAuthorities());
 
-            return JwtValidationType.VALID_JWT;
-        } catch (MalformedJwtException ex) {
-            return JwtValidationType.INVALID_JWT_TOKEN;
-        } catch (ExpiredJwtException ex) {
-            return JwtValidationType.EXPIRED_JWT_TOKEN;
-        } catch (UnsupportedJwtException ex) {
-            return JwtValidationType.UNSUPPORTED_JWT_TOKEN;
-        } catch (IllegalArgumentException ex) {
-            return JwtValidationType.EMPTY_JWT;
-        }
-    }
+		String role = authentication.getAuthorities()
+			.stream()
+			.map(GrantedAuthority::getAuthority)
+			.findFirst()
+			.orElseThrow(() -> new IllegalArgumentException("No authorities found for user"));
 
-    private Claims getBody(final String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-    }
+		log.info("Selected role for token: {}", role);
 
-    public Long getUserFromJwt(String token) {
-        Claims claims = getBody(token);
-        return Long.valueOf(claims.get(MEMBER_ID).toString());
-    }
+		claims.put(ROLE_KEY, role);
+		log.info("Added role to claims: {}", role);
+
+		return Jwts.builder()
+			.setHeaderParam(Header.TYPE, Header.JWT_TYPE)
+			.setClaims(claims)
+			.signWith(getSigningKey())
+			.compact();
+	}
+
+	private SecretKey getSigningKey() {
+		String encodedKey = Base64.getEncoder().encodeToString(jwtSecret.getBytes());
+		return Keys.hmacShaKeyFor(encodedKey.getBytes());
+	}
+
+	public JwtValidationType validateToken(String token) {
+		try {
+			Claims claims = getBody(token);
+			return JwtValidationType.VALID_JWT;
+		} catch (MalformedJwtException ex) {
+			log.error("Invalid JWT Token: {}", ex.getMessage());
+			return JwtValidationType.INVALID_JWT_TOKEN;
+		} catch (ExpiredJwtException ex) {
+			log.error("Expired JWT Token: {}", ex.getMessage());
+			return JwtValidationType.EXPIRED_JWT_TOKEN;
+		} catch (UnsupportedJwtException ex) {
+			log.error("Unsupported JWT Token: {}", ex.getMessage());
+			return JwtValidationType.UNSUPPORTED_JWT_TOKEN;
+		} catch (IllegalArgumentException ex) {
+			log.error("Empty JWT Token or Illegal Argument: {}", ex.getMessage());
+			return JwtValidationType.EMPTY_JWT;
+		} catch (SignatureException ex) {
+			log.error("Invalid JWT Signature: {}", ex.getMessage());
+			return JwtValidationType.INVALID_JWT_SIGNATURE;
+		}
+	}
+
+	private Claims getBody(final String token) {
+		return Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getBody();
+	}
+
+	public Long getMemberIdFromJwt(String token) {
+		Claims claims = getBody(token);
+		Long memberId = Long.valueOf(claims.get(MEMBER_ID).toString());
+
+		// 로그 추가: memberId 확인
+		log.info("Extracted memberId from JWT: {}", memberId);
+
+		return memberId;
+	}
+
+	public Role getRoleFromJwt(String token) {
+		Claims claims = getBody(token);
+		String roleName = claims.get(ROLE_KEY, String.class);
+
+		log.info("Extracted role from JWT: {}", roleName);
+
+		// "ROLE_" 접두사 제거
+		String enumValue = roleName.replace("ROLE_", "");
+		log.info("Final role after processing: {}", enumValue);
+
+		return Role.valueOf(enumValue.toUpperCase());
+	}
 }

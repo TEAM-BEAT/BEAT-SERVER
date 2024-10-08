@@ -1,5 +1,7 @@
 package com.beat.domain.booking.application.dto;
 
+import com.beat.domain.booking.domain.BookingStatus;
+
 import java.time.LocalDateTime;
 
 public record TicketDetail(
@@ -9,7 +11,7 @@ public record TicketDetail(
         Long scheduleId,
         int purchaseTicketCount,
         LocalDateTime createdAt,
-        boolean isPaymentCompleted,
+        BookingStatus bookingStatus,
         String scheduleNumber
 ) {
     public static TicketDetail of(
@@ -19,8 +21,8 @@ public record TicketDetail(
             Long scheduleId,
             int purchaseTicketCount,
             LocalDateTime createdAt,
-            boolean isPaymentCompleted,
+            BookingStatus bookingStatus,
             String scheduleNumber) {
-        return new TicketDetail(bookingId, bookerName, bookerPhoneNumber, scheduleId, purchaseTicketCount, createdAt, isPaymentCompleted, scheduleNumber);
+        return new TicketDetail(bookingId, bookerName, bookerPhoneNumber, scheduleId, purchaseTicketCount, createdAt, bookingStatus, scheduleNumber);
     }
 }

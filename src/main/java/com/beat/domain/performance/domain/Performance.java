@@ -1,8 +1,10 @@
 package com.beat.domain.performance.domain;
 
 import com.beat.domain.BaseTimeEntity;
+import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.user.domain.Users;
+import com.beat.global.common.exception.BadRequestException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -33,10 +35,10 @@ public class Performance extends BaseTimeEntity {
     @Column(nullable = false)
     private int runningTime;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String performanceDescription;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String performanceAttentionNote;
 
     @Enumerated(EnumType.STRING)
@@ -77,6 +79,9 @@ public class Performance extends BaseTimeEntity {
     @JoinColumn(name = "user_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Users users;
+
+    @OneToMany(mappedBy = "performance", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PerformanceImage> performanceImageList = new ArrayList<>();
 
     @Builder
     public Performance(String performanceTitle, Genre genre, int runningTime, String performanceDescription, String performanceAttentionNote,
@@ -142,5 +147,12 @@ public class Performance extends BaseTimeEntity {
         this.performanceContact = performanceContact;
         this.performancePeriod = performancePeriod;
         this.totalScheduleCount = totalScheduleCount;
+    }
+
+    public void updateTicketPrice(int newTicketPrice) {
+        if (newTicketPrice < 0) {
+            throw new BadRequestException(PerformanceErrorCode.NEGATIVE_TICKET_PRICE);
+        }
+        this.ticketPrice = newTicketPrice;
     }
 }

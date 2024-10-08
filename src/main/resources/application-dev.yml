@@ -57,8 +57,8 @@ spring:
 
 jwt:
   secret: ${DEV_JWT_SECRET}
-  access-token-expire-time: 31536000000 # 365일 (1년) 밀리초
-  refresh-token-expire-time: 1209600000 # 14일 밀리초
+  access-token-expire-time: ${DEV_ACCESS_TOKEN_EXPIRE_TIME}
+  refresh-token-expire-time: ${DEV_REFRESH_TOKEN_EXPIRE_TIME}
 
 cloud:
   aws:
@@ -71,3 +71,13 @@ cloud:
   stack:
     auto: false
 
+logging:
+  level:
+    root: info # 추후 debug로 변경
+
+cors:
+  allowed-origins: ${DEV_ALLOWED_ORIGINS}
+
+app:
+  server:
+    url: ${DEV_SERVER_URL}

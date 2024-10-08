@@ -9,10 +9,8 @@ import com.beat.global.common.exception.ConflictException;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.OptionalInt;
@@ -48,34 +46,18 @@ public class ScheduleService {
         );
     }
 
-    private void validateRequest(Long scheduleId, TicketAvailabilityRequest ticketAvailabilityRequest) {
-        if (ticketAvailabilityRequest.purchaseTicketCount() <= 0 || scheduleId <= 0) {
-            throw new BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT);
-        }
-    }
-
     public int getAvailableTicketCount(Schedule schedule) {
         return schedule.getTotalTicketCount() - schedule.getSoldTicketCount();
     }
 
-    public boolean isBookingAvailable(Schedule schedule) {
-        int availableTicketCount = getAvailableTicketCount(schedule);
-        return schedule.isBooking() && availableTicketCount > 0 && schedule.getPerformanceDate().isAfter(LocalDateTime.now());
-    }
-
-    @Transactional
-    public void updateBookingStatus(Schedule schedule) {
-        boolean isBookingAvailable = isBookingAvailable(schedule);
-        if (schedule.isBooking() != isBookingAvailable) {
-            schedule.setBooking(isBookingAvailable);
-            scheduleRepository.save(schedule);
-        }
-    }
-
     public int calculateDueDate(Schedule schedule) {
-        // LocalDate 객체를 사용하여 날짜 차이만 계산
         int dueDate = (int) ChronoUnit.DAYS.between(LocalDate.now(), schedule.getPerformanceDate().toLocalDate());
         return dueDate;
+    }
+
+    public int getMinDueDateForPerformance(Long performanceId) {
+        List<Schedule> schedules = scheduleRepository.findByPerformanceId(performanceId);
+        return getMinDueDate(schedules);
     }
 
     public int getMinDueDate(List<Schedule> schedules) {
@@ -94,4 +76,9 @@ public class ScheduleService {
         }
     }
 
+    private void validateRequest(Long scheduleId, TicketAvailabilityRequest ticketAvailabilityRequest) {
+        if (ticketAvailabilityRequest.purchaseTicketCount() <= 0 || scheduleId <= 0) {
+            throw new BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT);
+        }
+    }
 }

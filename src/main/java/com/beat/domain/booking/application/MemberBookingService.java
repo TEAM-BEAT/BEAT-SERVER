@@ -16,9 +16,11 @@ import com.beat.domain.user.exception.UserErrorCode;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MemberBookingService {
@@ -38,7 +40,7 @@ public class MemberBookingService {
             throw new BadRequestException(ScheduleErrorCode.INSUFFICIENT_TICKETS);
         }
 
-        schedule.setSoldTicketCount(schedule.getSoldTicketCount() + memberBookingRequest.purchaseTicketCount());
+        updateSoldTicketCountAndIsBooking(schedule, memberBookingRequest.purchaseTicketCount());
 
         Member member = memberRepository.findById(memberId).orElseThrow(
                 () -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
@@ -50,7 +52,7 @@ public class MemberBookingService {
                 memberBookingRequest.purchaseTicketCount(),
                 memberBookingRequest.bookerName(),
                 memberBookingRequest.bookerPhoneNumber(),
-                memberBookingRequest.isPaymentCompleted(),
+                memberBookingRequest.bookingStatus(),
                 null,
                 null,
                 schedule,
@@ -58,6 +60,8 @@ public class MemberBookingService {
         );
         bookingRepository.save(booking);
         scheduleRepository.save(schedule);
+
+        log.info("Member Booking created: {}", booking);
 
         return MemberBookingResponse.of(
                 booking.getId(),
@@ -67,11 +71,19 @@ public class MemberBookingService {
                 schedule.getScheduleNumber(),
                 booking.getBookerName(),
                 booking.getBookerPhoneNumber(),
-                booking.isPaymentCompleted(),
+                booking.getBookingStatus(),
                 schedule.getPerformance().getBankName(),
                 schedule.getPerformance().getAccountNumber(),
-                memberBookingRequest.totalPaymentAmount(),
+                memberBookingRequest.totalPaymentAmount(), //  비회원 예매처럼 int totalPaymentAmount = ticketPrice * guestBookingRequest.purchaseTicketCount();로 계산해서 반영하기 + 요청한 총 가격 == 티켓 가격 * 수 같은지 검증하는 로직 추가하기
                 booking.getCreatedAt()
         );
+    }
+
+    private void updateSoldTicketCountAndIsBooking(Schedule schedule, int purchaseTicketCount) {
+        schedule.setSoldTicketCount(schedule.getSoldTicketCount() + purchaseTicketCount);
+
+        if (schedule.getTotalTicketCount() == schedule.getSoldTicketCount()) {
+            schedule.updateIsBooking(false);
+        }
     }
 }

@@ -53,6 +53,10 @@ jobs:
           PROD_COOLSMS_KEY: ${{ secrets.PROD_COOLSMS_KEY }}
           PROD_COOLSMS_NUMBER: ${{ secrets.PROD_COOLSMS_NUMBER }}
           PROD_COOLSMS_SECRET: ${{ secrets.PROD_COOLSMS_SECRET }}
+          PROD_ACCESS_TOKEN_EXPIRE_TIME: ${{ secrets.PROD_ACCESS_TOKEN_EXPIRE_TIME }}
+          PROD_REFRESH_TOKEN_EXPIRE_TIME: ${{ secrets.PROD_REFRESH_TOKEN_EXPIRE_TIME }}
+          PROD_ALLOWED_ORIGINS: ${{ secrets.PROD_ALLOWED_ORIGINS }}
+          PROD_SERVER_URL: ${{ secrets.PROD_SERVER_URL }}
         run: |
           cd ./src/main/resources
           envsubst < application-prod.yml > application-prod.tmp.yml && mv application-prod.tmp.yml application-prod.yml
@@ -81,11 +85,11 @@ jobs:
           docker build --platform linux/amd64 -t donghoon0203/beat-prod .
           docker push donghoon0203/beat-prod
 
-      # Trigger Jenkins job - Jenkins 작업 트리거
-      - name: Trigger Jenkins job
-        uses: appleboy/jenkins-action@master
-        with:
-          url: ${{ secrets.PROD_WEBHOOK_URL }}
-          user: "beat"
-          token: ${{ secrets.PROD_JENKINS_API_TOKEN }}
-          job: "beat-project"
+#      # Trigger Jenkins job - Jenkins 작업 트리거
+#      - name: Trigger Jenkins job
+#        uses: appleboy/jenkins-action@master
+#        with:
+#          url: ${{ secrets.PROD_WEBHOOK_URL }}
+#          user: "beat"
+#          token: ${{ secrets.PROD_JENKINS_API_TOKEN }}
+#          job: "beat-project"

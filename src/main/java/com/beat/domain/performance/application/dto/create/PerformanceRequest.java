@@ -23,5 +23,6 @@ public record PerformanceRequest(
         int totalScheduleCount,
         List<ScheduleRequest> scheduleList,
         List<CastRequest> castList,
-        List<StaffRequest> staffList
+        List<StaffRequest> staffList,
+        List<PerformanceImageRequest> performanceImageList
 ) {}

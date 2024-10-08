@@ -53,6 +53,10 @@ jobs:
           DEV_COOLSMS_KEY: ${{ secrets.DEV_COOLSMS_KEY }}
           DEV_COOLSMS_NUMBER: ${{ secrets.DEV_COOLSMS_NUMBER }}
           DEV_COOLSMS_SECRET: ${{ secrets.DEV_COOLSMS_SECRET }}
+          DEV_ACCESS_TOKEN_EXPIRE_TIME: ${{ secrets.DEV_ACCESS_TOKEN_EXPIRE_TIME }}
+          DEV_REFRESH_TOKEN_EXPIRE_TIME: ${{ secrets.DEV_REFRESH_TOKEN_EXPIRE_TIME }}
+          DEV_ALLOWED_ORIGINS: ${{ secrets.DEV_ALLOWED_ORIGINS }}
+          DEV_SERVER_URL: ${{ secrets.DEV_SERVER_URL }}
         run: |
           cd ./src/main/resources
           envsubst < application-dev.yml > application-dev.tmp.yml && mv application-dev.tmp.yml application-dev.yml
@@ -81,11 +85,11 @@ jobs:
           docker build -f Dockerfile-dev --platform linux/amd64 -t hoonyworld/beat-dev .
           docker push hoonyworld/beat-dev
 
-      # Trigger Jenkins job - Jenkins 작업 트리거
-      - name: Trigger Jenkins job
-        uses: appleboy/jenkins-action@master
-        with:
-          url: ${{ secrets.DEV_WEBHOOK_URL }}
-          user: "beat"
-          token: ${{ secrets.DEV_JENKINS_API_TOKEN }}
-          job: "beat-project"
+#      # Trigger Jenkins job - Jenkins 작업 트리거
+#      - name: Trigger Jenkins job
+#        uses: appleboy/jenkins-action@master
+#        with:
+#          url: ${{ secrets.DEV_WEBHOOK_URL }}
+#          user: "beat"
+#          token: ${{ secrets.DEV_JENKINS_API_TOKEN }}
+#          job: "beat-project"
