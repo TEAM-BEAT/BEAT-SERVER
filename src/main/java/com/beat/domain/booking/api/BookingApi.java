@@ -13,6 +13,7 @@ import com.beat.domain.booking.application.dto.MemberBookingRequest;
 import com.beat.domain.booking.application.dto.MemberBookingResponse;
 import com.beat.domain.booking.application.dto.MemberBookingRetrieveResponse;
 import com.beat.global.auth.annotation.CurrentMember;
+import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,35 +27,119 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public interface BookingApi {
 
 	@Operation(summary = "회원 예매 API", description = "회원이 예매를 요청하는 POST API입니다.")
-	@ApiResponses({
-		@ApiResponse(responseCode = "201", description = "회원 예매가 성공적으로 완료되었습니다.",
-			content = @Content(schema = @Schema(implementation = SuccessResponse.class)))
-	})
+	@ApiResponses(
+		value = {
+			@ApiResponse(
+				responseCode = "201",
+				description = "회원 예매가 성공적으로 완료되었습니다.",
+				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "400",
+				description = "필수 데이터가 누락되었습니다.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "400",
+				description = "잘못된 데이터 형식입니다.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "400",
+				description = "잘못된 요청 형식입니다.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "404",
+				description = "회원 정보를 찾을 수 없습니다.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "404",
+				description = "공연 정보를 찾을 수 없습니다.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "404",
+				description = "회차 정보를 찾을 수 없습니다.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			)
+		}
+	)
 	ResponseEntity<SuccessResponse<MemberBookingResponse>> createMemberBooking(
 		@CurrentMember Long memberId,
-		@RequestBody MemberBookingRequest memberBookingRequest);
+		@RequestBody MemberBookingRequest memberBookingRequest
+	);
 
 	@Operation(summary = "회원 예매 조회 API", description = "회원이 예매를 조회하는 GET API입니다.")
-	@ApiResponses({
-		@ApiResponse(responseCode = "200", description = "회원 예매 조회가 성공적으로 완료되었습니다.",
-			content = @Content(schema = @Schema(implementation = SuccessResponse.class)))
-	})
+	@ApiResponses(
+		value = {
+			@ApiResponse(
+				responseCode = "200",
+				description = "회원 예매 조회가 성공적으로 완료되었습니다.",
+				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "404",
+				description = "입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			)
+		}
+	)
 	ResponseEntity<SuccessResponse<List<MemberBookingRetrieveResponse>>> getMemberBookings(
-		@CurrentMember Long memberId);
+		@CurrentMember Long memberId
+	);
 
 	@Operation(summary = "비회원 예매 API", description = "비회원이 예매를 요청하는 POST API입니다.")
-	@ApiResponses({
-		@ApiResponse(responseCode = "201", description = "비회원 예매가 성공적으로 완료되었습니다.",
-			content = @Content(schema = @Schema(implementation = SuccessResponse.class)))
-	})
+	@ApiResponses(
+		value = {
+			@ApiResponse(
+				responseCode = "201",
+				description = "비회원 예매가 성공적으로 완료되었습니다.",
+				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "400",
+				description = "필수 데이터가 누락되었습니다.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "400",
+				description = "잘못된 데이터 형식입니다.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "404",
+				description = "공연 정보를 찾을 수 없습니다.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "404",
+				description = "회차 정보를 찾을 수 없습니다.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			)
+		}
+	)
 	ResponseEntity<SuccessResponse<GuestBookingResponse>> createGuestBookings(
-		@RequestBody GuestBookingRequest guestBookingRequest);
+		@RequestBody GuestBookingRequest guestBookingRequest
+	);
 
 	@Operation(summary = "비회원 예매 조회 API", description = "비회원이 예매를 조회하는 POST API입니다.")
-	@ApiResponses({
-		@ApiResponse(responseCode = "200", description = "비회원 예매 조회가 성공적으로 완료되었습니다.",
-			content = @Content(schema = @Schema(implementation = SuccessResponse.class)))
-	})
+	@ApiResponses(
+		value = {
+			@ApiResponse(
+				responseCode = "200",
+				description = "비회원 예매 조회가 성공적으로 완료되었습니다.",
+				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "404",
+				description = "입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			)
+		}
+	)
 	ResponseEntity<SuccessResponse<List<GuestBookingRetrieveResponse>>> getGuestBookings(
-		@RequestBody GuestBookingRetrieveRequest guestBookingRetrieveRequest);
+		@RequestBody GuestBookingRetrieveRequest guestBookingRetrieveRequest
+	);
 }
