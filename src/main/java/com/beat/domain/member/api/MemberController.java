@@ -32,8 +32,8 @@ public class MemberController implements MemberApi {
 	private final AuthenticationService authenticationService;
 	private final SocialLoginService socialLoginService;
 
-	private final static int COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
-	private final static String REFRESH_TOKEN = "refreshToken";
+	private static final int COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
+	private static final String REFRESH_TOKEN = "refreshToken";
 
 	@Override
 	@PostMapping("/sign-up")
