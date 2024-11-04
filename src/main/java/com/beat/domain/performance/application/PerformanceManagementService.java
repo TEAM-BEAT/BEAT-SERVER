@@ -79,7 +79,7 @@ public class PerformanceManagementService {
 			request.performanceTeamName(),
 			request.performanceVenue(),
 			request.performanceContact(),
-			request.performancePeriod(),
+			" ",
 			request.ticketPrice(),
 			request.totalScheduleCount(),
 			user
@@ -101,9 +101,17 @@ public class PerformanceManagementService {
 				);
 			})
 			.collect(Collectors.toList());
+
+		performance.assignScheduleNumbers(schedules);
 		scheduleRepository.saveAll(schedules);
 
 		schedules.forEach(jobSchedulerService::addScheduleIfNotExists);
+
+		List<LocalDateTime> performanceDates = schedules.stream()
+			.map(Schedule::getPerformanceDate)
+			.collect(Collectors.toList());
+		performance.updatePerformancePeriod(performanceDates);
+		performanceRepository.save(performance);
 
 		List<Cast> casts = request.castList().stream()
 			.map(castRequest -> Cast.create(
