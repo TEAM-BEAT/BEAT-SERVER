@@ -3,7 +3,6 @@ package com.beat.domain.performance.application;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -144,6 +143,11 @@ public class PerformanceModifyService {
 			request.totalScheduleCount()
 		);
 
+		List<LocalDateTime> performanceDates = request.scheduleModifyRequests().stream()
+			.map(ScheduleModifyRequest::performanceDate)
+			.collect(Collectors.toList());
+		performance.updatePerformancePeriod(performanceDates);
+
 		if (!isBookerExist) {
 			log.debug("Updating ticket price to {}", request.ticketPrice());
 			performance.updateTicketPrice(request.ticketPrice());
@@ -186,7 +190,7 @@ public class PerformanceModifyService {
 			})
 			.collect(Collectors.toList());
 
-		assignScheduleNumbers(schedules);
+		performance.assignScheduleNumbers(schedules);
 
 		return schedules.stream()
 			.map(schedule -> ScheduleModifyResponse.of(
@@ -197,15 +201,6 @@ public class PerformanceModifyService {
 				schedule.getScheduleNumber()
 			))
 			.collect(Collectors.toList());
-	}
-
-	private void assignScheduleNumbers(List<Schedule> schedules) {
-		schedules.sort(Comparator.comparing(Schedule::getPerformanceDate));
-
-		for (int i = 0; i < schedules.size(); i++) {
-			ScheduleNumber scheduleNumber = ScheduleNumber.values()[i];
-			schedules.get(i).updateScheduleNumber(scheduleNumber);
-		}
 	}
 
 	private Schedule addSchedule(ScheduleModifyRequest request, Performance performance) {
