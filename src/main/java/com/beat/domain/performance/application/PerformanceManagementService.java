@@ -79,7 +79,7 @@ public class PerformanceManagementService {
 			request.performanceTeamName(),
 			request.performanceVenue(),
 			request.performanceContact(),
-			" ",
+			" ", // 이후 dto 변경 필요
 			request.ticketPrice(),
 			request.totalScheduleCount(),
 			user
