@@ -6,6 +6,6 @@ import com.beat.domain.member.domain.SocialType;
 import java.util.Optional;
 
 public interface MemberRepositoryCustom {
-    Optional<Member> findBySocialTypeAndSocialId(final Long socialId, final SocialType socialType);
+	Optional<Member> findBySocialTypeAndSocialId(final Long socialId, final SocialType socialType);
 
 }
