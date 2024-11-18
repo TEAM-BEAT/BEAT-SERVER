@@ -193,17 +193,19 @@ public class Performance extends BaseTimeEntity {
 	private String formatPerformancePeriod(LocalDateTime startDate, LocalDateTime endDate) {
 		if (startDate.toLocalDate().equals(endDate.toLocalDate())) {
 			return startDate.toLocalDate().toString().replace("-", ".");
-		} else {
-			return startDate.toLocalDate().toString().replace("-", ".")
-				+ "~" + endDate.toLocalDate().toString().replace("-", ".");
 		}
+		return startDate.toLocalDate().toString().replace("-", ".")
+			+ "~" + endDate.toLocalDate().toString().replace("-", ".");
 	}
 
 	public void assignScheduleNumbers(List<Schedule> schedules) {
+		List<ScheduleNumber> scheduleNumbers = List.of(ScheduleNumber.values());
 		schedules.sort(Comparator.comparing(Schedule::getPerformanceDate));
+
 		for (int i = 0; i < schedules.size(); i++) {
-			ScheduleNumber scheduleNumber = ScheduleNumber.values()[i];
-			schedules.get(i).setScheduleNumber(scheduleNumber);
+			if (i < scheduleNumbers.size()) {
+				schedules.get(i).setScheduleNumber(scheduleNumbers.get(i));
+			}
 		}
 	}
 }
