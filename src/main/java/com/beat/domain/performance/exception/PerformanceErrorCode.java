@@ -8,6 +8,9 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum PerformanceErrorCode implements BaseErrorCode {
+	/*
+	400 BadRequest
+	*/
 	REQUIRED_DATA_MISSING(400, "필수 데이터가 누락되었습니다."),
 	INVALID_DATA_FORMAT(400, "잘못된 데이터 형식입니다."),
 	INVALID_REQUEST_FORMAT(400, "잘못된 요청 형식입니다."),
@@ -20,12 +23,21 @@ public enum PerformanceErrorCode implements BaseErrorCode {
 	SCHEDULE_MODIFICATION_NOT_ALLOWED_FOR_ENDED_SCHEDULE(400, "종료된 회차를 수정할 수 없습니다."),
 	INVALID_TICKET_COUNT(400, "판매된 티켓 수보다 적은 수로 판매할 티켓 매수를 수정할 수 없습니다."),
 
+	/*
+	403 Forbidden
+	*/
 	PERFORMANCE_DELETE_FAILED(403, "예매자가 1명 이상 있을 경우, 공연을 삭제할 수 없습니다."),
 	NOT_PERFORMANCE_OWNER(403, "해당 공연의 메이커가 아닙니다."),
 
+	/*
+	404 NotFound
+	*/
 	PERFORMANCE_NOT_FOUND(404, "해당 공연 정보를 찾을 수 없습니다."),
 	SCHEDULE_LIST_NOT_FOUND(404, "스케쥴 리스트에 스케쥴이 없습니다."),
 
+	/*
+	500 InternalServerError
+	*/
 	INTERNAL_SERVER_ERROR(500, "서버 내부 오류입니다.");
 
 	private final int status;
