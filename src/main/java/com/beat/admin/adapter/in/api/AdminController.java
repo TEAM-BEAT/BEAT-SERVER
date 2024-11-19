@@ -72,7 +72,8 @@ public class AdminController implements AdminApi {
 	public ResponseEntity<SuccessResponse<CarouselHandleAllResponse>> processCarouselImages(
 		@CurrentMember Long memberId,
 		@RequestBody CarouselHandleRequest request) {
-		CarouselHandleAllResponse response = adminFacade.checkMemberAndProcessAllPromotionsSortedByCarouselNumber(memberId, request);
+		CarouselHandleAllResponse response = adminFacade.checkMemberAndProcessAllPromotionsSortedByCarouselNumber(
+			memberId, request);
 		return ResponseEntity.status(HttpStatus.OK)
 			.body(SuccessResponse.of(AdminSuccessCode.UPDATE_ALL_CAROUSEL_PROMOTIONS_SUCCESS, response));
 	}

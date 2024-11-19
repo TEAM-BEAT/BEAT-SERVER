@@ -9,9 +9,10 @@ import java.util.Map;
 
 public interface FileUseCase {
 
-    PerformanceMakerPresignedUrlFindAllResponse issueAllPresignedUrlsForPerformanceMaker(String posterImage, List<String> castImages, List<String> staffImages, List<String> performanceImages);
+	PerformanceMakerPresignedUrlFindAllResponse issueAllPresignedUrlsForPerformanceMaker(String posterImage,
+		List<String> castImages, List<String> staffImages, List<String> performanceImages);
 
-    Map<String, String> issueAllPresignedUrlsForCarousel(List<String> carouselImages);
+	Map<String, String> issueAllPresignedUrlsForCarousel(List<String> carouselImages);
 
-    String issuePresignedUrlForBanner(String bannerImage);
+	String issuePresignedUrlForBanner(String bannerImage);
 }
