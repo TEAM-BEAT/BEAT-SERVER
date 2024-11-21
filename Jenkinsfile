@@ -83,8 +83,8 @@ pipeline {
 
                         // Jenkins 서버에서 원격 서버로 파일 복사
                         sh """
-                            scp -i ${KEY_FILE} /home/ubuntu/deployment/deploy-${OPERATION_ENV}.sh ${USERNAME}@${HOST}:/home/ubuntu/deployment
-                            scp -i ${KEY_FILE} /home/ubuntu/nginx.conf ${USERNAME}@${HOST}:/home/ubuntu
+                            scp -o StrictHostKeyChecking=no -i ${KEY_FILE} /home/ubuntu/deployment/deploy-${OPERATION_ENV}.sh ${USERNAME}@${HOST}:/home/ubuntu/deployment
+                            scp -o StrictHostKeyChecking=no -i ${KEY_FILE} /home/ubuntu/nginx.conf ${USERNAME}@${HOST}:/home/ubuntu
                         """
 
                         // 환경변수를 넘기고 deploy.sh 실행
