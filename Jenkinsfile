@@ -82,10 +82,12 @@ pipeline {
                         sshCommand remote: remote, command: "docker pull ${DOCKER_HUB_ID}/${PROJECT_NAME}-${OPERATION_ENV}:latest"
 
                         // Jenkins 서버에서 원격 서버로 파일 복사
-                        sshPut remote: remote, from: '/home/ubuntu/deployment/deploy.sh', into: '/home/ubuntu/deployment'
-                        sshPut remote: remote, from: './nginx.conf', into: '.'
+                        sh """
+                            scp -i ${KEY_FILE} /home/ubuntu/deployment/deploy-${OPERATION_ENV}.sh ${USERNAME}@${HOST}:/home/ubuntu/deployment
+                            scp -i ${KEY_FILE} /home/ubuntu/nginx.conf ${USERNAME}@${HOST}:/home/ubuntu
+                        """
 
-                        // 환경변수를 추출해서 deploy.sh에 넘기고 해당 스크립트 실행
+                        // 환경변수를 넘기고 deploy.sh 실행
                         sshCommand remote: remote, command: """
                             export OPERATION_ENV=${OPERATION_ENV} && \
                             export INTERNAL_PORT=${INTERNAL_PORT} && \
@@ -93,8 +95,8 @@ pipeline {
                             export EXTERNAL_PORT_BLUE=${EXTERNAL_PORT_BLUE} && \
                             export DOCKER_IMAGE_NAME=${DOCKER_HUB_ID}/${PROJECT_NAME}-${OPERATION_ENV}:latest && \
                             cd /home/ubuntu/deployment && \
-                            chmod +x deploy.sh && \
-                            ./deploy.sh
+                            chmod +x deploy-${OPERATION_ENV}.sh && \
+                            ./deploy-${OPERATION_ENV}.sh
                         """
 //
 //                         // 기존 컨테이너 제거
