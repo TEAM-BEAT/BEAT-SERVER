@@ -11,31 +11,31 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PerformanceImage {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @Column(nullable = false)
-    private String performanceImage;
+	@Column(nullable = false)
+	private String performanceImage;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "performance_id", nullable = false)
-    private Performance performance;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "performance_id", nullable = false)
+	private Performance performance;
 
-    @Builder
-    public PerformanceImage(String performanceImage, Performance performance) {
-        this.performanceImage = performanceImage;
-        this.performance = performance;
-    }
+	@Builder
+	public PerformanceImage(String performanceImage, Performance performance) {
+		this.performanceImage = performanceImage;
+		this.performance = performance;
+	}
 
-    public static PerformanceImage create(String perforemanceImage, Performance performance) {
-        return PerformanceImage.builder()
-                .performanceImage(perforemanceImage)
-                .performance(performance)
-                .build();
-    }
+	public static PerformanceImage create(String perforemanceImage, Performance performance) {
+		return PerformanceImage.builder()
+			.performanceImage(perforemanceImage)
+			.performance(performance)
+			.build();
+	}
 
-    public void update(String performanceImage) {
-        this.performanceImage = performanceImage;
-    }
+	public void update(String performanceImage) {
+		this.performanceImage = performanceImage;
+	}
 }

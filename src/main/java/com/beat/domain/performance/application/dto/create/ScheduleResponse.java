@@ -5,25 +5,25 @@ import com.beat.domain.schedule.domain.ScheduleNumber;
 import java.time.LocalDateTime;
 
 public record ScheduleResponse(
-        Long scheduleId,
-        LocalDateTime performanceDate,
-        int totalTicketCount,
-        int dueDate,
-        ScheduleNumber scheduleNumber
+	Long scheduleId,
+	LocalDateTime performanceDate,
+	int totalTicketCount,
+	int dueDate,
+	ScheduleNumber scheduleNumber
 ) {
-    public static ScheduleResponse of(
-            Long scheduleId,
-            LocalDateTime performanceDate,
-            int totalTicketCount,
-            int dueDate,
-            ScheduleNumber scheduleNumber
-    ) {
-        return new ScheduleResponse(
-                scheduleId,
-                performanceDate,
-                totalTicketCount,
-                dueDate,
-                scheduleNumber
-        );
-    }
+	public static ScheduleResponse of(
+		Long scheduleId,
+		LocalDateTime performanceDate,
+		int totalTicketCount,
+		int dueDate,
+		ScheduleNumber scheduleNumber
+	) {
+		return new ScheduleResponse(
+			scheduleId,
+			performanceDate,
+			totalTicketCount,
+			dueDate,
+			scheduleNumber
+		);
+	}
 }
