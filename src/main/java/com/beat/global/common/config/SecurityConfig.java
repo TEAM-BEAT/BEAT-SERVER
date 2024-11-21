@@ -38,7 +38,8 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/swagger-resources/**",
             "/api/files/**",
-            "/error"
+            "/error",
+            "/"
     };
 
     private static final String[] AUTH_ADMIN_ONLY = {
