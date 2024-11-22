@@ -82,7 +82,7 @@ pipeline {
                         sshCommand remote: remote, command: "docker pull ${DOCKER_HUB_ID}/${PROJECT_NAME}-${OPERATION_ENV}:latest"
 
                         // Jenkins 서버에서 원격 서버로 파일 복사
-                        sshPut remote: remote, from: '/home/ubuntu/deployment/deploy-${OPERATION_ENV}.sh', into: '/home/ubuntu/deployment'
+                        sshPut remote: remote, from: "/home/ubuntu/deployment/deploy-${OPERATION_ENV}.sh", into: "/home/ubuntu/deployment"
                         sshPut remote: remote, from: '/home/ubuntu/nginx.conf', into: '/home/ubuntu'
 
                         // 환경변수를 넘기고 deploy-${OPERATION_ENV}.sh 실행
