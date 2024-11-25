@@ -5,6 +5,10 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import com.beat.domain.booking.application.dto.BookingCancelRequest;
+import com.beat.domain.booking.application.dto.BookingCancelResponse;
+import com.beat.domain.booking.application.dto.BookingRefundRequest;
+import com.beat.domain.booking.application.dto.BookingRefundResponse;
 import com.beat.domain.booking.application.dto.GuestBookingRequest;
 import com.beat.domain.booking.application.dto.GuestBookingResponse;
 import com.beat.domain.booking.application.dto.GuestBookingRetrieveRequest;
@@ -141,5 +145,43 @@ public interface BookingApi {
 	)
 	ResponseEntity<SuccessResponse<List<GuestBookingRetrieveResponse>>> getGuestBookings(
 		@RequestBody GuestBookingRetrieveRequest guestBookingRetrieveRequest
+	);
+
+	@Operation(summary = "유료공연 예매 환불 요청 API", description = "유료공연 예매자가 환불 요청하는 PATCH API입니다.")
+	@ApiResponses(
+		value = {
+			@ApiResponse(
+				responseCode = "200",
+				description = "유료공연 예매 환불 요청이 성공적으로 완료되었습니다.",
+				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "404",
+				description = "입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			)
+		}
+	)
+	ResponseEntity<SuccessResponse<BookingRefundResponse>> refundBookings(
+		@RequestBody BookingRefundRequest bookingRefundRequest
+	);
+
+	@Operation(summary = "무료공연/미입금 예매 취소 요청 API", description = "무료공연/미입금 예매자가 취소 요청하는 PATCH API입니다.")
+	@ApiResponses(
+		value = {
+			@ApiResponse(
+				responseCode = "200",
+				description = "무료공연/미입금 예매 취소 요청이 성공적으로 완료되었습니다.",
+				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+			),
+			@ApiResponse(
+				responseCode = "404",
+				description = "입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.",
+				content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+			)
+		}
+	)
+	ResponseEntity<SuccessResponse<BookingCancelResponse>> cancelBookings(
+		@RequestBody BookingCancelRequest bookingCancelRequest
 	);
 }
