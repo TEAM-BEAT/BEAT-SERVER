@@ -1,9 +1,9 @@
 package com.beat.domain.performance.application.dto.create;
 
+import java.util.List;
+
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;
-
-import java.util.List;
 
 public record PerformanceRequest(
 	String performanceTitle,
@@ -17,6 +17,10 @@ public record PerformanceRequest(
 	String posterImage,
 	String performanceTeamName,
 	String performanceVenue,
+	String roadAddressName,
+	String placeDetailAddress,
+	String latitude,
+	String longitude,
 	String performanceContact,
 	String performancePeriod,
 	int ticketPrice,
