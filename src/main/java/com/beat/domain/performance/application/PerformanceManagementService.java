@@ -81,7 +81,7 @@ public class PerformanceManagementService {
 			request.roadAddressName(),
 			request.placeDetailAddress(),
 			request.latitude(),
-			request.longitude(),
+			request.longtitude(),
 			request.performanceContact(),
 			" ", // 이후 dto performancePeriod 제외 필요
 			request.ticketPrice(),

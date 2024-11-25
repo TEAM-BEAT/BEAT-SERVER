@@ -149,7 +149,7 @@ public class PerformanceModifyService {
 			request.roadAddressName(),
 			request.placeDetailAddress(),
 			request.latitude(),
-			request.longitude(),
+			request.longtitude(),
 			request.performanceContact(),
 			request.performancePeriod(),
 			request.totalScheduleCount()

@@ -20,7 +20,7 @@ public record PerformanceRequest(
 	String roadAddressName,
 	String placeDetailAddress,
 	String latitude,
-	String longitude,
+	String longtitude,
 	String performanceContact,
 	String performancePeriod,
 	int ticketPrice,
