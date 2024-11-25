@@ -52,10 +52,10 @@ public class Performance extends BaseTimeEntity {
 	@Column(nullable = false)
 	private int runningTime;
 
-	@Column(nullable = false, length = 500)
+	@Column(nullable = false, length = 1500)
 	private String performanceDescription;
 
-	@Column(nullable = false, length = 500)
+	@Column(nullable = false, length = 1500)
 	private String performanceAttentionNote;
 
 	@Enumerated(EnumType.STRING)
@@ -76,6 +76,18 @@ public class Performance extends BaseTimeEntity {
 
 	@Column(nullable = false)
 	private String performanceVenue;
+
+	@Column(nullable = false)
+	private String roadAddressName;
+
+	@Column(nullable = false)
+	private String placeDetailAddress;
+
+	@Column(nullable = false)
+	private String latitude;
+
+	@Column(nullable = false)
+	private String longtitude;
 
 	@Column(nullable = false)
 	private String performanceContact;
@@ -104,8 +116,8 @@ public class Performance extends BaseTimeEntity {
 	public Performance(String performanceTitle, Genre genre, int runningTime, String performanceDescription,
 		String performanceAttentionNote,
 		BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName,
-		String performanceVenue, String performanceContact,
-		String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
+		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longtitude,
+		String performanceContact, String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
 		this.performanceTitle = performanceTitle;
 		this.genre = genre;
 		this.runningTime = runningTime;
@@ -117,6 +129,10 @@ public class Performance extends BaseTimeEntity {
 		this.posterImage = posterImage;
 		this.performanceTeamName = performanceTeamName;
 		this.performanceVenue = performanceVenue;
+		this.roadAddressName = roadAddressName;
+		this.placeDetailAddress = placeDetailAddress;
+		this.latitude = latitude;
+		this.longtitude = longtitude;
 		this.performanceContact = performanceContact;
 		this.performancePeriod = performancePeriod;
 		this.ticketPrice = ticketPrice;
@@ -128,8 +144,8 @@ public class Performance extends BaseTimeEntity {
 		String performanceTitle, Genre genre, int runningTime, String performanceDescription,
 		String performanceAttentionNote,
 		BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName,
-		String performanceVenue, String performanceContact,
-		String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
+		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longtitude,
+		String performanceContact, String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
 		return Performance.builder()
 			.performanceTitle(performanceTitle)
 			.genre(genre)
@@ -142,6 +158,10 @@ public class Performance extends BaseTimeEntity {
 			.posterImage(posterImage)
 			.performanceTeamName(performanceTeamName)
 			.performanceVenue(performanceVenue)
+			.roadAddressName(roadAddressName)
+			.placeDetailAddress(placeDetailAddress)
+			.latitude(latitude)
+			.longtitude(longtitude)
 			.performanceContact(performanceContact)
 			.performancePeriod(performancePeriod)
 			.ticketPrice(ticketPrice)
@@ -154,8 +174,8 @@ public class Performance extends BaseTimeEntity {
 		String performanceTitle, Genre genre, int runningTime, String performanceDescription,
 		String performanceAttentionNote,
 		BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName,
-		String performanceVenue, String performanceContact,
-		String performancePeriod, int totalScheduleCount) {
+		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longtitude,
+		String performanceContact, String performancePeriod, int totalScheduleCount) {
 		this.performanceTitle = performanceTitle;
 		this.genre = genre;
 		this.runningTime = runningTime;
@@ -167,6 +187,10 @@ public class Performance extends BaseTimeEntity {
 		this.posterImage = posterImage;
 		this.performanceTeamName = performanceTeamName;
 		this.performanceVenue = performanceVenue;
+		this.roadAddressName = roadAddressName;
+		this.placeDetailAddress = placeDetailAddress;
+		this.latitude = latitude;
+		this.longtitude = longtitude;
 		this.performanceContact = performanceContact;
 		this.performancePeriod = performancePeriod;
 		this.totalScheduleCount = totalScheduleCount;
