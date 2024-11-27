@@ -58,14 +58,6 @@ public class PerformanceManagementService {
 
 		Users user = member.getUser();
 
-		if (request.performanceDescription().length() > 1500) {
-			throw new BadRequestException(PerformanceErrorCode.INVALID_PERFORMANCE_DESCRIPTION_LENGTH);
-		}
-
-		if (request.performanceAttentionNote().length() > 1500) {
-			throw new BadRequestException(PerformanceErrorCode.INVALID_ATTENTION_NOTE_LENGTH);
-		}
-
 		Performance performance = Performance.create(
 			request.performanceTitle(),
 			request.genre(),
