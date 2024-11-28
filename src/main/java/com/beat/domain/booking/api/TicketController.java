@@ -21,6 +21,7 @@ import com.beat.domain.booking.exception.TicketSuccessCode;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.common.exception.BadRequestException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -39,7 +40,7 @@ public class TicketController implements TicketApi {
 		@RequestParam(required = false) ScheduleNumber scheduleNumber,
 		@RequestParam(required = false) BookingStatus bookingStatus) {
 		if (bookingStatus == BookingStatus.BOOKING_DELETED) {
-			throw new IllegalArgumentException(TicketErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED.getMessage());
+			throw new BadRequestException(TicketErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
 		}
 		TicketRetrieveResponse response = ticketService.findAllTicketsByConditions(memberId, performanceId,
 			scheduleNumber,
@@ -56,10 +57,10 @@ public class TicketController implements TicketApi {
 		@RequestParam(required = false) ScheduleNumber scheduleNumber,
 		@RequestParam(required = false) BookingStatus bookingStatus) {
 		if (searchWord.length() < 2) {
-			throw new IllegalArgumentException(TicketErrorCode.SEARCH_WORD_TOO_SHORT.getMessage());
+			throw new BadRequestException(TicketErrorCode.SEARCH_WORD_TOO_SHORT);
 		}
 		if (bookingStatus == BookingStatus.BOOKING_DELETED) {
-			throw new IllegalArgumentException(TicketErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED.getMessage());
+			throw new BadRequestException(TicketErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
 		}
 
 		TicketRetrieveResponse response = ticketService.searchAllTicketsByConditions(memberId, performanceId,
@@ -84,7 +85,7 @@ public class TicketController implements TicketApi {
 	public ResponseEntity<SuccessResponse<Void>> refundTickets(
 		@CurrentMember Long memberId,
 		@RequestBody TicketRefundRequest ticketRefundRequest) {
-		ticketService.refundTickets(memberId, ticketRefundRequest);
+		ticketService.refundTicketsByBookingIds(memberId, ticketRefundRequest);
 		return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_REFUND_SUCCESS));
 	}
 
@@ -93,7 +94,7 @@ public class TicketController implements TicketApi {
 	public ResponseEntity<SuccessResponse<Void>> deleteTickets(
 		@CurrentMember Long memberId,
 		@RequestBody TicketDeleteRequest ticketDeleteRequest) {
-		ticketService.deleteTickets(memberId, ticketDeleteRequest);
+		ticketService.deleteTicketsByBookingIds(memberId, ticketDeleteRequest);
 		return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_DELETE_SUCCESS));
 	}
 
