@@ -68,15 +68,6 @@ public class PerformanceModifyService {
 
 		Member member = validateMember(memberId);
 		Long userId = member.getUser().getId();
-
-		if (request.performanceDescription().length() > 1500) {
-			throw new BadRequestException(PerformanceErrorCode.INVALID_PERFORMANCE_DESCRIPTION_LENGTH);
-		}
-
-		if (request.performanceAttentionNote().length() > 1500) {
-			throw new BadRequestException(PerformanceErrorCode.INVALID_ATTENTION_NOTE_LENGTH);
-		}
-
 		Performance performance = findPerformance(request.performanceId());
 
 		validateOwnership(userId, performance);
