@@ -15,6 +15,7 @@ import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.user.domain.Users;
 import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.common.exception.ForbiddenException;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -232,4 +233,11 @@ public class Performance extends BaseTimeEntity {
 			}
 		}
 	}
+
+	public void validatePerformanceOwnership(Long userId) {
+		if (!this.users.getId().equals(userId)) {
+			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
+		}
+	}
+
 }
