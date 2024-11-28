@@ -60,7 +60,8 @@ public class TicketService {
 		BookingStatus bookingStatus) {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
-		Performance performance = findPerformanceAndValidateOwnership(performanceId, user.getId());
+		Performance performance = findPerformance(performanceId);
+		performance.validatePerformanceOwnership(performanceId);
 		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 
 		int totalPerformanceTicketCount = calculateTotalTicketCount(schedules);
@@ -68,7 +69,7 @@ public class TicketService {
 
 		List<Booking> bookings = ticketRepository.findBookings(performanceId, scheduleNumber, bookingStatus);
 
-		return getTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
+		return findTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
 			bookings);
 	}
 
@@ -76,7 +77,8 @@ public class TicketService {
 		ScheduleNumber scheduleNumber, BookingStatus bookingStatus) {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
-		Performance performance = findPerformanceAndValidateOwnership(performanceId, user.getId());
+		Performance performance = findPerformance(performanceId);
+		performance.validatePerformanceOwnership(performanceId);
 		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 
 		int totalPerformanceTicketCount = calculateTotalTicketCount(schedules);
@@ -101,12 +103,12 @@ public class TicketService {
 
 		log.info("searchTickets result: {}", bookings);
 
-		return getTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
+		return findTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
 			bookings);
 	}
 
 	@NotNull
-	private TicketRetrieveResponse getTicketRetrieveResponse(Performance performance, int totalPerformanceTicketCount,
+	private TicketRetrieveResponse findTicketRetrieveResponse(Performance performance, int totalPerformanceTicketCount,
 		int totalPerformanceSoldTicketCount, List<Booking> bookings) {
 		List<TicketDetail> bookingList = bookings.stream()
 			.map(booking -> TicketDetail.of(
@@ -118,7 +120,7 @@ public class TicketService {
 				booking.getCreatedAt(),
 				booking.getBookingStatus(),
 				booking.getSchedule().getScheduleNumber().name(),
-				Optional.ofNullable(booking.getBankName()).map(BankName::name).orElse(""),
+				Optional.ofNullable(booking.getBankName()).map(BankName::name).orElse(BankName.NONE.getDisplayName()),
 				booking.getAccountNumber(),
 				booking.getAccountHolder()
 			))
@@ -139,7 +141,8 @@ public class TicketService {
 	public void updateTickets(Long memberId, TicketUpdateRequest request) {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
-		validatePerformanceOwnership(user.getId(), request.performanceId());
+		Performance performance = findPerformance(request.performanceId());
+		performance.validatePerformanceOwnership(request.performanceId());
 
 		for (TicketUpdateDetail detail : request.bookingList()) {
 			Booking booking = ticketRepository.findById(detail.bookingId())
@@ -167,10 +170,11 @@ public class TicketService {
 	}
 
 	@Transactional
-	public void refundTickets(Long memberId, TicketRefundRequest ticketRefundRequest) {
+	public void refundTicketsByBookingIds(Long memberId, TicketRefundRequest ticketRefundRequest) {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
-		validatePerformanceOwnership(user.getId(), ticketRefundRequest.performanceId());
+		Performance performance = findPerformance(ticketRefundRequest.performanceId());
+		performance.validatePerformanceOwnership(ticketRefundRequest.performanceId());
 
 		for (TicketRefundRequest.Booking bookingRequest : ticketRefundRequest.bookingList()) {
 			Long bookingId = bookingRequest.bookingId();
@@ -191,10 +195,11 @@ public class TicketService {
 	}
 
 	@Transactional
-	public void deleteTickets(Long memberId, TicketDeleteRequest ticketDeleteRequest) {
+	public void deleteTicketsByBookingIds(Long memberId, TicketDeleteRequest ticketDeleteRequest) {
 		Member member = findMember(memberId);
 		Long userId = findUser(member).getId();
-		Performance performance = findPerformanceAndValidateOwnership(ticketDeleteRequest.performanceId(), userId);
+		Performance performance = findPerformance(ticketDeleteRequest.performanceId());
+		performance.validatePerformanceOwnership(ticketDeleteRequest.performanceId());
 
 		if (!performance.getUsers().getId().equals(userId)) {
 			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
@@ -237,21 +242,10 @@ public class TicketService {
 			() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
 	}
 
-	private void validatePerformanceOwnership(Long userId, Long performanceId) {
-		Performance performance = performanceRepository.findById(performanceId)
-			.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_PERFORMANCE_FOUND));
-		if (!performance.getUsers().getId().equals(userId)) {
-			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
-		}
-	}
-
-	private Performance findPerformanceAndValidateOwnership(Long performanceId, Long userId) {
-		Performance performance = performanceRepository.findById(performanceId)
-			.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_PERFORMANCE_FOUND));
-		if (!performance.getUsers().getId().equals(userId)) {
-			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
-		}
-		return performance;
+	private Performance findPerformance(Long performanceId) {
+		return performanceRepository.findById(performanceId).orElseThrow(
+			() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND)
+		);
 	}
 
 	private int calculateTotalTicketCount(List<Schedule> schedules) {
