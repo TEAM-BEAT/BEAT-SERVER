@@ -41,7 +41,8 @@ public class TicketController implements TicketApi {
 		if (bookingStatus == BookingStatus.BOOKING_DELETED) {
 			throw new IllegalArgumentException(TicketErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED.getMessage());
 		}
-		TicketRetrieveResponse response = ticketService.getTickets(memberId, performanceId, scheduleNumber,
+		TicketRetrieveResponse response = ticketService.findAllTicketsByConditions(memberId, performanceId,
+			scheduleNumber,
 			bookingStatus);
 		return ResponseEntity.ok(SuccessResponse.of(TicketSuccessCode.TICKET_RETRIEVE_SUCCESS, response));
 	}
@@ -61,7 +62,8 @@ public class TicketController implements TicketApi {
 			throw new IllegalArgumentException(TicketErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED.getMessage());
 		}
 
-		TicketRetrieveResponse response = ticketService.searchTickets(memberId, performanceId, searchWord,
+		TicketRetrieveResponse response = ticketService.searchAllTicketsByConditions(memberId, performanceId,
+			searchWord,
 			scheduleNumber, bookingStatus);
 		return ResponseEntity.ok()
 			.cacheControl(CacheControl.noCache())
@@ -72,8 +74,8 @@ public class TicketController implements TicketApi {
 	@PutMapping("/update")
 	public ResponseEntity<SuccessResponse<Void>> updateTickets(
 		@CurrentMember Long memberId,
-		@RequestBody TicketUpdateRequest request) {
-		ticketService.updateTickets(memberId, request);
+		@RequestBody TicketUpdateRequest ticketUpdateRequest) {
+		ticketService.updateTickets(memberId, ticketUpdateRequest);
 		return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_UPDATE_SUCCESS));
 	}
 
