@@ -16,8 +16,8 @@ import com.beat.domain.booking.application.dto.TicketRefundRequest;
 import com.beat.domain.booking.application.dto.TicketRetrieveResponse;
 import com.beat.domain.booking.application.dto.TicketUpdateRequest;
 import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.booking.exception.BookingSuccessCode;
 import com.beat.domain.booking.exception.TicketErrorCode;
+import com.beat.domain.booking.exception.TicketSuccessCode;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
@@ -43,7 +43,7 @@ public class TicketController implements TicketApi {
 		}
 		TicketRetrieveResponse response = ticketService.getTickets(memberId, performanceId, scheduleNumber,
 			bookingStatus);
-		return ResponseEntity.ok(SuccessResponse.of(BookingSuccessCode.TICKET_RETRIEVE_SUCCESS, response));
+		return ResponseEntity.ok(SuccessResponse.of(TicketSuccessCode.TICKET_RETRIEVE_SUCCESS, response));
 	}
 
 	@Override
@@ -65,7 +65,7 @@ public class TicketController implements TicketApi {
 			scheduleNumber, bookingStatus);
 		return ResponseEntity.ok()
 			.cacheControl(CacheControl.noCache())
-			.body(SuccessResponse.of(BookingSuccessCode.TICKET_SEARCH_SUCCESS, response));
+			.body(SuccessResponse.of(TicketSuccessCode.TICKET_SEARCH_SUCCESS, response));
 	}
 
 	@Override
@@ -74,7 +74,7 @@ public class TicketController implements TicketApi {
 		@CurrentMember Long memberId,
 		@RequestBody TicketUpdateRequest request) {
 		ticketService.updateTickets(memberId, request);
-		return ResponseEntity.ok(SuccessResponse.from(BookingSuccessCode.TICKET_UPDATE_SUCCESS));
+		return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_UPDATE_SUCCESS));
 	}
 
 	@Override
@@ -83,7 +83,7 @@ public class TicketController implements TicketApi {
 		@CurrentMember Long memberId,
 		@RequestBody TicketRefundRequest ticketRefundRequest) {
 		ticketService.refundTickets(memberId, ticketRefundRequest);
-		return ResponseEntity.ok(SuccessResponse.from(BookingSuccessCode.TICKET_REFUND_SUCCESS));
+		return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_REFUND_SUCCESS));
 	}
 
 	@Override
@@ -92,7 +92,7 @@ public class TicketController implements TicketApi {
 		@CurrentMember Long memberId,
 		@RequestBody TicketDeleteRequest ticketDeleteRequest) {
 		ticketService.deleteTickets(memberId, ticketDeleteRequest);
-		return ResponseEntity.ok(SuccessResponse.from(BookingSuccessCode.TICKET_DELETE_SUCCESS));
+		return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_DELETE_SUCCESS));
 	}
 
 }
