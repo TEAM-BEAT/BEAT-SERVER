@@ -1,9 +1,9 @@
 package com.beat.domain.performance.application.dto.create;
 
+import java.util.List;
+
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;
-
-import java.util.List;
 
 public record PerformanceResponse(
 	Long userId,
@@ -19,6 +19,10 @@ public record PerformanceResponse(
 	String posterImage,
 	String performanceTeamName,
 	String performanceVenue,
+	String roadAddressName,
+	String placeDetailAddress,
+	String latitude,
+	String longtitude,
 	String performanceContact,
 	String performancePeriod,
 	int ticketPrice,
@@ -42,6 +46,10 @@ public record PerformanceResponse(
 		String posterImage,
 		String performanceTeamName,
 		String performanceVenue,
+		String roadAddressName,
+		String placeDetailAddress,
+		String latitude,
+		String longtitude,
 		String performanceContact,
 		String performancePeriod,
 		int ticketPrice,
@@ -65,6 +73,10 @@ public record PerformanceResponse(
 			posterImage,
 			performanceTeamName,
 			performanceVenue,
+			roadAddressName,
+			placeDetailAddress,
+			latitude,
+			longtitude,
 			performanceContact,
 			performancePeriod,
 			ticketPrice,
