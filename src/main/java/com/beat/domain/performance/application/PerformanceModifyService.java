@@ -68,7 +68,6 @@ public class PerformanceModifyService {
 
 		Member member = validateMember(memberId);
 		Long userId = member.getUser().getId();
-
 		Performance performance = findPerformance(request.performanceId());
 
 		validateOwnership(userId, performance);
@@ -138,6 +137,10 @@ public class PerformanceModifyService {
 			request.posterImage(),
 			request.performanceTeamName(),
 			request.performanceVenue(),
+			request.roadAddressName(),
+			request.placeDetailAddress(),
+			request.latitude(),
+			request.longtitude(),
 			request.performanceContact(),
 			request.performancePeriod(),
 			request.totalScheduleCount()
@@ -583,6 +586,10 @@ public class PerformanceModifyService {
 			performance.getPosterImage(),
 			performance.getPerformanceTeamName(),
 			performance.getPerformanceVenue(),
+			performance.getRoadAddressName(),
+			performance.getPlaceDetailAddress(),
+			performance.getLatitude(),
+			performance.getLongtitude(),
 			performance.getPerformanceContact(),
 			performance.getPerformancePeriod(),
 			performance.getTicketPrice(),

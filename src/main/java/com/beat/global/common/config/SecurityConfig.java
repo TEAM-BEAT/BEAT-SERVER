@@ -1,12 +1,5 @@
 package com.beat.global.common.config;
 
-import com.beat.domain.user.domain.Role;
-import com.beat.global.auth.jwt.filter.JwtAuthenticationFilter;
-import com.beat.global.auth.security.CustomAccessDeniedHandler;
-import com.beat.global.auth.security.CustomJwtAuthenticationEntryPoint;
-
-import lombok.RequiredArgsConstructor;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,6 +8,13 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.beat.domain.user.domain.Role;
+import com.beat.global.auth.jwt.filter.JwtAuthenticationFilter;
+import com.beat.global.auth.security.CustomAccessDeniedHandler;
+import com.beat.global.auth.security.CustomJwtAuthenticationEntryPoint;
+
+import lombok.RequiredArgsConstructor;
 
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -41,9 +41,11 @@ public class SecurityConfig {
 		"/swagger-resources/**",
 		"/api/files/**",
 		"/error",
-    "/"
+		"/api/bookings/refund",
+		"/api/bookings/cancel",
+		"/"
 	};
-  
+
 	private static final String[] AUTH_ADMIN_ONLY = {
 		"/api/admin/**"
 	};

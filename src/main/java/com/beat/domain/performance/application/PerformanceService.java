@@ -102,7 +102,8 @@ public class PerformanceService implements PerformanceUseCase {
 		return PerformanceDetailResponse.of(performance.getId(), performance.getPerformanceTitle(),
 			performance.getPerformancePeriod(), scheduleList, performance.getTicketPrice(),
 			performance.getGenre().name(), performance.getPosterImage(), performance.getRunningTime(),
-			performance.getPerformanceVenue(), performance.getPerformanceDescription(),
+			performance.getPerformanceVenue(), performance.getRoadAddressName(), performance.getPlaceDetailAddress(),
+			performance.getLatitude(), performance.getLongtitude(), performance.getPerformanceDescription(),
 			performance.getPerformanceAttentionNote(), performance.getPerformanceContact(),
 			performance.getPerformanceTeamName(), castList, staffList, minDueDate, performanceImageList);
 	}
@@ -223,6 +224,8 @@ public class PerformanceService implements PerformanceUseCase {
 			performance.getPerformanceDescription(), performance.getPerformanceAttentionNote(),
 			performance.getBankName(), performance.getAccountNumber(), performance.getAccountHolder(),
 			performance.getPosterImage(), performance.getPerformanceTeamName(), performance.getPerformanceVenue(),
+			performance.getRoadAddressName(), performance.getPlaceDetailAddress(), performance.getLatitude(),
+			performance.getLongtitude(),
 			performance.getPerformanceContact(), performance.getPerformancePeriod(), performance.getTicketPrice(),
 			performance.getTotalScheduleCount(), isBookerExist, scheduleResponses, castResponses, staffResponses,
 			performanceImageResponses);
