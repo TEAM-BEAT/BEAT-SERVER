@@ -170,7 +170,7 @@ public class TicketService {
 
 			if (booking.getBookingStatus() == BookingStatus.CHECKING_PAYMENT
 				&& detail.bookingStatus() == BookingStatus.BOOKING_CONFIRMED) {
-				booking.setBookingStatus(BookingStatus.BOOKING_CONFIRMED);
+				booking.updateBookingStatus(BookingStatus.BOOKING_CONFIRMED);
 				ticketRepository.save(booking);
 
 				String message = String.format("[BEAT] %s님 %s 예매 확정되었습니다.", detail.bookerName(),
@@ -203,7 +203,7 @@ public class TicketService {
 			Booking booking = ticketRepository.findById(bookingId)
 				.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
-			booking.setBookingStatus(BookingStatus.BOOKING_CANCELLED);
+			booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
 			ticketRepository.save(booking);
 
 			Schedule schedule = booking.getSchedule();
@@ -235,7 +235,7 @@ public class TicketService {
 			Booking booking = ticketRepository.findById(bookingId)
 				.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
-			booking.setBookingStatus(BookingStatus.BOOKING_DELETED);
+			booking.updateBookingStatus(BookingStatus.BOOKING_DELETED);
 			ticketRepository.save(booking);
 
 			Schedule schedule = booking.getSchedule();
