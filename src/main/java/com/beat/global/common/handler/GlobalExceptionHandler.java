@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -48,6 +49,15 @@ public class GlobalExceptionHandler {
 		log.error("IllegalArgumentException: {}", e.getMessage());
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 			.body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), e.getMessage()));
+	}
+
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
+		MissingServletRequestParameterException e) {
+		log.error("MissingServletRequestParameterException: {}", e.getMessage());
+		String message = String.format("Missing required parameter: %s", e.getParameterName());
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+			.body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), message));
 	}
 
 	/**
