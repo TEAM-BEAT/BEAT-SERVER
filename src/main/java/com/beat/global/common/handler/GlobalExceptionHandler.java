@@ -1,5 +1,14 @@
 package com.beat.global.common.handler;
 
+import java.util.Optional;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.BeatException;
@@ -9,15 +18,6 @@ import com.beat.global.common.exception.NotFoundException;
 import com.beat.global.common.exception.UnauthorizedException;
 
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.util.Optional;
 
 @Slf4j
 @RestControllerAdvice
@@ -41,6 +41,13 @@ public class GlobalExceptionHandler {
 		log.warn("MethodArgumentNotValidException: {}", errorMessage);
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 			.body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), errorMessage));
+	}
+
+	@ExceptionHandler(IllegalArgumentException.class)
+	public ResponseEntity<ErrorResponse> handleIllegalArgumentException(final IllegalArgumentException e) {
+		log.error("IllegalArgumentException: {}", e.getMessage());
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+			.body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), e.getMessage()));
 	}
 
 	/**
