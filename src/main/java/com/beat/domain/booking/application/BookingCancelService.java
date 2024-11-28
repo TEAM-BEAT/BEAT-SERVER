@@ -27,8 +27,7 @@ public class BookingCancelService {
 		Booking booking = bookingRepository.findById(request.bookingId())
 			.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
-		booking.setRefundInfo(request.bankName(), request.accountNumber(), request.accountHolder());
-		booking.setBookingStatus(BookingStatus.REFUND_REQUESTED);
+		booking.updateRefundInfo(request.bankName(), request.accountNumber(), request.accountHolder());
 		bookingRepository.save(booking);
 
 		return BookingRefundResponse.of(
@@ -44,7 +43,7 @@ public class BookingCancelService {
 		Booking booking = bookingRepository.findById(request.bookingId())
 			.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
-		booking.setBookingStatus(BookingStatus.BOOKING_CANCELLED);
+		booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
 		bookingRepository.save(booking);
 
 		Schedule schedule = booking.getSchedule();

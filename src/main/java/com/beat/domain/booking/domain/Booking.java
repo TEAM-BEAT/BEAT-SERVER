@@ -113,16 +113,17 @@ public class Booking {
 			.build();
 	}
 
-	public void setBookingStatus(BookingStatus bookingStatus) {
+	public void updateBookingStatus(BookingStatus bookingStatus) {
 		this.bookingStatus = bookingStatus;
 		if (bookingStatus == BookingStatus.BOOKING_CANCELLED || bookingStatus == BookingStatus.BOOKING_DELETED) {
 			this.cancellationDate = LocalDateTime.now();
 		}
 	}
 
-	public void setRefundInfo(BankName bankName, String accountNumber, String accountHolder) {
+	public void updateRefundInfo(BankName bankName, String accountNumber, String accountHolder) {
 		this.bankName = bankName;
 		this.accountNumber = accountNumber;
 		this.accountHolder = accountHolder;
+		this.bookingStatus = BookingStatus.REFUND_REQUESTED;
 	}
 }

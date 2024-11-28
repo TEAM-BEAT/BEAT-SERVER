@@ -1,5 +1,15 @@
 package com.beat.global.common.handler;
 
+import java.util.Optional;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.BeatException;
@@ -9,15 +19,6 @@ import com.beat.global.common.exception.NotFoundException;
 import com.beat.global.common.exception.UnauthorizedException;
 
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.util.Optional;
 
 @Slf4j
 @RestControllerAdvice
@@ -41,6 +42,15 @@ public class GlobalExceptionHandler {
 		log.warn("MethodArgumentNotValidException: {}", errorMessage);
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 			.body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), errorMessage));
+	}
+
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
+		MissingServletRequestParameterException e) {
+		log.error("MissingServletRequestParameterException: {}", e.getMessage());
+		String message = String.format("Missing required parameter: %s", e.getParameterName());
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+			.body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), message));
 	}
 
 	/**

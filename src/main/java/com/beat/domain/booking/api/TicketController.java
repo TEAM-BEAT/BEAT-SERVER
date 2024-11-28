@@ -1,8 +1,8 @@
 package com.beat.domain.booking.api;
 
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,14 +11,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.beat.domain.booking.application.TicketService;
-import com.beat.domain.booking.application.dto.TicketCancelRequest;
+import com.beat.domain.booking.application.dto.TicketDeleteRequest;
+import com.beat.domain.booking.application.dto.TicketRefundRequest;
 import com.beat.domain.booking.application.dto.TicketRetrieveResponse;
 import com.beat.domain.booking.application.dto.TicketUpdateRequest;
 import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.booking.exception.BookingSuccessCode;
+import com.beat.domain.booking.exception.TicketErrorCode;
+import com.beat.domain.booking.exception.TicketSuccessCode;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.common.exception.BadRequestException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,26 +39,63 @@ public class TicketController implements TicketApi {
 		@PathVariable Long performanceId,
 		@RequestParam(required = false) ScheduleNumber scheduleNumber,
 		@RequestParam(required = false) BookingStatus bookingStatus) {
-		TicketRetrieveResponse response = ticketService.getTickets(memberId, performanceId, scheduleNumber,
+		if (bookingStatus == BookingStatus.BOOKING_DELETED) {
+			throw new BadRequestException(TicketErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
+		}
+		TicketRetrieveResponse response = ticketService.findAllTicketsByConditions(memberId, performanceId,
+			scheduleNumber,
 			bookingStatus);
-		return ResponseEntity.ok(SuccessResponse.of(BookingSuccessCode.TICKET_RETRIEVE_SUCCESS, response));
+		return ResponseEntity.ok(SuccessResponse.of(TicketSuccessCode.TICKET_RETRIEVE_SUCCESS, response));
 	}
 
 	@Override
-	@PutMapping
+	@GetMapping("/search/{performanceId}")
+	public ResponseEntity<SuccessResponse<TicketRetrieveResponse>> searchTickets(
+		@CurrentMember Long memberId,
+		@PathVariable Long performanceId,
+		@RequestParam String searchWord,
+		@RequestParam(required = false) ScheduleNumber scheduleNumber,
+		@RequestParam(required = false) BookingStatus bookingStatus) {
+		if (searchWord.length() < 2) {
+			throw new BadRequestException(TicketErrorCode.SEARCH_WORD_TOO_SHORT);
+		}
+		if (bookingStatus == BookingStatus.BOOKING_DELETED) {
+			throw new BadRequestException(TicketErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
+		}
+
+		TicketRetrieveResponse response = ticketService.searchAllTicketsByConditions(memberId, performanceId,
+			searchWord,
+			scheduleNumber, bookingStatus);
+		return ResponseEntity.ok()
+			.cacheControl(CacheControl.noCache())
+			.body(SuccessResponse.of(TicketSuccessCode.TICKET_SEARCH_SUCCESS, response));
+	}
+
+	@Override
+	@PutMapping("/update")
 	public ResponseEntity<SuccessResponse<Void>> updateTickets(
 		@CurrentMember Long memberId,
-		@RequestBody TicketUpdateRequest request) {
-		ticketService.updateTickets(memberId, request);
-		return ResponseEntity.ok(SuccessResponse.from(BookingSuccessCode.TICKET_UPDATE_SUCCESS));
+		@RequestBody TicketUpdateRequest ticketUpdateRequest) {
+		ticketService.updateTickets(memberId, ticketUpdateRequest);
+		return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_UPDATE_SUCCESS));
 	}
 
 	@Override
-	@PatchMapping
-	public ResponseEntity<SuccessResponse<Void>> cancelTickets(
+	@PutMapping("/refund")
+	public ResponseEntity<SuccessResponse<Void>> refundTickets(
 		@CurrentMember Long memberId,
-		@RequestBody TicketCancelRequest ticketCancelRequest) {
-		ticketService.cancelTickets(memberId, ticketCancelRequest);
-		return ResponseEntity.ok(SuccessResponse.from(BookingSuccessCode.TICKET_CANCEL_SUCCESS));
+		@RequestBody TicketRefundRequest ticketRefundRequest) {
+		ticketService.refundTicketsByBookingIds(memberId, ticketRefundRequest);
+		return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_REFUND_SUCCESS));
 	}
+
+	@Override
+	@PutMapping("/delete")
+	public ResponseEntity<SuccessResponse<Void>> deleteTickets(
+		@CurrentMember Long memberId,
+		@RequestBody TicketDeleteRequest ticketDeleteRequest) {
+		ticketService.deleteTicketsByBookingIds(memberId, ticketDeleteRequest);
+		return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_DELETE_SUCCESS));
+	}
+
 }

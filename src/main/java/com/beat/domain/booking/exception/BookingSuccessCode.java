@@ -13,11 +13,8 @@ public enum BookingSuccessCode implements BaseSuccessCode {
 	*/
 	MEMBER_BOOKING_RETRIEVE_SUCCESS(200, "회원 예매 조회가 성공적으로 완료되었습니다."),
 	GUEST_BOOKING_RETRIEVE_SUCCESS(200, "비회원 예매 조회가 성공적으로 완료되었습니다."),
-	BOOKING_REFUND_SUCCESS(200, "예매 환불 요청이 성공적으로 완료되었습니다."),
-	BOOKING_CANCEL_SUCCESS(200, "예매 취소 요청이 성공적으로 완료되었습니다."),
-	TICKET_RETRIEVE_SUCCESS(200, "예매자 목록 조회가 성공적으로 완료되었습니다."),
-	TICKET_UPDATE_SUCCESS(200, "예매자 입금여부 수정이 성공적으로 완료되었습니다."),
-	TICKET_CANCEL_SUCCESS(200, "메이커의 티켓 취소 요청이 성공했습니다."),
+	BOOKING_REFUND_SUCCESS(200, "예매자의 환불요청이 성공했습니다."),
+	BOOKING_CANCEL_SUCCESS(200, "예매자의 취소요청이 성공했습니다."),
 
 	/*
 	201 Created
