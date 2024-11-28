@@ -6,7 +6,6 @@ import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;
 
 import jakarta.validation.constraints.Size;
-
 public record PerformanceRequest(
 	String performanceTitle,
 	Genre genre,

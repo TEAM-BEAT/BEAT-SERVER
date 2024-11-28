@@ -68,7 +68,6 @@ public class PerformanceModifyService {
 
 		Member member = validateMember(memberId);
 		Long userId = member.getUser().getId();
-
 		Performance performance = findPerformance(request.performanceId());
 
 		validateOwnership(userId, performance);

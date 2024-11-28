@@ -5,15 +5,21 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.beat.domain.booking.application.BookingCancelService;
 import com.beat.domain.booking.application.GuestBookingRetrieveService;
 import com.beat.domain.booking.application.GuestBookingService;
 import com.beat.domain.booking.application.MemberBookingRetrieveService;
 import com.beat.domain.booking.application.MemberBookingService;
+import com.beat.domain.booking.application.dto.BookingCancelRequest;
+import com.beat.domain.booking.application.dto.BookingCancelResponse;
+import com.beat.domain.booking.application.dto.BookingRefundRequest;
+import com.beat.domain.booking.application.dto.BookingRefundResponse;
 import com.beat.domain.booking.application.dto.GuestBookingRequest;
 import com.beat.domain.booking.application.dto.GuestBookingResponse;
 import com.beat.domain.booking.application.dto.GuestBookingRetrieveRequest;
@@ -35,6 +41,7 @@ public class BookingController implements BookingApi {
 	private final MemberBookingRetrieveService memberBookingRetrieveService;
 	private final GuestBookingService guestBookingService;
 	private final GuestBookingRetrieveService guestBookingRetrieveService;
+	private final BookingCancelService bookingCancelService;
 
 	@Override
 	@PostMapping("/member")
@@ -72,5 +79,25 @@ public class BookingController implements BookingApi {
 			guestBookingRetrieveRequest);
 		return ResponseEntity.status(HttpStatus.OK)
 			.body(SuccessResponse.of(BookingSuccessCode.GUEST_BOOKING_RETRIEVE_SUCCESS, response));
+	}
+
+	@Override
+	@PatchMapping("/refund")
+	public ResponseEntity<SuccessResponse<BookingRefundResponse>> refundBookings(
+		@RequestBody BookingRefundRequest bookingRefundRequest
+	) {
+		BookingRefundResponse response = bookingCancelService.refundBooking(bookingRefundRequest);
+		return ResponseEntity.status(HttpStatus.OK)
+			.body(SuccessResponse.of(BookingSuccessCode.BOOKING_REFUND_SUCCESS, response));
+	}
+
+	@Override
+	@PatchMapping("/cancel")
+	public ResponseEntity<SuccessResponse<BookingCancelResponse>> cancelBookings(
+		@RequestBody BookingCancelRequest bookingCancelRequest
+	) {
+		BookingCancelResponse response = bookingCancelService.cancelBooking(bookingCancelRequest);
+		return ResponseEntity.status(HttpStatus.OK)
+			.body(SuccessResponse.of(BookingSuccessCode.BOOKING_CANCEL_SUCCESS, response));
 	}
 }
