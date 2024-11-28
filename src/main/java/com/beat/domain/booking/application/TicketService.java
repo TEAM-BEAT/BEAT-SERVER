@@ -2,16 +2,19 @@ package com.beat.domain.booking.application;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import net.nurigo.java_sdk.exceptions.CoolsmsException;
 
-import com.beat.domain.booking.application.dto.TicketCancelRequest;
+import com.beat.domain.booking.application.dto.TicketDeleteRequest;
 import com.beat.domain.booking.application.dto.TicketDetail;
+import com.beat.domain.booking.application.dto.TicketRefundRequest;
 import com.beat.domain.booking.application.dto.TicketRetrieveResponse;
 import com.beat.domain.booking.application.dto.TicketUpdateDetail;
 import com.beat.domain.booking.application.dto.TicketUpdateRequest;
@@ -24,6 +27,7 @@ import com.beat.domain.member.dao.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.dao.PerformanceRepository;
+import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.schedule.dao.ScheduleRepository;
@@ -37,7 +41,9 @@ import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TicketService {
@@ -60,8 +66,61 @@ public class TicketService {
 		Performance performance = performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-		List<Booking> bookings = findBookings(performanceId, scheduleNumber, bookingStatus);
+		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 
+		int totalPerformanceTicketCount = schedules.stream()
+			.mapToInt(Schedule::getTotalTicketCount)
+			.sum();
+
+		int totalPerformanceSoldTicketCount = schedules.stream()
+			.mapToInt(Schedule::getSoldTicketCount)
+			.sum();
+
+		List<Booking> bookings = ticketRepository.findBookings(performanceId, scheduleNumber, bookingStatus);
+
+		return getTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
+			bookings);
+	}
+
+	public TicketRetrieveResponse searchTickets(Long memberId, Long performanceId, String searchWord,
+		ScheduleNumber scheduleNumber, BookingStatus bookingStatus) {
+		log.info(
+			"searchTickets called with params: performanceId={}, searchWord={}, scheduleNumber={}, bookingStatus={}",
+			performanceId, searchWord, scheduleNumber, bookingStatus);
+
+		Member member = memberRepository.findById(memberId).orElseThrow(
+			() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+		Performance performance = performanceRepository.findById(performanceId)
+			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+
+		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
+
+		int totalPerformanceTicketCount = schedules.stream()
+			.mapToInt(Schedule::getTotalTicketCount)
+			.sum();
+
+		int totalPerformanceSoldTicketCount = schedules.stream()
+			.mapToInt(Schedule::getSoldTicketCount)
+			.sum();
+
+		List<Booking> bookings =
+			ticketRepository.searchBookings(
+				performanceId,
+				searchWord,
+				scheduleNumber != null ? scheduleNumber.name() : null,
+				bookingStatus != null ? bookingStatus.name() : null
+			);
+
+		log.info("searchTickets result: {}", bookings);
+
+		return getTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
+			bookings);
+	}
+
+	@NotNull
+	private TicketRetrieveResponse getTicketRetrieveResponse(Performance performance, int totalPerformanceTicketCount,
+		int totalPerformanceSoldTicketCount, List<Booking> bookings) {
 		List<TicketDetail> bookingList = bookings.stream()
 			.map(booking -> TicketDetail.of(
 				booking.getId(),
@@ -71,28 +130,22 @@ public class TicketService {
 				booking.getPurchaseTicketCount(),
 				booking.getCreatedAt(),
 				booking.getBookingStatus(),
-				booking.getSchedule().getScheduleNumber().name()
+				booking.getSchedule().getScheduleNumber().name(),
+				Optional.ofNullable(booking.getBankName()).map(BankName::name).orElse(""),
+				booking.getAccountNumber(),
+				booking.getAccountHolder()
 			))
 			.collect(Collectors.toList());
+		log.info("Converted TicketDetail list: {}", bookingList);
 
 		return TicketRetrieveResponse.of(
 			performance.getPerformanceTitle(),
+			performance.getPerformanceTeamName(),
 			performance.getTotalScheduleCount(),
+			totalPerformanceTicketCount,
+			totalPerformanceSoldTicketCount,
 			bookingList
 		);
-	}
-
-	private List<Booking> findBookings(Long performanceId, ScheduleNumber scheduleNumber, BookingStatus bookingStatus) {
-		if (scheduleNumber != null && bookingStatus != null) {
-			return ticketRepository.findBySchedulePerformanceIdAndScheduleScheduleNumberAndBookingStatus(performanceId,
-				scheduleNumber, bookingStatus);
-		} else if (scheduleNumber != null) {
-			return ticketRepository.findBySchedulePerformanceIdAndScheduleScheduleNumber(performanceId, scheduleNumber);
-		} else if (bookingStatus != null) {
-			return ticketRepository.findBySchedulePerformanceIdAndBookingStatus(performanceId, bookingStatus);
-		} else {
-			return ticketRepository.findBySchedulePerformanceId(performanceId);
-		}
 	}
 
 	@Transactional
@@ -132,20 +185,21 @@ public class TicketService {
 	}
 
 	@Transactional
-	public void cancelTickets(Long memberId, TicketCancelRequest ticketCancelRequest) {
+	public void refundTickets(Long memberId, TicketRefundRequest ticketRefundRequest) {
 		Member member = memberRepository.findById(memberId)
 			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 
 		Long userId = member.getUser().getId();
 
-		Performance performance = performanceRepository.findById(ticketCancelRequest.performanceId())
+		Performance performance = performanceRepository.findById(ticketRefundRequest.performanceId())
 			.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_PERFORMANCE_FOUND));
 
 		if (!performance.getUsers().getId().equals(userId)) {
 			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
 		}
 
-		for (Long bookingId : ticketCancelRequest.bookingList()) {
+		for (TicketRefundRequest.Booking bookingRequest : ticketRefundRequest.bookingList()) {
+			Long bookingId = bookingRequest.bookingId();
 			Booking booking = ticketRepository.findById(bookingId)
 				.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
@@ -162,6 +216,39 @@ public class TicketService {
 		}
 	}
 
+	@Transactional
+	public void deleteTickets(Long memberId, TicketDeleteRequest ticketDeleteRequest) {
+		Member member = memberRepository.findById(memberId)
+			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+		Long userId = member.getUser().getId();
+
+		Performance performance = performanceRepository.findById(ticketDeleteRequest.performanceId())
+			.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_PERFORMANCE_FOUND));
+
+		if (!performance.getUsers().getId().equals(userId)) {
+			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
+		}
+
+		for (TicketDeleteRequest.Booking bookingRequest : ticketDeleteRequest.bookingList()) {
+			Long bookingId = bookingRequest.bookingId();
+			Booking booking = ticketRepository.findById(bookingId)
+				.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
+
+			booking.setBookingStatus(BookingStatus.BOOKING_DELETED);
+			ticketRepository.save(booking);
+
+			Schedule schedule = booking.getSchedule();
+			schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
+
+			if (!schedule.isBooking()) {
+				schedule.updateIsBooking(true);
+				scheduleRepository.save(schedule);
+			}
+		}
+
+	}
+
 	@Scheduled(cron = "0 0 4 * * ?")
 	@Transactional
 	public void deleteOldCancelledBookings() {
@@ -170,4 +257,5 @@ public class TicketService {
 			BookingStatus.BOOKING_CANCELLED, oneYearAgo);
 		ticketRepository.deleteAll(oldCancelledBookings);
 	}
+
 }
