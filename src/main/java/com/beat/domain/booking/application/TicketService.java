@@ -61,7 +61,7 @@ public class TicketService {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
 		Performance performance = findPerformance(performanceId);
-		performance.validatePerformanceOwnership(performanceId);
+		performance.validatePerformanceOwnership(user.getId());
 		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 
 		int totalPerformanceTicketCount = calculateTotalTicketCount(schedules);
@@ -78,7 +78,7 @@ public class TicketService {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
 		Performance performance = findPerformance(performanceId);
-		performance.validatePerformanceOwnership(performanceId);
+		performance.validatePerformanceOwnership(user.getId());
 		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 
 		int totalPerformanceTicketCount = calculateTotalTicketCount(schedules);
@@ -142,7 +142,7 @@ public class TicketService {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
 		Performance performance = findPerformance(request.performanceId());
-		performance.validatePerformanceOwnership(request.performanceId());
+		performance.validatePerformanceOwnership(user.getId());
 
 		for (TicketUpdateDetail detail : request.bookingList()) {
 			Booking booking = ticketRepository.findById(detail.bookingId())
@@ -174,7 +174,7 @@ public class TicketService {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
 		Performance performance = findPerformance(ticketRefundRequest.performanceId());
-		performance.validatePerformanceOwnership(ticketRefundRequest.performanceId());
+		performance.validatePerformanceOwnership(user.getId());
 
 		for (TicketRefundRequest.Booking bookingRequest : ticketRefundRequest.bookingList()) {
 			Long bookingId = bookingRequest.bookingId();
@@ -199,7 +199,7 @@ public class TicketService {
 		Member member = findMember(memberId);
 		Long userId = findUser(member).getId();
 		Performance performance = findPerformance(ticketDeleteRequest.performanceId());
-		performance.validatePerformanceOwnership(ticketDeleteRequest.performanceId());
+		performance.validatePerformanceOwnership(userId);
 
 		if (!performance.getUsers().getId().equals(userId)) {
 			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
