@@ -29,7 +29,7 @@ public class GlobalExceptionHandler {
 	 */
 	@ExceptionHandler(BadRequestException.class)
 	public ResponseEntity<ErrorResponse> handleBadRequestException(final BadRequestException e) {
-		log.error("BadRequestException: {}", e.getMessage());
+		log.warn("BadRequestException: {}", e.getMessage());
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorResponse.from(e.getBaseErrorCode()));
 	}
 
@@ -47,7 +47,7 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(MissingServletRequestParameterException.class)
 	public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
 		MissingServletRequestParameterException e) {
-		log.error("MissingServletRequestParameterException: {}", e.getMessage());
+		log.warn("MissingServletRequestParameterException: {}", e.getMessage());
 		String message = String.format("Missing required parameter: %s", e.getParameterName());
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 			.body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), message));
@@ -58,7 +58,7 @@ public class GlobalExceptionHandler {
 	 */
 	@ExceptionHandler(UnauthorizedException.class)
 	public ResponseEntity<ErrorResponse> handleUnauthorizedException(final UnauthorizedException e) {
-		log.error("UnauthorizedException: {}", e.getMessage());
+		log.warn("UnauthorizedException: {}", e.getMessage());
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ErrorResponse.from(e.getBaseErrorCode()));
 	}
 
@@ -67,7 +67,7 @@ public class GlobalExceptionHandler {
 	 */
 	@ExceptionHandler(ForbiddenException.class)
 	public ResponseEntity<ErrorResponse> handleForbiddenException(final ForbiddenException e) {
-		log.error("ForbiddenException: {}", e.getMessage());
+		log.warn("ForbiddenException: {}", e.getMessage());
 		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErrorResponse.from(e.getBaseErrorCode()));
 	}
 
@@ -76,7 +76,7 @@ public class GlobalExceptionHandler {
 	 */
 	@ExceptionHandler(NotFoundException.class)
 	protected ResponseEntity<ErrorResponse> handleNotFoundException(final NotFoundException e) {
-		log.error("NotFoundException: {}", e.getMessage());
+		log.warn("NotFoundException: {}", e.getMessage());
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.from(e.getBaseErrorCode()));
 	}
 
@@ -85,12 +85,12 @@ public class GlobalExceptionHandler {
 	 */
 	@ExceptionHandler(ConflictException.class)
 	protected ResponseEntity<ErrorResponse> handleConflictException(final ConflictException e) {
-		log.error("ConflictException: {}", e.getMessage());
+		log.warn("ConflictException: {}", e.getMessage());
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse.from(e.getBaseErrorCode()));
 	}
 
 	/**
-	 * 500 INTERNEL_SERVER
+	 * 500 INTERNAL_SERVER
 	 */
 	@ExceptionHandler(Exception.class)
 	protected ResponseEntity<ErrorResponse> handleException(final Exception e) {
@@ -104,7 +104,7 @@ public class GlobalExceptionHandler {
 	 */
 	@ExceptionHandler(BeatException.class)
 	public ResponseEntity<ErrorResponse> handleBeatException(final BeatException e) {
-		log.error("BeatException occurred: ", e);
+		log.warn("BeatException occurred: ", e);
 		return ResponseEntity.status(e.getBaseErrorCode().getStatus()).body(ErrorResponse.from(e.getBaseErrorCode()));
 	}
 }
