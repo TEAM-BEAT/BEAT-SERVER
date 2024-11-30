@@ -35,7 +35,7 @@ public class Staff {
 	private Performance performance;
 
 	@Builder
-	private Staff(String staffName, String staffRole, String staffPhoto, Performance performance) {
+	public Staff(String staffName, String staffRole, String staffPhoto, Performance performance) {
 		this.staffName = staffName;
 		this.staffRole = staffRole;
 		this.staffPhoto = staffPhoto;

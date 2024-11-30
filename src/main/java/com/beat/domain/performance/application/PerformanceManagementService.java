@@ -73,7 +73,7 @@ public class PerformanceManagementService {
 			request.roadAddressName(),
 			request.placeDetailAddress(),
 			request.latitude(),
-			request.longitude(),
+			request.longtitude(),
 			request.performanceContact(),
 			" ", // 이후 dto performancePeriod 제외 필요
 			request.ticketPrice(),
@@ -173,7 +173,7 @@ public class PerformanceManagementService {
 		List<PerformanceImageResponse> performanceImageResponses = performanceImages.stream()
 			.map(image -> PerformanceImageResponse.of(
 				image.getId(),
-				image.getPerformanceImageUrl()
+				image.getPerformanceImage()
 			))
 			.collect(Collectors.toList());
 
@@ -194,7 +194,7 @@ public class PerformanceManagementService {
 			performance.getRoadAddressName(),
 			performance.getPlaceDetailAddress(),
 			performance.getLatitude(),
-			performance.getLongitude(),
+			performance.getLongtitude(),
 			performance.getPerformanceContact(),
 			performance.getPerformancePeriod(),
 			performance.getTicketPrice(),

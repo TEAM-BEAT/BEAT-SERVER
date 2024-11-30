@@ -16,26 +16,26 @@ public class PerformanceImage {
 	private Long id;
 
 	@Column(nullable = false)
-	private String performanceImageUrl;
+	private String performanceImage;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "performance_id", nullable = false)
 	private Performance performance;
 
 	@Builder
-	private PerformanceImage(String performanceImageUrl, Performance performance) {
-		this.performanceImageUrl = performanceImageUrl;
+	public PerformanceImage(String performanceImage, Performance performance) {
+		this.performanceImage = performanceImage;
 		this.performance = performance;
 	}
 
-	public static PerformanceImage create(String performanceImageUrl, Performance performance) {
+	public static PerformanceImage create(String perforemanceImage, Performance performance) {
 		return PerformanceImage.builder()
-			.performanceImageUrl(performanceImageUrl)
+			.performanceImage(perforemanceImage)
 			.performance(performance)
 			.build();
 	}
 
-	public void update(String performanceImageUrl) {
-		this.performanceImageUrl = performanceImageUrl;
+	public void update(String performanceImage) {
+		this.performanceImage = performanceImage;
 	}
 }

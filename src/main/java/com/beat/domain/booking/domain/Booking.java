@@ -79,7 +79,7 @@ public class Booking {
 	private Users users;
 
 	@Builder
-	private Booking(int purchaseTicketCount, String bookerName, String bookerPhoneNumber, BookingStatus bookingStatus,
+	public Booking(int purchaseTicketCount, String bookerName, String bookerPhoneNumber, BookingStatus bookingStatus,
 		String birthDate, String password, BankName bankName, String accountNumber, String accountHolder,
 		Schedule schedule, Users users) {
 		this.purchaseTicketCount = purchaseTicketCount;

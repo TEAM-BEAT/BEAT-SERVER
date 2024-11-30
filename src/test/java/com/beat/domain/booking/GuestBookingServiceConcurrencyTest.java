@@ -78,14 +78,10 @@ public class GuestBookingServiceConcurrencyTest {
                 "poster.jpg",
                 "Performance Team",
                 "Performance Venue",
-                "도로명 주소",
-                "상세 주소",
-                "123.1111",
-                "12.1234",
-                "010-1111-1111",
+                "010-1234-5678",
                 "2024-01-01 to 2024-12-31",
-                10000,
-                30,
+                35000,
+                1,
                 initialUser
         );
         performanceRepository.save(performance);

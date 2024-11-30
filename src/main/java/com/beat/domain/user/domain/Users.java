@@ -28,7 +28,7 @@ public class Users {
 	private Role role;
 
 	@Builder
-	private Users(Role role) {
+	public Users(Role role) {
 		this.role = role;
 	}
 

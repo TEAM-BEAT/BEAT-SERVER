@@ -140,7 +140,7 @@ public class PerformanceModifyService {
 			request.roadAddressName(),
 			request.placeDetailAddress(),
 			request.latitude(),
-			request.longitude(),
+			request.longtitude(),
 			request.performanceContact(),
 			request.performancePeriod(),
 			request.totalScheduleCount()
@@ -518,7 +518,7 @@ public class PerformanceModifyService {
 		log.debug("Added performanceImage: {}", savedPerformanceImage.getId());
 		return PerformanceImageModifyResponse.of(
 			savedPerformanceImage.getId(),
-			savedPerformanceImage.getPerformanceImageUrl()
+			savedPerformanceImage.getPerformanceImage()
 		);
 	}
 
@@ -543,7 +543,7 @@ public class PerformanceModifyService {
 		log.debug("Updated performanceImage: {}", performanceImage.getId());
 		return PerformanceImageModifyResponse.of(
 			performanceImage.getId(),
-			performanceImage.getPerformanceImageUrl()
+			performanceImage.getPerformanceImage()
 		);
 	}
 
@@ -589,7 +589,7 @@ public class PerformanceModifyService {
 			performance.getRoadAddressName(),
 			performance.getPlaceDetailAddress(),
 			performance.getLatitude(),
-			performance.getLongitude(),
+			performance.getLongtitude(),
 			performance.getPerformanceContact(),
 			performance.getPerformancePeriod(),
 			performance.getTicketPrice(),

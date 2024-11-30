@@ -9,7 +9,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.exception.BadRequestException;
@@ -52,19 +51,6 @@ public class GlobalExceptionHandler {
 		String message = String.format("Missing required parameter: %s", e.getParameterName());
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 			.body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), message));
-	}
-
-	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
-	public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(
-		MethodArgumentTypeMismatchException e) {
-		log.warn("MethodArgumentTypeMismatchException: {}", e.getMessage());
-		String errorMessage = "Invalid value for parameter: " + e.getName();
-		String requiredType = "Unknown Type";
-		if (e.getRequiredType() != null) {
-			requiredType = e.getRequiredType().getSimpleName();
-		}
-		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-			.body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), errorMessage + " (Expected: " + requiredType + ")"));
 	}
 
 	/**
