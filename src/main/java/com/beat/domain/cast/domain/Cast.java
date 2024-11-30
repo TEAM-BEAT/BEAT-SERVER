@@ -42,7 +42,7 @@ public class Cast {
 	private Performance performance;
 
 	@Builder
-	public Cast(String castName, String castRole, String castPhoto, Performance performance) {
+	private Cast(String castName, String castRole, String castPhoto, Performance performance) {
 		this.castName = castName;
 		this.castRole = castRole;
 		this.castPhoto = castPhoto;
