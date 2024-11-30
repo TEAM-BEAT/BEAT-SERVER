@@ -95,7 +95,7 @@ public class PerformanceService implements PerformanceUseCase {
 		List<PerformanceDetailImageResponse> performanceImageList = performanceImageRepository.findAllByPerformanceId(
 				performanceId)
 			.stream()
-			.map(image -> PerformanceDetailImageResponse.of(image.getId(), image.getPerformanceImage()))
+			.map(image -> PerformanceDetailImageResponse.of(image.getId(), image.getPerformanceImageUrl()))
 			.collect(Collectors.toList());
 
 		log.info("Successfully completed getPerformanceDetail for performanceId: {}", performanceId);
@@ -103,7 +103,7 @@ public class PerformanceService implements PerformanceUseCase {
 			performance.getPerformancePeriod(), scheduleList, performance.getTicketPrice(),
 			performance.getGenre().name(), performance.getPosterImage(), performance.getRunningTime(),
 			performance.getPerformanceVenue(), performance.getRoadAddressName(), performance.getPlaceDetailAddress(),
-			performance.getLatitude(), performance.getLongtitude(), performance.getPerformanceDescription(),
+			performance.getLatitude(), performance.getLongitude(), performance.getPerformanceDescription(),
 			performance.getPerformanceAttentionNote(), performance.getPerformanceContact(),
 			performance.getPerformanceTeamName(), castList, staffList, minDueDate, performanceImageList);
 	}
@@ -216,7 +216,7 @@ public class PerformanceService implements PerformanceUseCase {
 
 		List<PerformanceImageResponse> performanceImageResponses = performanceImages.stream()
 			.map(performanceImage -> PerformanceImageResponse.of(performanceImage.getId(),
-				performanceImage.getPerformanceImage()))
+				performanceImage.getPerformanceImageUrl()))
 			.collect(Collectors.toList());
 
 		return PerformanceModifyDetailResponse.of(performance.getUsers().getId(), performance.getId(),
@@ -225,7 +225,7 @@ public class PerformanceService implements PerformanceUseCase {
 			performance.getBankName(), performance.getAccountNumber(), performance.getAccountHolder(),
 			performance.getPosterImage(), performance.getPerformanceTeamName(), performance.getPerformanceVenue(),
 			performance.getRoadAddressName(), performance.getPlaceDetailAddress(), performance.getLatitude(),
-			performance.getLongtitude(),
+			performance.getLongitude(),
 			performance.getPerformanceContact(), performance.getPerformancePeriod(), performance.getTicketPrice(),
 			performance.getTotalScheduleCount(), isBookerExist, scheduleResponses, castResponses, staffResponses,
 			performanceImageResponses);
