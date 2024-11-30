@@ -23,7 +23,7 @@ public class PerformanceImage {
 	private Performance performance;
 
 	@Builder
-	public PerformanceImage(String performanceImage, Performance performance) {
+	private PerformanceImage(String performanceImage, Performance performance) {
 		this.performanceImage = performanceImage;
 		this.performance = performance;
 	}

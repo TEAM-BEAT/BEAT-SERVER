@@ -141,7 +141,7 @@ public class Performance extends BaseTimeEntity {
 		this.users = users;
 	}
 
-	public static Performance create(
+	private static Performance create(
 		String performanceTitle, Genre genre, int runningTime, String performanceDescription,
 		String performanceAttentionNote,
 		BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName,

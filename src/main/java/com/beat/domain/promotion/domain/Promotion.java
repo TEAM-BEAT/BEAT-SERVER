@@ -44,7 +44,7 @@ public class Promotion {
 	private CarouselNumber carouselNumber;
 
 	@Builder
-	public Promotion(String promotionPhoto, Performance performance, String redirectUrl, boolean isExternal,
+	private Promotion(String promotionPhoto, Performance performance, String redirectUrl, boolean isExternal,
 		CarouselNumber carouselNumber) {
 		this.promotionPhoto = promotionPhoto;
 		this.performance = performance;

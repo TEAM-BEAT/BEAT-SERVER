@@ -53,7 +53,7 @@ public class Member extends BaseTimeEntity {
 	private SocialType socialType;
 
 	@Builder
-	public Member(String nickname, String email, LocalDateTime deletedAt, Users user, Long socialId,
+	private Member(String nickname, String email, LocalDateTime deletedAt, Users user, Long socialId,
 		SocialType socialType) {
 		this.nickname = nickname;
 		this.email = email;
