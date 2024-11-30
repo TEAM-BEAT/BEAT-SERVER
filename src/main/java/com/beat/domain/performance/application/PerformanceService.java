@@ -95,7 +95,7 @@ public class PerformanceService implements PerformanceUseCase {
 		List<PerformanceDetailImageResponse> performanceImageList = performanceImageRepository.findAllByPerformanceId(
 				performanceId)
 			.stream()
-			.map(image -> PerformanceDetailImageResponse.of(image.getId(), image.getPerformanceImage()))
+			.map(image -> PerformanceDetailImageResponse.of(image.getId(), image.getPerformanceImageUrl()))
 			.collect(Collectors.toList());
 
 		log.info("Successfully completed getPerformanceDetail for performanceId: {}", performanceId);
@@ -216,7 +216,7 @@ public class PerformanceService implements PerformanceUseCase {
 
 		List<PerformanceImageResponse> performanceImageResponses = performanceImages.stream()
 			.map(performanceImage -> PerformanceImageResponse.of(performanceImage.getId(),
-				performanceImage.getPerformanceImage()))
+				performanceImage.getPerformanceImageUrl()))
 			.collect(Collectors.toList());
 
 		return PerformanceModifyDetailResponse.of(performance.getUsers().getId(), performance.getId(),

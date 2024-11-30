@@ -173,7 +173,7 @@ public class PerformanceManagementService {
 		List<PerformanceImageResponse> performanceImageResponses = performanceImages.stream()
 			.map(image -> PerformanceImageResponse.of(
 				image.getId(),
-				image.getPerformanceImage()
+				image.getPerformanceImageUrl()
 			))
 			.collect(Collectors.toList());
 

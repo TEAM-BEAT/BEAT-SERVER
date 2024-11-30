@@ -518,7 +518,7 @@ public class PerformanceModifyService {
 		log.debug("Added performanceImage: {}", savedPerformanceImage.getId());
 		return PerformanceImageModifyResponse.of(
 			savedPerformanceImage.getId(),
-			savedPerformanceImage.getPerformanceImage()
+			savedPerformanceImage.getPerformanceImageUrl()
 		);
 	}
 
@@ -536,14 +536,14 @@ public class PerformanceModifyService {
 			throw new ForbiddenException(PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_BELONG_TO_PERFORMANCE);
 		}
 
-		performanceImage.update(
+		performanceImage.updatePerformanceImageUrl(
 			request.performanceImage()
 		);
 		performanceImageRepository.save(performanceImage);
 		log.debug("Updated performanceImage: {}", performanceImage.getId());
 		return PerformanceImageModifyResponse.of(
 			performanceImage.getId(),
-			performanceImage.getPerformanceImage()
+			performanceImage.getPerformanceImageUrl()
 		);
 	}
 
