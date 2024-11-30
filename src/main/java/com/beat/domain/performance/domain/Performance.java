@@ -75,7 +75,7 @@ public class Performance extends BaseTimeEntity {
 	@Column(nullable = false)
 	private String performanceTeamName;
 
-	@Column(nullable = false)
+	@Column(nullable = false, columnDefinition = "longtext")
 	private String performanceVenue;
 
 	@Column(nullable = false)
