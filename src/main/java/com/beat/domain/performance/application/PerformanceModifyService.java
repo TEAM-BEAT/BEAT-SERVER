@@ -140,7 +140,7 @@ public class PerformanceModifyService {
 			request.roadAddressName(),
 			request.placeDetailAddress(),
 			request.latitude(),
-			request.longtitude(),
+			request.longitude(),
 			request.performanceContact(),
 			request.performancePeriod(),
 			request.totalScheduleCount()
@@ -589,7 +589,7 @@ public class PerformanceModifyService {
 			performance.getRoadAddressName(),
 			performance.getPlaceDetailAddress(),
 			performance.getLatitude(),
-			performance.getLongtitude(),
+			performance.getLongitude(),
 			performance.getPerformanceContact(),
 			performance.getPerformancePeriod(),
 			performance.getTicketPrice(),
