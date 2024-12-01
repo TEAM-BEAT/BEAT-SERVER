@@ -57,7 +57,7 @@ class GuestBookingServiceConcurrencyTest {
 
 	@BeforeEach
 	@Transactional
-	public void setup() {
+	void setup() {
 		logger.info("Setting up initial data...");
 
 		Users initialUser = Users.create();
@@ -84,7 +84,7 @@ class GuestBookingServiceConcurrencyTest {
 	}
 
 	@Test
-	public void testConcurrentGuestBooking() {
+	void testConcurrentGuestBooking() {
 		int threadCount1 = 100; // 회차 1번에 대해 100명 요청
 		int threadCount2 = 150; // 회차 2번에 대해 150명 요청
 
