@@ -35,7 +35,7 @@ public class PerformanceImage {
 			.build();
 	}
 
-	public void update(String performanceImageUrl) {
+	public void updatePerformanceImageUrl(String performanceImageUrl) {
 		this.performanceImageUrl = performanceImageUrl;
 	}
 }

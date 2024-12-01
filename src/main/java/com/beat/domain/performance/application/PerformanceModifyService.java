@@ -536,7 +536,7 @@ public class PerformanceModifyService {
 			throw new ForbiddenException(PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_BELONG_TO_PERFORMANCE);
 		}
 
-		performanceImage.update(
+		performanceImage.updatePerformanceImageUrl(
 			request.performanceImage()
 		);
 		performanceImageRepository.save(performanceImage);
