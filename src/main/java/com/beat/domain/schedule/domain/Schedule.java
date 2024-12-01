@@ -57,7 +57,7 @@ public class Schedule {
 	private Performance performance;
 
 	@Builder
-	public Schedule(LocalDateTime performanceDate, int totalTicketCount, int soldTicketCount, boolean isBooking,
+	private Schedule(LocalDateTime performanceDate, int totalTicketCount, int soldTicketCount, boolean isBooking,
 		ScheduleNumber scheduleNumber, Performance performance) {
 		this.performanceDate = performanceDate;
 		this.totalTicketCount = totalTicketCount;

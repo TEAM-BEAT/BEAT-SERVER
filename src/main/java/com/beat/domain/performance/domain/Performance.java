@@ -75,7 +75,7 @@ public class Performance extends BaseTimeEntity {
 	@Column(nullable = false)
 	private String performanceTeamName;
 
-	@Column(nullable = false)
+	@Column(nullable = false, columnDefinition = "text")
 	private String performanceVenue;
 
 	@Column(nullable = false)
@@ -88,7 +88,7 @@ public class Performance extends BaseTimeEntity {
 	private String latitude;
 
 	@Column(nullable = false)
-	private String longtitude;
+	private String longitude;
 
 	@Column(nullable = false)
 	private String performanceContact;
@@ -114,10 +114,10 @@ public class Performance extends BaseTimeEntity {
 	private List<PerformanceImage> performanceImageList = new ArrayList<>();
 
 	@Builder
-	public Performance(String performanceTitle, Genre genre, int runningTime, String performanceDescription,
+	private Performance(String performanceTitle, Genre genre, int runningTime, String performanceDescription,
 		String performanceAttentionNote,
 		BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName,
-		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longtitude,
+		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longitude,
 		String performanceContact, String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
 		this.performanceTitle = performanceTitle;
 		this.genre = genre;
@@ -133,7 +133,7 @@ public class Performance extends BaseTimeEntity {
 		this.roadAddressName = roadAddressName;
 		this.placeDetailAddress = placeDetailAddress;
 		this.latitude = latitude;
-		this.longtitude = longtitude;
+		this.longitude = longitude;
 		this.performanceContact = performanceContact;
 		this.performancePeriod = performancePeriod;
 		this.ticketPrice = ticketPrice;
@@ -145,7 +145,7 @@ public class Performance extends BaseTimeEntity {
 		String performanceTitle, Genre genre, int runningTime, String performanceDescription,
 		String performanceAttentionNote,
 		BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName,
-		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longtitude,
+		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longitude,
 		String performanceContact, String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
 		return Performance.builder()
 			.performanceTitle(performanceTitle)
@@ -162,7 +162,7 @@ public class Performance extends BaseTimeEntity {
 			.roadAddressName(roadAddressName)
 			.placeDetailAddress(placeDetailAddress)
 			.latitude(latitude)
-			.longtitude(longtitude)
+			.longitude(longitude)
 			.performanceContact(performanceContact)
 			.performancePeriod(performancePeriod)
 			.ticketPrice(ticketPrice)
@@ -175,7 +175,7 @@ public class Performance extends BaseTimeEntity {
 		String performanceTitle, Genre genre, int runningTime, String performanceDescription,
 		String performanceAttentionNote,
 		BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName,
-		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longtitude,
+		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longitude,
 		String performanceContact, String performancePeriod, int totalScheduleCount) {
 		this.performanceTitle = performanceTitle;
 		this.genre = genre;
@@ -191,7 +191,7 @@ public class Performance extends BaseTimeEntity {
 		this.roadAddressName = roadAddressName;
 		this.placeDetailAddress = placeDetailAddress;
 		this.latitude = latitude;
-		this.longtitude = longtitude;
+		this.longitude = longitude;
 		this.performanceContact = performanceContact;
 		this.performancePeriod = performancePeriod;
 		this.totalScheduleCount = totalScheduleCount;
