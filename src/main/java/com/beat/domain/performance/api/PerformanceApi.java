@@ -15,6 +15,7 @@ import com.beat.domain.performance.application.dto.performanceDetail.Performance
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.swagger.annotation.DisableSwaggerSecurity;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -108,6 +109,7 @@ public interface PerformanceApi {
 		@PathVariable Long performanceId
 	);
 
+	@DisableSwaggerSecurity
 	@Operation(summary = "공연 상세정보 조회 API", description = "공연 상세페이지의 공연 상세정보를 조회하는 GET API입니다.")
 	@ApiResponses(
 		value = {
@@ -126,6 +128,7 @@ public interface PerformanceApi {
 		@PathVariable Long performanceId
 	);
 
+	@DisableSwaggerSecurity
 	@Operation(summary = "예매하기 관련 공연 정보 조회 API", description = "예매하기 페이지에서 필요한 예매 관련 공연 정보를 조회하는 GET API입니다.")
 	@ApiResponses(
 		value = {

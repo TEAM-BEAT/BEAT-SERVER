@@ -54,6 +54,51 @@ public class JwtTokenProvider {
 		return issueToken(authentication, refreshTokenExpireTime);
 	}
 
+	public JwtValidationType validateToken(String token) {
+		try {
+			Claims claims = getBody(token);
+			return JwtValidationType.VALID_JWT;
+		} catch (MalformedJwtException ex) {
+			log.error("Invalid JWT Token: {}", ex.getMessage());
+			return JwtValidationType.INVALID_JWT_TOKEN;
+		} catch (ExpiredJwtException ex) {
+			log.error("Expired JWT Token: {}", ex.getMessage());
+			return JwtValidationType.EXPIRED_JWT_TOKEN;
+		} catch (UnsupportedJwtException ex) {
+			log.error("Unsupported JWT Token: {}", ex.getMessage());
+			return JwtValidationType.UNSUPPORTED_JWT_TOKEN;
+		} catch (IllegalArgumentException ex) {
+			log.error("Empty JWT Token or Illegal Argument: {}", ex.getMessage());
+			return JwtValidationType.EMPTY_JWT;
+		} catch (SignatureException ex) {
+			log.error("Invalid JWT Signature: {}", ex.getMessage());
+			return JwtValidationType.INVALID_JWT_SIGNATURE;
+		}
+	}
+
+	public Long getMemberIdFromJwt(String token) {
+		Claims claims = getBody(token);
+		Long memberId = Long.valueOf(claims.get(MEMBER_ID).toString());
+
+		// 로그 추가: memberId 확인
+		log.info("Extracted memberId from JWT: {}", memberId);
+
+		return memberId;
+	}
+
+	public Role getRoleFromJwt(String token) {
+		Claims claims = getBody(token);
+		String roleName = claims.get(ROLE_KEY, String.class);
+
+		log.info("Extracted role from JWT: {}", roleName);
+
+		// "ROLE_" 접두사 제거
+		String enumValue = roleName.replace("ROLE_", "");
+		log.info("Final role after processing: {}", enumValue);
+
+		return Role.valueOf(enumValue.toUpperCase());
+	}
+
 	private String issueToken(final Authentication authentication, final long expiredTime) {
 		final Date now = new Date();
 
@@ -81,57 +126,12 @@ public class JwtTokenProvider {
 			.compact();
 	}
 
-	private SecretKey getSigningKey() {
-		String encodedKey = Base64.getEncoder().encodeToString(jwtSecret.getBytes());
-		return Keys.hmacShaKeyFor(encodedKey.getBytes());
-	}
-
-	public JwtValidationType validateToken(String token) {
-		try {
-			Claims claims = getBody(token);
-			return JwtValidationType.VALID_JWT;
-		} catch (MalformedJwtException ex) {
-			log.error("Invalid JWT Token: {}", ex.getMessage());
-			return JwtValidationType.INVALID_JWT_TOKEN;
-		} catch (ExpiredJwtException ex) {
-			log.error("Expired JWT Token: {}", ex.getMessage());
-			return JwtValidationType.EXPIRED_JWT_TOKEN;
-		} catch (UnsupportedJwtException ex) {
-			log.error("Unsupported JWT Token: {}", ex.getMessage());
-			return JwtValidationType.UNSUPPORTED_JWT_TOKEN;
-		} catch (IllegalArgumentException ex) {
-			log.error("Empty JWT Token or Illegal Argument: {}", ex.getMessage());
-			return JwtValidationType.EMPTY_JWT;
-		} catch (SignatureException ex) {
-			log.error("Invalid JWT Signature: {}", ex.getMessage());
-			return JwtValidationType.INVALID_JWT_SIGNATURE;
-		}
-	}
-
 	private Claims getBody(final String token) {
 		return Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getBody();
 	}
 
-	public Long getMemberIdFromJwt(String token) {
-		Claims claims = getBody(token);
-		Long memberId = Long.valueOf(claims.get(MEMBER_ID).toString());
-
-		// 로그 추가: memberId 확인
-		log.info("Extracted memberId from JWT: {}", memberId);
-
-		return memberId;
-	}
-
-	public Role getRoleFromJwt(String token) {
-		Claims claims = getBody(token);
-		String roleName = claims.get(ROLE_KEY, String.class);
-
-		log.info("Extracted role from JWT: {}", roleName);
-
-		// "ROLE_" 접두사 제거
-		String enumValue = roleName.replace("ROLE_", "");
-		log.info("Final role after processing: {}", enumValue);
-
-		return Role.valueOf(enumValue.toUpperCase());
+	private SecretKey getSigningKey() {
+		String encodedKey = Base64.getEncoder().encodeToString(jwtSecret.getBytes());
+		return Keys.hmacShaKeyFor(encodedKey.getBytes());
 	}
 }
