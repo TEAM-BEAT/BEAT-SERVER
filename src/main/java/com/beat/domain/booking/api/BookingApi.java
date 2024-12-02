@@ -19,6 +19,7 @@ import com.beat.domain.booking.application.dto.MemberBookingRetrieveResponse;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.swagger.annotation.DisableSwaggerSecurity;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -92,6 +93,7 @@ public interface BookingApi {
 		@CurrentMember Long memberId
 	);
 
+	@DisableSwaggerSecurity
 	@Operation(summary = "비회원 예매 API", description = "비회원이 예매를 요청하는 POST API입니다.")
 	@ApiResponses(
 		value = {
@@ -125,6 +127,7 @@ public interface BookingApi {
 		@RequestBody GuestBookingRequest guestBookingRequest
 	);
 
+	@DisableSwaggerSecurity
 	@Operation(summary = "비회원 예매 조회 API", description = "비회원이 예매를 조회하는 POST API입니다.")
 	@ApiResponses(
 		value = {
@@ -143,6 +146,7 @@ public interface BookingApi {
 		@RequestBody GuestBookingRetrieveRequest guestBookingRetrieveRequest
 	);
 
+	@DisableSwaggerSecurity
 	@Operation(summary = "유료공연 예매 환불 요청 API", description = "유료공연 예매자가 환불 요청하는 PATCH API입니다.")
 	@ApiResponses(
 		value = {
@@ -161,6 +165,7 @@ public interface BookingApi {
 		@RequestBody BookingRefundRequest bookingRefundRequest
 	);
 
+	@DisableSwaggerSecurity
 	@Operation(summary = "무료공연/미입금 예매 취소 요청 API", description = "무료공연/미입금 예매자가 취소 요청하는 PATCH API입니다.")
 	@ApiResponses(
 		value = {
