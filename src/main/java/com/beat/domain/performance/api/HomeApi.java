@@ -23,8 +23,7 @@ public interface HomeApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "홈 화면 공연 목록 조회가 성공적으로 완료되었습니다.",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "홈 화면 공연 목록 조회가 성공적으로 완료되었습니다."
 			)
 		}
 	)

@@ -24,8 +24,7 @@ public interface FileApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "공연 메이커를 위한 Presigned URL 발급 성공.",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "공연 메이커를 위한 Presigned URL 발급 성공."
 			),
 			@ApiResponse(
 				responseCode = "500",

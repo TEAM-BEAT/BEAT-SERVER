@@ -35,8 +35,7 @@ public interface BookingApi {
 		value = {
 			@ApiResponse(
 				responseCode = "201",
-				description = "회원 예매가 성공적으로 완료되었습니다.",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "회원 예매가 성공적으로 완료되었습니다."
 			),
 			@ApiResponse(
 				responseCode = "400",
@@ -80,8 +79,7 @@ public interface BookingApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "회원 예매 조회가 성공적으로 완료되었습니다.",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "회원 예매 조회가 성공적으로 완료되었습니다."
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -99,8 +97,7 @@ public interface BookingApi {
 		value = {
 			@ApiResponse(
 				responseCode = "201",
-				description = "비회원 예매가 성공적으로 완료되었습니다.",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "비회원 예매가 성공적으로 완료되었습니다."
 			),
 			@ApiResponse(
 				responseCode = "400",
@@ -133,8 +130,7 @@ public interface BookingApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "비회원 예매 조회가 성공적으로 완료되었습니다.",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "비회원 예매 조회가 성공적으로 완료되었습니다."
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -152,8 +148,7 @@ public interface BookingApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "유료공연 예매 환불 요청이 성공적으로 완료되었습니다.",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "유료공연 예매 환불 요청이 성공적으로 완료되었습니다."
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -171,8 +166,7 @@ public interface BookingApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "무료공연/미입금 예매 취소 요청이 성공적으로 완료되었습니다.",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "무료공연/미입금 예매 취소 요청이 성공적으로 완료되었습니다."
 			),
 			@ApiResponse(
 				responseCode = "404",

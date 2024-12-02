@@ -31,8 +31,7 @@ public interface AdminApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "관리자 권한으로 모든 유저 조회에 성공하였습니다.",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "관리자 권한으로 모든 유저 조회에 성공하였습니다."
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -50,8 +49,7 @@ public interface AdminApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "캐러셀 Presigned URL 발급 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "캐러셀 Presigned URL 발급 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -70,8 +68,7 @@ public interface AdminApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "배너 Presigned URL 발급 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "배너 Presigned URL 발급 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -90,8 +87,7 @@ public interface AdminApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "관리자 권한으로 현재 캐러셀에 등록된 모든 공연 조회에 성공하였습니다.",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "관리자 권한으로 현재 캐러셀에 등록된 모든 공연 조회에 성공하였습니다."
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -109,8 +105,7 @@ public interface AdminApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "캐러셀 이미지 수정 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "캐러셀 이미지 수정 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",

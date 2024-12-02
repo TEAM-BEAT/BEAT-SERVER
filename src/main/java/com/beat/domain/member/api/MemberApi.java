@@ -26,8 +26,7 @@ public interface MemberApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "로그인 또는 회원가입 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "로그인 또는 회원가입 성공"
 			),
 			@ApiResponse(
 				responseCode = "400",
@@ -52,8 +51,7 @@ public interface MemberApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "access token 재발급 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "access token 재발급 성공"
 			),
 			@ApiResponse(
 				responseCode = "400",
@@ -71,8 +69,7 @@ public interface MemberApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "로그아웃 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "로그아웃 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
