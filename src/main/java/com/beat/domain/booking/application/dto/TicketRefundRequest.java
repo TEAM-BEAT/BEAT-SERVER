@@ -10,7 +10,7 @@ public record TicketRefundRequest(
 		return new TicketRefundRequest(performanceId, bookingList);
 	}
 
-	public static record Booking(
+	public record Booking(
 		long bookingId
 	) {
 	}

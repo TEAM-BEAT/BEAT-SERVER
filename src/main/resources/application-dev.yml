@@ -83,4 +83,4 @@ app:
     url: ${DEV_SERVER_URL}
 
 springdoc:
-  use-fqn: true
+  use-fqn: false
