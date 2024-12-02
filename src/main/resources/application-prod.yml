@@ -84,3 +84,15 @@ app:
 
 springdoc:
   use-fqn: false
+  default-consumes-media-type: application/json;charset=UTF-8
+  default-produces-media-type: application/json;charset=UTF-8
+  group-configs:
+    - group: admin
+      paths-to-match: /api/admin/**
+    - group: general
+      paths-to-match: /**
+      paths-to-exclude: /api/admin/**
+  swagger-ui:
+    tags-sorter: alpha
+    operations-sorter: alpha
+    display-request-duration: true
