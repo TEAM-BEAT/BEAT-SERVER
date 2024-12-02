@@ -1,4 +1,6 @@
-package com.beat.global.swagger;
+package com.beat.global.swagger.config;
+
+import java.util.Collections;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -7,9 +9,12 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 
+import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.beat.global.swagger.annotation.DisableSwaggerSecurity;
 
 @Configuration
 public class SwaggerConfig {
@@ -21,23 +26,36 @@ public class SwaggerConfig {
 	public OpenAPI openAPI() {
 		String jwt = "JWT";
 		SecurityRequirement securityRequirement = new SecurityRequirement().addList(jwt);
+
 		Components components = new Components().addSecuritySchemes(jwt, new SecurityScheme()
 			.name(jwt)
 			.type(SecurityScheme.Type.HTTP)
 			.scheme("bearer")
 			.bearerFormat("JWT")
 		);
-		return new OpenAPI().addServersItem(new Server().url(serverUrl))
-			.components(new Components())
+
+		return new OpenAPI()
+			.addServersItem(new Server().url(serverUrl))
+			.components(components)
 			.info(apiInfo())
-			.addSecurityItem(securityRequirement)
-			.components(components);
+			.addSecurityItem(securityRequirement);
+	}
+
+	@Bean
+	public OperationCustomizer customize() {
+		return (operation, handlerMethod) -> {
+			DisableSwaggerSecurity methodAnnotation = handlerMethod.getMethodAnnotation(DisableSwaggerSecurity.class);
+			if (methodAnnotation != null) {
+				operation.setSecurity(Collections.emptyList());
+			}
+			return operation;
+		};
 	}
 
 	private Info apiInfo() {
 		return new Info()
 			.title("BEAT Project API")
 			.description("간편하게 소규모 공연을 등록하고 관리할 수 있는 티켓 예매 플랫폼")
-			.version("1.1.0");
+			.version("1.2.0");
 	}
 }
