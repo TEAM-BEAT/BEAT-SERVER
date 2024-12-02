@@ -30,7 +30,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
-
+	private static final String BEARER_PREFIX = "Bearer ";
 	private final JwtTokenProvider jwtTokenProvider;
 	private final TokenService tokenService;
 
@@ -69,11 +69,16 @@ public class AuthenticationService {
 	 * Refresh Token에서 사용자 ID와 Role 정보를 추출한 후,
 	 * Role에 따라 Admin 또는 Member 권한으로 새로운 Access Token을 발급합니다.
 	 *
-	 * @param refreshToken 사용자의 Refresh Token
+	 * @param refreshTokenWithBearer "Bearer +  사용자의 Refresh Token"
 	 * @return 새로운 Access Token 정보가 포함된 AccessTokenGetSuccess 객체
 	 */
 	@Transactional
-	public AccessTokenGetSuccess generateAccessTokenFromRefreshToken(final String refreshToken) {
+	public AccessTokenGetSuccess generateAccessTokenFromRefreshToken(final String refreshTokenWithBearer) {
+		String refreshToken = refreshTokenWithBearer;
+		if (refreshToken.startsWith(BEARER_PREFIX)) {
+			refreshToken = refreshToken.substring(BEARER_PREFIX.length());
+		}
+
 		log.info("Validation result for refresh token: {}", jwtTokenProvider.validateToken(refreshToken));
 
 		JwtValidationType validationType = jwtTokenProvider.validateToken(refreshToken);
