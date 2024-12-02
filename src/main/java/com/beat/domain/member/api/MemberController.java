@@ -1,13 +1,11 @@
 package com.beat.domain.member.api;
 
-import java.security.Principal;
-
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +15,7 @@ import com.beat.domain.member.application.SocialLoginService;
 import com.beat.domain.member.dto.AccessTokenGetSuccess;
 import com.beat.domain.member.dto.LoginSuccessResponse;
 import com.beat.domain.member.exception.MemberSuccessCode;
+import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.auth.client.dto.MemberLoginRequest;
 import com.beat.global.auth.jwt.application.TokenService;
 import com.beat.global.common.dto.SuccessResponse;
@@ -52,7 +51,7 @@ public class MemberController implements MemberApi {
 			.httpOnly(true)
 			.build();
 		response.setHeader("Set-Cookie", cookie.toString());
-		return ResponseEntity.status(HttpStatus.OK)
+		return ResponseEntity.ok()
 			.body(SuccessResponse.of(MemberSuccessCode.SIGN_UP_SUCCESS,
 				LoginSuccessResponse.of(loginSuccessResponse.accessToken(), null, loginSuccessResponse.nickname(),
 					loginSuccessResponse.role())));
@@ -60,22 +59,21 @@ public class MemberController implements MemberApi {
 
 	@Override
 	@GetMapping("/refresh-token")
-	public ResponseEntity<SuccessResponse<AccessTokenGetSuccess>> refreshToken(
-		@RequestParam final String refreshToken
+	public ResponseEntity<SuccessResponse<AccessTokenGetSuccess>> issueAccessTokenUsingRefreshToken(
+		@RequestHeader("Authorization_Refresh") final String refreshToken
 	) {
-		AccessTokenGetSuccess accessTokenGetSuccess = authenticationService.generateAccessTokenFromRefreshToken(
-			refreshToken);
-		return ResponseEntity.status(HttpStatus.OK)
-			.body(SuccessResponse.of(MemberSuccessCode.ISSUE_REFRESH_TOKEN_SUCCESS, accessTokenGetSuccess));
+		AccessTokenGetSuccess accessTokenGetSuccess = authenticationService.generateAccessTokenFromRefreshToken(refreshToken);
+		return ResponseEntity.ok()
+			.body(SuccessResponse.of(MemberSuccessCode.ISSUE_ACCESS_TOKEN_USING_REFRESH_TOKEN, accessTokenGetSuccess));
 	}
 
 	@Override
 	@PostMapping("/sign-out")
 	public ResponseEntity<SuccessResponse<Void>> signOut(
-		final Principal principal
+		@CurrentMember final Long memberId
 	) {
-		tokenService.deleteRefreshToken(Long.valueOf(principal.getName()));
-		return ResponseEntity.status(HttpStatus.OK)
+		tokenService.deleteRefreshToken(memberId);
+		return ResponseEntity.ok()
 			.body(SuccessResponse.from(MemberSuccessCode.SIGN_OUT_SUCCESS));
 	}
 }
