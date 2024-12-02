@@ -15,8 +15,8 @@ public interface TicketRepository extends JpaRepository<Booking, Long> {
 	@Query("SELECT b FROM Booking b " +
 		"WHERE b.schedule.performance.id = :performanceId " +
 		"AND b.bookingStatus != com.beat.domain.booking.domain.BookingStatus.BOOKING_DELETED " +
-		"AND (:scheduleNumber IS NULL OR b.schedule.scheduleNumber = :scheduleNumber) " +
-		"AND (:bookingStatus IS NULL OR b.bookingStatus = :bookingStatus) " +
+		"AND (:scheduleNumbers IS NULL OR b.schedule.scheduleNumber IN :scheduleNumbers) " +
+		"AND (:bookingStatuses IS NULL OR b.bookingStatus IN :bookingStatuses) " +
 		"ORDER BY CASE b.bookingStatus " +
 		"           WHEN com.beat.domain.booking.domain.BookingStatus.REFUND_REQUESTED THEN 1 " +
 		"           WHEN com.beat.domain.booking.domain.BookingStatus.CHECKING_PAYMENT THEN 2 " +
@@ -26,8 +26,8 @@ public interface TicketRepository extends JpaRepository<Booking, Long> {
 		"         b.createdAt DESC")
 	List<Booking> findBookings(
 		@Param("performanceId") Long performanceId,
-		@Param("scheduleNumber") ScheduleNumber scheduleNumber,
-		@Param("bookingStatus") BookingStatus bookingStatus);
+		@Param("scheduleNumbers") List<ScheduleNumber> scheduleNumbers,
+		@Param("bookingStatuses") List<BookingStatus> bookingStatuses);
 
 	List<Booking> findByBookingStatusAndCancellationDateBefore(BookingStatus bookingStatus,
 		LocalDateTime cancellationDate);
@@ -37,23 +37,24 @@ public interface TicketRepository extends JpaRepository<Booking, Long> {
 		FROM booking b
 		JOIN schedule s ON b.schedule_id = s.id
 		WHERE s.performance_id = :performanceId
-		  AND b.booking_status != 'BOOKING_DELETED'
-		  AND (:scheduleNumber IS NULL OR s.schedule_number = :scheduleNumber)
-		  AND(:bookingStatus IS NULL OR b.booking_status = :bookingStatus)
-		  AND MATCH(b.booker_name) AGAINST(:searchWord IN BOOLEAN MODE)
+		    AND b.booking_status != 'BOOKING_DELETED'
+		    AND (s.schedule_number IN (:scheduleNumberStrings))
+		    AND (b.booking_status IN (:bookingStatusStrings))
+		    AND MATCH(b.booker_name) AGAINST(:searchWord IN BOOLEAN MODE)
 		ORDER BY
-		     CASE b.booking_status
+		    CASE b.booking_status
 		    WHEN 'REFUND_REQUESTED' THEN 1
 		    WHEN 'CHECKING_PAYMENT' THEN 2
 		    WHEN 'BOOKING_CONFIRMED' THEN 3
 		    WHEN 'BOOKING_CANCELLED' THEN 4
-		  END ASC,
-		  b.created_at DESC
+		    END ASC,
+		    b.created_at DESC
 		""", nativeQuery = true)
 	List<Booking> searchBookings(
 		@Param("performanceId") Long performanceId,
 		@Param("searchWord") String searchWord,
-		@Param("scheduleNumber") String scheduleNumber,
-		@Param("bookingStatus") String bookingStatus);
+		@Param("scheduleNumberStrings") List<String> scheduleNumberStrings,
+		@Param("bookingStatusStrings") List<String> bookingStatusStrings
+	);
 
 }
