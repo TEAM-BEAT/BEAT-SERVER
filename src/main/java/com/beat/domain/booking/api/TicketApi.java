@@ -30,8 +30,7 @@ public interface TicketApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "예매자 목록 조회 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "예매자 목록 조회 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -62,8 +61,7 @@ public interface TicketApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "예매자 목록 검색 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "예매자 목록 검색 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -95,8 +93,7 @@ public interface TicketApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "예매자 입금여부 수정 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "예매자 입금여부 수정 성공"
 			),
 			@ApiResponse(
 				responseCode = "400",
@@ -125,8 +122,7 @@ public interface TicketApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "예매자 환불처리 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "예매자 환불처리 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -155,8 +151,7 @@ public interface TicketApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "예매자 삭제 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "예매자 삭제 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",

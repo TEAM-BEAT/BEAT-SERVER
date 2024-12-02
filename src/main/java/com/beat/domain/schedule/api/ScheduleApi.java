@@ -23,8 +23,7 @@ public interface ScheduleApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "티켓 수량 조회가 성공적으로 완료되었습니다.",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "티켓 수량 조회가 성공적으로 완료되었습니다."
 			),
 			@ApiResponse(
 				responseCode = "400",

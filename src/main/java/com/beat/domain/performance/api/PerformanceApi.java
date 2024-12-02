@@ -31,8 +31,7 @@ public interface PerformanceApi {
 		value = {
 			@ApiResponse(
 				responseCode = "201",
-				description = "공연이 성공적으로 생성되었습니다.",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "공연이 성공적으로 생성되었습니다."
 			),
 			@ApiResponse(
 				responseCode = "400",
@@ -56,8 +55,7 @@ public interface PerformanceApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "공연 정보 수정 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "공연 정보 수정 성공"
 			),
 			@ApiResponse(
 				responseCode = "400",
@@ -96,8 +94,7 @@ public interface PerformanceApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "공연 수정 페이지 정보 조회 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "공연 수정 페이지 정보 조회 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -116,8 +113,7 @@ public interface PerformanceApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "공연 상세정보 조회 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "공연 상세정보 조회 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -135,8 +131,7 @@ public interface PerformanceApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "예매하기 관련 공연 정보 조회 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "예매하기 관련 공연 정보 조회 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -154,8 +149,7 @@ public interface PerformanceApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "회원이 등록한 공연 목록 조회 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "회원이 등록한 공연 목록 조회 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -173,8 +167,7 @@ public interface PerformanceApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "공연 삭제 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "공연 삭제 성공"
 			),
 			@ApiResponse(
 				responseCode = "403",
