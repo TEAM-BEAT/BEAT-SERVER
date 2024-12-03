@@ -84,11 +84,11 @@ public class TicketService {
 		int totalPerformanceTicketCount = calculateTotalTicketCount(schedules);
 		int totalPerformanceSoldTicketCount = calculateTotalSoldTicketCount(schedules);
 
-		List<String> scheduleNumberStrings = schedules.stream()
+		List<String> selectedScheduleNumbers = schedules.stream()
 			.map(schedule -> schedule.getScheduleNumber().name())
 			.toList();
 
-		List<String> bookingStatusStrings = Arrays.asList(
+		List<String> selectedBookingStatuses = Arrays.asList(
 			BookingStatus.CHECKING_PAYMENT.name(),
 			BookingStatus.BOOKING_CONFIRMED.name(),
 			BookingStatus.BOOKING_CANCELLED.name(),
@@ -96,13 +96,13 @@ public class TicketService {
 		);
 
 		if (scheduleNumbers != null && !scheduleNumbers.isEmpty()) {
-			scheduleNumberStrings = scheduleNumbers.stream()
+			selectedScheduleNumbers = scheduleNumbers.stream()
 				.map(Enum::name)
 				.toList();
 		}
 
 		if (bookingStatuses != null && !bookingStatuses.isEmpty()) {
-			bookingStatusStrings = bookingStatuses.stream()
+			selectedBookingStatuses = bookingStatuses.stream()
 				.map(Enum::name)
 				.toList();
 		}
@@ -110,8 +110,8 @@ public class TicketService {
 		List<Booking> bookings = ticketRepository.searchBookings(
 			performanceId,
 			searchWord,
-			scheduleNumberStrings,
-			bookingStatusStrings
+			selectedScheduleNumbers,
+			selectedBookingStatuses
 		);
 
 		log.info("searchTickets result: {}", bookings);

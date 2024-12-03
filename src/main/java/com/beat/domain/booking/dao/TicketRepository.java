@@ -38,8 +38,8 @@ public interface TicketRepository extends JpaRepository<Booking, Long> {
 		JOIN schedule s ON b.schedule_id = s.id
 		WHERE s.performance_id = :performanceId
 		    AND b.booking_status != 'BOOKING_DELETED'
-		    AND (s.schedule_number IN (:scheduleNumberStrings))
-		    AND (b.booking_status IN (:bookingStatusStrings))
+		    AND (s.schedule_number IN (:selectedScheduleNumbers))
+		    AND (b.booking_status IN (:selectedBookingStatuses))
 		    AND MATCH(b.booker_name) AGAINST(:searchWord IN BOOLEAN MODE)
 		ORDER BY
 		    CASE b.booking_status
@@ -53,8 +53,8 @@ public interface TicketRepository extends JpaRepository<Booking, Long> {
 	List<Booking> searchBookings(
 		@Param("performanceId") Long performanceId,
 		@Param("searchWord") String searchWord,
-		@Param("scheduleNumberStrings") List<String> scheduleNumberStrings,
-		@Param("bookingStatusStrings") List<String> bookingStatusStrings
+		@Param("selectedScheduleNumbers") List<String> selectedScheduleNumbers,
+		@Param("selectedBookingStatuses") List<String> selectedBookingStatuses
 	);
 
 }
