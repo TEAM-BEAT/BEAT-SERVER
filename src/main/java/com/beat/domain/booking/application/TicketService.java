@@ -67,6 +67,9 @@ public class TicketService {
 		int totalPerformanceTicketCount = calculateTotalTicketCount(schedules);
 		int totalPerformanceSoldTicketCount = calculateTotalSoldTicketCount(schedules);
 
+		log.info("performanceId: {}", performanceId);
+		log.info("scheduleNumbers: {}", scheduleNumbers);
+		log.info("bookingStatuses: {}", bookingStatuses);
 		List<Booking> bookings = ticketRepository.findBookings(performanceId, scheduleNumbers, bookingStatuses);
 
 		return findTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
@@ -107,6 +110,10 @@ public class TicketService {
 				.toList();
 		}
 
+		log.info("performanceId: {}", performanceId);
+		log.info("searchWord: {}", searchWord);
+		log.info("selectedScheduleNumbers: {}", selectedScheduleNumbers);
+		log.info("selectedBookingStatuses: {}", selectedBookingStatuses);
 		List<Booking> bookings = ticketRepository.searchBookings(
 			performanceId,
 			searchWord,
