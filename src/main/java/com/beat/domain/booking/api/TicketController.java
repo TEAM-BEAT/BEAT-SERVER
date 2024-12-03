@@ -1,5 +1,7 @@
 package com.beat.domain.booking.api;
 
+import java.util.List;
+
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,14 +39,13 @@ public class TicketController implements TicketApi {
 	public ResponseEntity<SuccessResponse<TicketRetrieveResponse>> getTickets(
 		@CurrentMember Long memberId,
 		@PathVariable Long performanceId,
-		@RequestParam(required = false) ScheduleNumber scheduleNumber,
-		@RequestParam(required = false) BookingStatus bookingStatus) {
-		if (bookingStatus == BookingStatus.BOOKING_DELETED) {
+		@RequestParam(required = false) List<ScheduleNumber> scheduleNumbers,
+		@RequestParam(required = false) List<BookingStatus> bookingStatuses) {
+		if (bookingStatuses != null && bookingStatuses.contains(BookingStatus.BOOKING_DELETED)) {
 			throw new BadRequestException(TicketErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
 		}
 		TicketRetrieveResponse response = ticketService.findAllTicketsByConditions(memberId, performanceId,
-			scheduleNumber,
-			bookingStatus);
+			scheduleNumbers, bookingStatuses);
 		return ResponseEntity.ok(SuccessResponse.of(TicketSuccessCode.TICKET_RETRIEVE_SUCCESS, response));
 	}
 
@@ -54,18 +55,17 @@ public class TicketController implements TicketApi {
 		@CurrentMember Long memberId,
 		@PathVariable Long performanceId,
 		@RequestParam String searchWord,
-		@RequestParam(required = false) ScheduleNumber scheduleNumber,
-		@RequestParam(required = false) BookingStatus bookingStatus) {
+		@RequestParam(required = false) List<ScheduleNumber> scheduleNumbers,
+		@RequestParam(required = false) List<BookingStatus> bookingStatuses) {
 		if (searchWord.length() < 2) {
 			throw new BadRequestException(TicketErrorCode.SEARCH_WORD_TOO_SHORT);
 		}
-		if (bookingStatus == BookingStatus.BOOKING_DELETED) {
+		if (bookingStatuses != null && bookingStatuses.contains(BookingStatus.BOOKING_DELETED)) {
 			throw new BadRequestException(TicketErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
 		}
 
 		TicketRetrieveResponse response = ticketService.searchAllTicketsByConditions(memberId, performanceId,
-			searchWord,
-			scheduleNumber, bookingStatus);
+			searchWord, scheduleNumbers, bookingStatuses);
 		return ResponseEntity.ok()
 			.cacheControl(CacheControl.noCache())
 			.body(SuccessResponse.of(TicketSuccessCode.TICKET_SEARCH_SUCCESS, response));

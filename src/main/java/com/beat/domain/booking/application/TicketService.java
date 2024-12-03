@@ -1,6 +1,7 @@
 package com.beat.domain.booking.application;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -56,49 +57,61 @@ public class TicketService {
 	private final CoolSmsService coolSmsService;
 
 	public TicketRetrieveResponse findAllTicketsByConditions(Long memberId, Long performanceId,
-		ScheduleNumber scheduleNumber,
-		BookingStatus bookingStatus) {
+		List<ScheduleNumber> scheduleNumbers, List<BookingStatus> bookingStatuses) {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
 		Performance performance = findPerformance(performanceId);
 		performance.validatePerformanceOwnership(user.getId());
-		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 
+		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 		int totalPerformanceTicketCount = calculateTotalTicketCount(schedules);
 		int totalPerformanceSoldTicketCount = calculateTotalSoldTicketCount(schedules);
 
-		List<Booking> bookings = ticketRepository.findBookings(performanceId, scheduleNumber, bookingStatus);
+		List<Booking> bookings = ticketRepository.findBookings(performanceId, scheduleNumbers, bookingStatuses);
 
 		return findTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
 			bookings);
 	}
 
 	public TicketRetrieveResponse searchAllTicketsByConditions(Long memberId, Long performanceId, String searchWord,
-		ScheduleNumber scheduleNumber, BookingStatus bookingStatus) {
+		List<ScheduleNumber> scheduleNumbers, List<BookingStatus> bookingStatuses) {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
 		Performance performance = findPerformance(performanceId);
 		performance.validatePerformanceOwnership(user.getId());
-		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 
+		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 		int totalPerformanceTicketCount = calculateTotalTicketCount(schedules);
 		int totalPerformanceSoldTicketCount = calculateTotalSoldTicketCount(schedules);
 
-		String scheduleNumberValue = null;
-		if (scheduleNumber != null) {
-			scheduleNumberValue = scheduleNumber.name();
+		List<String> selectedScheduleNumbers = schedules.stream()
+			.map(schedule -> schedule.getScheduleNumber().name())
+			.toList();
+
+		List<String> selectedBookingStatuses = Arrays.asList(
+			BookingStatus.CHECKING_PAYMENT.name(),
+			BookingStatus.BOOKING_CONFIRMED.name(),
+			BookingStatus.BOOKING_CANCELLED.name(),
+			BookingStatus.REFUND_REQUESTED.name()
+		);
+
+		if (scheduleNumbers != null && !scheduleNumbers.isEmpty()) {
+			selectedScheduleNumbers = scheduleNumbers.stream()
+				.map(Enum::name)
+				.toList();
 		}
 
-		String bookingStatusValue = null;
-		if (bookingStatus != null) {
-			bookingStatusValue = bookingStatus.name();
+		if (bookingStatuses != null && !bookingStatuses.isEmpty()) {
+			selectedBookingStatuses = bookingStatuses.stream()
+				.map(Enum::name)
+				.toList();
 		}
 
 		List<Booking> bookings = ticketRepository.searchBookings(
 			performanceId,
 			searchWord,
-			scheduleNumberValue,
-			bookingStatusValue
+			selectedScheduleNumbers,
+			selectedBookingStatuses
 		);
 
 		log.info("searchTickets result: {}", bookings);
