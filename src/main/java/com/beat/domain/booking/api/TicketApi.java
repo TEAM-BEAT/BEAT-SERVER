@@ -1,5 +1,7 @@
 package com.beat.domain.booking.api;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -52,8 +54,8 @@ public interface TicketApi {
 	ResponseEntity<SuccessResponse<TicketRetrieveResponse>> getTickets(
 		@CurrentMember Long memberId,
 		@PathVariable Long performanceId,
-		@RequestParam(required = false) ScheduleNumber scheduleNumber,
-		@RequestParam(required = false) BookingStatus bookingStatus
+		@RequestParam(required = false) List<ScheduleNumber> scheduleNumbers,
+		@RequestParam(required = false) List<BookingStatus> bookingStatuses
 	);
 
 	@Operation(summary = "예매자 목록 검색 API", description = "메이커가 자신의 공연에 대한 예매자 목록을 검색하는 GET API입니다.")
@@ -84,8 +86,8 @@ public interface TicketApi {
 		@CurrentMember Long memberId,
 		@PathVariable Long performanceId,
 		@RequestParam String searchWord,
-		@RequestParam(required = false) ScheduleNumber scheduleNumber,
-		@RequestParam(required = false) BookingStatus bookingStatus
+		@RequestParam(required = false) List<ScheduleNumber> scheduleNumbers,
+		@RequestParam(required = false) List<BookingStatus> bookingStatuses
 	);
 
 	@Operation(summary = "예매자 입금여부 수정 및 웹발신 API", description = "메이커가 자신의 공연에 대한 예매자의 입금여부 정보를 수정한 뒤 예매확정 웹발신을 보내는 PUT API입니다.")
