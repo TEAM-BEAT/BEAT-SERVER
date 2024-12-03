@@ -10,6 +10,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 
 import org.springdoc.core.customizers.OperationCustomizer;
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,6 +40,25 @@ public class SwaggerConfig {
 			.components(components)
 			.info(apiInfo())
 			.addSecurityItem(securityRequirement);
+	}
+
+	@Bean
+	public GroupedOpenApi generalApi() {
+		return GroupedOpenApi.builder()
+			.group("general")
+			.pathsToMatch("/**")
+			.pathsToExclude("/api/admin/**")
+			.addOperationCustomizer(customize())
+			.build();
+	}
+
+	@Bean
+	public GroupedOpenApi adminApi() {
+		return GroupedOpenApi.builder()
+			.group("admin")
+			.pathsToMatch("/api/admin/**")
+			.addOperationCustomizer(customize())
+			.build();
 	}
 
 	@Bean
