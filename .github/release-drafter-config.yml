@@ -1,0 +1,40 @@
+name-template: 'v$RESOLVED_VERSION 🌈'
+tag-template: 'v$RESOLVED_VERSION'
+categories:
+  - title: '🎯 새로운 기능이 추가되었어요'
+    labels: ['feat 🎯']
+  - title: '🛠️ 기존 버그가 수정되었어요'
+    labels:
+      - 'fix 🛠️'
+      - 'HOTFIX 🚑'
+  - title: '🐬 코드를 개선했어요'
+    labels:
+      - 'refactor 🔁'
+      - 'test 🧪'
+      - 'chore 🔍'
+  - title: '⚙️ 프로젝트를 개선했어요'
+    labels:
+      - 'rename 📛'
+      - 'remove 👻'
+      - 'docs ✍🏻'
+  - title: '🚀 배포'
+    labels:
+      - 'deploy 🚀'
+
+change-template: '- $TITLE #$NUMBER @$AUTHOR '
+template: |
+  ## 이번 버전의 변경사항은 아래와 같아요
+  ---
+  $CHANGES
+no-changes-template: '변경사항이 없어요'
+version-resolver:
+  major:
+    labels:
+      - '1️⃣ major'
+  minor:
+    labels:
+      - '2️⃣ minor'
+  patch:
+    labels:
+      - '3️⃣ patch'
+  default: patch
