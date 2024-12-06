@@ -181,3 +181,6 @@ Temporary Items
 
 # Ignore application-local.yml
 src/main/resources/application-local.yml
+
+## Ignore Qclass
+src/main/generated/querydsl
