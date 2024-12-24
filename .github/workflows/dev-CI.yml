@@ -48,6 +48,8 @@ jobs:
           DEV_KAKAO_CLIENT_SECRET: ${{ secrets.DEV_KAKAO_CLIENT_SECRET }}
           DEV_KAKAO_REDIRECT_URI: ${{ secrets.DEV_KAKAO_REDIRECT_URI }}
           DEV_REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
+          DEV_REDIS_PORT: ${{ secrets.DEV_REDIS_PORT }}
+          DEV_REDIS_PASSWORD: ${{ secrets.DEV_REDIS_PASSWORD }}
           DEV_S3_ACCESS_KEY: ${{ secrets.DEV_S3_ACCESS_KEY }}
           DEV_S3_SECRET_KEY: ${{ secrets.DEV_S3_SECRET_KEY }}
           DEV_COOLSMS_KEY: ${{ secrets.DEV_COOLSMS_KEY }}

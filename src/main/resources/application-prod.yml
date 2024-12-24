@@ -28,8 +28,9 @@ spring:
 
   data:
     redis:
-      host: beat-prod-redis
-      port: 6379
+      host: ${PROD_REDIS_HOST}
+      port: ${PROD_REDIS_PORT}
+      # 추후 password: 설정 필요
 
   security:
     oauth2:

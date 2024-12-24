@@ -28,8 +28,9 @@ spring:
 
   data:
     redis:
-      host: beat-dev-redis
-      port: 6379
+      host: ${DEV_REDIS_HOST}
+      port: ${DEV_REDIS_PORT}
+      password: ${DEV_REDIS_PASSWORD}
 
   security:
     oauth2:
