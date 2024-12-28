@@ -2,17 +2,17 @@ package com.beat.domain.member.api;
 
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.beat.domain.member.application.AuthenticationService;
 import com.beat.domain.member.application.SocialLoginService;
-import com.beat.domain.member.dto.AccessTokenGetSuccess;
+import com.beat.domain.member.dto.AccessTokenGenerateResponse;
 import com.beat.domain.member.dto.LoginSuccessResponse;
 import com.beat.domain.member.dto.MemberLoginResponse;
 import com.beat.domain.member.exception.MemberSuccessCode;
@@ -54,7 +54,8 @@ public class MemberController implements MemberApi {
 			.build();
 		httpServletResponse.setHeader("Set-Cookie", cookie.toString());
 
-		MemberLoginResponse response = MemberLoginResponse.of(loginSuccessResponse.accessToken(), loginSuccessResponse.nickname(),
+		MemberLoginResponse response = MemberLoginResponse.of(loginSuccessResponse.accessToken(),
+			loginSuccessResponse.nickname(),
 			loginSuccessResponse.role());
 
 		return ResponseEntity.ok()
@@ -63,13 +64,12 @@ public class MemberController implements MemberApi {
 
 	@Override
 	@GetMapping("/refresh-token")
-	public ResponseEntity<SuccessResponse<AccessTokenGetSuccess>> issueAccessTokenUsingRefreshToken(
-		@RequestHeader("Authorization_Refresh") final String refreshToken
+	public ResponseEntity<SuccessResponse<AccessTokenGenerateResponse>> issueAccessTokenUsingRefreshToken(
+		@CookieValue(value = REFRESH_TOKEN) final String refreshToken
 	) {
-		AccessTokenGetSuccess accessTokenGetSuccess = authenticationService.generateAccessTokenFromRefreshToken(
-			refreshToken);
+		AccessTokenGenerateResponse response = authenticationService.generateAccessTokenFromRefreshToken(refreshToken);
 		return ResponseEntity.ok()
-			.body(SuccessResponse.of(MemberSuccessCode.ISSUE_ACCESS_TOKEN_USING_REFRESH_TOKEN, accessTokenGetSuccess));
+			.body(SuccessResponse.of(MemberSuccessCode.ISSUE_ACCESS_TOKEN_USING_REFRESH_TOKEN, response));
 	}
 
 	@Override
