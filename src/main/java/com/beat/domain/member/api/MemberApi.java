@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.beat.domain.member.dto.AccessTokenGetSuccess;
-import com.beat.domain.member.dto.LoginSuccessResponse;
+import com.beat.domain.member.dto.MemberLoginResponse;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.auth.client.dto.MemberLoginRequest;
 import com.beat.global.common.dto.ErrorResponse;
@@ -44,7 +44,7 @@ public interface MemberApi {
 			)
 		}
 	)
-	ResponseEntity<SuccessResponse<LoginSuccessResponse>> signUp(
+	ResponseEntity<SuccessResponse<MemberLoginResponse>> signUp(
 		@RequestParam final String authorizationCode,
 		@RequestBody final MemberLoginRequest loginRequest,
 		HttpServletResponse response

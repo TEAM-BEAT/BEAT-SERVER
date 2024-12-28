@@ -14,6 +14,7 @@ import com.beat.domain.member.application.AuthenticationService;
 import com.beat.domain.member.application.SocialLoginService;
 import com.beat.domain.member.dto.AccessTokenGetSuccess;
 import com.beat.domain.member.dto.LoginSuccessResponse;
+import com.beat.domain.member.dto.MemberLoginResponse;
 import com.beat.domain.member.exception.MemberSuccessCode;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.auth.client.dto.MemberLoginRequest;
@@ -36,13 +37,14 @@ public class MemberController implements MemberApi {
 
 	@Override
 	@PostMapping("/sign-up")
-	public ResponseEntity<SuccessResponse<LoginSuccessResponse>> signUp(
+	public ResponseEntity<SuccessResponse<MemberLoginResponse>> signUp(
 		@RequestParam final String authorizationCode,
 		@RequestBody final MemberLoginRequest loginRequest,
-		HttpServletResponse response
+		HttpServletResponse httpServletResponse
 	) {
 		LoginSuccessResponse loginSuccessResponse = socialLoginService.handleSocialLogin(authorizationCode,
 			loginRequest);
+
 		ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN, loginSuccessResponse.refreshToken())
 			.maxAge(COOKIE_MAX_AGE)
 			.path("/")
@@ -50,11 +52,13 @@ public class MemberController implements MemberApi {
 			.sameSite("None")
 			.httpOnly(true)
 			.build();
-		response.setHeader("Set-Cookie", cookie.toString());
+		httpServletResponse.setHeader("Set-Cookie", cookie.toString());
+
+		MemberLoginResponse response = MemberLoginResponse.of(loginSuccessResponse.accessToken(), loginSuccessResponse.nickname(),
+			loginSuccessResponse.role());
+
 		return ResponseEntity.ok()
-			.body(SuccessResponse.of(MemberSuccessCode.SIGN_UP_SUCCESS,
-				LoginSuccessResponse.of(loginSuccessResponse.accessToken(), null, loginSuccessResponse.nickname(),
-					loginSuccessResponse.role())));
+			.body(SuccessResponse.of(MemberSuccessCode.SIGN_UP_SUCCESS, response));
 	}
 
 	@Override
@@ -62,7 +66,8 @@ public class MemberController implements MemberApi {
 	public ResponseEntity<SuccessResponse<AccessTokenGetSuccess>> issueAccessTokenUsingRefreshToken(
 		@RequestHeader("Authorization_Refresh") final String refreshToken
 	) {
-		AccessTokenGetSuccess accessTokenGetSuccess = authenticationService.generateAccessTokenFromRefreshToken(refreshToken);
+		AccessTokenGetSuccess accessTokenGetSuccess = authenticationService.generateAccessTokenFromRefreshToken(
+			refreshToken);
 		return ResponseEntity.ok()
 			.body(SuccessResponse.of(MemberSuccessCode.ISSUE_ACCESS_TOKEN_USING_REFRESH_TOKEN, accessTokenGetSuccess));
 	}
