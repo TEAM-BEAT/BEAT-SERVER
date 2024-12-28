@@ -30,7 +30,7 @@ spring:
     redis:
       host: ${PROD_REDIS_HOST}
       port: ${PROD_REDIS_PORT}
-      # 추후 password: 설정 필요
+      password: ${PROD_REDIS_PASSWORD}
 
   security:
     oauth2:
