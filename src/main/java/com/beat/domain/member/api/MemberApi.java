@@ -1,12 +1,12 @@
 package com.beat.domain.member.api;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.beat.domain.member.dto.AccessTokenGetSuccess;
-import com.beat.domain.member.dto.LoginSuccessResponse;
+import com.beat.domain.member.dto.AccessTokenGenerateResponse;
+import com.beat.domain.member.dto.MemberLoginResponse;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.auth.client.dto.MemberLoginRequest;
 import com.beat.global.common.dto.ErrorResponse;
@@ -44,10 +44,10 @@ public interface MemberApi {
 			)
 		}
 	)
-	ResponseEntity<SuccessResponse<LoginSuccessResponse>> signUp(
+	ResponseEntity<SuccessResponse<MemberLoginResponse>> signUp(
 		@RequestParam final String authorizationCode,
 		@RequestBody final MemberLoginRequest loginRequest,
-		HttpServletResponse response
+		HttpServletResponse httpServletResponse
 	);
 
 	@Operation(summary = "access token 재발급 API", description = "refresh token으로 access token을 재발급하는 GET API입니다.")
@@ -64,8 +64,8 @@ public interface MemberApi {
 			)
 		}
 	)
-	ResponseEntity<SuccessResponse<AccessTokenGetSuccess>> issueAccessTokenUsingRefreshToken(
-		@RequestHeader("Authorization_Refresh") final String refreshToken
+	ResponseEntity<SuccessResponse<AccessTokenGenerateResponse>> issueAccessTokenUsingRefreshToken(
+		@CookieValue(value = "refreshToken") final String refreshToken
 	);
 
 	@Operation(summary = "로그아웃 API", description = "로그아웃하는 POST API입니다.")
