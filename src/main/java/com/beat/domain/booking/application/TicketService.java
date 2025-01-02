@@ -70,7 +70,8 @@ public class TicketService {
 		log.info("performanceId: {}", performanceId);
 		log.info("scheduleNumbers: {}", scheduleNumbers);
 		log.info("bookingStatuses: {}", bookingStatuses);
-		List<Booking> bookings = ticketRepository.findBookings(performanceId, scheduleNumbers, bookingStatuses);
+		List<Booking> bookings = ticketRepository.findBookingsByPerformanceIdAndScheduleNumbersAndBookingStatuses(
+			performanceId, scheduleNumbers, bookingStatuses);
 
 		return findTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
 			bookings);
@@ -114,7 +115,7 @@ public class TicketService {
 		log.info("searchWord: {}", searchWord);
 		log.info("selectedScheduleNumbers: {}", selectedScheduleNumbers);
 		log.info("selectedBookingStatuses: {}", selectedBookingStatuses);
-		List<Booking> bookings = ticketRepository.searchBookings(
+		List<Booking> bookings = ticketRepository.searchBookingsByPerformanceIdAndSearchWordAndSchedulesNumbersAndBookingStatuses(
 			performanceId,
 			searchWord,
 			selectedScheduleNumbers,
