@@ -32,7 +32,7 @@ public class PromotionSchedulerService {
 			Performance performance = promotion.getPerformance();
 
 			if (performance == null) {
-				return;
+				continue;
 			}
 
 			List<Schedule> schedules = scheduleRepository.findByPerformanceId(performance.getId());
