@@ -18,7 +18,7 @@ import static com.beat.domain.schedule.domain.QSchedule.schedule;
 
 @Repository
 @RequiredArgsConstructor
-public class TicketRepositoryImpl implements TicketRepositoryCustom {
+public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
 
 	private final JPAQueryFactory queryFactory;
 
