@@ -32,19 +32,18 @@ public class PromotionSchedulerService {
 	@Scheduled(cron = "1 0 0 * * ?")
 	@Transactional
 	public void checkAndDeleteInvalidPromotions() {
-		List<Promotion> promotionsToDelete = promotionRepository.findAll().stream()
+		List<Long> promotionIdsToDelete = promotionRepository.findAll().stream()
 			.filter(this::isInvalidPromotion)
+			.map(Promotion::getId)
 			.collect(Collectors.toList());
 
-		if (promotionsToDelete.isEmpty()) {
+		if (promotionIdsToDelete.isEmpty()) {
 			return;
 		}
 
-		log.info("Deleting promotions: {}", promotionsToDelete.stream()
-			.map(Promotion::getId)
-			.collect(Collectors.toList()));
+		log.info("Deleting promotions: {}", promotionIdsToDelete);
 
-		promotionRepository.deleteAll(promotionsToDelete);
+		promotionRepository.deleteByPromotionIds(promotionIdsToDelete);
 		reassignCarouselNumbers();
 	}
 
@@ -52,7 +51,7 @@ public class PromotionSchedulerService {
 		return Optional.ofNullable(promotion.getPerformance())
 			.map(performance -> {
 				List<Schedule> schedules = scheduleRepository.findByPerformanceId(performance.getId());
-				return scheduleService.getMinDueDate(schedules) < 0; // 지난 공연 여부 확인
+				return scheduleService.getMinDueDate(schedules) < 0;
 			})
 			.orElse(false);
 	}
