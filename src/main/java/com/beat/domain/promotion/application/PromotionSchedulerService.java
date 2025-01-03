@@ -15,6 +15,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -35,7 +36,7 @@ public class PromotionSchedulerService {
 		List<Long> promotionIdsToDelete = promotionRepository.findAll().stream()
 			.filter(this::isInvalidPromotion)
 			.map(Promotion::getId)
-			.collect(Collectors.toList());
+			.toList();
 
 		if (promotionIdsToDelete.isEmpty()) {
 			return;
@@ -60,10 +61,10 @@ public class PromotionSchedulerService {
 		List<Promotion> remainingPromotions = promotionRepository.findAll();
 		remainingPromotions.sort(Comparator.comparing(promotion -> promotion.getCarouselNumber().getNumber()));
 
-		CarouselNumber[] carouselNumbers = CarouselNumber.values();
+		List<CarouselNumber> carouselNumbers = Arrays.asList(CarouselNumber.values());
 		for (int i = 0; i < remainingPromotions.size(); i++) {
 			Promotion promotion = remainingPromotions.get(i);
-			promotion.updateCarouselNumber(carouselNumbers[i]);
+			promotion.updateCarouselNumber(carouselNumbers.get(i));
 		}
 
 		promotionRepository.saveAll(remainingPromotions);
