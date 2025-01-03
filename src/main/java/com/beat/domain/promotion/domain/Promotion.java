@@ -75,4 +75,8 @@ public class Promotion {
 		this.redirectUrl = redirectUrl;
 		this.performance = performance;
 	}
+
+	public void updateCarouselNumber(CarouselNumber carouselNumber) {
+		this.carouselNumber = carouselNumber;
+	}
 }
