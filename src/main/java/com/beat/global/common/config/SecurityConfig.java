@@ -1,5 +1,6 @@
 package com.beat.global.common.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -25,26 +26,33 @@ public class SecurityConfig {
 	private final CustomJwtAuthenticationEntryPoint customJwtAuthenticationEntryPoint;
 	private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
-	private static final String[] AUTH_WHITELIST = {
-		"/api/users/sign-up",
-		"/api/users/refresh-token",
-		"/api/bookings/guest/**",
-		"/api/main",
-		"/api/performances/booking/**",
-		"/api/schedules/**",
-		"/api/notifications/**",
-		"/api/performances/detail/**",
-		"/health-check",
-		"/actuator/health",
-		"/v3/api-docs/**",
-		"/swagger-ui/**",
-		"/swagger-resources/**",
-		"/api/files/**",
-		"/error",
-		"/api/bookings/refund",
-		"/api/bookings/cancel",
-		"/"
-	};
+	@Value("${management.endpoints.web.base-path}")
+	private String actuatorEndPoint;
+
+	public String[] getAuthWhitelist() {
+		return new String[] {
+			"/api/users/sign-up",
+			"/api/users/refresh-token",
+			"/api/bookings/guest/**",
+			"/api/main",
+			"/api/performances/booking/**",
+			"/api/schedules/**",
+			"/api/notifications/**",
+			"/api/performances/detail/**",
+			"/health-check",
+			"/actuator/health",
+			"/v3/api-docs/**",
+			"/swagger-ui/**",
+			"/swagger-resources/**",
+			"/api/files/**",
+			"/error",
+			"/api/bookings/refund",
+			"/api/bookings/cancel",
+			actuatorEndPoint + "/health",
+			actuatorEndPoint + "/prometheus",
+			"/"
+		};
+	}
 
 	private static final String[] AUTH_ADMIN_ONLY = {
 		"/api/admin/**"
@@ -62,7 +70,7 @@ public class SecurityConfig {
 					.accessDeniedHandler(customAccessDeniedHandler));
 
 		http.authorizeHttpRequests(auth ->
-				auth.requestMatchers(AUTH_WHITELIST).permitAll()
+				auth.requestMatchers(getAuthWhitelist()).permitAll()
 					.requestMatchers(AUTH_ADMIN_ONLY).hasAuthority(Role.ADMIN.getRoleName())
 					.anyRequest().authenticated())
 			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
