@@ -94,7 +94,7 @@ cloud:
 
 logging:
   level:
-    root: info # 추후 debug로 변경
+    root: info
 
 cors:
   allowed-origins: ${DEV_ALLOWED_ORIGINS}
