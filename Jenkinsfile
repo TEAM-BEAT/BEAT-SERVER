@@ -81,10 +81,6 @@ pipeline {
                         // Docker 이미지 pull
                         sshCommand remote: remote, command: "docker pull ${DOCKER_HUB_ID}/${PROJECT_NAME}-${OPERATION_ENV}:latest"
 
-                        // Jenkins 서버에서 원격 서버로 파일 복사
-                        sshPut remote: remote, from: "/home/ubuntu/deployment/deploy-${OPERATION_ENV}.sh", into: "/home/ubuntu/deployment"
-                        sshPut remote: remote, from: '/home/ubuntu/nginx.conf', into: '/home/ubuntu'
-
                         // 환경변수를 넘기고 deploy-${OPERATION_ENV}.sh 실행
                         sshCommand remote: remote, command: """
                             export OPERATION_ENV=${OPERATION_ENV} && \
@@ -96,24 +92,6 @@ pipeline {
                             chmod +x deploy-${OPERATION_ENV}.sh && \
                             ./deploy-${OPERATION_ENV}.sh
                         """
-//
-//                         // 기존 컨테이너 제거
-//                         sshCommand remote: remote, failOnError: false, command: 'docker rm -f springboot'
-//
-//                         // 새로운 컨테이너 실행
-//                         sshCommand remote: remote, command: (
-//                             'docker run -d --name springboot' +
-//                             ' --network beat-network' +
-//                             ' -p 8080:' + INTERNAL_PORT +
-//                             ' -e "SPRING_PROFILES_ACTIVE=' + OPERATION_ENV + '"' +
-//                             ' ' + dockerImage
-//                         )
-
-                        // Docker dangling 이미지 정리
-                        sshCommand remote: remote, command: '''
-                            docker images -f "dangling=true" -q | \
-                            xargs -r docker rmi
-                        '''
                     }
                 }
             }
