@@ -15,6 +15,7 @@ import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.user.domain.Users;
 import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.common.exception.ForbiddenException;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -52,10 +53,10 @@ public class Performance extends BaseTimeEntity {
 	@Column(nullable = false)
 	private int runningTime;
 
-	@Column(nullable = false, length = 500)
+	@Column(nullable = false, length = 1500)
 	private String performanceDescription;
 
-	@Column(nullable = false, length = 500)
+	@Column(nullable = false, length = 1500)
 	private String performanceAttentionNote;
 
 	@Enumerated(EnumType.STRING)
@@ -74,8 +75,20 @@ public class Performance extends BaseTimeEntity {
 	@Column(nullable = false)
 	private String performanceTeamName;
 
-	@Column(nullable = false)
+	@Column(nullable = false, columnDefinition = "text")
 	private String performanceVenue;
+
+	@Column(nullable = false)
+	private String roadAddressName;
+
+	@Column(nullable = false)
+	private String placeDetailAddress;
+
+	@Column(nullable = false)
+	private String latitude;
+
+	@Column(nullable = false)
+	private String longitude;
 
 	@Column(nullable = false)
 	private String performanceContact;
@@ -101,11 +114,11 @@ public class Performance extends BaseTimeEntity {
 	private List<PerformanceImage> performanceImageList = new ArrayList<>();
 
 	@Builder
-	public Performance(String performanceTitle, Genre genre, int runningTime, String performanceDescription,
+	private Performance(String performanceTitle, Genre genre, int runningTime, String performanceDescription,
 		String performanceAttentionNote,
 		BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName,
-		String performanceVenue, String performanceContact,
-		String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
+		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longitude,
+		String performanceContact, String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
 		this.performanceTitle = performanceTitle;
 		this.genre = genre;
 		this.runningTime = runningTime;
@@ -117,6 +130,10 @@ public class Performance extends BaseTimeEntity {
 		this.posterImage = posterImage;
 		this.performanceTeamName = performanceTeamName;
 		this.performanceVenue = performanceVenue;
+		this.roadAddressName = roadAddressName;
+		this.placeDetailAddress = placeDetailAddress;
+		this.latitude = latitude;
+		this.longitude = longitude;
 		this.performanceContact = performanceContact;
 		this.performancePeriod = performancePeriod;
 		this.ticketPrice = ticketPrice;
@@ -128,8 +145,8 @@ public class Performance extends BaseTimeEntity {
 		String performanceTitle, Genre genre, int runningTime, String performanceDescription,
 		String performanceAttentionNote,
 		BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName,
-		String performanceVenue, String performanceContact,
-		String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
+		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longitude,
+		String performanceContact, String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
 		return Performance.builder()
 			.performanceTitle(performanceTitle)
 			.genre(genre)
@@ -142,6 +159,10 @@ public class Performance extends BaseTimeEntity {
 			.posterImage(posterImage)
 			.performanceTeamName(performanceTeamName)
 			.performanceVenue(performanceVenue)
+			.roadAddressName(roadAddressName)
+			.placeDetailAddress(placeDetailAddress)
+			.latitude(latitude)
+			.longitude(longitude)
 			.performanceContact(performanceContact)
 			.performancePeriod(performancePeriod)
 			.ticketPrice(ticketPrice)
@@ -154,8 +175,8 @@ public class Performance extends BaseTimeEntity {
 		String performanceTitle, Genre genre, int runningTime, String performanceDescription,
 		String performanceAttentionNote,
 		BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName,
-		String performanceVenue, String performanceContact,
-		String performancePeriod, int totalScheduleCount) {
+		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longitude,
+		String performanceContact, String performancePeriod, int totalScheduleCount) {
 		this.performanceTitle = performanceTitle;
 		this.genre = genre;
 		this.runningTime = runningTime;
@@ -167,6 +188,10 @@ public class Performance extends BaseTimeEntity {
 		this.posterImage = posterImage;
 		this.performanceTeamName = performanceTeamName;
 		this.performanceVenue = performanceVenue;
+		this.roadAddressName = roadAddressName;
+		this.placeDetailAddress = placeDetailAddress;
+		this.latitude = latitude;
+		this.longitude = longitude;
 		this.performanceContact = performanceContact;
 		this.performancePeriod = performancePeriod;
 		this.totalScheduleCount = totalScheduleCount;
@@ -190,14 +215,6 @@ public class Performance extends BaseTimeEntity {
 		this.performancePeriod = formatPerformancePeriod(startDate, endDate);
 	}
 
-	private String formatPerformancePeriod(LocalDateTime startDate, LocalDateTime endDate) {
-		if (startDate.toLocalDate().equals(endDate.toLocalDate())) {
-			return startDate.toLocalDate().toString().replace("-", ".");
-		}
-		return startDate.toLocalDate().toString().replace("-", ".")
-			+ "~" + endDate.toLocalDate().toString().replace("-", ".");
-	}
-
 	public void assignScheduleNumbers(List<Schedule> schedules) {
 		List<ScheduleNumber> scheduleNumbers = List.of(ScheduleNumber.values());
 		schedules.sort(Comparator.comparing(Schedule::getPerformanceDate));
@@ -207,5 +224,19 @@ public class Performance extends BaseTimeEntity {
 				schedules.get(i).setScheduleNumber(scheduleNumbers.get(i));
 			}
 		}
+	}
+
+	public void validatePerformanceOwnership(Long userId) {
+		if (!this.users.getId().equals(userId)) {
+			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
+		}
+	}
+
+	private String formatPerformancePeriod(LocalDateTime startDate, LocalDateTime endDate) {
+		if (startDate.toLocalDate().equals(endDate.toLocalDate())) {
+			return startDate.toLocalDate().toString().replace("-", ".");
+		}
+		return startDate.toLocalDate().toString().replace("-", ".")
+			+ "~" + endDate.toLocalDate().toString().replace("-", ".");
 	}
 }

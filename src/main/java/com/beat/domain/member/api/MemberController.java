@@ -1,10 +1,8 @@
 package com.beat.domain.member.api;
 
-import java.security.Principal;
-
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,9 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.beat.domain.member.application.AuthenticationService;
 import com.beat.domain.member.application.SocialLoginService;
-import com.beat.domain.member.dto.AccessTokenGetSuccess;
+import com.beat.domain.member.dto.AccessTokenGenerateResponse;
 import com.beat.domain.member.dto.LoginSuccessResponse;
+import com.beat.domain.member.dto.MemberLoginResponse;
 import com.beat.domain.member.exception.MemberSuccessCode;
+import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.auth.client.dto.MemberLoginRequest;
 import com.beat.global.auth.jwt.application.TokenService;
 import com.beat.global.common.dto.SuccessResponse;
@@ -37,13 +37,14 @@ public class MemberController implements MemberApi {
 
 	@Override
 	@PostMapping("/sign-up")
-	public ResponseEntity<SuccessResponse<LoginSuccessResponse>> signUp(
+	public ResponseEntity<SuccessResponse<MemberLoginResponse>> signUp(
 		@RequestParam final String authorizationCode,
 		@RequestBody final MemberLoginRequest loginRequest,
-		HttpServletResponse response
+		HttpServletResponse httpServletResponse
 	) {
 		LoginSuccessResponse loginSuccessResponse = socialLoginService.handleSocialLogin(authorizationCode,
 			loginRequest);
+
 		ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN, loginSuccessResponse.refreshToken())
 			.maxAge(COOKIE_MAX_AGE)
 			.path("/")
@@ -51,31 +52,33 @@ public class MemberController implements MemberApi {
 			.sameSite("None")
 			.httpOnly(true)
 			.build();
-		response.setHeader("Set-Cookie", cookie.toString());
-		return ResponseEntity.status(HttpStatus.OK)
-			.body(SuccessResponse.of(MemberSuccessCode.SIGN_UP_SUCCESS,
-				LoginSuccessResponse.of(loginSuccessResponse.accessToken(), null, loginSuccessResponse.nickname(),
-					loginSuccessResponse.role())));
+		httpServletResponse.setHeader("Set-Cookie", cookie.toString());
+
+		MemberLoginResponse response = MemberLoginResponse.of(loginSuccessResponse.accessToken(),
+			loginSuccessResponse.nickname(),
+			loginSuccessResponse.role());
+
+		return ResponseEntity.ok()
+			.body(SuccessResponse.of(MemberSuccessCode.SIGN_UP_SUCCESS, response));
 	}
 
 	@Override
 	@GetMapping("/refresh-token")
-	public ResponseEntity<SuccessResponse<AccessTokenGetSuccess>> refreshToken(
-		@RequestParam final String refreshToken
+	public ResponseEntity<SuccessResponse<AccessTokenGenerateResponse>> issueAccessTokenUsingRefreshToken(
+		@CookieValue(value = REFRESH_TOKEN) final String refreshToken
 	) {
-		AccessTokenGetSuccess accessTokenGetSuccess = authenticationService.generateAccessTokenFromRefreshToken(
-			refreshToken);
-		return ResponseEntity.status(HttpStatus.OK)
-			.body(SuccessResponse.of(MemberSuccessCode.ISSUE_REFRESH_TOKEN_SUCCESS, accessTokenGetSuccess));
+		AccessTokenGenerateResponse response = authenticationService.generateAccessTokenFromRefreshToken(refreshToken);
+		return ResponseEntity.ok()
+			.body(SuccessResponse.of(MemberSuccessCode.ISSUE_ACCESS_TOKEN_USING_REFRESH_TOKEN, response));
 	}
 
 	@Override
 	@PostMapping("/sign-out")
 	public ResponseEntity<SuccessResponse<Void>> signOut(
-		final Principal principal
+		@CurrentMember final Long memberId
 	) {
-		tokenService.deleteRefreshToken(Long.valueOf(principal.getName()));
-		return ResponseEntity.status(HttpStatus.OK)
+		tokenService.deleteRefreshToken(memberId);
+		return ResponseEntity.ok()
 			.body(SuccessResponse.from(MemberSuccessCode.SIGN_OUT_SUCCESS));
 	}
 }

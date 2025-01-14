@@ -15,6 +15,7 @@ import com.beat.domain.performance.application.dto.performanceDetail.Performance
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.swagger.annotation.DisableSwaggerSecurity;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -31,8 +32,7 @@ public interface PerformanceApi {
 		value = {
 			@ApiResponse(
 				responseCode = "201",
-				description = "공연이 성공적으로 생성되었습니다.",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "공연이 성공적으로 생성되었습니다."
 			),
 			@ApiResponse(
 				responseCode = "400",
@@ -56,8 +56,7 @@ public interface PerformanceApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "공연 정보 수정 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "공연 정보 수정 성공"
 			),
 			@ApiResponse(
 				responseCode = "400",
@@ -96,8 +95,7 @@ public interface PerformanceApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "공연 수정 페이지 정보 조회 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "공연 수정 페이지 정보 조회 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -111,13 +109,13 @@ public interface PerformanceApi {
 		@PathVariable Long performanceId
 	);
 
+	@DisableSwaggerSecurity
 	@Operation(summary = "공연 상세정보 조회 API", description = "공연 상세페이지의 공연 상세정보를 조회하는 GET API입니다.")
 	@ApiResponses(
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "공연 상세정보 조회 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "공연 상세정보 조회 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -130,13 +128,13 @@ public interface PerformanceApi {
 		@PathVariable Long performanceId
 	);
 
+	@DisableSwaggerSecurity
 	@Operation(summary = "예매하기 관련 공연 정보 조회 API", description = "예매하기 페이지에서 필요한 예매 관련 공연 정보를 조회하는 GET API입니다.")
 	@ApiResponses(
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "예매하기 관련 공연 정보 조회 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "예매하기 관련 공연 정보 조회 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -154,8 +152,7 @@ public interface PerformanceApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "회원이 등록한 공연 목록 조회 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "회원이 등록한 공연 목록 조회 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -173,8 +170,7 @@ public interface PerformanceApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "공연 삭제 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "공연 삭제 성공"
 			),
 			@ApiResponse(
 				responseCode = "403",

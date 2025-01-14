@@ -17,12 +17,20 @@ configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
 	}
+
+	// Configure libraries related to QueryDSL to be required only at compile-time and add QueryDSL configuration to the compile classpath.
+	querydsl.extendsFrom compileClasspath
 }
 
 repositories {
 	mavenCentral()
 	maven { url "https://repo.spring.io/milestone" }
 	maven { url "https://repo.spring.io/snapshot" }
+}
+
+// Set global variables used in the project
+ext {
+	set('queryDslVersion', "5.0.0")
 }
 
 dependencies {
@@ -74,9 +82,18 @@ dependencies {
 	implementation 'io.awspring.cloud:spring-cloud-starter-aws:2.4.4'
 	implementation 'io.awspring.cloud:spring-cloud-starter-aws-secrets-manager-config:2.4.4'
 
-	//coolsms
+	// coolsms
 	implementation 'net.nurigo:sdk:4.3.0'
 	implementation 'net.nurigo:javaSDK:2.2'
+
+	// QueryDSL
+	implementation "com.querydsl:querydsl-jpa:${queryDslVersion}:jakarta"
+	annotationProcessor "com.querydsl:querydsl-apt:${queryDslVersion}:jakarta"
+	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+
+	// Prometheus
+	implementation 'io.micrometer:micrometer-registry-prometheus'
 }
 
 jar {
@@ -85,4 +102,23 @@ jar {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+// Set the directory path where the Q-Class will be generated.
+def queryDslSrcDir = 'src/main/generated/querydsl/'
+
+// When executing the JavaCompile task, set the output directory for the generated source code to queryDslSrcDir
+tasks.withType(JavaCompile).configureEach {
+	options.getGeneratedSourceOutputDirectory().set(file(queryDslSrcDir))
+}
+
+// Add the Q-Class files to the directory path recognized as source code.
+// This ensures that the Q-Class is treated as a regular Java class and included in the classpath during compilation and execution.
+sourceSets {
+	main.java.srcDirs += [queryDslSrcDir]
+}
+
+// Configure the clean task to delete the specified directory, automatically removing the generated Q-Class.
+clean {
+	delete file(queryDslSrcDir)
 }

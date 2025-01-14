@@ -1,13 +1,13 @@
 package com.beat.domain.performance.application.dto.modify;
 
+import java.util.List;
+
 import com.beat.domain.performance.application.dto.create.CastResponse;
 import com.beat.domain.performance.application.dto.create.PerformanceImageResponse;
 import com.beat.domain.performance.application.dto.create.ScheduleResponse;
 import com.beat.domain.performance.application.dto.create.StaffResponse;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;
-
-import java.util.List;
 
 public record PerformanceModifyDetailResponse(
 	Long userId,
@@ -23,6 +23,10 @@ public record PerformanceModifyDetailResponse(
 	String posterImage,
 	String performanceTeamName,
 	String performanceVenue,
+	String roadAddressName,
+	String placeDetailAddress,
+	String latitude,
+	String longitude,
 	String performanceContact,
 	String performancePeriod,
 	int ticketPrice,
@@ -47,6 +51,10 @@ public record PerformanceModifyDetailResponse(
 		String posterImage,
 		String performanceTeamName,
 		String performanceVenue,
+		String roadAddressName,
+		String placeDetailAddress,
+		String latitude,
+		String longitude,
 		String performanceContact,
 		String performancePeriod,
 		int ticketPrice,
@@ -71,6 +79,10 @@ public record PerformanceModifyDetailResponse(
 			posterImage,
 			performanceTeamName,
 			performanceVenue,
+			roadAddressName,
+			placeDetailAddress,
+			latitude,
+			longitude,
 			performanceContact,
 			performancePeriod,
 			ticketPrice,

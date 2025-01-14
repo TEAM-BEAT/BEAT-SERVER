@@ -1,5 +1,11 @@
 package com.beat.domain.booking.domain;
 
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.user.domain.Users;
 
@@ -17,11 +23,6 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -57,6 +58,16 @@ public class Booking {
 	@Column(nullable = true)
 	private String password;
 
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = true)
+	private BankName bankName;
+
+	@Column(nullable = true)
+	private String accountNumber;
+
+	@Column(nullable = true)
+	private String accountHolder;
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "schedule_id", nullable = false)
 	@OnDelete(action = OnDeleteAction.CASCADE)
@@ -68,20 +79,25 @@ public class Booking {
 	private Users users;
 
 	@Builder
-	public Booking(int purchaseTicketCount, String bookerName, String bookerPhoneNumber, BookingStatus bookingStatus,
-		String birthDate, String password, Schedule schedule, Users users) {
+	private Booking(int purchaseTicketCount, String bookerName, String bookerPhoneNumber, BookingStatus bookingStatus,
+		String birthDate, String password, BankName bankName, String accountNumber, String accountHolder,
+		Schedule schedule, Users users) {
 		this.purchaseTicketCount = purchaseTicketCount;
 		this.bookerName = bookerName;
 		this.bookerPhoneNumber = bookerPhoneNumber;
 		this.bookingStatus = bookingStatus;
 		this.birthDate = birthDate;
 		this.password = password;
+		this.bankName = bankName;
+		this.accountNumber = accountNumber;
+		this.accountHolder = accountHolder;
 		this.schedule = schedule;
 		this.users = users;
 	}
 
 	public static Booking create(int purchaseTicketCount, String bookerName, String bookerPhoneNumber,
-		BookingStatus bookingStatus, String birthDate, String password, Schedule schedule, Users users) {
+		BookingStatus bookingStatus, String birthDate, String password,
+		BankName bankName, String accountNumber, String accountHolder, Schedule schedule, Users users) {
 		return Booking.builder()
 			.purchaseTicketCount(purchaseTicketCount)
 			.bookerName(bookerName)
@@ -89,15 +105,25 @@ public class Booking {
 			.bookingStatus(bookingStatus)
 			.birthDate(birthDate)
 			.password(password)
+			.bankName(bankName)
+			.accountNumber(accountNumber)
+			.accountHolder(accountHolder)
 			.schedule(schedule)
 			.users(users)
 			.build();
 	}
 
-	public void setBookingStatus(BookingStatus bookingStatus) {
+	public void updateBookingStatus(BookingStatus bookingStatus) {
 		this.bookingStatus = bookingStatus;
-		if (bookingStatus == BookingStatus.BOOKING_CANCELLED) {
+		if (bookingStatus == BookingStatus.BOOKING_CANCELLED || bookingStatus == BookingStatus.BOOKING_DELETED) {
 			this.cancellationDate = LocalDateTime.now();
 		}
+	}
+
+	public void updateRefundInfo(BankName bankName, String accountNumber, String accountHolder) {
+		this.bankName = bankName;
+		this.accountNumber = accountNumber;
+		this.accountHolder = accountHolder;
+		this.bookingStatus = BookingStatus.REFUND_REQUESTED;
 	}
 }

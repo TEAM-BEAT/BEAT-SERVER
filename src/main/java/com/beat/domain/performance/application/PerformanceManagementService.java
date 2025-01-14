@@ -58,14 +58,6 @@ public class PerformanceManagementService {
 
 		Users user = member.getUser();
 
-		if (request.performanceDescription().length() > 500) {
-			throw new BadRequestException(PerformanceErrorCode.INVALID_PERFORMANCE_DESCRIPTION_LENGTH);
-		}
-
-		if (request.performanceAttentionNote().length() > 500) {
-			throw new BadRequestException(PerformanceErrorCode.INVALID_ATTENTION_NOTE_LENGTH);
-		}
-
 		Performance performance = Performance.create(
 			request.performanceTitle(),
 			request.genre(),
@@ -78,8 +70,12 @@ public class PerformanceManagementService {
 			request.posterImage(),
 			request.performanceTeamName(),
 			request.performanceVenue(),
+			request.roadAddressName(),
+			request.placeDetailAddress(),
+			request.latitude(),
+			request.longitude(),
 			request.performanceContact(),
-			" ", // 이후 dto 변경 필요
+			" ", // 이후 dto performancePeriod 제외 필요
 			request.ticketPrice(),
 			request.totalScheduleCount(),
 			user
@@ -177,7 +173,7 @@ public class PerformanceManagementService {
 		List<PerformanceImageResponse> performanceImageResponses = performanceImages.stream()
 			.map(image -> PerformanceImageResponse.of(
 				image.getId(),
-				image.getPerformanceImage()
+				image.getPerformanceImageUrl()
 			))
 			.collect(Collectors.toList());
 
@@ -195,6 +191,10 @@ public class PerformanceManagementService {
 			performance.getPosterImage(),
 			performance.getPerformanceTeamName(),
 			performance.getPerformanceVenue(),
+			performance.getRoadAddressName(),
+			performance.getPlaceDetailAddress(),
+			performance.getLatitude(),
+			performance.getLongitude(),
 			performance.getPerformanceContact(),
 			performance.getPerformancePeriod(),
 			performance.getTicketPrice(),

@@ -6,7 +6,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/health-check")
-public class HealthCheckController {
+public class HealthCheckController implements HealthCheckApi {
+
+	@Override
 	@GetMapping
 	public String healthcheck() {
 		return "OK";

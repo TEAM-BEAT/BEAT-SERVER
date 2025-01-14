@@ -1,5 +1,8 @@
 package com.beat.domain.booking.application;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.beat.domain.booking.application.dto.MemberBookingRequest;
 import com.beat.domain.booking.application.dto.MemberBookingResponse;
 import com.beat.domain.booking.dao.BookingRepository;
@@ -18,9 +21,6 @@ import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -55,6 +55,9 @@ public class MemberBookingService {
 			memberBookingRequest.bookerName(),
 			memberBookingRequest.bookerPhoneNumber(),
 			memberBookingRequest.bookingStatus(),
+			null,
+			null,
+			null,
 			null,
 			null,
 			schedule,

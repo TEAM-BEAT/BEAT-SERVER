@@ -1,6 +1,12 @@
 pipeline {
     agent any
 
+    environment {
+            // PORT
+            EXTERNAL_PORT_BLUE = credentials('EXTERNAL_PORT_BLUE')
+            EXTERNAL_PORT_GREEN = credentials('EXTERNAL_PORT_GREEN')
+    }
+
     stages {
         stage('Set Variables') {
             steps {
@@ -15,19 +21,16 @@ pipeline {
                     OPERATION_ENV = BRANCH_NAME.equals(PROD_BRANCH) ? 'prod' : 'dev'
 
                     // DOCKER
-                    DOCKER_HUB_URL = 'registry.hub.docker.com'
-                    DOCKER_HUB_FULL_URL = 'https://' + DOCKER_HUB_URL
                     DOCKER_HUB_DEV_CREDENTIAL_ID = 'DOCKER_HUB_DEV_CREDENTIALS'
                     DOCKER_HUB_PROD_CREDENTIAL_ID = 'DOCKER_HUB_PROD_CREDENTIALS'
-                    DOCKER_IMAGE_NAME = BRANCH_NAME.equals(PROD_BRANCH) ? 'donghoon0203/beat-prod' : 'hoonyworld/beat-dev'
 
                     // SSH
                     SSH_CREDENTIAL_ID = OPERATION_ENV.toUpperCase() + '_SSH'
                     SSH_PORT_CREDENTIAL_ID = OPERATION_ENV.toUpperCase() + '_SSH_PORT'
                     SSH_HOST_CREDENTIAL_ID = OPERATION_ENV.toUpperCase() + '_SSH_HOST'
 
-                    // PORT
-                    PORT_PROPERTIES_FILE = 'application-' + OPERATION_ENV + '.yml'
+                    // ENVIRONMENT CONFIG FILE
+                    ENVIRONMENT_CONFIG_FILE = 'application-' + OPERATION_ENV + '.yml'
                 }
             }
         }
@@ -35,7 +38,7 @@ pipeline {
         stage('Parse Internal Port') {
             steps {
                 script {
-                    INTERNAL_PORT = sh(script: "yq e '.server.port' ./src/main/resources/${PORT_PROPERTIES_FILE}", returnStdout: true).trim()
+                    INTERNAL_PORT = sh(script: "yq e '.server.port' ./src/main/resources/${ENVIRONMENT_CONFIG_FILE}", returnStdout: true).trim()
                     echo "Internal port: ${INTERNAL_PORT}"
                 }
             }
@@ -69,32 +72,26 @@ pipeline {
                         remote.host = HOST
                         remote.user = USERNAME
                         remote.identityFile = KEY_FILE
-                        remote.port = 22
+                        remote.port = PORT as Integer
                         remote.allowAnyHosts = true
 
                         // SSH 연결 테스트
                         sshCommand remote: remote, command: 'echo "SSH 연결 성공"'
 
                         // Docker 이미지 pull
-                        sshCommand remote: remote, command: 'docker pull ' + DOCKER_IMAGE_NAME + ":latest"
+                        sshCommand remote: remote, command: "docker pull ${DOCKER_HUB_ID}/${PROJECT_NAME}-${OPERATION_ENV}:latest"
 
-                        // 기존 컨테이너 제거
-                        sshCommand remote: remote, failOnError: false, command: 'docker rm -f springboot'
-
-                        // 새로운 컨테이너 실행
-                        sshCommand remote: remote, command: (
-                            'docker run -d --name springboot' +
-                            ' --network beat-network' +
-                            ' -p 8080:' + INTERNAL_PORT +
-                            ' -e "SPRING_PROFILES_ACTIVE=' + OPERATION_ENV + '"' +
-                            ' ' + DOCKER_IMAGE_NAME + ':latest'
-                        )
-
-                        // Docker dangling 이미지 정리
-                        sshCommand remote: remote, command: '''
-                            docker images -f "dangling=true" -q | \
-                            xargs -r docker rmi
-                        '''
+                        // 환경변수를 넘기고 deploy-${OPERATION_ENV}.sh 실행
+                        sshCommand remote: remote, command: """
+                            export OPERATION_ENV=${OPERATION_ENV} && \
+                            export INTERNAL_PORT=${INTERNAL_PORT} && \
+                            export EXTERNAL_PORT_GREEN=${EXTERNAL_PORT_GREEN} && \
+                            export EXTERNAL_PORT_BLUE=${EXTERNAL_PORT_BLUE} && \
+                            export DOCKER_IMAGE_NAME=${DOCKER_HUB_ID}/${PROJECT_NAME}-${OPERATION_ENV}:latest && \
+                            cd /home/ubuntu/deployment && \
+                            chmod +x deploy-${OPERATION_ENV}.sh && \
+                            ./deploy-${OPERATION_ENV}.sh
+                        """
                     }
                 }
             }

@@ -1,6 +1,6 @@
 package com.beat.domain.member.application;
 
-import com.beat.domain.member.dto.AccessTokenGetSuccess;
+import com.beat.domain.member.dto.AccessTokenGenerateResponse;
 import com.beat.domain.member.dto.LoginSuccessResponse;
 import com.beat.domain.user.domain.Role;
 import com.beat.domain.user.domain.Users;
@@ -30,7 +30,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
-
+	private static final String BEARER_PREFIX = "Bearer ";
 	private final JwtTokenProvider jwtTokenProvider;
 	private final TokenService tokenService;
 
@@ -64,46 +64,30 @@ public class AuthenticationService {
 	}
 
 	/**
-	 * Refresh Token을 사용하여 새로운 Access Token을 생성하는 메서드.
+	 * 쿠키에서 "refreshToken" 값을 가져와 유효성을 검증하고,
+	 * 유효한 Refresh Token일 경우 새로운 Access Token을 생성합니다.
 	 *
 	 * Refresh Token에서 사용자 ID와 Role 정보를 추출한 후,
 	 * Role에 따라 Admin 또는 Member 권한으로 새로운 Access Token을 발급합니다.
 	 *
-	 * @param refreshToken 사용자의 Refresh Token
-	 * @return 새로운 Access Token 정보가 포함된 AccessTokenGetSuccess 객체
+	 * @param refreshToken "사용자의 Refresh Token"
+	 * @return 새로운 Access Token 정보가 포함된 AccessTokenGenerateResponse 객체
 	 */
 	@Transactional
-	public AccessTokenGetSuccess generateAccessTokenFromRefreshToken(final String refreshToken) {
-		log.info("Validation result for refresh token: {}", jwtTokenProvider.validateToken(refreshToken));
-
-		JwtValidationType validationType = jwtTokenProvider.validateToken(refreshToken);
-		if (!validationType.equals(JwtValidationType.VALID_JWT)) {
-			log.warn("Invalid refresh token: {}", validationType);
-			throw switch (validationType) {
-				case EXPIRED_JWT_TOKEN -> new UnauthorizedException(TokenErrorCode.REFRESH_TOKEN_EXPIRED_ERROR);
-				case INVALID_JWT_TOKEN -> new BadRequestException(TokenErrorCode.INVALID_REFRESH_TOKEN_ERROR);
-				case INVALID_JWT_SIGNATURE -> new BadRequestException(TokenErrorCode.REFRESH_TOKEN_SIGNATURE_ERROR);
-				case UNSUPPORTED_JWT_TOKEN -> new BadRequestException(TokenErrorCode.UNSUPPORTED_REFRESH_TOKEN_ERROR);
-				case EMPTY_JWT -> new BadRequestException(TokenErrorCode.REFRESH_TOKEN_EMPTY_ERROR);
-				default -> new BeatException(TokenErrorCode.UNKNOWN_REFRESH_TOKEN_ERROR);
-			};
-		}
+	public AccessTokenGenerateResponse generateAccessTokenFromRefreshToken(final String refreshToken) {
+		validateRefreshToken(refreshToken);
 
 		Long memberId = jwtTokenProvider.getMemberIdFromJwt(refreshToken);
-
-		if (!memberId.equals(tokenService.findIdByRefreshToken(refreshToken))) {
-			log.error("MemberId mismatch: token does not match the stored refresh token");
-			throw new BadRequestException(TokenErrorCode.REFRESH_TOKEN_MEMBER_ID_MISMATCH_ERROR);
-		}
+		verifyMemberIdWithStoredToken(refreshToken, memberId);
 
 		Role role = jwtTokenProvider.getRoleFromJwt(refreshToken);
 		Collection<GrantedAuthority> authorities = List.of(role.toGrantedAuthority());
 
-		UsernamePasswordAuthenticationToken authenticationToken = createAuthenticationToken(memberId, role,
-			authorities);
+		UsernamePasswordAuthenticationToken authenticationToken = createAuthenticationToken(memberId, role, authorities);
 		log.info("Generated new access token for memberId: {}, role: {}, authorities: {}",
 			memberId, role.getRoleName(), authorities);
-		return AccessTokenGetSuccess.of(jwtTokenProvider.issueAccessToken(authenticationToken));
+
+		return AccessTokenGenerateResponse.from(jwtTokenProvider.issueAccessToken(authenticationToken));
 	}
 
 	/**
@@ -139,4 +123,29 @@ public class AuthenticationService {
 			return new MemberAuthentication(memberId, null, authorities);
 		}
 	}
+
+	private void validateRefreshToken(String refreshToken) {
+		JwtValidationType validationType = jwtTokenProvider.validateToken(refreshToken);
+
+		if (!validationType.equals(JwtValidationType.VALID_JWT)) {
+			throw switch (validationType) {
+				case EXPIRED_JWT_TOKEN -> new UnauthorizedException(TokenErrorCode.REFRESH_TOKEN_EXPIRED_ERROR);
+				case INVALID_JWT_TOKEN -> new BadRequestException(TokenErrorCode.INVALID_REFRESH_TOKEN_ERROR);
+				case INVALID_JWT_SIGNATURE -> new BadRequestException(TokenErrorCode.REFRESH_TOKEN_SIGNATURE_ERROR);
+				case UNSUPPORTED_JWT_TOKEN -> new BadRequestException(TokenErrorCode.UNSUPPORTED_REFRESH_TOKEN_ERROR);
+				case EMPTY_JWT -> new BadRequestException(TokenErrorCode.REFRESH_TOKEN_EMPTY_ERROR);
+				default -> new BeatException(TokenErrorCode.UNKNOWN_REFRESH_TOKEN_ERROR);
+			};
+		}
+	}
+
+	private void verifyMemberIdWithStoredToken(String refreshToken, Long memberId) {
+		Long storedMemberId = tokenService.findIdByRefreshToken(refreshToken);
+
+		if (!memberId.equals(storedMemberId)) {
+			log.error("MemberId mismatch: token does not match the stored refresh token");
+			throw new BadRequestException(TokenErrorCode.REFRESH_TOKEN_MEMBER_ID_MISMATCH_ERROR);
+		}
+	}
+
 }

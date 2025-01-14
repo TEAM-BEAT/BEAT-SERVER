@@ -1,14 +1,17 @@
 package com.beat.domain.member.api;
 
-import java.security.Principal;
-
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import com.beat.domain.member.dto.AccessTokenGetSuccess;
-import com.beat.domain.member.dto.LoginSuccessResponse;
+import com.beat.domain.member.dto.AccessTokenGenerateResponse;
+import com.beat.domain.member.dto.MemberLoginResponse;
+import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.auth.client.dto.MemberLoginRequest;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.swagger.annotation.DisableSwaggerSecurity;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -21,13 +24,13 @@ import jakarta.servlet.http.HttpServletResponse;
 @Tag(name = "Member", description = "회원 관련 API")
 public interface MemberApi {
 
+	@DisableSwaggerSecurity
 	@Operation(summary = "로그인/회원가입 API", description = "로그인/회원가입하는 POST API입니다.")
 	@ApiResponses(
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "로그인 또는 회원가입 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "로그인 또는 회원가입 성공"
 			),
 			@ApiResponse(
 				responseCode = "400",
@@ -41,10 +44,10 @@ public interface MemberApi {
 			)
 		}
 	)
-	ResponseEntity<SuccessResponse<LoginSuccessResponse>> signUp(
-		String authorizationCode,
-		MemberLoginRequest loginRequest,
-		HttpServletResponse response
+	ResponseEntity<SuccessResponse<MemberLoginResponse>> signUp(
+		@RequestParam final String authorizationCode,
+		@RequestBody final MemberLoginRequest loginRequest,
+		HttpServletResponse httpServletResponse
 	);
 
 	@Operation(summary = "access token 재발급 API", description = "refresh token으로 access token을 재발급하는 GET API입니다.")
@@ -52,8 +55,7 @@ public interface MemberApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "access token 재발급 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "access token 재발급 성공"
 			),
 			@ApiResponse(
 				responseCode = "400",
@@ -62,8 +64,8 @@ public interface MemberApi {
 			)
 		}
 	)
-	ResponseEntity<SuccessResponse<AccessTokenGetSuccess>> refreshToken(
-		String refreshToken
+	ResponseEntity<SuccessResponse<AccessTokenGenerateResponse>> issueAccessTokenUsingRefreshToken(
+		@CookieValue(value = "refreshToken") final String refreshToken
 	);
 
 	@Operation(summary = "로그아웃 API", description = "로그아웃하는 POST API입니다.")
@@ -71,8 +73,7 @@ public interface MemberApi {
 		value = {
 			@ApiResponse(
 				responseCode = "200",
-				description = "로그아웃 성공",
-				content = @Content(schema = @Schema(implementation = SuccessResponse.class))
+				description = "로그아웃 성공"
 			),
 			@ApiResponse(
 				responseCode = "404",
@@ -81,6 +82,8 @@ public interface MemberApi {
 			)
 		}
 	)
-	ResponseEntity<SuccessResponse<Void>> signOut(Principal principal);
+	ResponseEntity<SuccessResponse<Void>> signOut(
+		@CurrentMember final Long memberId
+	);
 }
 

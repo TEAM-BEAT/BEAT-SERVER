@@ -48,6 +48,8 @@ jobs:
           PROD_KAKAO_CLIENT_SECRET: ${{ secrets.PROD_KAKAO_CLIENT_SECRET }}
           PROD_KAKAO_REDIRECT_URI: ${{ secrets.PROD_KAKAO_REDIRECT_URI }}
           PROD_REDIS_HOST: ${{ secrets.PROD_REDIS_HOST }}
+          PROD_REDIS_PORT: ${{ secrets.PROD_REDIS_PORT }}
+          PROD_REDIS_PASSWORD: ${{ secrets.PROD_REDIS_PASSWORD }}
           PROD_S3_ACCESS_KEY: ${{ secrets.PROD_S3_ACCESS_KEY }}
           PROD_S3_SECRET_KEY: ${{ secrets.PROD_S3_SECRET_KEY }}
           PROD_COOLSMS_KEY: ${{ secrets.PROD_COOLSMS_KEY }}
@@ -57,6 +59,8 @@ jobs:
           PROD_REFRESH_TOKEN_EXPIRE_TIME: ${{ secrets.PROD_REFRESH_TOKEN_EXPIRE_TIME }}
           PROD_ALLOWED_ORIGINS: ${{ secrets.PROD_ALLOWED_ORIGINS }}
           PROD_SERVER_URL: ${{ secrets.PROD_SERVER_URL }}
+          PROD_ACTUATOR_PORT: ${{ secrets.PROD_ACTUATOR_PORT }}
+          PROD_ACTUATOR_PATH: ${{ secrets.PROD_ACTUATOR_PATH }}
         run: |
           cd ./src/main/resources
           envsubst < application-prod.yml > application-prod.tmp.yml && mv application-prod.tmp.yml application-prod.yml

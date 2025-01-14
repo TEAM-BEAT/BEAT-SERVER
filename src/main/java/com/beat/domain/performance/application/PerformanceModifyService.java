@@ -68,7 +68,6 @@ public class PerformanceModifyService {
 
 		Member member = validateMember(memberId);
 		Long userId = member.getUser().getId();
-
 		Performance performance = findPerformance(request.performanceId());
 
 		validateOwnership(userId, performance);
@@ -138,6 +137,10 @@ public class PerformanceModifyService {
 			request.posterImage(),
 			request.performanceTeamName(),
 			request.performanceVenue(),
+			request.roadAddressName(),
+			request.placeDetailAddress(),
+			request.latitude(),
+			request.longitude(),
 			request.performanceContact(),
 			request.performancePeriod(),
 			request.totalScheduleCount()
@@ -515,7 +518,7 @@ public class PerformanceModifyService {
 		log.debug("Added performanceImage: {}", savedPerformanceImage.getId());
 		return PerformanceImageModifyResponse.of(
 			savedPerformanceImage.getId(),
-			savedPerformanceImage.getPerformanceImage()
+			savedPerformanceImage.getPerformanceImageUrl()
 		);
 	}
 
@@ -533,14 +536,14 @@ public class PerformanceModifyService {
 			throw new ForbiddenException(PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_BELONG_TO_PERFORMANCE);
 		}
 
-		performanceImage.update(
+		performanceImage.updatePerformanceImageUrl(
 			request.performanceImage()
 		);
 		performanceImageRepository.save(performanceImage);
 		log.debug("Updated performanceImage: {}", performanceImage.getId());
 		return PerformanceImageModifyResponse.of(
 			performanceImage.getId(),
-			performanceImage.getPerformanceImage()
+			performanceImage.getPerformanceImageUrl()
 		);
 	}
 
@@ -583,6 +586,10 @@ public class PerformanceModifyService {
 			performance.getPosterImage(),
 			performance.getPerformanceTeamName(),
 			performance.getPerformanceVenue(),
+			performance.getRoadAddressName(),
+			performance.getPlaceDetailAddress(),
+			performance.getLatitude(),
+			performance.getLongitude(),
 			performance.getPerformanceContact(),
 			performance.getPerformancePeriod(),
 			performance.getTicketPrice(),

@@ -26,6 +26,7 @@ import com.beat.domain.performance.exception.PerformanceSuccessCode;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -41,7 +42,7 @@ public class PerformanceController implements PerformanceApi {
 	@PostMapping
 	public ResponseEntity<SuccessResponse<PerformanceResponse>> createPerformance(
 		@CurrentMember Long memberId,
-		@RequestBody PerformanceRequest performanceRequest) {
+		@Valid @RequestBody PerformanceRequest performanceRequest) {
 		PerformanceResponse response = performanceManagementService.createPerformance(memberId, performanceRequest);
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.body(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_CREATE_SUCCESS, response));
@@ -51,7 +52,7 @@ public class PerformanceController implements PerformanceApi {
 	@PutMapping
 	public ResponseEntity<SuccessResponse<PerformanceModifyResponse>> updatePerformance(
 		@CurrentMember Long memberId,
-		@RequestBody PerformanceModifyRequest performanceModifyRequest) {
+		@Valid @RequestBody PerformanceModifyRequest performanceModifyRequest) {
 		PerformanceModifyResponse response = performanceModifyService.modifyPerformance(memberId,
 			performanceModifyRequest);
 		return ResponseEntity.status(HttpStatus.OK)

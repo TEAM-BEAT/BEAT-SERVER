@@ -1,8 +1,8 @@
 package com.beat.domain.performance.application.dto.create;
 
-import com.beat.domain.schedule.domain.ScheduleNumber;
-
 import java.time.LocalDateTime;
+
+import com.beat.domain.schedule.domain.ScheduleNumber;
 
 public record ScheduleRequest(
 	LocalDateTime performanceDate,
