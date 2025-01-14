@@ -111,7 +111,7 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 <img src="https://img.shields.io/badge/ Swagger-6DB33F?style=flat-square&logo=swagger&logoColor=white">
 
 ## 🔨 Architecture
-<img src="https://github.com/user-attachments/assets/35b618b6-932e-4ef8-99bc-857f4e45d610">
+<img src="https://github.com/user-attachments/assets/7b1f3833-f2b0-40fb-970e-e9f8becc9a6d">
 
 ## 👥 Contributors
 - [BEAT Client Repository](https://github.com/TEAM-BEAT/BEAT-Client)

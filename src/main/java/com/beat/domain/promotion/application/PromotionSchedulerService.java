@@ -69,5 +69,4 @@ public class PromotionSchedulerService {
 
 		promotionRepository.saveAll(remainingPromotions);
 	}
-
 }
