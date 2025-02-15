@@ -20,6 +20,11 @@ configurations {
 
 	// Configure libraries related to QueryDSL to be required only at compile-time and add QueryDSL configuration to the compile classpath.
 	querydsl.extendsFrom compileClasspath
+
+	// Enable Log4j2 except for the Spring Boot Default Logging Framework (Logback)
+	configureEach {
+		exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+	}
 }
 
 repositories {
@@ -94,6 +99,12 @@ dependencies {
 
 	// Prometheus
 	implementation 'io.micrometer:micrometer-registry-prometheus'
+
+	// log4j2
+	implementation 'org.springframework.boot:spring-boot-starter-log4j2'
+
+	// AOP
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
 }
 
 jar {
