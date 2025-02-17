@@ -24,6 +24,7 @@ configurations {
 	// Enable Log4j2 except for the Spring Boot Default Logging Framework (Logback)
 	configureEach {
 		exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+		exclude group: 'commons-logging', module: 'commons-logging'
 	}
 }
 
