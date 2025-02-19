@@ -5,6 +5,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Aspect
 @Order(1)
 @Component
+@Profile("!test")
 public class TxAspect {
 
 	@Around("com.beat.global.common.aop.Pointcuts.allService()")

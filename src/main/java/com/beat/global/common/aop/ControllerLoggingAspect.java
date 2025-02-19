@@ -12,6 +12,7 @@ import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -26,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Aspect
 @Order(2)
 @Component
+@Profile("!test")
 public class ControllerLoggingAspect {
 
 	private static final String REQUEST_URI = "requestURI";

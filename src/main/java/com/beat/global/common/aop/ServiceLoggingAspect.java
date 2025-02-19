@@ -10,6 +10,7 @@ import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 @Aspect
 @Order(3)
 @Component
+@Profile("!test")
 public class ServiceLoggingAspect {
 	/** 실행 시간 측정 */
 	@Around("com.beat.global.common.aop.Pointcuts.allApplicationLogic()")
