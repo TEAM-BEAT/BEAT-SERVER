@@ -22,21 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Profile("!test")
 public class ServiceLoggingAspect {
-	/** 실행 시간 측정 */
-	@Around("com.beat.global.common.aop.Pointcuts.allApplicationLogic()")
-	public Object logExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
-		long start = System.currentTimeMillis();
-		try {
-			return joinPoint.proceed();
-		} finally {
-			long end = System.currentTimeMillis();
-			long timeInMs = end - start;
-			log.info("[실행 시간] {}.{}() | time = {}ms",
-				joinPoint.getSignature().getDeclaringType().getSimpleName(),
-				joinPoint.getSignature().getName(),
-				timeInMs);
-		}
-	}
 
 	/** Service 메서드 실행 전 로깅 */
 	@Before("com.beat.global.common.aop.Pointcuts.allService()")
