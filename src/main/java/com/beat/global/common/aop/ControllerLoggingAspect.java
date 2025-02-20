@@ -68,7 +68,7 @@ public class ControllerLoggingAspect {
 	/** Controller 정상 반환 로깅 */
 	@AfterReturning(value = "com.beat.global.common.aop.Pointcuts.allController()", returning = "result")
 	public void logControllerResponse(JoinPoint joinPoint, Object result) {
-		log.info("[Controller 정상 반환] {}.{}() | 반환 값: {}",
+		log.debug("[Controller 정상 반환] {}.{}() | 반환 값: {}",
 			joinPoint.getSignature().getDeclaringType().getSimpleName(),
 			joinPoint.getSignature().getName(),
 			result);
