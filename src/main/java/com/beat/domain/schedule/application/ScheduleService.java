@@ -1,8 +1,10 @@
 package com.beat.domain.schedule.application;
 
-import com.beat.domain.schedule.application.dto.TicketAvailabilityRequest;
-import com.beat.domain.schedule.application.dto.TicketAvailabilityResponse;
+import com.beat.domain.schedule.application.dto.request.TicketAvailabilityRequest;
+import com.beat.domain.schedule.application.dto.response.MinPerformanceDateResponse;
+import com.beat.domain.schedule.application.dto.response.TicketAvailabilityResponse;
 import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.dao.dto.MinPerformanceDateDto;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.global.common.exception.BadRequestException;
@@ -12,11 +14,15 @@ import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalInt;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,13 +30,13 @@ public class ScheduleService {
 
 	private final ScheduleRepository scheduleRepository;
 
+	@Transactional(readOnly = true)
 	public TicketAvailabilityResponse findTicketAvailability(Long scheduleId,
 		TicketAvailabilityRequest ticketAvailabilityRequest) {
 		validateRequest(scheduleId, ticketAvailabilityRequest);
 
-		Schedule schedule = scheduleRepository.findById(scheduleId).orElseThrow(
-			() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND)
-		);
+		Schedule schedule = scheduleRepository.findById(scheduleId)
+			.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
 
 		int availableTicketCount = getAvailableTicketCount(schedule);
 		boolean isAvailable = availableTicketCount >= ticketAvailabilityRequest.purchaseTicketCount();
@@ -59,11 +65,6 @@ public class ScheduleService {
 		return dueDate;
 	}
 
-	public int getMinDueDateForPerformance(Long performanceId) {
-		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
-		return getMinDueDate(schedules);
-	}
-
 	public int getMinDueDate(List<Schedule> schedules) {
 		OptionalInt minPositiveDueDate = schedules.stream()
 			.mapToInt(this::calculateDueDate)
@@ -78,6 +79,20 @@ public class ScheduleService {
 				.min()
 				.orElse(Integer.MAX_VALUE);
 		}
+	}
+
+	@Transactional(readOnly = true)
+	public MinPerformanceDateResponse retrieveMinPerformanceDateByPerformanceIds(List<Long> performanceIds) {
+		List<MinPerformanceDateDto> minPerformanceDateDtos
+			= scheduleRepository.findMinPerformanceDateByPerformanceIds(performanceIds);
+
+		Map<Long, LocalDateTime> performanceDateMap = minPerformanceDateDtos.stream()
+			.collect(Collectors.toMap(
+				MinPerformanceDateDto::getPerformanceId,
+				MinPerformanceDateDto::getPerformanceDate
+			));
+
+		return MinPerformanceDateResponse.from(performanceDateMap);
 	}
 
 	private void validateRequest(Long scheduleId, TicketAvailabilityRequest ticketAvailabilityRequest) {
