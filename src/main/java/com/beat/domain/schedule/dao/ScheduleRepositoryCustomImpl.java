@@ -35,7 +35,7 @@ public class ScheduleRepositoryCustomImpl implements ScheduleRepositoryCustom {
 			.min();
 
 		// (현재) 전체 중 가장 빠른 과거 날짜 -> 변동 여지 있음!
-		DateTimeExpression<LocalDateTime> pastMax = Expressions
+		DateTimeExpression<LocalDateTime> pastMin = Expressions
 			.cases()
 			.when(schedule.performanceDate.lt(now))
 			.then(schedule.performanceDate)
@@ -46,7 +46,7 @@ public class ScheduleRepositoryCustomImpl implements ScheduleRepositoryCustom {
 		DateTimeExpression<LocalDateTime> finalPerformanceDate = Expressions
 			.cases()
 			.when(futureMin.isNotNull()).then(futureMin)
-			.otherwise(pastMax);
+			.otherwise(pastMin);
 
 		return queryFactory
 			.select(new QMinPerformanceDateDto(
