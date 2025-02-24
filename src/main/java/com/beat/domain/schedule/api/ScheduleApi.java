@@ -4,7 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.beat.domain.schedule.application.dto.TicketAvailabilityResponse;
+import com.beat.domain.schedule.application.dto.response.TicketAvailabilityResponse;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
 import com.beat.global.swagger.annotation.DisableSwaggerSecurity;
