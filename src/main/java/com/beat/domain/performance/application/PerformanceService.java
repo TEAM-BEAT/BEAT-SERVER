@@ -69,7 +69,7 @@ public class PerformanceService implements PerformanceUseCase {
 		Performance performance = performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-		List<PerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findByPerformanceId(performanceId)
+		List<PerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findAllByPerformanceId(performanceId)
 			.stream()
 			.map(schedule -> {
 				int dueDate = scheduleService.calculateDueDate(schedule);
@@ -113,7 +113,7 @@ public class PerformanceService implements PerformanceUseCase {
 		Performance performance = performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-		List<BookingPerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findByPerformanceId(
+		List<BookingPerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findAllByPerformanceId(
 			performanceId).stream().map(schedule -> {
 			int dueDate = scheduleService.calculateDueDate(schedule);
 			return BookingPerformanceDetailScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
@@ -140,7 +140,7 @@ public class PerformanceService implements PerformanceUseCase {
 		List<Performance> performances = performanceRepository.findByUsersId(user.getId());
 
 		List<MakerPerformanceDetailResponse> performanceDetails = performances.stream().map(performance -> {
-			List<Schedule> schedules = scheduleRepository.findByPerformanceId(performance.getId());
+			List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performance.getId());
 			int minDueDate = scheduleService.getMinDueDate(schedules);
 
 			return MakerPerformanceDetailResponse.of(performance.getId(), performance.getGenre().name(),

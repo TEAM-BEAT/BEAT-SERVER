@@ -18,8 +18,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 	@Query("SELECT s FROM Schedule s WHERE s.id = :id")
 	Optional<Schedule> lockById(@Param("id") Long id);
 
-	List<Schedule> findByPerformanceId(Long performanceId);
-
 	List<Schedule> findAllByPerformanceId(Long performanceId);
 
 	@Query("SELECT s.id FROM Schedule s WHERE s.performance.id = :performanceId")

@@ -60,7 +60,7 @@ public class ScheduleService {
 	}
 
 	public int getMinDueDateForPerformance(Long performanceId) {
-		List<Schedule> schedules = scheduleRepository.findByPerformanceId(performanceId);
+		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 		return getMinDueDate(schedules);
 	}
 

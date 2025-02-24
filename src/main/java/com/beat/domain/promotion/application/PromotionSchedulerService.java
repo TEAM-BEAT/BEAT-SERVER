@@ -51,7 +51,7 @@ public class PromotionSchedulerService {
 	private boolean isInvalidPromotion(Promotion promotion) {
 		return Optional.ofNullable(promotion.getPerformance())
 			.map(performance -> {
-				List<Schedule> schedules = scheduleRepository.findByPerformanceId(performance.getId());
+				List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performance.getId());
 				return scheduleService.getMinDueDate(schedules) < 0;
 			})
 			.orElse(false);
