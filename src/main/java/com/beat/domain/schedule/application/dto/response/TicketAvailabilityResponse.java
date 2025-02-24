@@ -1,4 +1,4 @@
-package com.beat.domain.schedule.application.dto;
+package com.beat.domain.schedule.application.dto.response;
 
 public record TicketAvailabilityResponse(
 	Long scheduleId,
