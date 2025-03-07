@@ -44,25 +44,7 @@ public class HomeService {
 			return HomeFindAllResponse.of(promotionDetails, new ArrayList<>());
 		}
 
-		List<Long> performanceIds = performances.stream()
-			.map(Performance::getId)
-			.toList();
-
-		MinPerformanceDateResponse minPerformanceDateResponse = scheduleService.retrieveMinPerformanceDateByPerformanceIds(
-			performanceIds);
-		Map<Long, LocalDateTime> minPerformanceDateMap = minPerformanceDateResponse.performanceDateMap();
-
-		List<HomePerformanceDetail> sortedPerformances = performances.stream()
-			.map(performance -> HomePerformanceDetail.of(performance,
-				calculateDueDate(minPerformanceDateMap.get(performance.getId()))))
-			.sorted(Comparator.comparingInt((HomePerformanceDetail detail) -> {
-				if (detail.dueDate() < 0) {
-					return 1;
-				}
-
-				return 0;
-			}).thenComparingInt(detail -> Math.abs(detail.dueDate())))
-			.toList();
+		List<HomePerformanceDetail> sortedPerformances = getSortedPerformanceDetails(performances);
 
 		return HomeFindAllResponse.of(promotionDetails, sortedPerformances);
 	}
@@ -83,6 +65,34 @@ public class HomeService {
 			.sorted(Comparator.comparing(Promotion::getCarouselNumber, Comparator.comparingInt(Enum::ordinal)))
 			.map(HomePromotionDetail::from)
 			.toList();
+	}
+
+	private List<HomePerformanceDetail> getSortedPerformanceDetails(List<Performance> performances) {
+		List<Long> performanceIds = extractPerformanceIds(performances);
+		Map<Long, LocalDateTime> minPerformanceDateMap = retrieveMinPerformanceDateMap(performanceIds);
+
+		return performances.stream()
+			.map(performance -> createHomePerformanceDetail(performance, minPerformanceDateMap))
+			.sorted(Comparator.comparing((HomePerformanceDetail detail) -> detail.dueDate() < 0)
+				.thenComparingInt(detail -> Math.abs(detail.dueDate())))
+			.toList();
+	}
+
+	private List<Long> extractPerformanceIds(List<Performance> performances) {
+		return performances.stream()
+			.map(Performance::getId)
+			.toList();
+	}
+
+	private Map<Long, LocalDateTime> retrieveMinPerformanceDateMap(List<Long> performanceIds) {
+		MinPerformanceDateResponse minPerformanceDateResponse = scheduleService.retrieveMinPerformanceDateByPerformanceIds(
+			performanceIds);
+		return minPerformanceDateResponse.performanceDateMap();
+	}
+
+	private HomePerformanceDetail createHomePerformanceDetail(Performance performance,
+		Map<Long, LocalDateTime> minPerformanceDateMap) {
+		return HomePerformanceDetail.of(performance, calculateDueDate(minPerformanceDateMap.get(performance.getId())));
 	}
 
 	private int calculateDueDate(LocalDateTime baseDateTime) {
