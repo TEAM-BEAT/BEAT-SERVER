@@ -8,9 +8,9 @@ import lombok.Getter;
 import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.redis.core.index.Indexed;
 
-@RedisHash(value = "refreshToken", timeToLive = 1209600)
 @Getter
 @Builder
+@RedisHash(value = "refreshToken", timeToLive = 1209600)
 public class Token {
 
 	@Id

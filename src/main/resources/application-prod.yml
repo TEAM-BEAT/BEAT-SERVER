@@ -95,6 +95,7 @@ cloud:
 logging:
   level:
     root: info
+  config: classpath:log4j2-spring.xml
 
 cors:
   allowed-origins: ${PROD_ALLOWED_ORIGINS}

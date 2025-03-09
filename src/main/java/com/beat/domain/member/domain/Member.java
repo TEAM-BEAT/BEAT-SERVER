@@ -41,7 +41,7 @@ public class Member extends BaseTimeEntity {
 	@Column(nullable = true)
 	private LocalDateTime deletedAt;
 
-	@OneToOne(fetch = FetchType.LAZY)
+	@OneToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "user_id", nullable = false)
 	@OnDelete(action = OnDeleteAction.CASCADE)
 	private Users user;

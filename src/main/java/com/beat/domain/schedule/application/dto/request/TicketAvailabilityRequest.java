@@ -1,4 +1,4 @@
-package com.beat.domain.schedule.application.dto;
+package com.beat.domain.schedule.application.dto.request;
 
 public record TicketAvailabilityRequest(
 	Integer purchaseTicketCount

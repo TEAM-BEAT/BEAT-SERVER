@@ -233,7 +233,7 @@ public class PerformanceManagementService {
 		}
 
 		// 모든 스케줄에 대해 등록된 TaskScheduler 작업을 취소
-		List<Schedule> schedules = scheduleRepository.findByPerformanceId(performanceId);
+		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 		for (Schedule schedule : schedules) {
 			jobSchedulerService.cancelScheduledTaskForPerformance(schedule);
 		}

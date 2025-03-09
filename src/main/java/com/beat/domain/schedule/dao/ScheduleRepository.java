@@ -12,13 +12,11 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
+public interface ScheduleRepository extends JpaRepository<Schedule, Long>, ScheduleRepositoryCustom {
 
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("SELECT s FROM Schedule s WHERE s.id = :id")
 	Optional<Schedule> lockById(@Param("id") Long id);
-
-	List<Schedule> findByPerformanceId(Long performanceId);
 
 	List<Schedule> findAllByPerformanceId(Long performanceId);
 
