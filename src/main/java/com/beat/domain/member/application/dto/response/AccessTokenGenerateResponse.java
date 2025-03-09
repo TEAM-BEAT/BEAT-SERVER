@@ -1,4 +1,4 @@
-package com.beat.domain.member.application.dto;
+package com.beat.domain.member.application.dto.response;
 
 public record AccessTokenGenerateResponse(
 	String accessToken

@@ -1,7 +1,7 @@
 package com.beat.domain.member.application;
 
-import com.beat.domain.member.application.dto.AccessTokenGenerateResponse;
-import com.beat.domain.member.application.dto.LoginSuccessResponse;
+import com.beat.domain.member.application.dto.response.AccessTokenGenerateResponse;
+import com.beat.domain.member.application.dto.response.LoginSuccessResponse;
 import com.beat.domain.user.domain.Role;
 import com.beat.domain.user.domain.Users;
 import com.beat.global.auth.client.dto.MemberInfoResponse;

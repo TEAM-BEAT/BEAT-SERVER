@@ -2,7 +2,7 @@ package com.beat.domain.member.application;
 
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
-import com.beat.domain.member.application.dto.LoginSuccessResponse;
+import com.beat.domain.member.application.dto.response.LoginSuccessResponse;
 import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.member.port.in.MemberUseCase;
 import com.beat.domain.user.domain.Users;
