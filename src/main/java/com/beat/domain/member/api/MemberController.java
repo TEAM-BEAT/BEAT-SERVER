@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.beat.domain.member.application.AuthenticationService;
 import com.beat.domain.member.application.SocialLoginService;
-import com.beat.domain.member.dto.AccessTokenGenerateResponse;
-import com.beat.domain.member.dto.LoginSuccessResponse;
-import com.beat.domain.member.dto.MemberLoginResponse;
+import com.beat.domain.member.application.dto.AccessTokenGenerateResponse;
+import com.beat.domain.member.application.dto.LoginSuccessResponse;
+import com.beat.domain.member.application.dto.MemberLoginResponse;
 import com.beat.domain.member.exception.MemberSuccessCode;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.auth.client.dto.MemberLoginRequest;
