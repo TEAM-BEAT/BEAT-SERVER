@@ -35,7 +35,7 @@ public class ServiceLoggingAspect {
 	/** Service 정상 반환 로깅 */
 	@AfterReturning(value = "com.beat.global.common.aop.Pointcuts.allService()", returning = "result")
 	public void logReturn(JoinPoint joinPoint, Object result) {
-		log.info("[Service 정상 반환] {}.{}() | 반환 값: {}",
+		log.debug("[Service 정상 반환] {}.{}() | 반환 값: {}",
 			joinPoint.getSignature().getDeclaringType().getSimpleName(),
 			joinPoint.getSignature().getName(),
 			result);

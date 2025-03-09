@@ -27,10 +27,10 @@ public class HomeController implements HomeApi {
 	public ResponseEntity<SuccessResponse<HomeFindAllResponse>> getHomePerformanceList(
 		@RequestParam(required = false) Genre genre) {
 
-		HomeFindRequest request = new HomeFindRequest(genre);
+		HomeFindRequest homeFindRequest = new HomeFindRequest(genre);
 
-		HomeFindAllResponse response = homeService.findHomePerformanceList(request);
+		HomeFindAllResponse homeFindAllResponse = homeService.findHomePerformanceList(homeFindRequest);
 		return ResponseEntity.ok(
-			SuccessResponse.of(PerformanceSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS, response));
+			SuccessResponse.of(PerformanceSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS, homeFindAllResponse));
 	}
 }

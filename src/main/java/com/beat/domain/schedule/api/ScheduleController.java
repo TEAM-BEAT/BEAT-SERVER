@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.beat.domain.schedule.application.ScheduleService;
-import com.beat.domain.schedule.application.dto.TicketAvailabilityRequest;
-import com.beat.domain.schedule.application.dto.TicketAvailabilityResponse;
+import com.beat.domain.schedule.application.dto.request.TicketAvailabilityRequest;
+import com.beat.domain.schedule.application.dto.response.TicketAvailabilityResponse;
 import com.beat.domain.schedule.exception.ScheduleSuccessCode;
 import com.beat.global.common.dto.SuccessResponse;
 
