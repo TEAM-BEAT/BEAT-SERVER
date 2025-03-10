@@ -42,7 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		final String token = getJwtFromRequest(request);
 
 		if (!StringUtils.hasText(token)) {
-			log.info("JWT Token not found in request header. Assuming guest access or public API request.");
+			log.debug("JWT Token not found in request header. Assuming guest access or public API request.");
 			filterChain.doFilter(request, response);
 			return;
 		}
