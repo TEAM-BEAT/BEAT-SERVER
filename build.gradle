@@ -106,6 +106,12 @@ dependencies {
 
 	// AOP
 	implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+	// Slack Webhook
+	implementation 'com.slack.api:slack-api-client:1.45.3'
+
+	// @ConfigurationProperties auto bean register
+	annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 }
 
 jar {
