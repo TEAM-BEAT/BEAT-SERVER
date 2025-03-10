@@ -61,6 +61,7 @@ jobs:
           DEV_SERVER_URL: ${{ secrets.DEV_SERVER_URL }}
           DEV_ACTUATOR_PORT: ${{ secrets.DEV_ACTUATOR_PORT }}
           DEV_ACTUATOR_PATH: ${{ secrets.DEV_ACTUATOR_PATH }}
+          DEV_SLACK_WEBHOOK_URL: ${{ secrets.DEV_SLACK_WEBHOOK_URL }}
         run: |
           cd ./src/main/resources
           envsubst < application-dev.yml > application-dev.tmp.yml && mv application-dev.tmp.yml application-dev.yml

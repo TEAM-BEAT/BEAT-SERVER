@@ -114,3 +114,11 @@ springdoc:
     operations-sorter: alpha
     display-request-duration: true
     urls-primary-name: general
+
+slack:
+  webhook:
+    url: ${DEV_SLACK_WEBHOOK_URL}
+
+thread-pool:
+  core-size: 2
+  thread-name-prefix: executor-
