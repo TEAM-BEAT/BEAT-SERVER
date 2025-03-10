@@ -43,11 +43,18 @@ public class MemberService implements MemberUseCase {
 			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 	}
 
+	@Override
 	@Transactional
 	public void deleteUser(final Long id) {
 		Users users = userRepository.findById(id)
 			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 
 		userRepository.delete(users);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public long countMembers() {
+		return memberRepository.count();
 	}
 }

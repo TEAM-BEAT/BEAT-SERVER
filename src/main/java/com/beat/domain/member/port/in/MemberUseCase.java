@@ -11,4 +11,6 @@ public interface MemberUseCase {
 	Member findMemberBySocialIdAndSocialType(Long socialId, SocialType socialType);
 
 	void deleteUser(Long id);
+
+	long countMembers();
 }
