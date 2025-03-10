@@ -1,6 +1,7 @@
 package com.beat.global.common.handler;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.lang.NonNull;
@@ -19,7 +20,7 @@ public class GlobalAsyncExceptionHandler implements AsyncUncaughtExceptionHandle
 			return;
 		}
 
-		String paramValues = java.util.Arrays.toString(params);
+		String paramValues = Arrays.toString(params);
 
 		log.error("비동기 작업 중 예외 발생! Method: [{}], Params: [{}], Exception: [{}]",
 			method.getName(), paramValues, ex.getMessage(), ex);
