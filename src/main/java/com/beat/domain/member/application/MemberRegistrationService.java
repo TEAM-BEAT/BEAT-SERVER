@@ -24,6 +24,16 @@ public class MemberRegistrationService {
 	private final UserRepository userRepository;
 	private final MemberRepository memberRepository;
 
+	/**
+	 * Registers a new member and its associated user account.
+	 *
+	 * <p>This method creates a user with the MEMBER role and a corresponding member record using the
+	 * provided member information. It saves both entities transactionally and publishes a registration event
+	 * with the member's nickname.
+	 *
+	 * @param memberInfoResponse the data required for member registration, including nickname, email, social ID, and social type
+	 * @return the identifier of the newly registered member
+	 */
 	@Transactional
 	public Long registerMemberWithUserInfo(final MemberInfoResponse memberInfoResponse) {
 		Users users = Users.createWithRole(Role.MEMBER);

@@ -96,11 +96,14 @@ public class SocialLoginService {
 	}
 
 	/**
-	 * 사용자 정보(Social ID와 Social Type)를 통해 기존 회원을 찾거나,
-	 * 없으면 새로운 회원을 등록하는 메서드.
+	 * Finds an existing member by their social ID and social type, or registers a new member if none exists.
 	 *
-	 * @param memberInfoResponse 소셜 서비스에서 가져온 사용자 정보
-	 * @return 등록된 회원 또는 기존 회원의 ID
+	 * <p>This method checks whether a member with the specified social details (contained in
+	 * {@code memberInfoResponse}) already exists. If found, the member's ID is returned after logging
+	 * their role; otherwise, the method registers a new member using the provided information and returns the new member's ID.
+	 *
+	 * @param memberInfoResponse user information retrieved from the social service, including social ID and type
+	 * @return the ID of the existing or newly registered member
 	 */
 	private Long findOrRegisterMember(final MemberInfoResponse memberInfoResponse) {
 		boolean memberExists = memberUseCase.checkMemberExistsBySocialIdAndSocialType(memberInfoResponse.socialId(),

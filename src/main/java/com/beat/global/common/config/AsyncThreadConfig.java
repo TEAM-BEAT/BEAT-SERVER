@@ -21,6 +21,17 @@ import lombok.RequiredArgsConstructor;
 public class AsyncThreadConfig implements AsyncConfigurer {
 	private final ThreadPoolProperties threadPoolProperties;
 
+	/**
+	 * Creates and returns an Executor for asynchronous task execution.
+	 *
+	 * <p>The executor is configured with a core pool size and thread name prefix sourced from
+	 * the thread pool properties. It employs a CallerRunsPolicy to handle task rejections,
+	 * ensuring that when the pool is saturated, tasks execute in the calling thread.
+	 * The ThreadPoolTaskExecutor is wrapped in a DelegatingSecurityContextExecutor to preserve
+	 * the Spring Security context across asynchronous execution.
+	 *
+	 * @return the security-aware executor for asynchronous tasks
+	 */
 	@Override
 	@Bean(name = "taskExecutor")
 	public Executor getAsyncExecutor() {
@@ -32,6 +43,14 @@ public class AsyncThreadConfig implements AsyncConfigurer {
 		return new DelegatingSecurityContextExecutor(executor.getThreadPoolExecutor());
 	}
 
+	/**
+	 * Returns the asynchronous uncaught exception handler.
+	 *
+	 * <p>This bean provides a global handler for uncaught exceptions thrown by asynchronous
+	 * methods, using an instance of {@link GlobalAsyncExceptionHandler}.</p>
+	 *
+	 * @return an instance of {@link GlobalAsyncExceptionHandler} for handling uncaught async exceptions
+	 */
 	@Override
 	@Bean
 	public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {

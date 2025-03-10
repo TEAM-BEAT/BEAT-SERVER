@@ -19,6 +19,14 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @ImportAutoConfiguration({FeignAutoConfiguration.class})
 public class BeatApplication {
 
+	/**
+	 * Main entry point for the BeatApplication Spring Boot application.
+	 *
+	 * <p>This method bootstraps the application by invoking SpringApplication.run
+	 * with the BeatApplication class and the provided command-line arguments.</p>
+	 *
+	 * @param args command-line arguments passed to the application
+	 */
 	public static void main(String[] args) {
 		SpringApplication.run(BeatApplication.class, args);
 	}

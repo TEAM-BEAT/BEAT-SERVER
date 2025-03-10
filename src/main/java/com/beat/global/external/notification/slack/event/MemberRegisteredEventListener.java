@@ -26,6 +26,15 @@ public class MemberRegisteredEventListener {
 	private final MemberUseCase memberUseCase;
 	private final SlackService slackService;
 
+	/**
+	 * Asynchronously sends a Slack notification when a new member registers.
+	 *
+	 * <p>This method is triggered after a transaction commits and builds a payload with a welcome
+	 * message that includes the current number of members and the new member's nickname. It then tries
+	 * to send this payload to Slack. If the message fails to send, a RuntimeException is thrown.
+	 *
+	 * @param event the member registration event containing details about the new member
+	 */
 	@Async("taskExecutor")
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void sendSlackNotification(MemberRegisteredEvent event) {

@@ -10,7 +10,17 @@ public interface MemberUseCase {
 
 	Member findMemberBySocialIdAndSocialType(Long socialId, SocialType socialType);
 
-	void deleteUser(Long id);
+	/**
+ * Deletes a user identified by the given ID.
+ *
+ * @param id the unique identifier of the user to delete
+ */
+void deleteUser(Long id);
 
-	long countMembers();
+	/**
+ * Returns the total number of members.
+ *
+ * @return the total member count
+ */
+long countMembers();
 }

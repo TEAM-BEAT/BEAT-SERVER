@@ -11,6 +11,17 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GlobalAsyncExceptionHandler implements AsyncUncaughtExceptionHandler {
 
+	/**
+	 * Handles uncaught exceptions thrown during asynchronous method execution.
+	 *
+	 * This method logs an error message with the method name and exception details. If the provided
+	 * parameters array is null, it logs that no parameters were provided; otherwise, it logs the string
+	 * representation of the parameters.
+	 *
+	 * @param ex the exception that occurred (non-null)
+	 * @param method the method where the exception was thrown (non-null)
+	 * @param params the parameters passed to the method; may be null
+	 */
 	@Override
 	public void handleUncaughtException(@NonNull Throwable ex, @NonNull Method method, @Nullable Object... params) {
 		if (params == null) {
