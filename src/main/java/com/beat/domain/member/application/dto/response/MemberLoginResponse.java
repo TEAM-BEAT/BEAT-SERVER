@@ -1,4 +1,4 @@
-package com.beat.domain.member.dto;
+package com.beat.domain.member.application.dto.response;
 
 public record MemberLoginResponse(
 	String accessToken,

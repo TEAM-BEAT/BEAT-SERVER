@@ -1,5 +1,6 @@
 package com.beat.domain.member.application;
 
+import com.beat.domain.member.application.dto.event.MemberRegisteredEvent;
 import com.beat.domain.member.dao.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.user.dao.UserRepository;
@@ -10,6 +11,7 @@ import com.beat.global.auth.client.dto.MemberInfoResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MemberRegistrationService {
 
+	private final ApplicationEventPublisher eventPublisher;
 	private final UserRepository userRepository;
 	private final MemberRepository memberRepository;
 
@@ -41,8 +44,9 @@ public class MemberRegistrationService {
 		);
 
 		memberRepository.save(member);
-
 		log.info("Member registered with memberId: {}, role: {}", member.getId(), users.getRole());
+
+		eventPublisher.publishEvent(new MemberRegisteredEvent(member.getNickname()));
 
 		return member.getId();
 	}

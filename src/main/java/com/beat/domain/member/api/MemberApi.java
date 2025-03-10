@@ -5,8 +5,8 @@ import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.beat.domain.member.dto.AccessTokenGenerateResponse;
-import com.beat.domain.member.dto.MemberLoginResponse;
+import com.beat.domain.member.application.dto.response.AccessTokenGenerateResponse;
+import com.beat.domain.member.application.dto.response.MemberLoginResponse;
 import com.beat.global.auth.annotation.CurrentMember;
 import com.beat.global.auth.client.dto.MemberLoginRequest;
 import com.beat.global.common.dto.ErrorResponse;

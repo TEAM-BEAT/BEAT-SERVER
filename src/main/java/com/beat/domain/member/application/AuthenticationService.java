@@ -1,7 +1,7 @@
 package com.beat.domain.member.application;
 
-import com.beat.domain.member.dto.AccessTokenGenerateResponse;
-import com.beat.domain.member.dto.LoginSuccessResponse;
+import com.beat.domain.member.application.dto.response.AccessTokenGenerateResponse;
+import com.beat.domain.member.application.dto.response.LoginSuccessResponse;
 import com.beat.domain.user.domain.Role;
 import com.beat.domain.user.domain.Users;
 import com.beat.global.auth.client.dto.MemberInfoResponse;
@@ -30,7 +30,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
-	private static final String BEARER_PREFIX = "Bearer ";
 	private final JwtTokenProvider jwtTokenProvider;
 	private final TokenService tokenService;
 

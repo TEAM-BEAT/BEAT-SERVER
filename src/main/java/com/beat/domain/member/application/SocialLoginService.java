@@ -2,11 +2,10 @@ package com.beat.domain.member.application;
 
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
-import com.beat.domain.member.dto.LoginSuccessResponse;
+import com.beat.domain.member.application.dto.response.LoginSuccessResponse;
 import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.member.port.in.MemberUseCase;
 import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.port.in.UserUseCase;
 import com.beat.global.auth.client.application.KakaoSocialService;
 import com.beat.global.auth.client.application.SocialService;
 import com.beat.global.auth.client.dto.MemberInfoResponse;
