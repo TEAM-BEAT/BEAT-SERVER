@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class MemberRegisteredEventListener {
 	private static final String TEXT_KEY = "text";
-	private static final String WELCOME_MESSAGE = "번째 유저가 회원가입했습니다 - ";
+	private static final String WELCOME_MESSAGE = "번째 유저가 회원가입했띠예 🎉🎉 - ";
 	private static final String SLACK_TRANSFER_ERROR = "Slack 전송 실패";
 
 	private final MemberUseCase memberUseCase;
