@@ -1,6 +1,6 @@
 spring:
   config:
-    import: optional:application-secret.properties
+    import: optional:classpath:application-secret.properties
     activate:
       on-profile: dev
 
