@@ -2,11 +2,14 @@ name: dev-CI
 
 on:
   pull_request:
-    branches: [ "develop" ]
-
+    branches:
+      - develop
+    types:
+      - opened
+      - synchronize
+      - reopened
 jobs:
   dev-ci:
-    # Using Environment - dev 환경
     environment: dev
 
     # Operating system - ubuntu-22.04
@@ -28,43 +31,14 @@ jobs:
 
       # gradle caching - 빌드 시간 향상
       - name: Gradle Caching
-        uses: actions/cache@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          gradle-home-cache-cleanup: true
 
-      # Inject environment variables - 환경 변수를 yml 파일에 주입
-      - name: Inject environment variables into application-dev.yml
-        env:
-          DEV_DB_URL: ${{ secrets.DEV_DB_URL }}
-          DEV_DB_USERNAME: ${{ secrets.DEV_DB_USERNAME }}
-          DEV_DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
-          DEV_JWT_SECRET: ${{ secrets.DEV_JWT_SECRET }}
-          DEV_KAKAO_CLIENT_ID: ${{ secrets.DEV_KAKAO_CLIENT_ID }}
-          DEV_KAKAO_CLIENT_SECRET: ${{ secrets.DEV_KAKAO_CLIENT_SECRET }}
-          DEV_KAKAO_REDIRECT_URI: ${{ secrets.DEV_KAKAO_REDIRECT_URI }}
-          DEV_REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
-          DEV_REDIS_PORT: ${{ secrets.DEV_REDIS_PORT }}
-          DEV_REDIS_PASSWORD: ${{ secrets.DEV_REDIS_PASSWORD }}
-          DEV_S3_ACCESS_KEY: ${{ secrets.DEV_S3_ACCESS_KEY }}
-          DEV_S3_SECRET_KEY: ${{ secrets.DEV_S3_SECRET_KEY }}
-          DEV_COOLSMS_KEY: ${{ secrets.DEV_COOLSMS_KEY }}
-          DEV_COOLSMS_NUMBER: ${{ secrets.DEV_COOLSMS_NUMBER }}
-          DEV_COOLSMS_SECRET: ${{ secrets.DEV_COOLSMS_SECRET }}
-          DEV_ACCESS_TOKEN_EXPIRE_TIME: ${{ secrets.DEV_ACCESS_TOKEN_EXPIRE_TIME }}
-          DEV_REFRESH_TOKEN_EXPIRE_TIME: ${{ secrets.DEV_REFRESH_TOKEN_EXPIRE_TIME }}
-          DEV_ALLOWED_ORIGINS: ${{ secrets.DEV_ALLOWED_ORIGINS }}
-          DEV_SERVER_URL: ${{ secrets.DEV_SERVER_URL }}
-          DEV_ACTUATOR_PORT: ${{ secrets.DEV_ACTUATOR_PORT }}
-          DEV_ACTUATOR_PATH: ${{ secrets.DEV_ACTUATOR_PATH }}
-          DEV_SLACK_WEBHOOK_URL: ${{ secrets.DEV_SLACK_WEBHOOK_URL }}
+      # Inject environment variables - application-secret.properties 생성
+      - name: Inject application-secret.properties
         run: |
-          cd ./src/main/resources
-          envsubst < application-dev.yml > application-dev.tmp.yml && mv application-dev.tmp.yml application-dev.yml
+          echo "${{ secrets.APPLICATION_SECRET_SPRING }}" > src/main/resources/application-secret.properties
 
       # gradle build - 테스트 없이 gradle 빌드
       - name: Build with Gradle

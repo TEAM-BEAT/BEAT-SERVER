@@ -1,33 +1,6 @@
-server:
-  port: 8080
-
-management:
-  server:
-    port: ${DEV_ACTUATOR_PORT}
-  endpoint:
-    health:
-      show-details: always
-      enabled: true
-    info:
-      enabled: true
-    prometheus:
-      enabled: true
-  endpoints:
-    enabled-by-default: false
-    jmx:
-      exposure:
-        exclude: "*"
-    web:
-      exposure:
-        include: info, health, prometheus
-      base-path: ${DEV_ACTUATOR_PATH}
-  prometheus:
-    metrics:
-      export:
-        enabled: true
-
 spring:
   config:
+    import: optional:application-secret.properties
     activate:
       on-profile: dev
 
@@ -75,6 +48,34 @@ spring:
       key: ${DEV_COOLSMS_KEY}
       secret: ${DEV_COOLSMS_SECRET}
       number: ${DEV_COOLSMS_NUMBER}
+
+server:
+  port: 8080
+
+management:
+  server:
+    port: ${DEV_ACTUATOR_PORT}
+  endpoint:
+    health:
+      show-details: always
+      enabled: true
+    info:
+      enabled: true
+    prometheus:
+      enabled: true
+  endpoints:
+    enabled-by-default: false
+    jmx:
+      exposure:
+        exclude: "*"
+    web:
+      exposure:
+        include: info, health, prometheus
+      base-path: ${DEV_ACTUATOR_PATH}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 jwt:
   secret: ${DEV_JWT_SECRET}
