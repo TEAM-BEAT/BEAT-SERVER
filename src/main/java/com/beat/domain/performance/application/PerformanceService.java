@@ -5,12 +5,12 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.cast.dao.CastRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.member.dao.MemberRepository;
@@ -76,7 +76,7 @@ public class PerformanceService implements PerformanceUseCase {
 				return PerformanceDetailScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
 					schedule.getScheduleNumber().name(), dueDate, schedule.isBooking());
 			})
-			.collect(Collectors.toList());
+			.toList();
 
 		int minDueDate = scheduleService.getMinDueDate(scheduleRepository.findAllByPerformanceId(performanceId));
 
@@ -84,19 +84,19 @@ public class PerformanceService implements PerformanceUseCase {
 			.stream()
 			.map(cast -> PerformanceDetailCastResponse.of(cast.getId(), cast.getCastName(), cast.getCastRole(),
 				cast.getCastPhoto()))
-			.collect(Collectors.toList());
+			.toList();
 
 		List<PerformanceDetailStaffResponse> staffList = staffRepository.findByPerformanceId(performanceId)
 			.stream()
 			.map(staff -> PerformanceDetailStaffResponse.of(staff.getId(), staff.getStaffName(), staff.getStaffRole(),
 				staff.getStaffPhoto()))
-			.collect(Collectors.toList());
+			.toList();
 
 		List<PerformanceDetailImageResponse> performanceImageList = performanceImageRepository.findAllByPerformanceId(
 				performanceId)
 			.stream()
 			.map(image -> PerformanceDetailImageResponse.of(image.getId(), image.getPerformanceImageUrl()))
-			.collect(Collectors.toList());
+			.toList();
 
 		log.info("Successfully completed getPerformanceDetail for performanceId: {}", performanceId);
 		return PerformanceDetailResponse.of(performance.getId(), performance.getPerformanceTitle(),
@@ -119,7 +119,7 @@ public class PerformanceService implements PerformanceUseCase {
 			return BookingPerformanceDetailScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
 				schedule.getScheduleNumber().name(), scheduleService.getAvailableTicketCount(schedule),
 				schedule.isBooking(), dueDate);
-		}).collect(Collectors.toList());
+		}).toList();
 
 		return BookingPerformanceDetailResponse.of(performance.getId(), performance.getPerformanceTitle(),
 			performance.getPerformancePeriod(), scheduleList, performance.getTicketPrice(),
@@ -146,17 +146,17 @@ public class PerformanceService implements PerformanceUseCase {
 			return MakerPerformanceDetailResponse.of(performance.getId(), performance.getGenre().name(),
 				performance.getPerformanceTitle(), performance.getPosterImage(), performance.getPerformancePeriod(),
 				minDueDate);
-		}).collect(Collectors.toList());
+		}).toList();
 
 		List<MakerPerformanceDetailResponse> positiveDueDates = performanceDetails.stream()
 			.filter(detail -> detail.minDueDate() >= 0)
 			.sorted(Comparator.comparingInt(MakerPerformanceDetailResponse::minDueDate))
-			.collect(Collectors.toList());
+			.toList();
 
 		List<MakerPerformanceDetailResponse> negativeDueDates = performanceDetails.stream()
 			.filter(detail -> detail.minDueDate() < 0)
 			.sorted(Comparator.comparingInt(MakerPerformanceDetailResponse::minDueDate).reversed())
-			.collect(Collectors.toList());
+			.toList();
 
 		positiveDueDates.addAll(negativeDueDates);
 
@@ -186,7 +186,8 @@ public class PerformanceService implements PerformanceUseCase {
 
 		List<Long> scheduleIds = scheduleRepository.findIdsByPerformanceId(performanceId);
 
-		boolean isBookerExist = bookingRepository.existsByScheduleIdIn(scheduleIds);
+		List<BookingStatus> statusesToExclude = List.of(BookingStatus.BOOKING_CANCELLED, BookingStatus.BOOKING_DELETED);
+		boolean isBookerExist = bookingRepository.existsActiveBookingByScheduleIds(scheduleIds, statusesToExclude);
 
 		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 		List<Cast> casts = castRepository.findAllByPerformanceId(performanceId);
@@ -203,21 +204,21 @@ public class PerformanceService implements PerformanceUseCase {
 			.map(schedule -> ScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
 				schedule.getTotalTicketCount(), calculateDueDate(schedule.getPerformanceDate()),
 				schedule.getScheduleNumber()))
-			.collect(Collectors.toList());
+			.toList();
 
 		List<CastResponse> castResponses = casts.stream()
 			.map(cast -> CastResponse.of(cast.getId(), cast.getCastName(), cast.getCastRole(), cast.getCastPhoto()))
-			.collect(Collectors.toList());
+			.toList();
 
 		List<StaffResponse> staffResponses = staffs.stream()
 			.map(staff -> StaffResponse.of(staff.getId(), staff.getStaffName(), staff.getStaffRole(),
 				staff.getStaffPhoto()))
-			.collect(Collectors.toList());
+			.toList();
 
 		List<PerformanceImageResponse> performanceImageResponses = performanceImages.stream()
 			.map(performanceImage -> PerformanceImageResponse.of(performanceImage.getId(),
 				performanceImage.getPerformanceImageUrl()))
-			.collect(Collectors.toList());
+			.toList();
 
 		return PerformanceModifyDetailResponse.of(performance.getUsers().getId(), performance.getId(),
 			performance.getPerformanceTitle(), performance.getGenre(), performance.getRunningTime(),

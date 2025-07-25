@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-            // PORT
-            EXTERNAL_PORT_BLUE = credentials('EXTERNAL_PORT_BLUE')
-            EXTERNAL_PORT_GREEN = credentials('EXTERNAL_PORT_GREEN')
+        // PORT
+        EXTERNAL_PORT_BLUE = credentials('EXTERNAL_PORT_BLUE')
+        EXTERNAL_PORT_GREEN = credentials('EXTERNAL_PORT_GREEN')
     }
 
     stages {
@@ -23,6 +23,7 @@ pipeline {
                     // DOCKER
                     DOCKER_HUB_DEV_CREDENTIAL_ID = 'DOCKER_HUB_DEV_CREDENTIALS'
                     DOCKER_HUB_PROD_CREDENTIAL_ID = 'DOCKER_HUB_PROD_CREDENTIALS'
+                    DOCKER_HUB_CREDENTIAL_ID = BRANCH_NAME.equals(PROD_BRANCH) ? DOCKER_HUB_PROD_CREDENTIAL_ID : DOCKER_HUB_DEV_CREDENTIAL_ID
 
                     // SSH
                     SSH_CREDENTIAL_ID = OPERATION_ENV.toUpperCase() + '_SSH'
@@ -31,15 +32,8 @@ pipeline {
 
                     // ENVIRONMENT CONFIG FILE
                     ENVIRONMENT_CONFIG_FILE = 'application-' + OPERATION_ENV + '.yml'
-                }
-            }
-        }
 
-        stage('Parse Internal Port') {
-            steps {
-                script {
-                    INTERNAL_PORT = sh(script: "yq e '.server.port' ./src/main/resources/${ENVIRONMENT_CONFIG_FILE}", returnStdout: true).trim()
-                    echo "Internal port: ${INTERNAL_PORT}"
+                    echo "Branch: ${BRANCH_NAME}, Environment: ${OPERATION_ENV}"
                 }
             }
         }
@@ -52,11 +46,19 @@ pipeline {
             }
         }
 
+        stage('Parse Internal Port') {
+            steps {
+                script {
+                    INTERNAL_PORT = sh(script: "yq e '.server.port' ./src/main/resources/${ENVIRONMENT_CONFIG_FILE}", returnStdout: true).trim()
+                    echo "Internal port: ${INTERNAL_PORT}"
+                }
+            }
+        }
+
         stage('Deploy to Server') {
             steps {
                 echo 'Deploy to Server'
                 script {
-                    def DOCKER_HUB_CREDENTIAL_ID = BRANCH_NAME.equals(PROD_BRANCH) ? DOCKER_HUB_PROD_CREDENTIAL_ID : DOCKER_HUB_DEV_CREDENTIAL_ID
                     withCredentials([
                         usernamePassword(credentialsId: DOCKER_HUB_CREDENTIAL_ID,
                                          usernameVariable: 'DOCKER_HUB_ID',
