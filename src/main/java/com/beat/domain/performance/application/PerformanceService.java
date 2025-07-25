@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -151,7 +153,7 @@ public class PerformanceService implements PerformanceUseCase {
 		List<MakerPerformanceDetailResponse> positiveDueDates = performanceDetails.stream()
 			.filter(detail -> detail.minDueDate() >= 0)
 			.sorted(Comparator.comparingInt(MakerPerformanceDetailResponse::minDueDate))
-			.toList();
+			.collect(Collectors.toList());
 
 		List<MakerPerformanceDetailResponse> negativeDueDates = performanceDetails.stream()
 			.filter(detail -> detail.minDueDate() < 0)
