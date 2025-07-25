@@ -5,12 +5,12 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.domain.booking.dao.BookingRepository;
-import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.cast.dao.CastRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.exception.CastErrorCode;
@@ -73,9 +73,7 @@ public class PerformanceModifyService {
 		validateOwnership(userId, performance);
 
 		List<Long> scheduleIds = scheduleRepository.findIdsByPerformanceId(request.performanceId());
-
-		List<BookingStatus> statusesToExclude = List.of(BookingStatus.BOOKING_CANCELLED, BookingStatus.BOOKING_DELETED);
-		boolean isBookerExist = bookingRepository.existsActiveBookingByScheduleIds(scheduleIds, statusesToExclude);
+		boolean isBookerExist = bookingRepository.existsByScheduleIdIn(scheduleIds);
 
 		if (isBookerExist && request.ticketPrice() != performance.getTicketPrice()) {
 			log.error("Ticket price update failed due to existing bookings for performanceId: {}", performance.getId());
@@ -150,7 +148,7 @@ public class PerformanceModifyService {
 
 		List<LocalDateTime> performanceDates = request.scheduleModifyRequests().stream()
 			.map(ScheduleModifyRequest::performanceDate)
-			.toList();
+			.collect(Collectors.toList());
 		performance.updatePerformancePeriod(performanceDates);
 
 		if (!isBookerExist) {
@@ -169,11 +167,11 @@ public class PerformanceModifyService {
 		List<Long> requestScheduleIds = scheduleRequests.stream()
 			.map(ScheduleModifyRequest::scheduleId)
 			.filter(Objects::nonNull)
-			.toList();
+			.collect(Collectors.toList());
 
 		List<Long> schedulesToDelete = existingScheduleIds.stream()
 			.filter(id -> !requestScheduleIds.contains(id))
-			.toList();
+			.collect(Collectors.toList());
 
 		deleteRemainingSchedules(schedulesToDelete);
 
@@ -193,7 +191,7 @@ public class PerformanceModifyService {
 
 				return schedule;
 			})
-			.toList();
+			.collect(Collectors.toList());
 
 		performance.assignScheduleNumbers(schedules);
 
@@ -205,7 +203,7 @@ public class PerformanceModifyService {
 				calculateDueDate(schedule.getPerformanceDate()),
 				schedule.getScheduleNumber()
 			))
-			.toList();
+			.collect(Collectors.toList());
 	}
 
 	private Schedule addSchedule(ScheduleModifyRequest request, Performance performance) {
@@ -411,7 +409,7 @@ public class PerformanceModifyService {
 					return updateStaff(request, performance);
 				}
 			})
-			.toList();
+			.collect(Collectors.toList());
 
 		deleteRemainingStaffs(existingStaffIds);
 
