@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.beat.domain.booking.domain.Booking;
+import com.beat.domain.booking.domain.BookingStatus;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 	@Query("SELECT b FROM Booking b " +
@@ -33,6 +34,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
 	List<Booking> findByUsersId(Long userId);
 
-	@Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.schedule.id IN :scheduleIds AND b.bookingStatus != 'BOOKING_CANCELLED'")
-	boolean existsByScheduleIdIn(@Param("scheduleIds") List<Long> scheduleIds);
+	@Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.schedule.id IN :scheduleIds AND b.bookingStatus NOT IN :excludedStatuses")
+	boolean existsActiveBookingByScheduleIds(
+		@Param("scheduleIds") List<Long> scheduleIds,
+		@Param("excludedStatuses") List<BookingStatus> excludedStatuses
+	);
 }

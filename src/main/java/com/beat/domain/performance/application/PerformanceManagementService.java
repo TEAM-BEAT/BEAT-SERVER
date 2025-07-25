@@ -4,12 +4,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.cast.dao.CastRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.member.dao.MemberRepository;
@@ -96,7 +96,7 @@ public class PerformanceManagementService {
 					performance
 				);
 			})
-			.collect(Collectors.toList());
+			.toList();
 
 		performance.assignScheduleNumbers(schedules);
 		scheduleRepository.saveAll(schedules);
@@ -105,7 +105,7 @@ public class PerformanceManagementService {
 
 		List<LocalDateTime> performanceDates = schedules.stream()
 			.map(Schedule::getPerformanceDate)
-			.collect(Collectors.toList());
+			.toList();
 		performance.updatePerformancePeriod(performanceDates);
 		performanceRepository.save(performance);
 
@@ -116,7 +116,7 @@ public class PerformanceManagementService {
 				castRequest.castPhoto(),
 				performance
 			))
-			.collect(Collectors.toList());
+			.toList();
 		castRepository.saveAll(casts);
 
 		List<Staff> staffs = request.staffList().stream()
@@ -126,7 +126,7 @@ public class PerformanceManagementService {
 				staffRequest.staffPhoto(),
 				performance
 			))
-			.collect(Collectors.toList());
+			.toList();
 		staffRepository.saveAll(staffs);
 
 		List<PerformanceImage> performanceImageList = request.performanceImageList().stream()
@@ -134,7 +134,7 @@ public class PerformanceManagementService {
 				performanceImageRequest.performanceImage(),
 				performance
 			))
-			.collect(Collectors.toList());
+			.toList();
 		performanceImageRepository.saveAll(performanceImageList);
 
 		return mapToPerformanceResponse(performance, schedules, casts, staffs, performanceImageList);
@@ -150,7 +150,7 @@ public class PerformanceManagementService {
 				calculateDueDate(schedule.getPerformanceDate().toLocalDate()),
 				schedule.getScheduleNumber()
 			))
-			.collect(Collectors.toList());
+			.toList();
 
 		List<CastResponse> castResponses = casts.stream()
 			.map(cast -> CastResponse.of(
@@ -159,7 +159,7 @@ public class PerformanceManagementService {
 				cast.getCastRole(),
 				cast.getCastPhoto()
 			))
-			.collect(Collectors.toList());
+			.toList();
 
 		List<StaffResponse> staffResponses = staffs.stream()
 			.map(staff -> StaffResponse.of(
@@ -168,14 +168,14 @@ public class PerformanceManagementService {
 				staff.getStaffRole(),
 				staff.getStaffPhoto()
 			))
-			.collect(Collectors.toList());
+			.toList();
 
 		List<PerformanceImageResponse> performanceImageResponses = performanceImages.stream()
 			.map(image -> PerformanceImageResponse.of(
 				image.getId(),
 				image.getPerformanceImageUrl()
 			))
-			.collect(Collectors.toList());
+			.toList();
 
 		return PerformanceResponse.of(
 			performance.getUsers().getId(),
@@ -226,9 +226,10 @@ public class PerformanceManagementService {
 
 		List<Long> scheduleIds = scheduleRepository.findIdsByPerformanceId(performanceId);
 
-		boolean hasBookings = bookingRepository.existsByScheduleIdIn(scheduleIds);
+		List<BookingStatus> statusesToExclude = List.of(BookingStatus.BOOKING_CANCELLED, BookingStatus.BOOKING_DELETED);
+		boolean isBookerExist = bookingRepository.existsActiveBookingByScheduleIds(scheduleIds, statusesToExclude);
 
-		if (hasBookings) {
+		if (isBookerExist) {
 			throw new ForbiddenException(PerformanceErrorCode.PERFORMANCE_DELETE_FAILED);
 		}
 
