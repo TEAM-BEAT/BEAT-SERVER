@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,7 +97,7 @@ public class PerformanceManagementService {
 					performance
 				);
 			})
-			.toList();
+			.collect(Collectors.toList());
 
 		performance.assignScheduleNumbers(schedules);
 		scheduleRepository.saveAll(schedules);
