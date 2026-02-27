@@ -1,10 +1,12 @@
 package com.beat.domain.booking.application;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.domain.booking.application.dto.GuestBookingRequest;
 import com.beat.domain.booking.application.dto.GuestBookingResponse;
+import com.beat.domain.booking.application.dto.event.BookingCreatedEvent;
 import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.schedule.dao.ScheduleRepository;
@@ -26,6 +28,7 @@ public class GuestBookingService {
 	private final ScheduleRepository scheduleRepository;
 	private final BookingRepository bookingRepository;
 	private final UserRepository userRepository;
+	private final ApplicationEventPublisher eventPublisher;
 
 	@Transactional
 	public GuestBookingResponse createGuestBooking(GuestBookingRequest guestBookingRequest) {
@@ -70,6 +73,8 @@ public class GuestBookingService {
 		bookingRepository.save(booking);
 
 		log.info("Guest Booking created: {}", booking);
+
+		eventPublisher.publishEvent(BookingCreatedEvent.of(booking, schedule));
 
 		return GuestBookingResponse.of(
 			booking.getId(),

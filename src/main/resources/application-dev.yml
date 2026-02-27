@@ -118,7 +118,8 @@ springdoc:
 
 slack:
   webhook:
-    url: ${DEV_SLACK_WEBHOOK_URL}
+    member-url: ${DEV_SLACK_MEMBER_WEBHOOK_URL}
+    booking-url: ${DEV_SLACK_BOOKING_WEBHOOK_URL}
 
 thread-pool:
   core-size: 2
