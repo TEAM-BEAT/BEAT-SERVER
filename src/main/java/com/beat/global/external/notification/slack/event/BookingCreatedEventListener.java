@@ -53,6 +53,7 @@ public class BookingCreatedEventListener {
 					MarkdownText.newInstance("*🙋 예매자*\n" + event.bookerName())
 				)),
 				SectionBlock.newInstanceWithFields(List.of(
+					MarkdownText.newInstance("*🎬 회차*\n" + event.scheduleDisplayName()),
 					MarkdownText.newInstance(
 						"*🔔 예매현황*\n" + event.currentSoldTicketCount() + "/" + event.totalTicketCount() + "매")
 				)),

@@ -10,6 +10,7 @@ public record BookingCreatedEvent(
 	String performanceTitle,
 	int purchaseTicketCount,
 	String bookerName,
+	String scheduleDisplayName,
 	int currentSoldTicketCount,
 	int totalTicketCount
 ) {
@@ -19,6 +20,7 @@ public record BookingCreatedEvent(
 			schedule.getPerformance().getPerformanceTitle(),
 			booking.getPurchaseTicketCount(),
 			booking.getBookerName(),
+			schedule.getScheduleNumber().getDisplayName(),
 			schedule.getSoldTicketCount(),
 			schedule.getTotalTicketCount()
 		);
