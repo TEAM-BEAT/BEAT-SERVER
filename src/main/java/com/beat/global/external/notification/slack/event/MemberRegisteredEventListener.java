@@ -21,7 +21,6 @@ import lombok.extern.slf4j.Slf4j;
 public class MemberRegisteredEventListener {
 	private static final String TEXT_KEY = "text";
 	private static final String WELCOME_MESSAGE = "번째 유저가 회원가입했띠예 🎉🎉 - ";
-	private static final String SLACK_TRANSFER_ERROR = "Slack 전송 실패";
 
 	private final MemberUseCase memberUseCase;
 	private final SlackService slackService;
@@ -33,9 +32,9 @@ public class MemberRegisteredEventListener {
 		payload.put(TEXT_KEY, memberUseCase.countMembers() + WELCOME_MESSAGE + event.nickname());
 
 		try {
-			slackService.sendMessage(payload);
+			slackService.sendToMemberChannel(payload);
 		} catch (Exception e) {
-			throw new RuntimeException(SLACK_TRANSFER_ERROR);
+			log.error("Slack 전송 실패 - 닉네임: {}", event.nickname(), e);
 		}
 	}
 }
