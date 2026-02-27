@@ -30,20 +30,21 @@ public class BookingCreatedEventListener {
 		Map<String, String> payload = Map.of(TEXT_KEY, message);
 
 		try {
-			slackService.sendMessage(payload);
+			slackService.sendToBookingChannel(payload);
 		} catch (Exception e) {
 			log.error("Slack 전송 실패 - 공연: {}, 예매자: {}", event.performanceTitle(), event.bookerName(), e);
 		}
 	}
 
 	String formatMessage(BookingCreatedEvent event) {
-		return String.format(
-			"🎟️ BEAT 예매 발생 🎟️\n\n"
-				+ "📅 예매일시: %s\n"
-				+ "🎭 공연명: %s\n"
-				+ "🔢 예매매수: %d매\n"
-				+ "🙋 예매자: %s\n"
-				+ "🔔 예매현황: %d/%d매",
+		return """
+			🎟️ BEAT 예매 발생 🎟️
+			
+			📅 예매일시: %s
+			🎭 공연명: %s
+			🔢 예매매수: %d매
+			🙋 예매자: %s
+			🔔 예매현황: %d/%d매""".formatted(
 			event.bookingDateTime().format(DATE_FORMATTER),
 			event.performanceTitle(),
 			event.purchaseTicketCount(),
