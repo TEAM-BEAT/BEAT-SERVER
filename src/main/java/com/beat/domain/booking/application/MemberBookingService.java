@@ -1,10 +1,12 @@
 package com.beat.domain.booking.application;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.domain.booking.application.dto.MemberBookingRequest;
 import com.beat.domain.booking.application.dto.MemberBookingResponse;
+import com.beat.domain.booking.application.dto.event.BookingCreatedEvent;
 import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.member.dao.MemberRepository;
@@ -31,6 +33,7 @@ public class MemberBookingService {
 	private final BookingRepository bookingRepository;
 	private final MemberRepository memberRepository;
 	private final UserRepository userRepository;
+	private final ApplicationEventPublisher eventPublisher;
 
 	@Transactional(timeout = 200)
 	public MemberBookingResponse createMemberBooking(Long memberId, MemberBookingRequest memberBookingRequest) {
@@ -67,6 +70,8 @@ public class MemberBookingService {
 		scheduleRepository.save(schedule);
 
 		log.info("Member Booking created: {}", booking);
+
+		eventPublisher.publishEvent(BookingCreatedEvent.of(booking, schedule));
 
 		return MemberBookingResponse.of(
 			booking.getId(),
