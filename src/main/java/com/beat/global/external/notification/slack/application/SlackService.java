@@ -10,9 +10,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SlackService {
 
-	private final SlackClient slackClient;
+	private final MemberSlackClient memberSlackClient;
+	private final BookingSlackClient bookingSlackClient;
 
-	public void sendMessage(Map<String, String> payload) {
-		slackClient.sendMessage(payload);
+	public void sendToMemberChannel(Map<String, String> payload) {
+		memberSlackClient.sendMessage(payload);
+	}
+
+	public void sendToBookingChannel(Map<String, String> payload) {
+		bookingSlackClient.sendMessage(payload);
 	}
 }
