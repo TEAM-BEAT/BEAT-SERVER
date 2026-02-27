@@ -1,7 +1,9 @@
 package com.beat.global.external.notification.slack.event;
 
+import static com.beat.global.external.notification.slack.vo.SlackConstant.BRAND_COLOR;
+
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
+import java.util.List;
 
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -10,6 +12,11 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import com.beat.domain.booking.application.dto.event.BookingCreatedEvent;
 import com.beat.global.external.notification.slack.application.SlackService;
+import com.beat.global.external.notification.slack.vo.block.DividerBlock;
+import com.beat.global.external.notification.slack.vo.block.HeaderBlock;
+import com.beat.global.external.notification.slack.vo.block.SectionBlock;
+import com.beat.global.external.notification.slack.vo.message.SlackMessage;
+import com.beat.global.external.notification.slack.vo.text.MarkdownText;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 public class BookingCreatedEventListener {
-	private static final String TEXT_KEY = "text";
+
 	private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
 	private final SlackService slackService;
@@ -26,31 +33,32 @@ public class BookingCreatedEventListener {
 	@Async("taskExecutor")
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void sendSlackNotification(BookingCreatedEvent event) {
-		String message = formatMessage(event);
-		Map<String, String> payload = Map.of(TEXT_KEY, message);
-
 		try {
-			slackService.sendToBookingChannel(payload);
+			slackService.sendToBookingChannel(buildMessage(event));
 		} catch (Exception e) {
 			log.error("Slack 전송 실패 - 공연: {}, 예매자: {}", event.performanceTitle(), event.bookerName(), e);
 		}
 	}
 
-	String formatMessage(BookingCreatedEvent event) {
-		return """
-			🎟️ BEAT 예매 발생 🎟️
-			
-			📅 예매일시: %s
-			🎭 공연명: %s
-			🔢 예매매수: %d매
-			🙋 예매자: %s
-			🔔 예매현황: %d/%d매""".formatted(
-			event.bookingDateTime().format(DATE_FORMATTER),
-			event.performanceTitle(),
-			event.purchaseTicketCount(),
-			event.bookerName(),
-			event.currentSoldTicketCount(),
-			event.totalTicketCount()
+	private SlackMessage buildMessage(BookingCreatedEvent event) {
+		return SlackMessage.newInstance(
+			List.of(
+				HeaderBlock.newInstance("🎟️ BEAT 예매 발생 🎟️"),
+				SectionBlock.newInstanceWithFields(List.of(
+					MarkdownText.newInstance("*📅 예매일시*\n" + event.bookingDateTime().format(DATE_FORMATTER)),
+					MarkdownText.newInstance("*🎭 공연명*\n" + event.performanceTitle())
+				)),
+				SectionBlock.newInstanceWithFields(List.of(
+					MarkdownText.newInstance("*🔢 예매매수*\n" + event.purchaseTicketCount() + "매"),
+					MarkdownText.newInstance("*🙋 예매자*\n" + event.bookerName())
+				)),
+				SectionBlock.newInstanceWithFields(List.of(
+					MarkdownText.newInstance(
+						"*🔔 예매현황*\n" + event.currentSoldTicketCount() + "/" + event.totalTicketCount() + "매")
+				)),
+				DividerBlock.newInstance()
+			),
+			BRAND_COLOR
 		);
 	}
 }
