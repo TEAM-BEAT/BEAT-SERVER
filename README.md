@@ -11,7 +11,7 @@
 </br></br>
 **📝 Team Blog |** [BEAT Blog](https://team-beat.tistory.com/) </br>
 **📌 Official Account |** [BEAT Instagram](https://www.instagram.com/be_at_beat?igsh=MTJmank3N3phZHYzeA==) </br>
-**💌 Email |** [beatlebeatle.official@gmail.com](mailto:beatlebeatle.official@gmail.com)
+**💌 Email |** [contract@beatlive.kr](mailto:contract@beatlive.kr)
 
 <br></br>
 <br></br>
