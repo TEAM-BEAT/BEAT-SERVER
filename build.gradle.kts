@@ -97,6 +97,11 @@ dependencies {
     implementation("net.nurigo:sdk:4.3.0")
     implementation("net.nurigo:javaSDK:2.2")
 
+    // NOTE:
+    // QueryDSL APT is configured via javac annotationProcessor only.
+    // Until QueryDSL-based queries are migrated away from Q-types
+    // (e.g. Kotlin JDSL / jOOQ path), entities requiring Q-type generation
+    // must remain in Java sources.
     implementation("com.querydsl:querydsl-jpa:$queryDslVersion:jakarta")
     annotationProcessor("com.querydsl:querydsl-apt:$queryDslVersion:jakarta")
     annotationProcessor("jakarta.annotation:jakarta.annotation-api")
