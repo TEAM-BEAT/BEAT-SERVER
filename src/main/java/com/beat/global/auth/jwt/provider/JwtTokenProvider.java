@@ -74,7 +74,7 @@ public class JwtTokenProvider {
 	public Long getMemberIdFromJwt(String token) {
 		Claims claims = getBody(token);
 		Long memberId = Long.valueOf(claims.get(MEMBER_ID).toString());
-		log.info("Extracted memberId from JWT: {}", memberId);
+		log.debug("Extracted memberId from JWT: {}", memberId);
 		return memberId;
 	}
 
@@ -95,7 +95,7 @@ public class JwtTokenProvider {
 		final Date expiration = new Date(now.getTime() + expiredTime);
 
 		final String memberId = authentication.getPrincipal().toString();
-		log.info("Added member ID to claims: {}", memberId);
+		log.debug("Added member ID to claims: {}", memberId);
 		log.info("Authorities before token generation: {}", authentication.getAuthorities());
 
 		String role = authentication.getAuthorities()
