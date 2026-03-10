@@ -73,9 +73,7 @@ public class JwtTokenProvider {
 
 	public Long getMemberIdFromJwt(String token) {
 		Claims claims = getBody(token);
-		Long memberId = Long.valueOf(claims.get(MEMBER_ID).toString());
-		log.debug("Extracted memberId from JWT: {}", memberId);
-		return memberId;
+		return Long.valueOf(claims.get(MEMBER_ID).toString());
 	}
 
 	public Role getRoleFromJwt(String token) {
@@ -95,8 +93,7 @@ public class JwtTokenProvider {
 		final Date expiration = new Date(now.getTime() + expiredTime);
 
 		final String memberId = authentication.getPrincipal().toString();
-		log.debug("Added member ID to claims: {}", memberId);
-		log.info("Authorities before token generation: {}", authentication.getAuthorities());
+		log.debug("Authorities before token generation: {}", authentication.getAuthorities());
 
 		String role = authentication.getAuthorities()
 			.stream()
@@ -127,7 +124,7 @@ public class JwtTokenProvider {
 	}
 
 	private SecretKey getSigningKey() {
-		byte[] keyBytes = Base64.getDecoder().decode(jwtSecret);
-		return Keys.hmacShaKeyFor(keyBytes);
+		String encodedKey = Base64.getEncoder().encodeToString(jwtSecret.getBytes());
+		return Keys.hmacShaKeyFor(encodedKey.getBytes());
 	}
 }
