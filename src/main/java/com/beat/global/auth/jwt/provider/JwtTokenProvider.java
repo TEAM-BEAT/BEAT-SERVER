@@ -51,7 +51,19 @@ public class JwtTokenProvider {
 
 	public JwtValidationType validateToken(String token) {
 		try {
-			getBody(token);
+			Claims claims = getBody(token);
+
+			if (claims.get(MEMBER_ID) == null) {
+				log.warn("JWT does not contain memberId claim");
+				return JwtValidationType.INVALID_JWT_TOKEN;
+			}
+
+			String roleName = claims.get(ROLE_KEY, String.class);
+			if (roleName == null || roleName.isBlank()) {
+				log.warn("JWT does not contain role claim");
+				return JwtValidationType.INVALID_JWT_TOKEN;
+			}
+
 			return JwtValidationType.VALID_JWT;
 		} catch (MalformedJwtException ex) {
 			log.error("Invalid JWT Token: {}", ex.getMessage());
@@ -73,14 +85,22 @@ public class JwtTokenProvider {
 
 	public Long getMemberIdFromJwt(String token) {
 		Claims claims = getBody(token);
-		return Long.valueOf(claims.get(MEMBER_ID).toString());
+		Object memberIdClaim = claims.get(MEMBER_ID);
+
+		if (memberIdClaim == null) {
+			throw new IllegalArgumentException("JWT does not contain memberId claim");
+		}
+
+		return Long.valueOf(memberIdClaim.toString());
 	}
 
 	public Role getRoleFromJwt(String token) {
 		Claims claims = getBody(token);
 		String roleName = claims.get(ROLE_KEY, String.class);
 
-		log.info("Extracted role from JWT: {}", roleName);
+		if (roleName == null || roleName.isBlank()) {
+			throw new IllegalArgumentException("JWT does not contain role claim");
+		}
 
 		String enumValue = roleName.replace("ROLE_", "");
 		log.info("Final role after processing: {}", enumValue);
@@ -124,6 +144,7 @@ public class JwtTokenProvider {
 	}
 
 	private SecretKey getSigningKey() {
+		// 기존 운영 토큰 호환 유지를 위해 legacy key derivation 유지
 		String encodedKey = Base64.getEncoder().encodeToString(jwtSecret.getBytes());
 		return Keys.hmacShaKeyFor(encodedKey.getBytes());
 	}

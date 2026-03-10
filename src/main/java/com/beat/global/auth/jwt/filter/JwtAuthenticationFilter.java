@@ -50,13 +50,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		try {
 			JwtValidationType validationType = jwtTokenProvider.validateToken(token);
 
-			if (validationType == JwtValidationType.VALID_JWT) {
-				setAuthentication(token, request);
-				filterChain.doFilter(request, response);
-			} else {
+			if (validationType != JwtValidationType.VALID_JWT) {
 				handleInvalidToken(validationType, response);
+				return;
 			}
-		} catch (Exception e) {
+
+			setAuthentication(token, request);
+			filterChain.doFilter(request, response);
+		} catch (IllegalArgumentException e) {
+			log.warn("Invalid JWT claims: {}", e.getMessage());
+			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+		}  catch (Exception e) {
 			log.error("JWT Authentication Exception: ", e);
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR); // 500 응답
 		}
