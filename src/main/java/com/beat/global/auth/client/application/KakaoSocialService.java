@@ -65,6 +65,10 @@ public class KakaoSocialService implements SocialService {
 			redirectUri,
 			authorizationCode
 		);
+		if (response == null) {
+			log.error("Kakao OAuth token response is null.");
+			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+		}
 		log.info("Received OAuth2 authentication response: tokenType={}, hasAccessToken={}, hasRefreshToken={}",
 			response.tokenType(),
 			response.accessToken() != null && !response.accessToken().isBlank(),
@@ -103,6 +107,11 @@ public class KakaoSocialService implements SocialService {
 		final KakaoUserResponse kakaoUserResponse
 	) {
 		if (kakaoUserResponse == null) {
+			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+		}
+
+		if (kakaoUserResponse.id() == null) {
+			log.error("Kakao user response does not contain id.");
 			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
 		}
 
