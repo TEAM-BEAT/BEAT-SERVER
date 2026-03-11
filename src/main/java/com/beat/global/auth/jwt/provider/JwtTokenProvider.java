@@ -1,7 +1,6 @@
 package com.beat.global.auth.jwt.provider;
 
 import com.beat.domain.user.domain.Role;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
@@ -11,15 +10,11 @@ import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
-
 import javax.crypto.SecretKey;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -57,6 +52,18 @@ public class JwtTokenProvider {
 	public JwtValidationType validateToken(String token) {
 		try {
 			Claims claims = getBody(token);
+
+			if (claims.get(MEMBER_ID) == null) {
+				log.warn("JWT does not contain memberId claim");
+				return JwtValidationType.INVALID_JWT_TOKEN;
+			}
+
+			String roleName = claims.get(ROLE_KEY, String.class);
+			if (roleName == null || roleName.isBlank()) {
+				log.warn("JWT does not contain role claim");
+				return JwtValidationType.INVALID_JWT_TOKEN;
+			}
+
 			return JwtValidationType.VALID_JWT;
 		} catch (MalformedJwtException ex) {
 			log.error("Invalid JWT Token: {}", ex.getMessage());
@@ -78,21 +85,23 @@ public class JwtTokenProvider {
 
 	public Long getMemberIdFromJwt(String token) {
 		Claims claims = getBody(token);
-		Long memberId = Long.valueOf(claims.get(MEMBER_ID).toString());
+		Object memberIdClaim = claims.get(MEMBER_ID);
 
-		// 로그 추가: memberId 확인
-		log.info("Extracted memberId from JWT: {}", memberId);
+		if (memberIdClaim == null) {
+			throw new IllegalArgumentException("JWT does not contain memberId claim");
+		}
 
-		return memberId;
+		return Long.valueOf(memberIdClaim.toString());
 	}
 
 	public Role getRoleFromJwt(String token) {
 		Claims claims = getBody(token);
 		String roleName = claims.get(ROLE_KEY, String.class);
 
-		log.info("Extracted role from JWT: {}", roleName);
+		if (roleName == null || roleName.isBlank()) {
+			throw new IllegalArgumentException("JWT does not contain role claim");
+		}
 
-		// "ROLE_" 접두사 제거
 		String enumValue = roleName.replace("ROLE_", "");
 		log.info("Final role after processing: {}", enumValue);
 
@@ -101,12 +110,10 @@ public class JwtTokenProvider {
 
 	private String issueToken(final Authentication authentication, final long expiredTime) {
 		final Date now = new Date();
+		final Date expiration = new Date(now.getTime() + expiredTime);
 
-		final Claims claims = Jwts.claims().setIssuedAt(now).setExpiration(new Date(now.getTime() + expiredTime));
-
-		claims.put(MEMBER_ID, authentication.getPrincipal());
-		log.info("Added member ID to claims: {}", authentication.getPrincipal());
-		log.info("Authorities before token generation: {}", authentication.getAuthorities());
+		final String memberId = authentication.getPrincipal().toString();
+		log.debug("Authorities before token generation: {}", authentication.getAuthorities());
 
 		String role = authentication.getAuthorities()
 			.stream()
@@ -116,21 +123,28 @@ public class JwtTokenProvider {
 
 		log.info("Selected role for token: {}", role);
 
-		claims.put(ROLE_KEY, role);
-		log.info("Added role to claims: {}", role);
-
 		return Jwts.builder()
-			.setHeaderParam(Header.TYPE, Header.JWT_TYPE)
-			.setClaims(claims)
+			.header()
+			.add(Header.TYPE, Header.JWT_TYPE)
+			.and()
+			.issuedAt(now)
+			.expiration(expiration)
+			.claim(MEMBER_ID, memberId)
+			.claim(ROLE_KEY, role)
 			.signWith(getSigningKey())
 			.compact();
 	}
 
 	private Claims getBody(final String token) {
-		return Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getBody();
+		return Jwts.parser()
+			.verifyWith(getSigningKey())
+			.build()
+			.parseSignedClaims(token)
+			.getPayload();
 	}
 
 	private SecretKey getSigningKey() {
+		// 기존 운영 토큰 호환 유지를 위해 legacy key derivation 유지
 		String encodedKey = Base64.getEncoder().encodeToString(jwtSecret.getBytes());
 		return Keys.hmacShaKeyFor(encodedKey.getBytes());
 	}

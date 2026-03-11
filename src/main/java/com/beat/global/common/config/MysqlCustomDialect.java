@@ -2,7 +2,7 @@ package com.beat.global.common.config;
 
 import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.dialect.MySQLDialect;
-import org.hibernate.query.ReturnableType;
+import org.hibernate.metamodel.model.domain.ReturnableType;
 import org.hibernate.query.sqm.function.NamedSqmFunctionDescriptor;
 import org.hibernate.query.sqm.function.SqmFunctionRegistry;
 import org.hibernate.query.sqm.produce.function.StandardArgumentsValidators;
