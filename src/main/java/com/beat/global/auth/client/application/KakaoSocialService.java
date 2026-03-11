@@ -107,12 +107,12 @@ public class KakaoSocialService implements SocialService {
 		}
 
 		if (kakaoUserResponse.kakaoAccount() == null) {
-			log.error("Kakao user response does not contain kakao_account. response={}", kakaoUserResponse);
+			log.error("Kakao user response does not contain kakao_account. id={}", kakaoUserResponse.id());
 			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
 		}
 
 		if (kakaoUserResponse.kakaoAccount().profile() == null) {
-			log.error("Kakao user response does not contain profile. response={}", kakaoUserResponse);
+			log.error("Kakao user response does not contain profile. id={}", kakaoUserResponse.id());
 			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
 		}
 
@@ -120,7 +120,7 @@ public class KakaoSocialService implements SocialService {
 		String email = kakaoUserResponse.kakaoAccount().email();
 
 		if (nickname == null || nickname.isBlank()) {
-			log.error("Kakao user response does not contain nickname. response={}", kakaoUserResponse);
+			log.error("Kakao user response does not contain nickname. id={}", kakaoUserResponse.id());
 			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
 		}
 
@@ -131,5 +131,4 @@ public class KakaoSocialService implements SocialService {
 			socialType
 		);
 	}
-
 }
