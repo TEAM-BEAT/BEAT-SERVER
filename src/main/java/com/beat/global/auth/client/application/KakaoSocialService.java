@@ -48,7 +48,12 @@ public class KakaoSocialService implements SocialService {
 			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
 		}
 		// Access Token으로 유저 정보 불러오기
-		return getLoginDto(loginRequest.socialType(), getUserInfo(accessToken));
+		try {
+			return getLoginDto(loginRequest.socialType(), getUserInfo(accessToken));
+		} catch (FeignException e) {
+			log.error("Failed to fetch Kakao user info with access token", e);
+			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+		}
 	}
 
 	private String getOAuth2Authentication(
@@ -60,14 +65,36 @@ public class KakaoSocialService implements SocialService {
 			redirectUri,
 			authorizationCode
 		);
-		log.info("Received OAuth2 authentication response: {}", response);
-		return response.accessToken();
+		log.info("Received OAuth2 authentication response: tokenType={}, hasAccessToken={}, hasRefreshToken={}",
+			response.tokenType(),
+			response.accessToken() != null && !response.accessToken().isBlank(),
+			response.refreshToken() != null && !response.refreshToken().isBlank()
+		);
+
+		String accessToken = response.accessToken();
+		if (accessToken == null || accessToken.isBlank()) {
+			log.error("Kakao OAuth token response does not contain access token. response={}", response);
+			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+		}
+
+		return accessToken;
 	}
 
 	private KakaoUserResponse getUserInfo(
 		final String accessToken
 	) {
+		if (accessToken == null || accessToken.isBlank()) {
+			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+		}
+
 		KakaoUserResponse kakaoUserResponse = kakaoApiClient.getUserInformation("Bearer " + accessToken);
+
+		log.info("Kakao user response summary: id={}, hasKakaoAccount={}, hasProfile={}",
+			kakaoUserResponse != null ? kakaoUserResponse.id() : null,
+			kakaoUserResponse != null && kakaoUserResponse.kakaoAccount() != null,
+			kakaoUserResponse != null && kakaoUserResponse.kakaoAccount() != null && kakaoUserResponse.kakaoAccount().profile() != null
+		);
+
 		return kakaoUserResponse;
 	}
 
@@ -75,10 +102,32 @@ public class KakaoSocialService implements SocialService {
 		final SocialType socialType,
 		final KakaoUserResponse kakaoUserResponse
 	) {
+		if (kakaoUserResponse == null) {
+			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+		}
+
+		if (kakaoUserResponse.kakaoAccount() == null) {
+			log.error("Kakao user response does not contain kakao_account. response={}", kakaoUserResponse);
+			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+		}
+
+		if (kakaoUserResponse.kakaoAccount().profile() == null) {
+			log.error("Kakao user response does not contain profile. response={}", kakaoUserResponse);
+			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+		}
+
+		String nickname = kakaoUserResponse.kakaoAccount().profile().nickname();
+		String email = kakaoUserResponse.kakaoAccount().email();
+
+		if (nickname == null || nickname.isBlank()) {
+			log.error("Kakao user response does not contain nickname. response={}", kakaoUserResponse);
+			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+		}
+
 		return MemberInfoResponse.of(
 			kakaoUserResponse.id(),
-			kakaoUserResponse.kakaoAccount().profile().nickname(),
-			kakaoUserResponse.kakaoAccount().email(),
+			nickname,
+			email,
 			socialType
 		);
 	}
