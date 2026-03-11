@@ -56,8 +56,11 @@ public class AuthenticationService {
 		String refreshToken = issueAndSaveRefreshToken(memberId, authenticationToken);
 		String accessToken = jwtTokenProvider.issueAccessToken(authenticationToken);
 
-		log.info("Login success for authorities: {}, accessToken: {}, refreshToken: {}", authorities, accessToken,
-			refreshToken);
+		log.info("Login success for authorities: {}, hasAccessToken={}, hasRefreshToken={}",
+			authorities,
+			accessToken != null && !accessToken.isBlank(),
+			refreshToken != null && !refreshToken.isBlank()
+		);
 
 		return LoginSuccessResponse.of(accessToken, refreshToken, nickname, role.getRoleName());
 	}

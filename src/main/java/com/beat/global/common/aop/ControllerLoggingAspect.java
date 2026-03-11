@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
@@ -37,18 +38,30 @@ public class ControllerLoggingAspect {
 	private static final String LOG_TIME = "logTime";
 	private static final String PARAMS = "params";
 
+	private static final Set<String> SENSITIVE_KEYS = Set.of(
+		"accessToken",
+		"refreshToken",
+		"authorizationCode",
+		"token",
+		"jwt",
+		"password",
+		"secret"
+	);
+
 	/** Controller 요청 로깅 */
 	@Before("com.beat.global.common.aop.Pointcuts.allController()")
 	public void logControllerRequest(JoinPoint joinPoint) {
 		ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-		if (attributes == null) return;
+		if (attributes == null) {
+			return;
+		}
 
 		HttpServletRequest request = attributes.getRequest();
 		Map<String, Object> logInfo = new HashMap<>();
 
 		logInfo.put(CONTROLLER, joinPoint.getSignature().getDeclaringType().getSimpleName());
 		logInfo.put(METHOD, joinPoint.getSignature().getName());
-		logInfo.put(PARAMS, getParams(request));
+		logInfo.put(PARAMS, getMaskedParams(request));
 		logInfo.put(LOG_TIME, System.currentTimeMillis());
 		logInfo.put(HTTP_METHOD, request.getMethod());
 
@@ -60,18 +73,20 @@ public class ControllerLoggingAspect {
 		}
 
 		log.info("[HTTP {}] {} | {}.{}() | Params: {}",
-			logInfo.get(HTTP_METHOD), logInfo.get(REQUEST_URI),
-			logInfo.get(CONTROLLER), logInfo.get(METHOD),
+			logInfo.get(HTTP_METHOD),
+			logInfo.get(REQUEST_URI),
+			logInfo.get(CONTROLLER),
+			logInfo.get(METHOD),
 			logInfo.get(PARAMS));
 	}
 
 	/** Controller 정상 반환 로깅 */
 	@AfterReturning(value = "com.beat.global.common.aop.Pointcuts.allController()", returning = "result")
 	public void logControllerResponse(JoinPoint joinPoint, Object result) {
-		log.debug("[Controller 정상 반환] {}.{}() | 반환 값: {}",
+		log.debug("[Controller 정상 반환] {}.{}() | 반환 타입: {}",
 			joinPoint.getSignature().getDeclaringType().getSimpleName(),
 			joinPoint.getSignature().getName(),
-			result);
+			result != null ? result.getClass().getSimpleName() : "null");
 	}
 
 	/** Controller 예외 발생 시 로깅 */
@@ -84,7 +99,7 @@ public class ControllerLoggingAspect {
 	}
 
 	/** HTTP 요청 파라미터를 JSON 형태로 변환 */
-	private static JSONObject getParams(HttpServletRequest request) {
+	private static JSONObject getMaskedParams(HttpServletRequest request) {
 		JSONObject jsonObject = new JSONObject();
 		Enumeration<String> params = request.getParameterNames();
 
@@ -93,14 +108,32 @@ public class ControllerLoggingAspect {
 			String replacedParam = param.replace(".", "-");
 			String[] values = request.getParameterValues(param);
 
+			if (isSensitiveKey(param)) {
+				jsonObject.put(replacedParam, "***");
+				continue;
+			}
+
 			if (values == null || values.length == 0) {
-				jsonObject.put(replacedParam, ""); // 값이 없을 경우 빈 문자열 저장
+				jsonObject.put(replacedParam, "");
 			} else if (values.length > 1) {
-				jsonObject.put(replacedParam, values); // 여러 값이 있는 경우 배열로 저장
+				jsonObject.put(replacedParam, values);
 			} else {
-				jsonObject.put(replacedParam, values[0]); // 단일 값이면 문자열로 저장
+				jsonObject.put(replacedParam, values[0]);
 			}
 		}
+
 		return jsonObject;
+	}
+
+	private static boolean isSensitiveKey(String key) {
+		if (key == null) {
+			return false;
+		}
+
+		String normalizedKey = key.toLowerCase();
+
+		return SENSITIVE_KEYS.stream()
+			.map(String::toLowerCase)
+			.anyMatch(normalizedKey::contains);
 	}
 }
