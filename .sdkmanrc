@@ -1,0 +1,5 @@
+# BEAT team standard:
+# - Gradle launcher: JDK 25
+# - Toolchain: JDK 25
+# - Runtime target: Java 21
+java=25.0.2-tem

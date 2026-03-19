@@ -1,0 +1,107 @@
+[versions]
+spring-boot = "4.0.3"
+dependency-management = "1.1.7"
+kotlin = "2.2.20"
+sonarqube = "7.2.3.7755"
+kover = "0.9.7"
+spring-cloud = "2025.1.1"
+springdoc = "3.0.2"
+awspring = "4.0.0"
+jjwt = "0.13.0"
+kotlin-jdsl = "3.6.0"
+aws-sdk-v1 = "1.12.797"
+querydsl = "5.0.0"
+testcontainers = "1.21.3"
+redis-testcontainers = "2.2.2"
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "dependency-management" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
+kotlin-jpa = { id = "org.jetbrains.kotlin.plugin.jpa", version.ref = "kotlin" }
+sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+
+[libraries]
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+lombok = { module = "org.projectlombok:lombok" }
+spring-security-test = { module = "org.springframework.security:spring-security-test" }
+
+spring-aop = { module = "org.springframework:spring-aop" }
+aspectjweaver = { module = "org.aspectj:aspectjweaver" }
+mysql-connector-j = { module = "com.mysql:mysql-connector-j" }
+spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor", version.ref = "spring-boot" }
+spring-boot-core = { module = "org.springframework.boot:spring-boot", version.ref = "spring-boot" }
+spring-boot-persistence = { module = "org.springframework.boot:spring-boot-persistence", version.ref = "spring-boot" }
+spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
+spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa", version.ref = "spring-boot" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "spring-boot" }
+spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security", version.ref = "spring-boot" }
+spring-boot-starter-oauth2-client = { module = "org.springframework.boot:spring-boot-starter-oauth2-client", version.ref = "spring-boot" }
+spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis", version.ref = "spring-boot" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
+spring-boot-starter-log4j2 = { module = "org.springframework.boot:spring-boot-starter-log4j2", version.ref = "spring-boot" }
+
+spring-cloud-dependencies = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "spring-cloud" }
+spring-cloud-starter-openfeign = { module = "org.springframework.cloud:spring-cloud-starter-openfeign" }
+springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+
+awspring-dependencies = { module = "io.awspring.cloud:spring-cloud-aws-dependencies", version.ref = "awspring" }
+awspring-starter = { module = "io.awspring.cloud:spring-cloud-aws-starter" }
+awspring-secrets-manager = { module = "io.awspring.cloud:spring-cloud-aws-starter-secrets-manager" }
+
+jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
+jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
+jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
+
+aws-java-sdk-bom = { module = "com.amazonaws:aws-java-sdk-bom", version.ref = "aws-sdk-v1" }
+aws-java-sdk-s3 = { module = "com.amazonaws:aws-java-sdk-s3" }
+
+nurigo-sdk = { module = "net.nurigo:sdk", version = "4.3.0" }
+nurigo-java-sdk = { module = "net.nurigo:javaSDK", version = "2.2" }
+
+querydsl-jpa = { module = "com.querydsl:querydsl-jpa", version.ref = "querydsl" }
+querydsl-apt = { module = "com.querydsl:querydsl-apt", version.ref = "querydsl" }
+querydsl-jpa-jakarta = { module = "com.querydsl:querydsl-jpa", version.ref = "querydsl" }
+querydsl-apt-jakarta = { module = "com.querydsl:querydsl-apt", version.ref = "querydsl" }
+jakarta-annotation-api = { module = "jakarta.annotation:jakarta.annotation-api", version = "3.0.0" }
+jakarta-persistence-api = { module = "jakarta.persistence:jakarta.persistence-api", version = "3.2.0" }
+
+kotlin-jdsl-jpql-dsl = { module = "com.linecorp.kotlin-jdsl:jpql-dsl", version.ref = "kotlin-jdsl" }
+kotlin-jdsl-spring-data-jpa-support = { module = "com.linecorp.kotlin-jdsl:spring-data-jpa-support", version.ref = "kotlin-jdsl" }
+
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+slack-api-client = { module = "com.slack.api:slack-api-client", version = "1.45.3" }
+testcontainers-mysql = { module = "org.testcontainers:mysql", version.ref = "testcontainers" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
+testcontainers-redis = { module = "com.redis:testcontainers-redis", version.ref = "redis-testcontainers" }
+
+[bundles]
+boot-app-core = [
+    "spring-boot-starter",
+    "spring-boot-starter-actuator",
+    "spring-boot-starter-data-jpa",
+    "jackson-module-kotlin",
+    "kotlin-reflect"
+]
+web-app-core = [
+    "spring-boot-starter-web",
+    "spring-boot-starter-validation",
+    "spring-boot-starter-security",
+    "spring-cloud-starter-openfeign",
+    "springdoc-openapi-starter-webmvc-ui"
+]
+test-common = [
+    "spring-boot-starter-test",
+    "spring-security-test"
+]
+integration-testcontainers = [
+    "testcontainers-mysql",
+    "testcontainers-junit-jupiter",
+    "testcontainers-redis"
+]
