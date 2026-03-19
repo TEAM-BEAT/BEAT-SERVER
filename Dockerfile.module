@@ -1,0 +1,13 @@
+FROM eclipse-temurin:21-jre-alpine
+
+ARG MODULE
+ARG PROFILE
+ARG JAR_PATH
+
+WORKDIR /app
+
+COPY ${JAR_PATH} /app/app.jar
+
+ENV SPRING_PROFILES_ACTIVE=${PROFILE}
+
+CMD ["java", "-Duser.timezone=Asia/Seoul", "-jar", "/app/app.jar"]
