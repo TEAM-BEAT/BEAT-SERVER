@@ -1,3 +1,7 @@
 spring:
   profiles:
     default: dev
+
+beat:
+  scheduler:
+    owner: true

@@ -28,6 +28,7 @@ management:
 
 spring:
   config:
+    import: optional:file:secret/application-prod-secret.properties
     activate:
       on-profile: prod
 
@@ -43,7 +44,7 @@ spring:
     show-sql: false
     properties:
       hibernate:
-        dialect: com.beat.global.common.config.MysqlCustomDialect
+        dialect: com.beat.infra.config.MysqlCustomDialect
         format_sql: true
 
   data:
