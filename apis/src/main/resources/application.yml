@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: beat-apis
+
+beat:
+  scheduler:
+    owner: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+    import: optional:file:secret/application-dev-secret.properties
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+    import: optional:file:secret/application-prod-secret.properties
