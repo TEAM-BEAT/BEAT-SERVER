@@ -1,0 +1,83 @@
+spring:
+  # MySQL container is provided automatically by the Testcontainers JDBC driver.
+  datasource:
+    url: jdbc:tc:mysql:8.0.39:///beat_test
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    username: test
+    password: test
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: com.beat.infra.config.MysqlCustomDialect
+        format_sql: true
+
+  # Redis host/port is injected dynamically from AbstractIntegrationTest.
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            redirect-uri: http://localhost/login/oauth2/code/kakao
+            client-authentication-method: post
+            authorization-grant-type: authorization_code
+            scope: profile_nickname, account_email
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+  # Placeholder-only values keep the legacy root context self-contained in tests.
+  coolsms:
+    api:
+      key: test-coolsms-key
+      secret: test-coolsms-secret
+      number: 01000000000
+
+management:
+  server:
+    port: 0
+  endpoints:
+    enabled-by-default: false
+    web:
+      base-path: /actuator-test
+
+jwt:
+  secret: test-jwt-secret-test-jwt-secret-test-jwt-secret-test-jwt-secret
+  access-token-expire-time: 3600000
+  refresh-token-expire-time: 1209600000
+
+cloud:
+  aws:
+    region: ap-northeast-2
+    credentials:
+      access-key: test-access-key
+      secret-key: test-secret-key
+  s3:
+    bucket: beat-test-bucket
+  stack:
+    auto: false
+
+cors:
+  allowed-origins: http://localhost:3000
+
+app:
+  server:
+    url: http://localhost:8080
+
+slack:
+  webhook:
+    member-url: http://localhost/member
+    booking-url: http://localhost/booking
+
+thread-pool:
+  core-size: 2
+  thread-name-prefix: executor-
