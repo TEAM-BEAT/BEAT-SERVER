@@ -6,6 +6,7 @@ import com.beat.admin.port.in.AdminUseCase;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.port.in.PerformanceUseCase;
 import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.promotion.port.in.PromotionModifyCommand;
 import com.beat.domain.promotion.port.in.PromotionUseCase;
 
 import lombok.RequiredArgsConstructor;
@@ -63,7 +64,16 @@ public class AdminService implements AdminUseCase {
 					.map(performanceUseCase::findById)
 					.orElse(null);
 
-				return promotionUseCase.modifyPromotion(promotion, performance, modifyRequest);
+				PromotionModifyCommand command = new PromotionModifyCommand(
+					modifyRequest.promotionId(),
+					modifyRequest.carouselNumber(),
+					modifyRequest.newImageUrl(),
+					modifyRequest.isExternal(),
+					modifyRequest.redirectUrl(),
+					modifyRequest.performanceId()
+				);
+
+				return promotionUseCase.modifyPromotion(promotion, performance, command);
 			})
 			.toList();
 	}
