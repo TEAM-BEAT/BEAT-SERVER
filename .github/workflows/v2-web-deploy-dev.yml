@@ -100,7 +100,7 @@ jobs:
               --network beat-network \
               -v /opt/beat/secret:/app/secret:ro \
               -p ${DEV_V2_WEB_PUBLIC_PORT}:8080 \
-              -p ${DEV_V2_ACTUATOR_PORT}:2222 \
+              -p 127.0.0.1:${DEV_V2_ACTUATOR_PORT}:2222 \
               "${{ steps.image.outputs.latest }}"
             for attempt in $(seq 1 30); do
               if curl --fail --silent "http://localhost:${DEV_V2_ACTUATOR_PORT}${DEV_ACTUATOR_PATH}/health" > /dev/null; then
