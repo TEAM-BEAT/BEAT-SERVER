@@ -32,6 +32,7 @@ batch/
   src/main/kotlin/com/beat/batch/
     BatchApplication.kt
     config/
+      InfraConfig.kt           # @EnableInfraBaseConfig(JPA, QUERY_DSL, ASYNC)
 
 legacy root:
   src/main/java/com/beat/global/common/scheduler/application/
@@ -40,6 +41,8 @@ legacy root:
 
 설명:
 - 현재 `batch` 모듈은 앱 진입점과 최소 설정만 가진 얇은 lane이다.
+- `InfraConfig.kt`가 `@EnableInfraBaseConfig`로 필요한 infra 설정 그룹을 선택적으로 import한다.
+- 전환기 동안 `implementation(project(":"))` root 의존이 남아 있다. 최종적으로 제거 대상이다.
 - 실제 scheduler/service 코드의 상당 부분은 아직 root legacy 패키지에 남아 있다.
 - 공통 scheduler application 패키지뿐 아니라 일부 domain application service에도 scheduling 책임이 남아 있다.
 

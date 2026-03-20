@@ -11,7 +11,7 @@
 ## 허용 의존성
 
 - `global-utils`
-- `observability`
+- `observability` (허용하되 현재 미사용)
 
 ## 금지 규칙
 

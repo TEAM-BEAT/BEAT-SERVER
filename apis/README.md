@@ -34,6 +34,7 @@ apis/
   src/main/kotlin/com/beat/apis/
     ApisApplication.kt
     config/
+      InfraConfig.kt          # @EnableInfraBaseConfig(JPA, QUERY_DSL, REDIS, ASYNC)
 
   src/main/java/com/beat/domain/*/api/
   src/main/java/com/beat/global/external/s3/api/
@@ -41,7 +42,9 @@ apis/
 
 설명:
 - 현재 `apis` 모듈은 `com.beat.apis` 아래 앱 진입점만 새로 생겼다.
+- `InfraConfig.kt`가 `@EnableInfraBaseConfig`로 필요한 infra 설정 그룹을 선택적으로 import한다.
 - 실제 사용자 API 컨트롤러 다수는 아직 legacy 패키지(`com.beat.domain.*.api`, `com.beat.global.external.s3.api`)로 남아 있다.
+- 전환기 동안 `implementation(project(":"))` root 의존이 남아 있다. 최종적으로 제거 대상이다.
 - 즉 현재는 **실행 lane만 `apis`로 분리되고, 패키지 구조는 아직 legacy를 많이 유지한 상태**다.
 
 ## To-Be 패키지 구조

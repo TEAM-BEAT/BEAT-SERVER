@@ -25,9 +25,18 @@
 ```text
 infra/
   src/main/java/com/beat/infra/
-    config/
     EnableInfraBaseConfig.java
-    InfraBaseConfig*.java
+    InfraBaseConfig.java
+    InfraBaseConfigGroup.java
+    InfraBaseConfigImportSelector.java      # DeferredImportSelector — enum → class 매핑
+    config/
+      AsyncConfig.java                      # AsyncConfigurer, @Import(TaskExecutorConfig)
+      TaskExecutorConfig.java               # applicationTaskExecutor, taskScheduler 빈 생성
+      JpaConfig.java
+      MysqlCustomDialect.java
+      QueryDslConfig.java
+      RedisConfig.java
+      ThreadPoolProperties.java
   src/main/kotlin/com/beat/infra/
     InfraModuleConfig.kt
 
@@ -37,6 +46,8 @@ legacy root:
 ```
 
 설명:
+- `InfraBaseConfigImportSelector`가 `@EnableInfraBaseConfig`의 enum 값을 읽어 해당 `@Configuration` 클래스를 선택적으로 import한다.
+- `AsyncConfig`는 `@Import(TaskExecutorConfig.class)`로 executor/scheduler 빈 생성을 전이 로드한다.
 - 일부 공통 config는 `infra`로 이동했지만, repository/JPA/query 구현 상당수는 아직 legacy root `dao` 패키지에 남아 있다.
 - 즉 `infra`도 아직 최종형이 아니라 **이관 진행 중인 landing zone**이다.
 
