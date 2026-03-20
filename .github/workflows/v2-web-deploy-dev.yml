@@ -92,7 +92,7 @@ jobs:
             printf "%s" "$DEV_SECRET_PROPERTIES" > /opt/beat/secret/application-dev-secret.properties
             chmod 700 /opt/beat/secret || true
             chmod 600 /opt/beat/secret/application-dev-secret.properties
-            docker pull "${{ steps.image.outputs.latest }}"
+            docker pull "${{ steps.image.outputs.image }}"
             docker rm -f ${CONTAINER_NAME} || true
             docker run -d \
               --name ${CONTAINER_NAME} \
@@ -101,7 +101,7 @@ jobs:
               -v /opt/beat/secret:/app/secret:ro \
               -p ${DEV_V2_WEB_PUBLIC_PORT}:8080 \
               -p 127.0.0.1:${DEV_V2_ACTUATOR_PORT}:2222 \
-              "${{ steps.image.outputs.latest }}"
+              "${{ steps.image.outputs.image }}"
             for attempt in $(seq 1 30); do
               if curl --fail --silent "http://localhost:${DEV_V2_ACTUATOR_PORT}${DEV_ACTUATOR_PATH}/health" > /dev/null; then
                 exit 0

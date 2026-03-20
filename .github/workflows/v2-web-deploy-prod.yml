@@ -49,13 +49,23 @@ jobs:
 
       - name: Compute image name
         id: image
+        env:
+          VERSION_INPUT: ${{ github.event.inputs.version }}
         run: |
           jar_path=$(find apis/build/libs -maxdepth 1 -name 'apis-*.jar' ! -name '*-plain.jar' | head -n 1)
           if [ -z "$jar_path" ]; then
             echo "apis jar not found" >&2
             exit 1
           fi
-          VERSION="${{ github.event.inputs.version }}"
+          if [[ -z "$VERSION_INPUT" ]]; then
+            echo "version input is required" >&2
+            exit 1
+          fi
+          if [[ ! "$VERSION_INPUT" =~ ^[0-9A-Za-z._-]+$ ]]; then
+            echo "invalid version input: $VERSION_INPUT" >&2
+            exit 1
+          fi
+          VERSION="$VERSION_INPUT"
           echo "jar_path=${jar_path}" >> "$GITHUB_OUTPUT"
           echo "image=${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}/beat-apis:${VERSION}" >> "$GITHUB_OUTPUT"
           echo "latest=${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}/beat-apis:prod-latest" >> "$GITHUB_OUTPUT"
@@ -89,11 +99,37 @@ jobs:
           port: ${{ secrets.PROD_SSH_PORT }}
           envs: CONTAINER_NAME,REMOTE_APP_DIR,PROD_SECRET_PROPERTIES,PROD_V2_ACTUATOR_PORT,PROD_ACTUATOR_PATH,PROD_V2_WEB_PUBLIC_PORT
           script: |
+            TEMP_CONTAINER_NAME="${CONTAINER_NAME}-candidate"
+            TEMP_ACTUATOR_PORT=$((PROD_V2_ACTUATOR_PORT + 100))
+
             mkdir -p /opt/beat/secret
             printf "%s" "$PROD_SECRET_PROPERTIES" > /opt/beat/secret/application-prod-secret.properties
             chmod 700 /opt/beat/secret || true
             chmod 600 /opt/beat/secret/application-prod-secret.properties
+
             docker pull "${{ steps.image.outputs.image }}"
+
+            docker rm -f ${TEMP_CONTAINER_NAME} || true
+            docker run -d \
+              --name ${TEMP_CONTAINER_NAME} \
+              --restart unless-stopped \
+              --network beat-network \
+              -v /opt/beat/secret:/app/secret:ro \
+              -p 127.0.0.1:${TEMP_ACTUATOR_PORT}:2222 \
+              "${{ steps.image.outputs.image }}"
+            for attempt in $(seq 1 30); do
+              if curl --fail --silent "http://localhost:${TEMP_ACTUATOR_PORT}${PROD_ACTUATOR_PATH}/health" > /dev/null; then
+                break
+              fi
+              sleep 2
+            done
+            if ! curl --fail --silent "http://localhost:${TEMP_ACTUATOR_PORT}${PROD_ACTUATOR_PATH}/health" > /dev/null; then
+              docker logs --tail 100 ${TEMP_CONTAINER_NAME} || true
+              docker rm -f ${TEMP_CONTAINER_NAME} || true
+              exit 1
+            fi
+
+            docker rm -f ${TEMP_CONTAINER_NAME} || true
             docker rm -f ${CONTAINER_NAME} || true
             docker run -d \
               --name ${CONTAINER_NAME} \

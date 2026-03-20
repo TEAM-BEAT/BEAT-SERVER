@@ -20,9 +20,7 @@ public class JobSchedulerTransactionalService {
 
 	@Transactional(readOnly = true)
 	public List<Schedule> findPendingSchedules() {
-		List<Schedule> schedules = scheduleRepository.findPendingSchedules();
-		schedules.forEach(schedule -> Hibernate.initialize(schedule.getPerformance()));
-		return schedules;
+		return scheduleRepository.findPendingSchedulesWithPerformance();
 	}
 
 	@Transactional
@@ -40,6 +38,5 @@ public class JobSchedulerTransactionalService {
 			.orElseThrow(() -> new IllegalStateException("Schedule not found: " + scheduleId));
 
 		schedule.updateIsBooking(false);
-		scheduleRepository.save(schedule);
 	}
 }

@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -202,11 +203,18 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 		}
 
 		long successCount = 0L;
-		for (Future<?> future : futures) {
+		for (Future<Boolean> future : futures) {
 			try {
-				if ((Boolean) future.get()) {
+				if (future.get(5, TimeUnit.SECONDS)) {
 					successCount++;
 				}
+			} catch (TimeoutException e) {
+				future.cancel(true);
+				throw new AssertionError("Concurrent booking task timed out", e);
+			} catch (InterruptedException e) {
+				future.cancel(true);
+				Thread.currentThread().interrupt();
+				throw new AssertionError("Concurrent booking task interrupted", e);
 			} catch (Exception e) {
 				throw new AssertionError("Concurrent booking task failed", e);
 			}
