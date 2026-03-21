@@ -24,6 +24,13 @@ import org.springframework.context.annotation.Import
             type = org.springframework.context.annotation.FilterType.REGEX,
             pattern = [
                 "com\\.beat\\.admin\\..*",
+                // auth/security beans → gateway bootstrap이 소유. broad scan 중복 방지.
+                "com\\.beat\\.global\\.auth\\.jwt\\.filter\\..*",
+                "com\\.beat\\.global\\.auth\\.jwt\\.provider\\..*",
+                "com\\.beat\\.global\\.auth\\.resolver\\..*",
+                "com\\.beat\\.global\\.auth\\.security\\..*",
+                "com\\.beat\\.global\\.common\\.config\\.SecurityConfig",
+                "com\\.beat\\.global\\.common\\.config\\.WebConfig",
             ],
         ),
     ],
