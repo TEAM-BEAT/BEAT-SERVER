@@ -1,0 +1,19 @@
+FROM eclipse-temurin:21-jre-alpine
+
+ARG MODULE
+ARG PROFILE
+ARG JAR_PATH
+
+RUN addgroup -S beat && adduser -S -G beat beat && mkdir -p /app && chown beat:beat /app
+
+WORKDIR /app
+
+LABEL beat.module="${MODULE}"
+
+COPY --chown=beat:beat ${JAR_PATH} /app/app.jar
+
+ENV SPRING_PROFILES_ACTIVE=${PROFILE}
+
+USER beat
+
+CMD ["java", "-Duser.timezone=Asia/Seoul", "-jar", "/app/app.jar"]

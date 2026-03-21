@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +49,9 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class TicketService {
+
+	@Value("${beat.scheduler.owner:false}")
+	private boolean schedulerOwner;
 
 	private final TicketRepository ticketRepository;
 	private final PerformanceRepository performanceRepository;
@@ -247,6 +251,10 @@ public class TicketService {
 	@Scheduled(cron = "0 0 4 * * ?")
 	@Transactional
 	public void deleteOldCancelledBookings() {
+		if (!schedulerOwner) {
+			return;
+		}
+
 		LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
 		List<Booking> oldCancelledBookings = ticketRepository.findByBookingStatusAndCancellationDateBefore(
 			BookingStatus.BOOKING_CANCELLED, oneYearAgo);

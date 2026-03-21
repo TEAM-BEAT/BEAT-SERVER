@@ -177,11 +177,18 @@ Temporary Items
 *.icloud
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,java,macos.gradle/
-.idea/
+.idea/*
+.gradle/*
+/.kotlin/
+**/.gradle/
+build/
 
 # Ignore application profile
 src/main/resources/application-local.yml
-src/main/resources/application-secret.properties
+secret/*
+default.conf
+deploy-dev.sh
+docker-compose.yml
 
-## Ignore Qclass
-src/main/generated/querydsl
+## codex
+.omx/*

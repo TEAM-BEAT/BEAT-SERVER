@@ -12,8 +12,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableFeignClients
-@EnableScheduling
 @EnableAsync
+@EnableScheduling
 @EnableAspectJAutoProxy
 @ConfigurationPropertiesScan
 @ImportAutoConfiguration({FeignAutoConfiguration.class})

@@ -6,15 +6,16 @@ import com.beat.domain.schedule.domain.Schedule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.hibernate.Hibernate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -26,44 +27,92 @@ import java.util.concurrent.ScheduledFuture;
 @RequiredArgsConstructor
 public class JobSchedulerService {
 
-	private final ScheduleRepository scheduleRepository;
+	private final JobSchedulerTransactionalService jobSchedulerTransactionalService;
 	private final TaskScheduler taskScheduler;
+
+	@Value("${beat.scheduler.owner:false}")
+	private boolean schedulerOwner;
 
 	// 스케줄 ID와 관련된 작업을 관리하기 위한 ConcurrentHashMap 선언
 	private final Map<Long, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
 
 	// ApplicationReadyEvent는 애플리케이션이 완전히 시작된 후에 한 번만 실행됩니다.
 	@EventListener(ApplicationReadyEvent.class)
-	@Transactional
 	public void onApplicationReady(ApplicationReadyEvent event) {
-		// 서버 시작 시점에만 실행되도록 트랜잭션 관리가 필요한 부분을 다른 메서드로 분리
-		log.info("onApplicationReady() method triggered.");
-		schedulePendingPerformances();
-	}
-
-	@Transactional(readOnly = true)
-	public void schedulePendingPerformances() {
-		// PENDING 상태의 스케줄들을 조회하여 트랜잭션 내에서 처리
-		List<Schedule> schedules = scheduleRepository.findPendingSchedules();
-
-		// 각각의 스케줄에 대해 지연 로딩 처리 및 스케줄링 작업 수행
-		schedules.forEach(schedule -> {
-			// Performance 초기화 시점은 트랜잭션 경계 내에서 이루어져야 함
-			Hibernate.initialize(schedule.getPerformance());
-			addScheduleIfNotExists(schedule);
-		});
-	}
-
-	// 스케줄 종료 시점에 맞춰 isBooking 업데이트
-	@Transactional
-	public void addScheduleIfNotExists(Schedule schedule) {
-		if (scheduledTasks.containsKey(schedule.getId())) {
-			log.debug("Schedule ID {} is already scheduled. Skipping duplicate registration.", schedule.getId());
+		if (!schedulerOwner) {
+			log.info("Skipping schedule rehydration because this runtime is not the scheduler owner.");
 			return;
 		}
 
+		log.info("onApplicationReady() method triggered.");
+		reconcilePendingSchedules();
+	}
+
+	@Scheduled(fixedDelayString = "${beat.scheduler.reconcile-interval-ms:60000}")
+	public void reconcilePendingSchedules() {
+		if (!schedulerOwner) {
+			return;
+		}
+
+		List<Schedule> schedules = jobSchedulerTransactionalService.findPendingSchedules();
+		List<Long> pendingScheduleIds = new ArrayList<>();
+
+		schedules.forEach(schedule -> {
+			pendingScheduleIds.add(schedule.getId());
+			addScheduleIfNotExists(schedule);
+		});
+
+		new ArrayList<>(scheduledTasks.keySet()).stream()
+			.filter(scheduleId -> !pendingScheduleIds.contains(scheduleId))
+			.forEach(this::cancelScheduledTaskById);
+	}
+
+	public void schedulePendingPerformances() {
+		reconcilePendingSchedules();
+	}
+
+	// 스케줄 종료 시점에 맞춰 isBooking 업데이트
+	public void addScheduleIfNotExists(Schedule schedule) {
+		if (!schedulerOwner) {
+			log.info("Ignoring schedule registration because this runtime is not the scheduler owner.");
+			return;
+		}
+
+		ScheduledFuture<?> existingTask = scheduledTasks.get(schedule.getId());
+		if (existingTask != null) {
+			if (!existingTask.isDone() && !existingTask.isCancelled()) {
+				log.debug("Schedule ID {} is already scheduled. Skipping duplicate registration.", schedule.getId());
+				return;
+			}
+			scheduledTasks.remove(schedule.getId());
+		}
+
+		schedulePendingTask(schedule);
+	}
+
+	// 스케줄 종료 시 isBooking을 false로 업데이트
+	public void updateIsBookingFalse(Long scheduleId) {
+		log.info("Updating isBooking to false for schedule ID: {}", scheduleId);
+		jobSchedulerTransactionalService.closeBooking(scheduleId);
+
+		// 스케줄 작업 완료 후 Map에서 삭제
+		scheduledTasks.remove(scheduleId);
+		log.debug("Completed Task removed for Schedule ID: {}", scheduleId);
+		logScheduledTasks();
+	}
+
+	public void cancelScheduledTaskForPerformance(Schedule schedule) {
+		if (!schedulerOwner) {
+			log.info("Ignoring schedule cancellation because this runtime is not the scheduler owner.");
+			return;
+		}
+
+		cancelScheduledTaskById(schedule.getId());
+	}
+
+	private void schedulePendingTask(Schedule schedule) {
 		// 여기서 데이터베이스 X-Lock을 걸어 중복 실행 방지
-		scheduleRepository.lockById(schedule.getId())
+		jobSchedulerTransactionalService.lockSchedule(schedule.getId())
 			.ifPresentOrElse(
 				lockedSchedule -> {
 					log.info("Lock acquired for Schedule ID: {}", lockedSchedule.getId());
@@ -79,37 +128,18 @@ public class JobSchedulerService {
 
 					scheduledTasks.put(lockedSchedule.getId(), scheduledTask);
 					log.debug("Task added for Schedule ID: {}", lockedSchedule.getId());
-
 					logScheduledTasks();
 				},
 				() -> log.warn("Failed to acquire lock for Schedule ID: {}", schedule.getId())
 			);
 	}
 
-	// 스케줄 종료 시 isBooking을 false로 업데이트
-	@Transactional
-	public void updateIsBookingFalse(Long scheduleId) {
-		Schedule schedule = scheduleRepository.findById(scheduleId)
-			.orElseThrow(() -> new IllegalStateException("Schedule not found: " + scheduleId));
-
-		log.info("Updating isBooking to false for schedule ID: {}", scheduleId);
-		schedule.updateIsBooking(false);
-		scheduleRepository.save(schedule);
-
-		// 스케줄 작업 완료 후 Map에서 삭제
-		scheduledTasks.remove(scheduleId);
-		log.debug("Completed Task removed for Schedule ID: {}", scheduleId);
-		logScheduledTasks();
-	}
-
-	public void cancelScheduledTaskForPerformance(Schedule schedule) {
-		ScheduledFuture<?> scheduledTask = scheduledTasks.get(schedule.getId());
+	private void cancelScheduledTaskById(Long scheduleId) {
+		ScheduledFuture<?> scheduledTask = scheduledTasks.get(scheduleId);
 		if (scheduledTask != null && !scheduledTask.isDone()) {
-			scheduledTask.cancel(true);  // 작업이 완료되지 않았다면 취소
-			scheduledTasks.remove(schedule.getId());
-			log.info("Cancelled Task removed for Schedule ID: {}", schedule.getId());
-			logScheduledTasks();
+			scheduledTask.cancel(true);
 		}
+		scheduledTasks.remove(scheduleId);
 	}
 
 	// 현재 등록된 스케줄 로그 출력

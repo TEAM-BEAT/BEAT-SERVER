@@ -1,9 +1,11 @@
 package com.beat.domain.booking;
 
+import com.beat.support.AbstractIntegrationTest;
 import com.beat.domain.booking.application.GuestBookingService;
 import com.beat.domain.booking.application.dto.GuestBookingRequest;
 import com.beat.domain.booking.application.dto.GuestBookingResponse;
 import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;
@@ -14,26 +16,30 @@ import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
+import com.beat.global.common.exception.BadRequestException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.fail;
 
-@SpringBootTest
-class GuestBookingServiceConcurrencyTest {
+class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 
 	private static final Logger logger = LoggerFactory.getLogger(GuestBookingServiceConcurrencyTest.class);
 
@@ -60,107 +66,179 @@ class GuestBookingServiceConcurrencyTest {
 	void setup() {
 		logger.info("Setting up initial data...");
 
-		Users initialUser = Users.create();
-		userRepository.save(initialUser);
-
-		logger.info("Setting up userId = 1 메이커");
-
-		Performance performance = Performance.create("Performance Title", Genre.BAND, 120, "Performance Description",
-			"Performance Attention Note", BankName.BUSAN, "2342-234234-2344", "이동훈", "poster.jpg", "Performance Team",
-			"Performance Venue", "도로명 주소", "상세 주소", "123.1111", "12.1234", "010-1111-1111", "2024-01-01 to 2024-12-31",
-			10000, 30, initialUser);
-		performanceRepository.save(performance);
-
-		LocalDateTime performanceDate = LocalDateTime.now().plusDays(1);
-		schedule1 = Schedule.create(performanceDate, 10, // 남은 티켓 10매
-			0, true, ScheduleNumber.FIRST, performance);
-		scheduleRepository.save(schedule1);
-
-		schedule2 = Schedule.create(performanceDate, 1, // 남은 티켓 1매
-			0, true, ScheduleNumber.SECOND, performance);
-		scheduleRepository.save(schedule2);
+		Users maker = createMakerUser();
+		Performance performance = createPerformance(maker);
+		schedule1 = createSchedule(performance, ScheduleNumber.FIRST, 10);
+		schedule2 = createSchedule(performance, ScheduleNumber.SECOND, 1);
 
 		logger.info("Setup completed.");
 	}
 
 	@Test
 	void testConcurrentGuestBooking() {
-		int threadCount1 = 100; // 회차 1번에 대해 100명 요청
-		int threadCount2 = 150; // 회차 2번에 대해 150명 요청
+		ExecutorService firstScheduleExecutor = Executors.newFixedThreadPool(100);
+		ExecutorService secondScheduleExecutor = Executors.newFixedThreadPool(150);
 
-		ExecutorService executorService1 = Executors.newFixedThreadPool(threadCount1);
-		ExecutorService executorService2 = Executors.newFixedThreadPool(threadCount2);
+		List<Future<Boolean>> firstScheduleFutures =
+			submitGuestBookings(firstScheduleExecutor, 100, schedule1, 2, ScheduleNumber.FIRST);
+		List<Future<Boolean>> secondScheduleFutures =
+			submitGuestBookings(secondScheduleExecutor, 150, schedule2, 1, ScheduleNumber.SECOND);
 
-		for (int i = 0; i < threadCount1; i++) {
-			executorService1.submit(() -> {
-				try {
-					GuestBookingRequest request = GuestBookingRequest.of(schedule1.getId(), // 회차 1번 스케줄 ID를 사용
-						2,  // purchaseTicketCount
-						ScheduleNumber.FIRST, "서지우", "010-2222-7196", "1990-01-01", generateRandomPassword(), 35000,
-						BookingStatus.CHECKING_PAYMENT);
-					GuestBookingResponse response = guestBookingService.createGuestBooking(request);
-					assertNotNull(response);
-				} catch (Exception e) {
-					logger.error("Exception occurred during booking for schedule 1: ", e);
-					fail("Exception occurred: " + e.getMessage());
-				}
-			});
-		}
+		long firstScheduleSuccessCount = awaitExecutors(firstScheduleFutures, firstScheduleExecutor);
+		long secondScheduleSuccessCount = awaitExecutors(secondScheduleFutures, secondScheduleExecutor);
 
-		for (int i = 0; i < threadCount2; i++) {
-			executorService2.submit(() -> {
-				try {
-					GuestBookingRequest request = GuestBookingRequest.of(schedule2.getId(), // 회차 2번 스케줄 ID를 사용
-						1,  // purchaseTicketCount
-						ScheduleNumber.SECOND, "서지우", "010-2222-7196", "1990-01-01", generateRandomPassword(), 35000,
-						BookingStatus.CHECKING_PAYMENT);
-					GuestBookingResponse response = guestBookingService.createGuestBooking(request);
-					assertNotNull(response);
-				} catch (Exception e) {
-					logger.error("Exception occurred during booking for schedule 2: ", e);
-					fail("Exception occurred: " + e.getMessage());
-				}
-			});
-		}
-
-		// 모든 태스크가 완료될 때까지 대기
-		executorService1.shutdown();
-		executorService2.shutdown();
-		try {
-			if (!executorService1.awaitTermination(60, TimeUnit.SECONDS)) {
-				executorService1.shutdownNow();
-			}
-			if (!executorService2.awaitTermination(60, TimeUnit.SECONDS)) {
-				executorService2.shutdownNow();
-			}
-		} catch (InterruptedException e) {
-			executorService1.shutdownNow();
-			executorService2.shutdownNow();
-		}
-
-		// 로그로 예매된 티켓 수 확인
-		Schedule finalSchedule1 = scheduleRepository.findById(schedule1.getId()).orElse(null);
-		Schedule finalSchedule2 = scheduleRepository.findById(schedule2.getId()).orElse(null);
-
-		if (finalSchedule1 != null) {
-			logger.info("Total tickets sold for schedule 1: {}", finalSchedule1.getSoldTicketCount());
-		}
-		if (finalSchedule2 != null) {
-			logger.info("Total tickets sold for schedule 2: {}", finalSchedule2.getSoldTicketCount());
-		}
-
-		// 예매된 유저와 예약 정보 로그 출력
-		bookingRepository.findAll().forEach(booking -> {
-			logger.info("Booking ID: {}, User ID: {}, Schedule ID: {}, Tickets: {}", booking.getId(),
-				booking.getUsers().getId(), booking.getSchedule().getId(), booking.getPurchaseTicketCount());
-		});
-		userRepository.findAll().forEach(user -> {
-			logger.info("User ID: {}", user.getId());
-		});
+		assertEquals(5L, firstScheduleSuccessCount);
+		assertEquals(1L, secondScheduleSuccessCount);
+		assertFinalState();
 	}
 
 	private String generateRandomPassword() {
 		int randomNum = ThreadLocalRandom.current().nextInt(1000, 10000);
 		return String.format("%04d", randomNum);
+	}
+
+	private Users createMakerUser() {
+		Users maker = Users.create();
+		userRepository.save(maker);
+		logger.info("Setting up maker user.");
+		return maker;
+	}
+
+	private Performance createPerformance(Users maker) {
+		Performance performance = Performance.create(
+			"Performance Title",
+			Genre.BAND,
+			120,
+			"Performance Description",
+			"Performance Attention Note",
+			BankName.BUSAN,
+			"2342-234234-2344",
+			"이동훈",
+			"poster.jpg",
+			"Performance Team",
+			"Performance Venue",
+			"도로명 주소",
+			"상세 주소",
+			"123.1111",
+			"12.1234",
+			"010-1111-1111",
+			"2024-01-01 to 2024-12-31",
+			10000,
+			30,
+			maker
+		);
+		performanceRepository.save(performance);
+		return performance;
+	}
+
+	private Schedule createSchedule(Performance performance, ScheduleNumber scheduleNumber, int remainingTicketCount) {
+		Schedule schedule = Schedule.create(
+			LocalDateTime.now().plusDays(1),
+			remainingTicketCount,
+			0,
+			true,
+			scheduleNumber,
+			performance
+		);
+		scheduleRepository.save(schedule);
+		return schedule;
+	}
+
+	private List<Future<Boolean>> submitGuestBookings(
+		ExecutorService executorService,
+		int requestCount,
+		Schedule schedule,
+		int purchaseTicketCount,
+		ScheduleNumber scheduleNumber
+	) {
+		List<Future<Boolean>> futures = new ArrayList<>();
+		for (int i = 0; i < requestCount; i++) {
+			futures.add(executorService.submit(() -> createGuestBooking(schedule, purchaseTicketCount, scheduleNumber)));
+		}
+		return futures;
+	}
+
+	private boolean createGuestBooking(Schedule schedule, int purchaseTicketCount, ScheduleNumber scheduleNumber) {
+		try {
+			GuestBookingResponse response =
+				guestBookingService.createGuestBooking(createGuestBookingRequest(schedule, purchaseTicketCount, scheduleNumber));
+			assertNotNull(response);
+			return true;
+		} catch (BadRequestException e) {
+			if (e.getBaseErrorCode() == ScheduleErrorCode.INSUFFICIENT_TICKETS) {
+				return false;
+			}
+			throw e;
+		}
+	}
+
+	private GuestBookingRequest createGuestBookingRequest(
+		Schedule schedule,
+		int purchaseTicketCount,
+		ScheduleNumber scheduleNumber
+	) {
+		return GuestBookingRequest.of(
+			schedule.getId(),
+			purchaseTicketCount,
+			scheduleNumber,
+			"서지우",
+			"010-2222-7196",
+			"1990-01-01",
+			generateRandomPassword(),
+			35000,
+			BookingStatus.CHECKING_PAYMENT
+		);
+	}
+
+	private long awaitExecutors(List<Future<Boolean>> futures, ExecutorService executor) {
+		executor.shutdown();
+
+		try {
+			if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+				executor.shutdownNow();
+			}
+		} catch (InterruptedException e) {
+			executor.shutdownNow();
+			Thread.currentThread().interrupt();
+		}
+
+		long successCount = 0L;
+		for (Future<Boolean> future : futures) {
+			try {
+				if (future.get(5, TimeUnit.SECONDS)) {
+					successCount++;
+				}
+			} catch (TimeoutException e) {
+				future.cancel(true);
+				throw new AssertionError("Concurrent booking task timed out", e);
+			} catch (InterruptedException e) {
+				future.cancel(true);
+				Thread.currentThread().interrupt();
+				throw new AssertionError("Concurrent booking task interrupted", e);
+			} catch (Exception e) {
+				throw new AssertionError("Concurrent booking task failed", e);
+			}
+		}
+		return successCount;
+	}
+
+	private void assertFinalState() {
+		Schedule firstSchedule = scheduleRepository.findById(schedule1.getId()).orElseThrow();
+		Schedule secondSchedule = scheduleRepository.findById(schedule2.getId()).orElseThrow();
+
+		assertEquals(10, firstSchedule.getSoldTicketCount());
+		assertEquals(1, secondSchedule.getSoldTicketCount());
+		assertFalse(firstSchedule.isBooking());
+		assertFalse(secondSchedule.isBooking());
+
+		long firstScheduleBookingCount = bookingRepository.findAll().stream()
+			.filter(booking -> booking.getSchedule().getId().equals(firstSchedule.getId()))
+			.count();
+		long secondScheduleBookingCount = bookingRepository.findAll().stream()
+			.filter(booking -> booking.getSchedule().getId().equals(secondSchedule.getId()))
+			.count();
+
+		assertEquals(5L, firstScheduleBookingCount);
+		assertEquals(1L, secondScheduleBookingCount);
 	}
 }

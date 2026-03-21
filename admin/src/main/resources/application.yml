@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: beat-admin
+
+beat:
+  scheduler:
+    owner: false

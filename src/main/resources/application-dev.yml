@@ -1,6 +1,6 @@
 spring:
   config:
-    import: optional:classpath:application-secret.properties
+    import: optional:file:secret/application-dev-secret.properties
     activate:
       on-profile: dev
 
@@ -16,7 +16,7 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        dialect: com.beat.global.common.config.MysqlCustomDialect
+        dialect: com.beat.infra.config.MysqlCustomDialect
         format_sql: true
 
   data:
@@ -123,4 +123,6 @@ slack:
 
 thread-pool:
   core-size: 2
+  max-pool-size: 4
+  queue-capacity: 50
   thread-name-prefix: executor-

@@ -20,14 +20,14 @@ jobs:
     steps:
       # Checkout - 가상 머신에 체크아웃
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # JDK setting - JDK 17 설정
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
+      # JDK setting - compile with JDK 25, target JVM 21 via Gradle config
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "25"
+          distribution: "temurin"
 
       # gradle caching - 빌드 시간 향상
       - name: Gradle Caching
@@ -35,16 +35,18 @@ jobs:
         with:
           gradle-home-cache-cleanup: true
 
-      # Inject environment variables - application-secret.properties 생성
-      - name: Inject application-secret.properties
+      - name: Prepare dev secret file
         run: |
-          echo "${{ secrets.APPLICATION_SECRET_SPRING }}" > src/main/resources/application-secret.properties
+          mkdir -p secret
+          printf "%s" "${{ secrets.APPLICATION_DEV_SECRET_SPRING }}" > secret/application-dev-secret.properties
+          chmod 600 secret/application-dev-secret.properties
+        shell: bash
 
-      # gradle build - 테스트 없이 gradle 빌드
-      - name: Build with Gradle
+      # gradle build - legacy v1 baseline only
+      - name: Verify legacy v1 baseline
         run: |
           chmod +x gradlew
-          ./gradlew build -x test
+          GRADLE_USER_HOME=/tmp/gradle-home ./gradlew verifyLegacyV1Baseline
         shell: bash
 
       # Set up Docker Buildx - Docker Buildx 설치
@@ -53,7 +55,7 @@ jobs:
 
       # Log in to Docker Hub - Docker Hub 로그인
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2.2.0
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DEV_DOCKER_LOGIN_USERNAME }}
           password: ${{ secrets.DEV_DOCKER_LOGIN_ACCESSTOKEN }}

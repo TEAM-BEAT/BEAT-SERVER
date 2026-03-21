@@ -11,6 +11,7 @@ import com.beat.domain.schedule.domain.Schedule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,9 +31,16 @@ public class PromotionSchedulerService {
 	private final ScheduleRepository scheduleRepository;
 	private final ScheduleService scheduleService;
 
+	@Value("${beat.scheduler.owner:false}")
+	private boolean schedulerOwner;
+
 	@Scheduled(cron = "1 0 0 * * ?")
 	@Transactional
 	public void checkAndDeleteInvalidPromotions() {
+		if (!schedulerOwner) {
+			return;
+		}
+
 		List<Long> promotionIdsToDelete = promotionRepository.findAll().stream()
 			.filter(this::isInvalidPromotion)
 			.map(Promotion::getId)
