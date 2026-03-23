@@ -38,7 +38,12 @@ configurations {
 }
 
 dependencies {
+    implementation(project(":module-contracts"))
+    implementation(project(":global-utils"))
+    implementation(project(":gateway"))
+    implementation(project(":observability"))
     implementation(project(":infra"))
+    implementation(project(":domain"))
 
     // Web and security
     implementation(libs.spring.boot.starter.web)
