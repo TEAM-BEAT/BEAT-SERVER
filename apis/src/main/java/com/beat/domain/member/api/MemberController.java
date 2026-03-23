@@ -1,5 +1,6 @@
 package com.beat.domain.member.api;
 
+import com.beat.contracts.auth.RefreshTokenPort;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -12,13 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.beat.domain.member.application.AuthenticationService;
 import com.beat.domain.member.application.SocialLoginService;
+import com.beat.domain.member.application.dto.request.MemberLoginRequest;
 import com.beat.domain.member.application.dto.response.AccessTokenGenerateResponse;
 import com.beat.domain.member.application.dto.response.LoginSuccessResponse;
 import com.beat.domain.member.application.dto.response.MemberLoginResponse;
 import com.beat.domain.member.exception.MemberSuccessCode;
-import com.beat.global.auth.annotation.CurrentMember;
-import com.beat.global.auth.client.dto.MemberLoginRequest;
-import com.beat.global.auth.jwt.application.TokenService;
+import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class MemberController implements MemberApi {
-	private final TokenService tokenService;
+	private final RefreshTokenPort refreshTokenPort;
 	private final AuthenticationService authenticationService;
 	private final SocialLoginService socialLoginService;
 
@@ -77,7 +77,7 @@ public class MemberController implements MemberApi {
 	public ResponseEntity<SuccessResponse<Void>> signOut(
 		@CurrentMember final Long memberId
 	) {
-		tokenService.deleteRefreshToken(memberId);
+		refreshTokenPort.deleteRefreshToken(memberId);
 		return ResponseEntity.ok()
 			.body(SuccessResponse.from(MemberSuccessCode.SIGN_OUT_SUCCESS));
 	}

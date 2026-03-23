@@ -1,16 +1,15 @@
-package com.beat.global.auth.redis;
-
-import lombok.RequiredArgsConstructor;
-
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Repository;
+package com.beat.gateway.redis;
 
 import java.time.Duration;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Repository;
 
 @RequiredArgsConstructor
 @Repository
 public class LettuceLockRepository {
-	private final RedisTemplate<String, String> redisTemplate;
+
+	private final RedisTemplate<String, Object> redisTemplate;
 
 	public Boolean lock(String token, String lockType) {
 		return redisTemplate

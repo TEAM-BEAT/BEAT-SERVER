@@ -5,10 +5,10 @@ import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.beat.domain.member.application.dto.request.MemberLoginRequest;
 import com.beat.domain.member.application.dto.response.AccessTokenGenerateResponse;
 import com.beat.domain.member.application.dto.response.MemberLoginResponse;
-import com.beat.global.auth.annotation.CurrentMember;
-import com.beat.global.auth.client.dto.MemberLoginRequest;
+import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
 import com.beat.global.swagger.annotation.DisableSwaggerSecurity;
@@ -86,4 +86,3 @@ public interface MemberApi {
 		@CurrentMember final Long memberId
 	);
 }
-

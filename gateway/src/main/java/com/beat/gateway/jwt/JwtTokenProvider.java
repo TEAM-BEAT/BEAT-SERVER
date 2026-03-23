@@ -1,6 +1,8 @@
-package com.beat.global.auth.jwt.provider;
+package com.beat.gateway.jwt;
 
-import com.beat.domain.user.domain.Role;
+import com.beat.contracts.auth.JwtSubject;
+import com.beat.contracts.auth.JwtTokenPort;
+import com.beat.contracts.auth.TokenValidationResult;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
@@ -16,13 +18,14 @@ import java.util.Date;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class JwtTokenProvider {
+public class JwtTokenProvider implements JwtTokenPort {
+
+	private static final String MEMBER_ID = "memberId";
+	private static final String ROLE_KEY = "role";
 
 	@Value("${jwt.secret}")
 	private String jwtSecret;
@@ -33,57 +36,58 @@ public class JwtTokenProvider {
 	@Value("${jwt.refresh-token-expire-time}")
 	private long refreshTokenExpireTime;
 
-	private static final String MEMBER_ID = "memberId";
-	private static final String ROLE_KEY = "role";
-
 	@PostConstruct
 	protected void init() {
 		jwtSecret = Base64.getEncoder().encodeToString(jwtSecret.getBytes(StandardCharsets.UTF_8));
 	}
 
-	public String issueAccessToken(final Authentication authentication) {
-		return issueToken(authentication, accessTokenExpireTime);
+	@Override
+	public String issueAccessToken(JwtSubject subject) {
+		return issueToken(subject, accessTokenExpireTime);
 	}
 
-	public String issueRefreshToken(final Authentication authentication) {
-		return issueToken(authentication, refreshTokenExpireTime);
+	@Override
+	public String issueRefreshToken(JwtSubject subject) {
+		return issueToken(subject, refreshTokenExpireTime);
 	}
 
-	public JwtValidationType validateToken(String token) {
+	@Override
+	public TokenValidationResult validateToken(String token) {
 		try {
 			Claims claims = getBody(token);
 
 			if (claims.get(MEMBER_ID) == null) {
 				log.warn("JWT does not contain memberId claim");
-				return JwtValidationType.INVALID_JWT_TOKEN;
+				return TokenValidationResult.INVALID_TOKEN;
 			}
 
 			String roleName = claims.get(ROLE_KEY, String.class);
 			if (roleName == null || roleName.isBlank()) {
 				log.warn("JWT does not contain role claim");
-				return JwtValidationType.INVALID_JWT_TOKEN;
+				return TokenValidationResult.INVALID_TOKEN;
 			}
 
-			return JwtValidationType.VALID_JWT;
+			return TokenValidationResult.VALID;
 		} catch (MalformedJwtException ex) {
 			log.error("Invalid JWT Token: {}", ex.getMessage());
-			return JwtValidationType.INVALID_JWT_TOKEN;
+			return TokenValidationResult.INVALID_TOKEN;
 		} catch (ExpiredJwtException ex) {
 			log.error("Expired JWT Token: {}", ex.getMessage());
-			return JwtValidationType.EXPIRED_JWT_TOKEN;
+			return TokenValidationResult.EXPIRED;
 		} catch (UnsupportedJwtException ex) {
 			log.error("Unsupported JWT Token: {}", ex.getMessage());
-			return JwtValidationType.UNSUPPORTED_JWT_TOKEN;
+			return TokenValidationResult.UNSUPPORTED;
 		} catch (IllegalArgumentException ex) {
 			log.error("Empty JWT Token or Illegal Argument: {}", ex.getMessage());
-			return JwtValidationType.EMPTY_JWT;
+			return TokenValidationResult.EMPTY;
 		} catch (SignatureException ex) {
 			log.error("Invalid JWT Signature: {}", ex.getMessage());
-			return JwtValidationType.INVALID_JWT_SIGNATURE;
+			return TokenValidationResult.INVALID_SIGNATURE;
 		}
 	}
 
-	public Long getMemberIdFromJwt(String token) {
+	@Override
+	public Long getMemberId(String token) {
 		Claims claims = getBody(token);
 		Object memberIdClaim = claims.get(MEMBER_ID);
 
@@ -94,7 +98,8 @@ public class JwtTokenProvider {
 		return Long.valueOf(memberIdClaim.toString());
 	}
 
-	public Role getRoleFromJwt(String token) {
+	@Override
+	public String getRoleName(String token) {
 		Claims claims = getBody(token);
 		String roleName = claims.get(ROLE_KEY, String.class);
 
@@ -102,26 +107,12 @@ public class JwtTokenProvider {
 			throw new IllegalArgumentException("JWT does not contain role claim");
 		}
 
-		String enumValue = roleName.replace("ROLE_", "");
-		log.info("Final role after processing: {}", enumValue);
-
-		return Role.valueOf(enumValue.toUpperCase());
+		return roleName;
 	}
 
-	private String issueToken(final Authentication authentication, final long expiredTime) {
+	private String issueToken(final JwtSubject subject, final long expiredTime) {
 		final Date now = new Date();
 		final Date expiration = new Date(now.getTime() + expiredTime);
-
-		final String memberId = authentication.getPrincipal().toString();
-		log.debug("Authorities before token generation: {}", authentication.getAuthorities());
-
-		String role = authentication.getAuthorities()
-			.stream()
-			.map(GrantedAuthority::getAuthority)
-			.findFirst()
-			.orElseThrow(() -> new IllegalArgumentException("No authorities found for user"));
-
-		log.info("Selected role for token: {}", role);
 
 		return Jwts.builder()
 			.header()
@@ -129,8 +120,8 @@ public class JwtTokenProvider {
 			.and()
 			.issuedAt(now)
 			.expiration(expiration)
-			.claim(MEMBER_ID, memberId)
-			.claim(ROLE_KEY, role)
+			.claim(MEMBER_ID, subject.memberId())
+			.claim(ROLE_KEY, subject.roleName())
 			.signWith(getSigningKey())
 			.compact();
 	}
@@ -144,7 +135,6 @@ public class JwtTokenProvider {
 	}
 
 	private SecretKey getSigningKey() {
-		// 기존 운영 토큰 호환 유지를 위해 legacy key derivation 유지
 		String encodedKey = Base64.getEncoder().encodeToString(jwtSecret.getBytes());
 		return Keys.hmacShaKeyFor(encodedKey.getBytes());
 	}
