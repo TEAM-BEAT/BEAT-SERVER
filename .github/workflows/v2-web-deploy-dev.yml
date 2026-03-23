@@ -49,15 +49,15 @@ jobs:
       - name: Compute image name
         id: image
         run: |
-          jar_path=$(find apis/build/libs -maxdepth 1 -name 'apis-*.jar' ! -name '*-plain.jar' | head -n 1)
+          jar_path=$(find "${MODULE}/build/libs" -maxdepth 1 -name "${MODULE}-*.jar" ! -name '*-plain.jar' | head -n 1)
           if [ -z "$jar_path" ]; then
-            echo "apis jar not found" >&2
+            echo "${MODULE} jar not found" >&2
             exit 1
           fi
           SHORT_SHA=${GITHUB_SHA::7}
           echo "jar_path=${jar_path}" >> "$GITHUB_OUTPUT"
-          echo "image=${{ secrets.DEV_DOCKER_LOGIN_USERNAME }}/beat-apis:dev-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-          echo "latest=${{ secrets.DEV_DOCKER_LOGIN_USERNAME }}/beat-apis:dev-latest" >> "$GITHUB_OUTPUT"
+          echo "image=${{ secrets.DEV_DOCKER_LOGIN_USERNAME }}/beat-${MODULE}:dev-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "latest=${{ secrets.DEV_DOCKER_LOGIN_USERNAME }}/beat-${MODULE}:dev-latest" >> "$GITHUB_OUTPUT"
         shell: bash
 
       - name: Build and push image
