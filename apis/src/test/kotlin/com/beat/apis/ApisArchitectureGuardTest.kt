@@ -18,13 +18,13 @@ class ApisArchitectureGuardTest {
     }
 
     @Test
-    fun `apis main sources must not import root bootstrap lanes`() {
-        val forbiddenImports = listOf(
-            "import com.beat.BeatApplication",
-            "import com.beat.legacyroot.",
-            "import com.beat.global.common.scheduler.application.",
-            "import com.beat.global.common.config.SecurityConfig",
-            "import com.beat.global.common.config.WebConfig",
+    fun `apis main sources must not reference root bootstrap lanes`() {
+        val forbiddenReferences = listOf(
+            "com.beat.BeatApplication",
+            "com.beat.legacyroot.",
+            "com.beat.global.common.scheduler.application.",
+            "com.beat.global.common.config.SecurityConfig",
+            "com.beat.global.common.config.WebConfig",
         )
 
         val paths = Files.walk(Path.of("src/main"))
@@ -35,7 +35,7 @@ class ApisArchitectureGuardTest {
                 .toList()
                 .flatMap { path ->
                     val source = Files.readString(path)
-                    forbiddenImports
+                    forbiddenReferences
                         .filter(source::contains)
                         .map { pattern -> "${path}: $pattern" }
                 }
@@ -43,6 +43,6 @@ class ApisArchitectureGuardTest {
             paths.close()
         }
 
-        assertTrue(violations.isEmpty(), "Found forbidden root bootstrap imports:\n${violations.joinToString("\n")}")
+        assertTrue(violations.isEmpty(), "Found forbidden root bootstrap references:\n${violations.joinToString("\n")}")
     }
 }
