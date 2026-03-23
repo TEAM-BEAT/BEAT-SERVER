@@ -32,19 +32,20 @@ batch/
   src/main/kotlin/com/beat/batch/
     BatchApplication.kt
     config/
-      InfraConfig.kt           # @EnableInfraBaseConfig(JPA, QUERY_DSL, ASYNC)
-
-legacy root:
-  src/main/java/com/beat/global/common/scheduler/application/
-  src/main/java/com/beat/domain/**/application/   # 일부 scheduled service 포함
+      BatchSchedulerBootstrapConfig.kt
+      InfraConfig.kt                 # @EnableInfraBaseConfig(JPA, QUERY_DSL, ASYNC)
+  src/main/java/com/beat/
+    global/common/scheduler/application/
+    domain/**/application/          # batch-owned scheduled service 포함
 ```
 
 설명:
-- 현재 `batch` 모듈은 앱 진입점과 최소 설정만 가진 얇은 lane이다.
+- 현재 `batch` 모듈은 앱 진입점뿐 아니라 scheduler/service runtime owner도 함께 가진다.
 - `InfraConfig.kt`가 `@EnableInfraBaseConfig`로 필요한 infra 설정 그룹을 선택적으로 import한다.
+- `BatchSchedulerBootstrapConfig.kt`가 scheduler/service bean을 명시적으로 import한다.
 - 전환기 동안 `implementation(project(":"))` root 의존이 남아 있다. 최종적으로 제거 대상이다.
-- 실제 scheduler/service 코드의 상당 부분은 아직 root legacy 패키지에 남아 있다.
-- 공통 scheduler application 패키지뿐 아니라 일부 domain application service에도 scheduling 책임이 남아 있다.
+- root 기본 리소스는 scheduler owner를 비활성화하고, batch 기본 리소스가 owner를 활성화한다.
+- scheduler/service 코드는 `batch` 모듈로 이동했지만, 패키지 네임스페이스는 아직 legacy 경로를 유지한다.
 
 ## To-Be 패키지 구조
 

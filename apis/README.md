@@ -34,8 +34,9 @@ apis/
   src/main/kotlin/com/beat/apis/
     ApisApplication.kt
     config/
-      ApisBootstrapConfig.kt  # targeted @ComponentScan + root scheduler exclusions
-      InfraConfig.kt          # @EnableInfraBaseConfig(JPA, QUERY_DSL, REDIS, ASYNC, EXTERNAL_CLIENTS)
+      ApisBootstrapConfig.kt        # targeted @ComponentScan for legacy apis-owned packages
+      ApisScheduleJobPortConfig.kt # non-owner ScheduleJobPort bridge
+      InfraConfig.kt               # @EnableInfraBaseConfig(JPA, QUERY_DSL, REDIS, ASYNC, EXTERNAL_CLIENTS)
 
   src/main/java/com/beat/domain/*/
     api/
@@ -50,9 +51,9 @@ apis/
 - `InfraConfig.kt`가 `@EnableInfraBaseConfig`로 필요한 infra 설정 그룹을 선택적으로 import한다.
 - `ApisApplication`의 raw broad `@ComponentScan`은 제거됐고, `ApisBootstrapConfig`가 필요한 legacy 패키지만 targeted scan한다.
 - 실제 사용자 API 컨트롤러와 애플리케이션 서비스 다수는 아직 legacy 패키지(`com.beat.domain.*`, `com.beat.global.*`)를 유지한다.
-- root의 `TicketCleanupScheduler`, `PromotionSchedulerService`는 아직 같은 패키지 네임스페이스에 남아 있으므로 `ApisBootstrapConfig`에서 명시적으로 exclude한다.
+- `ScheduleJobPort`는 이제 root scheduler 구현을 스캔하지 않고, `ApisScheduleJobPortConfig`의 non-owner bridge로 충족한다.
 - 전환기 동안 `implementation(project(":"))` root 의존이 남아 있다. 최종적으로 제거 대상이다.
-- 즉 현재는 **실행 lane과 bootstrap ownership은 `apis`로 분리됐지만, 패키지 구조와 일부 scheduler 관련 root coupling은 아직 남아 있는 상태**다.
+- 즉 현재는 **실행 lane과 bootstrap ownership은 `apis`로 분리됐고, scheduler runtime ownership도 root가 아니라 `batch`로 넘어간 상태**다.
 
 ## To-Be 패키지 구조
 
@@ -92,7 +93,7 @@ com.beat.apis.<context>/
 ## Root Coupling Surface
 
 > 현재 `:apis`는 broad scan에 기대지 않지만, 전환기 동안 여전히 `project(":")`에 build-time으로 의존한다.
-> 이 의존은 Step 8 이후 남은 root scheduler leftovers와 legacy root baseline 때문에 유지된다.
+> 이 의존은 legacy root baseline과 남은 전환기 bootstrap 표면 때문에 유지되며, scheduler runtime bridge는 더 이상 이유가 아니다.
 
 ### Decision Memo — Why `ApisBootstrapConfig` still exists
 
@@ -101,48 +102,47 @@ com.beat.apis.<context>/
 
 #### 지금 유지해야 하는 이유
 
-- `apis` 내부 서비스 중 일부는 아직 root scheduler bridge에 의존한다.
-- 예를 들어 `PerformanceManagementService`는 `ScheduleJobPort`를 주입받고, 현재 그 구현 bean은 root의 `JobSchedulerService`다.
-- 그래서 `ApisBootstrapConfig`는 legacy package scan을 최소 범위로 통제하면서도, 필요한 root scheduler bridge만 명시적으로 연결한다.
+- `apis` 내부 서비스는 아직 legacy package 네임스페이스에 남아 있어 targeted scan이 필요하다.
+- `PerformanceManagementService`, `PerformanceModifyService`는 `ScheduleJobPort`를 주입받지만, 현재는 `ApisScheduleJobPortConfig`가 non-owner bridge를 제공한다.
+- 그래서 `ApisBootstrapConfig`는 legacy package scan을 최소 범위로 통제하는 용도로 유지되며, root scheduler bridge는 더 이상 담당하지 않는다.
 
 #### 언제 제거 가능한가
 
 - `ApisBootstrapConfig`는 아래 조건이 충족되면 제거 대상이다.
-1. `ScheduleJobPort` 구현이 root가 아니라 `batch` 또는 다른 명시적 모듈 경계로 이동
-2. `TicketCleanupScheduler`, `PromotionSchedulerService`가 root package overlap 없이 정리
-3. `apis` 소유 bean이 `com.beat.apis.*` 아래로 충분히 이관되어 기본 module scan만으로 기동 가능
+1. `apis` 소유 bean이 `com.beat.apis.*` 아래로 충분히 이관되어 기본 module scan만으로 기동 가능
+2. 남은 legacy package overlap이 정리
+3. `apis/build.gradle.kts`의 `implementation(project(":"))` 제거 가능 상태 검증
 
 #### 제거하려면 필요한 선행조건
 
 1. scheduler ownership migration 완료
-2. root scheduler bridge 제거 또는 대체 경계 확정
+2. legacy package 이관 또는 bootstrap 대체 경계 확정
 3. `apis/build.gradle.kts`의 `implementation(project(":"))` 제거 가능 상태 검증
 
 즉, 현재 결론은 다음과 같다.
 - **최종 방향**: `com.beat.apis.*` 아래로 패키지 이관
 - **현재 판단**: `ApisBootstrapConfig` 유지
-- **이유**: 지금은 legacy package 문제만이 아니라 root scheduler bridge 문제도 함께 걸려 있기 때문
+- **이유**: 지금은 legacy package 문제와 전환기 bootstrap 유지 문제가 남아 있기 때문
 
 ### 1. Active unresolved coupling
 
-#### 1-1. Root scheduler leftovers
+#### 1-1. Scheduler runtime handoff 완료
 
-`ApisBootstrapConfig`는 targeted scan을 사용하지만, 아래 root scheduler 클래스가 아직 같은 패키지 네임스페이스를 공유한다.
-이 중 `JobSchedulerService` 계열은 현재 `ScheduleJobPort`를 통해 `apis` runtime이 실제로 사용하고 있고,
-`TicketCleanupScheduler`, `PromotionSchedulerService`는 명시적 exclusion으로 막고 있다.
+`ApisBootstrapConfig`는 더 이상 scheduler bean을 targeted scan 하지 않는다.
+active scheduler runtime owner는 `batch`이고, `apis`는 non-owner `ScheduleJobPort` bridge만 가진다.
 
 | Bean | 현재 위치 | 현재 상태 | 후속 행선지 |
 |------|----------|-----------|------------|
-| `TicketCleanupScheduler` | `src/main/java/com/beat/domain/booking/application` | `ApisBootstrapConfig`에서 exclude | batch |
-| `PromotionSchedulerService` | `src/main/java/com/beat/domain/promotion/application` | `ApisBootstrapConfig`에서 exclude | batch |
-| `JobSchedulerService` | `src/main/java/com/beat/global/common/scheduler/application` | `ApisBootstrapConfig`를 통해 runtime 사용 중 | batch |
-| `JobSchedulerTransactionalService` | `src/main/java/com/beat/global/common/scheduler/application` | `JobSchedulerService` 의존성으로 runtime 사용 중 | batch |
+| `TicketCleanupScheduler` | `batch/src/main/java/com/beat/domain/booking/application` | batch runtime owner | 추후 package 정리 |
+| `PromotionSchedulerService` | `batch/src/main/java/com/beat/domain/promotion/application` | batch runtime owner | 추후 package 정리 |
+| `JobSchedulerService` | `batch/src/main/java/com/beat/global/common/scheduler/application` | batch runtime owner + active `ScheduleJobPort` 구현 | 추후 package 정리 |
+| `JobSchedulerTransactionalService` | `batch/src/main/java/com/beat/global/common/scheduler/application` | batch runtime owner support bean | 추후 package 정리 |
 
 #### 1-2. Legacy root baseline
 
 | 항목 | 현재 위치 | 현재 상태 |
 |------|----------|-----------|
-| root `BeatApplication` | `src/main/java/com/beat/BeatApplication.java` | legacy baseline 유지 |
+| root `BeatApplication` | `src/main/java/com/beat/BeatApplication.java` | legacy baseline 유지, scheduler owner 기본값은 false |
 | root `@EnableFeignClients` | `src/main/java/com/beat/BeatApplication.java` | root 전용 transitional 유지 |
 | `LegacyRootSecurityConfig` | `src/main/java/com/beat/legacyroot/config` | root lane 유지용 |
 
@@ -150,7 +150,7 @@ com.beat.apis.<context>/
 
 | 항목 | 현재 상태 | 왜 아직 남아 있나 |
 |------|----------|------------------|
-| `implementation(project(":"))` | `apis/build.gradle.kts`에 유지 | `ApisBootstrapConfig`와 테스트가 root scheduler bridge (`JobSchedulerService`, `TicketCleanupScheduler`, `PromotionSchedulerService`)를 아직 참조하고 있고, batch/root retirement를 이 브랜치에서 하지 않기 때문 |
+| `implementation(project(":"))` | `apis/build.gradle.kts`에 유지 | legacy root baseline과 남은 전환기 bootstrap 표면을 이 브랜치에서 retire하지 않기 때문 |
 
 ### 2. Resolved on this branch or earlier steps
 
@@ -175,7 +175,7 @@ com.beat.apis.<context>/
 |------|----------|-----------|
 | `ApisApplication` scan | raw broad `@ComponentScan(basePackages = ["com.beat.domain", "com.beat.global"])` | `ApisBootstrapConfig` explicit import |
 | Feign bootstrap | app module가 직접 보유 | 제거 완료, external bootstrap은 `infra` 소관 |
-| scheduler overlap | broad scan에 묻혀 있었음 | 명시적 exclusion으로 드러남 |
+| scheduler bridge | root `JobSchedulerService` scan | apis-local non-owner `ScheduleJobPort` bridge |
 
 #### 2-3. Application/service ownership — `apis` 모듈로 이관 완료
 
@@ -210,8 +210,8 @@ com.beat.apis.<context>/
 
 ### #360 에서 바로 해야 할 일
 
-1. root scheduler leftovers를 `batch`로 이동하거나 네임스페이스 overlap을 제거
-2. `JpaConfig`의 `@EntityScan`, `@EnableJpaRepositories` 범위를 모듈별로 축소
-3. `RedisConfig`의 `@EnableRedisRepositories` basePackages를 gateway/auth ownership으로 이동
-4. `batch/root` retirement 이후 `apis/build.gradle.kts`에서 `project(":")` 제거
-5. 남아 있는 legacy package names를 점진적으로 `com.beat.apis.<context>` 구조로 정리
+1. `JpaConfig`의 `@EntityScan`, `@EnableJpaRepositories` 범위를 모듈별로 축소
+2. `RedisConfig`의 `@EnableRedisRepositories` basePackages를 gateway/auth ownership으로 이동
+3. `batch/root` retirement 이후 `apis/build.gradle.kts`에서 `project(":")` 제거
+4. 남아 있는 legacy package names를 점진적으로 `com.beat.apis.<context>` 구조로 정리
+5. `ApisBootstrapConfig`, `ApisScheduleJobPortConfig`를 최종 module-local bootstrap으로 더 축소할 수 있는지 검토
