@@ -4,7 +4,6 @@ plugins {
 
 dependencies {
     implementation(project(":module-contracts"))
-    implementation(project(":"))
     implementation(project(":gateway"))
     implementation(project(":domain"))
     implementation(project(":infra"))
