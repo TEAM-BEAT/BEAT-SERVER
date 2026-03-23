@@ -1,7 +1,6 @@
 package com.beat.global.common.scheduler.application;
 
 import com.beat.contracts.schedule.ScheduleJobPort;
-import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 
 import lombok.RequiredArgsConstructor;
@@ -10,8 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -37,9 +36,8 @@ public class JobSchedulerService implements ScheduleJobPort {
 	// 스케줄 ID와 관련된 작업을 관리하기 위한 ConcurrentHashMap 선언
 	private final Map<Long, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
 
-	// ApplicationReadyEvent는 애플리케이션이 완전히 시작된 후에 한 번만 실행됩니다.
 	@EventListener(ApplicationReadyEvent.class)
-	public void onApplicationReady(ApplicationReadyEvent event) {
+	public void onApplicationReady() {
 		if (!schedulerOwner) {
 			log.info("Skipping schedule rehydration because this runtime is not the scheduler owner.");
 			return;
@@ -60,7 +58,7 @@ public class JobSchedulerService implements ScheduleJobPort {
 
 		schedules.forEach(schedule -> {
 			pendingScheduleIds.add(schedule.getId());
-			addScheduleIfNotExists(schedule);
+			registerOrRefresh(schedule);
 		});
 
 		new ArrayList<>(scheduledTasks.keySet()).stream()
@@ -91,11 +89,6 @@ public class JobSchedulerService implements ScheduleJobPort {
 		schedulePendingTask(schedule);
 	}
 
-	// Legacy bridge kept until root scheduler ownership is retired in the later batch handover step.
-	public void addScheduleIfNotExists(Schedule schedule) {
-		registerOrRefresh(schedule);
-	}
-
 	// 스케줄 종료 시 isBooking을 false로 업데이트
 	public void updateIsBookingFalse(Long scheduleId) {
 		log.info("Updating isBooking to false for schedule ID: {}", scheduleId);
@@ -115,11 +108,6 @@ public class JobSchedulerService implements ScheduleJobPort {
 		}
 
 		cancelScheduledTaskById(schedule.getId());
-	}
-
-	// Legacy bridge kept until root scheduler ownership is retired in the later batch handover step.
-	public void cancelScheduledTaskForPerformance(Schedule schedule) {
-		cancel(schedule);
 	}
 
 	private void schedulePendingTask(Schedule schedule) {

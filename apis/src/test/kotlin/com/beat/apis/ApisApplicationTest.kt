@@ -1,10 +1,9 @@
 package com.beat.apis
 
 import com.beat.apis.config.ApisBootstrapConfig
+import com.beat.apis.config.ApisScheduleJobPortConfig
 import com.beat.apis.config.ApisSecurityConfig
 import com.beat.apis.config.InfraConfig
-import com.beat.domain.booking.application.TicketCleanupScheduler
-import com.beat.domain.promotion.application.PromotionSchedulerService
 import com.beat.gateway.GatewayModuleConfig
 import com.beat.observability.ObservabilityModuleConfig
 import java.nio.file.Files
@@ -17,7 +16,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
-import org.springframework.context.annotation.FilterType
 import org.springframework.scheduling.annotation.EnableScheduling
 
 class ApisApplicationTest {
@@ -53,7 +51,7 @@ class ApisApplicationTest {
     }
 
     @Test
-    fun `apis bootstrap config scans targeted application packages and excludes root schedulers`() {
+    fun `apis bootstrap config scans targeted application packages without root scheduler bridge`() {
         val scan = ApisBootstrapConfig::class.java.getAnnotation(ComponentScan::class.java)
         assertNotNull(scan)
 
@@ -67,13 +65,14 @@ class ApisApplicationTest {
         assertTrue(scannedClassNames.contains("com.beat.domain.user.application.UserService"))
         assertTrue(scannedClassNames.contains("com.beat.global.external.s3.api.FileController"))
         assertTrue(scannedClassNames.contains("com.beat.global.external.notification.slack.event.BookingCreatedEventListener"))
-        assertTrue(scannedClassNames.contains("com.beat.global.common.scheduler.application.JobSchedulerService"))
+        assertFalse(scannedClassNames.contains("com.beat.global.common.scheduler.application.JobSchedulerService"))
+        assertTrue(scan.excludeFilters.isEmpty())
+    }
 
-        val exclusion = scan.excludeFilters.single()
-        assertTrue(exclusion.type == FilterType.ASSIGNABLE_TYPE)
-        val excludedClassNames = exclusion.classes.map { it.java.name }.toSet()
-        assertTrue(excludedClassNames.contains(TicketCleanupScheduler::class.java.name))
-        assertTrue(excludedClassNames.contains(PromotionSchedulerService::class.java.name))
+    @Test
+    fun `apis keeps schedule job port bridge inside apis config`() {
+        val configuration = ApisScheduleJobPortConfig::class.java.getAnnotation(Configuration::class.java)
+        assertNotNull(configuration)
     }
 
     @Test

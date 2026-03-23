@@ -52,9 +52,9 @@ jobs:
         env:
           VERSION_INPUT: ${{ github.event.inputs.version }}
         run: |
-          jar_path=$(find apis/build/libs -maxdepth 1 -name 'apis-*.jar' ! -name '*-plain.jar' | head -n 1)
+          jar_path=$(find "${MODULE}/build/libs" -maxdepth 1 -name "${MODULE}-*.jar" ! -name '*-plain.jar' | head -n 1)
           if [ -z "$jar_path" ]; then
-            echo "apis jar not found" >&2
+            echo "${MODULE} jar not found" >&2
             exit 1
           fi
           if [[ -z "$VERSION_INPUT" ]]; then
@@ -67,8 +67,8 @@ jobs:
           fi
           VERSION="$VERSION_INPUT"
           echo "jar_path=${jar_path}" >> "$GITHUB_OUTPUT"
-          echo "image=${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}/beat-apis:${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "latest=${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}/beat-apis:prod-latest" >> "$GITHUB_OUTPUT"
+          echo "image=${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}/beat-${MODULE}:${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "latest=${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}/beat-${MODULE}:prod-latest" >> "$GITHUB_OUTPUT"
         shell: bash
 
       - name: Build and push image

@@ -4,4 +4,4 @@ spring:
 
 beat:
   scheduler:
-    owner: true
+    owner: false
