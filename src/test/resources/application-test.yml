@@ -1,4 +1,15 @@
 spring:
+  cloud:
+    aws:
+      region:
+        static: ap-northeast-2
+      credentials:
+        access-key: test-access-key
+        secret-key: test-secret-key
+      secretsmanager:
+        enabled: false
+      parameterstore:
+        enabled: false
   # MySQL container is provided automatically by the Testcontainers JDBC driver.
   datasource:
     url: jdbc:tc:mysql:8.0.39:///beat_test
