@@ -1,12 +1,7 @@
 spring:
   main:
     allow-bean-definition-overriding: true
-  datasource:
-    url: jdbc:tc:mysql:8.0.39:///beat_admin_test
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
-    username: test
-    password: test
-
+  # MySQL datasource is auto-configured by @ServiceConnection in test classes.
   jpa:
     hibernate:
       ddl-auto: create-drop

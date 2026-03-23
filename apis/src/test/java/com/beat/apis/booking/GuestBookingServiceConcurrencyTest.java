@@ -1,29 +1,8 @@
-package com.beat.domain.booking;
+package com.beat.apis.booking;
 
-import com.beat.support.AbstractIntegrationTest;
-import com.beat.domain.booking.application.GuestBookingService;
-import com.beat.domain.booking.application.dto.GuestBookingRequest;
-import com.beat.domain.booking.application.dto.GuestBookingResponse;
-import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.schedule.exception.ScheduleErrorCode;
-import com.beat.domain.performance.dao.PerformanceRepository;
-import com.beat.domain.performance.domain.BankName;
-import com.beat.domain.performance.domain.Genre;
-import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.schedule.dao.ScheduleRepository;
-import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.schedule.domain.ScheduleNumber;
-import com.beat.domain.booking.dao.BookingRepository;
-import com.beat.domain.user.dao.UserRepository;
-import com.beat.domain.user.domain.Users;
-import com.beat.global.common.exception.BadRequestException;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,9 +14,30 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.beat.apis.support.AbstractIntegrationTest;
+import com.beat.domain.booking.application.GuestBookingService;
+import com.beat.domain.booking.application.dto.GuestBookingRequest;
+import com.beat.domain.booking.application.dto.GuestBookingResponse;
+import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.domain.performance.dao.PerformanceRepository;
+import com.beat.domain.performance.domain.BankName;
+import com.beat.domain.performance.domain.Genre;
+import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.domain.Schedule;
+import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.domain.schedule.exception.ScheduleErrorCode;
+import com.beat.domain.user.dao.UserRepository;
+import com.beat.domain.user.domain.Users;
+import com.beat.global.common.exception.BadRequestException;
 
 class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 
@@ -153,7 +153,8 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 	) {
 		List<Future<Boolean>> futures = new ArrayList<>();
 		for (int i = 0; i < requestCount; i++) {
-			futures.add(executorService.submit(() -> createGuestBooking(schedule, purchaseTicketCount, scheduleNumber)));
+			futures.add(
+				executorService.submit(() -> createGuestBooking(schedule, purchaseTicketCount, scheduleNumber)));
 		}
 		return futures;
 	}
@@ -161,7 +162,8 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 	private boolean createGuestBooking(Schedule schedule, int purchaseTicketCount, ScheduleNumber scheduleNumber) {
 		try {
 			GuestBookingResponse response =
-				guestBookingService.createGuestBooking(createGuestBookingRequest(schedule, purchaseTicketCount, scheduleNumber));
+				guestBookingService.createGuestBooking(
+					createGuestBookingRequest(schedule, purchaseTicketCount, scheduleNumber));
 			assertNotNull(response);
 			return true;
 		} catch (BadRequestException e) {

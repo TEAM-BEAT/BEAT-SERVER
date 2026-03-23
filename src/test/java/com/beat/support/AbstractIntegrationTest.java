@@ -1,34 +1,28 @@
 package com.beat.support;
 
-import com.redis.testcontainers.RedisContainer;
 import org.junit.jupiter.api.Tag;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.containers.MySQLContainer;
 
-/**
- * Shared integration-test base for the legacy root lane.
- *
- * <p>MySQL is started through the Testcontainers JDBC driver in {@code application-test.yml},
- * while Redis is managed here through the JUnit 5 Testcontainers lifecycle so Spring can receive
- * the dynamic host and port via {@link DynamicPropertySource}.</p>
- */
+import com.redis.testcontainers.RedisContainer;
+
 @SpringBootTest
 @ActiveProfiles("test")
 @Tag("integration")
-@Testcontainers
 public abstract class AbstractIntegrationTest {
 
-	@Container
-	private static final RedisContainer REDIS_CONTAINER =
+	@ServiceConnection
+	static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0.39")
+		.withDatabaseName("beat_test");
+
+	@ServiceConnection
+	static RedisContainer redis =
 		new RedisContainer(RedisContainer.DEFAULT_IMAGE_NAME.withTag(RedisContainer.DEFAULT_TAG));
 
-	@DynamicPropertySource
-	static void redisProperties(DynamicPropertyRegistry registry) {
-		registry.add("spring.data.redis.host", REDIS_CONTAINER::getHost);
-		registry.add("spring.data.redis.port", REDIS_CONTAINER::getFirstMappedPort);
+	static {
+		mysql.start();
+		redis.start();
 	}
 }
