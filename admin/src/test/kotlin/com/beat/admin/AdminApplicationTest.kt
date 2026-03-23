@@ -1,32 +1,52 @@
 package com.beat.admin
 
+import com.beat.admin.config.AdminSecurityConfig
 import com.beat.admin.config.InfraConfig
 import com.beat.gateway.GatewayModuleConfig
 import com.beat.observability.ObservabilityModuleConfig
-import java.nio.file.Files
-import java.nio.file.Path
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.context.annotation.ComponentScan
+import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 import org.springframework.scheduling.annotation.EnableScheduling
+import java.nio.file.Files
+import java.nio.file.Path
 
 class AdminApplicationTest {
 
     @Test
-    fun `admin application keeps transition baseline module imports`() {
+    fun `admin application keeps detached module import contract`() {
         val importAnnotation = AdminApplication::class.java.getAnnotation(Import::class.java)
         val importedClassNames = importAnnotation.value.map { it.java.name }.toSet()
 
-        assertTrue(importedClassNames.contains(GatewayModuleConfig::class.java.name))
-        assertTrue(importedClassNames.contains(InfraConfig::class.java.name))
-        assertTrue(importedClassNames.contains(ObservabilityModuleConfig::class.java.name))
+        assertEquals(
+            setOf(
+                GatewayModuleConfig::class.java.name,
+                InfraConfig::class.java.name,
+                ObservabilityModuleConfig::class.java.name,
+            ),
+            importedClassNames,
+        )
     }
 
     @Test
-    fun `admin application does not keep transitional broad component scan`() {
+    fun `gateway module imports auth bootstrap config`() {
+        val componentScan = GatewayModuleConfig::class.java.getAnnotation(ComponentScan::class.java)
+
+        assertNotNull(componentScan)
+        assertTrue(componentScan.basePackages.contains("com.beat.gateway"))
+    }
+
+    @Test
+    fun `admin security config exists for module owned route policy`() {
+        val configuration = AdminSecurityConfig::class.java.getAnnotation(Configuration::class.java)
+
+        assertNotNull(configuration)
+    }
+
+    @Test
+    fun `admin application no longer owns broad component scan`() {
         val componentScan = AdminApplication::class.java.getAnnotation(ComponentScan::class.java)
         assertNull(componentScan)
     }
@@ -40,7 +60,10 @@ class AdminApplicationTest {
     @Test
     fun `admin application no longer owns feign bootstrap scanning`() {
         val source = Files.readString(Path.of("src/main/kotlin/com/beat/admin/AdminApplication.kt"))
+
         assertFalse(source.contains("@EnableFeignClients"))
+        assertFalse(source.contains("\"com.beat.domain\""))
+        assertFalse(source.contains("\"com.beat.global\""))
     }
 
     @Test
