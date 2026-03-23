@@ -1,34 +1,35 @@
 package com.beat.apis
 
 import com.beat.apis.config.ApisBootstrapConfig
-import com.beat.apis.config.ApisScheduleJobPortConfig
 import com.beat.apis.config.ApisSecurityConfig
 import com.beat.apis.config.InfraConfig
 import com.beat.gateway.GatewayModuleConfig
 import com.beat.observability.ObservabilityModuleConfig
-import java.nio.file.Files
-import java.nio.file.Path
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 import org.springframework.scheduling.annotation.EnableScheduling
+import java.nio.file.Files
+import java.nio.file.Path
 
 class ApisApplicationTest {
 
     @Test
-    fun `apis application keeps transition baseline module imports`() {
+    fun `apis application keeps detached module import contract`() {
         val importAnnotation = ApisApplication::class.java.getAnnotation(Import::class.java)
         val importedClassNames = importAnnotation.value.map { it.java.name }.toSet()
 
-        assertTrue(importedClassNames.contains(ApisBootstrapConfig::class.java.name))
-        assertTrue(importedClassNames.contains(GatewayModuleConfig::class.java.name))
-        assertTrue(importedClassNames.contains(InfraConfig::class.java.name))
-        assertTrue(importedClassNames.contains(ObservabilityModuleConfig::class.java.name))
+        assertEquals(
+            setOf(
+                ApisBootstrapConfig::class.java.name,
+                GatewayModuleConfig::class.java.name,
+                InfraConfig::class.java.name,
+                ObservabilityModuleConfig::class.java.name,
+            ),
+            importedClassNames,
+        )
     }
 
     @Test
@@ -51,7 +52,7 @@ class ApisApplicationTest {
     }
 
     @Test
-    fun `apis bootstrap config scans targeted application packages without root scheduler bridge`() {
+    fun `apis bootstrap config scans targeted application packages without root scheduler owner`() {
         val scan = ApisBootstrapConfig::class.java.getAnnotation(ComponentScan::class.java)
         assertNotNull(scan)
 
@@ -66,13 +67,19 @@ class ApisApplicationTest {
         assertTrue(scannedClassNames.contains("com.beat.global.external.s3.api.FileController"))
         assertTrue(scannedClassNames.contains("com.beat.global.external.notification.slack.event.BookingCreatedEventListener"))
         assertFalse(scannedClassNames.contains("com.beat.global.common.scheduler.application.JobSchedulerService"))
+        assertFalse(scannedClassNames.contains("com.beat.BeatApplication"))
+        assertFalse(scannedClassNames.any { it.startsWith("com.beat.legacyroot.") })
         assertTrue(scan.excludeFilters.isEmpty())
     }
 
     @Test
-    fun `apis keeps schedule job port bridge inside apis config`() {
-        val configuration = ApisScheduleJobPortConfig::class.java.getAnnotation(Configuration::class.java)
-        assertNotNull(configuration)
+    fun `apis keeps schedule job port bridge as module local non owner contract`() {
+        val source = Files.readString(Path.of("src/main/kotlin/com/beat/apis/config/ApisScheduleJobPortConfig.kt"))
+
+        assertTrue(source.contains("@ConditionalOnProperty(name = [\"beat.scheduler.owner\"], havingValue = \"false\", matchIfMissing = true)"))
+        assertTrue(source.contains("@ConditionalOnMissingBean(ScheduleJobPort::class)"))
+        assertTrue(source.contains("fun scheduleJobPort(): ScheduleJobPort = NonOwnerScheduleJobPort"))
+        assertFalse(source.contains("JobSchedulerService"))
     }
 
     @Test

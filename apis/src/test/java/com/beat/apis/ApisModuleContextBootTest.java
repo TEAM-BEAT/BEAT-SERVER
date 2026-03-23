@@ -1,32 +1,31 @@
 package com.beat.apis;
 
-import com.redis.testcontainers.RedisContainer;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 
-@SpringBootTest(classes = ApisApplication.class)
-@ActiveProfiles("test")
+import com.beat.contracts.schedule.ScheduleJobPort;
+import com.beat.apis.support.AbstractIntegrationTest;
+
 @Tag("integration")
-@Testcontainers
-class ApisModuleContextBootTest {
+class ApisModuleContextBootTest extends AbstractIntegrationTest {
 
-	@Container
-	private static final RedisContainer REDIS_CONTAINER =
-		new RedisContainer(RedisContainer.DEFAULT_IMAGE_NAME.withTag(RedisContainer.DEFAULT_TAG));
+	@Autowired
+	private ApplicationContext applicationContext;
 
-	@DynamicPropertySource
-	static void redisProperties(DynamicPropertyRegistry registry) {
-		registry.add("spring.data.redis.host", REDIS_CONTAINER::getHost);
-		registry.add("spring.data.redis.port", REDIS_CONTAINER::getFirstMappedPort);
-	}
+	@Autowired
+	private ScheduleJobPort scheduleJobPort;
 
 	@Test
-	void contextLoads() {
+	void contextLoadsWithModuleLocalNonOwnerScheduleJobPort() {
+		assertNotNull(scheduleJobPort);
+		assertEquals(1, applicationContext.getBeansOfType(ScheduleJobPort.class).size());
+		assertFalse(applicationContext.containsBean("jobSchedulerService"));
+		assertFalse(scheduleJobPort.getClass().getName().contains("JobSchedulerService"));
 	}
 }

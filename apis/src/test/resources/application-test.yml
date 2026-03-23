@@ -12,13 +12,7 @@ spring:
         enabled: false
       parameterstore:
         enabled: false
-  # MySQL container is provided automatically by the Testcontainers JDBC driver.
-  datasource:
-    url: jdbc:tc:mysql:8.0.39:///beat_test
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
-    username: test
-    password: test
-
+  # MySQL datasource is auto-configured by @ServiceConnection in AbstractIntegrationTest.
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -28,7 +22,7 @@ spring:
         dialect: com.beat.infra.config.MysqlCustomDialect
         format_sql: true
 
-  # Redis host/port is injected dynamically from AbstractIntegrationTest.
+  # Redis is auto-configured by @ServiceConnection in AbstractIntegrationTest.
   security:
     oauth2:
       client:

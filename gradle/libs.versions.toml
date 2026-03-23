@@ -84,6 +84,7 @@ slack-api-client = { module = "com.slack.api:slack-api-client", version = "1.45.
 testcontainers-mysql = { module = "org.testcontainers:mysql", version.ref = "testcontainers" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
 testcontainers-redis = { module = "com.redis:testcontainers-redis", version.ref = "redis-testcontainers" }
+spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers", version.ref = "spring-boot" }
 
 [bundles]
 boot-app-core = [
@@ -107,5 +108,6 @@ test-common = [
 integration-testcontainers = [
     "testcontainers-mysql",
     "testcontainers-junit-jupiter",
-    "testcontainers-redis"
+    "testcontainers-redis",
+    "spring-boot-testcontainers"
 ]
