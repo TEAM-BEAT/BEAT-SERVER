@@ -1,9 +1,9 @@
 package com.beat.global.external.s3.api;
 
+import com.beat.contracts.storage.FileStoragePort;
 import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.external.s3.api.dto.PerformanceMakerPresignedUrlFindAllResponse;
 import com.beat.global.external.s3.exception.FileSuccessCode;
-import com.beat.global.external.s3.application.dto.PerformanceMakerPresignedUrlFindAllResponse;
-import com.beat.global.external.s3.port.in.FileUseCase;
 
 import lombok.RequiredArgsConstructor;
 
@@ -20,7 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FileController implements FileApi {
 
-	private final FileUseCase fileUseCase;
+	private final FileStoragePort fileStoragePort;
 
 	@GetMapping("/presigned-url")
 	@Override
@@ -40,8 +40,15 @@ public class FileController implements FileApi {
 			performanceImages = List.of();
 		}
 
-		PerformanceMakerPresignedUrlFindAllResponse response = fileUseCase.issueAllPresignedUrlsForPerformanceMaker(
-			posterImage, castImages, staffImages, performanceImages);
+		// S3 upload URL issuance is currently public by existing API policy.
+		PerformanceMakerPresignedUrlFindAllResponse response = PerformanceMakerPresignedUrlFindAllResponse.from(
+			fileStoragePort.issueAllPresignedUrlsForPerformanceMaker(
+				posterImage,
+				castImages,
+				staffImages,
+				performanceImages
+			)
+		);
 		return ResponseEntity.ok(SuccessResponse.of(FileSuccessCode.PERFORMANCE_MAKER_PRESIGNED_URL_ISSUED, response));
 	}
 }
