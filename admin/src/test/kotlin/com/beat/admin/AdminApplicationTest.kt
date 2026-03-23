@@ -18,7 +18,8 @@ class AdminApplicationTest {
     @Test
     fun `admin application keeps detached module import contract`() {
         val importAnnotation = AdminApplication::class.java.getAnnotation(Import::class.java)
-        val importedClassNames = importAnnotation.value.map { it.java.name }.toSet()
+        assertNotNull(importAnnotation, "AdminApplication must declare @Import")
+        val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
 
         assertEquals(
             setOf(
