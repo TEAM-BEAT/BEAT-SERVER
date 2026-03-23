@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration
         InfraBaseConfigGroup.QUERY_DSL,
         InfraBaseConfigGroup.REDIS,
         InfraBaseConfigGroup.ASYNC,
+        InfraBaseConfigGroup.EXTERNAL_CLIENTS,
     ]
 )
 class InfraConfig

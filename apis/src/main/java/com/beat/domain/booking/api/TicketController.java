@@ -21,7 +21,7 @@ import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.exception.TicketErrorCode;
 import com.beat.domain.booking.exception.TicketSuccessCode;
 import com.beat.domain.schedule.domain.ScheduleNumber;
-import com.beat.global.auth.annotation.CurrentMember;
+import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 import com.beat.global.common.exception.BadRequestException;
 

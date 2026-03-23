@@ -7,14 +7,11 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
 import org.springframework.util.StringUtils;
 
 import com.beat.infra.InfraBaseConfig;
 
-// TODO: transition-only — auth.jwt.dao ownership이 gateway/auth 모듈로 이동하는 시점에 @EnableRedisRepositories도 함께 이동
 @Configuration(proxyBeanMethods = false)
-@EnableRedisRepositories(basePackages = "com.beat.global.auth.jwt.dao")
 public class RedisConfig implements InfraBaseConfig {
 
 	@Value("${spring.data.redis.host:localhost}")

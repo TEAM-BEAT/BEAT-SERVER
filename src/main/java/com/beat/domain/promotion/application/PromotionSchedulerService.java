@@ -1,10 +1,8 @@
 package com.beat.domain.promotion.application;
 
-import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.promotion.dao.PromotionRepository;
 import com.beat.domain.promotion.domain.CarouselNumber;
 import com.beat.domain.promotion.domain.Promotion;
-import com.beat.domain.schedule.application.ScheduleService;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 
@@ -16,11 +14,13 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.OptionalInt;
 
 @Slf4j
 @Service
@@ -29,7 +29,6 @@ public class PromotionSchedulerService {
 
 	private final PromotionRepository promotionRepository;
 	private final ScheduleRepository scheduleRepository;
-	private final ScheduleService scheduleService;
 
 	@Value("${beat.scheduler.owner:false}")
 	private boolean schedulerOwner;
@@ -60,9 +59,26 @@ public class PromotionSchedulerService {
 		return Optional.ofNullable(promotion.getPerformance())
 			.map(performance -> {
 				List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performance.getId());
-				return scheduleService.getMinDueDate(schedules) < 0;
+				return getMinDueDate(schedules) < 0;
 			})
 			.orElse(false);
+	}
+
+	private int getMinDueDate(List<Schedule> schedules) {
+		OptionalInt minPositiveDueDate = schedules.stream()
+			.mapToInt(schedule -> (int)ChronoUnit.DAYS.between(LocalDate.now(),
+				schedule.getPerformanceDate().toLocalDate()))
+			.filter(dueDate -> dueDate >= 0)
+			.min();
+
+		if (minPositiveDueDate.isPresent()) {
+			return minPositiveDueDate.getAsInt();
+		}
+		return schedules.stream()
+			.mapToInt(schedule -> (int)ChronoUnit.DAYS.between(LocalDate.now(),
+				schedule.getPerformanceDate().toLocalDate()))
+			.min()
+			.orElse(Integer.MAX_VALUE);
 	}
 
 	private void reassignCarouselNumbers() {
