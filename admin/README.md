@@ -32,7 +32,7 @@ admin/
   src/main/kotlin/com/beat/admin/
     AdminApplication.kt
     config/
-      InfraConfig.kt           # @EnableInfraBaseConfig(JPA, QUERY_DSL, REDIS, ASYNC)
+      InfraConfig.kt           # @EnableInfraBaseConfig(JPA, QUERY_DSL, REDIS, ASYNC, EXTERNAL_CLIENTS)
 
   src/main/java/com/beat/admin/
     adapter/in/api/
@@ -49,6 +49,7 @@ admin/
 설명:
 
 - 현재 `admin`은 `adapter/in/api`, `facade`, `application`, `port/in`이 함께 존재하는 전환기 구조다.
+- `AdminApplication`은 `@SpringBootApplication(scanBasePackageClasses = [AdminApplication::class])`만으로 `com.beat.admin.*`를 기동하고, 별도 transitional `@ComponentScan`은 제거됐다.
 - `InfraConfig.kt`가 `@EnableInfraBaseConfig`로 필요한 infra 설정 그룹을 선택적으로 import한다.
 - 전환기 동안 `implementation(project(":"))` root 의존이 남아 있다. 최종적으로 제거 대상이다.
 - 이미 `apis`와 독립된 관리자 lane은 생겼지만, 패키지 스타일은 아직 최종 통일 전이다.
