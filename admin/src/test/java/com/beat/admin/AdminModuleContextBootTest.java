@@ -1,14 +1,20 @@
 package com.beat.admin;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.MySQLContainer;
 
 import com.beat.admin.port.in.AdminUseCase;
+import com.beat.contracts.schedule.ScheduleJobPort;
 import com.beat.contracts.storage.FileStoragePort;
 import com.beat.domain.member.port.in.MemberUseCase;
 import com.beat.domain.performance.port.in.PerformanceUseCase;
@@ -20,6 +26,9 @@ import com.redis.testcontainers.RedisContainer;
 @ActiveProfiles("test")
 @Tag("integration")
 class AdminModuleContextBootTest {
+
+	@Autowired
+	private ApplicationContext applicationContext;
 
 	@MockitoBean
 	private AdminUseCase adminUseCase;
@@ -54,5 +63,7 @@ class AdminModuleContextBootTest {
 
 	@Test
 	void contextLoads() {
+		assertFalse(applicationContext.containsBean("jobSchedulerService"));
+		assertTrue(applicationContext.getBeansOfType(ScheduleJobPort.class).isEmpty());
 	}
 }
