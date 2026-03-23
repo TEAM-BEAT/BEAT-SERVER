@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Import
 import org.springframework.scheduling.annotation.EnableScheduling
 
@@ -25,9 +26,21 @@ class AdminApplicationTest {
     }
 
     @Test
+    fun `admin application does not keep transitional broad component scan`() {
+        val componentScan = AdminApplication::class.java.getAnnotation(ComponentScan::class.java)
+        assertNull(componentScan)
+    }
+
+    @Test
     fun `admin application does not enable scheduling`() {
         val enableScheduling = AdminApplication::class.java.getAnnotation(EnableScheduling::class.java)
         assertNull(enableScheduling)
+    }
+
+    @Test
+    fun `admin application no longer owns feign bootstrap scanning`() {
+        val source = Files.readString(Path.of("src/main/kotlin/com/beat/admin/AdminApplication.kt"))
+        assertFalse(source.contains("@EnableFeignClients"))
     }
 
     @Test

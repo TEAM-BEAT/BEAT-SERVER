@@ -8,4 +8,6 @@ dependencies {
     implementation(project(":infra"))
     implementation(project(":global-utils"))
     implementation(project(":observability"))
+
+    testImplementation(libs.bundles.integration.testcontainers)
 }
