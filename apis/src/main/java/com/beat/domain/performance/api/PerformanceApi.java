@@ -12,7 +12,7 @@ import com.beat.domain.performance.application.dto.modify.PerformanceModifyDetai
 import com.beat.domain.performance.application.dto.modify.PerformanceModifyRequest;
 import com.beat.domain.performance.application.dto.modify.PerformanceModifyResponse;
 import com.beat.domain.performance.application.dto.performanceDetail.PerformanceDetailResponse;
-import com.beat.global.auth.annotation.CurrentMember;
+import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
 import com.beat.global.swagger.annotation.DisableSwaggerSecurity;
