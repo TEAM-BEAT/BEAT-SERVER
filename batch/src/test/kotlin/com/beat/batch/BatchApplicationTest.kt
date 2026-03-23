@@ -19,9 +19,11 @@ class BatchApplicationTest {
     @Test
     fun `batch application keeps transition baseline scheduling contract`() {
         val importAnnotation = BatchApplication::class.java.getAnnotation(Import::class.java)
-        val importedClassNames = importAnnotation.value.map { it.java.name }.toSet()
+        assertNotNull(importAnnotation, "BatchApplication must declare @Import")
+        val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
         val applicationComponentScan = BatchApplication::class.java.getAnnotation(ComponentScan::class.java)
         val bootstrapImport = BatchSchedulerBootstrapConfig::class.java.getAnnotation(Import::class.java)
+        assertNotNull(bootstrapImport, "BatchSchedulerBootstrapConfig must declare @Import")
         val enableScheduling = BatchApplication::class.java.getAnnotation(EnableScheduling::class.java)
 
         assertTrue(importedClassNames.contains(BatchSchedulerBootstrapConfig::class.java.name))

@@ -19,7 +19,8 @@ class ApisApplicationTest {
     @Test
     fun `apis application keeps detached module import contract`() {
         val importAnnotation = ApisApplication::class.java.getAnnotation(Import::class.java)
-        val importedClassNames = importAnnotation.value.map { it.java.name }.toSet()
+        assertNotNull(importAnnotation, "ApisApplication must declare @Import")
+        val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
 
         assertEquals(
             setOf(
