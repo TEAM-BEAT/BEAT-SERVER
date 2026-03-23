@@ -24,6 +24,7 @@ plugins {
 rootProject.name = "beat"
 
 include(
+    "module-contracts",
     "apis",
     "admin",
     "batch",

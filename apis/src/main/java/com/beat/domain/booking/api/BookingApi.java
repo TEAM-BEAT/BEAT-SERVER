@@ -16,7 +16,7 @@ import com.beat.domain.booking.application.dto.GuestBookingRetrieveResponse;
 import com.beat.domain.booking.application.dto.MemberBookingRequest;
 import com.beat.domain.booking.application.dto.MemberBookingResponse;
 import com.beat.domain.booking.application.dto.MemberBookingRetrieveResponse;
-import com.beat.global.auth.annotation.CurrentMember;
+import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
 import com.beat.global.swagger.annotation.DisableSwaggerSecurity;

@@ -1,9 +1,11 @@
 package com.beat.apis
 
+import com.beat.apis.config.ApisBootstrapConfig
+import com.beat.apis.config.ApisSecurityConfig
 import com.beat.apis.config.InfraConfig
+import com.beat.domain.booking.application.TicketCleanupScheduler
+import com.beat.domain.promotion.application.PromotionSchedulerService
 import com.beat.gateway.GatewayModuleConfig
-import com.beat.gateway.bootstrap.GatewayAuthBootstrapConfig
-import com.beat.gateway.bootstrap.GatewayAuthImportSelector
 import com.beat.observability.ObservabilityModuleConfig
 import java.nio.file.Files
 import java.nio.file.Path
@@ -13,8 +15,9 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.context.annotation.ComponentScan
+import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
-import org.springframework.core.type.AnnotationMetadata
+import org.springframework.context.annotation.FilterType
 import org.springframework.scheduling.annotation.EnableScheduling
 
 class ApisApplicationTest {
@@ -24,6 +27,7 @@ class ApisApplicationTest {
         val importAnnotation = ApisApplication::class.java.getAnnotation(Import::class.java)
         val importedClassNames = importAnnotation.value.map { it.java.name }.toSet()
 
+        assertTrue(importedClassNames.contains(ApisBootstrapConfig::class.java.name))
         assertTrue(importedClassNames.contains(GatewayModuleConfig::class.java.name))
         assertTrue(importedClassNames.contains(InfraConfig::class.java.name))
         assertTrue(importedClassNames.contains(ObservabilityModuleConfig::class.java.name))
@@ -31,48 +35,45 @@ class ApisApplicationTest {
 
     @Test
     fun `gateway module imports auth bootstrap config`() {
-        val importAnnotation = GatewayModuleConfig::class.java.getAnnotation(Import::class.java)
-        assertNotNull(importAnnotation)
-        val imported = importAnnotation.value.map { it.java.name }.toSet()
-        assertTrue(imported.contains(GatewayAuthBootstrapConfig::class.java.name))
+        val componentScan = GatewayModuleConfig::class.java.getAnnotation(ComponentScan::class.java)
+        assertNotNull(componentScan)
+        assertTrue(componentScan.basePackages.contains("com.beat.gateway"))
     }
 
     @Test
-    fun `gateway auth bootstrap imports all auth and security beans`() {
-        val selector = GatewayAuthImportSelector()
-        val imported = selector.selectImports(
-            AnnotationMetadata.introspect(GatewayAuthBootstrapConfig::class.java),
-        ).toSet()
-
-        // auth beans
-        assertTrue(imported.contains("com.beat.global.auth.jwt.filter.JwtAuthenticationFilter"))
-        assertTrue(imported.contains("com.beat.global.auth.jwt.provider.JwtTokenProvider"))
-        assertTrue(imported.contains("com.beat.global.auth.resolver.CurrentMemberArgumentResolver"))
-        assertTrue(imported.contains("com.beat.global.auth.security.CustomAccessDeniedHandler"))
-        assertTrue(imported.contains("com.beat.global.auth.security.CustomJwtAuthenticationEntryPoint"))
-
-        // config beans
-        assertTrue(imported.contains("com.beat.global.common.config.SecurityConfig"))
-        assertTrue(imported.contains("com.beat.global.common.config.WebConfig"))
+    fun `apis security config exists for module-owned route policy`() {
+        val configuration = ApisSecurityConfig::class.java.getAnnotation(Configuration::class.java)
+        assertNotNull(configuration)
     }
 
     @Test
-    fun `apis broad scan excludes auth packages owned by gateway`() {
+    fun `apis application no longer owns broad component scan`() {
         val scan = ApisApplication::class.java.getAnnotation(ComponentScan::class.java)
+        assertNull(scan)
+    }
+
+    @Test
+    fun `apis bootstrap config scans targeted application packages and excludes root schedulers`() {
+        val scan = ApisBootstrapConfig::class.java.getAnnotation(ComponentScan::class.java)
         assertNotNull(scan)
 
-        val excluded = scan.excludeFilters.flatMap { it.pattern.toList() }.toSet()
+        val scannedClassNames = scan.basePackageClasses.map { it.java.name }.toSet()
+        assertTrue(scannedClassNames.contains("com.beat.domain.booking.api.BookingController"))
+        assertTrue(scannedClassNames.contains("com.beat.domain.booking.application.TicketService"))
+        assertTrue(scannedClassNames.contains("com.beat.domain.member.application.MemberService"))
+        assertTrue(scannedClassNames.contains("com.beat.domain.performance.application.PerformanceService"))
+        assertTrue(scannedClassNames.contains("com.beat.domain.schedule.application.ScheduleService"))
+        assertTrue(scannedClassNames.contains("com.beat.domain.promotion.application.PromotionService"))
+        assertTrue(scannedClassNames.contains("com.beat.domain.user.application.UserService"))
+        assertTrue(scannedClassNames.contains("com.beat.global.external.s3.api.FileController"))
+        assertTrue(scannedClassNames.contains("com.beat.global.external.notification.slack.event.BookingCreatedEventListener"))
+        assertTrue(scannedClassNames.contains("com.beat.global.common.scheduler.application.JobSchedulerService"))
 
-        setOf(
-            "com\\.beat\\.global\\.auth\\.jwt\\.filter\\..*",
-            "com\\.beat\\.global\\.auth\\.jwt\\.provider\\..*",
-            "com\\.beat\\.global\\.auth\\.resolver\\..*",
-            "com\\.beat\\.global\\.auth\\.security\\..*",
-            "com\\.beat\\.global\\.common\\.config\\.SecurityConfig",
-            "com\\.beat\\.global\\.common\\.config\\.WebConfig",
-        ).forEach { pattern ->
-            assertTrue(excluded.contains(pattern), "missing exclude: $pattern")
-        }
+        val exclusion = scan.excludeFilters.single()
+        assertTrue(exclusion.type == FilterType.ASSIGNABLE_TYPE)
+        val excludedClassNames = exclusion.classes.map { it.java.name }.toSet()
+        assertTrue(excludedClassNames.contains(TicketCleanupScheduler::class.java.name))
+        assertTrue(excludedClassNames.contains(PromotionSchedulerService::class.java.name))
     }
 
     @Test
@@ -83,12 +84,35 @@ class ApisApplicationTest {
         assertTrue(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
         assertTrue(configSource.contains("InfraBaseConfigGroup.REDIS"))
         assertTrue(configSource.contains("InfraBaseConfigGroup.ASYNC"))
+        assertTrue(configSource.contains("InfraBaseConfigGroup.EXTERNAL_CLIENTS"))
     }
 
     @Test
     fun `apis application does not enable scheduling`() {
         val enableScheduling = ApisApplication::class.java.getAnnotation(EnableScheduling::class.java)
         assertNull(enableScheduling)
+    }
+
+    @Test
+    fun `apis application no longer owns feign bootstrap scanning`() {
+        val source = Files.readString(Path.of("src/main/kotlin/com/beat/apis/ApisApplication.kt"))
+        assertFalse(source.contains("@EnableFeignClients"))
+        assertFalse(source.contains("\"com.beat.domain\""))
+        assertFalse(source.contains("\"com.beat.global\""))
+    }
+
+    @Test
+    fun `apis member lane no longer imports root social auth client packages`() {
+        listOf(
+            "src/main/java/com/beat/domain/member/application/SocialLoginService.java",
+            "src/main/java/com/beat/domain/member/application/MemberRegistrationService.java",
+            "src/main/java/com/beat/domain/member/application/AuthenticationService.java",
+            "src/main/java/com/beat/domain/member/api/MemberController.java",
+            "src/main/java/com/beat/domain/member/api/MemberApi.java",
+        ).forEach { relativePath ->
+            val source = Files.readString(Path.of(relativePath))
+            assertFalse(source.contains("com.beat.global.auth.client"))
+        }
     }
 
     @Test
@@ -99,5 +123,11 @@ class ApisApplicationTest {
         assertTrue(config.contains("scheduler:"))
         assertTrue(config.contains("owner: false"))
         assertFalse(config.contains("owner: true"))
+    }
+
+    @Test
+    fun `controller logging aspect is owned by observability module`() {
+        assertFalse(Files.exists(Path.of("../src/main/java/com/beat/global/common/aop/ControllerLoggingAspect.java")))
+        assertTrue(Files.exists(Path.of("../observability/src/main/java/com/beat/global/common/aop/ControllerLoggingAspect.java")))
     }
 }

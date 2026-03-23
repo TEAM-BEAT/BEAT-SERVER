@@ -23,7 +23,7 @@ import com.beat.domain.performance.application.dto.modify.PerformanceModifyReque
 import com.beat.domain.performance.application.dto.modify.PerformanceModifyResponse;
 import com.beat.domain.performance.application.dto.performanceDetail.PerformanceDetailResponse;
 import com.beat.domain.performance.exception.PerformanceSuccessCode;
-import com.beat.global.auth.annotation.CurrentMember;
+import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 
 import jakarta.validation.Valid;

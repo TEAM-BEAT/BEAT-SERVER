@@ -4,7 +4,9 @@ dependency-management = "1.1.7"
 kotlin = "2.2.20"
 sonarqube = "7.2.3.7755"
 kover = "0.9.7"
+spring-framework = "7.0.5"
 spring-cloud = "2025.1.1"
+aspectj = "1.9.25.1"
 springdoc = "3.0.2"
 awspring = "4.0.0"
 jjwt = "0.13.0"
@@ -27,11 +29,13 @@ kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
-lombok = { module = "org.projectlombok:lombok" }
+lombok = { module = "org.projectlombok:lombok", version = "1.18.44" }
 spring-security-test = { module = "org.springframework.security:spring-security-test" }
 
-spring-aop = { module = "org.springframework:spring-aop" }
-aspectjweaver = { module = "org.aspectj:aspectjweaver" }
+spring-aop = { module = "org.springframework:spring-aop", version.ref = "spring-framework" }
+spring-tx = { module = "org.springframework:spring-tx", version.ref = "spring-framework" }
+aspectjweaver = { module = "org.aspectj:aspectjweaver", version.ref = "aspectj" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version = "2.0.17" }
 mysql-connector-j = { module = "com.mysql:mysql-connector-j" }
 spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor", version.ref = "spring-boot" }
 spring-boot-core = { module = "org.springframework.boot:spring-boot", version.ref = "spring-boot" }

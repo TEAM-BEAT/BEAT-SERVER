@@ -11,13 +11,7 @@ import com.beat.infra.InfraBaseConfig;
 
 @Configuration(proxyBeanMethods = false)
 @EnableJpaAuditing
-@EntityScan("com.beat")
-@EnableJpaRepositories(
-	basePackages = "com.beat",
-	excludeFilters = @ComponentScan.Filter(
-		type = FilterType.REGEX,
-		pattern = "com\\.beat\\.global\\.auth\\.jwt\\.dao\\..*"
-	)
-)
+@EntityScan("com.beat.domain")
+@EnableJpaRepositories(basePackages = "com.beat.domain")
 public class JpaConfig implements InfraBaseConfig {
 }

@@ -4,12 +4,12 @@ import com.beat.admin.application.dto.response.CarouselFindAllResponse;
 import com.beat.admin.application.dto.request.CarouselHandleRequest;
 import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
 import com.beat.admin.exception.AdminSuccessCode;
+import com.beat.admin.application.dto.response.BannerPresignedUrlFindResponse;
+import com.beat.admin.application.dto.response.CarouselPresignedUrlFindAllResponse;
 import com.beat.admin.application.dto.response.UserFindAllResponse;
 import com.beat.admin.facade.AdminFacade;
-import com.beat.global.auth.annotation.CurrentMember;
+import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
-import com.beat.global.external.s3.application.dto.BannerPresignedUrlFindResponse;
-import com.beat.global.external.s3.application.dto.CarouselPresignedUrlFindAllResponse;
 
 import lombok.RequiredArgsConstructor;
 

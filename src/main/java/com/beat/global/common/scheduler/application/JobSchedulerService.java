@@ -1,5 +1,6 @@
 package com.beat.global.common.scheduler.application;
 
+import com.beat.contracts.schedule.ScheduleJobPort;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 
@@ -25,7 +26,7 @@ import java.util.concurrent.ScheduledFuture;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class JobSchedulerService {
+public class JobSchedulerService implements ScheduleJobPort {
 
 	private final JobSchedulerTransactionalService jobSchedulerTransactionalService;
 	private final TaskScheduler taskScheduler;
@@ -71,8 +72,8 @@ public class JobSchedulerService {
 		reconcilePendingSchedules();
 	}
 
-	// 스케줄 종료 시점에 맞춰 isBooking 업데이트
-	public void addScheduleIfNotExists(Schedule schedule) {
+	@Override
+	public void registerOrRefresh(Schedule schedule) {
 		if (!schedulerOwner) {
 			log.info("Ignoring schedule registration because this runtime is not the scheduler owner.");
 			return;
@@ -90,6 +91,11 @@ public class JobSchedulerService {
 		schedulePendingTask(schedule);
 	}
 
+	// Legacy bridge kept until root scheduler ownership is retired in the later batch handover step.
+	public void addScheduleIfNotExists(Schedule schedule) {
+		registerOrRefresh(schedule);
+	}
+
 	// 스케줄 종료 시 isBooking을 false로 업데이트
 	public void updateIsBookingFalse(Long scheduleId) {
 		log.info("Updating isBooking to false for schedule ID: {}", scheduleId);
@@ -101,13 +107,19 @@ public class JobSchedulerService {
 		logScheduledTasks();
 	}
 
-	public void cancelScheduledTaskForPerformance(Schedule schedule) {
+	@Override
+	public void cancel(Schedule schedule) {
 		if (!schedulerOwner) {
 			log.info("Ignoring schedule cancellation because this runtime is not the scheduler owner.");
 			return;
 		}
 
 		cancelScheduledTaskById(schedule.getId());
+	}
+
+	// Legacy bridge kept until root scheduler ownership is retired in the later batch handover step.
+	public void cancelScheduledTaskForPerformance(Schedule schedule) {
+		cancel(schedule);
 	}
 
 	private void schedulePendingTask(Schedule schedule) {

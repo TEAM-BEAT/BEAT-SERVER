@@ -34,18 +34,25 @@ apis/
   src/main/kotlin/com/beat/apis/
     ApisApplication.kt
     config/
-      InfraConfig.kt          # @EnableInfraBaseConfig(JPA, QUERY_DSL, REDIS, ASYNC)
+      ApisBootstrapConfig.kt  # targeted @ComponentScan + root scheduler exclusions
+      InfraConfig.kt          # @EnableInfraBaseConfig(JPA, QUERY_DSL, REDIS, ASYNC, EXTERNAL_CLIENTS)
 
-  src/main/java/com/beat/domain/*/api/
-  src/main/java/com/beat/global/external/s3/api/
+  src/main/java/com/beat/domain/*/
+    api/
+    application/
+  src/main/java/com/beat/global/
+    external/
+    swagger/
 ```
 
 설명:
-- 현재 `apis` 모듈은 `com.beat.apis` 아래 앱 진입점만 새로 생겼다.
+- 현재 `apis` 모듈은 `com.beat.apis` 아래 앱 진입점과 bootstrap config를 소유한다.
 - `InfraConfig.kt`가 `@EnableInfraBaseConfig`로 필요한 infra 설정 그룹을 선택적으로 import한다.
-- 실제 사용자 API 컨트롤러 다수는 아직 legacy 패키지(`com.beat.domain.*.api`, `com.beat.global.external.s3.api`)로 남아 있다.
+- `ApisApplication`의 raw broad `@ComponentScan`은 제거됐고, `ApisBootstrapConfig`가 필요한 legacy 패키지만 targeted scan한다.
+- 실제 사용자 API 컨트롤러와 애플리케이션 서비스 다수는 아직 legacy 패키지(`com.beat.domain.*`, `com.beat.global.*`)를 유지한다.
+- root의 `TicketCleanupScheduler`, `PromotionSchedulerService`는 아직 같은 패키지 네임스페이스에 남아 있으므로 `ApisBootstrapConfig`에서 명시적으로 exclude한다.
 - 전환기 동안 `implementation(project(":"))` root 의존이 남아 있다. 최종적으로 제거 대상이다.
-- 즉 현재는 **실행 lane만 `apis`로 분리되고, 패키지 구조는 아직 legacy를 많이 유지한 상태**다.
+- 즉 현재는 **실행 lane과 bootstrap ownership은 `apis`로 분리됐지만, 패키지 구조와 일부 scheduler 관련 root coupling은 아직 남아 있는 상태**다.
 
 ## To-Be 패키지 구조
 
@@ -84,14 +91,73 @@ com.beat.apis.<context>/
 
 ## Root Coupling Surface
 
-> `:apis`가 `project(":")` 를 통해 root에서 끌어오는 bean/config/bootstrap surface 전체 목록.
-> `:apis` detach (#360) 에서 이 목록을 하나씩 해소해야 한다.
+> 현재 `:apis`는 broad scan에 기대지 않지만, 전환기 동안 여전히 `project(":")`에 build-time으로 의존한다.
+> 이 의존은 Step 8 이후 남은 root scheduler leftovers와 legacy root baseline 때문에 유지된다.
 
-### 1. Auth/Security — gateway bootstrap으로 이전 완료
+### Decision Memo — Why `ApisBootstrapConfig` still exists
+
+- 지금 `ApisBootstrapConfig`는 단순한 임시 편의 레이어가 아니라, 현재 `apis` runtime을 성립시키는 **명시적 브리지**다.
+- 장기적으로는 `com.beat.apis.*` 아래로 패키지를 정리하는 편이 더 낫지만, 현재는 패키지 이관만으로 `ApisBootstrapConfig`를 제거할 수 없다.
+
+#### 지금 유지해야 하는 이유
+
+- `apis` 내부 서비스 중 일부는 아직 root scheduler bridge에 의존한다.
+- 예를 들어 `PerformanceManagementService`는 `ScheduleJobPort`를 주입받고, 현재 그 구현 bean은 root의 `JobSchedulerService`다.
+- 그래서 `ApisBootstrapConfig`는 legacy package scan을 최소 범위로 통제하면서도, 필요한 root scheduler bridge만 명시적으로 연결한다.
+
+#### 언제 제거 가능한가
+
+- `ApisBootstrapConfig`는 아래 조건이 충족되면 제거 대상이다.
+1. `ScheduleJobPort` 구현이 root가 아니라 `batch` 또는 다른 명시적 모듈 경계로 이동
+2. `TicketCleanupScheduler`, `PromotionSchedulerService`가 root package overlap 없이 정리
+3. `apis` 소유 bean이 `com.beat.apis.*` 아래로 충분히 이관되어 기본 module scan만으로 기동 가능
+
+#### 제거하려면 필요한 선행조건
+
+1. scheduler ownership migration 완료
+2. root scheduler bridge 제거 또는 대체 경계 확정
+3. `apis/build.gradle.kts`의 `implementation(project(":"))` 제거 가능 상태 검증
+
+즉, 현재 결론은 다음과 같다.
+- **최종 방향**: `com.beat.apis.*` 아래로 패키지 이관
+- **현재 판단**: `ApisBootstrapConfig` 유지
+- **이유**: 지금은 legacy package 문제만이 아니라 root scheduler bridge 문제도 함께 걸려 있기 때문
+
+### 1. Active unresolved coupling
+
+#### 1-1. Root scheduler leftovers
+
+`ApisBootstrapConfig`는 targeted scan을 사용하지만, 아래 root scheduler 클래스가 아직 같은 패키지 네임스페이스를 공유한다.
+이 중 `JobSchedulerService` 계열은 현재 `ScheduleJobPort`를 통해 `apis` runtime이 실제로 사용하고 있고,
+`TicketCleanupScheduler`, `PromotionSchedulerService`는 명시적 exclusion으로 막고 있다.
+
+| Bean | 현재 위치 | 현재 상태 | 후속 행선지 |
+|------|----------|-----------|------------|
+| `TicketCleanupScheduler` | `src/main/java/com/beat/domain/booking/application` | `ApisBootstrapConfig`에서 exclude | batch |
+| `PromotionSchedulerService` | `src/main/java/com/beat/domain/promotion/application` | `ApisBootstrapConfig`에서 exclude | batch |
+| `JobSchedulerService` | `src/main/java/com/beat/global/common/scheduler/application` | `ApisBootstrapConfig`를 통해 runtime 사용 중 | batch |
+| `JobSchedulerTransactionalService` | `src/main/java/com/beat/global/common/scheduler/application` | `JobSchedulerService` 의존성으로 runtime 사용 중 | batch |
+
+#### 1-2. Legacy root baseline
+
+| 항목 | 현재 위치 | 현재 상태 |
+|------|----------|-----------|
+| root `BeatApplication` | `src/main/java/com/beat/BeatApplication.java` | legacy baseline 유지 |
+| root `@EnableFeignClients` | `src/main/java/com/beat/BeatApplication.java` | root 전용 transitional 유지 |
+| `LegacyRootSecurityConfig` | `src/main/java/com/beat/legacyroot/config` | root lane 유지용 |
+
+#### 1-3. Build-time root dependency
+
+| 항목 | 현재 상태 | 왜 아직 남아 있나 |
+|------|----------|------------------|
+| `implementation(project(":"))` | `apis/build.gradle.kts`에 유지 | `ApisBootstrapConfig`와 테스트가 root scheduler bridge (`JobSchedulerService`, `TicketCleanupScheduler`, `PromotionSchedulerService`)를 아직 참조하고 있고, batch/root retirement를 이 브랜치에서 하지 않기 때문 |
+
+### 2. Resolved on this branch or earlier steps
+
+#### 2-1. Auth/Security — gateway bootstrap으로 이전 완료
 
 `GatewayModuleConfig` → `GatewayAuthBootstrapConfig` → `GatewayAuthImportSelector` 경로로
 아래 빈의 runtime 등록 ownership을 gateway 경계로 옮겼다.
-`ApisApplication`의 broad scan excludeFilter에서 제외하고 gateway가 대신 import한다.
 
 | Bean | 원래 위치 | 상태 |
 |------|----------|------|
@@ -103,59 +169,38 @@ com.beat.apis.<context>/
 | `SecurityConfig` | `global.common.config` | gateway bootstrap |
 | `WebConfig` | `global.common.config` | gateway bootstrap |
 
-### 2. Auth/Global 비즈니스 — broad scan으로 아직 root에서 끌어옴
+#### 2-2. `apis` application bootstrap — Step 8 완료
 
-| Bean | 위치 | detach 시 행선지 |
-|------|------|-----------------|
-| `TokenService` | `global.auth.jwt.application` | gateway 또는 apis |
-| `KakaoSocialService` | `global.auth.client.application` | apis 또는 infra |
-| `LettuceLockRepository` | `global.auth.redis` | infra |
+| 항목 | 이전 상태 | 현재 상태 |
+|------|----------|-----------|
+| `ApisApplication` scan | raw broad `@ComponentScan(basePackages = ["com.beat.domain", "com.beat.global"])` | `ApisBootstrapConfig` explicit import |
+| Feign bootstrap | app module가 직접 보유 | 제거 완료, external bootstrap은 `infra` 소관 |
+| scheduler overlap | broad scan에 묻혀 있었음 | 명시적 exclusion으로 드러남 |
 
-### 3. Domain — broad scan `com.beat.domain` 으로 끌어옴
+#### 2-3. Application/service ownership — `apis` 모듈로 이관 완료
 
-| Bean | 위치 | detach 시 행선지 |
-|------|------|-----------------|
-| `AuthenticationService` | `domain.member.application` | apis |
-| `SocialLoginService` | `domain.member.application` | apis |
-| `MemberRegistrationService` | `domain.member.application` | apis |
-| `MemberService` | `domain.member.application` | apis |
-| `MemberBookingService` | `domain.booking.application` | apis |
-| `MemberBookingRetrieveService` | `domain.booking.application` | apis |
-| `GuestBookingService` | `domain.booking.application` | apis |
-| `GuestBookingRetrieveService` | `domain.booking.application` | apis |
-| `BookingCancelService` | `domain.booking.application` | apis |
-| `TicketService` | `domain.booking.application` | apis |
-| `CoolSmsService` | `domain.booking.application` | infra |
-| `PerformanceService` | `domain.performance.application` | apis |
-| `PerformanceManagementService` | `domain.performance.application` | apis |
-| `PerformanceModifyService` | `domain.performance.application` | apis |
-| `HomeService` | `domain.performance.application` | apis |
-| `PromotionService` | `domain.promotion.application` | apis |
-| `PromotionSchedulerService` | `domain.promotion.application` | batch (scheduler 소관) |
-| `ScheduleService` | `domain.schedule.application` | apis |
-| `UserService` | `domain.user.application` | apis |
-| `TicketRepositoryCustomImpl` | `domain.booking.dao` | infra |
-| `ScheduleRepositoryCustomImpl` | `domain.schedule.dao` | infra |
+아래 애플리케이션 서비스는 더 이상 root broad scan으로 발견되는 대상이 아니라, `apis` 소스 트리 안의 실제 구현이다.
 
-### 4. Global 공통 — broad scan `com.beat.global` 로 끌어옴
+| 영역 | 현재 owner |
+|------|-----------|
+| member application services | apis |
+| booking application services | apis |
+| performance application services | apis |
+| promotion application services | apis |
+| schedule application services | apis |
+| user application services | apis |
 
-| Bean | 위치 | detach 시 행선지 |
-|------|------|-----------------|
-| `GlobalExceptionHandler` | `global.common.handler` | apis 또는 global-utils |
-| `SwaggerConfig` | `global.swagger.config` | apis |
-| `S3Config` | `global.external.s3.config` | infra |
-| `FileService` | `global.external.s3.application` | infra |
-| `SlackService` | `global.external.notification.slack.application` | infra |
-| `BookingCreatedEventListener` | `global.external.notification.slack.event` | apis |
-| `MemberRegisteredEventListener` | `global.external.notification.slack.event` | apis |
-| `ControllerLoggingAspect` | `global.common.aop` | observability |
-| `ServiceLoggingAspect` | `global.common.aop` | observability |
-| `ExecutionTimeLoggerAspect` | `global.common.aop` | observability |
-| `TxAspect` | `global.common.aop` | observability |
-| `JobSchedulerService` | `global.common.scheduler.application` | batch |
-| `JobSchedulerTransactionalService` | `global.common.scheduler.application` | batch |
+#### 2-4. Global/common ownership — 이전 완료
 
-### 5. Infra bootstrap — explicit import 경계는 있지만 scan 범위가 넓음
+| 항목 | 현재 owner |
+|------|-----------|
+| `GlobalExceptionHandler` | apis |
+| `SwaggerConfig` | apis |
+| Slack/S3/SMS adapters | infra |
+| `BookingCreatedEventListener` / `MemberRegisteredEventListener` | apis |
+| logging/tx/controller aspects | observability |
+
+### 3. Infra bootstrap — explicit import 경계는 있지만 아직 detach 완료는 아님
 
 | 설정 | 현재 범위 | 문제 |
 |------|----------|------|
@@ -163,21 +208,10 @@ com.beat.apis.<context>/
 | `JpaConfig` `@EnableJpaRepositories` | `"com.beat"` 전체 | root repo 사라지면 실패 |
 | `RedisConfig` `@EnableRedisRepositories` | `"com.beat.global.auth.jwt.dao"` | auth 패키지 직접 참조 |
 
-### 6. 기타 bootstrap surface
-
-| 항목 | 현재 상태 | 문제 |
-|------|----------|------|
-| `@EnableFeignClients` | `basePackages = ["com.beat.global"]` | feign client가 root에 있음 |
-| `@ConfigurationPropertiesScan` | `basePackages = ["com.beat.infra.config"]` | 이미 infra 모듈 — 문제 없음 |
-
 ### #360 에서 바로 해야 할 일
 
-1. domain service/dao를 apis, domain, infra 모듈로 물리 이동
-2. global 공통 빈(exception handler, swagger, aop)을 apis/global-utils/observability로 분리
-3. external adapter(S3, Slack, CoolSms)를 infra로 이동
-4. feign client를 infra로 이동하고 `@EnableFeignClients` basePackages 변경
-5. `JpaConfig`의 `@EntityScan`, `@EnableJpaRepositories` 범위를 모듈별로 축소
-6. `RedisConfig`의 `@EnableRedisRepositories` basePackages를 gateway/auth ownership으로 이동
-7. scheduler 빈은 batch 소관 — apis에서 exclude 필요
-8. 위 이동이 끝나면 `@ComponentScan(basePackages = ["com.beat.domain", "com.beat.global"])` 제거
-9. 최종적으로 `apis/build.gradle.kts`에서 `project(":")` 제거
+1. root scheduler leftovers를 `batch`로 이동하거나 네임스페이스 overlap을 제거
+2. `JpaConfig`의 `@EntityScan`, `@EnableJpaRepositories` 범위를 모듈별로 축소
+3. `RedisConfig`의 `@EnableRedisRepositories` basePackages를 gateway/auth ownership으로 이동
+4. `batch/root` retirement 이후 `apis/build.gradle.kts`에서 `project(":")` 제거
+5. 남아 있는 legacy package names를 점진적으로 `com.beat.apis.<context>` 구조로 정리

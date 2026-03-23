@@ -1,11 +1,14 @@
 package com.beat.admin.facade;
 
+import com.beat.contracts.storage.FileStoragePort;
 import com.beat.admin.application.dto.request.PromotionHandleRequest;
+import com.beat.admin.application.dto.response.BannerPresignedUrlFindResponse;
 import com.beat.admin.application.dto.response.CarouselFindAllResponse;
 import com.beat.admin.application.dto.response.UserFindAllResponse;
 import com.beat.admin.application.dto.request.CarouselHandleRequest;
 import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
 import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
+import com.beat.admin.application.dto.response.CarouselPresignedUrlFindAllResponse;
 import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
 import com.beat.admin.port.in.AdminUseCase;
 import com.beat.domain.member.port.in.MemberUseCase;
@@ -13,9 +16,6 @@ import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.port.in.PromotionUseCase;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.port.in.UserUseCase;
-import com.beat.global.external.s3.application.dto.BannerPresignedUrlFindResponse;
-import com.beat.global.external.s3.application.dto.CarouselPresignedUrlFindAllResponse;
-import com.beat.global.external.s3.port.in.FileUseCase;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @Transactional
 @RequiredArgsConstructor
 public class AdminFacade {
-	private final FileUseCase fileUseCase;
+	private final FileStoragePort fileStoragePort;
 	private final AdminUseCase adminUsecase;
 	private final MemberUseCase memberUseCase;
 	private final UserUseCase userUseCase;
@@ -48,14 +48,14 @@ public class AdminFacade {
 	public CarouselPresignedUrlFindAllResponse checkMemberAndIssueAllPresignedUrlsForCarousel(Long memberId,
 		List<String> carouselImages) {
 		memberUseCase.findMemberByMemberId(memberId);
-		Map<String, String> carouselPresignedUrls = fileUseCase.issueAllPresignedUrlsForCarousel(carouselImages);
-		return CarouselPresignedUrlFindAllResponse.from(carouselPresignedUrls);
+		return CarouselPresignedUrlFindAllResponse.from(
+			fileStoragePort.issueAllPresignedUrlsForCarousel(carouselImages)
+		);
 	}
 
 	public BannerPresignedUrlFindResponse checkMemberAndIssuePresignedUrlForBanner(Long memberId, String bannerImage) {
 		memberUseCase.findMemberByMemberId(memberId);
-		String bannerPresignedUrl = fileUseCase.issuePresignedUrlForBanner(bannerImage);
-		return BannerPresignedUrlFindResponse.from(bannerPresignedUrl);
+		return BannerPresignedUrlFindResponse.from(fileStoragePort.issuePresignedUrlForBanner(bannerImage));
 	}
 
 	public CarouselFindAllResponse checkMemberAndFindAllPromotionsSortedByCarouselNumber(Long memberId) {
