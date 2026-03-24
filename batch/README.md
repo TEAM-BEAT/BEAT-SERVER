@@ -1,6 +1,6 @@
 # batch module
 
-> 이 문서는 `batch` 모듈의 최종 To-Be 계약을 정의한다. 현재 배치 lane은 전환기지만, 최종적으로 스케줄/배치 책임은 `batch`에만 남아야 한다.
+> 이 문서는 batch root dependency removal 이후 `batch` 모듈의 현재 detached bootstrap 계약과 남아 있는 transitional debt를 설명한다. `batch`는 이제 root project 의존 없이 자체 classpath로 build/boot/test 되어야 한다.
 
 ## 역할
 
@@ -11,6 +11,7 @@
 
 ## 허용 의존성
 
+- `module-contracts`
 - `domain`
 - `infra`
 - `global-utils`
@@ -25,7 +26,7 @@
 - 전역 스캔에 기대는 구조 금지
 - 스케줄 소유권을 다른 실행 모듈과 중복 활성화 금지
 
-## As-Is 패키지 구조
+## Current bootstrap shape
 
 ```text
 batch/
@@ -37,17 +38,86 @@ batch/
   src/main/java/com/beat/
     global/common/scheduler/application/
     domain/**/application/          # batch-owned scheduled service 포함
+  src/main/resources/
+    application.yml                 # beat.scheduler.owner=true
+  src/test/resources/
+    application-test.yml            # beat.scheduler.owner=false
 ```
 
-설명:
-- 현재 `batch` 모듈은 앱 진입점뿐 아니라 scheduler/service runtime owner도 함께 가진다.
-- `InfraConfig.kt`가 `@EnableInfraBaseConfig`로 필요한 infra 설정 그룹을 선택적으로 import한다.
-- `BatchSchedulerBootstrapConfig.kt`가 scheduler/service bean을 명시적으로 import한다.
-- 전환기 동안 `implementation(project(":"))` root 의존이 남아 있다. 최종적으로 제거 대상이다.
-- root 기본 리소스는 scheduler owner를 비활성화하고, batch 기본 리소스가 owner를 활성화한다.
-- scheduler/service 코드는 `batch` 모듈로 이동했지만, 패키지 네임스페이스는 아직 legacy 경로를 유지한다.
+### Runtime contract
 
-## To-Be 패키지 구조
+- `BatchApplication`은 정확히 아래 bootstrap surface만 import한다.
+    - `BatchSchedulerBootstrapConfig`
+    - `InfraConfig`
+    - `ObservabilityModuleConfig`
+- `@SpringBootApplication`이 batch package만 스캔한다.
+- `batch`는 실행 모듈 중 유일하게 `@EnableScheduling`을 유지한다.
+- `BatchSchedulerBootstrapConfig`가 아래 batch-owned runtime beans를 명시적으로 import한다.
+    - `JobSchedulerService`
+    - `JobSchedulerTransactionalService`
+    - `TicketCleanupScheduler`
+    - `PromotionSchedulerService`
+- main resources는 `beat.scheduler.owner=true`를 기본값으로 유지한다.
+- external-client / Feign runtime은 batch bootstrap이 아니라 `infra`의 `EXTERNAL_CLIENTS` 경계와 web-app lane에서만 소유한다.
+- test profile은 `beat.scheduler.owner=false`로 내려서 detached smoke boot를 검증하고, owner-enabled contract는 별도 테스트로 검증한다.
+- scheduler/service 코드는 `batch` 모듈로 이동했지만 패키지 네임스페이스는 아직 legacy 경로를 유지한다.
+
+## What changed in this issue
+
+- `batch/build.gradle.kts`에서 `implementation(project(":"))`를 제거했다.
+- `batch`는 root project classpath 없이 build/boot/test 되는 방향으로 고정됐다.
+- 테스트 계약을 갱신해 detached bootstrap, non-owner smoke profile, owner-enabled schedule contract를 고정했다.
+- batch architecture guard를 추가해 root dependency 재도입과 forbidden runtime lane 참조를 막는다.
+- `batch/README.md`를 detached bootstrap 상태 기준으로 갱신했다.
+
+## Current ownership notes
+
+### In `batch`
+
+- scheduler runtime ownership
+- `ScheduleJobPort` implementation for the active scheduler lane
+- scheduled maintenance jobs and batch execution entrypoints
+- batch-local scheduling bootstrap and owner flag defaults
+
+### Outside `batch`
+
+- `module-contracts`: `ScheduleJobPort` 같은 cross-module execution contract
+- `domain`: schedule/booking/promotion domain models and repository contracts
+- `infra`: JPA, QueryDSL, async/task-scheduler bootstrap
+- `global-utils`: shared common types and exception base contracts
+- `observability`: logging / metrics / tracing boundary
+
+## Remaining transitional debt
+
+- scheduler/service 소스 상당수가 아직 `com.beat.domain.*`, `com.beat.global.*` legacy package names를 유지한다.
+- batch 실행 경계는 detached 되었지만 package normalization은 아직 시작 전이다.
+- 일부 legacy domain entity가 여전히 Spring Security 타입(`GrantedAuthority`)을 참조해 `domain` 모듈에 transitional runtime support가 남아 있다.
+- root legacy lane은 repository에 남아 있고, 최종 retirement는 후속 migration 범위다.
+- CQRS/service layer normalization과 batch 전용 package 정리는 다음 단계에서 다룬다.
+
+## Guard rails
+
+- `BatchApplicationTest`
+    - `BatchApplication` import 집합 고정
+    - narrow app bootstrap 유지
+    - scheduler bootstrap import 집합 고정
+    - main/test resource owner flag 계약 고정
+- `BatchArchitectureGuardTest`
+    - `batch/build.gradle.kts`의 root dependency 재추가 금지
+    - `apis`, `admin`, `gateway` 직접 의존 금지
+    - root bootstrap lane 참조 금지
+- `BatchModuleContextBootTest`
+    - module context boot smoke test
+    - test profile에서 `beat.scheduler.owner=false`가 실제로 적용되는지 확인
+    - batch-owned `ScheduleJobPort`가 detached classpath에서 그대로 올라오는지 확인
+- `BatchSchedulerOwnerBootTest`
+    - owner-enabled runtime에서 `ScheduleJobPort -> JobSchedulerService` 해석 고정
+- `AbstractBatchIntegrationTest`
+    - batch 통합 테스트용 MySQL service connection bootstrap 공유
+- `JobSchedulerServiceTest`
+    - reconcile / registerOrRefresh owner behavior 회귀 방지
+
+## To-Be direction
 
 ```text
 com.beat.batch.<context>/
@@ -72,8 +142,8 @@ com.beat.batch.<context>/
 - `adapter`, `port` 패키지는 BEAT 기본 가이드로 강제하지 않는다.
 - Repository는 지금 즉시 분리하지 않고, 복잡한 조회 전용 구현이 필요할 때만 infra query 레이어를 추가한다.
 
-## 최종 목표
+## Follow-up after this issue
 
-- 스케줄 소유권이 `batch` 하나로 고정된다.
-- 운영 작업은 HTTP lane 없이 독립 실행 가능하다.
-- 배치 로직이 사용자 API 코드에 기대지 않는다.
+1. batch-owned legacy package를 `com.beat.batch.<context>` 구조로 점진 이관
+2. root legacy lane retirement 시 scheduler-related transitional docs 추가 축소
+3. shared test bootstrap convergence가 필요해지면 실행 모듈 간 중복 test container setup 정리
