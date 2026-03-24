@@ -1,40 +1,44 @@
 package com.beat.batch;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.context.ApplicationContext;
+import org.springframework.core.env.Environment;
 import org.springframework.test.context.TestPropertySource;
-import org.testcontainers.containers.MySQLContainer;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import com.beat.batch.support.AbstractBatchIntegrationTest;
 import com.beat.contracts.schedule.ScheduleJobPort;
 import com.beat.global.common.scheduler.application.JobSchedulerService;
 
-@SpringBootTest(classes = BatchApplication.class)
-@ActiveProfiles("test")
 @TestPropertySource(properties = "beat.scheduler.owner=true")
-@Tag("integration")
-class BatchSchedulerOwnerBootTest {
+class BatchSchedulerOwnerBootTest extends AbstractBatchIntegrationTest {
 
-	@ServiceConnection
-	static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0.39")
-		.withDatabaseName("beat_batch_test");
+	@Autowired
+	private ApplicationContext applicationContext;
 
-	static {
-		mysql.start();
-	}
+	@Autowired
+	private Environment environment;
 
 	@Autowired
 	private ScheduleJobPort scheduleJobPort;
 
+	@Autowired
+	private JobSchedulerService jobSchedulerService;
+
 	@Test
 	void contextBootsWithSchedulerOwnerEnabled() {
+		assertEquals("true", environment.getProperty("beat.scheduler.owner"));
+		assertEquals(1, applicationContext.getBeansOfType(JobSchedulerService.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(ScheduleJobPort.class).size());
 		assertNotNull(scheduleJobPort);
 		assertInstanceOf(JobSchedulerService.class, scheduleJobPort);
+		assertSame(jobSchedulerService, scheduleJobPort);
+		assertEquals(true, ReflectionTestUtils.getField(jobSchedulerService, "schedulerOwner"));
 	}
 }

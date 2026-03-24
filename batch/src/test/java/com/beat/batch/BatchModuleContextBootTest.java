@@ -1,26 +1,40 @@
 package com.beat.batch;
 
-import org.junit.jupiter.api.Tag;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.test.context.ActiveProfiles;
-import org.testcontainers.containers.MySQLContainer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.core.env.Environment;
+import org.springframework.test.util.ReflectionTestUtils;
 
-@SpringBootTest(classes = BatchApplication.class)
-@ActiveProfiles("test")
-@Tag("integration")
-class BatchModuleContextBootTest {
+import com.beat.batch.support.AbstractBatchIntegrationTest;
+import com.beat.contracts.schedule.ScheduleJobPort;
+import com.beat.global.common.scheduler.application.JobSchedulerService;
 
-	@ServiceConnection
-	static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0.39")
-		.withDatabaseName("beat_batch_test");
+class BatchModuleContextBootTest extends AbstractBatchIntegrationTest {
 
-	static {
-		mysql.start();
-	}
+	@Autowired
+	private ApplicationContext applicationContext;
+
+	@Autowired
+	private Environment environment;
+
+	@Autowired
+	private ScheduleJobPort scheduleJobPort;
+
+	@Autowired
+	private JobSchedulerService jobSchedulerService;
 
 	@Test
-	void contextLoads() {
+	void contextLoadsWithSchedulerOwnerDisabledInTestProfile() {
+		assertEquals("false", environment.getProperty("beat.scheduler.owner"));
+		assertEquals(1, applicationContext.getBeansOfType(JobSchedulerService.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(ScheduleJobPort.class).size());
+		assertNotNull(scheduleJobPort);
+		assertSame(jobSchedulerService, scheduleJobPort);
+		assertEquals(false, ReflectionTestUtils.getField(jobSchedulerService, "schedulerOwner"));
 	}
 }
