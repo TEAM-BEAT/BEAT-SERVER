@@ -8,7 +8,8 @@ dependencies {
     api(project(":global-utils"))
     implementation(kotlin("reflect"))
     compileOnly(libs.spring.boot.starter.data.jpa)
-    compileOnly(libs.spring.boot.starter.security)
+    compileOnly(libs.spring.security.core)
+    runtimeOnly(libs.spring.security.core)
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
 

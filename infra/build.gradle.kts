@@ -9,7 +9,7 @@ dependencies {
     implementation(project(":domain"))
     implementation(project(":global-utils"))
     compileOnly(libs.spring.boot.starter.web)
-    implementation(libs.spring.cloud.starter.openfeign)
+    compileOnly(libs.spring.cloud.starter.openfeign)
     implementation(libs.aws.java.sdk.s3)
     implementation(libs.nurigo.java.sdk)
     implementation(libs.querydsl.jpa.jakarta) {
