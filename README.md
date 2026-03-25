@@ -16,6 +16,13 @@
 <br></br>
 <br></br>
 
+## 🧭 Runtime Layout
+
+- root project는 더 이상 executable lane이 아닙니다.
+- 현재 실행 진입점은 `apis`, `admin`, `batch` 세 모듈만 소유합니다.
+- root는 공용 build/verification 조립 지점으로만 남고, `BeatApplication` 같은 legacy bootstrap은 다시 추가하지 않습니다.
+- baseline verification은 `./gradlew :apis:test :admin:test :batch:test` 와 `./gradlew verifyModuleBootJars` 기준으로 유지합니다.
+
 
 ## 💓 Introduction 
 ![intro1](https://github.com/user-attachments/assets/229ca2dd-9fd0-4177-87dd-ce41b4a5186c)

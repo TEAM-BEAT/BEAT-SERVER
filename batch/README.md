@@ -92,7 +92,7 @@ batch/
 - scheduler/service 소스 상당수가 아직 `com.beat.domain.*`, `com.beat.global.*` legacy package names를 유지한다.
 - batch 실행 경계는 detached 되었지만 package normalization은 아직 시작 전이다.
 - 일부 legacy domain entity가 여전히 Spring Security 타입(`GrantedAuthority`)을 참조해 `domain` 모듈에 transitional runtime support가 남아 있다.
-- root legacy lane은 repository에 남아 있고, 최종 retirement는 후속 migration 범위다.
+- root executable lane은 retire되었고, scheduler runtime owner는 `batch`로 고정됐다.
 - CQRS/service layer normalization과 batch 전용 package 정리는 다음 단계에서 다룬다.
 
 ## Guard rails
@@ -145,5 +145,5 @@ com.beat.batch.<context>/
 ## Follow-up after this issue
 
 1. batch-owned legacy package를 `com.beat.batch.<context>` 구조로 점진 이관
-2. root legacy lane retirement 시 scheduler-related transitional docs 추가 축소
+2. scheduler-related transitional docs를 batch ownership 기준으로 더 축소
 3. shared test bootstrap convergence가 필요해지면 실행 모듈 간 중복 test container setup 정리

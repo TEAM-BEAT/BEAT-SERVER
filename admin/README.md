@@ -95,7 +95,7 @@ admin/
 - 소스 파일 상당수가 아직 Java 기반 legacy package style을 유지한다.
 - `adapter`, `port` 패키지명은 그대로 남아 있고 최종 package normalization은 끝나지 않았다.
 - `gateway`와 `observability`는 아직 marker config + legacy implementation 혼합 상태라 공개 표면을 더 명확히 줄일 여지가 있다.
-- 관리자 lane은 root build-time dependency를 제거했지만, repo 전체 root legacy lane retirement는 후속 migration 범위다.
+- root executable lane은 retire되었고, `admin`은 detached module bootstrap만 유지한다.
 
 ## Guard rails
 
@@ -144,5 +144,5 @@ com.beat.admin.<context>/
 ## Follow-up after this issue
 
 1. `admin` package normalization이 충분히 진행되면 `com.beat.admin.<context>` 구조로 점진 정리
-2. `batch` root dependency 제거 lane 진행
-3. 남은 root legacy lane retirement 시 bootstrap/documentation 최종 축소
+2. `gateway`/`observability` 공개 표면을 더 좁힐 수 있는지 검토
+3. shared documentation을 현재 detached bootstrap 기준으로 지속 정리

@@ -99,8 +99,7 @@ apis/
 - 소스 파일 상당수가 아직 `com.beat.domain.*`, `com.beat.global.*` legacy package names를 유지한다.
 - `ApisBootstrapConfig`는 여전히 필요하다.
     - 이유: package normalization이 아직 끝나지 않아 기본 module scan만으로는 기동 계약이 닫히지 않는다.
-- root legacy lane은 repository에 남아 있지만, `apis`는 더 이상 build-time dependency로 기대지 않는다.
-- `admin`의 root dependency 제거는 별도 이슈 범위다.
+- root executable lane은 retire되었고, `apis`는 root bootstrap 없이 detached module contract를 유지한다.
 - `com.beat.apis.<context>` 구조로의 전면 정리는 후속 migration lane에서 처리한다.
 
 ## Guard rails
@@ -145,5 +144,5 @@ com.beat.apis.<context>/
 ## Follow-up after this issue
 
 1. `ApisBootstrapConfig`를 없앨 수 있을 정도로 package normalization이 충분히 진행됐는지 검토
-2. `admin` root dependency 제거 lane 진행
-3. root legacy lane retirement 시 bootstrap/documentation 최종 축소
+2. `com.beat.apis.<context>` 구조로의 점진 이관 계속 진행
+3. package normalization 이후 bootstrap/documentation을 다시 한 번 축소
