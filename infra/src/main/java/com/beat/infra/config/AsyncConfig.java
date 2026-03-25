@@ -1,5 +1,7 @@
 package com.beat.infra.config;
 
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.concurrent.Executor;
 
 import org.slf4j.Logger;
@@ -9,6 +11,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.lang.Nullable;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -39,6 +42,18 @@ public class AsyncConfig implements AsyncConfigurer, InfraBaseConfig {
 	@Bean
 	public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
 		return (ex, method, params) ->
-			log.error("Async exception in method {}", method.getName(), ex);
+			log.error(formatAsyncExceptionMessage(method, params, ex), ex);
+	}
+
+	static String formatAsyncExceptionMessage(Method method, @Nullable Object[] params, Throwable ex) {
+		return "비동기 작업 중 예외 발생! Method: [%s], Params: [%s], Exception: [%s]"
+			.formatted(method.getName(), formatAsyncParameters(params), ex.getMessage());
+	}
+
+	static String formatAsyncParameters(@Nullable Object[] params) {
+		if (params == null) {
+			return "null";
+		}
+		return Arrays.toString(params);
 	}
 }

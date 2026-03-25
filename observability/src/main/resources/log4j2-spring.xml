@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO">
+    <Properties>
+        <Property name="LOG_PATTERN">
+            %style{%d{yyyy-MM-dd HH:mm:ss,SSS}}{blue} %highlight{[%-5p]}{FATAL=bg_red, ERROR=red, WARN=yellow, INFO=green, DEBUG=bright_blue, TRACE=cyan} [%t] %style{[%c{1}.%M():%L]}{BRIGHT_BLACK} - %m%n
+        </Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <springProfile name="local">
+            <Root level="INFO">
+                <AppenderRef ref="ConsoleAppender"/>
+            </Root>
+        </springProfile>
+
+        <springProfile name="dev">
+            <Root level="INFO">
+                <AppenderRef ref="ConsoleAppender"/>
+            </Root>
+        </springProfile>
+
+        <springProfile name="prod">
+            <Root level="INFO">
+                <AppenderRef ref="ConsoleAppender"/>
+            </Root>
+        </springProfile>
+
+        <springProfile name="test">
+            <Root level="INFO">
+                <AppenderRef ref="ConsoleAppender"/>
+            </Root>
+        </springProfile>
+    </Loggers>
+</Configuration>
