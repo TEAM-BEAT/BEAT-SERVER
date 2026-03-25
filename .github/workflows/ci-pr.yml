@@ -1,4 +1,4 @@
-name: v2-web-pr
+name: ci-pr
 
 on:
   pull_request:
@@ -7,8 +7,9 @@ on:
       - main
 
 jobs:
-  v2-web-pr:
+  verify:
     runs-on: ubuntu-22.04
+    timeout-minutes: 15
     permissions:
       contents: read
 
@@ -27,8 +28,8 @@ jobs:
         with:
           gradle-home-cache-cleanup: true
 
-      - name: Verify v2-web baseline
+      - name: Verify baseline
         run: |
           chmod +x gradlew
-          GRADLE_USER_HOME=/tmp/gradle-home ./gradlew verifyV2WebBaseline --parallel --build-cache
+          GRADLE_USER_HOME=/tmp/gradle-home ./gradlew verifyV2WebBaseline :admin:test :batch:test verifyModuleBootJars --parallel --build-cache
         shell: bash

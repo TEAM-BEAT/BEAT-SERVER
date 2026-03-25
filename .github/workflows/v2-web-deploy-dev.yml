@@ -16,8 +16,6 @@ jobs:
     env:
       MODULE: apis
       PROFILE: dev
-      CONTAINER_NAME: beat-v2-web-dev
-      REMOTE_APP_DIR: /opt/beat/beat-v2-web-dev
 
     steps:
       - name: Checkout code
@@ -80,33 +78,35 @@ jobs:
           DEV_SECRET_PROPERTIES: ${{ secrets.APPLICATION_DEV_SECRET_SPRING }}
           DEV_V2_ACTUATOR_PORT: ${{ secrets.DEV_V2_ACTUATOR_PORT }}
           DEV_ACTUATOR_PATH: ${{ secrets.DEV_ACTUATOR_PATH }}
-          DEV_V2_WEB_PUBLIC_PORT: ${{ secrets.DEV_V2_WEB_PUBLIC_PORT }}
+          EXTERNAL_PORT_BLUE: ${{ secrets.EXTERNAL_PORT_BLUE }}
+          EXTERNAL_PORT_GREEN: ${{ secrets.EXTERNAL_PORT_GREEN }}
         with:
           host: ${{ secrets.DEV_SSH_HOST }}
           username: ${{ secrets.DEV_SSH_USERNAME }}
           key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
           port: ${{ secrets.DEV_SSH_PORT }}
-          envs: CONTAINER_NAME,REMOTE_APP_DIR,DEV_SECRET_PROPERTIES,DEV_V2_ACTUATOR_PORT,DEV_ACTUATOR_PATH,DEV_V2_WEB_PUBLIC_PORT
+          envs: DEV_SECRET_PROPERTIES,DEV_V2_ACTUATOR_PORT,DEV_ACTUATOR_PATH,EXTERNAL_PORT_BLUE,EXTERNAL_PORT_GREEN
           script: |
             mkdir -p /opt/beat/secret
             printf "%s" "$DEV_SECRET_PROPERTIES" > /opt/beat/secret/application-dev-secret.properties
             chmod 700 /opt/beat/secret || true
             chmod 600 /opt/beat/secret/application-dev-secret.properties
             docker pull "${{ steps.image.outputs.image }}"
-            docker rm -f ${CONTAINER_NAME} || true
-            docker run -d \
-              --name ${CONTAINER_NAME} \
-              --restart unless-stopped \
-              --network beat-network \
-              -v /opt/beat/secret:/app/secret:ro \
-              -p ${DEV_V2_WEB_PUBLIC_PORT}:8080 \
-              -p 127.0.0.1:${DEV_V2_ACTUATOR_PORT}:2222 \
-              "${{ steps.image.outputs.image }}"
+
+            export OPERATION_ENV='dev'
+            export INTERNAL_PORT='8080'
+            export EXTERNAL_PORT_GREEN="${EXTERNAL_PORT_GREEN}"
+            export EXTERNAL_PORT_BLUE="${EXTERNAL_PORT_BLUE}"
+            export DOCKER_IMAGE_NAME="${{ steps.image.outputs.image }}"
+
+            cd /home/ubuntu/deployment
+            chmod +x deploy-dev.sh
+            ./deploy-dev.sh
+
             for attempt in $(seq 1 30); do
               if curl --fail --silent "http://localhost:${DEV_V2_ACTUATOR_PORT}${DEV_ACTUATOR_PATH}/health" > /dev/null; then
                 exit 0
               fi
               sleep 2
             done
-            docker logs --tail 100 ${CONTAINER_NAME} || true
             exit 1
