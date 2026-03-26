@@ -157,6 +157,7 @@ val transitionBoundaryTest by tasks.registering(Test::class) {
     filter {
         includeTestsMatching("com.beat.architecture.PromotionBoundaryTest")
         includeTestsMatching("com.beat.RootRetirementContractTest")
+        includeTestsMatching("com.beat.SharedBoundaryContractTest")
     }
 }
 

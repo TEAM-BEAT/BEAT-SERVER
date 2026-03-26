@@ -17,6 +17,7 @@
 
 - `infra`, `apis`, `admin`, `batch`, `gateway` 의존 금지
 - `HttpStatus`, `ResponseEntity`, `Page`, `Pageable` 같은 Spring Web/Data 타입 의존 금지
+- `GrantedAuthority` 같은 Spring Security adapter 타입 의존 금지
 - JPA Entity, QueryDSL Q type, Redis document, 외부 API DTO 보유 금지
 - Controller 요청/응답 DTO 보유 금지
 
@@ -64,3 +65,4 @@ com.beat.domain.<context>/
 - `Domain Service`는 CRUD wrapper가 아니라 cross-aggregate 규칙 중심으로 정리한다.
 - Repository 시그니처는 도메인 중립적으로 유지한다.
 - Spring Web/Data 의존성이 제거된다.
+- `Role` 같은 도메인 enum은 권한 문자열만 소유하고, `GrantedAuthority` 변환 같은 security adapter 책임은 `gateway`나 실행 모듈 경계에 둔다.

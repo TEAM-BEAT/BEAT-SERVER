@@ -45,3 +45,4 @@ com.beat.global.common.exception.base
 
 - 저수준 공유 타입만 남고 프레젠테이션 기술 의존성이 제거된다.
 - `global-utils`가 shared-kernel처럼 다뤄질 정도로 admission rule이 엄격해진다.
+- `transitionBoundaryTest`의 shared guard는 `global-utils`가 Spring/runtime lane import 없이 standalone shared-kernel로 남는지 계속 확인한다.
