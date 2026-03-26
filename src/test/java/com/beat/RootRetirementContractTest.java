@@ -66,19 +66,19 @@ class RootRetirementContractTest {
 
 	@Test
 	void packagingAndDeployAutomationTargetsApisExecutableLane() throws Exception {
-		String v2WebPr = Files.readString(Path.of(".github/workflows/v2-web-pr.yml"));
+		String ciPr = Files.readString(Path.of(".github/workflows/ci-pr.yml"));
 		String v2WebDeployDev = Files.readString(Path.of(".github/workflows/v2-web-deploy-dev.yml"));
 		String v2WebDeployProd = Files.readString(Path.of(".github/workflows/v2-web-deploy-prod.yml"));
 		String dockerfileModule = Files.readString(Path.of("Dockerfile.module"));
-		String jenkinsfile = Files.readString(Path.of("Jenkinsfile"));
 
 		assertFalse(Files.exists(Path.of(".github/workflows/dev-CI.yml")));
 		assertFalse(Files.exists(Path.of(".github/workflows/prod-CI.yml")));
-		assertTrue(v2WebPr.contains("verifyV2WebBaseline"));
-		assertTrue(v2WebPr.contains("verifyModuleBootJars"));
-		assertTrue(v2WebPr.contains(":admin:test :batch:test"));
+		assertTrue(ciPr.contains("verifyV2WebBaseline"));
+		assertTrue(ciPr.contains("verifyModuleBootJars"));
+		assertTrue(ciPr.contains(":admin:test :batch:test"));
 		assertFalse(Files.exists(Path.of("Dockerfile")));
 		assertFalse(Files.exists(Path.of("Dockerfile-dev")));
+		assertFalse(Files.exists(Path.of("Jenkinsfile")));
 		assertTrue(v2WebDeployDev.contains("docker build -f Dockerfile.module"));
 		assertTrue(v2WebDeployProd.contains("docker build -f Dockerfile.module"));
 		assertTrue(v2WebDeployDev.contains("--build-arg MODULE=${MODULE}"));
@@ -90,6 +90,5 @@ class RootRetirementContractTest {
 		assertFalse(v2WebDeployDev.contains("docker run -d"));
 		assertTrue(dockerfileModule.contains("ARG MODULE"));
 		assertTrue(dockerfileModule.contains("ARG PROFILE"));
-		assertFalse(jenkinsfile.contains("dev-CI.yml"));
 	}
 }
