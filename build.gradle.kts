@@ -31,10 +31,6 @@ configurations {
     compileOnly {
         extendsFrom(configurations.annotationProcessor.get())
     }
-
-    configureEach {
-        exclude(group = "org.springframework.boot", module = "spring-boot-starter-logging")
-    }
 }
 
 dependencies {
@@ -100,7 +96,6 @@ dependencies {
 
     // Observability
     implementation(libs.micrometer.registry.prometheus)
-    implementation(libs.spring.boot.starter.log4j2)
     implementation(libs.slack.api.client)
 
     // Test support
@@ -111,6 +106,15 @@ dependencies {
 
 tasks.named<Jar>("jar") {
     enabled = true
+}
+
+// Root project is a coordination module only; executable lanes live in apis/admin/batch.
+tasks.named("bootJar") {
+    enabled = false
+}
+
+tasks.named("bootRun") {
+    enabled = false
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -150,14 +154,12 @@ val transitionBoundaryTest by tasks.registering(Test::class) {
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
-    filter { includeTestsMatching("com.beat.architecture.PromotionBoundaryTest") }
+    filter {
+        includeTestsMatching("com.beat.architecture.PromotionBoundaryTest")
+        includeTestsMatching("com.beat.RootRetirementContractTest")
+    }
 }
 
-registerVerificationTask(
-    "verifyLegacyV1Baseline",
-    "Builds the legacy v1 root boot jar without coupling to the v2-web baseline.",
-    "bootJar",
-)
 registerVerificationTask(
     "verifyV2WebBaseline",
     "Verifies the v2-web transition baseline with module tests and the root boundary guard.",

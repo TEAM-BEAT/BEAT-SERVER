@@ -183,8 +183,6 @@ Temporary Items
 **/.gradle/
 build/
 
-# Ignore application profile
-src/main/resources/application-local.yml
 secret/*
 default.conf
 deploy-dev.sh
