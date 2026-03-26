@@ -4,7 +4,7 @@
 
 ## 역할
 
-- JPA/Redis/QueryDSL/async 등 기술 설정을 소유한다.
+- JPA/QueryDSL/async 등 기술 설정을 소유한다.
 - `domain` Repository Interface의 구현체를 제공한다.
 - 외부 API client, 파일 저장소, 메시징, 서드파티 adapter를 구현한다.
 - 실행 모듈이 필요한 기술 설정만 명시적으로 import할 수 있는 부트스트랩 진입점을 제공한다.
@@ -31,11 +31,12 @@ infra/
     InfraBaseConfigImportSelector.java      # DeferredImportSelector — enum → class 매핑
     config/
       AsyncConfig.java                      # AsyncConfigurer, @Import(TaskExecutorConfig)
-      TaskExecutorConfig.java               # applicationTaskExecutor, taskScheduler 빈 생성
+      TaskExecutorConfig.java               # beatApplicationTaskExecutor 빈 생성
+      TaskSchedulerConfig.java              # taskScheduler 빈 생성
       JpaConfig.java
       MysqlCustomDialect.java
       QueryDslConfig.java
-      RedisConfig.java
+      RedisCacheConfig.java
       ThreadPoolProperties.java
   src/main/kotlin/com/beat/infra/
     InfraModuleConfig.kt
@@ -47,7 +48,10 @@ legacy root:
 
 설명:
 - `InfraBaseConfigImportSelector`가 `@EnableInfraBaseConfig`의 enum 값을 읽어 해당 `@Configuration` 클래스를 선택적으로 import한다.
-- `AsyncConfig`는 `@Import(TaskExecutorConfig.class)`로 executor/scheduler 빈 생성을 전이 로드한다.
+- `AsyncConfig`는 `@Import(TaskExecutorConfig.class)`로 executor 빈만 전이 로드하고, infra는 security-aware wrapper를 직접 소유하지 않는다.
+- scheduler bean은 `TaskSchedulerConfig` + `InfraBaseConfigGroup.SCHEDULER`로 분리되어 batch에서만 명시적으로 가져간다.
+- Redis runtime wiring은 Spring Boot auto-configuration과 gateway-owned config가 담당하고, infra는 더 이상 gateway-specific Redis bean을 소유하지 않는다.
+- future shared caching은 dormant `RedisCacheConfig` + `InfraBaseConfigGroup.REDIS_CACHE`에서 시작하고, 현재 실행 모듈은 아직 이를 import하지 않는다.
 - 일부 공통 config는 `infra`로 이동했지만, repository/JPA/query 구현 상당수는 아직 legacy root `dao` 패키지에 남아 있다.
 - 즉 `infra`도 아직 최종형이 아니라 **이관 진행 중인 landing zone**이다.
 
@@ -70,4 +74,4 @@ com.beat.infra.<context>.repository.query   # 필요 시만
 
 - `infra.external.*` 타입을 상위 실행 모듈이 직접 import하지 않는다.
 - `InfraModuleConfig`가 실제 기술 import를 모으는 진입점으로 성장한다.
-- JPA/Redis/QueryDSL/async 부트스트랩이 명시적으로 조립된다.
+- JPA/QueryDSL/async 부트스트랩이 명시적으로 조립되고, shared cache가 필요해질 때 `REDIS_CACHE` 그룹으로 확장한다.

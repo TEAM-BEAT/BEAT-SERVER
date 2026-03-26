@@ -15,7 +15,6 @@ import org.springframework.lang.Nullable;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.security.concurrent.DelegatingSecurityContextExecutor;
 
 import com.beat.infra.InfraBaseConfig;
 
@@ -28,14 +27,14 @@ public class AsyncConfig implements AsyncConfigurer, InfraBaseConfig {
 
 	private final ThreadPoolTaskExecutor applicationTaskExecutor;
 
-	public AsyncConfig(@Qualifier("applicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
+	public AsyncConfig(@Qualifier("beatApplicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
 		this.applicationTaskExecutor = applicationTaskExecutor;
 	}
 
 	@Override
 	@Bean(name = "taskExecutor")
 	public Executor getAsyncExecutor() {
-		return new DelegatingSecurityContextExecutor(applicationTaskExecutor);
+		return applicationTaskExecutor;
 	}
 
 	@Override

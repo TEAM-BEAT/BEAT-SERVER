@@ -68,6 +68,18 @@ class AdminApplicationTest {
     }
 
     @Test
+    fun `admin infra config excludes async and scheduler transitional imports`() {
+        val configSource = Files.readString(Path.of("src/main/kotlin/com/beat/admin/config/InfraConfig.kt"))
+
+        assertTrue(configSource.contains("InfraBaseConfigGroup.JPA"))
+        assertTrue(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
+        assertFalse(configSource.contains("InfraBaseConfigGroup.REDIS"))
+        assertTrue(configSource.contains("InfraBaseConfigGroup.EXTERNAL_CLIENTS"))
+        assertFalse(configSource.contains("InfraBaseConfigGroup.ASYNC"))
+        assertFalse(configSource.contains("InfraBaseConfigGroup.SCHEDULER"))
+    }
+
+    @Test
     fun `admin resources keep scheduler owner disabled`() {
         val config = Files.readString(Path.of("src/main/resources/application.yml"))
 
@@ -75,5 +87,15 @@ class AdminApplicationTest {
         assertTrue(config.contains("scheduler:"))
         assertTrue(config.contains("owner: false"))
         assertFalse(config.contains("owner: true"))
+    }
+
+    @Test
+    fun `admin module boot test uses targeted mocks without blanket bean overriding`() {
+        val config = Files.readString(Path.of("src/test/resources/application-test.yml"))
+        val bootTest = Files.readString(Path.of("src/test/java/com/beat/admin/AdminModuleContextBootTest.java"))
+
+        assertFalse(config.contains("allow-bean-definition-overriding"))
+        assertTrue(bootTest.contains("@MockitoBean"))
+        assertFalse(bootTest.contains("allow-bean-definition-overriding"))
     }
 }

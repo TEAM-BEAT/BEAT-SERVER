@@ -34,7 +34,7 @@ batch/
     BatchApplication.kt
     config/
       BatchSchedulerBootstrapConfig.kt
-      InfraConfig.kt                 # @EnableInfraBaseConfig(JPA, QUERY_DSL, ASYNC)
+      InfraConfig.kt                 # @EnableInfraBaseConfig(JPA, QUERY_DSL, ASYNC, SCHEDULER)
   src/main/java/com/beat/
     global/common/scheduler/application/
     domain/**/application/          # batch-owned scheduled service 포함
@@ -51,6 +51,7 @@ batch/
     - `InfraConfig`
     - `ObservabilityModuleConfig`
 - `@SpringBootApplication`이 batch package만 스캔한다.
+- `BatchApplication`은 `TaskSchedulingAutoConfiguration`을 제외하고 batch가 명시적으로 가져온 scheduler bean만 사용한다.
 - `batch`는 실행 모듈 중 유일하게 `@EnableScheduling`을 유지한다.
 - `BatchSchedulerBootstrapConfig`가 아래 batch-owned runtime beans를 명시적으로 import한다.
     - `JobSchedulerService`
@@ -59,6 +60,7 @@ batch/
     - `PromotionSchedulerService`
 - main resources는 `beat.scheduler.owner=true`를 기본값으로 유지한다.
 - external-client / Feign runtime은 batch bootstrap이 아니라 `infra`의 `EXTERNAL_CLIENTS` 경계와 web-app lane에서만 소유한다.
+- scheduler bean은 `infra`의 `SCHEDULER` 경계를 통해 batch에서만 명시적으로 import한다.
 - test profile은 `beat.scheduler.owner=false`로 내려서 detached smoke boot를 검증하고, owner-enabled contract는 별도 테스트로 검증한다.
 - scheduler/service 코드는 `batch` 모듈로 이동했지만 패키지 네임스페이스는 아직 legacy 경로를 유지한다.
 
@@ -102,6 +104,7 @@ batch/
     - narrow app bootstrap 유지
     - scheduler bootstrap import 집합 고정
     - main/test resource owner flag 계약 고정
+    - test profile이 blanket bean override 없이 유지되는지 확인
 - `BatchArchitectureGuardTest`
     - `batch/build.gradle.kts`의 root dependency 재추가 금지
     - `apis`, `admin`, `gateway` 직접 의존 금지
@@ -110,6 +113,7 @@ batch/
     - module context boot smoke test
     - test profile에서 `beat.scheduler.owner=false`가 실제로 적용되는지 확인
     - batch-owned `ScheduleJobPort`가 detached classpath에서 그대로 올라오는지 확인
+    - batch lane만 명시적으로 소유한 `taskScheduler`를 유지하는지 확인
 - `BatchSchedulerOwnerBootTest`
     - owner-enabled runtime에서 `ScheduleJobPort -> JobSchedulerService` 해석 고정
 - `AbstractBatchIntegrationTest`

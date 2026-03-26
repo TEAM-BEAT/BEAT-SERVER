@@ -68,8 +68,19 @@ class BatchApplicationTest {
         assertFalse(source.contains("GatewayModuleConfig"))
         assertFalse(source.contains("@EnableFeignClients"))
         assertFalse(source.contains("FeignAutoConfiguration"))
+        assertTrue(source.contains("TaskSchedulingAutoConfiguration::class"))
         assertFalse(source.contains("\"com.beat.domain\""))
         assertFalse(source.contains("\"com.beat.global\""))
+    }
+
+    @Test
+    fun `batch infra config keeps async executor and scheduler imports explicit`() {
+        val configSource = Files.readString(Path.of("src/main/kotlin/com/beat/batch/config/InfraConfig.kt"))
+
+        assertTrue(configSource.contains("InfraBaseConfigGroup.JPA"))
+        assertTrue(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
+        assertTrue(configSource.contains("InfraBaseConfigGroup.ASYNC"))
+        assertTrue(configSource.contains("InfraBaseConfigGroup.SCHEDULER"))
     }
 
     @Test
@@ -89,5 +100,6 @@ class BatchApplicationTest {
         assertTrue(config.contains("scheduler:"))
         assertTrue(config.contains("owner: false"))
         assertFalse(config.contains("owner: true"))
+        assertFalse(config.contains("allow-bean-definition-overriding"))
     }
 }

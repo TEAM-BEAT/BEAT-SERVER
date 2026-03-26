@@ -1,10 +1,12 @@
 package com.beat.global.common.scheduler.application;
 
-import com.beat.contracts.schedule.ScheduleJobPort;
-import com.beat.domain.schedule.domain.Schedule;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -13,14 +15,11 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledFuture;
+import com.beat.contracts.schedule.ScheduleJobPort;
+import com.beat.domain.schedule.domain.Schedule;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -64,10 +63,6 @@ public class JobSchedulerService implements ScheduleJobPort {
 		new ArrayList<>(scheduledTasks.keySet()).stream()
 			.filter(scheduleId -> !pendingScheduleIds.contains(scheduleId))
 			.forEach(this::cancelScheduledTaskById);
-	}
-
-	public void schedulePendingPerformances() {
-		reconcilePendingSchedules();
 	}
 
 	@Override
@@ -123,7 +118,7 @@ public class JobSchedulerService implements ScheduleJobPort {
 
 					ScheduledFuture<?> scheduledTask = taskScheduler.schedule(
 						() -> updateIsBookingFalse(lockedSchedule.getId()),
-						Date.from(performanceEndTime.atZone(ZoneId.systemDefault()).toInstant())
+						performanceEndTime.atZone(ZoneId.systemDefault()).toInstant()
 					);
 
 					scheduledTasks.put(lockedSchedule.getId(), scheduledTask);
@@ -144,9 +139,9 @@ public class JobSchedulerService implements ScheduleJobPort {
 
 	// 현재 등록된 스케줄 로그 출력
 	public void logScheduledTasks() {
-		scheduledTasks.forEach((scheduleId, future) -> {
+		scheduledTasks.forEach((scheduleId, future) ->
 			log.debug("Scheduled task for Schedule ID: {} is currently {}.",
-				scheduleId, (future.isCancelled() ? "Cancelled" : "Scheduled"));
-		});
+				scheduleId, (future.isCancelled() ? "Cancelled" : "Scheduled"))
+		);
 	}
 }

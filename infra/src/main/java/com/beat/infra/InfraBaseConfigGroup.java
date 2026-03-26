@@ -4,7 +4,8 @@ import com.beat.infra.config.AsyncConfig;
 import com.beat.infra.config.ExternalClientConfig;
 import com.beat.infra.config.JpaConfig;
 import com.beat.infra.config.QueryDslConfig;
-import com.beat.infra.config.RedisConfig;
+import com.beat.infra.config.RedisCacheConfig;
+import com.beat.infra.config.TaskSchedulerConfig;
 
 public enum InfraBaseConfigGroup {
 
@@ -12,7 +13,8 @@ public enum InfraBaseConfigGroup {
 	EXTERNAL_CLIENTS(ExternalClientConfig.class),
 	JPA(JpaConfig.class),
 	QUERY_DSL(QueryDslConfig.class),
-	REDIS(RedisConfig.class);
+	REDIS_CACHE(RedisCacheConfig.class),
+	SCHEDULER(TaskSchedulerConfig.class);
 
 	private final Class<? extends InfraBaseConfig> configClass;
 

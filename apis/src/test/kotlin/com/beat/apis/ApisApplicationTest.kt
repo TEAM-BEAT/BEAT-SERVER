@@ -89,7 +89,7 @@ class ApisApplicationTest {
 
         assertTrue(configSource.contains("InfraBaseConfigGroup.JPA"))
         assertTrue(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
-        assertTrue(configSource.contains("InfraBaseConfigGroup.REDIS"))
+        assertFalse(configSource.contains("InfraBaseConfigGroup.REDIS"))
         assertTrue(configSource.contains("InfraBaseConfigGroup.ASYNC"))
         assertTrue(configSource.contains("InfraBaseConfigGroup.EXTERNAL_CLIENTS"))
     }
@@ -130,6 +130,13 @@ class ApisApplicationTest {
         assertTrue(config.contains("scheduler:"))
         assertTrue(config.contains("owner: false"))
         assertFalse(config.contains("owner: true"))
+    }
+
+    @Test
+    fun `apis test bootstrap does not rely on blanket bean overriding`() {
+        val config = Files.readString(Path.of("src/test/resources/application-test.yml"))
+
+        assertFalse(config.contains("allow-bean-definition-overriding"))
     }
 
     @Test

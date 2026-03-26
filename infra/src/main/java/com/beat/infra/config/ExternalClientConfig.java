@@ -13,7 +13,9 @@ import com.beat.infra.storage.s3.S3FileStorageAdapter;
 import com.beat.infra.storage.s3.S3InfraConfig;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 
+@Configuration(proxyBeanMethods = false)
 @EnableFeignClients(basePackageClasses = {
 	KakaoApiClient.class,
 	KakaoAuthApiClient.class,

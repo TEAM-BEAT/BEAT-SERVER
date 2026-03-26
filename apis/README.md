@@ -43,7 +43,7 @@ apis/
     config/
       ApisBootstrapConfig.kt        # targeted component scan for apis-owned legacy packages
       ApisScheduleJobPortConfig.kt  # module-local non-owner ScheduleJobPort bridge
-      InfraConfig.kt                # @EnableInfraBaseConfig(JPA, QUERY_DSL, REDIS, ASYNC, EXTERNAL_CLIENTS)
+      InfraConfig.kt                # @EnableInfraBaseConfig(JPA, QUERY_DSL, ASYNC, EXTERNAL_CLIENTS)
 
   src/main/java/com/beat/apis/
     config/
@@ -88,7 +88,8 @@ apis/
 ### Outside `apis`
 
 - `gateway`: JWT, auth filter, current-member resolver, refresh-token redis repository, auth/security shared primitives
-- `infra`: JPA, QueryDSL, Redis connection/template, async/external-client bootstrap
+- `infra`: JPA, QueryDSL, async/external-client bootstrap
+- `gateway`: JWT, auth filter, current-member resolver, refresh-token redis repository, gateway-owned Redis beans
 - `domain`: repository/domain/exception/port contracts used by `apis`
 - `global-utils`: shared response DTO and common exception hierarchy
 - `observability`: logging/metrics/tracing aspects
@@ -109,12 +110,15 @@ apis/
     - broad app scan 금지
     - targeted bootstrap scan 계약 고정
     - non-owner schedule bridge 계약 고정
+    - test profile이 blanket bean override 없이 유지되는지 확인
 - `ApisArchitectureGuardTest`
     - `apis/build.gradle.kts`의 root dependency 재추가 금지
     - root bootstrap lane import 금지
+    - gateway internal / infra implementation package 직접 import 금지
 - `ApisModuleContextBootTest`
     - module context boot smoke test
     - `ScheduleJobPort`가 module-local non-owner bean으로 올라오는지 확인
+    - shared async import가 `TaskScheduler`를 함께 올리지 않는지 확인
 
 ## To-Be direction
 

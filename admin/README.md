@@ -39,7 +39,7 @@ admin/
   src/main/kotlin/com/beat/admin/
     AdminApplication.kt
     config/
-      InfraConfig.kt                 # @EnableInfraBaseConfig(JPA, QUERY_DSL, REDIS, ASYNC, EXTERNAL_CLIENTS)
+      InfraConfig.kt                 # @EnableInfraBaseConfig(JPA, QUERY_DSL, EXTERNAL_CLIENTS)
 
   src/main/java/com/beat/admin/
     config/
@@ -63,6 +63,7 @@ admin/
 - `AdminSecurityConfig`가 관리자 route whitelist와 인증 정책을 소유한다.
 - `GatewayModuleConfig`가 gateway 내부 구현 빈을 제공하지만, `admin`은 공개 진입점인 `GatewayModuleConfig`와 `gateway.annotation.CurrentMember`만 직접 참조한다.
 - `InfraConfig.kt`가 필요한 infra base config group만 명시적으로 import한다.
+- `admin`은 async/scheduler shared runtime bean을 직접 import하지 않는다.
 - `admin` resources는 `beat.scheduler.owner=false`를 유지하고, scheduler owner bean이나 non-owner bridge를 따로 소유하지 않는다.
 
 ## What changed in this issue
@@ -84,7 +85,8 @@ admin/
 ### Outside `admin`
 
 - `gateway`: JWT, auth filter, current-member resolver, 인증/인가 shared primitives
-- `infra`: JPA, QueryDSL, Redis, async, external-client bootstrap
+- `infra`: JPA, QueryDSL, async, external-client bootstrap
+- `gateway`: JWT, auth filter, current-member resolver, gateway-owned Redis beans, 인증/인가 shared primitives
 - `domain`: admin이 사용하는 domain model / repository / port contracts
 - `module-contracts`: storage, auth, schedule 같은 cross-module port contracts
 - `global-utils`: shared response DTO와 공통 예외 계층
@@ -104,10 +106,12 @@ admin/
     - broad app scan 금지
     - scheduler owner disabled 계약 고정
     - admin-owned security policy 존재 확인
+    - test profile이 blanket bean override 없이 유지되고, boot smoke test는 `@MockitoBean`으로 필요한 collaborator만 대체하는지 확인
 - `AdminArchitectureGuardTest`
     - `admin/build.gradle.kts`의 root dependency 재추가 금지
     - root bootstrap lane import 금지
     - gateway 내부 패키지 직접 import 금지
+    - infra implementation package 직접 import 금지
 - `AdminModuleContextBootTest`
     - module context boot smoke test
     - scheduler owner / schedule bridge가 admin context에 섞이지 않는지 확인

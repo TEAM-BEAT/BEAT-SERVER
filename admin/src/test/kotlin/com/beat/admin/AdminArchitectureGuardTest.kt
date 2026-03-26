@@ -44,6 +44,45 @@ class AdminArchitectureGuardTest {
         )
     }
 
+    @Test
+    fun `admin sources must not import infra implementation packages`() {
+        val violations = findForbiddenImports(
+            "com.beat.infra.external.",
+            ".repository.impl.",
+            ".repository.jpa.",
+            ".entity.",
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found forbidden infra implementation references:\n${violations.joinToString("\n")}"
+        )
+    }
+
+    private fun findForbiddenImports(vararg forbiddenReferences: String): List<String> {
+        val paths = Files.walk(Path.of("src/main"))
+
+        return try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt") }
+                .toList()
+                .flatMap { path ->
+                    Files.readAllLines(path)
+                        .asSequence()
+                        .filter { it.trimStart().startsWith("import ") }
+                        .flatMap { line ->
+                            forbiddenReferences
+                                .filter(line::contains)
+                                .map { pattern -> "$path: $pattern" }
+                        }
+                        .toList()
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
     private fun findForbiddenReferences(vararg forbiddenReferences: String): List<String> {
         val paths = Files.walk(Path.of("src/main"))
 

@@ -1,12 +1,23 @@
 package com.beat.infra.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.lang.reflect.Method;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 class AsyncConfigTest {
+
+	@Test
+	void getAsyncExecutorReusesApplicationExecutorWithoutSecuritySpecificWrapper() {
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.initialize();
+		AsyncConfig asyncConfig = new AsyncConfig(executor);
+
+		assertSame(executor, asyncConfig.getAsyncExecutor());
+	}
 
 	@Test
 	void formatAsyncParametersReturnsNullWhenParamsAreMissing() {
