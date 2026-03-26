@@ -23,6 +23,12 @@
 - root는 공용 build/verification 조립 지점으로만 남고, `BeatApplication` 같은 legacy bootstrap은 다시 추가하지 않습니다.
 - baseline verification은 `./gradlew verifyV2WebBaseline :admin:test :batch:test verifyModuleBootJars` 기준으로 유지합니다.
 
+## 🧪 Module Test Bootstrap
+
+- 실행 모듈 테스트는 각 모듈의 `src/test/resources/application-test.yml`을 사용해 detached classpath를 검증합니다.
+- blanket `spring.main.allow-bean-definition-overriding`는 더 이상 공통 기본값이 아닙니다.
+- `admin`의 boot smoke test는 필요한 collaborator만 `@MockitoBean`으로 교체하고, `apis`/`batch`까지 포함한 세 실행 모듈 모두 bean override 없이 module-local bootstrap 계약을 검증합니다.
+
 
 ## 💓 Introduction 
 ![intro1](https://github.com/user-attachments/assets/229ca2dd-9fd0-4177-87dd-ce41b4a5186c)

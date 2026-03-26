@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -34,8 +35,10 @@ class BatchSchedulerOwnerBootTest extends AbstractBatchIntegrationTest {
 	@Test
 	void contextBootsWithSchedulerOwnerEnabled() {
 		assertEquals("true", environment.getProperty("beat.scheduler.owner"));
+		assertEquals(true, applicationContext.containsBean("taskScheduler"));
 		assertEquals(1, applicationContext.getBeansOfType(JobSchedulerService.class).size());
 		assertEquals(1, applicationContext.getBeansOfType(ScheduleJobPort.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(TaskScheduler.class).size());
 		assertNotNull(scheduleJobPort);
 		assertInstanceOf(JobSchedulerService.class, scheduleJobPort);
 		assertSame(jobSchedulerService, scheduleJobPort);

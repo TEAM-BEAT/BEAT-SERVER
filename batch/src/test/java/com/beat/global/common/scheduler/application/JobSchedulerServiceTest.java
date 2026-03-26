@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -44,12 +45,12 @@ class JobSchedulerServiceTest {
 		when(lockedSchedule.getPerformance()).thenReturn(performance);
 		when(performance.getRunningTime()).thenReturn(120);
 		when(transactionalService.lockSchedule(1L)).thenReturn(java.util.Optional.of(lockedSchedule));
-		doReturn(scheduledFuture).when(taskScheduler).schedule(any(Runnable.class), any(java.util.Date.class));
+		doReturn(scheduledFuture).when(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
 
 		jobSchedulerService.registerOrRefresh(schedule);
 
 		verify(transactionalService).lockSchedule(1L);
-		verify(taskScheduler).schedule(any(Runnable.class), any(java.util.Date.class));
+		verify(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
 		assertSame(scheduledFuture, getScheduledTasks(jobSchedulerService).get(1L));
 	}
 

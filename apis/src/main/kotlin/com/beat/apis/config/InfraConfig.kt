@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Configuration
     value = [
         InfraBaseConfigGroup.JPA,
         InfraBaseConfigGroup.QUERY_DSL,
-        InfraBaseConfigGroup.REDIS,
         InfraBaseConfigGroup.ASYNC,
         InfraBaseConfigGroup.EXTERNAL_CLIENTS,
     ]

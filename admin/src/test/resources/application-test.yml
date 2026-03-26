@@ -1,6 +1,4 @@
 spring:
-  main:
-    allow-bean-definition-overriding: true
   # MySQL datasource is auto-configured by @ServiceConnection in AbstractAdminIntegrationTest.
   jpa:
     hibernate:

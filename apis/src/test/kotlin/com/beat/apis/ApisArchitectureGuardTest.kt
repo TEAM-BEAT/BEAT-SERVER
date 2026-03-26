@@ -45,4 +45,65 @@ class ApisArchitectureGuardTest {
 
         assertTrue(violations.isEmpty(), "Found forbidden root bootstrap references:\n${violations.joinToString("\n")}")
     }
+
+    @Test
+    fun `apis main sources must not import gateway internals or infra implementations`() {
+        val violations = findForbiddenImports(
+            "com.beat.gateway.security.",
+            "com.beat.gateway.filter.",
+            "com.beat.gateway.config.",
+            "com.beat.infra.external.",
+            ".repository.impl.",
+            ".repository.jpa.",
+            ".entity.",
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found forbidden apis source references:\n${violations.joinToString("\n")}"
+        )
+    }
+
+    private fun findForbiddenImports(vararg forbiddenReferences: String): List<String> {
+        val paths = Files.walk(Path.of("src/main"))
+
+        return try {
+            paths
+                .filter { Files.isRegularFile(it) }
+                .filter { it.toString().endsWith(".java") || it.toString().endsWith(".kt") }
+                .toList()
+                .flatMap { path ->
+                    Files.readAllLines(path)
+                        .asSequence()
+                        .filter { it.trimStart().startsWith("import ") }
+                        .flatMap { line ->
+                            forbiddenReferences
+                                .filter(line::contains)
+                                .map { pattern -> "${path}: $pattern" }
+                        }
+                        .toList()
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
+    private fun findForbiddenReferences(vararg forbiddenReferences: String): List<String> {
+        val paths = Files.walk(Path.of("src/main"))
+
+        return try {
+            paths
+                .filter { Files.isRegularFile(it) }
+                .filter { it.toString().endsWith(".java") || it.toString().endsWith(".kt") }
+                .toList()
+                .flatMap { path ->
+                    val source = Files.readString(path)
+                    forbiddenReferences
+                        .filter(source::contains)
+                        .map { pattern -> "${path}: $pattern" }
+                }
+        } finally {
+            paths.close()
+        }
+    }
 }

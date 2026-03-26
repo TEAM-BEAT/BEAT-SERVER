@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration
         InfraBaseConfigGroup.JPA,
         InfraBaseConfigGroup.QUERY_DSL,
         InfraBaseConfigGroup.ASYNC,
+        InfraBaseConfigGroup.SCHEDULER,
     ]
 )
 class InfraConfig

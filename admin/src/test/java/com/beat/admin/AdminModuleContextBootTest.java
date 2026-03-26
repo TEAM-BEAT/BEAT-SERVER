@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.beat.admin.port.in.AdminUseCase;
@@ -44,5 +45,6 @@ class AdminModuleContextBootTest extends AbstractAdminIntegrationTest {
 	void contextLoads() {
 		assertFalse(applicationContext.containsBean("jobSchedulerService"));
 		assertTrue(applicationContext.getBeansOfType(ScheduleJobPort.class).isEmpty());
+		assertTrue(applicationContext.getBeansOfType(TaskScheduler.class).isEmpty());
 	}
 }
