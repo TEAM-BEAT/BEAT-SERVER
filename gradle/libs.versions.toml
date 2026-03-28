@@ -37,7 +37,7 @@ spring-aop = { module = "org.springframework:spring-aop", version.ref = "spring-
 spring-tx = { module = "org.springframework:spring-tx", version.ref = "spring-framework" }
 aspectjweaver = { module = "org.aspectj:aspectjweaver", version.ref = "aspectj" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version = "2.0.17" }
-mysql-connector-j = { module = "com.mysql:mysql-connector-j" }
+mysql-connector-j = { module = "com.mysql:mysql-connector-j", version = "9.6.0" }
 spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor", version.ref = "spring-boot" }
 spring-boot-core = { module = "org.springframework.boot:spring-boot", version.ref = "spring-boot" }
 spring-boot-persistence = { module = "org.springframework.boot:spring-boot-persistence", version.ref = "spring-boot" }
