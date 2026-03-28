@@ -22,7 +22,7 @@ class ApisArchitectureGuardTest {
         val forbiddenReferences = listOf(
             "com.beat.BeatApplication",
             "com.beat.legacyroot.",
-            "com.beat.global.common.scheduler.application.",
+            "com.beat.batch.",
             "com.beat.global.common.config.SecurityConfig",
             "com.beat.global.common.config.WebConfig",
         )
@@ -64,6 +64,19 @@ class ApisArchitectureGuardTest {
         )
     }
 
+    @Test
+    fun `apis main sources must not declare legacy owner packages`() {
+        val violations = findFilesMatching(
+            "package com.beat.domain.",
+            "package com.beat.global.",
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found legacy owner package declarations:\n${violations.joinToString("\n")}",
+        )
+    }
+
     private fun findForbiddenImports(vararg forbiddenReferences: String): List<String> {
         val paths = Files.walk(Path.of("src/main"))
 
@@ -100,6 +113,25 @@ class ApisArchitectureGuardTest {
                     val source = Files.readString(path)
                     forbiddenReferences
                         .filter(source::contains)
+                        .map { pattern -> "${path}: $pattern" }
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
+    private fun findFilesMatching(vararg forbiddenReferences: String): List<String> {
+        val paths = Files.walk(Path.of("src/main"))
+
+        return try {
+            paths
+                .filter { Files.isRegularFile(it) }
+                .filter { it.toString().endsWith(".java") || it.toString().endsWith(".kt") }
+                .toList()
+                .flatMap { path ->
+                    val source = Files.readString(path)
+                    forbiddenReferences
+                        .filter(source::startsWith)
                         .map { pattern -> "${path}: $pattern" }
                 }
         } finally {

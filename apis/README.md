@@ -29,8 +29,9 @@
 - root legacy bootstrap lane import 금지
     - `com.beat.BeatApplication`
     - `com.beat.legacyroot.*`
-    - `com.beat.global.common.scheduler.application.*`
     - root `SecurityConfig` / `WebConfig`
+- `batch` runtime owner package 직접 import 금지
+    - `com.beat.batch.*`
 - broad component scan에 기대는 구조 금지
 - JPA Entity, QueryDSL Q type, Redis document를 API DTO로 직접 노출 금지
 
@@ -41,29 +42,32 @@ apis/
   src/main/kotlin/com/beat/apis/
     ApisApplication.kt
     config/
-      ApisBootstrapConfig.kt        # targeted component scan for apis-owned legacy packages
       ApisScheduleJobPortConfig.kt  # module-local non-owner ScheduleJobPort bridge
       InfraConfig.kt                # @EnableInfraBaseConfig(JPA, QUERY_DSL, ASYNC, EXTERNAL_CLIENTS)
 
   src/main/java/com/beat/apis/
+    booking/
+    member/
+    performance/
+    promotion/
+    schedule/
+    user/
+    external/
+    swagger/
     config/
       ApisSecurityConfig.java       # apis-owned HTTP security policy
     common/handler/
       GlobalExceptionHandler.java
-
-  src/main/java/com/beat/domain/**  # apis-owned legacy package names
-  src/main/java/com/beat/global/**  # apis-owned legacy package names
 ```
 
 ### Runtime contract
 
 - `ApisApplication`은 정확히 아래 bootstrap surface만 import한다.
-    - `ApisBootstrapConfig`
     - `GatewayModuleConfig`
     - `InfraConfig`
     - `ObservabilityModuleConfig`
 - app-level broad `@ComponentScan`은 없다.
-- `ApisBootstrapConfig`는 필요한 apis-owned legacy package만 targeted scan한다.
+- `@SpringBootApplication(scanBasePackageClasses = [ApisApplication::class])`가 `com.beat.apis.*` owner namespace만 스캔한다.
 - `ApisSecurityConfig`가 route whitelist와 인증 정책을 소유한다.
 - `ApisScheduleJobPortConfig`는 `beat.scheduler.owner=false`일 때만 non-owner `ScheduleJobPort`를 제공한다.
 - active scheduler runtime owner는 `batch`이며, `apis`는 owner bean을 import/scan하지 않는다.
@@ -83,7 +87,7 @@ apis/
 - module-local security policy
 - swagger exposure
 - global exception handling for the HTTP lane
-- notification/file API entrypoints that still carry legacy package names but live in the `apis` module source tree
+- notification/file API entrypoints도 `com.beat.apis.*` owner namespace로 정렬됐다.
 
 ### Outside `apis`
 
@@ -97,18 +101,16 @@ apis/
 
 ## Remaining transitional debt
 
-- 소스 파일 상당수가 아직 `com.beat.domain.*`, `com.beat.global.*` legacy package names를 유지한다.
-- `ApisBootstrapConfig`는 여전히 필요하다.
-    - 이유: package normalization이 아직 끝나지 않아 기본 module scan만으로는 기동 계약이 닫히지 않는다.
+- owner namespace normalization은 끝났지만 `controller/application/dto` 내부 세분화는 문맥별로 완전히 통일되지 않았다.
+- `ApisScheduleJobPortConfig`는 package normalization과 무관하게 non-owner schedule bridge로 남아 있다.
 - root executable lane은 retire되었고, `apis`는 root bootstrap 없이 detached module contract를 유지한다.
-- `com.beat.apis.<context>` 구조로의 전면 정리는 후속 migration lane에서 처리한다.
 
 ## Guard rails
 
 - `ApisApplicationTest`
     - `ApisApplication` import 집합 고정
     - broad app scan 금지
-    - targeted bootstrap scan 계약 고정
+    - owner source package가 `com.beat.apis.*`로 정렬됐는지 확인
     - non-owner schedule bridge 계약 고정
     - test profile이 blanket bean override 없이 유지되는지 확인
 - `ApisArchitectureGuardTest`
@@ -143,10 +145,10 @@ com.beat.apis.<context>/
 - CQRS는 `application/service`에서 먼저 적용하고 `service/command`, `service/query`로 나눈다.
 - DTO는 command/query로 나누지 않고 `dto/request`, `dto/response` 중심으로 유지한다.
 - `adapter`, `port` 패키지는 BEAT 기본 가이드로 강제하지 않는다.
-- package normalization은 이 issue 범위 밖이지만, 신규 추가 코드는 가능하면 `com.beat.apis.*` 아래로 모은다.
+- executable-lane owner file은 계속 `com.beat.apis.*` 아래에 둔다.
 
 ## Follow-up after this issue
 
-1. `ApisBootstrapConfig`를 없앨 수 있을 정도로 package normalization이 충분히 진행됐는지 검토
-2. `com.beat.apis.<context>` 구조로의 점진 이관 계속 진행
-3. package normalization 이후 bootstrap/documentation을 다시 한 번 축소
+1. `com.beat.apis.<context>` 내부 하위 계층(`controller`, `application/service`, `dto`)을 문맥별로 더 일관되게 정리
+2. `ApisScheduleJobPortConfig` 같은 intentional bridge를 closeout 문서 기준으로 계속 최소화
+3. package normalization 이후 문맥별 하위 계층 정리를 별도 리팩터링 lane으로 진행

@@ -1,12 +1,12 @@
 package com.beat.apis
 
-import com.beat.apis.config.ApisBootstrapConfig
 import com.beat.apis.config.ApisSecurityConfig
 import com.beat.apis.config.InfraConfig
 import com.beat.gateway.GatewayModuleConfig
 import com.beat.observability.ObservabilityModuleConfig
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
@@ -24,12 +24,21 @@ class ApisApplicationTest {
 
         assertEquals(
             setOf(
-                ApisBootstrapConfig::class.java.name,
                 GatewayModuleConfig::class.java.name,
                 InfraConfig::class.java.name,
                 ObservabilityModuleConfig::class.java.name,
             ),
             importedClassNames,
+        )
+    }
+
+    @Test
+    fun `apis application scans only the module owner namespace`() {
+        val springBootApplication = ApisApplication::class.java.getAnnotation(SpringBootApplication::class.java)
+        assertNotNull(springBootApplication)
+        assertEquals(
+            setOf(ApisApplication::class.java.name),
+            springBootApplication!!.scanBasePackageClasses.map { it.java.name }.toSet(),
         )
     }
 
@@ -41,36 +50,40 @@ class ApisApplicationTest {
     }
 
     @Test
-    fun `apis security config exists for module-owned route policy`() {
+    fun `apis security config exists for module owned route policy`() {
         val configuration = ApisSecurityConfig::class.java.getAnnotation(Configuration::class.java)
         assertNotNull(configuration)
     }
 
     @Test
-    fun `apis application no longer owns broad component scan`() {
-        val scan = ApisApplication::class.java.getAnnotation(ComponentScan::class.java)
-        assertNull(scan)
+    fun `apis application no longer owns broad component scan or transitional bootstrap import`() {
+        val source = Files.readString(Path.of("src/main/kotlin/com/beat/apis/ApisApplication.kt"))
+
+        assertNull(ApisApplication::class.java.getAnnotation(ComponentScan::class.java))
+        assertFalse(source.contains("ApisBootstrapConfig"))
+        assertFalse(source.contains("\"com.beat.domain\""))
+        assertFalse(source.contains("\"com.beat.global\""))
     }
 
     @Test
-    fun `apis bootstrap config scans targeted application packages without root scheduler owner`() {
-        val scan = ApisBootstrapConfig::class.java.getAnnotation(ComponentScan::class.java)
-        assertNotNull(scan)
+    fun `apis owner sources no longer declare legacy owner packages`() {
+        val paths = Files.walk(Path.of("src/main"))
+        val violations = try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { it.toString().endsWith(".java") || it.toString().endsWith(".kt") }
+                .filter { path ->
+                    val source = Files.readString(path)
+                    source.startsWith("package com.beat.domain.")
+                        || source.startsWith("package com.beat.global.")
+                }
+                .map(Path::toString)
+                .toList()
+        } finally {
+            paths.close()
+        }
 
-        val scannedClassNames = scan.basePackageClasses.map { it.java.name }.toSet()
-        assertTrue(scannedClassNames.contains("com.beat.domain.booking.api.BookingController"))
-        assertTrue(scannedClassNames.contains("com.beat.domain.booking.application.TicketService"))
-        assertTrue(scannedClassNames.contains("com.beat.domain.member.application.MemberService"))
-        assertTrue(scannedClassNames.contains("com.beat.domain.performance.application.PerformanceService"))
-        assertTrue(scannedClassNames.contains("com.beat.domain.schedule.application.ScheduleService"))
-        assertTrue(scannedClassNames.contains("com.beat.domain.promotion.application.PromotionService"))
-        assertTrue(scannedClassNames.contains("com.beat.domain.user.application.UserService"))
-        assertTrue(scannedClassNames.contains("com.beat.global.external.s3.api.FileController"))
-        assertTrue(scannedClassNames.contains("com.beat.global.external.notification.slack.event.BookingCreatedEventListener"))
-        assertFalse(scannedClassNames.contains("com.beat.global.common.scheduler.application.JobSchedulerService"))
-        assertFalse(scannedClassNames.contains("com.beat.BeatApplication"))
-        assertFalse(scannedClassNames.any { it.startsWith("com.beat.legacyroot.") })
-        assertTrue(scan.excludeFilters.isEmpty())
+        assertTrue(violations.isEmpty(), "Found legacy owner package declarations:\n${violations.joinToString("\n")}")
     }
 
     @Test
@@ -98,28 +111,6 @@ class ApisApplicationTest {
     fun `apis application does not enable scheduling`() {
         val enableScheduling = ApisApplication::class.java.getAnnotation(EnableScheduling::class.java)
         assertNull(enableScheduling)
-    }
-
-    @Test
-    fun `apis application no longer owns feign bootstrap scanning`() {
-        val source = Files.readString(Path.of("src/main/kotlin/com/beat/apis/ApisApplication.kt"))
-        assertFalse(source.contains("@EnableFeignClients"))
-        assertFalse(source.contains("\"com.beat.domain\""))
-        assertFalse(source.contains("\"com.beat.global\""))
-    }
-
-    @Test
-    fun `apis member lane no longer imports root social auth client packages`() {
-        listOf(
-            "src/main/java/com/beat/domain/member/application/SocialLoginService.java",
-            "src/main/java/com/beat/domain/member/application/MemberRegistrationService.java",
-            "src/main/java/com/beat/domain/member/application/AuthenticationService.java",
-            "src/main/java/com/beat/domain/member/api/MemberController.java",
-            "src/main/java/com/beat/domain/member/api/MemberApi.java",
-        ).forEach { relativePath ->
-            val source = Files.readString(Path.of(relativePath))
-            assertFalse(source.contains("com.beat.global.auth.client"))
-        }
     }
 
     @Test
