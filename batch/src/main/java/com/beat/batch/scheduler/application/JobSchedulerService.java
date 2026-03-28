@@ -1,4 +1,4 @@
-package com.beat.global.common.scheduler.application;
+package com.beat.batch.scheduler.application;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;

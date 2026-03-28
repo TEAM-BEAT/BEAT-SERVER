@@ -1,4 +1,4 @@
-package com.beat.global.common.scheduler.application;
+package com.beat.batch.scheduler.application;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;

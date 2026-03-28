@@ -1,4 +1,4 @@
-package com.beat.domain.booking.application;
+package com.beat.batch.booking.application;
 
 import java.time.LocalDateTime;
 import java.util.List;

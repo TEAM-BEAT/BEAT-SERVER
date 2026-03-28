@@ -1,4 +1,4 @@
-package com.beat.domain.promotion.application;
+package com.beat.batch.promotion.application;
 
 import com.beat.domain.promotion.dao.PromotionRepository;
 import com.beat.domain.promotion.domain.CarouselNumber;

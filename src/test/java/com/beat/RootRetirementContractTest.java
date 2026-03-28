@@ -55,13 +55,21 @@ class RootRetirementContractTest {
 	}
 
 	@Test
-	void batchRemainsTheSchedulerOwnerLaneAfterRootRetirement() {
-		assertTrue(
-			Files.exists(Path.of("batch/src/main/java/com/beat/global/common/scheduler/application/JobSchedulerService.java")));
-		assertTrue(
-			Files.exists(Path.of("batch/src/main/java/com/beat/global/common/scheduler/application/JobSchedulerTransactionalService.java")));
-		assertTrue(Files.exists(Path.of("batch/src/main/java/com/beat/domain/booking/application/TicketCleanupScheduler.java")));
-		assertTrue(Files.exists(Path.of("batch/src/main/java/com/beat/domain/promotion/application/PromotionSchedulerService.java")));
+	void batchRemainsTheSchedulerOwnerLaneAfterRootRetirement() throws Exception {
+		Path schedulerService = Path.of("batch/src/main/java/com/beat/batch/scheduler/application/JobSchedulerService.java");
+		Path schedulerTransactionalService = Path.of(
+			"batch/src/main/java/com/beat/batch/scheduler/application/JobSchedulerTransactionalService.java");
+		Path ticketCleanupScheduler = Path.of("batch/src/main/java/com/beat/batch/booking/application/TicketCleanupScheduler.java");
+		Path promotionSchedulerService = Path.of("batch/src/main/java/com/beat/batch/promotion/application/PromotionSchedulerService.java");
+
+		assertTrue(Files.exists(schedulerService));
+		assertTrue(Files.exists(schedulerTransactionalService));
+		assertTrue(Files.exists(ticketCleanupScheduler));
+		assertTrue(Files.exists(promotionSchedulerService));
+		assertTrue(Files.readString(schedulerService).startsWith("package com.beat.batch.scheduler.application;"));
+		assertTrue(Files.readString(schedulerTransactionalService).startsWith("package com.beat.batch.scheduler.application;"));
+		assertTrue(Files.readString(ticketCleanupScheduler).startsWith("package com.beat.batch.booking.application;"));
+		assertTrue(Files.readString(promotionSchedulerService).startsWith("package com.beat.batch.promotion.application;"));
 	}
 
 	@Test

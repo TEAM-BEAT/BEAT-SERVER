@@ -33,11 +33,11 @@ batch/
   src/main/kotlin/com/beat/batch/
     BatchApplication.kt
     config/
-      BatchSchedulerBootstrapConfig.kt
       InfraConfig.kt                 # @EnableInfraBaseConfig(JPA, QUERY_DSL, ASYNC, SCHEDULER)
-  src/main/java/com/beat/
-    global/common/scheduler/application/
-    domain/**/application/          # batch-owned scheduled service 포함
+  src/main/java/com/beat/batch/
+    scheduler/application/
+    booking/application/
+    promotion/application/
   src/main/resources/
     application.yml                 # beat.scheduler.owner=true
   src/test/resources/
@@ -47,22 +47,17 @@ batch/
 ### Runtime contract
 
 - `BatchApplication`은 정확히 아래 bootstrap surface만 import한다.
-    - `BatchSchedulerBootstrapConfig`
     - `InfraConfig`
     - `ObservabilityModuleConfig`
 - `@SpringBootApplication`이 batch package만 스캔한다.
 - `BatchApplication`은 `TaskSchedulingAutoConfiguration`을 제외하고 batch가 명시적으로 가져온 scheduler bean만 사용한다.
 - `batch`는 실행 모듈 중 유일하게 `@EnableScheduling`을 유지한다.
-- `BatchSchedulerBootstrapConfig`가 아래 batch-owned runtime beans를 명시적으로 import한다.
-    - `JobSchedulerService`
-    - `JobSchedulerTransactionalService`
-    - `TicketCleanupScheduler`
-    - `PromotionSchedulerService`
+- batch-owned scheduler/runtime bean은 `com.beat.batch.scheduler.application.*`, `com.beat.batch.booking.application.*`, `com.beat.batch.promotion.application.*` 아래에서 component scan으로 올라온다.
 - main resources는 `beat.scheduler.owner=true`를 기본값으로 유지한다.
 - external-client / Feign runtime은 batch bootstrap이 아니라 `infra`의 `EXTERNAL_CLIENTS` 경계와 web-app lane에서만 소유한다.
 - scheduler bean은 `infra`의 `SCHEDULER` 경계를 통해 batch에서만 명시적으로 import한다.
 - test profile은 `beat.scheduler.owner=false`로 내려서 detached smoke boot를 검증하고, owner-enabled contract는 별도 테스트로 검증한다.
-- scheduler/service 코드는 `batch` 모듈로 이동했지만 패키지 네임스페이스는 아직 legacy 경로를 유지한다.
+- scheduler/service 코드는 `batch` owner namespace 기준으로 정렬됐다.
 
 ## What changed in this issue
 
@@ -91,8 +86,7 @@ batch/
 
 ## Remaining transitional debt
 
-- scheduler/service 소스 상당수가 아직 `com.beat.domain.*`, `com.beat.global.*` legacy package names를 유지한다.
-- batch 실행 경계는 detached 되었지만 package normalization은 아직 시작 전이다.
+- owner namespace normalization은 끝났지만 `job/application/service` 내부 세분화는 아직 최소 수준으로만 정리돼 있다.
 - 일부 legacy domain entity가 여전히 Spring Security 타입(`GrantedAuthority`)을 참조해 `domain` 모듈에 transitional runtime support가 남아 있다.
 - root executable lane은 retire되었고, scheduler runtime owner는 `batch`로 고정됐다.
 - CQRS/service layer normalization과 batch 전용 package 정리는 다음 단계에서 다룬다.
@@ -102,7 +96,7 @@ batch/
 - `BatchApplicationTest`
     - `BatchApplication` import 집합 고정
     - narrow app bootstrap 유지
-    - scheduler bootstrap import 집합 고정
+    - batch owner source package가 `com.beat.batch.*`로 정렬됐는지 확인
     - main/test resource owner flag 계약 고정
     - test profile이 blanket bean override 없이 유지되는지 확인
 - `BatchArchitectureGuardTest`
@@ -148,6 +142,6 @@ com.beat.batch.<context>/
 
 ## Follow-up after this issue
 
-1. batch-owned legacy package를 `com.beat.batch.<context>` 구조로 점진 이관
-2. scheduler-related transitional docs를 batch ownership 기준으로 더 축소
+1. `com.beat.batch.<context>` 내부 하위 계층(`job`, `application/service`, `dto`)을 문맥별로 정리
+2. scheduler-related closeout docs를 batch ownership 기준으로 더 축소
 3. shared test bootstrap convergence가 필요해지면 실행 모듈 간 중복 test container setup 정리
