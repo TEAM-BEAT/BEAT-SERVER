@@ -1,11 +1,6 @@
 package com.beat.batch
 
-import com.beat.batch.config.BatchSchedulerBootstrapConfig
 import com.beat.batch.config.InfraConfig
-import com.beat.domain.booking.application.TicketCleanupScheduler
-import com.beat.domain.promotion.application.PromotionSchedulerService
-import com.beat.global.common.scheduler.application.JobSchedulerService
-import com.beat.global.common.scheduler.application.JobSchedulerTransactionalService
 import com.beat.observability.ObservabilityModuleConfig
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -26,28 +21,10 @@ class BatchApplicationTest {
 
         assertEquals(
             setOf(
-                BatchSchedulerBootstrapConfig::class.java.name,
                 InfraConfig::class.java.name,
                 ObservabilityModuleConfig::class.java.name,
             ),
             importedClassNames,
-        )
-    }
-
-    @Test
-    fun `batch scheduler bootstrap imports batch owned runtime beans`() {
-        val bootstrapImport = BatchSchedulerBootstrapConfig::class.java.getAnnotation(Import::class.java)
-        assertNotNull(bootstrapImport, "BatchSchedulerBootstrapConfig must declare @Import")
-        val bootstrapClassNames = bootstrapImport.value.map { it.java.name }.toSet()
-
-        assertEquals(
-            setOf(
-                JobSchedulerService::class.java.name,
-                JobSchedulerTransactionalService::class.java.name,
-                TicketCleanupScheduler::class.java.name,
-                PromotionSchedulerService::class.java.name,
-            ),
-            bootstrapClassNames,
         )
     }
 
@@ -65,12 +42,34 @@ class BatchApplicationTest {
             setOf(BatchApplication::class.java.name),
             springBootApplication!!.scanBasePackageClasses.map { it.java.name }.toSet(),
         )
+        assertFalse(source.contains("BatchSchedulerBootstrapConfig"))
         assertFalse(source.contains("GatewayModuleConfig"))
         assertFalse(source.contains("@EnableFeignClients"))
         assertFalse(source.contains("FeignAutoConfiguration"))
         assertTrue(source.contains("TaskSchedulingAutoConfiguration::class"))
         assertFalse(source.contains("\"com.beat.domain\""))
         assertFalse(source.contains("\"com.beat.global\""))
+    }
+
+    @Test
+    fun `batch owner sources no longer declare legacy owner packages`() {
+        val paths = Files.walk(Path.of("src/main"))
+        val violations = try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { it.toString().endsWith(".java") || it.toString().endsWith(".kt") }
+                .filter { path ->
+                    val source = Files.readString(path)
+                    source.startsWith("package com.beat.domain.")
+                        || source.startsWith("package com.beat.global.")
+                }
+                .map(Path::toString)
+                .toList()
+        } finally {
+            paths.close()
+        }
+
+        assertTrue(violations.isEmpty(), "Found legacy owner package declarations:\n${violations.joinToString("\n")}")
     }
 
     @Test

@@ -27,8 +27,9 @@
 - root legacy bootstrap lane import 금지
     - `com.beat.BeatApplication`
     - `com.beat.legacyroot.*`
-    - `com.beat.global.common.scheduler.application.*`
     - root `SecurityConfig` / `WebConfig`
+- `batch` runtime owner package 직접 import 금지
+    - `com.beat.batch.*`
 - 전역 스캔에 기대는 구조 금지
 - JPA Entity, QueryDSL Q type, Redis document를 admin API DTO로 직접 노출 금지
 
@@ -94,7 +95,7 @@ admin/
 
 ## Remaining transitional debt
 
-- 소스 파일 상당수가 아직 Java 기반 legacy package style을 유지한다.
+- owner namespace는 이미 `com.beat.admin.*`로 정렬됐고, 남은 debt는 Java 기반 패키지 세분화 스타일 정리 쪽에 가깝다.
 - `adapter`, `port` 패키지명은 그대로 남아 있고 최종 package normalization은 끝나지 않았다.
 - `gateway`와 `observability`는 아직 marker config + legacy implementation 혼합 상태라 공개 표면을 더 명확히 줄일 여지가 있다.
 - root executable lane은 retire되었고, `admin`은 detached module bootstrap만 유지한다.
@@ -110,6 +111,7 @@ admin/
 - `AdminArchitectureGuardTest`
     - `admin/build.gradle.kts`의 root dependency 재추가 금지
     - root bootstrap lane import 금지
+    - owner source package가 `com.beat.admin.*`에 머무르는지 확인
     - gateway 내부 패키지 직접 import 금지
     - infra implementation package 직접 import 금지
 - `AdminModuleContextBootTest`
@@ -147,6 +149,6 @@ com.beat.admin.<context>/
 
 ## Follow-up after this issue
 
-1. `admin` package normalization이 충분히 진행되면 `com.beat.admin.<context>` 구조로 점진 정리
+1. `com.beat.admin.<context>` 내부 하위 계층(`adapter`, `application`, `dto`, `port`) 정리를 문맥별로 계속 진행
 2. `gateway`/`observability` 공개 표면을 더 좁힐 수 있는지 검토
 3. shared documentation을 현재 detached bootstrap 기준으로 지속 정리

@@ -35,11 +35,27 @@ class BatchArchitectureGuardTest {
             "com.beat.gateway.",
             "com.beat.apis.",
             "com.beat.admin.",
+            "com.beat.global.common.scheduler.application.",
+            "com.beat.domain.booking.application.TicketCleanupScheduler",
+            "com.beat.domain.promotion.application.PromotionSchedulerService",
         )
 
         assertTrue(
             violations.isEmpty(),
             "Found forbidden batch source references:\n${violations.joinToString("\n")}",
+        )
+    }
+
+    @Test
+    fun `batch main sources must not declare legacy owner packages`() {
+        val violations = findForbiddenReferences(
+            "package com.beat.domain.",
+            "package com.beat.global.",
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found legacy owner package declarations:\n${violations.joinToString("\n")}",
         )
     }
 
