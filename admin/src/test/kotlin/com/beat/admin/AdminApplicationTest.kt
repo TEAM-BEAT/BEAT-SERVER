@@ -54,7 +54,8 @@ class AdminApplicationTest {
         assertTrue(source.contains("@Profile(\"!prod\")"))
         assertTrue(source.contains(".group(\"admin\")"))
         assertTrue(source.contains("pathsToMatch(\"/api/admin/**\")"))
-        assertTrue(securitySource.contains("environment.acceptsProfiles(Profiles.of(\"prod\"))"))
+        assertTrue(securitySource.contains("if (!environment.acceptsProfiles(Profiles.of(\"prod\")))"))
+        assertTrue(securitySource.contains("Collections.addAll(whitelist, SWAGGER_WHITELIST)"))
     }
 
     @Test
