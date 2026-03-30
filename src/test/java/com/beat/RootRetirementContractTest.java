@@ -32,6 +32,16 @@ class RootRetirementContractTest {
 	}
 
 	@Test
+	void concernOwnedApplicationResourcesExistAfterRootRetirement() {
+		assertTrue(Files.exists(Path.of("observability/src/main/resources/application-observability.yml")));
+		assertTrue(Files.exists(Path.of("infra/src/main/resources/application-persistence.yml")));
+		assertTrue(Files.exists(Path.of("infra/src/main/resources/application-external.yml")));
+		assertTrue(Files.exists(Path.of("infra/src/main/resources/application-redis.yml")));
+		assertTrue(Files.exists(Path.of("infra/src/main/resources/application-thread-pool.yml")));
+		assertTrue(Files.exists(Path.of("gateway/src/main/resources/application-jwt.yml")));
+	}
+
+	@Test
 	void gradleBuildNoLongerVerifiesLegacyRootBootJarBaseline() throws Exception {
 		String buildFile = Files.readString(Path.of("build.gradle.kts"));
 
@@ -51,17 +61,27 @@ class RootRetirementContractTest {
 		assertFalse(rootBuild.contains("spring-boot-starter-logging"));
 		assertTrue(executableBuildLogic.contains("spring-boot-starter-logging"));
 		assertTrue(executableBuildLogic.contains("spring-boot-starter-log4j2"));
+		assertTrue(executableBuildLogic.contains("tasks.withType<BootRun>().configureEach"));
+		assertTrue(executableBuildLogic.contains("workingDir = rootDir"));
 		assertTrue(Files.exists(Path.of("observability/src/main/resources/log4j2-spring.xml")));
 	}
 
 	@Test
-	void batchRemainsTheSchedulerOwnerLaneAfterRootRetirement() {
-		assertTrue(
-			Files.exists(Path.of("batch/src/main/java/com/beat/global/common/scheduler/application/JobSchedulerService.java")));
-		assertTrue(
-			Files.exists(Path.of("batch/src/main/java/com/beat/global/common/scheduler/application/JobSchedulerTransactionalService.java")));
-		assertTrue(Files.exists(Path.of("batch/src/main/java/com/beat/domain/booking/application/TicketCleanupScheduler.java")));
-		assertTrue(Files.exists(Path.of("batch/src/main/java/com/beat/domain/promotion/application/PromotionSchedulerService.java")));
+	void batchRemainsTheSchedulerOwnerLaneAfterRootRetirement() throws Exception {
+		Path schedulerService = Path.of("batch/src/main/java/com/beat/batch/scheduler/application/JobSchedulerService.java");
+		Path schedulerTransactionalService = Path.of(
+			"batch/src/main/java/com/beat/batch/scheduler/application/JobSchedulerTransactionalService.java");
+		Path ticketCleanupScheduler = Path.of("batch/src/main/java/com/beat/batch/booking/application/TicketCleanupScheduler.java");
+		Path promotionSchedulerService = Path.of("batch/src/main/java/com/beat/batch/promotion/application/PromotionSchedulerService.java");
+
+		assertTrue(Files.exists(schedulerService));
+		assertTrue(Files.exists(schedulerTransactionalService));
+		assertTrue(Files.exists(ticketCleanupScheduler));
+		assertTrue(Files.exists(promotionSchedulerService));
+		assertTrue(Files.readString(schedulerService).startsWith("package com.beat.batch.scheduler.application;"));
+		assertTrue(Files.readString(schedulerTransactionalService).startsWith("package com.beat.batch.scheduler.application;"));
+		assertTrue(Files.readString(ticketCleanupScheduler).startsWith("package com.beat.batch.booking.application;"));
+		assertTrue(Files.readString(promotionSchedulerService).startsWith("package com.beat.batch.promotion.application;"));
 	}
 
 	@Test
@@ -88,7 +108,11 @@ class RootRetirementContractTest {
 		assertTrue(v2WebDeployDev.contains("appleboy/ssh-action"));
 		assertTrue(v2WebDeployDev.contains("./deploy-dev.sh"));
 		assertFalse(v2WebDeployDev.contains("docker run -d"));
+		assertTrue(v2WebDeployDev.contains("export INTERNAL_PORT='4001'"));
+		assertTrue(v2WebDeployProd.contains("-p ${PROD_V2_WEB_PUBLIC_PORT}:4001"));
 		assertTrue(dockerfileModule.contains("ARG MODULE"));
 		assertTrue(dockerfileModule.contains("ARG PROFILE"));
+		assertFalse(dockerfileModule.contains("BEAT_SERVER_PORT=8080"));
+		assertFalse(dockerfileModule.contains("BEAT_MANAGEMENT_SERVER_PORT=2222"));
 	}
 }

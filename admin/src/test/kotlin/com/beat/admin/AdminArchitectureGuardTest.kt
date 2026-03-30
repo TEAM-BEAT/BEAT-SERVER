@@ -22,7 +22,7 @@ class AdminArchitectureGuardTest {
         val violations = findForbiddenReferences(
             "com.beat.BeatApplication",
             "com.beat.legacyroot.",
-            "com.beat.global.common.scheduler.application.",
+            "com.beat.batch.",
             "com.beat.global.common.config.SecurityConfig",
             "com.beat.global.common.config.WebConfig",
         )
@@ -56,6 +56,19 @@ class AdminArchitectureGuardTest {
         assertTrue(
             violations.isEmpty(),
             "Found forbidden infra implementation references:\n${violations.joinToString("\n")}"
+        )
+    }
+
+    @Test
+    fun `admin sources must not declare legacy owner packages`() {
+        val violations = findPackageDeclarationViolations(
+            "package com.beat.domain.",
+            "package com.beat.global.",
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found legacy owner package declarations:\n${violations.joinToString("\n")}"
         )
     }
 
@@ -95,6 +108,25 @@ class AdminArchitectureGuardTest {
                     val source = Files.readString(path)
                     forbiddenReferences
                         .filter(source::contains)
+                        .map { pattern -> "$path: $pattern" }
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
+    private fun findPackageDeclarationViolations(vararg forbiddenReferences: String): List<String> {
+        val paths = Files.walk(Path.of("src/main"))
+
+        return try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt") }
+                .toList()
+                .flatMap { path ->
+                    val source = Files.readString(path)
+                    forbiddenReferences
+                        .filter(source::startsWith)
                         .map { pattern -> "$path: $pattern" }
                 }
         } finally {

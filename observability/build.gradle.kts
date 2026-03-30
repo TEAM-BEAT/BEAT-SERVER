@@ -5,6 +5,7 @@ plugins {
 dependencies {
     implementation(project(":global-utils"))
     compileOnly(libs.spring.boot.core)
+    compileOnly(libs.spring.boot.starter.actuator)
     compileOnly(libs.spring.boot.starter.web)
     compileOnly(libs.spring.aop)
     compileOnly(libs.spring.tx)

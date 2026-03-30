@@ -18,4 +18,7 @@ dependencies {
     runtimeOnly(libs.mysql.connector.j)
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
+
+    testImplementation(libs.spring.boot.starter.test)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }

@@ -94,7 +94,7 @@ jobs:
             docker pull "${{ steps.image.outputs.image }}"
 
             export OPERATION_ENV='dev'
-            export INTERNAL_PORT='8080'
+            export INTERNAL_PORT='4001'
             export EXTERNAL_PORT_GREEN="${EXTERNAL_PORT_GREEN}"
             export EXTERNAL_PORT_BLUE="${EXTERNAL_PORT_BLUE}"
             export DOCKER_IMAGE_NAME="${{ steps.image.outputs.image }}"

@@ -11,11 +11,12 @@ import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionMod
 import com.beat.admin.application.dto.response.CarouselPresignedUrlFindAllResponse;
 import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
 import com.beat.admin.port.in.AdminUseCase;
-import com.beat.domain.member.port.in.MemberUseCase;
+import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.promotion.domain.Promotion;
-import com.beat.domain.promotion.port.in.PromotionUseCase;
+import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.port.in.UserUseCase;
+import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -35,31 +36,30 @@ import java.util.stream.Collectors;
 public class AdminFacade {
 	private final FileStoragePort fileStoragePort;
 	private final AdminUseCase adminUsecase;
-	private final MemberUseCase memberUseCase;
-	private final UserUseCase userUseCase;
-	private final PromotionUseCase promotionUseCase;
+	private final MemberRepository memberRepository;
+	private final UserRepository userRepository;
 
 	public UserFindAllResponse checkMemberAndFindAllUsers(Long memberId) {
-		memberUseCase.findMemberByMemberId(memberId);
-		List<Users> users = userUseCase.findAllUsers();
+		validateMemberExists(memberId);
+		List<Users> users = userRepository.findAll();
 		return UserFindAllResponse.from(users);
 	}
 
 	public CarouselPresignedUrlFindAllResponse checkMemberAndIssueAllPresignedUrlsForCarousel(Long memberId,
 		List<String> carouselImages) {
-		memberUseCase.findMemberByMemberId(memberId);
+		validateMemberExists(memberId);
 		return CarouselPresignedUrlFindAllResponse.from(
 			fileStoragePort.issueAllPresignedUrlsForCarousel(carouselImages)
 		);
 	}
 
 	public BannerPresignedUrlFindResponse checkMemberAndIssuePresignedUrlForBanner(Long memberId, String bannerImage) {
-		memberUseCase.findMemberByMemberId(memberId);
+		validateMemberExists(memberId);
 		return BannerPresignedUrlFindResponse.from(fileStoragePort.issuePresignedUrlForBanner(bannerImage));
 	}
 
 	public CarouselFindAllResponse checkMemberAndFindAllPromotionsSortedByCarouselNumber(Long memberId) {
-		memberUseCase.findMemberByMemberId(memberId);
+		validateMemberExists(memberId);
 		List<Promotion> promotions = adminUsecase.findAllPromotionsSortedByCarouselNumber();
 		return CarouselFindAllResponse.from(promotions);
 	}
@@ -67,7 +67,7 @@ public class AdminFacade {
 	public CarouselHandleAllResponse checkMemberAndProcessAllPromotionsSortedByCarouselNumber(Long memberId,
 		CarouselHandleRequest request) {
 
-		memberUseCase.findMemberByMemberId(memberId);
+		validateMemberExists(memberId);
 
 		List<PromotionModifyRequest> modifyRequests = new ArrayList<>();
 		List<PromotionGenerateRequest> generateRequests = new ArrayList<>();
@@ -75,7 +75,7 @@ public class AdminFacade {
 
 		categorizePromotionRequestsByPromotionId(request, modifyRequests, generateRequests, requestPromotionIds);
 
-		List<Promotion> allExistingPromotions = promotionUseCase.findAllPromotions();
+		List<Promotion> allExistingPromotions = adminUsecase.findAllPromotionsSortedByCarouselNumber();
 
 		List<Long> deletePromotionIds = extractDeletePromotionIds(allExistingPromotions, requestPromotionIds);
 
@@ -107,5 +107,10 @@ public class AdminFacade {
 		return allExistingPromotionIds.stream()
 			.filter(existingId -> !requestPromotionIds.contains(existingId))
 			.toList();
+	}
+
+	private void validateMemberExists(Long memberId) {
+		memberRepository.findById(memberId)
+			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 	}
 }

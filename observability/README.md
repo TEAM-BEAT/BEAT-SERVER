@@ -29,12 +29,12 @@ observability/
 
 legacy root:
   src/main/java/com/beat/global/common/aop/**
-  src/main/java/com/beat/global/external/notification/slack/**
 ```
 
 설명:
 - 현재 `observability` 모듈은 marker config + shared resource ownership 단계이다.
-- AOP, 알림, 일부 공통 관측성 관심사는 아직 legacy root 패키지에 남아 있다.
+- AOP와 일부 공통 관측성 관심사는 아직 legacy root 패키지에 남아 있다.
+- executable-lane notification event listener는 package normalization closeout 이후 `apis` owner namespace(`com.beat.apis.external.notification.slack.event`)로 정렬됐다.
 
 ## To-Be 패키지 구조
 

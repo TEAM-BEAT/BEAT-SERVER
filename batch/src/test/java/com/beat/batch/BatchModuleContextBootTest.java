@@ -13,7 +13,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.beat.batch.support.AbstractBatchIntegrationTest;
 import com.beat.contracts.schedule.ScheduleJobPort;
-import com.beat.global.common.scheduler.application.JobSchedulerService;
+import com.beat.batch.scheduler.application.JobSchedulerService;
 
 class BatchModuleContextBootTest extends AbstractBatchIntegrationTest {
 

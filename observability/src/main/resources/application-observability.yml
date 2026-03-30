@@ -1,0 +1,66 @@
+management:
+  endpoint:
+    health:
+      show-details: always
+      access: read-only
+    info:
+      access: read-only
+    prometheus:
+      access: read-only
+  endpoints:
+    access:
+      default: none
+    jmx:
+      exposure:
+        exclude: "*"
+    web:
+      exposure:
+        include: info, health, prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+logging:
+  level:
+    root: info
+  config: classpath:log4j2-spring.xml
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+management:
+  server:
+    port: ${DEV_ACTUATOR_PORT}
+  endpoints:
+    web:
+      base-path: ${DEV_ACTUATOR_PATH}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+management:
+  server:
+    port: ${PROD_ACTUATOR_PORT}
+  endpoints:
+    web:
+      base-path: ${PROD_ACTUATOR_PATH}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+
+management:
+  server:
+    port: 0
+  endpoints:
+    web:
+      base-path: /actuator-test

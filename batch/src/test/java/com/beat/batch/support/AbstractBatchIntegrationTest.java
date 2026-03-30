@@ -8,7 +8,7 @@ import org.testcontainers.containers.MySQLContainer;
 
 import com.beat.batch.BatchApplication;
 
-@SpringBootTest(classes = BatchApplication.class)
+@SpringBootTest(classes = BatchApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @Tag("integration")
 public abstract class AbstractBatchIntegrationTest {

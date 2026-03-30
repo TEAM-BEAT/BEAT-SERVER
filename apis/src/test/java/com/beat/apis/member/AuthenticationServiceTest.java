@@ -15,7 +15,7 @@ import com.beat.contracts.auth.JwtTokenPort;
 import com.beat.contracts.auth.RefreshTokenPort;
 import com.beat.contracts.auth.TokenErrorCode;
 import com.beat.contracts.auth.TokenValidationResult;
-import com.beat.domain.member.application.AuthenticationService;
+import com.beat.apis.member.application.AuthenticationService;
 import com.beat.global.common.exception.BadRequestException;
 
 @ExtendWith(MockitoExtension.class)

@@ -1,0 +1,32 @@
+---
+jwt:
+  secret: ${DEV_JWT_SECRET}
+  access-token-expire-time: ${DEV_ACCESS_TOKEN_EXPIRE_TIME}
+  refresh-token-expire-time: ${DEV_REFRESH_TOKEN_EXPIRE_TIME}
+
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+---
+jwt:
+  secret: ${PROD_JWT_SECRET}
+  access-token-expire-time: ${PROD_ACCESS_TOKEN_EXPIRE_TIME}
+  refresh-token-expire-time: ${PROD_REFRESH_TOKEN_EXPIRE_TIME}
+
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+
+jwt:
+  secret: test-jwt-secret-test-jwt-secret-test-jwt-secret-test-jwt-secret
+  access-token-expire-time: 3600000
+  refresh-token-expire-time: 1209600000

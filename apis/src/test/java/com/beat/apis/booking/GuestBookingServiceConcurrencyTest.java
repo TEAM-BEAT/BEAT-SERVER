@@ -22,9 +22,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.apis.support.AbstractIntegrationTest;
-import com.beat.domain.booking.application.GuestBookingService;
-import com.beat.domain.booking.application.dto.GuestBookingRequest;
-import com.beat.domain.booking.application.dto.GuestBookingResponse;
+import com.beat.apis.booking.application.GuestBookingService;
+import com.beat.apis.booking.application.dto.GuestBookingRequest;
+import com.beat.apis.booking.application.dto.GuestBookingResponse;
 import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.performance.dao.PerformanceRepository;

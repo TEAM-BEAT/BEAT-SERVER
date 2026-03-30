@@ -1,34 +1,3 @@
-spring:
-  # MySQL datasource is auto-configured by @ServiceConnection in test classes.
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: com.beat.infra.config.MysqlCustomDialect
-        format_sql: true
-
-  coolsms:
-    api:
-      key: test-coolsms-key
-      secret: test-coolsms-secret
-      number: 01000000000
-
-management:
-  server:
-    port: 0
-  endpoints:
-    enabled-by-default: false
-    web:
-      base-path: /actuator-test
-
-thread-pool:
-  core-size: 2
-  max-pool-size: 4
-  queue-capacity: 50
-  thread-name-prefix: executor-
-
 beat:
   scheduler:
     owner: false

@@ -6,6 +6,7 @@
 
 - 관리자/백오피스 HTTP API의 유일한 실행 진입점이다.
 - 사용자 API와 다른 승인 정책, 응답 스펙, 운영 워크플로를 소유한다.
+- 관리자용 Swagger/OpenAPI 노출도 executable-module owner concern으로 소유한다.
 - 팀 컨벤션상 `Controller -> Facade -> Application Service -> Domain` 흐름을 따른다.
 - `apis` 서비스를 재사용하지 않고, `domain`과 공유 모듈 계약만 사용한다.
 
@@ -27,8 +28,9 @@
 - root legacy bootstrap lane import 금지
     - `com.beat.BeatApplication`
     - `com.beat.legacyroot.*`
-    - `com.beat.global.common.scheduler.application.*`
     - root `SecurityConfig` / `WebConfig`
+- `batch` runtime owner package 직접 import 금지
+    - `com.beat.batch.*`
 - 전역 스캔에 기대는 구조 금지
 - JPA Entity, QueryDSL Q type, Redis document를 admin API DTO로 직접 노출 금지
 
@@ -59,8 +61,10 @@ admin/
     - `GatewayModuleConfig`
     - `InfraConfig`
     - `ObservabilityModuleConfig`
+- executable bootstrap resource는 module-local 값과 `spring.profiles.group`만 소유하고, persistence/redis/external/jwt/observability 설정은 각 concern-owned `application-*.yml`로 분리한다.
 - app-level broad `@ComponentScan`은 없다.
 - `AdminSecurityConfig`가 관리자 route whitelist와 인증 정책을 소유한다.
+- admin Swagger/OpenAPI는 기본적으로 non-prod 에서만 노출한다.
 - `GatewayModuleConfig`가 gateway 내부 구현 빈을 제공하지만, `admin`은 공개 진입점인 `GatewayModuleConfig`와 `gateway.annotation.CurrentMember`만 직접 참조한다.
 - `InfraConfig.kt`가 필요한 infra base config group만 명시적으로 import한다.
 - `admin`은 async/scheduler shared runtime bean을 직접 import하지 않는다.
@@ -79,6 +83,8 @@ admin/
 
 - admin-facing controller / facade / application service / DTO
 - module-owned security route policy
+- admin-facing Swagger/OpenAPI exposure as an executable-module owner concern
+- module-local bootstrap config such as `springdoc.*`, `cors.allowed-origins`, `app.server.url`, `beat.scheduler.owner`
 - admin exception handling
 - admin CORS / converter configuration
 
@@ -94,7 +100,7 @@ admin/
 
 ## Remaining transitional debt
 
-- 소스 파일 상당수가 아직 Java 기반 legacy package style을 유지한다.
+- owner namespace는 이미 `com.beat.admin.*`로 정렬됐고, 남은 debt는 Java 기반 패키지 세분화 스타일 정리 쪽에 가깝다.
 - `adapter`, `port` 패키지명은 그대로 남아 있고 최종 package normalization은 끝나지 않았다.
 - `gateway`와 `observability`는 아직 marker config + legacy implementation 혼합 상태라 공개 표면을 더 명확히 줄일 여지가 있다.
 - root executable lane은 retire되었고, `admin`은 detached module bootstrap만 유지한다.
@@ -110,6 +116,7 @@ admin/
 - `AdminArchitectureGuardTest`
     - `admin/build.gradle.kts`의 root dependency 재추가 금지
     - root bootstrap lane import 금지
+    - owner source package가 `com.beat.admin.*`에 머무르는지 확인
     - gateway 내부 패키지 직접 import 금지
     - infra implementation package 직접 import 금지
 - `AdminModuleContextBootTest`
@@ -147,6 +154,6 @@ com.beat.admin.<context>/
 
 ## Follow-up after this issue
 
-1. `admin` package normalization이 충분히 진행되면 `com.beat.admin.<context>` 구조로 점진 정리
+1. `com.beat.admin.<context>` 내부 하위 계층(`adapter`, `application`, `dto`, `port`) 정리를 문맥별로 계속 진행
 2. `gateway`/`observability` 공개 표면을 더 좁힐 수 있는지 검토
 3. shared documentation을 현재 detached bootstrap 기준으로 지속 정리

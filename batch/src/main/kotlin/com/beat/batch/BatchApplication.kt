@@ -1,6 +1,5 @@
 package com.beat.batch
 
-import com.beat.batch.config.BatchSchedulerBootstrapConfig
 import com.beat.batch.config.InfraConfig
 import com.beat.observability.ObservabilityModuleConfig
 import org.springframework.boot.autoconfigure.SpringBootApplication
@@ -17,7 +16,6 @@ import org.springframework.scheduling.annotation.EnableScheduling
 @EnableScheduling
 @ConfigurationPropertiesScan(basePackages = ["com.beat.infra.config"])
 @Import(
-    BatchSchedulerBootstrapConfig::class,
     InfraConfig::class,
     ObservabilityModuleConfig::class,
 )

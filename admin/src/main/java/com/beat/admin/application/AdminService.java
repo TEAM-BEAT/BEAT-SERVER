@@ -3,11 +3,14 @@ package com.beat.admin.application;
 import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
 import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
 import com.beat.admin.port.in.AdminUseCase;
+import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.port.in.PerformanceUseCase;
+import com.beat.domain.performance.exception.PerformanceErrorCode;
+import com.beat.domain.promotion.dao.PromotionRepository;
 import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.promotion.exception.PromotionErrorCode;
 import com.beat.domain.promotion.port.in.PromotionModifyCommand;
-import com.beat.domain.promotion.port.in.PromotionUseCase;
+import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,13 +26,13 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AdminService implements AdminUseCase {
 
-	private final PromotionUseCase promotionUseCase;
-	private final PerformanceUseCase performanceUseCase;
+	private final PromotionRepository promotionRepository;
+	private final PerformanceRepository performanceRepository;
 
 	@Override
 	@Transactional(readOnly = true)
 	public List<Promotion> findAllPromotionsSortedByCarouselNumber() {
-		List<Promotion> promotions = promotionUseCase.findAllPromotions();
+		List<Promotion> promotions = promotionRepository.findAll();
 		return sortPromotionsByCarouselNumber(promotions);
 	}
 
@@ -50,7 +53,7 @@ public class AdminService implements AdminUseCase {
 
 	private void handlePromotionDeletion(List<Long> deletePromotionIds) {
 		if (!deletePromotionIds.isEmpty()) {
-			promotionUseCase.deletePromotionsByPromotionIds(deletePromotionIds);
+			promotionRepository.deleteByPromotionIds(deletePromotionIds);
 		}
 	}
 
@@ -58,10 +61,10 @@ public class AdminService implements AdminUseCase {
 		return modifyRequests.stream()
 			.map(modifyRequest -> {
 
-				Promotion promotion = promotionUseCase.findById(modifyRequest.promotionId());
+				Promotion promotion = findPromotionById(modifyRequest.promotionId());
 
 				Performance performance = Optional.ofNullable(modifyRequest.performanceId())
-					.map(performanceUseCase::findById)
+					.map(this::findPerformanceById)
 					.orElse(null);
 
 				PromotionModifyCommand command = new PromotionModifyCommand(
@@ -73,7 +76,9 @@ public class AdminService implements AdminUseCase {
 					modifyRequest.performanceId()
 				);
 
-				return promotionUseCase.modifyPromotion(promotion, performance, command);
+				promotion.updatePromotionDetails(command.carouselNumber(), command.newImageUrl(), command.isExternal(),
+					command.redirectUrl(), performance);
+				return promotionRepository.save(promotion);
 			})
 			.toList();
 	}
@@ -82,13 +87,24 @@ public class AdminService implements AdminUseCase {
 		return generateRequests.stream()
 			.map(generateRequest -> {
 				Performance performance = Optional.ofNullable(generateRequest.performanceId())
-					.map(performanceUseCase::findById)
+					.map(this::findPerformanceById)
 					.orElse(null);
 
-				return promotionUseCase.createPromotion(generateRequest.newImageUrl(), performance,
+				Promotion newPromotion = Promotion.create(generateRequest.newImageUrl(), performance,
 					generateRequest.redirectUrl(), generateRequest.isExternal(), generateRequest.carouselNumber());
+				return promotionRepository.save(newPromotion);
 			})
 			.toList();
+	}
+
+	private Promotion findPromotionById(Long promotionId) {
+		return promotionRepository.findById(promotionId)
+			.orElseThrow(() -> new NotFoundException(PromotionErrorCode.PROMOTION_NOT_FOUND));
+	}
+
+	private Performance findPerformanceById(Long performanceId) {
+		return performanceRepository.findById(performanceId)
+			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 	}
 
 	private List<Promotion> sortPromotionsByCarouselNumber(List<Promotion> promotions) {
