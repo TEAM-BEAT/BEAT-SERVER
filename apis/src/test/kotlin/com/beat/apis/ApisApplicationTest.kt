@@ -56,6 +56,15 @@ class ApisApplicationTest {
     }
 
     @Test
+    fun `apis swagger config keeps only general grouped docs ownership`() {
+        val source = Files.readString(Path.of("src/main/java/com/beat/apis/swagger/config/SwaggerConfig.java"))
+
+        assertTrue(source.contains(".group(\"general\")"))
+        assertFalse(source.contains(".group(\"admin\")"))
+        assertFalse(source.contains("pathsToMatch(\"/api/admin/**\")"))
+    }
+
+    @Test
     fun `apis application no longer owns broad component scan or transitional bootstrap import`() {
         val source = Files.readString(Path.of("src/main/kotlin/com/beat/apis/ApisApplication.kt"))
 
@@ -121,6 +130,18 @@ class ApisApplicationTest {
         assertTrue(config.contains("scheduler:"))
         assertTrue(config.contains("owner: false"))
         assertFalse(config.contains("owner: true"))
+        assertTrue(config.contains("spring:"))
+        assertTrue(config.contains("profiles:"))
+        assertTrue(config.contains("group:"))
+        assertTrue(config.contains("- persistence"))
+        assertTrue(config.contains("- jwt"))
+        assertTrue(config.contains("application-dev-secret.properties"))
+        assertTrue(config.contains("application-prod-secret.properties"))
+        assertTrue(config.contains("port: 4001"))
+        assertFalse(config.contains("BEAT_SERVER_PORT"))
+        assertFalse(config.contains("management:"))
+        assertFalse(config.contains("../secret/application-dev-secret.properties"))
+        assertFalse(config.contains("../secret/application-prod-secret.properties"))
     }
 
     @Test

@@ -2,13 +2,6 @@ package com.beat.apis.swagger.config;
 
 import java.util.Collections;
 
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
-import io.swagger.v3.oas.models.security.SecurityScheme;
-import io.swagger.v3.oas.models.servers.Server;
-
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +9,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.beat.apis.swagger.annotation.DisableSwaggerSecurity;
+
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
 
 @Configuration
 public class SwaggerConfig {
@@ -47,16 +47,6 @@ public class SwaggerConfig {
 		return GroupedOpenApi.builder()
 			.group("general")
 			.pathsToMatch("/**")
-			.pathsToExclude("/api/admin/**")
-			.addOperationCustomizer(customize())
-			.build();
-	}
-
-	@Bean
-	public GroupedOpenApi adminApi() {
-		return GroupedOpenApi.builder()
-			.group("admin")
-			.pathsToMatch("/api/admin/**")
 			.addOperationCustomizer(customize())
 			.build();
 	}
@@ -76,6 +66,6 @@ public class SwaggerConfig {
 		return new Info()
 			.title("BEAT Project API")
 			.description("간편하게 소규모 공연을 등록하고 관리할 수 있는 티켓 예매 플랫폼")
-			.version("1.2.4");
+			.version("1.2.7");
 	}
 }

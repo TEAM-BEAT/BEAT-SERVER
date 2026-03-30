@@ -6,7 +6,7 @@
 ## 역할
 
 - 사용자 대상 HTTP API의 유일한 실행 진입점이다.
-- 사용자용 Request/Response DTO, Controller, Swagger 노출을 소유한다.
+- 사용자용 Request/Response DTO, Controller, user-facing Swagger/OpenAPI 노출을 소유한다.
 - 팀 컨벤션상 `Controller -> Facade -> Application Service -> Domain` 흐름을 따른다.
 - 비즈니스 규칙은 `domain` 계약에 위임하고, 구현 기술과 외부 연동은 `infra` 및 명시적 module bootstrap 경계를 통해 사용한다.
 - 인증/인가는 `gateway`의 공개 계약과 bootstrap 경계를 통해 연결된다.
@@ -66,6 +66,7 @@ apis/
     - `GatewayModuleConfig`
     - `InfraConfig`
     - `ObservabilityModuleConfig`
+- executable bootstrap resource는 module-local 값과 `spring.profiles.group`만 소유하고, persistence/redis/external/jwt/observability 설정은 각 concern-owned `application-*.yml`로 분리한다.
 - app-level broad `@ComponentScan`은 없다.
 - `@SpringBootApplication(scanBasePackageClasses = [ApisApplication::class])`가 `com.beat.apis.*` owner namespace만 스캔한다.
 - `ApisSecurityConfig`가 route whitelist와 인증 정책을 소유한다.
@@ -85,7 +86,8 @@ apis/
 
 - user-facing controller / application service / DTO
 - module-local security policy
-- swagger exposure
+- user-facing Swagger/OpenAPI exposure as an executable-module owner concern
+- module-local bootstrap config such as `springdoc.*`, `cors.allowed-origins`, `app.server.url`, `beat.scheduler.owner`
 - global exception handling for the HTTP lane
 - notification/file API entrypoints도 `com.beat.apis.*` owner namespace로 정렬됐다.
 
