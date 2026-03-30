@@ -8,6 +8,7 @@ dependencies {
     implementation(project(":infra"))
     implementation(project(":global-utils"))
     implementation(project(":observability"))
+    implementation(libs.spring.boot.starter.web)
 
     testImplementation(libs.bundles.integration.testcontainers)
 }

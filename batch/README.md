@@ -52,7 +52,9 @@ batch/
 - `@SpringBootApplication`이 batch package만 스캔한다.
 - `BatchApplication`은 `TaskSchedulingAutoConfiguration`을 제외하고 batch가 명시적으로 가져온 scheduler bean만 사용한다.
 - `batch`는 실행 모듈 중 유일하게 `@EnableScheduling`을 유지한다.
+- `batch`는 user-facing API는 소유하지 않지만, 운영용 health check를 위해 최소 HTTP/Actuator surface를 제공할 수 있다.
 - batch-owned scheduler/runtime bean은 `com.beat.batch.scheduler.application.*`, `com.beat.batch.booking.application.*`, `com.beat.batch.promotion.application.*` 아래에서 component scan으로 올라온다.
+- executable bootstrap resource는 module-local 값과 `spring.profiles.group`만 소유하고, batch는 `persistence`, `observability`, `thread-pool` concern만 활성화한다.
 - main resources는 `beat.scheduler.owner=true`를 기본값으로 유지한다.
 - external-client / Feign runtime은 batch bootstrap이 아니라 `infra`의 `EXTERNAL_CLIENTS` 경계와 web-app lane에서만 소유한다.
 - scheduler bean은 `infra`의 `SCHEDULER` 경계를 통해 batch에서만 명시적으로 import한다.
@@ -75,6 +77,7 @@ batch/
 - `ScheduleJobPort` implementation for the active scheduler lane
 - scheduled maintenance jobs and batch execution entrypoints
 - batch-local scheduling bootstrap and owner flag defaults
+- module-local bootstrap config such as `beat.scheduler.owner`
 
 ### Outside `batch`
 

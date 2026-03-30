@@ -1,7 +1,37 @@
+server:
+  port: 4002
+
 spring:
   application:
     name: beat-batch
+  profiles:
+    group:
+      dev:
+        - persistence
+        - observability
+        - thread-pool
+      prod:
+        - persistence
+        - observability
+        - thread-pool
+      test:
+        - persistence
+        - observability
+        - thread-pool
 
 beat:
   scheduler:
     owner: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+    import: optional:file:secret/application-dev-secret.properties
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+    import: optional:file:secret/application-prod-secret.properties

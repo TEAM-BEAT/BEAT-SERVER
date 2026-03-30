@@ -85,10 +85,42 @@ class BatchApplicationTest {
     @Test
     fun `batch resources enable scheduler ownership by default`() {
         val config = Files.readString(Path.of("src/main/resources/application.yml"))
+
         assertTrue(config.contains("beat:"))
         assertTrue(config.contains("scheduler:"))
         assertTrue(config.contains("owner: true"))
         assertFalse(config.contains("owner: false"))
+        assertTrue(config.contains("profiles:"))
+        assertTrue(config.contains("group:"))
+        assertTrue(config.contains("- persistence"))
+        assertTrue(config.contains("- observability"))
+        assertTrue(config.contains("- thread-pool"))
+        assertFalse(config.contains("- jwt"))
+        assertFalse(config.contains("- redis"))
+        assertFalse(config.contains("- external"))
+        assertTrue(config.contains("on-profile: dev"))
+        assertTrue(config.contains("application-dev-secret.properties"))
+        assertTrue(config.contains("port: 4002"))
+        assertTrue(config.contains("on-profile: prod"))
+        assertTrue(config.contains("application-prod-secret.properties"))
+        assertFalse(config.contains("BEAT_SERVER_PORT"))
+        assertFalse(config.contains("management:"))
+        assertFalse(config.contains("../secret/application-dev-secret.properties"))
+        assertFalse(config.contains("../secret/application-prod-secret.properties"))
+        assertFalse(config.contains("datasource:"))
+    }
+
+    @Test
+    fun `batch actuator management config is owned by observability resource`() {
+        val observabilityConfig = Files.readString(
+            Path.of("../observability/src/main/resources/application-observability.yml"),
+        )
+
+        assertTrue(observabilityConfig.contains("port: \${DEV_ACTUATOR_PORT}"))
+        assertTrue(observabilityConfig.contains("base-path: \${DEV_ACTUATOR_PATH}"))
+        assertTrue(observabilityConfig.contains("port: \${PROD_ACTUATOR_PORT}"))
+        assertTrue(observabilityConfig.contains("base-path: \${PROD_ACTUATOR_PATH}"))
+        assertTrue(observabilityConfig.contains("base-path: /actuator-test"))
     }
 
     @Test
