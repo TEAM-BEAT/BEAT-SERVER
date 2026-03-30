@@ -32,6 +32,16 @@ class RootRetirementContractTest {
 	}
 
 	@Test
+	void concernOwnedApplicationResourcesExistAfterRootRetirement() {
+		assertTrue(Files.exists(Path.of("observability/src/main/resources/application-observability.yml")));
+		assertTrue(Files.exists(Path.of("infra/src/main/resources/application-persistence.yml")));
+		assertTrue(Files.exists(Path.of("infra/src/main/resources/application-external.yml")));
+		assertTrue(Files.exists(Path.of("infra/src/main/resources/application-redis.yml")));
+		assertTrue(Files.exists(Path.of("infra/src/main/resources/application-thread-pool.yml")));
+		assertTrue(Files.exists(Path.of("gateway/src/main/resources/application-jwt.yml")));
+	}
+
+	@Test
 	void gradleBuildNoLongerVerifiesLegacyRootBootJarBaseline() throws Exception {
 		String buildFile = Files.readString(Path.of("build.gradle.kts"));
 
@@ -51,6 +61,8 @@ class RootRetirementContractTest {
 		assertFalse(rootBuild.contains("spring-boot-starter-logging"));
 		assertTrue(executableBuildLogic.contains("spring-boot-starter-logging"));
 		assertTrue(executableBuildLogic.contains("spring-boot-starter-log4j2"));
+		assertTrue(executableBuildLogic.contains("tasks.withType<BootRun>().configureEach"));
+		assertTrue(executableBuildLogic.contains("workingDir = rootDir"));
 		assertTrue(Files.exists(Path.of("observability/src/main/resources/log4j2-spring.xml")));
 	}
 
@@ -96,7 +108,11 @@ class RootRetirementContractTest {
 		assertTrue(v2WebDeployDev.contains("appleboy/ssh-action"));
 		assertTrue(v2WebDeployDev.contains("./deploy-dev.sh"));
 		assertFalse(v2WebDeployDev.contains("docker run -d"));
+		assertTrue(v2WebDeployDev.contains("export INTERNAL_PORT='4001'"));
+		assertTrue(v2WebDeployProd.contains("-p ${PROD_V2_WEB_PUBLIC_PORT}:4001"));
 		assertTrue(dockerfileModule.contains("ARG MODULE"));
 		assertTrue(dockerfileModule.contains("ARG PROFILE"));
+		assertFalse(dockerfileModule.contains("BEAT_SERVER_PORT=8080"));
+		assertFalse(dockerfileModule.contains("BEAT_MANAGEMENT_SERVER_PORT=2222"));
 	}
 }
