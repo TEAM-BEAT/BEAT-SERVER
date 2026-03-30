@@ -1,0 +1,5 @@
+thread-pool:
+  core-size: 2
+  max-pool-size: 4
+  queue-capacity: 50
+  thread-name-prefix: executor-

@@ -1,4 +1,5 @@
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.springframework.boot.gradle.tasks.run.BootRun
 
 plugins {
     id("org.springframework.boot")
@@ -20,4 +21,9 @@ dependencies {
     compileOnly(libs.findLibrary("lombok").get())
     annotationProcessor(libs.findLibrary("lombok").get())
     testImplementation(libs.findLibrary("spring-boot-starter-test").get())
+}
+
+tasks.withType<BootRun>().configureEach {
+    // Secret imports resolve from the shared repo-level `secret/` directory.
+    workingDir = rootDir
 }
