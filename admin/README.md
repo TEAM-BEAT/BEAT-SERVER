@@ -6,6 +6,7 @@
 
 - 관리자/백오피스 HTTP API의 유일한 실행 진입점이다.
 - 사용자 API와 다른 승인 정책, 응답 스펙, 운영 워크플로를 소유한다.
+- 관리자용 Swagger/OpenAPI 노출도 executable-module owner concern으로 소유한다.
 - 팀 컨벤션상 `Controller -> Facade -> Application Service -> Domain` 흐름을 따른다.
 - `apis` 서비스를 재사용하지 않고, `domain`과 공유 모듈 계약만 사용한다.
 
@@ -60,8 +61,10 @@ admin/
     - `GatewayModuleConfig`
     - `InfraConfig`
     - `ObservabilityModuleConfig`
+- executable bootstrap resource는 module-local 값과 `spring.profiles.group`만 소유하고, persistence/redis/external/jwt/observability 설정은 각 concern-owned `application-*.yml`로 분리한다.
 - app-level broad `@ComponentScan`은 없다.
 - `AdminSecurityConfig`가 관리자 route whitelist와 인증 정책을 소유한다.
+- admin Swagger/OpenAPI는 기본적으로 non-prod 에서만 노출한다.
 - `GatewayModuleConfig`가 gateway 내부 구현 빈을 제공하지만, `admin`은 공개 진입점인 `GatewayModuleConfig`와 `gateway.annotation.CurrentMember`만 직접 참조한다.
 - `InfraConfig.kt`가 필요한 infra base config group만 명시적으로 import한다.
 - `admin`은 async/scheduler shared runtime bean을 직접 import하지 않는다.
@@ -80,6 +83,8 @@ admin/
 
 - admin-facing controller / facade / application service / DTO
 - module-owned security route policy
+- admin-facing Swagger/OpenAPI exposure as an executable-module owner concern
+- module-local bootstrap config such as `springdoc.*`, `cors.allowed-origins`, `app.server.url`, `beat.scheduler.owner`
 - admin exception handling
 - admin CORS / converter configuration
 

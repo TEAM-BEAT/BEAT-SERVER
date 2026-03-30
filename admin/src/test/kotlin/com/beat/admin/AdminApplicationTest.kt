@@ -47,6 +47,17 @@ class AdminApplicationTest {
     }
 
     @Test
+    fun `admin swagger config exists as non prod module owned documentation policy`() {
+        val source = Files.readString(Path.of("src/main/java/com/beat/admin/swagger/config/AdminSwaggerConfig.java"))
+        val securitySource = Files.readString(Path.of("src/main/java/com/beat/admin/config/AdminSecurityConfig.java"))
+
+        assertTrue(source.contains("@Profile(\"!prod\")"))
+        assertTrue(source.contains(".group(\"admin\")"))
+        assertTrue(source.contains("pathsToMatch(\"/api/admin/**\")"))
+        assertTrue(securitySource.contains("environment.acceptsProfiles(Profiles.of(\"prod\"))"))
+    }
+
+    @Test
     fun `admin application no longer owns broad component scan`() {
         val componentScan = AdminApplication::class.java.getAnnotation(ComponentScan::class.java)
         assertNull(componentScan)
@@ -87,6 +98,17 @@ class AdminApplicationTest {
         assertTrue(config.contains("scheduler:"))
         assertTrue(config.contains("owner: false"))
         assertFalse(config.contains("owner: true"))
+        assertTrue(config.contains("profiles:"))
+        assertTrue(config.contains("group:"))
+        assertTrue(config.contains("- persistence"))
+        assertTrue(config.contains("- jwt"))
+        assertTrue(config.contains("application-dev-secret.properties"))
+        assertTrue(config.contains("application-prod-secret.properties"))
+        assertTrue(config.contains("port: 4000"))
+        assertFalse(config.contains("BEAT_SERVER_PORT"))
+        assertFalse(config.contains("management:"))
+        assertFalse(config.contains("../secret/application-dev-secret.properties"))
+        assertFalse(config.contains("../secret/application-prod-secret.properties"))
     }
 
     @Test
@@ -96,6 +118,12 @@ class AdminApplicationTest {
 
         assertFalse(config.contains("allow-bean-definition-overriding"))
         assertTrue(bootTest.contains("@MockitoBean"))
+        assertTrue(bootTest.contains("FileStoragePort"))
+        assertFalse(bootTest.contains("PromotionUseCase promotionUseCase"))
+        assertFalse(bootTest.contains("PerformanceUseCase performanceUseCase"))
+        assertFalse(bootTest.contains("MemberUseCase memberUseCase"))
+        assertFalse(bootTest.contains("UserUseCase userUseCase"))
+        assertFalse(bootTest.contains("AdminUseCase adminUseCase"))
         assertFalse(bootTest.contains("allow-bean-definition-overriding"))
     }
 }
