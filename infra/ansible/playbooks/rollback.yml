@@ -42,3 +42,15 @@
         - rollback
         - nginx
         - routing
+
+    - name: Promote previous metadata back to current after rollback completion to restore live metadata truth
+      # Keep current.json aligned with the release that is live again after
+      # rollback so the next deploy snapshots the correct previous release.
+      ansible.builtin.copy:
+        src: "{{ release_dir }}/previous.json"
+        dest: "{{ release_dir }}/current.json"
+        remote_src: true
+        mode: "0644"
+      tags:
+        - rollback
+        - release

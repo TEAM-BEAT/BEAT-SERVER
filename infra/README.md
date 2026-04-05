@@ -256,8 +256,11 @@ flowchart TD
     end
 
     subgraph Rollback["rollback.yml"]
-        RB["app_rollback<br/>previous.json으로 복원"]
+        RB["app_rollback<br/>이전 릴리스로 런타임 복원"]
+        RR["previous.json → current.json<br/>메타데이터 정합성 복원"]
     end
+
+    RB --> RR
 ```
 
 ### 모듈별 배포 전략
@@ -472,16 +475,16 @@ flowchart LR
 ├── docker-compose.yml                      # foundation 렌더링
 ├── update-nginx-config.py                  # nginx fragment 관리
 └── nginx/
-    ├── default.conf                        # 후보 설정 (source)
+    ├── default.conf                        # 후보 설정 (source, 다음 promotion 입력)
     └── generated/
-        ├── upstreams/00-managed.conf       # upstream fragment (source)
-        └── routes/10-managed.conf          # route fragment (source)
+        ├── upstreams/00-managed.conf       # upstream fragment (source, helper가 갱신)
+        └── routes/10-managed.conf          # route fragment (source, helper가 갱신)
 
 /var/lib/docker/volumes/nginx-config-volume/_data/
-├── conf.d/default.conf                     # 실제 적용 설정 (target)
+├── conf.d/default.conf                     # 실제 적용 설정 (target, 현재 live)
 └── generated/
-    ├── upstreams/00-managed.conf           # upstream fragment (target)
-    └── routes/10-managed.conf              # route fragment (target)
+    ├── upstreams/00-managed.conf           # upstream fragment (target, 현재 live)
+    └── routes/10-managed.conf              # route fragment (target, 현재 live)
 
 /opt/beat/
 ├── secret/
@@ -617,5 +620,12 @@ flowchart LR
 ```
 
 - `previous.json`이 없으면 롤백 불가 (assert 실패)
-- 롤백 후 `current.json`에 이전 배포 메타데이터가 복원된다
+- 롤백 후 `current.json`은 실제로 다시 live 가 된 이전 배포 메타데이터로 복원된다
+- 이 승격은 선택사항이 아니다. 다음 deploy의 `app_cleanup`이 항상 `current.json -> previous.json`을 수행하므로, rollback 직후 `current.json`이 실제 live 릴리스를 가리키지 않으면 다음 rollback 대상이 틀어진다.
 - blue-green 모듈은 `run_switch.yml`을 재활용하여 역방향 전환을 수행한다
+
+### Nginx source/target contract
+
+- `deployment/nginx/**` 는 후보(source) 설정이다. helper와 seed 로직이 이 경로를 갱신하고, 다음 promotion의 입력으로 재사용된다.
+- `nginx-config-volume/_data/**` 는 실제 적용(target) 설정이다. `nginx -t` 와 reload가 통과한 live 구성이 여기에 존재한다.
+- Nginx 관련 role은 실패 시 target만이 아니라 source도 함께 복원해야 한다. 그렇지 않으면 다음 실행에서 오염된 source가 다시 target으로 승격될 수 있다.

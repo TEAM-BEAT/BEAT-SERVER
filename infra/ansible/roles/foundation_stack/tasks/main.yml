@@ -13,6 +13,28 @@
     state: directory
     mode: "0755"
 
+- name: Ensure deployment Docker network exists
+  community.docker.docker_network:
+    name: "{{ docker_network }}"
+    state: present
+
+- name: Ensure nginx config volume exists
+  community.docker.docker_volume:
+    name: "{{ nginx_config_volume_name | default('nginx-config-volume') }}"
+    state: present
+
+- name: Ensure mysql data volume exists
+  community.docker.docker_volume:
+    name: "{{ mysql_data_volume_name | default('mysql-data') }}"
+    state: present
+  when: foundation_mysql_enabled | default(true)
+
+- name: Ensure redis data volume exists
+  community.docker.docker_volume:
+    name: "{{ redis_data_volume_name | default('redis-data') }}"
+    state: present
+  when: foundation_redis_enabled | default(true)
+
 - name: Render foundation compose file
   ansible.builtin.template:
     src: foundation.compose.yml.j2

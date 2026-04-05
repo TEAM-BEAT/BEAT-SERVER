@@ -47,10 +47,3 @@
   vars:
     app_stopstart_image: "{{ app_rollback_previous_release.image }}"
   when: module_cfg.deploy_mode == 'stop_start'
-
-- name: Promote previous metadata back to current
-  ansible.builtin.copy:
-    src: "{{ release_dir }}/previous.json"
-    dest: "{{ release_dir }}/current.json"
-    remote_src: true
-    mode: "0644"

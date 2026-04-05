@@ -37,6 +37,16 @@
         ) if app_bluegreen_active_slot_stat.stat.exists else ''
       }}
 
+- name: Validate current active slot value
+  ansible.builtin.assert:
+    that:
+      - app_bluegreen_current_slot in ['blue', 'green']
+    fail_msg: >-
+      Unsupported active slot '{{ app_bluegreen_current_slot }}'
+      found in {{ app_bluegreen_active_slot_file }}.
+      Expected one of: blue, green.
+  when: app_bluegreen_active_slot_stat.stat.exists
+
 - name: Determine whether blue is currently active
   ansible.builtin.set_fact:
     app_bluegreen_is_blue_active: "{{ app_bluegreen_current_slot == 'blue' }}"

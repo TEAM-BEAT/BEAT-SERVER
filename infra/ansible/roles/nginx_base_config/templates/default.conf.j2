@@ -51,6 +51,8 @@ server {
         allow {{ cidr }};
 {% endfor %}
         deny all;
+{% else %}
+        deny all;
 {% endif %}
     }
 
