@@ -82,6 +82,7 @@
           - "127.0.0.1"
           - --backend-port
           - "65535"
+      changed_when: true
 
     - name: Seed admin upstream marker in source fragment
       ansible.builtin.command:
@@ -97,6 +98,7 @@
           - "127.0.0.1"
           - --backend-port
           - "65535"
+      changed_when: true
 
     - name: Seed actuator upstream marker in source fragment
       ansible.builtin.command:
@@ -112,6 +114,7 @@
           - "127.0.0.1"
           - --backend-port
           - "65535"
+      changed_when: true
 
 - name: Seed route fragment (fresh server only)
   when: not ansible_check_mode and not route_fragment_stat.stat.exists
@@ -130,6 +133,7 @@
           - "{{ modules.admin.nginx_route.external_path | default('/admin') }}"
           - --upstream-path
           - "{{ modules.admin.nginx_route.upstream_path | default('/api/admin') }}"
+      changed_when: true
 
 - name: Sync upstream fragment to target
   ansible.builtin.copy:
@@ -203,6 +207,7 @@
           - -s
           - reload
       when: nginx_test_result.rc == 0
+      changed_when: true
   rescue:
     - name: Restore previous live nginx config from backup
       ansible.builtin.copy:

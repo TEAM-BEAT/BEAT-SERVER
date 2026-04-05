@@ -36,5 +36,6 @@ jobs:
           python -m pip install "ansible-core==2.17.14" "ansible-lint"
 
       - name: Run ansible-lint
+        working-directory: infra/ansible
         run: |
-          ansible-lint infra/ansible/playbooks/*.yml infra/ansible/roles
+          ansible-lint playbooks/*.yml roles
