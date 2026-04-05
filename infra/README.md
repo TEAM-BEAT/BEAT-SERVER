@@ -95,17 +95,19 @@ flowchart TB
 
     subgraph Workflows["GitHub Actions"]
         CIPR["ci-pr.yml<br/>테스트 + Trivy 스캔"]
+        AnsibleLint["ansible-lint.yml<br/>PR-safe lint"]
+        SecretAware["ansible-secret-aware-verify.yml<br/>SOPS 활성 검증"]
         DeployDev["deploy-dev.yml<br/>자동 배포"]
         DeployProd["deploy-prod.yml<br/>수동 배포 (tag)"]
         RollbackProd["rollback-prod.yml<br/>수동 롤백"]
         AnsibleExec["_ansible-exec.yml<br/>공통 실행 엔진"]
     end
 
-    subgraph Tooling["Setup Deploy Tooling"]
+    subgraph Tooling["Setup Ansible Tooling"]
         Cosign["Cosign (서명 검증)"]
         Age["age v1.3.1 (SOPS 복호화)"]
         SOPS["SOPS v3.12.2 (시크릿)"]
-        Ansible["ansible-core 2.17.14"]
+        Ansible["ansible-core 2.17.14 + ansible-lint"]
         SSH["SSH (fingerprint 검증)"]
     end
 
@@ -115,15 +117,19 @@ flowchart TB
     end
 
     PR --> CIPR
+    PR --> AnsibleLint
     Push --> DeployDev
+    Push --> SecretAware
     Dispatch --> DeployProd
     Dispatch --> RollbackProd
     DeployDev --> AnsibleExec
     DeployProd --> AnsibleExec
     RollbackProd --> AnsibleExec
+    AnsibleLint --> Tooling
+    SecretAware --> Tooling
     AnsibleExec --> Tooling
-    Tooling -->|"SSH"| DevServer
-    Tooling -->|"SSH"| ProdServer
+    AnsibleExec -->|"SSH"| DevServer
+    AnsibleExec -->|"SSH"| ProdServer
 ```
 
 ## CI/CD 파이프라인
@@ -145,6 +151,18 @@ flowchart LR
 - `shared` 경로(domain, gateway, build-logic, gradle 등) 변경 시 **전체 모듈** 배포
 - 이미지 태그: `dev-${GITHUB_SHA}`
 - deploy job은 `max-parallel: 1` — nginx 설정 충돌 방지
+
+### Ansible lint / secret-aware 검증
+
+- `ansible-lint.yml`
+  - PR-safe lint 경로
+  - `working-directory: infra/ansible`
+  - `ANSIBLE_VARS_ENABLED=host_group_vars`로 SOPS vars plugin을 비활성화하고 playbook/role 구조만 검증
+- `ansible-secret-aware-verify.yml`
+  - push to `develop`/`main`, `workflow_dispatch`에서 실행
+  - `environment: dev` / `environment: prod` 각각에서 `AGE_SECRET_KEY`를 읽음
+  - `ansible-inventory --list`로 SOPS 복호화가 실제로 되는지 확인
+  - 같은 환경에서 `ansible-lint playbooks/*.yml roles`도 실행해 SOPS 활성 상태의 lint까지 검증
 
 ### Prod 배포 (수동)
 
@@ -169,8 +187,6 @@ flowchart LR
 infra/ansible/
 ├── ansible.cfg                          # SOPS 플러그인, SSH 파이프라이닝
 ├── collections/requirements.yml         # community.docker, community.sops
-├── files/
-│   └── update-nginx-config.py           # nginx fragment 관리 유틸리티
 ├── inventories/
 │   ├── dev/
 │   │   ├── hosts.yml                    # 호스트 그룹 + SSH 포트/사용자 (IP는 SOPS)
@@ -189,9 +205,12 @@ infra/ansible/
 │   └── secret.yml                       # 시크릿만 동기화
 ├── roles/
 │   ├── foundation_stack/                # docker-compose 기반 기초 서비스
+│   │   └── templates/foundation.compose.yml.j2
 │   ├── nginx_base_config/               # nginx 설정 렌더링 + 프로모션
+│   │   └── templates/default.conf.j2
+│   ├── nginx_config_helper/             # update-nginx-config.py 배포 helper
 │   ├── app_secret/                      # SOPS → properties 파일
-│   ├── app_scripts/                     # 배포 스크립트 설치
+│   ├── app_scripts/                     # 배포 디렉토리 + nginx helper 준비
 │   ├── app_release/                     # 릴리즈 메타데이터
 │   ├── app_dev_switch/                  # dev blue-green 진입점
 │   ├── app_prod_switch/                 # prod blue-green 진입점
@@ -200,10 +219,12 @@ infra/ansible/
 │   ├── app_healthcheck/                 # 헬스체크
 │   ├── app_cleanup/                     # 메타데이터 승격 + 이미지 정리
 │   └── app_rollback/                    # 롤백 로직
-└── templates/
-    ├── foundation.compose.yml.j2        # docker-compose 템플릿
-    └── default.conf.j2                  # nginx 설정 템플릿
 ```
+
+설명:
+- 공용 nginx helper `update-nginx-config.py`는 더 이상 `infra/ansible/files/`에 두지 않고 `roles/nginx_config_helper/files/`로 이동했다.
+- foundation / nginx 템플릿도 전역 `templates/`가 아니라 각 role의 `templates/` 안에서 관리한다.
+- `app_dev_switch`, `app_prod_switch`, `app_rollback`은 상대 `import_tasks` 대신 `import_role` + 명시적 vars 전달 구조를 사용한다.
 
 ### Playbook 흐름
 
@@ -295,8 +316,8 @@ flowchart LR
     end
 
     subgraph CICD["CI/CD (GitHub Actions)"]
-        GHSecret["AGE_SECRET_KEY<br/>(GitHub Secret)"]
-        GHSecret -->|"SOPS_AGE_KEY"| Decrypt["자동 복호화<br/>(community.sops 플러그인)"]
+        GHSecret["AGE_SECRET_KEY<br/>(Environment Secret: dev/prod)"]
+        GHSecret -->|"SOPS_AGE_KEY"| Decrypt["환경별 자동 복호화<br/>(community.sops 플러그인)"]
         Decrypt --> Props["application-{profile}-secret.properties"]
     end
 
@@ -473,16 +494,11 @@ flowchart LR
 
 ## GitHub Secrets
 
-### 필수 (Repository-level)
-
-| Secret | 용도 |
-|--------|------|
-| `AGE_SECRET_KEY` | SOPS 복호화용 age private key |
-
 ### 필수 (Environment: dev)
 
 | Secret | 용도 |
 |--------|------|
+| `AGE_SECRET_KEY` | dev 환경 SOPS 복호화용 age private key |
 | `DEV_DOCKER_LOGIN_USERNAME` | Docker Hub 사용자명 |
 | `DEV_DOCKER_LOGIN_ACCESSTOKEN` | Docker Hub 액세스 토큰 |
 | `DEV_SSH_HOST` | dev 서버 IP |
@@ -494,6 +510,7 @@ flowchart LR
 
 | Secret | 용도 |
 |--------|------|
+| `AGE_SECRET_KEY` | prod 환경 SOPS 복호화용 age private key |
 | `PROD_DOCKER_LOGIN_USERNAME` | Docker Hub 사용자명 |
 | `PROD_DOCKER_LOGIN_ACCESSTOKEN` | Docker Hub 액세스 토큰 |
 | `PROD_SSH_HOST` | prod 서버 IP |
@@ -501,7 +518,7 @@ flowchart LR
 | `PROD_SSH_PRIVATE_KEY` | prod 서버 SSH 비밀키 |
 | `PROD_SSH_HOST_FINGERPRINT` | prod 서버 SSH 호스트 지문 (`SHA256:...`) |
 
-### 선택 (Repository-level)
+### 선택 (Repository-level 또는 Environment-level)
 
 | Secret | 용도 |
 |--------|------|
