@@ -19,63 +19,8 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Install Cosign
-      uses: sigstore/cosign-installer@faadad0 # v4.0.0
-      with:
-        cosign-release: v3.0.3
-
-    - name: Install verified age
-      shell: bash
-      run: |
-        AGE_VERSION=v1.3.1
-        AGE_TARBALL="age-${AGE_VERSION}-linux-amd64.tar.gz"
-        AGE_SHA256="bdc69c09cbdd6cf8b1f333d372a1f58247b3a33146406333e30c0f26e8f51377"
-        curl -fsSLO "https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/${AGE_TARBALL}"
-        printf '%s  %s\n' "$AGE_SHA256" "$AGE_TARBALL" | sha256sum -c -
-        tar -xzf "$AGE_TARBALL"
-        sudo install -m 0755 age/age /usr/local/bin/age
-        sudo install -m 0755 age/age-keygen /usr/local/bin/age-keygen
-        rm -rf age "$AGE_TARBALL"
-
-    - name: Install verified SOPS
-      shell: bash
-      run: |
-        SOPS_VERSION=v3.12.2
-        curl -fsSLO "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64"
-        curl -fsSLO "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.checksums.txt"
-        curl -fsSLO "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.checksums.pem"
-        curl -fsSLO "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.checksums.sig"
-        cosign verify-blob "sops-${SOPS_VERSION}.checksums.txt" \
-          --certificate "sops-${SOPS_VERSION}.checksums.pem" \
-          --signature "sops-${SOPS_VERSION}.checksums.sig" \
-          --certificate-identity-regexp=https://github.com/getsops \
-          --certificate-oidc-issuer=https://token.actions.githubusercontent.com
-        sha256sum -c "sops-${SOPS_VERSION}.checksums.txt" --ignore-missing
-        chmod +x "sops-${SOPS_VERSION}.linux.amd64"
-        sudo mv "sops-${SOPS_VERSION}.linux.amd64" /usr/local/bin/sops
-        rm -f "sops-${SOPS_VERSION}.checksums.txt" "sops-${SOPS_VERSION}.checksums.pem" "sops-${SOPS_VERSION}.checksums.sig"
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.12"
-
-    - name: Install Ansible
-      shell: bash
-      run: |
-        ANSIBLE_WHEEL_DIR="$(mktemp -d)"
-        python3 -m pip download --only-binary=:all: --no-deps --dest "$ANSIBLE_WHEEL_DIR" 'ansible-core==2.17.14'
-        printf '%s  %s\n' \
-          '34a49582a57c2f2af17ede2cefd3b3602a2d55d22089f3928570d52030cafa35' \
-          "$ANSIBLE_WHEEL_DIR/ansible_core-2.17.14-py3-none-any.whl" | sha256sum -c -
-        python3 -m pip install --user "$ANSIBLE_WHEEL_DIR/ansible_core-2.17.14-py3-none-any.whl"
-        rm -rf "$ANSIBLE_WHEEL_DIR"
-        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-    - name: Install Ansible collections
-      shell: bash
-      run: |
-        ansible-galaxy collection install -r infra/ansible/collections/requirements.yml
+    - name: Setup Ansible tooling
+      uses: ./.github/actions/setup-ansible-tooling
 
     - name: Configure SSH client
       shell: bash

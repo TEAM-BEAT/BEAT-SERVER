@@ -55,6 +55,7 @@ jobs:
               - '.dockerignore'
               - '.sops.yaml'
               - '.github/workflows/_ansible-exec.yml'
+              - '.github/actions/setup-ansible-tooling/**'
               - '.github/actions/setup-deploy-tooling/**'
 
       - name: Build final deploy matrix
