@@ -1,0 +1,168 @@
+name: ansible-exec
+
+on:
+  workflow_call:
+    inputs:
+      environment_name:
+        required: true
+        type: string
+      ssh_host:
+        required: true
+        type: string
+      ssh_port:
+        required: true
+        type: string
+      ssh_host_fingerprint:
+        required: true
+        type: string
+      module:
+        required: true
+        type: string
+      playbook:
+        required: true
+        type: string
+      inventory_path:
+        required: true
+        type: string
+      success_title:
+        required: true
+        type: string
+      failure_title:
+        required: true
+        type: string
+      notify_description:
+        required: true
+        type: string
+      image:
+        required: false
+        type: string
+        default: ""
+      image_tag:
+        required: false
+        type: string
+        default: ""
+      commit_sha:
+        required: false
+        type: string
+        default: ""
+      deploy_actor:
+        required: false
+        type: string
+        default: ""
+      checkout_ref:
+        required: false
+        type: string
+        default: ""
+    secrets:
+      ssh_private_key:
+        required: true
+      sops_age_key:
+        required: true
+      slack_webhook_url:
+        required: false
+
+jobs:
+  execute:
+    name: "${{ inputs.playbook }} :: ${{ inputs.module }} :: ${{ inputs.environment_name }}"
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    environment: ${{ inputs.environment_name }}
+    env:
+      MODULE: ${{ inputs.module }}
+      PLAYBOOK: ${{ inputs.playbook }}
+      INVENTORY_PATH: ${{ inputs.inventory_path }}
+      IMAGE: ${{ inputs.image }}
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      COMMIT_SHA: ${{ inputs.commit_sha }}
+      DEPLOY_ACTOR: ${{ inputs.deploy_actor }}
+      SSH_HOST: ${{ inputs.ssh_host }}
+      SSH_PORT: ${{ inputs.ssh_port }}
+      HAS_SLACK_WEBHOOK: ${{ secrets.slack_webhook_url != '' }}
+    steps:
+      - name: Checkout code (current ref)
+        if: inputs.checkout_ref == ''
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Checkout code (requested ref)
+        if: inputs.checkout_ref != ''
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.checkout_ref }}
+
+      - name: Setup deploy tooling
+        uses: ./.github/actions/setup-deploy-tooling
+        with:
+          ssh-host: ${{ env.SSH_HOST }}
+          ssh-port: ${{ env.SSH_PORT }}
+          ssh-private-key: ${{ secrets.ssh_private_key }}
+          ssh-host-fingerprint: ${{ inputs.ssh_host_fingerprint }}
+
+      - name: Write deploy extra vars file
+        shell: bash
+        run: |
+          EXTRA_VARS_PATH="$(mktemp /tmp/beat-extra-vars.XXXXXX.json)"
+          echo "EXTRA_VARS_PATH=$EXTRA_VARS_PATH" >> "$GITHUB_ENV"
+          python3 - "$EXTRA_VARS_PATH" <<'PY'
+          import json
+          import os
+          import pathlib
+          import sys
+
+          payload = {}
+          for key, env_name in {
+              "image": "IMAGE",
+              "image_tag": "IMAGE_TAG",
+              "commit_sha": "COMMIT_SHA",
+              "deploy_actor": "DEPLOY_ACTOR",
+          }.items():
+              value = os.environ.get(env_name, "")
+              if value:
+                  payload[key] = value
+
+          path = pathlib.Path(sys.argv[1])
+          if payload:
+              path.write_text(json.dumps(payload), encoding="utf-8")
+          PY
+
+      - name: Run ansible playbook
+        shell: bash
+        env:
+          SOPS_AGE_KEY: ${{ secrets.sops_age_key }}
+        run: |
+          export SOPS_AGE_KEY
+          cd infra/ansible
+          cmd=(ansible-playbook "$PLAYBOOK" -i "$INVENTORY_PATH" -e "module=$MODULE")
+          if [[ -n "${EXTRA_VARS_PATH:-}" && -f "$EXTRA_VARS_PATH" ]]; then
+            cmd+=(--extra-vars "@$EXTRA_VARS_PATH")
+          fi
+          cmd+=(--private-key ~/.ssh/deploy_key)
+          "${cmd[@]}"
+
+      - name: Cleanup temporary credentials
+        if: always()
+        run: |
+          rm -f "${EXTRA_VARS_PATH:-}" ~/.ssh/deploy_key ~/.ssh/known_hosts
+
+      - name: Notify Slack (success)
+        if: ${{ success() && env.HAS_SLACK_WEBHOOK == 'true' }}
+        env:
+          NOTIFY_TITLE: ${{ inputs.success_title }}
+          NOTIFY_DESCRIPTION: ${{ inputs.notify_description }}
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+        shell: bash
+        run: |
+          payload=$(python3 -c 'import json, os; print(json.dumps({"text": f"{os.environ[\"NOTIFY_TITLE\"]}\n{os.environ[\"NOTIFY_DESCRIPTION\"]}"}))')
+          curl -fsSL -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"
+
+      - name: Notify Slack (failure)
+        if: ${{ failure() && env.HAS_SLACK_WEBHOOK == 'true' }}
+        env:
+          NOTIFY_TITLE: ${{ inputs.failure_title }}
+          NOTIFY_DESCRIPTION: ${{ inputs.notify_description }}
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+        shell: bash
+        run: |
+          payload=$(python3 -c 'import json, os; print(json.dumps({"text": f"{os.environ[\"NOTIFY_TITLE\"]}\n{os.environ[\"NOTIFY_DESCRIPTION\"]}"}))')
+          curl -fsSL -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"

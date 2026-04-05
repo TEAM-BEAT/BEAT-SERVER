@@ -1,0 +1,128 @@
+name: deploy-prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Module to deploy"
+        type: choice
+        options:
+          - apis
+          - admin
+          - batch
+        required: true
+      version:
+        description: "Git tag to build and publish"
+        required: true
+
+jobs:
+  build-image:
+    outputs:
+      commit_sha: ${{ steps.git-ref.outputs.commit_sha }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    environment: prod
+    steps:
+      - name: Validate version input
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [[ -z "$VERSION" ]] || [[ ! "$VERSION" =~ ^[0-9A-Za-z._-]+$ ]]; then
+            echo "Invalid version: $VERSION" >&2
+            exit 1
+          fi
+        shell: bash
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: refs/tags/${{ github.event.inputs.version }}
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          java-version: "25"
+          distribution: "temurin"
+
+      - uses: gradle/actions/setup-gradle@017a9effdb900e5b5b2fddfb590a105619dca3c3 # v4.4.2
+        with:
+          gradle-home-cache-cleanup: true
+
+      - name: Verify baseline
+        run: |
+          chmod +x gradlew
+          ./gradlew \
+            verifyV2WebBaseline \
+            :admin:test :batch:test \
+            verifyModuleBootJars \
+            --parallel --build-cache
+        shell: bash
+
+      - name: Capture checked out commit
+        id: git-ref
+        shell: bash
+        run: |
+          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          username: ${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}
+          password: ${{ secrets.PROD_DOCKER_LOGIN_ACCESSTOKEN }}
+
+      - name: Compute image name
+        id: image
+        env:
+          DOCKER_NAMESPACE: ${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}
+          MODULE: ${{ github.event.inputs.module }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          IMAGE_TAG="${VERSION}"
+          IMAGE_REF="${DOCKER_NAMESPACE}/beat-${MODULE}:${IMAGE_TAG}"
+          IMAGE_LATEST="${DOCKER_NAMESPACE}/beat-${MODULE}:prod-latest"
+          echo "tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "image=$IMAGE_REF" >> "$GITHUB_OUTPUT"
+          echo "latest=$IMAGE_LATEST" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        env:
+          MODULE: ${{ github.event.inputs.module }}
+        run: |
+          docker build -f Dockerfile.module \
+            --build-arg MODULE=${MODULE} \
+            --platform linux/amd64 \
+            -t "${{ steps.image.outputs.image }}" \
+            -t "${{ steps.image.outputs.latest }}" \
+            .
+          docker push "${{ steps.image.outputs.image }}"
+          docker push "${{ steps.image.outputs.latest }}"
+
+  deploy:
+    needs:
+      - build-image
+    concurrency:
+      group: prod-runtime
+      cancel-in-progress: false
+    uses: ./.github/workflows/_ansible-exec.yml
+    with:
+      environment_name: prod
+      ssh_host: ${{ secrets.PROD_SSH_HOST }}
+      ssh_port: ${{ secrets.PROD_SSH_PORT }}
+      ssh_host_fingerprint: ${{ secrets.PROD_SSH_HOST_FINGERPRINT }}
+      module: ${{ github.event.inputs.module }}
+      playbook: playbooks/deploy.yml
+      inventory_path: inventories/prod/hosts.yml
+      success_title: Deploy Prod Succeeded
+      failure_title: Deploy Prod Failed
+      notify_description: |
+        Module: ${{ github.event.inputs.module }}
+        Version: ${{ github.event.inputs.version }}
+        Actor: ${{ github.actor }}
+      image: ${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ github.event.inputs.module }}:${{ github.event.inputs.version }}
+      image_tag: ${{ github.event.inputs.version }}
+      commit_sha: ${{ needs.build-image.outputs.commit_sha }}
+      deploy_actor: ${{ github.actor }}
+      checkout_ref: refs/tags/${{ github.event.inputs.version }}
+    secrets:
+      ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+      sops_age_key: ${{ secrets.AGE_SECRET_KEY }}
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
