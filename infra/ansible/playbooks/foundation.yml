@@ -1,0 +1,16 @@
+---
+- name: Converge foundation stack
+  hosts: all
+  become: true
+  gather_facts: false
+
+  roles:
+    - role: foundation_stack
+      tags:
+        - foundation
+        - compose
+    - role: nginx_base_config
+      when: foundation_manage_nginx | default(false) | bool
+      tags:
+        - foundation
+        - nginx

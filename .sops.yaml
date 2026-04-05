@@ -1,0 +1,7 @@
+creation_rules:
+  - path_regex: ^infra/ansible/inventories/dev/group_vars/all/.*\.sops\.yml$
+    age: >-
+      age10ku4fy9jalda7pkqwmgnywjnmeqdknv0fkt5a7dgs5egk9xf7atsa6vnpa
+  - path_regex: ^infra/ansible/inventories/prod/group_vars/all/.*\.sops\.yml$
+    age: >-
+      age10ku4fy9jalda7pkqwmgnywjnmeqdknv0fkt5a7dgs5egk9xf7atsa6vnpa

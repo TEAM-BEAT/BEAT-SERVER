@@ -1,0 +1,7 @@
+---
+- name: Set target image for blue-green deploy
+  ansible.builtin.set_fact:
+    bluegreen_image: "{{ image }}"
+
+- name: Run blue-green deploy via Ansible tasks
+  ansible.builtin.import_tasks: ../../app_bluegreen/tasks/run_switch.yml

@@ -1,0 +1,68 @@
+# All upstreams (backend, admin_backend, actuator) are managed via generated fragments.
+# Seeds are created by nginx_base_config; deploys overwrite with real values via upsert-upstream.
+
+# BEGIN BEAT MANAGED GENERATED UPSTREAM INCLUDES
+include {{ nginx_generated_include_dir }}/upstreams/*.conf;
+# END BEAT MANAGED GENERATED UPSTREAM INCLUDES
+
+log_format {{ nginx_access_log_format_name | default('custom') }} '$request_id $remote_addr - $remote_user [$time_local] "$request" '
+    '$status $body_bytes_sent "$http_referer" '
+    '"$http_user_agent" "$http_x_forwarded_for" "$request_time"';
+
+server {
+    listen 80;
+    server_name {{ nginx_server_name }};
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    access_log /var/log/nginx/access.log {{ nginx_access_log_format_name | default('custom') }};
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name {{ nginx_server_name }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ letsencrypt_cert_name }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ letsencrypt_cert_name }}/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    underscores_in_headers on;
+
+    # BEGIN BEAT MANAGED GENERATED ROUTE INCLUDES
+    include {{ nginx_generated_include_dir }}/routes/*.conf;
+    # END BEAT MANAGED GENERATED ROUTE INCLUDES
+
+    location {{ actuator_path }}/ {
+        proxy_pass http://{{ actuator_upstream_name | default('actuator') }};
+        proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-ID $request_id;
+{% if actuator_allow_cidrs is defined and actuator_allow_cidrs %}
+{% for cidr in actuator_allow_cidrs %}
+        allow {{ cidr }};
+{% endfor %}
+        deny all;
+{% endif %}
+    }
+
+    access_log /var/log/nginx/access.log {{ nginx_access_log_format_name | default('custom') }};
+
+    location / {
+        proxy_pass http://{{ backend_upstream_name | default('backend') }};
+        proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-ID $request_id;
+    }
+}

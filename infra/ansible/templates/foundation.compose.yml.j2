@@ -1,0 +1,61 @@
+services:
+  nginx:
+    image: "{{ nginx_image | default('nginx:alpine') }}"
+    container_name: "{{ nginx_container_name }}"
+    volumes:
+      - "{{ nginx_config_volume_name | default('nginx-config-volume') }}:/etc/nginx"
+      - "{{ certbot_conf_dir }}:/etc/letsencrypt"
+      - "{{ certbot_www_dir }}:/var/www/certbot"
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - "{{ docker_network }}"
+    restart: always
+
+{% if foundation_mysql_enabled | default(true) %}
+  mysql:
+    image: "{{ mysql_image | default('mysql:8.4.5') }}"
+    container_name: "{{ mysql_container_name | default('mysql') }}"
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "{{ mysql_root_password }}"
+      MYSQL_DATABASE: "{{ mysql_database }}"
+      MYSQL_USER: "{{ mysql_user }}"
+      MYSQL_PASSWORD: "{{ mysql_password }}"
+    volumes:
+      - "{{ mysql_data_volume_name | default('mysql-data') }}:/var/lib/mysql"
+    networks:
+      - "{{ docker_network }}"
+{% endif %}
+
+{% if foundation_redis_enabled | default(true) %}
+  redis:
+    image: "{{ redis_image | default('redis:alpine') }}"
+    container_name: "{{ redis_container_name | default('redis') }}"
+    restart: unless-stopped
+    volumes:
+      - "{{ redis_conf_path }}:/etc/redis/redis.conf"
+      - "{{ redis_data_volume_name | default('redis-data') }}:/data"
+    command: ["redis-server", "/etc/redis/redis.conf"]
+    networks:
+      - "{{ docker_network }}"
+{% endif %}
+
+networks:
+  {{ docker_network }}:
+    external: true
+
+volumes:
+  {{ nginx_config_volume_name | default('nginx-config-volume') }}:
+    external: true
+{% if foundation_mysql_enabled | default(true) %}
+  {{ mysql_data_volume_name | default('mysql-data') }}:
+    external: true
+{% endif %}
+{% if foundation_redis_enabled | default(true) %}
+  {{ redis_data_volume_name | default('redis-data') }}:
+    external: true
+{% endif %}

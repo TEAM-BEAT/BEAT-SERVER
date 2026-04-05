@@ -1,0 +1,33 @@
+---
+- name: Wait for module health on docker network
+  ansible.builtin.shell: |
+    set -euo pipefail
+    attempts="{{ network_health_max_attempts }}"
+    delay="{{ network_health_sleep_seconds }}"
+    target="{{ module_cfg.container_name | default(module) }}"
+    if [ "{{ module_cfg.deploy_mode | default('') }}" = "blue_green" ]; then
+      slot_file="{{ release_dir }}/current-slot"
+      blue_target="{{ module_cfg.blue_container_name | default(module ~ '-blue') }}"
+      green_target="{{ module_cfg.green_container_name | default(module ~ '-green') }}"
+      if [ -f "$slot_file" ]; then
+        slot=$(cat "$slot_file")
+        if [ "$slot" = "green" ]; then
+          target="$green_target"
+        else
+          target="$blue_target"
+        fi
+      else
+        target="$blue_target"
+      fi
+    fi
+
+    for attempt in $(seq 1 "$attempts"); do
+      if docker run --rm --network "{{ docker_network }}" {{ curl_image | quote }} \
+          -fsS "http://${target}:{{ actuator_port }}{{ actuator_path }}/health" >/dev/null 2>&1; then
+        exit 0
+      fi
+      sleep "$delay"
+    done
+    exit 1
+  args:
+    executable: /bin/bash

@@ -1,0 +1,43 @@
+---
+- name: Build foundation compose definition from template
+  ansible.builtin.set_fact:
+    foundation_compose_definition: >-
+      {{
+        lookup('ansible.builtin.template', playbook_dir ~ '/../templates/foundation.compose.yml.j2')
+        | from_yaml
+      }}
+
+- name: Ensure deployment directory exists
+  ansible.builtin.file:
+    path: "{{ deployment_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Render foundation compose file
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/../templates/foundation.compose.yml.j2"
+    dest: "{{ deployment_dir }}/docker-compose.yml"
+    mode: "0644"
+    backup: true
+
+- name: Validate rendered foundation compose
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - -f
+      - "{{ deployment_dir }}/docker-compose.yml"
+      - config
+  register: foundation_compose_config_result
+  changed_when: false
+
+- name: Ensure foundation stack is present
+  community.docker.docker_compose_v2:
+    project_name: deployment
+    definition: "{{ foundation_compose_definition }}"
+    state: present
+  register: foundation_compose_result
+
+- name: Report foundation compose result
+  ansible.builtin.debug:
+    var: foundation_compose_result

@@ -1,0 +1,21 @@
+---
+- name: Ensure release directory exists
+  ansible.builtin.file:
+    path: "{{ release_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Write pending release metadata
+  ansible.builtin.copy:
+    dest: "{{ pending_metadata_path }}"
+    mode: "0644"
+    content: |
+      {
+        "module": "{{ module }}",
+        "image": "{{ image }}",
+        "image_tag": "{{ image_tag }}",
+        "commit_sha": "{{ commit_sha | default('unknown') }}",
+        "deploy_actor": "{{ deploy_actor | default('unknown') }}",
+        "deploy_environment": "{{ deploy_environment }}",
+        "created_at": "{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
+      }

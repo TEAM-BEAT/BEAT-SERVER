@@ -1,0 +1,64 @@
+deploy_environment: dev
+deployment_dir: /home/ubuntu/deployment
+docker_network: beat-network
+secret_dir: /opt/beat/secret
+release_root: /opt/beat/releases
+nginx_container_name: nginx
+nginx_conf_source_path: /home/ubuntu/deployment/nginx/default.conf
+nginx_conf_target_path: /var/lib/docker/volumes/nginx-config-volume/_data/conf.d/default.conf
+nginx_generated_source_dir: /home/ubuntu/deployment/nginx/generated
+nginx_generated_target_dir: /var/lib/docker/volumes/nginx-config-volume/_data/generated
+curl_image: curlimages/curl:8.12.1
+
+foundation_mysql_enabled: true
+foundation_redis_enabled: true
+nginx_image: nginx:alpine
+nginx_config_volume_name: nginx-config-volume
+certbot_conf_dir: /home/ubuntu/data/certbot/conf
+certbot_www_dir: /home/ubuntu/data/certbot/www
+nginx_access_log_format_name: custom
+actuator_upstream_name: actuator
+actuator_active_container: "{{ apis_active_container }}"
+foundation_manage_nginx: true
+nginx_generated_include_dir: /etc/nginx/generated
+
+mysql_image: mysql:8.4.5
+mysql_container_name: mysql
+mysql_data_volume_name: mysql-data
+
+redis_image: redis:alpine
+redis_container_name: redis
+redis_conf_path: /home/ubuntu/redis.conf
+redis_data_volume_name: redis-data
+
+apis_active_container: apis-blue
+apis_app_port: 4001
+admin_upstream_name: admin_backend
+admin_container_name: admin
+admin_app_port: 4000
+
+modules:
+  apis:
+    deploy_mode: blue_green
+    spring_profile: dev
+    app_port: 4001
+    public_smoke_url: "https://{{ nginx_server_name }}/api/main"
+    blue_container_name: apis-blue
+    green_container_name: apis-green
+    backend_upstream_name: backend
+  admin:
+    deploy_mode: stop_start
+    spring_profile: dev
+    app_port: 4000
+    container_name: admin
+    scheduler_owner: false
+    nginx_route:
+      upstream_name: admin_backend
+      external_path: /admin
+      upstream_path: /api/admin
+  batch:
+    deploy_mode: stop_start
+    spring_profile: dev
+    app_port: 4002
+    container_name: batch
+    scheduler_owner: true

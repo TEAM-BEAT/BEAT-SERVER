@@ -1,0 +1,7 @@
+---
+- name: Set target image for stop-start deployment
+  ansible.builtin.set_fact:
+    stopstart_image: "{{ image }}"
+
+- name: Recreate stop-start container via Docker module
+  ansible.builtin.import_tasks: run_container.yml

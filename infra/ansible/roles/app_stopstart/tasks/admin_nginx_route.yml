@@ -1,0 +1,70 @@
+---
+- name: Ensure admin nginx upstream and route exist
+  ansible.builtin.command:
+    argv:
+      - python3
+      - "{{ deployment_dir }}/update-nginx-config.py"
+      - bootstrap-includes
+      - --path
+      - "{{ nginx_conf_source_path }}"
+      - --upstream-include-glob
+      - "{{ nginx_generated_include_dir }}/upstreams/*.conf"
+      - --route-include-glob
+      - "{{ nginx_generated_include_dir }}/routes/*.conf"
+
+- name: Ensure admin upstream fragment exists
+  ansible.builtin.command:
+    argv:
+      - python3
+      - "{{ deployment_dir }}/update-nginx-config.py"
+      - upsert-upstream
+      - --path
+      - "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+      - --upstream-name
+      - "{{ module_cfg.nginx_route.upstream_name }}"
+      - --container-name
+      - "{{ module_cfg.container_name }}"
+      - --backend-port
+      - "{{ module_cfg.app_port | string }}"
+
+- name: Ensure admin route fragment exists
+  ansible.builtin.command:
+    argv:
+      - python3
+      - "{{ deployment_dir }}/update-nginx-config.py"
+      - ensure-route
+      - --path
+      - "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+      - --upstream-name
+      - "{{ module_cfg.nginx_route.upstream_name }}"
+      - --external-path
+      - "{{ module_cfg.nginx_route.external_path }}"
+      - --upstream-path
+      - "{{ module_cfg.nginx_route.upstream_path }}"
+
+- name: Sync generated nginx upstream fragment to target
+  ansible.builtin.copy:
+    src: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+    dest: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
+    remote_src: true
+    mode: "0644"
+
+- name: Sync generated nginx route fragment to target
+  ansible.builtin.copy:
+    src: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+    dest: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+    remote_src: true
+    mode: "0644"
+
+- name: Sync bootstrapped nginx source config to target
+  ansible.builtin.copy:
+    src: "{{ nginx_conf_source_path }}"
+    dest: "{{ nginx_conf_target_path }}"
+    remote_src: true
+    mode: "0644"
+
+- name: Validate nginx config after admin route update
+  ansible.builtin.command: docker exec "{{ nginx_container_name }}" nginx -t
+
+- name: Reload nginx after admin route update
+  ansible.builtin.command: docker exec "{{ nginx_container_name }}" nginx -s reload

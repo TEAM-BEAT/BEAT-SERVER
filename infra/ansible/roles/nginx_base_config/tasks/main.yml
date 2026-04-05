@@ -1,0 +1,217 @@
+---
+- name: Build nginx candidate from template
+  ansible.builtin.set_fact:
+    nginx_candidate_content: >-
+      {{
+        lookup('ansible.builtin.template', playbook_dir ~ '/../templates/default.conf.j2')
+      }}
+
+- name: Ensure nginx candidate directory exists
+  ansible.builtin.file:
+    path: "{{ deployment_dir }}/nginx"
+    state: directory
+    mode: "0755"
+
+- name: Render candidate nginx default.conf
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/../templates/default.conf.j2"
+    dest: "{{ deployment_dir }}/nginx/default.conf"
+    mode: "0644"
+  when: not ansible_check_mode
+
+- name: Preview candidate nginx default.conf in check mode
+  ansible.builtin.debug:
+    msg: "Would render nginx candidate to {{ deployment_dir }}/nginx/default.conf"
+  when: ansible_check_mode
+
+- name: Ensure generated nginx directories exist (source)
+  ansible.builtin.file:
+    path: "{{ nginx_generated_source_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - upstreams
+    - routes
+
+- name: Ensure generated nginx base directory exists (target)
+  ansible.builtin.file:
+    path: "{{ nginx_generated_target_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Ensure generated nginx directories exist (target)
+  ansible.builtin.file:
+    path: "{{ nginx_generated_target_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - upstreams
+    - routes
+
+- name: Install shared nginx update helper for foundation
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../files/update-nginx-config.py"
+    dest: "{{ deployment_dir }}/update-nginx-config.py"
+    mode: "0755"
+  when: not ansible_check_mode
+
+- name: Check if upstream fragment already exists (deployed server)
+  ansible.builtin.stat:
+    path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+  register: upstream_fragment_stat
+
+- name: Check if route fragment already exists (deployed server)
+  ansible.builtin.stat:
+    path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+  register: route_fragment_stat
+
+- name: Seed upstream fragments (fresh server only)
+  when: not ansible_check_mode and not upstream_fragment_stat.stat.exists
+  block:
+    - name: Seed backend upstream marker in source fragment
+      ansible.builtin.command:
+        argv:
+          - python3
+          - "{{ deployment_dir }}/update-nginx-config.py"
+          - upsert-upstream
+          - --path
+          - "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+          - --upstream-name
+          - "{{ backend_upstream_name | default('backend') }}"
+          - --container-name
+          - "127.0.0.1"
+          - --backend-port
+          - "65535"
+
+    - name: Seed admin upstream marker in source fragment
+      ansible.builtin.command:
+        argv:
+          - python3
+          - "{{ deployment_dir }}/update-nginx-config.py"
+          - upsert-upstream
+          - --path
+          - "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+          - --upstream-name
+          - "{{ admin_upstream_name | default('admin_backend') }}"
+          - --container-name
+          - "127.0.0.1"
+          - --backend-port
+          - "65535"
+
+    - name: Seed actuator upstream marker in source fragment
+      ansible.builtin.command:
+        argv:
+          - python3
+          - "{{ deployment_dir }}/update-nginx-config.py"
+          - upsert-upstream
+          - --path
+          - "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+          - --upstream-name
+          - "{{ actuator_upstream_name | default('actuator') }}"
+          - --container-name
+          - "127.0.0.1"
+          - --backend-port
+          - "65535"
+
+- name: Seed route fragment (fresh server only)
+  when: not ansible_check_mode and not route_fragment_stat.stat.exists
+  block:
+    - name: Seed admin route marker in source fragment
+      ansible.builtin.command:
+        argv:
+          - python3
+          - "{{ deployment_dir }}/update-nginx-config.py"
+          - ensure-route
+          - --path
+          - "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+          - --upstream-name
+          - "{{ admin_upstream_name | default('admin_backend') }}"
+          - --external-path
+          - "{{ modules.admin.nginx_route.external_path | default('/admin') }}"
+          - --upstream-path
+          - "{{ modules.admin.nginx_route.upstream_path | default('/api/admin') }}"
+
+- name: Sync upstream fragment to target
+  ansible.builtin.copy:
+    src: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+    dest: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
+    remote_src: true
+    mode: "0644"
+  when: not ansible_check_mode and upstream_fragment_stat.stat.exists
+
+- name: Sync route fragment to target
+  ansible.builtin.copy:
+    src: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+    dest: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+    remote_src: true
+    mode: "0644"
+  when: not ansible_check_mode and route_fragment_stat.stat.exists
+
+- name: Ensure live nginx config exists before promotion
+  ansible.builtin.stat:
+    path: "{{ nginx_conf_target_path }}"
+  register: nginx_conf_target_stat
+
+- name: Abort when live nginx config path is missing
+  ansible.builtin.fail:
+    msg: "Live nginx config does not exist at {{ nginx_conf_target_path }}"
+  when: not nginx_conf_target_stat.stat.exists
+
+- name: Report nginx promotion plan in check mode
+  ansible.builtin.debug:
+    msg:
+      - "Would backup {{ nginx_conf_target_path }} to {{ nginx_conf_target_path }}.bak"
+      - "Would promote {{ deployment_dir }}/nginx/default.conf to {{ nginx_conf_target_path }}"
+      - "Would validate with docker exec {{ nginx_container_name }} nginx -t"
+      - "Would reload nginx on validation success"
+  when: ansible_check_mode
+
+- name: Promote and validate nginx config safely
+  block:
+    - name: Backup current live nginx config
+      ansible.builtin.copy:
+        src: "{{ nginx_conf_target_path }}"
+        dest: "{{ nginx_conf_target_path }}.bak"
+        remote_src: true
+        mode: "0644"
+
+    - name: Promote candidate nginx config to live target
+      ansible.builtin.copy:
+        src: "{{ deployment_dir }}/nginx/default.conf"
+        dest: "{{ nginx_conf_target_path }}"
+        remote_src: true
+        mode: "0644"
+
+    - name: Validate nginx config
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ nginx_container_name }}"
+          - nginx
+          - -t
+      register: nginx_test_result
+      changed_when: false
+
+    - name: Reload nginx after successful validation
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ nginx_container_name }}"
+          - nginx
+          - -s
+          - reload
+      when: nginx_test_result.rc == 0
+  rescue:
+    - name: Restore previous live nginx config from backup
+      ansible.builtin.copy:
+        src: "{{ nginx_conf_target_path }}.bak"
+        dest: "{{ nginx_conf_target_path }}"
+        remote_src: true
+        mode: "0644"
+
+    - name: Fail after nginx config restore
+      ansible.builtin.fail:
+        msg: "nginx config promotion failed and previous config was restored"
+  when: not ansible_check_mode

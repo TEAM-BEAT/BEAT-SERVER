@@ -1,0 +1,40 @@
+---
+- name: "Rollback {{ module }}"
+  hosts: "{{ module }}_servers"
+  become: true
+  gather_facts: false
+
+  vars:
+    module_cfg: "{{ modules[module] }}"
+    release_dir: "{{ release_root }}/{{ module }}"
+    network_health_max_attempts: 30
+    network_health_sleep_seconds: 2
+    service_smoke_max_attempts: 15
+    service_smoke_sleep_seconds: 2
+
+  pre_tasks:
+    - name: Validate module parameter
+      ansible.builtin.assert:
+        that:
+          - module is defined
+          - modules is defined
+          - module in modules
+          - actuator_port is defined
+          - actuator_path is defined
+        fail_msg: "Required extra vars: module"
+      tags:
+        - always
+        - validate
+
+  roles:
+    - role: app_rollback
+      tags:
+        - rollback
+        - release
+    - role: app_stopstart
+      when: module_cfg.nginx_route is defined
+      tasks_from: admin_nginx_route.yml
+      tags:
+        - rollback
+        - nginx
+        - routing

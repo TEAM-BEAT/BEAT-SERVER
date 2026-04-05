@@ -1,0 +1,37 @@
+---
+- name: Check whether current metadata already exists
+  ansible.builtin.stat:
+    path: "{{ release_dir }}/current.json"
+  register: current_release_stat
+
+- name: Preserve previous successful release metadata
+  ansible.builtin.copy:
+    src: "{{ release_dir }}/current.json"
+    dest: "{{ release_dir }}/previous.json"
+    remote_src: true
+    mode: "0644"
+  when: current_release_stat.stat.exists
+
+- name: Promote pending metadata to current
+  ansible.builtin.copy:
+    src: "{{ pending_metadata_path }}"
+    dest: "{{ release_dir }}/current.json"
+    remote_src: true
+    mode: "0644"
+
+- name: Remove pending metadata after promotion
+  ansible.builtin.file:
+    path: "{{ pending_metadata_path }}"
+    state: absent
+
+- name: Remove dangling Docker images
+  ansible.builtin.shell: |
+    docker image prune -f --filter "until=72h"
+  register: docker_prune_result
+  changed_when: docker_prune_result.rc == 0
+  failed_when: false
+
+- name: Report docker prune cleanup issue
+  ansible.builtin.debug:
+    msg: "docker image prune failed during cleanup: {{ docker_prune_result.stderr | default('unknown error') }}"
+  when: docker_prune_result.rc != 0
