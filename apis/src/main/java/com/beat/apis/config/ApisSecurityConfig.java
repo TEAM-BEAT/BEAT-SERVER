@@ -1,6 +1,5 @@
 package com.beat.apis.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +12,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import lombok.RequiredArgsConstructor;
 
 @Configuration(proxyBeanMethods = false)
 @RequiredArgsConstructor
@@ -59,8 +60,6 @@ public class ApisSecurityConfig {
 			"/api/schedules/**",
 			"/api/notifications/**",
 			"/api/performances/detail/**",
-			"/health-check",
-			"/actuator/health",
 			"/v3/api-docs/**",
 			"/swagger-ui/**",
 			"/swagger-resources/**",
@@ -69,8 +68,7 @@ public class ApisSecurityConfig {
 			"/api/bookings/refund",
 			"/api/bookings/cancel",
 			actuatorEndPoint + "/health",
-			actuatorEndPoint + "/prometheus",
-			"/"
+			actuatorEndPoint + "/prometheus"
 		};
 	}
 }

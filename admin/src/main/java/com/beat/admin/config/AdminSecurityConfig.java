@@ -60,12 +60,9 @@ public class AdminSecurityConfig {
 
 	private String[] getAuthWhitelist() {
 		List<String> whitelist = new ArrayList<>(List.of(
-			"/health-check",
-			"/actuator/health",
 			"/error",
 			actuatorEndPoint + "/health",
-			actuatorEndPoint + "/prometheus",
-			"/"
+			actuatorEndPoint + "/prometheus"
 		));
 		if (!environment.acceptsProfiles(Profiles.of("prod"))) {
 			Collections.addAll(whitelist, SWAGGER_WHITELIST);

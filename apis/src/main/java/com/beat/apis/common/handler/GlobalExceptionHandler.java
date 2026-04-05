@@ -1,14 +1,7 @@
 package com.beat.apis.common.handler;
 
-import com.beat.global.common.dto.ErrorResponse;
-import com.beat.global.common.exception.BadRequestException;
-import com.beat.global.common.exception.BeatException;
-import com.beat.global.common.exception.ConflictException;
-import com.beat.global.common.exception.ForbiddenException;
-import com.beat.global.common.exception.NotFoundException;
-import com.beat.global.common.exception.UnauthorizedException;
 import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -18,6 +11,17 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import com.beat.global.common.dto.ErrorResponse;
+import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.common.exception.BeatException;
+import com.beat.global.common.exception.ConflictException;
+import com.beat.global.common.exception.ForbiddenException;
+import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.common.exception.UnauthorizedException;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestControllerAdvice
@@ -30,7 +34,8 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
-	protected ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException exception) {
+	protected ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(
+		MethodArgumentNotValidException exception) {
 		String errorMessage = Optional.ofNullable(exception.getBindingResult().getFieldError())
 			.map(FieldError::getDefaultMessage)
 			.orElse("Validation error");
@@ -51,7 +56,8 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(
 		MethodArgumentTypeMismatchException exception
 	) {
-		String requiredType = exception.getRequiredType() != null ? exception.getRequiredType().getSimpleName() : "Unknown Type";
+		String requiredType =
+			exception.getRequiredType() != null ? exception.getRequiredType().getSimpleName() : "Unknown Type";
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
 			ErrorResponse.of(HttpStatus.BAD_REQUEST.value(),
 				"Invalid value for parameter: " + exception.getName() + " (Expected: " + requiredType + ")")
@@ -83,6 +89,11 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(ConflictException.class)
 	protected ResponseEntity<ErrorResponse> handleConflictException(final ConflictException exception) {
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse.from(exception.getBaseErrorCode()));
+	}
+
+	@ExceptionHandler(NoResourceFoundException.class)
+	protected ResponseEntity<Void> handleNoResourceFoundException(final NoResourceFoundException exception) {
+		return ResponseEntity.notFound().build();
 	}
 
 	@ExceptionHandler(Exception.class)
