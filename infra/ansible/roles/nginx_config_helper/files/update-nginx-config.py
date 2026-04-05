@@ -10,14 +10,22 @@ UPSTREAM_INCLUDE_MARKER = "BEAT MANAGED GENERATED UPSTREAM INCLUDES"
 ROUTE_INCLUDE_MARKER = "BEAT MANAGED GENERATED ROUTE INCLUDES"
 
 
+def normalize_text(text: str) -> str:
+    return re.sub(r"\n{3,}", "\n\n", text.strip() + "\n")
+
+
 def read_text_or_empty(path: Path) -> str:
     return path.read_text() if path.exists() else ""
 
 
-def write_normalized(path: Path, text: str) -> None:
+def write_normalized(path: Path, text: str) -> bool:
+    normalized = normalize_text(text)
+    current = read_text_or_empty(path)
+    if path.exists() and normalize_text(current) == normalized:
+        return False
     path.parent.mkdir(parents=True, exist_ok=True)
-    normalized = re.sub(r"\n{3,}", "\n\n", text.strip() + "\n")
     path.write_text(normalized)
+    return True
 
 
 def upsert_managed_block(body: str, marker: str, block_body: str) -> str:
@@ -33,7 +41,7 @@ def upsert_managed_block(body: str, marker: str, block_body: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", body).strip() + "\n"
 
 
-def bootstrap_includes(path: Path, upstream_include_glob: str, route_include_glob: str) -> None:
+def bootstrap_includes(path: Path, upstream_include_glob: str, route_include_glob: str) -> bool:
     text = path.read_text()
 
     upstream_block = (
@@ -63,10 +71,10 @@ def bootstrap_includes(path: Path, upstream_include_glob: str, route_include_glo
             raise SystemExit("Could not locate server block to insert generated route include")
         text = server_open_pattern.sub(rf"\1{route_block}\n", text, count=1)
 
-    write_normalized(path, text)
+    return write_normalized(path, text)
 
 
-def upsert_upstream(path: Path, upstream_name: str, container_name: str, backend_port: str) -> None:
+def upsert_upstream(path: Path, upstream_name: str, container_name: str, backend_port: str) -> bool:
     marker = f"BEAT MANAGED UPSTREAM {upstream_name}"
     block_body = (
         f"upstream {upstream_name} {{\n"
@@ -74,10 +82,10 @@ def upsert_upstream(path: Path, upstream_name: str, container_name: str, backend
         f"}}"
     )
     text = upsert_managed_block(read_text_or_empty(path), marker, block_body)
-    write_normalized(path, text)
+    return write_normalized(path, text)
 
 
-def ensure_route(path: Path, upstream_name: str, external_path: str, upstream_path: str) -> None:
+def ensure_route(path: Path, upstream_name: str, external_path: str, upstream_path: str) -> bool:
     normalized_external_path = external_path.rstrip("/")
     normalized_upstream_path = upstream_path if upstream_path.startswith("/") else f"/{upstream_path}"
     if not normalized_upstream_path.endswith("/"):
@@ -96,7 +104,7 @@ def ensure_route(path: Path, upstream_name: str, external_path: str, upstream_pa
         f"}}"
     )
     text = upsert_managed_block(read_text_or_empty(path), marker, block_body)
-    write_normalized(path, text)
+    return write_normalized(path, text)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -127,12 +135,26 @@ def main() -> None:
     args = build_parser().parse_args()
     path = Path(args.path)
     if args.command == "bootstrap-includes":
-      bootstrap_includes(path, args.upstream_include_glob, args.route_include_glob)
-      return
-    if args.command == "upsert-upstream":
-      upsert_upstream(path, args.upstream_name, args.container_name, args.backend_port)
-      return
-    ensure_route(path, args.upstream_name, args.external_path, args.upstream_path)
+        changed = bootstrap_includes(
+            path,
+            args.upstream_include_glob,
+            args.route_include_glob,
+        )
+    elif args.command == "upsert-upstream":
+        changed = upsert_upstream(
+            path,
+            args.upstream_name,
+            args.container_name,
+            args.backend_port,
+        )
+    else:
+        changed = ensure_route(
+            path,
+            args.upstream_name,
+            args.external_path,
+            args.upstream_path,
+        )
+    print(f"changed={'true' if changed else 'false'}")
 
 
 if __name__ == "__main__":

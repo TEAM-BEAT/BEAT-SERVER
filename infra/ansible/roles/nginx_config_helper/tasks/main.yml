@@ -1,0 +1,6 @@
+---
+- name: Install shared nginx update helper
+  ansible.builtin.copy:
+    src: update-nginx-config.py
+    dest: "{{ deployment_dir }}/update-nginx-config.py"
+    mode: "0755"

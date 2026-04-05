@@ -2,7 +2,7 @@
 - name: Ensure stop-start container is recreated with the target image
   community.docker.docker_container:
     name: "{{ module_cfg.container_name }}"
-    image: "{{ stopstart_image }}"
+    image: "{{ app_stopstart_image | default(image) }}"
     state: started
     recreate: true
     restart_policy: unless-stopped

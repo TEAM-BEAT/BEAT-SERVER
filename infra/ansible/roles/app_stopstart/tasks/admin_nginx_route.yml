@@ -1,4 +1,8 @@
 ---
+- name: Ensure nginx config helper is installed
+  ansible.builtin.import_role:
+    name: nginx_config_helper
+
 - name: Ensure admin nginx upstream and route exist
   ansible.builtin.command:
     argv:
@@ -11,7 +15,8 @@
       - "{{ nginx_generated_include_dir }}/upstreams/*.conf"
       - --route-include-glob
       - "{{ nginx_generated_include_dir }}/routes/*.conf"
-  changed_when: true
+  register: app_stopstart_bootstrap_includes_result
+  changed_when: "'changed=true' in app_stopstart_bootstrap_includes_result.stdout"
 
 - name: Ensure admin upstream fragment exists
   ansible.builtin.command:
@@ -27,7 +32,8 @@
       - "{{ module_cfg.container_name }}"
       - --backend-port
       - "{{ module_cfg.app_port | string }}"
-  changed_when: true
+  register: app_stopstart_admin_upstream_result
+  changed_when: "'changed=true' in app_stopstart_admin_upstream_result.stdout"
 
 - name: Ensure admin route fragment exists
   ansible.builtin.command:
@@ -43,7 +49,8 @@
       - "{{ module_cfg.nginx_route.external_path }}"
       - --upstream-path
       - "{{ module_cfg.nginx_route.upstream_path }}"
-  changed_when: true
+  register: app_stopstart_admin_route_result
+  changed_when: "'changed=true' in app_stopstart_admin_route_result.stdout"
 
 - name: Sync generated nginx upstream fragment to target
   ansible.builtin.copy:
@@ -51,6 +58,7 @@
     dest: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
     remote_src: true
     mode: "0644"
+  register: app_stopstart_upstream_sync_result
 
 - name: Sync generated nginx route fragment to target
   ansible.builtin.copy:
@@ -58,6 +66,7 @@
     dest: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
     remote_src: true
     mode: "0644"
+  register: app_stopstart_route_sync_result
 
 - name: Sync bootstrapped nginx source config to target
   ansible.builtin.copy:
@@ -65,11 +74,35 @@
     dest: "{{ nginx_conf_target_path }}"
     remote_src: true
     mode: "0644"
+  register: app_stopstart_nginx_target_sync_result
 
 - name: Validate nginx config after admin route update
-  ansible.builtin.command: docker exec "{{ nginx_container_name }}" nginx -t
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ nginx_container_name }}"
+      - nginx
+      - -t
+  register: app_stopstart_nginx_test_result
   changed_when: false
 
 - name: Reload nginx after admin route update
-  ansible.builtin.command: docker exec "{{ nginx_container_name }}" nginx -s reload
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ nginx_container_name }}"
+      - nginx
+      - -s
+      - reload
+  when:
+    - app_stopstart_nginx_test_result.rc == 0
+    - >-
+      app_stopstart_bootstrap_includes_result.changed
+      or app_stopstart_admin_upstream_result.changed
+      or app_stopstart_admin_route_result.changed
+      or app_stopstart_upstream_sync_result.changed
+      or app_stopstart_route_sync_result.changed
+      or app_stopstart_nginx_target_sync_result.changed
   changed_when: true

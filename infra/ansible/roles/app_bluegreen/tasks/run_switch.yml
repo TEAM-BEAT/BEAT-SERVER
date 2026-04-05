@@ -1,11 +1,15 @@
 ---
+- name: Ensure nginx config helper is installed
+  ansible.builtin.import_role:
+    name: nginx_config_helper
+
 - name: Resolve blue-green rollout paths
   ansible.builtin.set_fact:
-    bluegreen_active_slot_file: "{{ release_dir }}/current-slot"
-    bluegreen_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
-    bluegreen_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
-    bluegreen_conf_backup_path: "{{ nginx_conf_source_path }}.bak"
-    bluegreen_upstream_backup_path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf.bak"
+    app_bluegreen_active_slot_file: "{{ release_dir }}/current-slot"
+    app_bluegreen_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+    app_bluegreen_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
+    app_bluegreen_conf_backup_path: "{{ nginx_conf_source_path }}.bak"
+    app_bluegreen_upstream_backup_path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf.bak"
 
 - name: Ensure release directory exists for blue-green rollout
   ansible.builtin.file:
@@ -15,59 +19,81 @@
 
 - name: Check current active slot file
   ansible.builtin.stat:
-    path: "{{ bluegreen_active_slot_file }}"
-  register: bluegreen_active_slot_stat
+    path: "{{ app_bluegreen_active_slot_file }}"
+  register: app_bluegreen_active_slot_stat
 
 - name: Read current active slot
   ansible.builtin.slurp:
-    src: "{{ bluegreen_active_slot_file }}"
-  register: bluegreen_active_slot_raw
-  when: bluegreen_active_slot_stat.stat.exists
+    src: "{{ app_bluegreen_active_slot_file }}"
+  register: app_bluegreen_active_slot_raw
+  when: app_bluegreen_active_slot_stat.stat.exists
+
+- name: Decode current active slot
+  ansible.builtin.set_fact:
+    app_bluegreen_current_slot: >-
+      {{
+        (
+          app_bluegreen_active_slot_raw.content | b64decode | trim
+        ) if app_bluegreen_active_slot_stat.stat.exists else ''
+      }}
+
+- name: Determine whether blue is currently active
+  ansible.builtin.set_fact:
+    app_bluegreen_is_blue_active: "{{ app_bluegreen_current_slot == 'blue' }}"
 
 - name: Compute blue-green target lane
   ansible.builtin.set_fact:
-    bluegreen_active_slot: "{{ (bluegreen_active_slot_raw.content | b64decode | trim) if bluegreen_active_slot_stat.stat.exists else '' }}"
-    bluegreen_target_slot: "{{ 'green' if bluegreen_active_slot_stat.stat.exists and (bluegreen_active_slot_raw.content | b64decode | trim) == 'blue' else 'blue' }}"
-    bluegreen_target_container: "{{ module_cfg.green_container_name if bluegreen_active_slot_stat.stat.exists and (bluegreen_active_slot_raw.content | b64decode | trim) == 'blue' else module_cfg.blue_container_name }}"
-    bluegreen_old_container: "{{ module_cfg.blue_container_name if bluegreen_active_slot_stat.stat.exists and (bluegreen_active_slot_raw.content | b64decode | trim) == 'blue' else module_cfg.green_container_name }}"
+    app_bluegreen_target_slot: "{{ 'green' if app_bluegreen_is_blue_active else 'blue' }}"
+    app_bluegreen_target_container: >-
+      {{
+        module_cfg.green_container_name
+        if app_bluegreen_is_blue_active
+        else module_cfg.blue_container_name
+      }}
+    app_bluegreen_old_container: >-
+      {{
+        module_cfg.blue_container_name
+        if app_bluegreen_is_blue_active
+        else module_cfg.green_container_name
+      }}
 
 - name: Check existing nginx config backup source
   ansible.builtin.stat:
     path: "{{ nginx_conf_source_path }}"
-  register: bluegreen_conf_source_stat
+  register: app_bluegreen_conf_source_stat
 
 - name: Backup current nginx source config
   ansible.builtin.copy:
     src: "{{ nginx_conf_source_path }}"
-    dest: "{{ bluegreen_conf_backup_path }}"
+    dest: "{{ app_bluegreen_conf_backup_path }}"
     remote_src: true
     mode: "0644"
-  when: bluegreen_conf_source_stat.stat.exists
+  when: app_bluegreen_conf_source_stat.stat.exists
 
 - name: Clear stale nginx source config backup when source missing
   ansible.builtin.file:
-    path: "{{ bluegreen_conf_backup_path }}"
+    path: "{{ app_bluegreen_conf_backup_path }}"
     state: absent
-  when: not bluegreen_conf_source_stat.stat.exists
+  when: not app_bluegreen_conf_source_stat.stat.exists
 
 - name: Check existing managed upstream fragment
   ansible.builtin.stat:
-    path: "{{ bluegreen_upstream_source_path }}"
-  register: bluegreen_upstream_source_stat
+    path: "{{ app_bluegreen_upstream_source_path }}"
+  register: app_bluegreen_upstream_source_stat
 
 - name: Backup current managed upstream fragment
   ansible.builtin.copy:
-    src: "{{ bluegreen_upstream_source_path }}"
-    dest: "{{ bluegreen_upstream_backup_path }}"
+    src: "{{ app_bluegreen_upstream_source_path }}"
+    dest: "{{ app_bluegreen_upstream_backup_path }}"
     remote_src: true
     mode: "0644"
-  when: bluegreen_upstream_source_stat.stat.exists
+  when: app_bluegreen_upstream_source_stat.stat.exists
 
 - name: Clear stale managed upstream backup when source missing
   ansible.builtin.file:
-    path: "{{ bluegreen_upstream_backup_path }}"
+    path: "{{ app_bluegreen_upstream_backup_path }}"
     state: absent
-  when: not bluegreen_upstream_source_stat.stat.exists
+  when: not app_bluegreen_upstream_source_stat.stat.exists
 
 - name: Run blue-green rollout
   block:
@@ -83,7 +109,8 @@
           - "{{ nginx_generated_include_dir }}/upstreams/*.conf"
           - --route-include-glob
           - "{{ nginx_generated_include_dir }}/routes/*.conf"
-      changed_when: true
+      register: app_bluegreen_bootstrap_includes_result
+      changed_when: "'changed=true' in app_bluegreen_bootstrap_includes_result.stdout"
 
     - name: Sync bootstrapped nginx config to live target
       ansible.builtin.copy:
@@ -91,16 +118,17 @@
         dest: "{{ nginx_conf_target_path }}"
         remote_src: true
         mode: "0644"
+      register: app_bluegreen_nginx_target_sync_result
 
     - name: Remove target blue-green container before recreate
       community.docker.docker_container:
-        name: "{{ bluegreen_target_container }}"
+        name: "{{ app_bluegreen_target_container }}"
         state: absent
 
     - name: Start target blue-green container via Docker module
       community.docker.docker_container:
-        name: "{{ bluegreen_target_container }}"
-        image: "{{ bluegreen_image }}"
+        name: "{{ app_bluegreen_target_container }}"
+        image: "{{ app_bluegreen_image }}"
         state: started
         recreate: true
         restart_policy: unless-stopped
@@ -126,7 +154,7 @@
         delay="{{ network_health_sleep_seconds }}"
         for attempt in $(seq 1 "$attempts"); do
           if docker run --rm --network "{{ docker_network }}" {{ curl_image | quote }} \
-              -fsS "http://{{ bluegreen_target_container }}:{{ actuator_port }}{{ actuator_path }}/health" >/dev/null 2>&1; then
+              -fsS "http://{{ app_bluegreen_target_container }}:{{ actuator_port }}{{ actuator_path }}/health" >/dev/null 2>&1; then
             exit 0
           fi
           sleep "$delay"
@@ -143,14 +171,15 @@
           - "{{ deployment_dir }}/update-nginx-config.py"
           - upsert-upstream
           - --path
-          - "{{ bluegreen_upstream_source_path }}"
+          - "{{ app_bluegreen_upstream_source_path }}"
           - --upstream-name
           - "{{ module_cfg.backend_upstream_name }}"
           - --container-name
-          - "{{ bluegreen_target_container }}"
+          - "{{ app_bluegreen_target_container }}"
           - --backend-port
           - "{{ module_cfg.app_port | string }}"
-      changed_when: true
+      register: app_bluegreen_backend_upstream_result
+      changed_when: "'changed=true' in app_bluegreen_backend_upstream_result.stdout"
 
     - name: Update managed actuator upstream to target container
       ansible.builtin.command:
@@ -159,21 +188,23 @@
           - "{{ deployment_dir }}/update-nginx-config.py"
           - upsert-upstream
           - --path
-          - "{{ bluegreen_upstream_source_path }}"
+          - "{{ app_bluegreen_upstream_source_path }}"
           - --upstream-name
           - "{{ actuator_upstream_name }}"
           - --container-name
-          - "{{ bluegreen_target_container }}"
+          - "{{ app_bluegreen_target_container }}"
           - --backend-port
           - "{{ actuator_port }}"
-      changed_when: true
+      register: app_bluegreen_actuator_upstream_result
+      changed_when: "'changed=true' in app_bluegreen_actuator_upstream_result.stdout"
 
     - name: Sync managed backend upstream fragment to target
       ansible.builtin.copy:
-        src: "{{ bluegreen_upstream_source_path }}"
-        dest: "{{ bluegreen_upstream_target_path }}"
+        src: "{{ app_bluegreen_upstream_source_path }}"
+        dest: "{{ app_bluegreen_upstream_target_path }}"
         remote_src: true
         mode: "0644"
+      register: app_bluegreen_upstream_target_sync_result
 
     - name: Validate nginx config after upstream switch
       ansible.builtin.command:
@@ -183,7 +214,19 @@
           - "{{ nginx_container_name }}"
           - nginx
           - -t
+      register: app_bluegreen_nginx_test_result
       changed_when: false
+
+    - name: Determine whether nginx reload is required
+      ansible.builtin.set_fact:
+        app_bluegreen_requires_reload: >-
+          {{
+            app_bluegreen_bootstrap_includes_result.changed
+            or app_bluegreen_nginx_target_sync_result.changed
+            or app_bluegreen_backend_upstream_result.changed
+            or app_bluegreen_actuator_upstream_result.changed
+            or app_bluegreen_upstream_target_sync_result.changed
+          }}
 
     - name: Reload nginx after upstream switch
       ansible.builtin.command:
@@ -194,6 +237,9 @@
           - nginx
           - -s
           - reload
+      when:
+        - app_bluegreen_nginx_test_result.rc == 0
+        - app_bluegreen_requires_reload
       changed_when: true
 
     - name: Recheck target blue-green container internal health after switch
@@ -203,7 +249,7 @@
         delay="{{ network_health_sleep_seconds }}"
         for attempt in $(seq 1 "$attempts"); do
           if docker run --rm --network "{{ docker_network }}" {{ curl_image | quote }} \
-              -fsS "http://{{ bluegreen_target_container }}:{{ actuator_port }}{{ actuator_path }}/health" >/dev/null 2>&1; then
+              -fsS "http://{{ app_bluegreen_target_container }}:{{ actuator_port }}{{ actuator_path }}/health" >/dev/null 2>&1; then
             exit 0
           fi
           sleep "$delay"
@@ -232,57 +278,57 @@
 
     - name: Remove old blue-green container after successful switch
       community.docker.docker_container:
-        name: "{{ bluegreen_old_container }}"
+        name: "{{ app_bluegreen_old_container }}"
         state: absent
-      when: bluegreen_active_slot | length > 0
+      when: app_bluegreen_current_slot | length > 0
 
     - name: Persist new active slot
       ansible.builtin.copy:
-        dest: "{{ bluegreen_active_slot_file }}"
-        content: "{{ bluegreen_target_slot }}"
+        dest: "{{ app_bluegreen_active_slot_file }}"
+        content: "{{ app_bluegreen_target_slot }}"
         mode: "0644"
 
   rescue:
     - name: Restore previous nginx source config from backup
       ansible.builtin.copy:
-        src: "{{ bluegreen_conf_backup_path }}"
+        src: "{{ app_bluegreen_conf_backup_path }}"
         dest: "{{ nginx_conf_source_path }}"
         remote_src: true
         mode: "0644"
-      when: bluegreen_conf_source_stat.stat.exists
+      when: app_bluegreen_conf_source_stat.stat.exists
 
     - name: Restore previous nginx target config from backup
       ansible.builtin.copy:
-        src: "{{ bluegreen_conf_backup_path }}"
+        src: "{{ app_bluegreen_conf_backup_path }}"
         dest: "{{ nginx_conf_target_path }}"
         remote_src: true
         mode: "0644"
-      when: bluegreen_conf_source_stat.stat.exists
+      when: app_bluegreen_conf_source_stat.stat.exists
 
     - name: Restore previous managed upstream fragment from backup
       ansible.builtin.copy:
-        src: "{{ bluegreen_upstream_backup_path }}"
-        dest: "{{ bluegreen_upstream_source_path }}"
+        src: "{{ app_bluegreen_upstream_backup_path }}"
+        dest: "{{ app_bluegreen_upstream_source_path }}"
         remote_src: true
         mode: "0644"
-      when: bluegreen_upstream_source_stat.stat.exists
+      when: app_bluegreen_upstream_source_stat.stat.exists
 
     - name: Restore previous managed upstream target from backup
       ansible.builtin.copy:
-        src: "{{ bluegreen_upstream_backup_path }}"
-        dest: "{{ bluegreen_upstream_target_path }}"
+        src: "{{ app_bluegreen_upstream_backup_path }}"
+        dest: "{{ app_bluegreen_upstream_target_path }}"
         remote_src: true
         mode: "0644"
-      when: bluegreen_upstream_source_stat.stat.exists
+      when: app_bluegreen_upstream_source_stat.stat.exists
 
     - name: Remove managed upstream fragment if no backup existed
       ansible.builtin.file:
         path: "{{ item }}"
         state: absent
       loop:
-        - "{{ bluegreen_upstream_source_path }}"
-        - "{{ bluegreen_upstream_target_path }}"
-      when: not bluegreen_upstream_source_stat.stat.exists
+        - "{{ app_bluegreen_upstream_source_path }}"
+        - "{{ app_bluegreen_upstream_target_path }}"
+      when: not app_bluegreen_upstream_source_stat.stat.exists
 
     - name: Validate restored nginx config
       ansible.builtin.command:
@@ -305,11 +351,11 @@
           - -s
           - reload
       failed_when: false
-      changed_when: true
+      changed_when: false
 
     - name: Remove failed blue-green target container
       community.docker.docker_container:
-        name: "{{ bluegreen_target_container }}"
+        name: "{{ app_bluegreen_target_container }}"
         state: absent
       failed_when: false
 

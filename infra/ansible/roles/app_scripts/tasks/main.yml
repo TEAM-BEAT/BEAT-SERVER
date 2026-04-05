@@ -24,7 +24,5 @@
     - routes
 
 - name: Install shared nginx update helper
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../files/update-nginx-config.py"
-    dest: "{{ deployment_dir }}/update-nginx-config.py"
-    mode: "0755"
+  ansible.builtin.import_role:
+    name: nginx_config_helper
