@@ -31,9 +31,13 @@
       tags:
         - rollback
         - release
-    - role: app_stopstart
+
+  tasks:
+    - name: Configure nginx routing after rollback
+      ansible.builtin.import_role:
+        name: app_stopstart
+        tasks_from: admin_nginx_route.yml
       when: module_cfg.nginx_route is defined
-      tasks_from: admin_nginx_route.yml
       tags:
         - rollback
         - nginx
