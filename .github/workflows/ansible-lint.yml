@@ -37,5 +37,7 @@ jobs:
 
       - name: Run ansible-lint
         working-directory: infra/ansible
+        env:
+          ANSIBLE_VARS_ENABLED: host_group_vars
         run: |
           ansible-lint playbooks/*.yml roles

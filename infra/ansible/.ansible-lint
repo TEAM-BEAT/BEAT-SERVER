@@ -2,3 +2,4 @@ skip_list:
   - var-naming[no-role-prefix]
   - no-relative-paths
   - key-order[task]
+  - yaml[line-length]

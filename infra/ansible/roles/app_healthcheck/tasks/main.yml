@@ -31,3 +31,4 @@
     exit 1
   args:
     executable: /bin/bash
+  changed_when: false

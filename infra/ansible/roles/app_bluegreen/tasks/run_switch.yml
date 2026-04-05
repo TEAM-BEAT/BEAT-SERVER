@@ -134,6 +134,7 @@
         exit 1
       args:
         executable: /bin/bash
+      changed_when: false
 
     - name: Update managed backend upstream to target container
       ansible.builtin.command:
@@ -210,6 +211,7 @@
         exit 1
       args:
         executable: /bin/bash
+      changed_when: false
 
     - name: Verify public smoke URL after blue-green switch
       ansible.builtin.shell: |
@@ -226,6 +228,7 @@
       args:
         executable: /bin/bash
       when: module_cfg.public_smoke_url | default('') | length > 0
+      changed_when: false
 
     - name: Remove old blue-green container after successful switch
       community.docker.docker_container:
@@ -289,7 +292,7 @@
           - "{{ nginx_container_name }}"
           - nginx
           - -t
-      ignore_errors: true
+      failed_when: false
       changed_when: false
 
     - name: Reload restored nginx config
@@ -301,14 +304,14 @@
           - nginx
           - -s
           - reload
-      ignore_errors: true
+      failed_when: false
       changed_when: true
 
     - name: Remove failed blue-green target container
       community.docker.docker_container:
         name: "{{ bluegreen_target_container }}"
         state: absent
-      ignore_errors: true
+      failed_when: false
 
     - name: Abort blue-green rollout after rollback
       ansible.builtin.fail:
