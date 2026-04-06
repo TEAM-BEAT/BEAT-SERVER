@@ -41,7 +41,7 @@ runs:
         rm -f "sops-${SOPS_VERSION}.checksums.txt" "sops-${SOPS_VERSION}.checksums.pem" "sops-${SOPS_VERSION}.checksums.sig"
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with:
         python-version: "3.12"
 
@@ -55,7 +55,7 @@ runs:
           '34a49582a57c2f2af17ede2cefd3b3602a2d55d22089f3928570d52030cafa35' \
           "$ANSIBLE_WHEEL_DIR/ansible_core-2.17.14-py3-none-any.whl" | sha256sum -c -
         python3 -m pip install --user "$ANSIBLE_WHEEL_DIR/ansible_core-2.17.14-py3-none-any.whl"
-        python3 -m pip install --user "ansible-lint"
+        python3 -m pip install --user "ansible-lint==24.12.2"
         rm -rf "$ANSIBLE_WHEEL_DIR"
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 

@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
+import os
 import re
+import tempfile
 from pathlib import Path
 
 UPSTREAM_INCLUDE_MARKER = "BEAT MANAGED GENERATED UPSTREAM INCLUDES"
@@ -20,11 +23,24 @@ def read_text_or_empty(path: Path) -> str:
 
 def write_normalized(path: Path, text: str) -> bool:
     normalized = normalize_text(text)
-    current = read_text_or_empty(path)
-    if path.exists() and normalize_text(current) == normalized:
-        return False
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(normalized)
+    lock_path = path.parent / (path.name + ".lock")
+    with open(lock_path, "w") as lock_fh:
+        fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
+        current = read_text_or_empty(path)
+        if path.exists() and normalize_text(current) == normalized:
+            return False
+        fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp_" + path.name)
+        try:
+            with os.fdopen(fd, "w") as f:
+                f.write(normalized)
+            os.replace(tmp, path)
+        except Exception:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
     return True
 
 

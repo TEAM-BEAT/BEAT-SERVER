@@ -39,8 +39,8 @@
   ansible.builtin.template:
     src: foundation.compose.yml.j2
     dest: "{{ deployment_dir }}/docker-compose.yml"
-    mode: "0644"
-    backup: true
+    mode: "0640"
+    backup: false
 
 - name: Validate rendered foundation compose
   ansible.builtin.command:

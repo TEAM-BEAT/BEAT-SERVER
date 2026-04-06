@@ -24,6 +24,14 @@
     path: "{{ release_dir }}/current.json"
   register: app_rollback_current_release_stat
 
+- name: Assert deploy_mode is a supported rollback target
+  ansible.builtin.assert:
+    that:
+      - module_cfg.deploy_mode in ['blue_green', 'stop_start']
+    fail_msg: >-
+      Unsupported deploy_mode '{{ module_cfg.deploy_mode }}' for module '{{ module }}'.
+      Rollback aborted before any state change. Supported values: blue_green, stop_start
+
 - name: Archive the current release metadata before rollback
   ansible.builtin.copy:
     src: "{{ release_dir }}/current.json"

@@ -35,12 +35,20 @@ runs:
           exit 1
         fi
         expected_fingerprint='${{ inputs.ssh-host-fingerprint }}'
-        if ! printf '%s\n' "$scan_output" | ssh-keygen -lf - -E sha256 | awk '{print $2}' | grep -Fxq "$expected_fingerprint"; then
+        matched_line=''
+        while IFS= read -r line; do
+          fp=$(printf '%s\n' "$line" | ssh-keygen -lf - -E sha256 2>/dev/null | awk '{print $2}')
+          if [ "$fp" = "$expected_fingerprint" ]; then
+            matched_line="$line"
+            break
+          fi
+        done <<< "$scan_output"
+        if [ -z "$matched_line" ]; then
           echo "Host fingerprint verification failed for ${{ inputs.ssh-host }}:${{ inputs.ssh-port }}" >&2
           printf '%s\n' "$scan_output" | ssh-keygen -lf - -E sha256 >&2 || true
           exit 1
         fi
-        printf '%s\n' "$scan_output" > ~/.ssh/known_hosts
+        printf '%s\n' "$matched_line" > ~/.ssh/known_hosts
         ssh-keygen -H -f ~/.ssh/known_hosts >/dev/null 2>&1 || true
         rm -f ~/.ssh/known_hosts.old
         chmod 600 ~/.ssh/known_hosts

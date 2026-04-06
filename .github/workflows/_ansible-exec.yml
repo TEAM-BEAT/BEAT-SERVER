@@ -134,7 +134,7 @@ jobs:
           export SOPS_AGE_KEY
           cd infra/ansible
           cmd=(ansible-playbook "$PLAYBOOK" -i "$INVENTORY_PATH" -e "module=$MODULE")
-          if [[ -n "${EXTRA_VARS_PATH:-}" && -f "$EXTRA_VARS_PATH" ]]; then
+          if [[ -n "${EXTRA_VARS_PATH:-}" && -s "$EXTRA_VARS_PATH" ]]; then
             cmd+=(--extra-vars "@$EXTRA_VARS_PATH")
           fi
           cmd+=(--private-key ~/.ssh/deploy_key)
