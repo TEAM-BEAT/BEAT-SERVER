@@ -56,7 +56,7 @@ jobs:
             -t beat-scan:${{ matrix.module }} .
 
       - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@b6643a2 # v0.33.1
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
         with:
           scan-type: image
           image-ref: beat-scan:${{ matrix.module }}

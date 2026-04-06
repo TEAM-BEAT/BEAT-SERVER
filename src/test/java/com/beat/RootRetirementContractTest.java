@@ -134,7 +134,7 @@ class RootRetirementContractTest {
 		assertTrue(ciPr.contains("- admin"));
 		assertTrue(ciPr.contains("- batch"));
 		assertTrue(ciPr.contains("MODULE=${{ matrix.module }}"));
-		assertTrue(ciPr.contains("aquasecurity/trivy-action@b6643a2"));
+		assertTrue(ciPr.contains("aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8"));
 		assertTrue(ciPr.contains("scan-type: image"));
 		assertTrue(ciPr.contains("trivy-config: .trivy-image.yaml"));
 		assertTrue(trivyImageConfig.contains("ignore-unfixed: true"));
