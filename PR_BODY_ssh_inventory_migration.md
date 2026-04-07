@@ -33,7 +33,6 @@ Inventory 기반 SSH 해석 + release published 기반 prod 전체 배포로 전
 
 ### 변경 파일
 - `.github/actions/resolve-ansible-connection/action.yml`
-- `.github/actions/setup-deploy-tooling/action.yml`
 - `.github/actions/setup-ssh-client/action.yml`
 - `.github/scripts/resolve_ansible_connection.py`
 - `.github/workflows/_ansible-exec.yml`

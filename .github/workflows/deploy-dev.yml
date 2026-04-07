@@ -60,7 +60,6 @@ jobs:
               - '.github/actions/resolve-ansible-connection/**'
               - '.github/scripts/resolve_ansible_connection.py'
               - '.github/actions/setup-ansible-tooling/**'
-              - '.github/actions/setup-deploy-tooling/**'
               - '.github/actions/setup-ssh-client/**'
 
       - name: Build final deploy matrix

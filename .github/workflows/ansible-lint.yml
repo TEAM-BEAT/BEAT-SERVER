@@ -17,7 +17,6 @@ on:
       - ".github/workflows/rollback-prod.yml"
       - ".github/workflows/_ansible-exec.yml"
       - ".github/actions/setup-ansible-tooling/**"
-      - ".github/actions/setup-deploy-tooling/**"
 
 jobs:
   lint:

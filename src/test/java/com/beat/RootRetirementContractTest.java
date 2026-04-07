@@ -116,12 +116,11 @@ class RootRetirementContractTest {
 		String ansibleExecWorkflow = read(".github/workflows/_ansible-exec.yml");
 		String trivyImageConfig = read(".trivy-image.yaml");
 			String deployDev = read(".github/workflows/deploy-dev.yml");
-			String deployProd = read(".github/workflows/deploy-prod.yml");
-			String rollbackProd = read(".github/workflows/rollback-prod.yml");
-			String setupDeployTooling = read(".github/actions/setup-deploy-tooling/action.yml");
-			String setupAnsibleTooling = read(".github/actions/setup-ansible-tooling/action.yml");
-			String setupSshClient = read(".github/actions/setup-ssh-client/action.yml");
-			String resolveAnsibleConnection = read(".github/actions/resolve-ansible-connection/action.yml");
+		String deployProd = read(".github/workflows/deploy-prod.yml");
+		String rollbackProd = read(".github/workflows/rollback-prod.yml");
+		String setupAnsibleTooling = read(".github/actions/setup-ansible-tooling/action.yml");
+		String setupSshClient = read(".github/actions/setup-ssh-client/action.yml");
+		String resolveAnsibleConnection = read(".github/actions/resolve-ansible-connection/action.yml");
 
 		assertTrue(Files.exists(Path.of(".github/workflows/deploy-dev.yml")));
 		assertTrue(Files.exists(Path.of(".github/workflows/deploy-prod.yml")));
@@ -199,26 +198,23 @@ class RootRetirementContractTest {
 		assertFalse(ansibleExecWorkflow.contains(
 			"inputs.environment_name == 'dev' && secrets.DEV_SSH_HOST || secrets.PROD_SSH_HOST"));
 		assertFalse(ansibleExecWorkflow.contains("PROD_DOCKER_LOGIN_USERNAME"));
-			assertTrue(setupAnsibleTooling.contains("sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad"));
-			assertTrue(setupAnsibleTooling.contains("Install verified age"));
-			assertTrue(setupAnsibleTooling.contains("cosign verify-blob"));
-			assertTrue(setupAnsibleTooling.contains("sha256sum -c"));
-			assertTrue(setupAnsibleTooling.contains("ansible_core-2.17.14-py3-none-any.whl"));
-			assertTrue(setupDeployTooling.contains("Setup SSH client"));
-			assertTrue(setupDeployTooling.contains("setup-ssh-client"));
-			assertFalse(setupDeployTooling.contains("ssh-keyscan -T 10"));
-			assertTrue(setupSshClient.contains("ssh-host-fingerprint"));
-			assertTrue(setupSshClient.contains("ssh-keyscan -T 10"));
-			assertTrue(setupSshClient.contains("ssh-keygen -lf - -E sha256"));
-			assertTrue(setupSshClient.contains("Host fingerprint verification failed"));
-			assertTrue(resolveAnsibleConnection.contains("Resolve SSH connection metadata"));
-			assertFalse(resolveAnsibleConnection.contains("Setup Ansible tooling"));
-			assertTrue(ansibleLintWorkflow.contains("ansible-lint"));
-			assertTrue(ansibleLintWorkflow.contains("working-directory: infra/ansible"));
-			assertTrue(ansibleLintWorkflow.contains("ansible-lint playbooks/*.yml roles"));
-			assertTrue(ansibleLintWorkflow.contains(".github/workflows/_ansible-exec.yml"));
-			assertTrue(deployDev.contains(".sops.yaml"));
-			assertFalse(deployDev.contains(".sops.example.yaml"));
+		assertTrue(setupAnsibleTooling.contains("sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad"));
+		assertTrue(setupAnsibleTooling.contains("Install verified age"));
+		assertTrue(setupAnsibleTooling.contains("cosign verify-blob"));
+		assertTrue(setupAnsibleTooling.contains("sha256sum -c"));
+		assertTrue(setupAnsibleTooling.contains("ansible_core-2.17.14-py3-none-any.whl"));
+		assertTrue(setupSshClient.contains("ssh-host-fingerprint"));
+		assertTrue(setupSshClient.contains("ssh-keyscan -T 10"));
+		assertTrue(setupSshClient.contains("ssh-keygen -lf - -E sha256"));
+		assertTrue(setupSshClient.contains("Host fingerprint verification failed"));
+		assertTrue(resolveAnsibleConnection.contains("Resolve SSH connection metadata"));
+		assertFalse(resolveAnsibleConnection.contains("Setup Ansible tooling"));
+		assertTrue(ansibleLintWorkflow.contains("ansible-lint"));
+		assertTrue(ansibleLintWorkflow.contains("working-directory: infra/ansible"));
+		assertTrue(ansibleLintWorkflow.contains("ansible-lint playbooks/*.yml roles"));
+		assertTrue(ansibleLintWorkflow.contains(".github/workflows/_ansible-exec.yml"));
+		assertTrue(deployDev.contains(".sops.yaml"));
+		assertFalse(deployDev.contains(".sops.example.yaml"));
 		}
 
 	@Test
