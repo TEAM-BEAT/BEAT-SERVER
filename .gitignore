@@ -192,3 +192,4 @@ infra/ansible/inventories/**/group_vars/all.local.sops.yml
 
 ## codex
 .omx/*
+.omx/
