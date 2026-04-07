@@ -6,15 +6,6 @@ on:
       environment_name:
         required: true
         type: string
-      ssh_host:
-        required: true
-        type: string
-      ssh_port:
-        required: true
-        type: string
-      ssh_host_fingerprint:
-        required: true
-        type: string
       module:
         required: true
         type: string
@@ -77,8 +68,6 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag }}
       COMMIT_SHA: ${{ inputs.commit_sha }}
       DEPLOY_ACTOR: ${{ inputs.deploy_actor }}
-      SSH_HOST: ${{ inputs.ssh_host }}
-      SSH_PORT: ${{ inputs.ssh_port }}
       HAS_SLACK_WEBHOOK: ${{ secrets.slack_webhook_url != '' }}
     steps:
       - name: Checkout code (current ref)
@@ -91,13 +80,24 @@ jobs:
         with:
           ref: ${{ inputs.checkout_ref }}
 
-      - name: Setup deploy tooling
-        uses: ./.github/actions/setup-deploy-tooling
+      - name: Setup Ansible tooling
+        uses: ./.github/actions/setup-ansible-tooling
+
+      - name: Resolve SSH connection metadata
+        id: resolve_connection
+        uses: ./.github/actions/resolve-ansible-connection
         with:
-          ssh-host: ${{ env.SSH_HOST }}
-          ssh-port: ${{ env.SSH_PORT }}
+          inventory_path: ${{ inputs.inventory_path }}
+          module: ${{ inputs.module }}
+          SOPS_AGE_KEY: ${{ secrets.sops_age_key }}
+
+      - name: Setup SSH client
+        uses: ./.github/actions/setup-ssh-client
+        with:
+          ssh-host: ${{ steps.resolve_connection.outputs.ssh_host }}
+          ssh-port: ${{ steps.resolve_connection.outputs.ssh_port }}
           ssh-private-key: ${{ secrets.ssh_private_key }}
-          ssh-host-fingerprint: ${{ inputs.ssh_host_fingerprint }}
+          ssh-host-fingerprint: ${{ steps.resolve_connection.outputs.ssh_host_fingerprint }}
 
       - name: Write deploy extra vars file
         shell: bash

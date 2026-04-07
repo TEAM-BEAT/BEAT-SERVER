@@ -1,0 +1,38 @@
+name: Resolve Ansible Connection
+description: Resolve SSH host, port, and host fingerprint from an Ansible inventory using ansible-inventory for host selection and ansible-playbook for plaintext materialization
+
+inputs:
+  inventory_path:
+    description: Ansible inventory file path
+    required: true
+  module:
+    description: Deployment module name (apis/admin/batch)
+    required: true
+  SOPS_AGE_KEY:
+    description: AGE private key used to decrypt the inventory during resolver execution
+    required: true
+
+outputs:
+  ssh_host:
+    description: Resolved SSH host
+    value: ${{ steps.resolve.outputs.ssh_host }}
+  ssh_port:
+    description: Resolved SSH port
+    value: ${{ steps.resolve.outputs.ssh_port }}
+  ssh_host_fingerprint:
+    description: Resolved SSH host fingerprint
+    value: ${{ steps.resolve.outputs.ssh_host_fingerprint }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve SSH connection metadata
+      id: resolve
+      shell: bash
+      env:
+        ANSIBLE_CONFIG: infra/ansible/ansible.cfg
+        SOPS_AGE_KEY: ${{ inputs.SOPS_AGE_KEY }}
+      run: |
+        python3 .github/scripts/resolve_ansible_connection.py \
+          --inventory-path '${{ inputs.inventory_path }}' \
+          --module '${{ inputs.module }}'

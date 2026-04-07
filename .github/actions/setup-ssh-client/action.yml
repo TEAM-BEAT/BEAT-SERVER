@@ -1,5 +1,5 @@
-name: Setup Deploy Tooling
-description: Install deployment tooling and provision a verified SSH client
+name: Setup SSH Client
+description: Provision a verified SSH client for deployment
 
 inputs:
   ssh-host:
@@ -19,9 +19,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Setup Ansible tooling
-      uses: ./.github/actions/setup-ansible-tooling
-
     - name: Configure SSH client
       shell: bash
       run: |
