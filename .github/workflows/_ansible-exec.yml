@@ -153,7 +153,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
         shell: bash
         run: |
-          payload=$(python3 -c 'import json, os; print(json.dumps({"text": f"{os.environ[\"NOTIFY_TITLE\"]}\n{os.environ[\"NOTIFY_DESCRIPTION\"]}"}))')
+          payload=$(python3 -c 'import json, os; print(json.dumps({"text": os.environ["NOTIFY_TITLE"]+"\n"+os.environ["NOTIFY_DESCRIPTION"]}))')
           curl -fsSL -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"
 
       - name: Notify Slack (failure)
@@ -164,5 +164,5 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
         shell: bash
         run: |
-          payload=$(python3 -c 'import json, os; print(json.dumps({"text": f"{os.environ[\"NOTIFY_TITLE\"]}\n{os.environ[\"NOTIFY_DESCRIPTION\"]}"}))')
+          payload=$(python3 -c 'import json, os; print(json.dumps({"text": os.environ["NOTIFY_TITLE"]+"\n"+os.environ["NOTIFY_DESCRIPTION"]}))')
           curl -fsSL -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"
