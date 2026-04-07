@@ -92,6 +92,9 @@ jobs:
         with:
           ref: ${{ inputs.checkout_ref }}
 
+      - name: Setup Ansible tooling
+        uses: ./.github/actions/setup-ansible-tooling
+
       - name: Resolve SSH connection metadata
         id: resolve_connection
         continue-on-error: true

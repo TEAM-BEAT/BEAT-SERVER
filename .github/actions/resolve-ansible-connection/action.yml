@@ -26,9 +26,6 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Setup Ansible tooling
-      uses: ./.github/actions/setup-ansible-tooling
-
     - name: Resolve SSH connection metadata
       id: resolve
       shell: bash
