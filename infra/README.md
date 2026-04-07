@@ -184,6 +184,7 @@ flowchart LR
 - deploy 단계는 `max-parallel: 1` 로 모듈을 순차 배포
 - `rollback-prod.yml` 은 계속 **수동 workflow_dispatch** 로 유지
 - `concurrency: prod-runtime` — prod 배포/롤백은 동시에 1개만
+- `_ansible-exec.yml` 은 inventory resolver 성공을 전제로 하며, prod caller 쪽 legacy SSH fallback은 두지 않는다
 
 ## Ansible 구조
 

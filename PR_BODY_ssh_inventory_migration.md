@@ -15,7 +15,7 @@ Inventory 기반 SSH 해석 + release published 기반 prod 전체 배포로 전
 - SSH bootstrap을 `setup-ssh-client`로 분리
 - caller workflow(`deploy-dev.yml`, `deploy-prod.yml`, `rollback-prod.yml`)에서 SSH host/port/fingerprint 직접 전달 제거
 - `resolve-ansible-connection` 액션 + `resolve_ansible_connection.py` 추가
-- `_ansible-exec.yml`에 resolved-first + legacy fallback 통합
+- `_ansible-exec.yml`을 inventory-only SSH resolution 구조로 정리
 - resolver fallback과 무관하게 Ansible tooling이 항상 먼저 설치되도록 `_ansible-exec.yml` 시퀀스 수정
 - `ansible-secret-aware-verify.yml`에 dev/prod resolver 검증 추가
 - `deploy-prod.yml`을 `workflow_dispatch(module+version)`에서 `release.published(shared tag)` 기반으로 전환
@@ -54,23 +54,23 @@ Inventory 기반 SSH 해석 + release published 기반 prod 전체 배포로 전
    - `ansible-inventory --host`만으로는 `ansible_host` / `ssh_host_fingerprint`가 평문으로 materialize되지 않았습니다.
    - host/group 선택은 그대로 `ansible-inventory`로 두고, 필요한 connection metadata만 임시 `ansible-playbook`로 최소 추출하는 방식으로 보완했습니다.
 
-2. **resolver step의 `continue-on-error`가 tooling 설치까지 삼켜버리는 문제**
-   - 기존 구조에서는 resolver composite action 안에서 tooling 설치까지 함께 수행하면, 설치 실패도 fallback처럼 보이게 되어 뒤 단계 `ansible-playbook` 실패 원인이 흐려질 수 있었습니다.
-   - `_ansible-exec.yml`에서 `setup-ansible-tooling`을 별도 필수 step으로 분리하고, resolver action은 해석 전용으로 축소했습니다.
+2. **resolver step과 tooling 설치의 책임이 뒤엉키던 문제**
+   - tooling 설치와 resolver 해석을 한 action 경로에 묶어두면 실패 원인이 불명확해질 수 있었습니다.
+   - `_ansible-exec.yml`에서 `setup-ansible-tooling`을 별도 필수 step으로 분리하고, resolver action은 해석 전용으로 축소한 뒤 inventory-only 구조로 정리했습니다.
 
 3. **deployment contract test가 현재 구조를 반영하지 못하던 문제**
    - 기존 test는 secret 기반 `ssh_*` caller input, manual prod dispatch, `setup-deploy-tooling` 직접 호출 등을 전제로 하고 있었습니다.
-   - 현재 구조(inventory-owned SSH metadata, resolved-first fallback, release published prod policy)에 맞게 contract assertion을 갱신했습니다.
+   - 현재 구조(inventory-owned SSH metadata, inventory-only reusable workflow, release published prod policy)에 맞게 contract assertion을 갱신했습니다.
 
 ### 남아 있는 외부 blocker
-1. **fallback 제거 불가**
-   - `_ansible-exec.yml`의 legacy fallback 제거는 GitHub 상 실배포 검증 이후에만 가능합니다.
-2. **GitHub SSH vars 삭제 불가**
-   - 실제 release published prod 배포와 rollback 검증 전에는 삭제하면 안 됩니다.
-3. **최종 삭제 가능 판정 불가**
+1. **GitHub SSH vars 삭제 불가**
+   - 코드 경로는 inventory-only로 정리되었지만, GitHub environment/Actions Variables 삭제는 GitHub 권한으로만 처리할 수 있습니다.
+2. **최종 삭제 가능 판정 불가**
    - GitHub 상 Gate 검증(실배포 / vars 삭제 후 재검증)이 끝나야 최종 판정 가능합니다.
-4. **GitHub 권한 의존**
+3. **GitHub 권한 의존**
    - release publish / 환경 변수 삭제 / prod environment 승인 흐름은 현재 로컬 세션이 아니라 GitHub 권한으로 처리해야 합니다.
+4. **실제 release.published 실행 미검증**
+   - 로컬 static 검증과 contract test는 통과했지만, 실제 Docker Hub / prod environment와 연결된 GitHub 실행은 아직 확인 전입니다.
 
 ## Related ScreenShot 📷
 
@@ -82,12 +82,7 @@ Inventory 기반 SSH 해석 + release published 기반 prod 전체 배포로 전
 - GitHub에서 **release publish** 실행 후 `deploy-prod.yml` 자동 실행 성공 확인
   - apis/admin/batch 3개 모듈 전체가 같은 release tag로 build/push/deploy 되는지 확인
 - GitHub에서 `rollback-prod.yml` 수동 검증 1회 수행
-- 위 검증 성공 후 `_ansible-exec.yml` legacy fallback 제거
-- fallback 제거 후 workflow 재검증
 - 이후 GitHub SSH vars 삭제 및 post-delete 재검증
-
-### fallback 제거 대상 파일
-- `.github/workflows/_ansible-exec.yml`
 
 ### 삭제 대상 GitHub SSH vars
 - `DEV_SSH_HOST`
@@ -102,8 +97,8 @@ Inventory 기반 SSH 해석 + release published 기반 prod 전체 배포로 전
 - dev 정책은 **develop 최신 SHA 기반 + changed modules deploy** 유지입니다.
 - prod 정책은 이번 PR부터 **release published 기반 + 공통 release tag + 3모듈 전체 배포**로 바뀝니다.
 - 우선 확인 부탁드리는 포인트는 아래입니다.
-  1. `_ansible-exec.yml`의 resolved-first + legacy fallback 구조가 의도에 맞는지
-  2. resolver fallback 이전에 tooling 설치를 강제한 구조가 안전한지
+  1. `_ansible-exec.yml`의 inventory-only SSH resolution 구조가 의도에 맞는지
+  2. resolver 실행 이전에 tooling 설치를 강제한 구조가 안전한지
   3. `deploy-prod.yml`의 `release.published` + shared tag + full-module deploy 정책이 팀 운영 의도와 맞는지
   4. `ansible-secret-aware-verify.yml`의 resolver 검증이 gate 역할로 충분한지
 
@@ -112,5 +107,4 @@ Inventory 기반 SSH 해석 + release published 기반 prod 전체 배포로 전
   2. main 기준 release publish
   3. prod 전체 자동 배포 확인
   4. rollback-prod 수동 검증
-  5. 성공 시 fallback 제거
-  6. 재검증 후 GitHub SSH vars 삭제
+  5. 재검증 후 GitHub SSH vars 삭제
