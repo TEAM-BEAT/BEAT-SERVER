@@ -347,9 +347,9 @@ class RootRetirementContractTest {
 			assertFalse(deployProd.contains("inventory_label:"));
 			assertFalse(rollbackProd.contains("inventory_label:"));
 			assertTrue(deployDev.contains("IMAGE_TAG=\"dev-${GITHUB_SHA}\""));
-			assertTrue(deployDev.contains("image: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ github.sha }}"));
+			assertTrue(deployDev.contains("image: ${{ secrets.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ github.sha }}"));
 			assertTrue(deployProd.contains("IMAGE_TAG=\"${RELEASE_TAG}\""));
-			assertTrue(deployProd.contains("image: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:${{ needs.resolve-release.outputs.release_tag }}"));
+			assertTrue(deployProd.contains("image: ${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:${{ needs.resolve-release.outputs.release_tag }}"));
 			assertFalse(appScriptsRole.contains("deploy-common.sh"));
 		assertFalse(appScriptsRole.contains("deploy-stop-start.sh"));
 		assertFalse(appScriptsRole.contains("Install repo-owned stop-start deployment helper"));

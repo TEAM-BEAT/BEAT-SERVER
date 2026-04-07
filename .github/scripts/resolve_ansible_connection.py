@@ -48,9 +48,32 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def resolve_inventory_path(raw_path: str) -> Path:
+    candidate = Path(raw_path)
+    search_paths = []
+
+    if candidate.is_absolute():
+        search_paths.append(candidate)
+    else:
+        root = repo_root()
+        search_paths.extend(
+            [
+                candidate,
+                root / candidate,
+                root / "infra/ansible" / candidate,
+            ]
+        )
+
+    for path in search_paths:
+        if path.exists():
+            return path.resolve()
+
+    raise ResolverError(f"Inventory file not found: {raw_path}")
+
+
 def subprocess_env() -> dict[str, str]:
     env = os.environ.copy()
-    env.setdefault("ANSIBLE_CONFIG", str(repo_root() / "infra/ansible/ansible.cfg"))
+    env["ANSIBLE_CONFIG"] = str(repo_root() / "infra/ansible/ansible.cfg")
     return env
 
 
@@ -167,7 +190,8 @@ def materialize_connection_with_ansible_playbook(inventory_path: str, host_name:
 
 
 def resolve_connection(inventory_path: str, module: str) -> dict[str, str]:
-    host_name, host_vars = resolve_target_host(inventory_path, module)
+    resolved_inventory_path = str(resolve_inventory_path(inventory_path))
+    host_name, host_vars = resolve_target_host(resolved_inventory_path, module)
 
     direct_values = {
         "ssh_host": host_vars.get("ansible_host"),
@@ -183,7 +207,7 @@ def resolve_connection(inventory_path: str, module: str) -> dict[str, str]:
     # community.sops host vars can remain encrypted in ansible-inventory --host
     # output for this repo, so we materialize the three required fields via a
     # minimal ansible-playbook rather than parsing decrypted inventory YAML.
-    materialized = materialize_connection_with_ansible_playbook(inventory_path, host_name)
+    materialized = materialize_connection_with_ansible_playbook(resolved_inventory_path, host_name)
     encrypted_fields = [key for key, value in materialized.items() if is_encrypted(value)]
     if encrypted_fields:
         field_list = ", ".join(encrypted_fields)
