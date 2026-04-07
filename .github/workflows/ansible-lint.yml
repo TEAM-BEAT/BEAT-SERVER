@@ -1,0 +1,38 @@
+name: ansible-lint
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - "infra/ansible/**"
+      - ".github/workflows/ansible-lint.yml"
+      - ".github/workflows/deploy-dev.yml"
+      - ".github/workflows/deploy-prod.yml"
+      - ".github/workflows/rollback-prod.yml"
+      - ".github/workflows/_ansible-exec.yml"
+      - ".github/actions/setup-ansible-tooling/**"
+      - ".github/actions/setup-deploy-tooling/**"
+
+jobs:
+  lint:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Ansible tooling
+        uses: ./.github/actions/setup-ansible-tooling
+
+      - name: Run ansible-lint
+        working-directory: infra/ansible
+        env:
+          ANSIBLE_VARS_ENABLED: host_group_vars
+        run: |
+          ansible-lint playbooks/*.yml roles

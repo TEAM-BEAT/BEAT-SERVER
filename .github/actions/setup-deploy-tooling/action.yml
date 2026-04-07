@@ -1,0 +1,54 @@
+name: Setup Deploy Tooling
+description: Install deployment tooling and provision a verified SSH client
+
+inputs:
+  ssh-host:
+    description: SSH host for known_hosts bootstrap
+    required: true
+  ssh-port:
+    description: SSH port for known_hosts bootstrap
+    required: false
+    default: "22"
+  ssh-private-key:
+    description: Private key used for deployment
+    required: true
+  ssh-host-fingerprint:
+    description: Expected host key fingerprint (SHA256:...)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Ansible tooling
+      uses: ./.github/actions/setup-ansible-tooling
+
+    - name: Configure SSH client
+      shell: bash
+      run: |
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        printf '%s\n' '${{ inputs.ssh-private-key }}' > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        scan_output=$(ssh-keyscan -T 10 -p '${{ inputs.ssh-port }}' '${{ inputs.ssh-host }}' 2>/dev/null)
+        if [ -z "$scan_output" ]; then
+          echo "Failed to read host key from ${{ inputs.ssh-host }}:${{ inputs.ssh-port }}" >&2
+          exit 1
+        fi
+        expected_fingerprint='${{ inputs.ssh-host-fingerprint }}'
+        matched_line=''
+        while IFS= read -r line; do
+          fp=$(printf '%s\n' "$line" | ssh-keygen -lf - -E sha256 2>/dev/null | awk '{print $2}')
+          if [ "$fp" = "$expected_fingerprint" ]; then
+            matched_line="$line"
+            break
+          fi
+        done <<< "$scan_output"
+        if [ -z "$matched_line" ]; then
+          echo "Host fingerprint verification failed for ${{ inputs.ssh-host }}:${{ inputs.ssh-port }}" >&2
+          printf '%s\n' "$scan_output" | ssh-keygen -lf - -E sha256 >&2 || true
+          exit 1
+        fi
+        printf '%s\n' "$matched_line" > ~/.ssh/known_hosts
+        ssh-keygen -H -f ~/.ssh/known_hosts >/dev/null 2>&1 || true
+        rm -f ~/.ssh/known_hosts.old
+        chmod 600 ~/.ssh/known_hosts

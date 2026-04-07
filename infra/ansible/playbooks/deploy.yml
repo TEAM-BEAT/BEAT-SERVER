@@ -1,0 +1,90 @@
+---
+- name: "Deploy {{ module }}"
+  hosts: "{{ module }}_servers"
+  become: true
+  gather_facts: false
+
+  vars:
+    module_cfg: "{{ modules[module] }}"
+    release_dir: "{{ release_root }}/{{ module }}"
+    pending_metadata_path: "{{ release_dir }}/pending.json"
+    network_health_max_attempts: 30
+    network_health_sleep_seconds: 2
+    service_smoke_max_attempts: 15
+    service_smoke_sleep_seconds: 2
+
+  pre_tasks:
+    - name: Validate required inputs
+      ansible.builtin.assert:
+        that:
+          - module is defined
+          - modules is defined
+          - module in modules
+          - image is defined
+          - image_tag is defined
+          - actuator_port is defined
+          - actuator_path is defined
+        fail_msg: "Required extra vars: module, image, image_tag"
+      tags:
+        - always
+        - validate
+
+  roles:
+    - role: app_secret
+      tags:
+        - deploy
+        - secrets
+    - role: app_scripts
+      tags:
+        - deploy
+        - scripts
+    - role: app_release
+      tags:
+        - deploy
+        - release
+    - role: app_dev_switch
+      when:
+        - deploy_environment == 'dev'
+        - module_cfg.deploy_mode == 'blue_green'
+      tags:
+        - deploy
+        - switch
+        - blue-green
+        - dev
+    - role: app_prod_switch
+      when:
+        - deploy_environment == 'prod'
+        - module_cfg.deploy_mode == 'blue_green'
+      tags:
+        - deploy
+        - switch
+        - blue-green
+        - prod
+    - role: app_stopstart
+      when: module_cfg.deploy_mode == 'stop_start'
+      tags:
+        - deploy
+        - switch
+        - stop-start
+    - role: app_healthcheck
+      tags:
+        - deploy
+        - healthcheck
+
+  tasks:
+    - name: Configure nginx routing for stop-start module
+      ansible.builtin.import_role:
+        name: app_stopstart
+        tasks_from: admin_nginx_route.yml
+      when: module_cfg.nginx_route is defined
+      tags:
+        - deploy
+        - nginx
+        - routing
+
+    - name: Clean up after deploy
+      ansible.builtin.import_role:
+        name: app_cleanup
+      tags:
+        - deploy
+        - cleanup

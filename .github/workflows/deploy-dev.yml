@@ -1,0 +1,213 @@
+name: deploy-dev
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Module to deploy"
+        type: choice
+        options:
+          - all
+          - apis
+          - admin
+          - batch
+        default: all
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      has_modules: ${{ steps.matrix.outputs.has_modules }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        with:
+          filters: |
+            apis:
+              - 'apis/**'
+            admin:
+              - 'admin/**'
+            batch:
+              - 'batch/**'
+            shared:
+              - 'domain/**'
+              - 'global-utils/**'
+              - 'module-contracts/**'
+              - 'gateway/**'
+              - 'observability/**'
+              - 'infra/src/**'
+              - 'infra/ansible/**'
+              - 'infra/build.gradle.kts'
+              - 'build-logic/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - 'gradle/**'
+              - 'gradle.properties'
+              - 'gradlew'
+              - 'Dockerfile.module'
+              - '.dockerignore'
+              - '.sops.yaml'
+              - '.github/workflows/_ansible-exec.yml'
+              - '.github/actions/setup-ansible-tooling/**'
+              - '.github/actions/setup-deploy-tooling/**'
+
+      - name: Build final deploy matrix
+        id: matrix
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_MODULE: ${{ github.event.inputs.module }}
+          APIS: ${{ steps.filter.outputs.apis }}
+          ADMIN: ${{ steps.filter.outputs.admin }}
+          BATCH: ${{ steps.filter.outputs.batch }}
+          SHARED: ${{ steps.filter.outputs.shared }}
+        run: |
+          python <<'PY'
+          import json
+          import os
+
+          event_name = os.environ["EVENT_NAME"]
+          requested = os.environ.get("INPUT_MODULE") or "all"
+          modules = []
+
+          if event_name == "workflow_dispatch":
+              modules = ["apis", "admin", "batch"] if requested == "all" else [requested]
+          else:
+              if os.environ["SHARED"] == "true":
+                  modules = ["apis", "admin", "batch"]
+              else:
+                  if os.environ["APIS"] == "true":
+                      modules.append("apis")
+                  if os.environ["ADMIN"] == "true":
+                      modules.append("admin")
+                  if os.environ["BATCH"] == "true":
+                      modules.append("batch")
+
+          matrix = {"include": [{"module": module} for module in modules]}
+          github_output = os.environ["GITHUB_OUTPUT"]
+          with open(github_output, "a", encoding="utf-8") as fh:
+              fh.write(f"matrix={json.dumps(matrix)}\n")
+              fh.write(f"has_modules={'true' if modules else 'false'}\n")
+          PY
+
+  verify:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_modules == 'true'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          java-version: "25"
+          distribution: "temurin"
+
+      - uses: gradle/actions/setup-gradle@017a9effdb900e5b5b2fddfb590a105619dca3c3 # v4.4.2
+        with:
+          gradle-home-cache-cleanup: true
+
+      - name: Verify baseline
+        run: |
+          chmod +x gradlew
+          ./gradlew \
+            verifyV2WebBaseline \
+            :admin:test :batch:test \
+            verifyModuleBootJars \
+            --parallel --build-cache
+        shell: bash
+
+  build-image:
+    needs:
+      - detect-changes
+      - verify
+    if: needs.detect-changes.outputs.has_modules == 'true'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    environment: dev
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          username: ${{ secrets.DEV_DOCKER_LOGIN_USERNAME }}
+          password: ${{ secrets.DEV_DOCKER_LOGIN_ACCESSTOKEN }}
+
+      - name: Compute image name
+        id: image
+        env:
+          DOCKER_NAMESPACE: ${{ secrets.DEV_DOCKER_LOGIN_USERNAME }}
+          MODULE: ${{ matrix.module }}
+        run: |
+          IMAGE_TAG="dev-${GITHUB_SHA}"
+          IMAGE_REF="${DOCKER_NAMESPACE}/beat-${MODULE}:${IMAGE_TAG}"
+          IMAGE_LATEST="${DOCKER_NAMESPACE}/beat-${MODULE}:dev-latest"
+          echo "tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "image=$IMAGE_REF" >> "$GITHUB_OUTPUT"
+          echo "latest=$IMAGE_LATEST" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        env:
+          MODULE: ${{ matrix.module }}
+        run: |
+          docker build -f Dockerfile.module \
+            --build-arg MODULE=${MODULE} \
+            --platform linux/amd64 \
+            -t "${{ steps.image.outputs.image }}" \
+            -t "${{ steps.image.outputs.latest }}" \
+            .
+          docker push "${{ steps.image.outputs.image }}"
+          docker push "${{ steps.image.outputs.latest }}"
+
+  deploy:
+    needs:
+      - detect-changes
+      - verify
+      - build-image
+    if: needs.detect-changes.outputs.has_modules == 'true'
+    concurrency:
+      group: deploy-dev-runtime-${{ github.ref }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
+    uses: ./.github/workflows/_ansible-exec.yml
+    with:
+      environment_name: dev
+      ssh_host: ${{ secrets.DEV_SSH_HOST }}
+      ssh_port: ${{ secrets.DEV_SSH_PORT }}
+      ssh_host_fingerprint: ${{ secrets.DEV_SSH_HOST_FINGERPRINT }}
+      module: ${{ matrix.module }}
+      playbook: playbooks/deploy.yml
+      inventory_path: inventories/dev/hosts.yml
+      success_title: Deploy Dev Succeeded
+      failure_title: Deploy Dev Failed
+      notify_description: |
+        Module: ${{ matrix.module }}
+        Actor: ${{ github.actor }}
+        Commit: ${{ github.sha }}
+      image: ${{ secrets.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ github.sha }}
+      image_tag: dev-${{ github.sha }}
+      commit_sha: ${{ github.sha }}
+      deploy_actor: ${{ github.actor }}
+      checkout_ref: ${{ github.sha }}
+    secrets:
+      ssh_private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+      sops_age_key: ${{ secrets.AGE_SECRET_KEY }}
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

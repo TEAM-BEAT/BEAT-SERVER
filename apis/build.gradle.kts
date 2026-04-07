@@ -9,6 +9,7 @@ dependencies {
     implementation(project(":infra"))
     implementation(project(":global-utils"))
     implementation(project(":observability"))
+    implementation(libs.micrometer.registry.prometheus)
 
     testImplementation(libs.bundles.integration.testcontainers)
 }

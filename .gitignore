@@ -179,6 +179,7 @@ Temporary Items
 # End of https://www.toptal.com/developers/gitignore/api/intellij,java,macos.gradle/
 .idea/*
 .gradle/*
+.gradle-local/*
 /.kotlin/
 **/.gradle/
 build/
@@ -187,6 +188,7 @@ secret/*
 default.conf
 deploy-dev.sh
 docker-compose.yml
+infra/ansible/inventories/**/group_vars/all.local.sops.yml
 
 ## codex
 .omx/*

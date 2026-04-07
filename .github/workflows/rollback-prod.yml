@@ -1,0 +1,37 @@
+name: rollback-prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Module to rollback"
+        type: choice
+        options:
+          - apis
+          - admin
+          - batch
+        required: true
+
+jobs:
+  rollback:
+    concurrency:
+      group: prod-runtime
+      cancel-in-progress: false
+    uses: ./.github/workflows/_ansible-exec.yml
+    with:
+      environment_name: prod
+      ssh_host: ${{ secrets.PROD_SSH_HOST }}
+      ssh_port: ${{ secrets.PROD_SSH_PORT }}
+      ssh_host_fingerprint: ${{ secrets.PROD_SSH_HOST_FINGERPRINT }}
+      module: ${{ github.event.inputs.module }}
+      playbook: playbooks/rollback.yml
+      inventory_path: inventories/prod/hosts.yml
+      success_title: Rollback Prod Succeeded
+      failure_title: Rollback Prod Failed
+      notify_description: |
+        Module: ${{ github.event.inputs.module }}
+        Actor: ${{ github.actor }}
+    secrets:
+      ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+      sops_age_key: ${{ secrets.AGE_SECRET_KEY }}
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

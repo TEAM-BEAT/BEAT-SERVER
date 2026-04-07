@@ -1,0 +1,28 @@
+---
+- name: Ensure deployment directory exists
+  ansible.builtin.file:
+    path: "{{ deployment_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Ensure generated nginx source directories exist
+  ansible.builtin.file:
+    path: "{{ nginx_generated_source_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - upstreams
+    - routes
+
+- name: Ensure generated nginx target directories exist
+  ansible.builtin.file:
+    path: "{{ nginx_generated_target_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - upstreams
+    - routes
+
+- name: Install shared nginx update helper
+  ansible.builtin.import_role:
+    name: nginx_config_helper
