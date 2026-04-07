@@ -91,13 +91,13 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
-          username: ${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}
+          username: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}
           password: ${{ secrets.PROD_DOCKER_LOGIN_ACCESSTOKEN }}
 
       - name: Compute image name
         id: image
         env:
-          DOCKER_NAMESPACE: ${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}
+          DOCKER_NAMESPACE: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}
           MODULE: ${{ matrix.module }}
           RELEASE_TAG: ${{ needs.resolve-release.outputs.release_tag }}
         run: |
@@ -145,7 +145,7 @@ jobs:
         Module: ${{ matrix.module }}
         Release Tag: ${{ needs.resolve-release.outputs.release_tag }}
         Actor: ${{ github.actor }}
-      image: ${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:${{ needs.resolve-release.outputs.release_tag }}
+      image: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:${{ needs.resolve-release.outputs.release_tag }}
       image_tag: ${{ needs.resolve-release.outputs.release_tag }}
       commit_sha: ${{ needs.resolve-release.outputs.commit_sha }}
       deploy_actor: ${{ github.actor }}
