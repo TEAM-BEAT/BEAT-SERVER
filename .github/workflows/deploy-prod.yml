@@ -66,13 +66,13 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
-          username: ${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}
+          username: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}
           password: ${{ secrets.PROD_DOCKER_LOGIN_ACCESSTOKEN }}
 
       - name: Compute image name
         id: image
         env:
-          DOCKER_NAMESPACE: ${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}
+          DOCKER_NAMESPACE: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}
           MODULE: ${{ github.event.inputs.module }}
           VERSION: ${{ github.event.inputs.version }}
         run: |
@@ -105,9 +105,6 @@ jobs:
     uses: ./.github/workflows/_ansible-exec.yml
     with:
       environment_name: prod
-      ssh_host: ${{ secrets.PROD_SSH_HOST }}
-      ssh_port: ${{ secrets.PROD_SSH_PORT }}
-      ssh_host_fingerprint: ${{ secrets.PROD_SSH_HOST_FINGERPRINT }}
       module: ${{ github.event.inputs.module }}
       playbook: playbooks/deploy.yml
       inventory_path: inventories/prod/hosts.yml
@@ -117,7 +114,7 @@ jobs:
         Module: ${{ github.event.inputs.module }}
         Version: ${{ github.event.inputs.version }}
         Actor: ${{ github.actor }}
-      image: ${{ secrets.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ github.event.inputs.module }}:${{ github.event.inputs.version }}
+      image: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ github.event.inputs.module }}:${{ github.event.inputs.version }}
       image_tag: ${{ github.event.inputs.version }}
       commit_sha: ${{ needs.build-image.outputs.commit_sha }}
       deploy_actor: ${{ github.actor }}

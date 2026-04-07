@@ -145,13 +145,13 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
-          username: ${{ secrets.DEV_DOCKER_LOGIN_USERNAME }}
+          username: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}
           password: ${{ secrets.DEV_DOCKER_LOGIN_ACCESSTOKEN }}
 
       - name: Compute image name
         id: image
         env:
-          DOCKER_NAMESPACE: ${{ secrets.DEV_DOCKER_LOGIN_USERNAME }}
+          DOCKER_NAMESPACE: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}
           MODULE: ${{ matrix.module }}
         run: |
           IMAGE_TAG="dev-${GITHUB_SHA}"
@@ -190,9 +190,6 @@ jobs:
     uses: ./.github/workflows/_ansible-exec.yml
     with:
       environment_name: dev
-      ssh_host: ${{ secrets.DEV_SSH_HOST }}
-      ssh_port: ${{ secrets.DEV_SSH_PORT }}
-      ssh_host_fingerprint: ${{ secrets.DEV_SSH_HOST_FINGERPRINT }}
       module: ${{ matrix.module }}
       playbook: playbooks/deploy.yml
       inventory_path: inventories/dev/hosts.yml
@@ -202,7 +199,7 @@ jobs:
         Module: ${{ matrix.module }}
         Actor: ${{ github.actor }}
         Commit: ${{ github.sha }}
-      image: ${{ secrets.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ github.sha }}
+      image: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ github.sha }}
       image_tag: dev-${{ github.sha }}
       commit_sha: ${{ github.sha }}
       deploy_actor: ${{ github.actor }}

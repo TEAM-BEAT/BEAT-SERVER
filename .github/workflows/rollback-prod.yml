@@ -20,9 +20,6 @@ jobs:
     uses: ./.github/workflows/_ansible-exec.yml
     with:
       environment_name: prod
-      ssh_host: ${{ secrets.PROD_SSH_HOST }}
-      ssh_port: ${{ secrets.PROD_SSH_PORT }}
-      ssh_host_fingerprint: ${{ secrets.PROD_SSH_HOST_FINGERPRINT }}
       module: ${{ github.event.inputs.module }}
       playbook: playbooks/rollback.yml
       inventory_path: inventories/prod/hosts.yml
