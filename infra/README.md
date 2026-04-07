@@ -90,6 +90,7 @@ flowchart TB
     subgraph GitHub["GitHub"]
         PR["PR → develop/main"]
         Push["Push → develop"]
+        ReleasePublished["Release → published"]
         Dispatch["Manual Dispatch"]
     end
 
@@ -98,7 +99,7 @@ flowchart TB
         AnsibleLint["ansible-lint.yml<br/>PR-safe lint"]
         SecretAware["ansible-secret-aware-verify.yml<br/>SOPS 활성 검증"]
         DeployDev["deploy-dev.yml<br/>자동 배포"]
-        DeployProd["deploy-prod.yml<br/>수동 배포 (tag)"]
+        DeployProd["deploy-prod.yml<br/>자동 배포 (release tag)"]
         RollbackProd["rollback-prod.yml<br/>수동 롤백"]
         AnsibleExec["_ansible-exec.yml<br/>공통 실행 엔진"]
     end
@@ -120,7 +121,7 @@ flowchart TB
     PR --> AnsibleLint
     Push --> DeployDev
     Push --> SecretAware
-    Dispatch --> DeployProd
+    ReleasePublished --> DeployProd
     Dispatch --> RollbackProd
     DeployDev --> AnsibleExec
     DeployProd --> AnsibleExec
@@ -164,20 +165,25 @@ flowchart LR
   - `ansible-inventory --list`로 SOPS 복호화가 실제로 되는지 확인
   - 같은 환경에서 `ansible-lint playbooks/*.yml roles`도 실행해 SOPS 활성 상태의 lint까지 검증
 
-### Prod 배포 (수동)
+### Prod 배포 (자동, release published)
 
 ```mermaid
 flowchart LR
-    A["workflow_dispatch<br/>(module + Git tag)"] --> B["checkout<br/>refs/tags/$version"]
-    B --> C["verify + build"]
-    C --> D["docker push<br/>tag: $version"]
-    D --> E["deploy<br/>(Ansible)"]
-    E --> F["Slack 알림"]
+    A["release.published<br/>(shared tag)"] --> B["resolve-release<br/>tag + 3-module matrix"]
+    B --> C["checkout<br/>refs/tags/$release_tag"]
+    C --> D["verify"]
+    D --> E["build-image<br/>apis/admin/batch"]
+    E --> F["docker push<br/>tag: $release_tag + prod-latest"]
+    F --> G["deploy<br/>(Ansible, module sequential)"]
+    G --> H["Slack 알림"]
 ```
 
-- **수동 트리거만** 허용 (workflow_dispatch)
-- Git tag 기반 체크아웃
-- `concurrency: prod-runtime` — prod 배포는 동시에 1개만
+- `github.event.release.tag_name` 을 **prod 공통 버전 source**로 사용
+- `apis/admin/batch` 3개 모듈을 **같은 release tag**로 build/push/deploy
+- 이미지 태그는 모듈별로 `:{release_tag}` 와 `:prod-latest` 를 함께 push
+- deploy 단계는 `max-parallel: 1` 로 모듈을 순차 배포
+- `rollback-prod.yml` 은 계속 **수동 workflow_dispatch** 로 유지
+- `concurrency: prod-runtime` — prod 배포/롤백은 동시에 1개만
 
 ## Ansible 구조
 
@@ -597,7 +603,7 @@ ansible-playbook playbooks/deploy.yml -i inventories/dev/hosts.yml --syntax-chec
 
 | 항목 | Dev | Prod |
 |------|-----|------|
-| 배포 트리거 | develop push (자동) | workflow_dispatch (수동, tag 필수) |
+| 배포 트리거 | develop push / workflow_dispatch | release.published (자동, shared tag) |
 | 이미지 태그 | `dev-{SHA}` | `{version}` (예: `v1.2.3`) |
 | MySQL | Docker 컨테이너 (foundation) | 비활성 (`foundation_mysql_enabled: false`, 외부 RDS) |
 | Redis 컨테이너명 | `redis` | `beat-prod-redis` |
