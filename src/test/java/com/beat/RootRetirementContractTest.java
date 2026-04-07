@@ -110,7 +110,7 @@ class RootRetirementContractTest {
 	}
 
 	@Test
-	void repoOwnedDeploymentAutomationUsesSharedToolingAndModuleScans() throws Exception {
+	void devAndReusableDeploymentContractsUseSharedToolingAndInventoryOwnedSshMetadata() throws Exception {
 		String ciPr = read(".github/workflows/ci-pr.yml");
 		String ansibleLintWorkflow = read(".github/workflows/ansible-lint.yml");
 		String ansibleExecWorkflow = read(".github/workflows/_ansible-exec.yml");
@@ -219,15 +219,31 @@ class RootRetirementContractTest {
 			assertTrue(ansibleLintWorkflow.contains(".github/workflows/_ansible-exec.yml"));
 			assertTrue(deployDev.contains(".sops.yaml"));
 			assertFalse(deployDev.contains(".sops.example.yaml"));
-			assertTrue(deployProd.contains("release:"));
-			assertTrue(deployProd.contains("- published"));
-			assertTrue(deployProd.contains("github.event.release.tag_name"));
-			assertTrue(deployProd.contains("module_matrix"));
-			assertTrue(deployProd.contains("matrix.module"));
-			assertFalse(deployProd.contains("workflow_dispatch:"));
-			assertFalse(deployProd.contains("github.event.inputs.version"));
-			assertFalse(deployProd.contains("github.event.inputs.module"));
 		}
+
+	@Test
+	void prodReleaseDeploymentUsesSharedImmutableVersionAndModuleMatrix() throws Exception {
+		String deployProd = read(".github/workflows/deploy-prod.yml");
+		String secretAwareVerify = read(".github/workflows/ansible-secret-aware-verify.yml");
+
+		assertTrue(deployProd.contains("release:"));
+		assertTrue(deployProd.contains("- published"));
+		assertTrue(deployProd.contains("github.event.release.tag_name"));
+		assertTrue(deployProd.contains("module_matrix"));
+		assertTrue(deployProd.contains("matrix.module"));
+		assertTrue(deployProd.contains("commit_sha"));
+		assertTrue(deployProd.contains("ref: ${{ needs.resolve-release.outputs.commit_sha }}"));
+		assertTrue(deployProd.contains("checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}"));
+		assertFalse(deployProd.contains("workflow_dispatch:"));
+		assertFalse(deployProd.contains("github.event.inputs.version"));
+		assertFalse(deployProd.contains("github.event.inputs.module"));
+		assertFalse(deployProd.contains("checkout_ref=refs/tags/"));
+
+		assertTrue(secretAwareVerify.contains("module: ${{ matrix.module }}"));
+		assertTrue(secretAwareVerify.contains("Verified resolver for module=${MODULE}"));
+		assertTrue(secretAwareVerify.contains("- admin"));
+		assertTrue(secretAwareVerify.contains("- batch"));
+	}
 
 	@Test
 	void deploymentInfraUsesRepoOwnedHelpersAndConfiguredModuleContracts() throws Exception {

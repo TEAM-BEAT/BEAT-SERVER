@@ -9,7 +9,6 @@ jobs:
   resolve-release:
     outputs:
       release_tag: ${{ steps.release.outputs.release_tag }}
-      checkout_ref: ${{ steps.release.outputs.checkout_ref }}
       module_matrix: ${{ steps.release.outputs.module_matrix }}
       commit_sha: ${{ steps.git-ref.outputs.commit_sha }}
     runs-on: ubuntu-22.04
@@ -28,18 +27,17 @@ jobs:
             exit 1
           fi
           echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
-          echo "checkout_ref=refs/tags/$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           echo 'module_matrix={"include":[{"module":"apis"},{"module":"admin"},{"module":"batch"}]}' >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ steps.release.outputs.checkout_ref }}
+          ref: refs/tags/${{ steps.release.outputs.release_tag }}
 
       - name: Capture released commit
+        id: git-ref
         shell: bash
         run: |
           echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-        id: git-ref
 
   verify:
     needs:
@@ -51,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ needs.resolve-release.outputs.checkout_ref }}
+          ref: ${{ needs.resolve-release.outputs.commit_sha }}
 
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
@@ -88,7 +86,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ needs.resolve-release.outputs.checkout_ref }}
+          ref: ${{ needs.resolve-release.outputs.commit_sha }}
 
       - name: Log in to Docker Hub
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
@@ -100,8 +98,8 @@ jobs:
         id: image
         env:
           DOCKER_NAMESPACE: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}
-          MODULE: ${{ github.event.inputs.module }}
-          VERSION: ${{ github.event.inputs.version }}
+          MODULE: ${{ matrix.module }}
+          RELEASE_TAG: ${{ needs.resolve-release.outputs.release_tag }}
         run: |
           IMAGE_TAG="${RELEASE_TAG}"
           IMAGE_REF="${DOCKER_NAMESPACE}/beat-${MODULE}:${IMAGE_TAG}"
@@ -138,7 +136,7 @@ jobs:
     uses: ./.github/workflows/_ansible-exec.yml
     with:
       environment_name: prod
-      module: ${{ github.event.inputs.module }}
+      module: ${{ matrix.module }}
       playbook: playbooks/deploy.yml
       inventory_path: inventories/prod/hosts.yml
       success_title: Deploy Prod Succeeded
@@ -147,11 +145,11 @@ jobs:
         Module: ${{ matrix.module }}
         Release Tag: ${{ needs.resolve-release.outputs.release_tag }}
         Actor: ${{ github.actor }}
-      image: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ github.event.inputs.module }}:${{ github.event.inputs.version }}
-      image_tag: ${{ github.event.inputs.version }}
-      commit_sha: ${{ needs.build-image.outputs.commit_sha }}
+      image: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:${{ needs.resolve-release.outputs.release_tag }}
+      image_tag: ${{ needs.resolve-release.outputs.release_tag }}
+      commit_sha: ${{ needs.resolve-release.outputs.commit_sha }}
       deploy_actor: ${{ github.actor }}
-      checkout_ref: ${{ needs.resolve-release.outputs.checkout_ref }}
+      checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}
     secrets:
       ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
       sops_age_key: ${{ secrets.AGE_SECRET_KEY }}

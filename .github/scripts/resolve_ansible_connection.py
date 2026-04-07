@@ -180,6 +180,9 @@ def resolve_connection(inventory_path: str, module: str) -> dict[str, str]:
             for key, value in direct_values.items()
         }
 
+    # community.sops host vars can remain encrypted in ansible-inventory --host
+    # output for this repo, so we materialize the three required fields via a
+    # minimal ansible-playbook rather than parsing decrypted inventory YAML.
     materialized = materialize_connection_with_ansible_playbook(inventory_path, host_name)
     encrypted_fields = [key for key, value in materialized.items() if is_encrypted(value)]
     if encrypted_fields:

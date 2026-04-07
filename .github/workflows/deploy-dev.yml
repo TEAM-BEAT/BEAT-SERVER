@@ -37,6 +37,7 @@ jobs:
             batch:
               - 'batch/**'
             shared:
+              # Shared application / build surface
               - 'domain/**'
               - 'global-utils/**'
               - 'module-contracts/**'
@@ -54,6 +55,7 @@ jobs:
               - 'Dockerfile.module'
               - '.dockerignore'
               - '.sops.yaml'
+              # Shared deploy / reusable workflow surface
               - '.github/workflows/_ansible-exec.yml'
               - '.github/actions/resolve-ansible-connection/**'
               - '.github/scripts/resolve_ansible_connection.py'

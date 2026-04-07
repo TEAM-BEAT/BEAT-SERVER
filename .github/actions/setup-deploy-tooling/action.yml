@@ -1,5 +1,5 @@
 name: Setup Deploy Tooling
-description: Install deployment tooling and delegate SSH bootstrap to setup-ssh-client
+description: Compatibility wrapper that installs deployment tooling and delegates SSH bootstrap to setup-ssh-client
 
 inputs:
   ssh-host:

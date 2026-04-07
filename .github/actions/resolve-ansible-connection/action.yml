@@ -1,5 +1,5 @@
 name: Resolve Ansible Connection
-description: Resolve SSH host, port, and host fingerprint from an Ansible inventory
+description: Resolve SSH host, port, and host fingerprint from an Ansible inventory using ansible-inventory for host selection and ansible-playbook for plaintext materialization
 
 inputs:
   inventory_path:
