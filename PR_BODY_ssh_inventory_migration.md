@@ -58,7 +58,7 @@ Inventory 기반 SSH 해석 + release published 기반 prod 전체 배포로 전
    - `_ansible-exec.yml`에서 `setup-ansible-tooling`을 별도 필수 step으로 분리하고, resolver action은 해석 전용으로 축소한 뒤 inventory-only 구조로 정리했습니다.
 
 3. **deployment contract test가 현재 구조를 반영하지 못하던 문제**
-   - 기존 test는 secret 기반 `ssh_*` caller input, manual prod dispatch, `setup-deploy-tooling` 직접 호출 등을 전제로 하고 있었습니다.
+   - 기존 test는 secret 기반 `ssh_*` caller input, manual prod dispatch, 과거 wrapper/action 호출 구조 등을 전제로 하고 있었습니다.
    - 현재 구조(inventory-owned SSH metadata, inventory-only reusable workflow, release published prod policy)에 맞게 contract assertion을 갱신했습니다.
 
 ### 남아 있는 외부 blocker
