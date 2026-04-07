@@ -89,7 +89,8 @@ com.beat.infra.<context>.repository.query   # 필요 시만
 flowchart TB
     subgraph GitHub["GitHub"]
         PR["PR → develop/main"]
-        Push["Push → develop"]
+        PushDevelop["Push → develop"]
+        PushProtected["Push → develop/main"]
         ReleasePublished["Release → published"]
         Dispatch["Manual Dispatch"]
     end
@@ -119,8 +120,8 @@ flowchart TB
 
     PR --> CIPR
     PR --> AnsibleLint
-    Push --> DeployDev
-    Push --> SecretAware
+    PushDevelop --> DeployDev
+    PushProtected --> SecretAware
     ReleasePublished --> DeployProd
     Dispatch --> RollbackProd
     DeployDev --> AnsibleExec
@@ -162,6 +163,8 @@ flowchart LR
 - `ansible-secret-aware-verify.yml`
   - push to `develop`/`main`, `workflow_dispatch`에서 실행
   - `environment: dev` / `environment: prod` 각각에서 `AGE_SECRET_KEY`를 읽음
+  - dev/prod 각각에서 `apis`, `admin`, `batch` 3개 module group을 모두 resolver로 검증
+  - 현재 dev/prod inventory가 같은 host를 가리키더라도, `${module}_servers` contract drift를 조기에 잡기 위해 세 모듈 그룹을 모두 검사
   - `ansible-inventory --list`로 SOPS 복호화가 실제로 되는지 확인
   - 같은 환경에서 `ansible-lint playbooks/*.yml roles`도 실행해 SOPS 활성 상태의 lint까지 검증
 
@@ -170,21 +173,23 @@ flowchart LR
 ```mermaid
 flowchart LR
     A["release.published<br/>(shared tag)"] --> B["resolve-release<br/>tag + 3-module matrix"]
-    B --> C["checkout<br/>refs/tags/$release_tag"]
-    C --> D["verify"]
-    D --> E["build-image<br/>apis/admin/batch"]
+    B --> C["resolve tag once<br/>commit SHA capture"]
+    C --> D["verify<br/>checkout by commit SHA"]
+    D --> E["build-image<br/>apis/admin/batch<br/>checkout by commit SHA"]
     E --> F["docker push<br/>tag: $release_tag + prod-latest"]
-    F --> G["deploy<br/>(Ansible, module sequential)"]
+    F --> G["deploy<br/>(Ansible, module sequential,<br/>checkout_ref = commit SHA)"]
     G --> H["Slack 알림"]
 ```
 
 - `github.event.release.tag_name` 을 **prod 공통 버전 source**로 사용
 - `apis/admin/batch` 3개 모듈을 **같은 release tag**로 build/push/deploy
+- release tag는 `resolve-release` 단계에서 한 번만 해석하고, 이후 verify/build/deploy는 모두 **immutable commit SHA** 를 사용해 TOCTOU를 방지한다
 - 이미지 태그는 모듈별로 `:{release_tag}` 와 `:prod-latest` 를 함께 push
 - deploy 단계는 `max-parallel: 1` 로 모듈을 순차 배포
+- `release-drafter.yml` 은 draft release 갱신용이며, **실제 prod deploy trigger는 published release** 뿐이다
 - `rollback-prod.yml` 은 계속 **수동 workflow_dispatch** 로 유지
 - `concurrency: prod-runtime` — prod 배포/롤백은 동시에 1개만
-- resolver는 `ansible-inventory`로 대상 host/group를 선택하고, `community.sops` 환경에서 평문이 필요한 `ssh_host / ssh_port / ssh_host_fingerprint`만 임시 `ansible-playbook`으로 materialize 한다
+- resolver는 `ansible-inventory`로 대상 host/group를 선택하고, `community.sops` 환경에서 `ansible-inventory --host` 결과에 `ENC[...]` 가 남을 수 있기 때문에 평문이 필요한 `ssh_host / ssh_port / ssh_host_fingerprint`만 임시 `ansible-playbook`으로 materialize 한다
 - `_ansible-exec.yml` 은 inventory resolver 성공을 전제로 하며, prod caller 쪽 legacy SSH fallback은 두지 않는다
 
 ## Ansible 구조
@@ -197,15 +202,15 @@ infra/ansible/
 ├── collections/requirements.yml         # community.docker, community.sops
 ├── inventories/
 │   ├── dev/
-│   │   ├── hosts.yml                    # 호스트 그룹 + SSH 포트/사용자 (IP는 SOPS)
+│   │   ├── hosts.yml                    # 호스트 그룹 + ansible_port / ansible_user (ansible_host는 SOPS)
 │   │   └── group_vars/all/
 │   │       ├── main.yml                 # 평문 변수 (배포 설정, 컨테이너 구성)
-│   │       └── secrets.sops.yml         # SOPS 암호화 (DB, 서버 IP, 도메인 등)
+│   │       └── secrets.sops.yml         # SOPS 암호화 (ansible_host, ssh_host_fingerprint, DB, 도메인 등)
 │   └── prod/
-│       ├── hosts.yml                    # 호스트 그룹 + SSH 포트/사용자 (IP는 SOPS)
+│       ├── hosts.yml                    # 호스트 그룹 + ansible_port / ansible_user (ansible_host는 SOPS)
 │       └── group_vars/all/
 │           ├── main.yml                 # 평문 변수
-│           └── secrets.sops.yml         # SOPS 암호화
+│           └── secrets.sops.yml         # SOPS 암호화 (ansible_host, ssh_host_fingerprint, DB, 도메인 등)
 ├── playbooks/
 │   ├── foundation.yml                   # 인프라 기반 스택
 │   ├── deploy.yml                       # 앱 배포
@@ -606,7 +611,7 @@ ansible-playbook playbooks/deploy.yml -i inventories/dev/hosts.yml --syntax-chec
 | 항목 | Dev | Prod |
 |------|-----|------|
 | 배포 트리거 | develop push / workflow_dispatch | release.published (자동, shared tag) |
-| 이미지 태그 | `dev-{SHA}` | `{version}` (예: `v1.2.3`) |
+| 이미지 태그 | `dev-{SHA}` + `dev-latest` | `{release_tag}` (예: `v1.2.3`) + `prod-latest` |
 | MySQL | Docker 컨테이너 (foundation) | 비활성 (`foundation_mysql_enabled: false`, 외부 RDS) |
 | Redis 컨테이너명 | `redis` | `beat-prod-redis` |
 | 도메인 | `secrets.sops.yml`의 `nginx_server_name` 참조 | 동일 |
