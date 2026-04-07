@@ -7,14 +7,17 @@ on:
         required: true
         type: string
       ssh_host:
-        required: true
+        required: false
         type: string
+        default: ""
       ssh_port:
-        required: true
+        required: false
         type: string
+        default: ""
       ssh_host_fingerprint:
-        required: true
+        required: false
         type: string
+        default: ""
       module:
         required: true
         type: string
@@ -77,8 +80,6 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag }}
       COMMIT_SHA: ${{ inputs.commit_sha }}
       DEPLOY_ACTOR: ${{ inputs.deploy_actor }}
-      SSH_HOST: ${{ inputs.ssh_host }}
-      SSH_PORT: ${{ inputs.ssh_port }}
       HAS_SLACK_WEBHOOK: ${{ secrets.slack_webhook_url != '' }}
     steps:
       - name: Checkout code (current ref)
@@ -91,13 +92,65 @@ jobs:
         with:
           ref: ${{ inputs.checkout_ref }}
 
-      - name: Setup deploy tooling
-        uses: ./.github/actions/setup-deploy-tooling
+      - name: Resolve SSH connection metadata
+        id: resolve_connection
+        continue-on-error: true
+        uses: ./.github/actions/resolve-ansible-connection
         with:
-          ssh-host: ${{ env.SSH_HOST }}
-          ssh-port: ${{ env.SSH_PORT }}
+          inventory_path: ${{ inputs.inventory_path }}
+          module: ${{ inputs.module }}
+          SOPS_AGE_KEY: ${{ secrets.sops_age_key }}
+
+      - name: Select SSH connection metadata
+        id: select_connection
+        shell: bash
+        env:
+          RESOLVER_OUTCOME: ${{ steps.resolve_connection.outcome }}
+          RESOLVED_HOST: ${{ steps.resolve_connection.outputs.ssh_host }}
+          RESOLVED_PORT: ${{ steps.resolve_connection.outputs.ssh_port }}
+          RESOLVED_FINGERPRINT: ${{ steps.resolve_connection.outputs.ssh_host_fingerprint }}
+          LEGACY_HOST: ${{ inputs.ssh_host }}
+          LEGACY_PORT: ${{ inputs.ssh_port }}
+          LEGACY_FINGERPRINT: ${{ inputs.ssh_host_fingerprint }}
+        run: |
+          SOURCE="inventory"
+          SSH_HOST="$RESOLVED_HOST"
+          SSH_PORT="$RESOLVED_PORT"
+          SSH_HOST_FINGERPRINT="$RESOLVED_FINGERPRINT"
+
+          if [[ "$RESOLVER_OUTCOME" != "success" || -z "$SSH_HOST" || -z "$SSH_PORT" || -z "$SSH_HOST_FINGERPRINT" ]]; then
+            SOURCE="legacy-input"
+            SSH_HOST="$LEGACY_HOST"
+            SSH_PORT="${LEGACY_PORT:-22}"
+            SSH_HOST_FINGERPRINT="$LEGACY_FINGERPRINT"
+          fi
+
+          if [[ -z "$SSH_HOST" || -z "$SSH_PORT" || -z "$SSH_HOST_FINGERPRINT" ]]; then
+            echo "Missing SSH connection metadata after inventory resolution and legacy fallback." >&2
+            exit 1
+          fi
+
+          {
+            echo "ssh_host=$SSH_HOST"
+            echo "ssh_port=$SSH_PORT"
+            echo "ssh_host_fingerprint=$SSH_HOST_FINGERPRINT"
+            echo "source=$SOURCE"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "SSH_HOST=$SSH_HOST"
+            echo "SSH_PORT=$SSH_PORT"
+            echo "SSH_HOST_FINGERPRINT=$SSH_HOST_FINGERPRINT"
+            echo "SSH_CONNECTION_SOURCE=$SOURCE"
+          } >> "$GITHUB_ENV"
+
+      - name: Setup SSH client
+        uses: ./.github/actions/setup-ssh-client
+        with:
+          ssh-host: ${{ steps.select_connection.outputs.ssh_host }}
+          ssh-port: ${{ steps.select_connection.outputs.ssh_port }}
           ssh-private-key: ${{ secrets.ssh_private_key }}
-          ssh-host-fingerprint: ${{ inputs.ssh_host_fingerprint }}
+          ssh-host-fingerprint: ${{ steps.select_connection.outputs.ssh_host_fingerprint }}
 
       - name: Write deploy extra vars file
         shell: bash
