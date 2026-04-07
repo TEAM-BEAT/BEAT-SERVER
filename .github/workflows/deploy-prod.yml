@@ -100,8 +100,8 @@ jobs:
         id: image
         env:
           DOCKER_NAMESPACE: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}
-          MODULE: ${{ matrix.module }}
-          RELEASE_TAG: ${{ needs.resolve-release.outputs.release_tag }}
+          MODULE: ${{ github.event.inputs.module }}
+          VERSION: ${{ github.event.inputs.version }}
         run: |
           IMAGE_TAG="${RELEASE_TAG}"
           IMAGE_REF="${DOCKER_NAMESPACE}/beat-${MODULE}:${IMAGE_TAG}"
@@ -138,7 +138,7 @@ jobs:
     uses: ./.github/workflows/_ansible-exec.yml
     with:
       environment_name: prod
-      module: ${{ matrix.module }}
+      module: ${{ github.event.inputs.module }}
       playbook: playbooks/deploy.yml
       inventory_path: inventories/prod/hosts.yml
       success_title: Deploy Prod Succeeded
@@ -147,9 +147,9 @@ jobs:
         Module: ${{ matrix.module }}
         Release Tag: ${{ needs.resolve-release.outputs.release_tag }}
         Actor: ${{ github.actor }}
-      image: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:${{ needs.resolve-release.outputs.release_tag }}
-      image_tag: ${{ needs.resolve-release.outputs.release_tag }}
-      commit_sha: ${{ needs.resolve-release.outputs.commit_sha }}
+      image: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ github.event.inputs.module }}:${{ github.event.inputs.version }}
+      image_tag: ${{ github.event.inputs.version }}
+      commit_sha: ${{ needs.build-image.outputs.commit_sha }}
       deploy_actor: ${{ github.actor }}
       checkout_ref: ${{ needs.resolve-release.outputs.checkout_ref }}
     secrets:
