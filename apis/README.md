@@ -113,7 +113,7 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
 
 ### Outside `apis`
 
-- `gateway`: JWT, auth filter, current-member resolver, refresh-token redis repository, refresh-token storage boundary, auth/security shared primitives
+- `gateway`: JWT, auth filter, current-member resolver, refresh-token storage boundary, auth/security shared primitives
 - `infra`: JPA, QueryDSL, async/external-client bootstrap
 - `domain`: repository/domain/exception/port contracts used by `apis`
 - `global-utils`: shared response DTO and common exception hierarchy

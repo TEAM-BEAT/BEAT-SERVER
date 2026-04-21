@@ -17,6 +17,30 @@
 | 배포 검증 | `infra/ansible` 기준 Ansible/SOPS secret-aware GitHub Actions 검증 |
 | 품질 도구 | SonarQube / Kover Gradle plugin은 존재하지만, SonarCloud 설정과 hard coverage threshold는 #384 범위가 아님 |
 
+### 빌드 설정 동기화 근거
+
+위 기준값은 아래 Gradle 설정과 대조한 값입니다. 버전이나 toolchain을 변경할 때는 이 표와 빌드 설정을 함께 갱신해야 합니다.
+
+| 기준 | 빌드 설정 source of truth | 현재 값 |
+| --- | --- | --- |
+| Spring Boot | `gradle/libs.versions.toml`의 `spring-boot` | `4.0.3` |
+| Kotlin | `gradle/libs.versions.toml`의 `kotlin` | `2.2.20` |
+| Java toolchain | root `build.gradle.kts`와 `build-logic/build.gradle.kts`의 `JavaLanguageVersion.of(25)` | JDK `25` |
+| Java bytecode target | root `build.gradle.kts`와 `build-logic/build.gradle.kts`의 `options.release.set(21)` | release `21` |
+| Kotlin JVM target | root `build.gradle.kts`와 `build-logic/build.gradle.kts`의 `JvmTarget.JVM_21` | JVM `21` |
+
+확인 명령:
+
+```bash
+find . \
+  \( -name build.gradle.kts -o -name gradle.properties -o -path './gradle/libs.versions.toml' \) \
+  -not -path './.git/*' \
+  -print0 \
+  | xargs -0 rg -n -C2 'spring|boot|kotlin|toolchain|JvmTarget|options\.release|java\s*\{'
+
+rg -n -C2 'Spring Boot|Kotlin|JDK|JVM target|compile release' MIGRATION.md
+```
+
 Jenkins 관련 내용은 과거 운영 이력으로는 의미가 있을 수 있지만, 현재 이 저장소의 기준 CI/CD gate는 GitHub Actions입니다.
 
 ## 모듈 지도
