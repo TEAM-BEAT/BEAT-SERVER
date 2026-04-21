@@ -70,3 +70,9 @@ com.beat.domain.<context>/
 - Spring Web/Data/JPA/QueryDSL 같은 구현 기술 의존성이 제거된다.
 - JPA entity, Spring Data repository adapter, query 구현체, repository implementation은 `infra`가 소유한다.
 - `Role` 같은 도메인 enum은 권한 문자열만 소유하고, `GrantedAuthority` 변환 같은 security adapter 책임은 `gateway`나 실행 모듈 경계에 둔다.
+
+## #378 deferred persistence/query boundary
+
+#378에서는 `domain` 안에 남아 있는 JPA entity / Spring Data repository concern을 이동하지 않는다. 실제 domain model / persistence model separation은 #380, infra query implementation boundary와 QueryDSL/Kotlin JDSL scan 결정은 #381에서 함께 처리한다.
+
+현재 `domain`은 최종 순수 domain 모듈이 아니라 migration landing zone이며, 이 문서는 To-Be를 현재 완료 상태처럼 표현하지 않기 위해 current/deferred 상태를 명시한다.

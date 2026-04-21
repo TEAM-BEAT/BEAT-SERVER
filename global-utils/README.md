@@ -6,7 +6,7 @@
 
 | Current | Target | Deferred-to-issue |
 | --- | --- | --- |
-| Shared-kernel constraints are documented and guarded; current shared code is still being normalized from legacy common packages and must stay standalone from runtime lanes. | Framework/layer-neutral shared kernel with strict admission rules and no presentation/runtime ownership. | Shared ownership/package closeout -> #378. |
+| Shared-kernel constraints are documented and guarded. Current package names remain `com.beat.global.common.*`, but the module must stay standalone from runtime lanes. | Framework/layer-neutral shared kernel with strict admission rules and no presentation/runtime ownership. | Package rename, if ever needed, requires a dedicated compatibility review after #378. |
 
 ## 역할
 
@@ -28,16 +28,14 @@
 ## As-Is 패키지 구조
 
 ```text
-global-utils module:
-  (현재는 거의 placeholder)
-
-legacy root:
-  src/main/java/com/beat/global/common/**
+global-utils/
+  src/main/java/com/beat/global/common/dto/**
+  src/main/java/com/beat/global/common/exception/**
 ```
 
 설명:
-- 현재 shared code 대부분은 아직 root legacy `com.beat.global.common` 아래에 남아 있다.
-- `global-utils` 모듈은 최종 목적지이지만 아직 거의 비어 있는 상태다.
+- #378 기준 `com.beat.global.common.*` package 이름은 legacy-looking이지만 그대로 유지한다. rename churn보다 shared-kernel guard가 우선이다.
+- `ErrorResponse` / `SuccessResponse`는 presentation DTO 성격 논의 여지가 있지만, 현 범위에서는 shared-kernel current state로 문서화하고 runtime lane 의존이 들어오지 않도록 guard한다.
 
 ## To-Be 패키지 구조
 

@@ -1,4 +1,4 @@
-package com.beat.global.common.aop;
+package com.beat.observability.aop;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -6,6 +6,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -22,7 +23,7 @@ public class ExecutionTimeLoggerAspect {
 	@Component
 	@Profile("prod")
 	public static class ExecutionTimeLoggerForProd {
-		@Around("com.beat.global.common.aop.Pointcuts.allService()")
+		@Around("com.beat.observability.aop.Pointcuts.allService()")
 		public Object logServiceExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
 			return measureExecutionTime(joinPoint);
 		}
@@ -33,7 +34,7 @@ public class ExecutionTimeLoggerAspect {
 	@Component
 	@Profile({"local", "dev"})
 	public static class ExecutionTimeLoggerForLocalDev {
-		@Around("com.beat.global.common.aop.Pointcuts.allApplicationLogic()")
+		@Around("com.beat.observability.aop.Pointcuts.allApplicationLogic()")
 		public Object logApplicationExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
 			return measureExecutionTime(joinPoint);
 		}

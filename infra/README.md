@@ -6,7 +6,7 @@
 
 | Current | Target | Deferred-to-issue |
 | --- | --- | --- |
-| Application infra bootstrap (`EnableInfraBaseConfig`, JPA, QueryDSL, async, scheduler groups, external clients) and deployment/Ansible docs coexist in this module. QueryDSL/JPA configuration and dormant `RedisCacheConfig` remain current migration surfaces. | `infra` owns JPA entity / persistence model, Spring Data adapter, QueryDSL/Kotlin JDSL query implementation, and implementation of domain repository interfaces. Deployment docs stay separated from application infra contracts. | QueryDSL/JDSL and `JpaConfig` scan decisions -> #381; dormant `RedisCacheConfig` / `REDIS_CACHE` owner/activation -> #378; domain persistence split -> #380. |
+| Application infra bootstrap (`EnableInfraBaseConfig`, JPA, QueryDSL, async, scheduler groups, external clients) and deployment/Ansible docs coexist in this module. QueryDSL/JPA configuration remain current migration surfaces. Dormant `RedisCacheConfig` / `REDIS_CACHE` is retained as an infra-owned future shared cache extension point. | `infra` owns JPA entity / persistence model, Spring Data adapter, QueryDSL/Kotlin JDSL query implementation, and implementation of domain repository interfaces. Deployment docs stay separated from application infra contracts. | QueryDSL/JDSL and `JpaConfig` scan decisions -> #381; shared cache concrete activation policy -> future cache issue; domain persistence split -> #380. |
 
 ## 역할
 
@@ -59,9 +59,21 @@ current transitional sources:
 - `AsyncConfig`는 `@Import(TaskExecutorConfig.class)`로 executor 빈만 전이 로드하고, infra는 security-aware wrapper를 직접 소유하지 않는다.
 - scheduler bean은 `TaskSchedulerConfig` + `InfraBaseConfigGroup.SCHEDULER`로 분리되어 batch에서만 명시적으로 가져간다.
 - Redis runtime wiring은 Spring Boot auto-configuration과 gateway-owned config가 담당하고, infra는 더 이상 gateway-specific Redis bean을 소유하지 않는다.
-- future shared caching은 dormant `RedisCacheConfig` + `InfraBaseConfigGroup.REDIS_CACHE`에서 시작하고, 현재 실행 모듈은 아직 이를 import하지 않는다.
+- future shared caching은 dormant `RedisCacheConfig` + `InfraBaseConfigGroup.REDIS_CACHE`에서 시작하고, 현재 실행 모듈은 아직 이를 import하지 않는다. 활성화 전에는 cache name, TTL, serializer, namespace, invalidation policy, owner module, runtime opt-in이 먼저 정해져야 한다.
+- #378 기준 `RedisCacheConfig`는 삭제하지도 활성화하지도 않는 infra-owned dormant extension point다. gateway refresh-token Redis storage와 shared cache bootstrap은 별도 경계다.
 - 일부 공통 config는 `infra`로 이동했지만, JPA entity / Spring Data repository adapter / query 구현 상당수는 아직 `domain` 쪽 transitional package에 남아 있다.
 - 즉 `infra`도 아직 최종형이 아니라 **persistence 구현 책임을 받아오는 이관 진행 중인 landing zone**이다.
+
+## #378 known deferred package exceptions
+
+아래 두 파일은 physical module은 `infra`지만 Spring Data custom repository fragment discovery와 현재 `JpaConfig`/domain repository 구조에 묶여 있어 #378에서 package move하지 않는다. 누락이 아니라 #380/#381로 넘기는 명시적 예외다.
+
+| File | Current package | Deferred reason | Follow-up |
+| --- | --- | --- | --- |
+| `infra/src/main/java/com/beat/domain/booking/dao/TicketRepositoryCustomImpl.java` | `com.beat.domain.booking.dao` | Spring Data custom fragment discovery가 domain repository interface package와 결합되어 있음 | #380/#381 |
+| `infra/src/main/java/com/beat/domain/schedule/dao/ScheduleRepositoryCustomImpl.java` | `com.beat.domain.schedule.dao` | QueryDSL implementation boundary와 `JpaConfig` scan 결정이 함께 필요함 | #381 |
+
+`SharedBoundaryContractTest`는 infra source에서 `com.beat.domain.*` package residue가 위 두 파일을 넘지 않도록 고정한다.
 
 ## To-Be 패키지 구조
 

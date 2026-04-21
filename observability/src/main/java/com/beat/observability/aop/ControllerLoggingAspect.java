@@ -1,4 +1,4 @@
-package com.beat.global.common.aop;
+package com.beat.observability.aop;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -48,7 +48,7 @@ public class ControllerLoggingAspect {
 	);
 
 	/** Controller 요청 로깅 */
-	@Before("com.beat.global.common.aop.Pointcuts.allController()")
+	@Before("com.beat.observability.aop.Pointcuts.allController()")
 	public void logControllerRequest(JoinPoint joinPoint) {
 		ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 		if (attributes == null) {
@@ -80,7 +80,7 @@ public class ControllerLoggingAspect {
 	}
 
 	/** Controller 정상 반환 로깅 */
-	@AfterReturning(value = "com.beat.global.common.aop.Pointcuts.allController()", returning = "result")
+	@AfterReturning(value = "com.beat.observability.aop.Pointcuts.allController()", returning = "result")
 	public void logControllerResponse(JoinPoint joinPoint, Object result) {
 		log.debug("[Controller 정상 반환] {}.{}() | 반환 타입: {}",
 			joinPoint.getSignature().getDeclaringType().getSimpleName(),
@@ -89,7 +89,7 @@ public class ControllerLoggingAspect {
 	}
 
 	/** Controller 예외 발생 시 로깅 */
-	@AfterThrowing(value = "com.beat.global.common.aop.Pointcuts.allController()", throwing = "ex")
+	@AfterThrowing(value = "com.beat.observability.aop.Pointcuts.allController()", throwing = "ex")
 	public void logControllerException(JoinPoint joinPoint, Exception ex) {
 		log.error("[Controller 예외 발생] {}.{}() | 예외 메시지: {}",
 			joinPoint.getSignature().getDeclaringType().getSimpleName(),
