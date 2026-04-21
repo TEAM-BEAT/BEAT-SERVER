@@ -95,7 +95,7 @@ root verification task:
 
 | 이슈 | 후속 작업 범위 |
 | --- | --- |
-| #378 | shared module ownership/package closeout, dormant cache ownership 결정 |
+| #378 | shared module ownership/package closeout, observability AOP package closeout, dormant cache ownership 결정 |
 | #379 | gateway public/internal surface tightening |
 | #380 | domain model / repository interface와 infra persistence model / repository implementation 분리 전략 |
 | #381 | infra QueryDSL → Kotlin JDSL 경계, `JpaConfig` scan 결정 |
@@ -104,6 +104,16 @@ root verification task:
 | #384 | README/CI migration gate baseline 정리 |
 
 이 문서는 package 이동, query 기술 교체, gateway scan 축소, domain repository interface와 infra persistence implementation 분리, coroutine 도입을 승인하는 문서가 아닙니다. 그런 작업은 위 후속 이슈에서 다룹니다.
+
+## #378 shared module closeout baseline
+
+#378 기준 shared module closeout은 아래 결정을 고정한다.
+
+- `observability` AOP source package는 `com.beat.observability.aop`가 소유한다. `ObservabilityModuleConfig`는 기존 activation semantics를 보존하기 위해 아직 component-scan/import를 넓히지 않는다.
+- `infra`의 `RedisCacheConfig` / `InfraBaseConfigGroup.REDIS_CACHE`는 infra-owned dormant shared cache extension point로 유지하고, 실행 모듈은 아직 opt-in하지 않는다.
+- `infra` 안의 `com.beat.domain.*` package residue는 두 QueryDSL custom repository implementation만 known deferred exception으로 허용하며 #380/#381에서 처리한다.
+- `module-contracts`는 Java source를 유지하고 implementation-free contract module로 guard한다.
+- `global-utils`는 `com.beat.global.common.*` package를 즉시 rename하지 않고 framework/layer-neutral shared-kernel guard를 우선한다.
 
 ## CI와 로컬 검증 기준
 

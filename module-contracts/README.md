@@ -6,7 +6,7 @@
 
 | Current | Target | Deferred-to-issue |
 | --- | --- | --- |
-| Contract surface remains Java source in places and currently exposes auth, notification, schedule, SMS, and storage ports/transfer models. | Explicit decision whether contracts stay Java or become Kotlin while preserving a stable implementation-free API. | Java-vs-Kotlin contract decision and shared module closeout -> #378. |
+| Contract surface intentionally remains Java source and currently exposes auth, notification, schedule, SMS, and storage ports/transfer models. `domain` / `global-utils` are compileOnly references for transitional contract types. | Stable implementation-free API; language conversion only after API shape and Java/Kotlin consumer compatibility are reviewed. | Domain-coupled contract type reduction -> follow-up after #378. |
 
 ## 역할
 
@@ -64,7 +64,9 @@ module-contracts/
 
 - 현재 `module-contracts`는 `auth`, `notification`, `schedule`, `sms`, `storage` 계약을 모아두는 얇은 공유 모듈이다.
 - 구현체는 다른 모듈에 있고, 이 모듈은 계약 타입만 제공한다.
-- `build.gradle.kts`에서 `domain`, `global-utils`를 `compileOnly`로만 참조한다.
+- #378 결정: Java source를 유지한다. cross Java/Kotlin consumer API 안정성이 언어 전환보다 우선이므로 Kotlin 변환은 하지 않는다.
+- `build.gradle.kts`에서 `domain`, `global-utils`를 `compileOnly`로만 참조한다. `SocialType`, `Schedule`, `BaseErrorCode` 같은 domain/global-utils-coupled contract type은 후속에서 contract-local value/ID로 줄일지 검토한다.
+- `SharedBoundaryContractTest`는 Spring/JPA/Redis stereotype이나 infra/executable/gateway 구현 참조가 들어오지 않도록 guard한다.
 
 ## To-Be 패키지 구조
 

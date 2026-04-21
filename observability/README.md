@@ -6,7 +6,7 @@
 
 | Current | Target | Deferred-to-issue |
 | --- | --- | --- |
-| Observability module owns marker config and shared logging resource config, while some AOP/common observability concerns may still reflect legacy package debt. | Logging, metrics, tracing, actuator configuration, and shared runtime observability conventions are owned by the observability module. | Legacy observability package ownership closeout -> #378. |
+| Observability module owns marker config, shared logging resource config, and AOP sources under `com.beat.observability.aop`. `ObservabilityModuleConfig` remains a marker import and does not component-scan AOP yet. | Logging, metrics, tracing, actuator configuration, and shared runtime observability conventions are owned by the observability module. | Intentional AOP activation/import policy and boot-context coverage, if needed -> follow-up after #378. |
 
 ## 역할
 
@@ -31,20 +31,26 @@
 ```text
 observability/
   src/main/kotlin/com/beat/observability/
-    ObservabilityModuleConfig.kt
-
-legacy root:
-  src/main/java/com/beat/global/common/aop/**
+    ObservabilityModuleConfig.kt              # marker import; no component scan yet
+  src/main/java/com/beat/observability/aop/
+    ControllerLoggingAspect.java
+    ServiceLoggingAspect.java
+    TxAspect.java
+    ExecutionTimeLoggerAspect.java
+    Pointcuts.java
 ```
 
 설명:
 - 현재 `observability` 모듈은 marker config + shared resource ownership 단계이다.
-- AOP와 일부 공통 관측성 관심사는 아직 legacy root 패키지에 남아 있다.
+- #378에서 AOP source package는 legacy global-common AOP package에서 `com.beat.observability.aop`로 closeout했다.
+- `ObservabilityModuleConfig`는 아직 AOP package를 component-scan/import하지 않는다. 실행 모듈의 기존 activation semantics를 바꾸지 않기 위해, AOP runtime 활성화는 explicit import와 boot/context test가 생길 때 별도로 진행한다.
+- `Pointcuts.allApplicationLogic()`는 기존 `com.beat.global..*` 제외를 유지하면서 observability 자기 자신(`com.beat.observability..*`)도 advise하지 않는다.
 - executable-lane notification event listener는 package normalization closeout 이후 `apis` owner namespace(`com.beat.apis.external.notification.slack.event`)로 정렬됐다.
 
 ## To-Be 패키지 구조
 
 ```text
+com.beat.observability.aop
 com.beat.observability.logging
 com.beat.observability.metrics
 com.beat.observability.tracing

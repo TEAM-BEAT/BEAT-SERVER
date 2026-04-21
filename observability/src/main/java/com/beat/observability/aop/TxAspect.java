@@ -1,6 +1,7 @@
-package com.beat.global.common.aop;
+package com.beat.observability.aop;
 
 import java.lang.reflect.Method;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -21,10 +22,10 @@ import lombok.extern.slf4j.Slf4j;
 @Profile("!test")
 public class TxAspect {
 
-	@Around("com.beat.global.common.aop.Pointcuts.allService()")
+	@Around("com.beat.observability.aop.Pointcuts.allService()")
 	public Object doTransaction(ProceedingJoinPoint joinPoint) throws Throwable {
 		// 메서드 정보를 추출
-		MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
+		MethodSignature methodSignature = (MethodSignature)joinPoint.getSignature();
 		Method method = methodSignature.getMethod();
 
 		// @Transactional 애너테이션 정보 확인 (메서드 혹은 클래스 레벨)

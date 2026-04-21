@@ -1,15 +1,19 @@
-package com.beat.global.common.aop;
+package com.beat.observability.aop;
 
 import org.aspectj.lang.annotation.Pointcut;
 
 public class Pointcuts {
 	@Pointcut("execution(* com.beat..*Controller.*(..))")
-	public void allController() {}
+	public void allController() {
+	}
 
 	@Pointcut("execution(* com.beat..*Service.*(..)) || execution(* com.beat..*UseCase.*(..)) || execution(* com.beat..*Facade.*(..))")
-	public void allService() {}
+	public void allService() {
+	}
 
 	@Pointcut("execution(* com.beat..*(..))" +
-		" && !within(com.beat.global..*)")
-	public void allApplicationLogic() {}
+		" && !within(com.beat.global..*)" +
+		" && !within(com.beat.observability..*)")
+	public void allApplicationLogic() {
+	}
 }

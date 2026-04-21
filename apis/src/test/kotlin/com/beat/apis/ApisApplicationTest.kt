@@ -84,7 +84,7 @@ class ApisApplicationTest {
                 .filter { path ->
                     val source = Files.readString(path)
                     source.startsWith("package com.beat.domain.")
-                        || source.startsWith("package com.beat.global.")
+                            || source.startsWith("package com.beat.global.")
                 }
                 .map(Path::toString)
                 .toList()
@@ -154,6 +154,7 @@ class ApisApplicationTest {
     @Test
     fun `controller logging aspect is owned by observability module`() {
         assertFalse(Files.exists(Path.of("../src/main/java/com/beat/global/common/aop/ControllerLoggingAspect.java")))
-        assertTrue(Files.exists(Path.of("../observability/src/main/java/com/beat/global/common/aop/ControllerLoggingAspect.java")))
+        assertFalse(Files.exists(Path.of("../observability/src/main/java/com/beat/global/common/aop/ControllerLoggingAspect.java")))
+        assertTrue(Files.exists(Path.of("../observability/src/main/java/com/beat/observability/aop/ControllerLoggingAspect.java")))
     }
 }
