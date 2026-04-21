@@ -1,5 +1,7 @@
 # BEAT - 소규모 공연을 등록하고 관리할 수 있는 티켓 예매 플랫폼
 
+> 백엔드 Java → Kotlin 마이그레이션 기준과 CI gate 정리는 [`MIGRATION.md`](MIGRATION.md)를 참고하세요.
+
 # BEAT <a href="https://www.beatlive.kr"><img src="https://github.com/user-attachments/assets/49b52b5a-1859-486e-aaf5-e8bee25f64ca" align="left" width="100"></a>
 
 <a href="https://hits.seeyoufarm.com">

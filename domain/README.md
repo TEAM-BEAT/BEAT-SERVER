@@ -1,12 +1,18 @@
 # domain module
 
-> 이 문서는 `domain` 모듈의 최종 To-Be 계약을 정의한다. `domain`은 비즈니스 규칙의 중심이며, 실행 모듈/인프라/웹을 모르는 상태를 목표로 한다.
+> 이 문서는 `domain` 모듈의 현재 상태, 목표 계약, 그리고 #384에서 수행하지 않는 후속 작업을 구분한다. `domain`은 도메인 모델과 repository interface의 중심을 목표로 하지만, 현재는 아직 JPA/persistence concern을 포함한다.
+
+## Migration status
+
+| Current | Target | Deferred-to-issue |
+| --- | --- | --- |
+| 현재 `domain/src/main/java/com/beat/domain/**` 안에 JPA entity와 Spring Data repository concern이 남아 있다. 예: `Users`는 `@Entity`이고 `UserRepository`는 `JpaRepository`를 확장한다. `Role.java`는 `ROLE_*` 문자열만 소유하고 `GrantedAuthority` / `SimpleGrantedAuthority` bridge는 없다. | `domain`에는 도메인 모델, 값 객체, 도메인 서비스, repository interface만 남긴다. JPA entity / persistence model, Spring Data adapter, QueryDSL/Kotlin JDSL 구현체, repository 구현체는 `infra`가 소유한다. | domain model / persistence model separation -> #380. infra query/implementation 경계 -> #381. Security authority conversion은 domain 밖에 둔다. |
 
 ## 역할
 
-- 핵심 도메인 모델, 값 객체, 도메인 서비스, Repository Interface를 소유한다.
+- 핵심 도메인 모델, 값 객체, 도메인 서비스, repository interface를 소유한다.
 - 유스케이스와 무관하게 재사용되는 순수 비즈니스 규칙을 제공한다.
-- 영속성, 웹, 보안, 외부 API의 구현 세부사항을 모른다.
+- JPA entity, Spring Data repository adapter, query 구현체, 웹, 보안, 외부 API의 구현 세부사항을 모른다.
 
 ## 허용 의존성
 
@@ -21,25 +27,22 @@
 - JPA Entity, QueryDSL Q type, Redis document, 외부 API DTO 보유 금지
 - Controller 요청/응답 DTO 보유 금지
 
-## As-Is 패키지 구조
+## Current 패키지 구조
 
 ```text
-domain module:
-  (현재는 거의 placeholder에 가까움)
-
-legacy root:
+domain/
   src/main/java/com/beat/domain/<context>/
-    api/
-    application/
-    dao/
-    domain/
+    dao/          # 현재는 Spring Data repository concern이 남아 있음
+    domain/       # 현재는 JPA entity와 domain enum이 함께 남아 있음
     exception/
     port/
 ```
 
 설명:
-- 현재 진짜 도메인 코드는 아직 root legacy `src/main/java/com/beat/domain/**` 아래에 많이 남아 있다.
-- `domain` 모듈은 최종 목적지이지만, 아직 패키지 이관이 본격화되기 전 단계다.
+- 현재 도메인 모듈은 최종 순수 도메인 형태가 아니라 migration landing zone이다.
+- `Users` 같은 타입은 아직 `@Entity`이고, `UserRepository` 같은 repository는 `JpaRepository`를 확장한다.
+- 최종 목표에서는 JPA entity / persistence model / Spring Data adapter / query 구현체가 `infra`로 이동하고, `domain`에는 repository interface만 남는다.
+- `Role`은 현재 `ROLE_USER`, `ROLE_MEMBER`, `ROLE_ADMIN` 문자열만 소유하며, Spring Security authority adapter 책임은 domain 밖에 둔다.
 
 ## To-Be 패키지 구조
 
@@ -53,7 +56,7 @@ com.beat.domain.<context>/
 ```
 
 설명:
-- `domain/`에는 aggregate, entity, enum 같은 핵심 도메인 모델을 둔다.
+- `domain/`에는 aggregate, domain entity, enum 같은 핵심 도메인 모델을 둔다. 여기서 entity는 JPA entity가 아니라 도메인 모델을 의미한다.
 - `service/`에는 cross-aggregate 규칙 중심의 domain service를 둔다.
 - `repository/`에는 **interface only** 저장소 계약만 둔다.
 - `vo/`에는 진짜 값 객체만 둔다.
@@ -63,6 +66,7 @@ com.beat.domain.<context>/
 
 - Domain 규칙은 우선 Entity/Value Object에 둔다.
 - `Domain Service`는 CRUD wrapper가 아니라 cross-aggregate 규칙 중심으로 정리한다.
-- Repository 시그니처는 도메인 중립적으로 유지한다.
-- Spring Web/Data 의존성이 제거된다.
+- Repository 시그니처는 도메인 중립적인 interface로 유지한다.
+- Spring Web/Data/JPA/QueryDSL 같은 구현 기술 의존성이 제거된다.
+- JPA entity, Spring Data repository adapter, query 구현체, repository implementation은 `infra`가 소유한다.
 - `Role` 같은 도메인 enum은 권한 문자열만 소유하고, `GrantedAuthority` 변환 같은 security adapter 책임은 `gateway`나 실행 모듈 경계에 둔다.

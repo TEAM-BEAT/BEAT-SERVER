@@ -1,6 +1,12 @@
 # batch module
 
-> 이 문서는 batch root dependency removal 이후 `batch` 모듈의 현재 detached bootstrap 계약과 남아 있는 transitional debt를 설명한다. `batch`는 이제 root project 의존 없이 자체 classpath로 build/boot/test 되어야 한다.
+> 이 문서는 `batch` 모듈의 현재 detached bootstrap 계약, 목표 계약, 그리고 #384에서 수행하지 않는 후속 작업을 구분한다. `batch`는 root project 의존 없이 자체 classpath로 build/boot/test 되어야 한다.
+
+## Migration status
+
+| Current | Target | Deferred-to-issue |
+| --- | --- | --- |
+| Batch owns scheduler runtime after detach/root dependency removal; `BatchApplication` imports infra scheduler/async support and observability while `beat.scheduler.owner=true` in runtime resources. | Cleaner job/application/service/dto organization for scheduler, maintenance, and batch flows. | Internal package/CQRS cleanup for executable modules -> #382. |
 
 ## 역할
 
@@ -61,13 +67,27 @@ batch/
 - test profile은 `beat.scheduler.owner=false`로 내려서 detached smoke boot를 검증하고, owner-enabled contract는 별도 테스트로 검증한다.
 - scheduler/service 코드는 `batch` owner namespace 기준으로 정렬됐다.
 
-## What changed in this issue
+## Previous detached-bootstrap changes
 
 - `batch/build.gradle.kts`에서 `implementation(project(":"))`를 제거했다.
 - `batch`는 root project classpath 없이 build/boot/test 되는 방향으로 고정됐다.
 - 테스트 계약을 갱신해 detached bootstrap, non-owner smoke profile, owner-enabled schedule contract를 고정했다.
 - batch architecture guard를 추가해 root dependency 재도입과 forbidden runtime lane 참조를 막는다.
-- `batch/README.md`를 detached bootstrap 상태 기준으로 갱신했다.
+- `batch/README.md`는 detached bootstrap 상태 기준으로 유지한다.
+
+## Current / Target / Deferred-to-issue clarity for #384
+
+Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 실행 가능한 `batch` 계약과 목표 방향을 분리하고, 실제 구조 변경은 후속 이슈로 미룬다.
+
+| Area | Current in `batch` | Target direction | Deferred-to-issue |
+| --- | --- | --- | --- |
+| Executable lane ownership | scheduler/batch lane은 root bootstrap 없이 `BatchApplication`과 module-local config로 실행된다. | 계속 `batch`가 scheduler runtime, scheduled jobs, maintenance flows를 소유한다. | #384 gate baseline only |
+| Shared module ownership | `domain`, `module-contracts`, `global-utils`, `observability`, `infra`의 현재 공개 계약을 사용하고 `gateway`는 직접 의존하지 않는다. | shared module ownership/package closeout 이후 batch가 필요한 공개 계약만 더 좁게 사용한다. | #378 |
+| CQRS/package normalization | `scheduler`, `booking`, `promotion` application package와 job/service 계층이 최소 정리 상태로 남아 있다. | `com.beat.batch.<context>` 아래 job/facade/application/service/dto 기준으로 정리한다. | #382 |
+| Gateway boundary | `batch`는 gateway에 직접 의존하지 않고 사용자/관리자 HTTP lane과 분리되어 있다. | scheduler lane은 gateway 인증 구현과 계속 분리한다. | #379 |
+| Domain/persistence boundary | batch job은 domain repository/model contract와 infra bootstrap을 통해 persistence를 사용한다. | domain entity/persistence 전략 정리 후에도 batch는 domain contract 중심으로 접근한다. | #380 |
+| Infra/query boundary | `InfraConfig`가 JPA, QueryDSL, async, scheduler group을 명시적으로 import한다. | QueryDSL/JDSL 전환과 `JpaConfig` scan 결정은 infra-owned boundary에서 정한다. | #381 |
+| Async/scheduler handoff | 실행 모듈 중 유일하게 `@EnableScheduling`을 유지하고 `ScheduleJobPort` owner를 제공한다. | coroutine/async 확장 여부가 결정될 때까지 scheduler owner 계약을 넓히지 않는다. | #383 |
 
 ## Current ownership notes
 
@@ -90,7 +110,7 @@ batch/
 ## Remaining transitional debt
 
 - owner namespace normalization은 끝났지만 `job/application/service` 내부 세분화는 아직 최소 수준으로만 정리돼 있다.
-- 일부 legacy domain entity가 여전히 Spring Security 타입(`GrantedAuthority`)을 참조해 `domain` 모듈에 transitional runtime support가 남아 있다.
+- `domain` 모듈은 아직 JPA entity/repository 같은 persistence concern을 포함하는 transitional state이며, `Role`은 현재 `ROLE_*` 문자열만 소유하고 Spring Security `GrantedAuthority` bridge는 갖지 않는다. domain persistence 전략은 #380에서 다룬다.
 - root executable lane은 retire되었고, scheduler runtime owner는 `batch`로 고정됐다.
 - CQRS/service layer normalization과 batch 전용 package 정리는 다음 단계에서 다룬다.
 
