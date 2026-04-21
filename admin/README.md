@@ -1,6 +1,12 @@
 # admin module
 
-> 이 문서는 admin root dependency removal 이후 `admin` 모듈의 현재 bootstrap 계약과 남아 있는 transitional debt를 설명한다. `admin`은 이제 root project 의존 없이 자체 classpath로 build/boot/test 되어야 한다.
+> 이 문서는 `admin` 모듈의 현재 bootstrap 계약, 목표 계약, 그리고 #384에서 수행하지 않는 후속 작업을 구분한다. `admin`은 root project 의존 없이 자체 classpath로 build/boot/test 되어야 한다.
+
+## Migration status
+
+| Current | Target | Deferred-to-issue |
+| --- | --- | --- |
+| Detached admin executable lane with `AdminApplication`, admin-owned HTTP security/CORS/converter policy, admin-facing DTOs/Swagger, and explicit gateway/infra/observability bootstrap imports. | Admin-owned internal package and service organization that keeps backoffice policy separate from user API policy. | Adapter/facade/port/application cleanup and executable package/CQRS rules -> #382. |
 
 ## 역할
 
@@ -70,12 +76,26 @@ admin/
 - `admin`은 async/scheduler shared runtime bean을 직접 import하지 않는다.
 - `admin` resources는 `beat.scheduler.owner=false`를 유지하고, scheduler owner bean이나 non-owner bridge를 따로 소유하지 않는다.
 
-## What changed in this issue
+## Previous detached-bootstrap changes
 
 - `admin/build.gradle.kts`에서 `implementation(project(":"))`를 제거했다.
 - `admin`은 root project classpath 없이 build/boot/test 되는 방향으로 고정됐다.
 - 테스트 계약과 architecture guard를 추가해 root dependency 재도입, root bootstrap import, gateway 내부 패키지 직접 참조를 막는다.
-- `admin/README.md`를 detached bootstrap 상태 기준으로 갱신했다.
+- `admin/README.md`는 detached bootstrap 상태 기준으로 유지한다.
+
+## Current / Target / Deferred-to-issue clarity for #384
+
+Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 실행 가능한 `admin` 계약과 목표 방향을 분리하고, 실제 구조 변경은 후속 이슈로 미룬다.
+
+| Area | Current in `admin` | Target direction | Deferred-to-issue |
+| --- | --- | --- | --- |
+| Executable lane ownership | 관리자 HTTP API lane은 root bootstrap 없이 `AdminApplication`과 module-local config로 실행된다. | 계속 `admin`이 admin-facing controller/DTO/security/OpenAPI와 운영 워크플로 entrypoint를 소유한다. | #384 gate baseline only |
+| Shared module ownership | `domain`, `module-contracts`, `global-utils`, `observability`, `gateway`, `infra`의 현재 공개 계약을 사용한다. | shared module ownership/package closeout 이후 공개 계약만 더 좁게 사용한다. | #378 |
+| CQRS/package normalization | `adapter`, `application`, `facade`, `port` 중심 Java package가 남아 있고 context별 계층이 균일하지 않다. | `com.beat.admin.<context>` 아래 controller/facade/application/service/dto 기준으로 정리한다. | #382 |
+| Gateway boundary | `GatewayModuleConfig`와 `gateway.annotation.CurrentMember` 같은 공개 표면만 직접 참조한다. | gateway 내부 security/filter/config 패키지 직접 참조 없이 admin 인증 경계를 유지한다. | #379 |
+| Domain/persistence boundary | admin API DTO는 JPA Entity/QueryDSL Q type/Redis document를 직접 노출하지 않는 guard를 유지한다. | domain persistence 전략 정리 후에도 admin boundary는 transfer DTO와 domain contract 중심으로 유지한다. | #380 |
+| Infra/query boundary | `InfraConfig`가 필요한 infra base config group만 명시적으로 import하고 async/scheduler bean은 직접 소유하지 않는다. | QueryDSL/JDSL 전환과 scan 결정은 infra-owned boundary에서 정한다. | #381 |
+| Async/scheduler handoff | `admin`은 scheduler owner도 non-owner schedule bridge owner도 아니다. | async/coroutine 도입 범위가 결정될 때까지 admin lane의 runtime boundary를 넓히지 않는다. | #383 |
 
 ## Current ownership notes
 
@@ -90,9 +110,8 @@ admin/
 
 ### Outside `admin`
 
-- `gateway`: JWT, auth filter, current-member resolver, 인증/인가 shared primitives
+- `gateway`: JWT, auth filter, current-member resolver, refresh-token storage boundary, 인증/인가 shared primitives
 - `infra`: JPA, QueryDSL, async, external-client bootstrap
-- `gateway`: JWT, auth filter, current-member resolver, gateway-owned Redis beans, 인증/인가 shared primitives
 - `domain`: admin이 사용하는 domain model / repository / port contracts
 - `module-contracts`: storage, auth, schedule 같은 cross-module port contracts
 - `global-utils`: shared response DTO와 공통 예외 계층

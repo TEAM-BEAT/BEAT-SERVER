@@ -1,6 +1,12 @@
 # observability module
 
-> 이 문서는 `observability` 모듈의 최종 To-Be 계약을 정의한다. 관측성은 모든 실행 모듈이 쓰지만, 어느 비즈니스 모듈의 일부가 되어서는 안 된다.
+> 이 문서는 `observability` 모듈의 현재 logging/metrics/tracing surface, 목표 계약, 그리고 #384에서 수행하지 않는 후속 작업을 구분한다. 관측성은 모든 실행 모듈이 쓰지만, 어느 비즈니스 모듈의 일부가 되어서는 안 된다.
+
+## Migration status
+
+| Current | Target | Deferred-to-issue |
+| --- | --- | --- |
+| Observability module owns marker config and shared logging resource config, while some AOP/common observability concerns may still reflect legacy package debt. | Logging, metrics, tracing, actuator configuration, and shared runtime observability conventions are owned by the observability module. | Legacy observability package ownership closeout -> #378. |
 
 ## 역할
 

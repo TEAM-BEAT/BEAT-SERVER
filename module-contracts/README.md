@@ -1,6 +1,12 @@
 # module-contracts module
 
-> 이 문서는 `module-contracts` 모듈의 최종 To-Be 계약을 정의한다. `module-contracts`는 실행 모듈과 인프라가 공유하는 경량 계약 경계이며, 구현 대신 인터페이스와 전달 모델만 소유한다.
+> 이 문서는 `module-contracts` 모듈의 현재 계약 surface, 목표 계약, 그리고 #384에서 수행하지 않는 후속 작업을 구분한다. `module-contracts`는 실행 모듈과 인프라가 공유하는 경량 계약 경계이며, 구현 대신 인터페이스와 전달 모델만 소유한다.
+
+## Migration status
+
+| Current | Target | Deferred-to-issue |
+| --- | --- | --- |
+| Contract surface remains Java source in places and currently exposes auth, notification, schedule, SMS, and storage ports/transfer models. | Explicit decision whether contracts stay Java or become Kotlin while preserving a stable implementation-free API. | Java-vs-Kotlin contract decision and shared module closeout -> #378. |
 
 ## 역할
 

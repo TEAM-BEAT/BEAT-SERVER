@@ -1,6 +1,12 @@
 # gateway module
 
-> 이 문서는 `gateway` 모듈의 최종 To-Be 계약을 정의한다. `gateway`는 인증/인가/JWT와 공통 보안 부품을 소유하되, 실행 모듈의 비즈니스 정책까지 가져가면 안 된다.
+> 이 문서는 `gateway` 모듈의 현재 보안/JWT/bootstrap surface, 목표 계약, 그리고 #384에서 수행하지 않는 후속 작업을 구분한다. `gateway`는 인증/인가/JWT와 공통 보안 부품을 소유하되, 실행 모듈의 비즈니스 정책까지 가져가면 안 된다.
+
+## Migration status
+
+| Current | Target | Deferred-to-issue |
+| --- | --- | --- |
+| Gateway module provides the current security/JWT/bootstrap surface through `GatewayModuleConfig`; executable modules still rely on a mix of public marker config and legacy implementation packages. | Tighter public/internal surface where executable modules depend only on explicit gateway contracts/enable boundaries. | `GatewayModuleConfig` scan narrowing and public/internal contract closeout -> #379. |
 
 ## 역할
 

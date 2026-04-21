@@ -1,6 +1,12 @@
 # global-utils module
 
-> 이 문서는 `global-utils` 모듈의 최종 To-Be 계약을 정의한다. 이 모듈은 편한 공용 창고가 아니라, 가장 보수적으로 관리되는 shared-kernel 성격의 공용 모듈이어야 한다.
+> 이 문서는 `global-utils` 모듈의 현재 shared-kernel guard, 목표 계약, 그리고 #384에서 수행하지 않는 후속 작업을 구분한다. 이 모듈은 편한 공용 창고가 아니라, 가장 보수적으로 관리되는 shared-kernel 성격의 공용 모듈이어야 한다.
+
+## Migration status
+
+| Current | Target | Deferred-to-issue |
+| --- | --- | --- |
+| Shared-kernel constraints are documented and guarded; current shared code is still being normalized from legacy common packages and must stay standalone from runtime lanes. | Framework/layer-neutral shared kernel with strict admission rules and no presentation/runtime ownership. | Shared ownership/package closeout -> #378. |
 
 ## 역할
 

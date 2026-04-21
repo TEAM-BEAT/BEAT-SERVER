@@ -1,7 +1,13 @@
 # apis module
 
-> 이 문서는 issue #360 반영 후 `apis` 모듈의 현재 bootstrap 계약과 남아 있는 transitional debt를 설명한다. `apis`는 사용자 API 실행 모듈이며, 이제 root
+> 이 문서는 `apis` 모듈의 현재 bootstrap 계약, 목표 계약, 그리고 #384에서 수행하지 않는 후속 작업을 구분한다. `apis`는 사용자 API 실행 모듈이며, root
 > project 의존 없이 자체 classpath로 build/boot/test 되어야 한다.
+
+## Migration status
+
+| Current | Target | Deferred-to-issue |
+| --- | --- | --- |
+| Detached user API executable lane with `ApisApplication`, module-local HTTP security policy, user-facing controllers/DTOs/Swagger, and a non-owner `ApisScheduleJobPortConfig` bridge while `batch` owns scheduler runtime. | Stable user API lane with cleaner internal package and CQRS boundaries under `com.beat.apis.<context>`. | Internal CQRS/package rules and `ApisScheduleJobPortConfig` closeout -> #382. |
 
 ## 역할
 
@@ -80,6 +86,20 @@ apis/
 - scheduler handoff 이후에도 `ApisScheduleJobPortConfig`는 module-local non-owner bridge로 유지된다.
 - 테스트 계약을 갱신해 root dependency 재도입, root bootstrap import, root scheduler owner 재연결을 막는다.
 
+## Current / Target / Deferred-to-issue clarity for #384
+
+Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 실행 가능한 `apis` 계약과 목표 방향을 분리하고, 실제 구조 변경은 후속 이슈로 미룬다.
+
+| Area | Current in `apis` | Target direction | Deferred-to-issue |
+| --- | --- | --- | --- |
+| Executable lane ownership | 사용자 API lane은 root bootstrap 없이 `ApisApplication`과 module-local config로 실행된다. | 계속 `apis`가 user-facing controller/DTO/security/OpenAPI를 소유한다. | #384 gate baseline only |
+| Shared module ownership | `domain`, `module-contracts`, `global-utils`, `observability`, `gateway`, `infra`의 현재 공개 계약을 사용한다. | shared module ownership/package closeout 이후 공개 계약만 더 좁게 사용한다. | #378 |
+| CQRS/package normalization | context별 `controller`, `api`, `application`, `dto` 세분화가 아직 균일하지 않다. | `com.beat.apis.<context>` 아래 controller/facade/application/service/dto 기준으로 정리한다. | #382 |
+| Gateway boundary | `GatewayModuleConfig`와 공개 annotation/contract를 통해 인증 경계를 사용한다. | gateway 내부 패키지 직접 참조 없이 공개 표면만 유지한다. | #379 |
+| Domain/persistence boundary | API DTO는 JPA Entity/QueryDSL Q type/Redis document를 직접 노출하지 않는 guard를 유지한다. | domain persistence 전략 정리 후에도 API boundary는 transfer DTO 중심으로 유지한다. | #380 |
+| Infra/query boundary | `InfraConfig`가 JPA, QueryDSL, async, external-client group을 명시적으로 import한다. | QueryDSL/JDSL 전환과 scan 결정은 infra-owned boundary에서 정한다. | #381 |
+| Async/scheduler handoff | `apis`는 scheduler owner가 아니며 non-owner `ScheduleJobPort` bridge만 가진다. | async/coroutine 도입 범위가 결정될 때까지 HTTP lane의 비동기 경계를 넓히지 않는다. | #383 |
+
 ## Current ownership notes
 
 ### In `apis`
@@ -93,9 +113,8 @@ apis/
 
 ### Outside `apis`
 
-- `gateway`: JWT, auth filter, current-member resolver, refresh-token redis repository, auth/security shared primitives
+- `gateway`: JWT, auth filter, current-member resolver, refresh-token redis repository, refresh-token storage boundary, auth/security shared primitives
 - `infra`: JPA, QueryDSL, async/external-client bootstrap
-- `gateway`: JWT, auth filter, current-member resolver, refresh-token redis repository, gateway-owned Redis beans
 - `domain`: repository/domain/exception/port contracts used by `apis`
 - `global-utils`: shared response DTO and common exception hierarchy
 - `observability`: logging/metrics/tracing aspects
