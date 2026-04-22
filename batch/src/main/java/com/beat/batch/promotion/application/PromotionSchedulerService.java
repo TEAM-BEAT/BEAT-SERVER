@@ -1,26 +1,27 @@
 package com.beat.batch.promotion.application;
 
-import com.beat.domain.promotion.dao.PromotionRepository;
-import com.beat.domain.promotion.domain.CarouselNumber;
-import com.beat.domain.promotion.domain.Promotion;
-import com.beat.domain.schedule.dao.ScheduleRepository;
-import com.beat.domain.schedule.domain.Schedule;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalInt;
+import com.beat.domain.promotion.domain.CarouselNumber;
+import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.promotion.repository.PromotionRepository;
+import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.domain.Schedule;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -56,9 +57,9 @@ public class PromotionSchedulerService {
 	}
 
 	private boolean isInvalidPromotion(Promotion promotion) {
-		return Optional.ofNullable(promotion.getPerformance())
-			.map(performance -> {
-				List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performance.getId());
+		return Optional.ofNullable(promotion.getPerformanceId())
+			.map(performanceId -> {
+				List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 				return getMinDueDate(schedules) < 0;
 			})
 			.orElse(false);
@@ -86,11 +87,12 @@ public class PromotionSchedulerService {
 		remainingPromotions.sort(Comparator.comparing(promotion -> promotion.getCarouselNumber().getNumber()));
 
 		List<CarouselNumber> carouselNumbers = Arrays.asList(CarouselNumber.values());
+		List<Promotion> reassignedPromotions = new ArrayList<>();
 		for (int i = 0; i < remainingPromotions.size(); i++) {
 			Promotion promotion = remainingPromotions.get(i);
-			promotion.updateCarouselNumber(carouselNumbers.get(i));
+			reassignedPromotions.add(promotion.updateCarouselNumber(carouselNumbers.get(i)));
 		}
 
-		promotionRepository.saveAll(remainingPromotions);
+		promotionRepository.saveAll(reassignedPromotions);
 	}
 }

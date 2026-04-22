@@ -24,6 +24,10 @@ import com.beat.apis.support.AbstractIntegrationTest;
 import io.swagger.v3.oas.models.OpenAPI;
 import org.springdoc.core.models.GroupedOpenApi;
 
+import com.beat.domain.performance.dao.PerformanceRepository;
+import com.beat.domain.promotion.repository.PromotionRepository;
+import com.beat.domain.schedule.dao.ScheduleRepository;
+
 @Tag("integration")
 class ApisModuleContextBootTest extends AbstractIntegrationTest {
 
@@ -54,6 +58,9 @@ class ApisModuleContextBootTest extends AbstractIntegrationTest {
 		assertFalse(applicationContext.containsBean("jobSchedulerService"));
 		assertTrue(applicationContext.getBeansOfType(TaskScheduler.class).isEmpty());
 		assertFalse(scheduleJobPort.getClass().getName().contains("JobSchedulerService"));
+		assertEquals(1, applicationContext.getBeansOfType(PerformanceRepository.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(PromotionRepository.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(ScheduleRepository.class).size());
 	}
 
 	@Test

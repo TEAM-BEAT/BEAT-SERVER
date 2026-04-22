@@ -11,9 +11,11 @@ import org.springframework.core.env.Environment;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.beat.batch.scheduler.application.JobSchedulerService;
 import com.beat.batch.support.AbstractBatchIntegrationTest;
 import com.beat.contracts.schedule.ScheduleJobPort;
-import com.beat.batch.scheduler.application.JobSchedulerService;
+import com.beat.domain.promotion.repository.PromotionRepository;
+import com.beat.domain.schedule.dao.ScheduleRepository;
 
 class BatchModuleContextBootTest extends AbstractBatchIntegrationTest {
 
@@ -39,5 +41,7 @@ class BatchModuleContextBootTest extends AbstractBatchIntegrationTest {
 		assertNotNull(scheduleJobPort);
 		assertSame(jobSchedulerService, scheduleJobPort);
 		assertEquals(false, ReflectionTestUtils.getField(jobSchedulerService, "schedulerOwner"));
+		assertEquals(1, applicationContext.getBeansOfType(PromotionRepository.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(ScheduleRepository.class).size());
 	}
 }

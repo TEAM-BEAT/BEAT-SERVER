@@ -28,6 +28,7 @@ import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
+import com.beat.domain.promotion.repository.PromotionRepository;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.staff.dao.StaffRepository;
@@ -50,6 +51,7 @@ public class PerformanceManagementService {
 	private final BookingRepository bookingRepository;
 	private final MemberRepository memberRepository;
 	private final PerformanceImageRepository performanceImageRepository;
+	private final PromotionRepository promotionRepository;
 	private final ScheduleJobPort scheduleJobPort;
 
 	@Transactional
@@ -240,6 +242,7 @@ public class PerformanceManagementService {
 			scheduleJobPort.cancel(schedule);
 		}
 
+		promotionRepository.deleteByPerformanceId(performanceId);
 		performanceRepository.delete(performance);
 	}
 }
