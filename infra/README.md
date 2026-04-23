@@ -48,7 +48,7 @@ infra/
     persistence/
       InfraPersistenceConfig.java              # infra.persistence narrow component scan
       InfraPersistenceMarker.java              # entity/repository/component scan root
-      promotion/entity/PromotionJpaEntity.java
+      promotion/entity/PromotionJpaEntity.kt     # Kotlin JPA entity; kotlin-jpa no-arg/all-open + body properties with protected setters
       promotion/mapper/PromotionPersistenceMapper.java
       promotion/repository/PromotionJpaRepository.java
       promotion/repository/PromotionRepositoryImpl.java

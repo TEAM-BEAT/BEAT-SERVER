@@ -139,13 +139,16 @@ class SharedBoundaryContractTest {
 		Set<String> expectedInfraPersistenceFiles = Set.of(
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceMarker.java",
-			"infra/src/main/java/com/beat/infra/persistence/promotion/entity/PromotionJpaEntity.java",
+			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.java"
 		);
 
-		Set<String> actualInfraPersistenceFiles = sourceFiles(Path.of("infra/src/main/java/com/beat/infra/persistence"))
+		Set<String> actualInfraPersistenceFiles = sourceFiles(
+			Path.of("infra/src/main/java/com/beat/infra/persistence"),
+			Path.of("infra/src/main/kotlin/com/beat/infra/persistence")
+		)
 			.stream()
 			.map(path -> path.toString().replace('\\', '/'))
 			.collect(Collectors.toSet());
@@ -272,8 +275,7 @@ class SharedBoundaryContractTest {
 			"domain/src/main/java/com/beat/domain/promotion/dao/PromotionRepository.java");
 		Path springDataRepository = Path.of(
 			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java");
-		Path jpaEntity = Path.of(
-			"infra/src/main/java/com/beat/infra/persistence/promotion/entity/PromotionJpaEntity.java");
+		Path jpaEntity = promotionJpaEntitySourcePath();
 		Path persistenceMapper = Path.of(
 			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java");
 		Path repositoryImplementation = Path.of(
@@ -337,12 +339,7 @@ class SharedBoundaryContractTest {
 		assertFalse(domainContractSource.contains("@Query"));
 		assertTrue(springDataRepositorySource.contains("extends JpaRepository<PromotionJpaEntity, Long>"));
 		assertFalse(springDataRepositorySource.contains("com.beat.domain.promotion.domain.Promotion"));
-		assertTrue(jpaEntitySource.contains("@Entity(name = \"Promotion\")"));
-		assertTrue(jpaEntitySource.contains("@Table(name = \"promotion\")"));
-		assertTrue(jpaEntitySource.contains("private Long performanceId;"));
-		assertFalse(jpaEntitySource.contains("private Performance performance;"));
-		assertFalse(jpaEntitySource.contains("@ManyToOne"));
-		assertFalse(jpaEntitySource.contains("@JoinColumn"));
+		assertPromotionJpaEntityMappingContract(jpaEntitySource);
 		assertTrue(persistenceMapperSource.contains("Promotion toDomain(PromotionJpaEntity entity)"));
 		assertTrue(persistenceMapperSource.contains("PromotionJpaEntity toEntity(Promotion promotion)"));
 		assertFalse(persistenceMapperSource.contains("PerformanceRepository"));
@@ -550,6 +547,40 @@ class SharedBoundaryContractTest {
 				violations.isEmpty(),
 				"Found forbidden global-utils references:\n" + String.join("\n", violations)
 			);
+		}
+	}
+
+	private Path promotionJpaEntitySourcePath() {
+		Path javaEntity = Path.of(
+			"infra/src/main/java/com/beat/infra/persistence/promotion/entity/PromotionJpaEntity.java");
+		Path kotlinEntity = Path.of(
+			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/entity/PromotionJpaEntity.kt");
+
+		assertTrue(Files.exists(javaEntity) ^ Files.exists(kotlinEntity),
+			"PromotionJpaEntity must exist as exactly one Java or Kotlin source during the #389 conversion");
+		return Files.exists(kotlinEntity) ? kotlinEntity : javaEntity;
+	}
+
+	private void assertPromotionJpaEntityMappingContract(String source) {
+		assertTrue(source.contains("@Entity(name = \"Promotion\")"));
+		assertTrue(source.contains("@Table(name = \"promotion\")"));
+		assertFalse(source.contains("private Performance performance"));
+		assertFalse(source.contains("@ManyToOne"));
+		assertFalse(source.contains("@JoinColumn"));
+
+		if (source.contains("fun rehydrate(")) {
+			assertFalse(source.contains("data class PromotionJpaEntity"));
+			assertTrue(source.contains("@JvmStatic"));
+			assertTrue(source.contains("class PromotionJpaEntity private constructor("));
+			assertFalse(source.contains("protected constructor()"));
+			assertTrue(source.matches("(?s).*\\bvar\\s+id\\s*:\\s*Long\\?\\s*=\\s*id\\s+protected set.*"));
+			assertTrue(source.matches("(?s).*\\bvar\\s+performanceId\\s*:\\s*Long\\?\\s*=\\s*performanceId\\s+protected set.*"));
+			assertTrue(source.matches("(?s).*\\bvar\\s+promotionPhoto\\s*:\\s*String\\s*=\\s*promotionPhoto\\s+protected set.*"));
+			assertTrue(source.matches("(?s).*\\bvar\\s+redirectUrl\\s*:\\s*String\\s*=\\s*redirectUrl\\s+protected set.*"));
+			assertTrue(source.matches("(?s).*\\bvar\\s+isExternal\\s*:\\s*Boolean\\s*=\\s*isExternal\\s+protected set.*"));
+			assertTrue(source.matches("(?s).*\\bvar\\s+carouselNumber\\s*:\\s*CarouselNumber\\s*=\\s*carouselNumber\\s+protected set.*"));
+		} else {
+			assertTrue(source.contains("private Long performanceId;"));
 		}
 	}
 
