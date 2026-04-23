@@ -1,6 +1,7 @@
 # infra module
 
 > 이 문서는 `infra` 모듈의 현재 application-infra/deployment-docs 상태, 목표 계약, 그리고 #384에서 수행하지 않는 후속 작업을 구분한다. `infra`는 구현 기술과 외부 adapter의 집합소이며, 상위 유스케이스를 알면 안 된다.
+> Kotlin JPA entity 작성 규약의 canonical source of truth는 루트 [`MIGRATION.md`](../MIGRATION.md)의 `Canonical Kotlin JPA entity rules` 절이다. 이 README는 모듈 역할만 요약하고, 규약 본문은 중복하지 않는다.
 
 ## Migration status
 
@@ -54,7 +55,7 @@ infra/
   src/main/kotlin/com/beat/infra/
     InfraModuleConfig.kt
     persistence/
-      promotion/entity/PromotionJpaEntity.kt   # Kotlin JPA entity; kotlin-jpa no-arg/all-open + body properties with protected setters
+      promotion/entity/PromotionJpaEntity.kt   # Kotlin JPA reference slice; canonical authoring rules live in ../MIGRATION.md
 
 current transitional sources:
   domain/src/main/java/com/beat/domain/**/dao/       # Spring Data repository concern that should move behind infra boundary
@@ -70,6 +71,7 @@ current transitional sources:
 - Redis runtime wiring은 Spring Boot auto-configuration과 gateway-owned config가 담당하고, infra는 더 이상 gateway-specific Redis bean을 소유하지 않는다.
 - future shared caching은 dormant `RedisCacheConfig` + `InfraBaseConfigGroup.REDIS_CACHE`에서 시작하고, 현재 실행 모듈은 아직 이를 import하지 않는다. 활성화 전에는 cache name, TTL, serializer, namespace, invalidation policy, owner module, runtime opt-in이 먼저 정해져야 한다.
 - #378 기준 `RedisCacheConfig`는 삭제하지도 활성화하지도 않는 infra-owned dormant extension point다. gateway refresh-token Redis storage와 shared cache bootstrap은 별도 경계다.
+- Kotlin JPA entity 작성 규칙은 root [`MIGRATION.md`](../MIGRATION.md)의 canonical guide를 따른다. `PromotionJpaEntity.kt`는 현재 검증된 reference slice이고, rule 본문을 이 README에 중복 복제하지 않는다.
 - 일부 공통 config와 Promotion JPA entity / mapper / repository adapter / implementation은 `infra`로 이동했지만, JPA entity / Spring Data repository adapter / query 구현 상당수는 아직 `domain` 쪽 transitional package에 남아 있다.
 - 즉 `infra`도 아직 최종형이 아니라 **persistence 구현 책임을 받아오는 이관 진행 중인 landing zone**이다.
 
