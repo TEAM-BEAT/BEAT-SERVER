@@ -25,6 +25,9 @@ import com.beat.contracts.storage.FileStoragePort;
 import io.swagger.v3.oas.models.OpenAPI;
 import org.springdoc.core.models.GroupedOpenApi;
 
+import com.beat.domain.performance.dao.PerformanceRepository;
+import com.beat.domain.promotion.repository.PromotionRepository;
+
 class AdminModuleContextBootTest extends AbstractAdminIntegrationTest {
 
 	@Autowired
@@ -52,6 +55,8 @@ class AdminModuleContextBootTest extends AbstractAdminIntegrationTest {
 		assertFalse(applicationContext.containsBean("jobSchedulerService"));
 		assertTrue(applicationContext.getBeansOfType(ScheduleJobPort.class).isEmpty());
 		assertTrue(applicationContext.getBeansOfType(TaskScheduler.class).isEmpty());
+		assertEquals(1, applicationContext.getBeansOfType(PerformanceRepository.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(PromotionRepository.class).size());
 	}
 
 	@Test

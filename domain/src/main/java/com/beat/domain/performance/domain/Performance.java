@@ -10,7 +10,6 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import com.beat.domain.BaseTimeEntity;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
-import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.user.domain.Users;
@@ -101,9 +100,6 @@ public class Performance extends BaseTimeEntity {
 
 	@Column(nullable = false)
 	private int totalScheduleCount;
-
-	@OneToMany(mappedBy = "performance", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<Promotion> promotions = new ArrayList<>();
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id", nullable = false)

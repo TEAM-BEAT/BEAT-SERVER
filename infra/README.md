@@ -45,6 +45,13 @@ infra/
       QueryDslConfig.java
       RedisCacheConfig.java
       ThreadPoolProperties.java
+    persistence/
+      InfraPersistenceConfig.java              # infra.persistence narrow component scan
+      InfraPersistenceMarker.java              # entity/repository/component scan root
+      promotion/entity/PromotionJpaEntity.java
+      promotion/mapper/PromotionPersistenceMapper.java
+      promotion/repository/PromotionJpaRepository.java
+      promotion/repository/PromotionRepositoryImpl.java
   src/main/kotlin/com/beat/infra/
     InfraModuleConfig.kt
 
@@ -56,12 +63,13 @@ current transitional sources:
 
 설명:
 - `InfraBaseConfigImportSelector`가 `@EnableInfraBaseConfig`의 enum 값을 읽어 해당 `@Configuration` 클래스를 선택적으로 import한다.
+- `InfraPersistenceConfig`는 `JpaConfig`가 runtime safety net으로 import하고, JPA를 쓰는 실행 모듈 `InfraConfig.kt`가 IDE static-analysis breadcrumb로 한 번 더 import한다. 두 경로 모두 의도된 중복이며, `@EnableInfraBaseConfig` meta-annotation에 persistence를 직접 넣지는 않는다.
 - `AsyncConfig`는 `@Import(TaskExecutorConfig.class)`로 executor 빈만 전이 로드하고, infra는 security-aware wrapper를 직접 소유하지 않는다.
 - scheduler bean은 `TaskSchedulerConfig` + `InfraBaseConfigGroup.SCHEDULER`로 분리되어 batch에서만 명시적으로 가져간다.
 - Redis runtime wiring은 Spring Boot auto-configuration과 gateway-owned config가 담당하고, infra는 더 이상 gateway-specific Redis bean을 소유하지 않는다.
 - future shared caching은 dormant `RedisCacheConfig` + `InfraBaseConfigGroup.REDIS_CACHE`에서 시작하고, 현재 실행 모듈은 아직 이를 import하지 않는다. 활성화 전에는 cache name, TTL, serializer, namespace, invalidation policy, owner module, runtime opt-in이 먼저 정해져야 한다.
 - #378 기준 `RedisCacheConfig`는 삭제하지도 활성화하지도 않는 infra-owned dormant extension point다. gateway refresh-token Redis storage와 shared cache bootstrap은 별도 경계다.
-- 일부 공통 config는 `infra`로 이동했지만, JPA entity / Spring Data repository adapter / query 구현 상당수는 아직 `domain` 쪽 transitional package에 남아 있다.
+- 일부 공통 config와 Promotion JPA entity / mapper / repository adapter / implementation은 `infra`로 이동했지만, JPA entity / Spring Data repository adapter / query 구현 상당수는 아직 `domain` 쪽 transitional package에 남아 있다.
 - 즉 `infra`도 아직 최종형이 아니라 **persistence 구현 책임을 받아오는 이관 진행 중인 landing zone**이다.
 
 ## #378 known deferred package exceptions
@@ -80,18 +88,19 @@ current transitional sources:
 ```text
 com.beat.infra.config.*
 com.beat.infra.external.<provider>
-com.beat.infra.<context>.persistence.entity
-com.beat.infra.<context>.repository.springdata
-com.beat.infra.<context>.repository.impl
-com.beat.infra.<context>.repository.query   # 필요 시만
+com.beat.infra.persistence.<context>.entity
+com.beat.infra.persistence.<context>.repository
+com.beat.infra.persistence.<context>.mapper             # domain repository persistence-domain mapping이 필요할 때만
+com.beat.infra.persistence.<context>.repository.query   # read 최적화/query projection이 필요할 때만
 ```
 
 설명:
 - `domain.<context>.repository.XxxRepository` 같은 repository interface는 `domain`이 소유한다.
-- 그 interface의 구현체는 `infra.<context>.repository.impl`이 맡는다.
-- JPA entity / persistence model은 `infra.<context>.persistence.entity`가 소유한다.
-- Spring Data JPA adapter는 `infra.<context>.repository.springdata`에 두되, domain repository interface가 아니라 infra 내부 구현 세부사항으로 취급한다.
-- query 전용 구현은 지금 기본값이 아니고, 조회 복잡도 증가나 jOOQ/Kotlin JDSL 도입이 필요할 때만 `repository.query`를 추가한다.
+- 그 interface의 구현체는 `infra.persistence.<context>.repository`가 맡는다.
+- JPA entity / persistence model은 `infra.persistence.<context>.entity`가 소유한다.
+- Spring Data JPA adapter는 `infra.persistence.<context>.repository`에 두되, domain repository interface가 아니라 infra 내부 구현 세부사항으로 취급한다.
+- mapper를 도입한다면 `XxxPersistenceMapper`는 pure domain model과 infra persistence entity가 실제로 분리된 slice에서만 추가한다. 쉽게 말해 DB 저장용 객체와 도메인 객체 사이의 번역기다. repository 조회, lazy reference 획득, query projection 조립은 mapper 책임이 아니다.
+- query 전용 구현은 지금 기본값이 아니고, 조회 복잡도 증가나 jOOQ/Kotlin JDSL 도입이 필요할 때만 `repository.query`를 추가한다. 이때 화면/목록/통계용 read model은 persistence mapper를 재사용하지 않고 query 전용 row/DTO로 바로 만든다.
 
 ## 최종 목표
 

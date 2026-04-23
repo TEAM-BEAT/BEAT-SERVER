@@ -1,26 +1,23 @@
 package com.beat.admin.application;
 
-import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
-import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
-import com.beat.admin.port.in.AdminUseCase;
-import com.beat.domain.performance.dao.PerformanceRepository;
-import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.exception.PerformanceErrorCode;
-import com.beat.domain.promotion.dao.PromotionRepository;
-import com.beat.domain.promotion.domain.Promotion;
-import com.beat.domain.promotion.exception.PromotionErrorCode;
-import com.beat.domain.promotion.port.in.PromotionModifyCommand;
-import com.beat.global.common.exception.NotFoundException;
-
-import lombok.RequiredArgsConstructor;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
+import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
+import com.beat.admin.port.in.AdminUseCase;
+import com.beat.domain.performance.dao.PerformanceRepository;
+import com.beat.domain.performance.exception.PerformanceErrorCode;
+import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.promotion.exception.PromotionErrorCode;
+import com.beat.domain.promotion.repository.PromotionRepository;
+import com.beat.global.common.exception.NotFoundException;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -63,22 +60,11 @@ public class AdminService implements AdminUseCase {
 
 				Promotion promotion = findPromotionById(modifyRequest.promotionId());
 
-				Performance performance = Optional.ofNullable(modifyRequest.performanceId())
-					.map(this::findPerformanceById)
-					.orElse(null);
+				Long performanceId = validatePerformanceId(modifyRequest.performanceId());
 
-				PromotionModifyCommand command = new PromotionModifyCommand(
-					modifyRequest.promotionId(),
-					modifyRequest.carouselNumber(),
-					modifyRequest.newImageUrl(),
-					modifyRequest.isExternal(),
-					modifyRequest.redirectUrl(),
-					modifyRequest.performanceId()
-				);
-
-				promotion.updatePromotionDetails(command.carouselNumber(), command.newImageUrl(), command.isExternal(),
-					command.redirectUrl(), performance);
-				return promotionRepository.save(promotion);
+				Promotion updatedPromotion = promotion.updatePromotionDetails(modifyRequest.carouselNumber(),
+					modifyRequest.newImageUrl(), modifyRequest.isExternal(), modifyRequest.redirectUrl(), performanceId);
+				return promotionRepository.save(updatedPromotion);
 			})
 			.toList();
 	}
@@ -86,11 +72,9 @@ public class AdminService implements AdminUseCase {
 	private List<Promotion> handlePromotionGeneration(List<PromotionGenerateRequest> generateRequests) {
 		return generateRequests.stream()
 			.map(generateRequest -> {
-				Performance performance = Optional.ofNullable(generateRequest.performanceId())
-					.map(this::findPerformanceById)
-					.orElse(null);
+				Long performanceId = validatePerformanceId(generateRequest.performanceId());
 
-				Promotion newPromotion = Promotion.create(generateRequest.newImageUrl(), performance,
+				Promotion newPromotion = Promotion.create(generateRequest.newImageUrl(), performanceId,
 					generateRequest.redirectUrl(), generateRequest.isExternal(), generateRequest.carouselNumber());
 				return promotionRepository.save(newPromotion);
 			})
@@ -102,9 +86,13 @@ public class AdminService implements AdminUseCase {
 			.orElseThrow(() -> new NotFoundException(PromotionErrorCode.PROMOTION_NOT_FOUND));
 	}
 
-	private Performance findPerformanceById(Long performanceId) {
-		return performanceRepository.findById(performanceId)
+	private Long validatePerformanceId(Long performanceId) {
+		if (performanceId == null) {
+			return null;
+		}
+		performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+		return performanceId;
 	}
 
 	private List<Promotion> sortPromotionsByCarouselNumber(List<Promotion> promotions) {

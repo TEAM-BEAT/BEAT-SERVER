@@ -1,11 +1,9 @@
 package com.beat.admin.application.dto.response;
 
-import com.beat.domain.performance.domain.Performance;
+import java.util.List;
+
 import com.beat.domain.promotion.domain.CarouselNumber;
 import com.beat.domain.promotion.domain.Promotion;
-
-import java.util.List;
-import java.util.Optional;
 
 public record CarouselFindAllResponse(
 	List<CarouselFindResponse> carousels
@@ -32,9 +30,7 @@ public record CarouselFindAllResponse(
 				promotion.getPromotionPhoto(),
 				promotion.isExternal(),
 				promotion.getRedirectUrl(),
-				Optional.ofNullable(promotion.getPerformance())
-					.map(Performance::getId)
-					.orElse(null)
+				promotion.getPerformanceId()
 			);
 		}
 	}

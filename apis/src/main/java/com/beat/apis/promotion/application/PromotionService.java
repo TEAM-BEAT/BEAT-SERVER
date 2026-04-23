@@ -1,57 +1,23 @@
 package com.beat.apis.promotion.application;
 
-import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.promotion.dao.PromotionRepository;
-import com.beat.domain.promotion.domain.CarouselNumber;
-import com.beat.domain.promotion.domain.Promotion;
-import com.beat.domain.promotion.exception.PromotionErrorCode;
-import com.beat.domain.promotion.port.in.PromotionModifyCommand;
-import com.beat.domain.promotion.port.in.PromotionUseCase;
-import com.beat.global.common.exception.NotFoundException;
-
-import lombok.RequiredArgsConstructor;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.promotion.repository.PromotionRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
-public class PromotionService implements PromotionUseCase {
+public class PromotionService {
 
 	private final PromotionRepository promotionRepository;
 
-	@Override
-	@Transactional(readOnly = true)
-	public Promotion findById(Long promotionId) {
-		return promotionRepository.findById(promotionId)
-			.orElseThrow(() -> new NotFoundException(PromotionErrorCode.PROMOTION_NOT_FOUND));
-	}
-
-	@Override
-	@Transactional(readOnly = true)
 	public List<Promotion> findAllPromotions() {
 		return promotionRepository.findAll();
-	}
-
-	@Override
-	public Promotion createPromotion(String newImageUrl, Performance performance, String redirectUrl,
-		boolean isExternal, CarouselNumber carouselNumber) {
-		Promotion newPromotion = Promotion.create(newImageUrl, performance, redirectUrl, isExternal, carouselNumber);
-		return promotionRepository.save(newPromotion);
-	}
-
-	@Override
-	public Promotion modifyPromotion(Promotion promotion, Performance performance, PromotionModifyCommand command) {
-		promotion.updatePromotionDetails(command.carouselNumber(), command.newImageUrl(), command.isExternal(),
-			command.redirectUrl(), performance);
-		return promotionRepository.save(promotion);
-	}
-
-	@Override
-	public void deletePromotionsByPromotionIds(List<Long> promotionIds) {
-		promotionRepository.deleteByPromotionIds(promotionIds);
 	}
 }
