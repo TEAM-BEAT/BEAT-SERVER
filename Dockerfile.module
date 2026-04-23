@@ -33,7 +33,7 @@ COPY observability ./observability
 RUN ./gradlew :${MODULE}:bootJar --no-daemon \
   && cp "$(find /workspace/${MODULE}/build/libs -maxdepth 1 -name "${MODULE}-*.jar" ! -name '*-plain.jar' | head -n 1)" /workspace/app.jar
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 
 ARG MODULE
 
