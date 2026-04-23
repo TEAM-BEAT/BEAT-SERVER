@@ -119,13 +119,13 @@ tasks.named("bootRun") {
 
 tasks.withType<JavaCompile>().configureEach {
     options.generatedSourceOutputDirectory.set(queryDslSrcDir.get().asFile)
-    options.release.set(21)
+    options.release.set(25)
     options.encoding = "UTF-8"
 }
 
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_21)
+        jvmTarget.set(JvmTarget.JVM_25)
         freeCompilerArgs.add("-Xjsr305=strict")
     }
 }

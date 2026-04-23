@@ -1,10 +1,10 @@
 [versions]
-spring-boot = "4.0.3"
+spring-boot = "4.0.5"
 dependency-management = "1.1.7"
-kotlin = "2.2.20"
+kotlin = "2.3.20"
 sonarqube = "7.2.3.7755"
 kover = "0.9.7"
-spring-framework = "7.0.5"
+spring-framework = "7.0.7"
 spring-cloud = "2025.1.1"
 aspectj = "1.9.25.1"
 springdoc = "3.0.2"
