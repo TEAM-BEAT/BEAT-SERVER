@@ -184,6 +184,15 @@ Kotlin 전환 순서:
 - replacement infra persistence package 없이 `JpaConfig`의 domain scan root를 먼저 좁히지 않는다.
 - repo-wide entity rewrite, all-entity Kotlin conversion, query layer rewrite, jOOQ 도입, 신규 dependency 추가를 #380 baseline에 섞지 않는다.
 
+Kotlin ID value object factory naming:
+
+- `from(value: Long)` — raw id 값을 required identifier value object로 변환한다.
+- `fromNullable(value: Long?)` — nullable FK/id를 optional identifier value object로 변환한다.
+- `of(...)` — 여러 값 조합이나 DTO/value assembly에는 계속 사용할 수 있지만, 단일 raw id wrapper의 기본 이름으로는 쓰지 않는다.
+- `create(...)` — 새 aggregate/domain object 생성.
+- `rehydrate(...)` — persistence state에서 domain/JPA object를 복원.
+- `newInstance(...)` — infra-specific VO/factory style로만 유지하고 domain ID value object에는 도입하지 않는다.
+
 ### First slice candidate ranking
 
 Issue #380의 첫 concrete slice는 "작아 보이는 entity 하나"가 아니라 실행 모듈에서 실제로 쓰이는 persistence boundary를 함께 움직일 수 있는 단위여야 한다. Staff/Cast/Promotion을 현재 사용처 기준으로 비교하면 아래 순서를 따른다.

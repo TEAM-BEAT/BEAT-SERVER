@@ -317,6 +317,12 @@ class SharedBoundaryContractTest {
 		assertTrue(promotionDomainSource.contains("import com.beat.domain.performance.domain.PerformanceId"));
 		assertTrue(promotionDomainSource.contains("private val linkedPerformanceId: PerformanceId?"));
 		assertTrue(performanceIdSource.contains("value class PerformanceId private constructor"));
+		assertTrue(promotionDomainSource.contains("fun from(value: Long): Id"));
+		assertTrue(promotionDomainSource.contains("fun fromNullable(value: Long?): Id?"));
+		assertTrue(performanceIdSource.contains("fun from(value: Long): PerformanceId"));
+		assertTrue(performanceIdSource.contains("fun fromNullable(value: Long?): PerformanceId?"));
+		assertTrue(promotionDomainSource.contains("Id.fromNullable(id)"));
+		assertTrue(promotionDomainSource.contains("PerformanceId.fromNullable(performanceId)"));
 		assertTrue(promotionDomainSource.contains("fun getId(): Long?"));
 		assertTrue(promotionDomainSource.contains("fun getPerformanceId(): Long?"));
 		assertTrue(promotionDomainSource.contains("fun updatePromotionDetails("));

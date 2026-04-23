@@ -27,7 +27,7 @@ data class Promotion private constructor(
         promotionPhoto = newImageUrl,
         isExternal = isExternal,
         redirectUrl = redirectUrl,
-        linkedPerformanceId = PerformanceId.of(performanceId),
+        linkedPerformanceId = PerformanceId.fromNullable(performanceId),
     )
 
     fun updateCarouselNumber(carouselNumber: CarouselNumber): Promotion = copy(carouselNumber = carouselNumber)
@@ -35,7 +35,11 @@ data class Promotion private constructor(
     @JvmInline
     value class Id private constructor(val value: Long) {
         companion object {
-            fun of(value: Long?): Id? = value?.let(::Id)
+            @JvmStatic
+            fun from(value: Long): Id = Id(value)
+
+            @JvmStatic
+            fun fromNullable(value: Long?): Id? = value?.let(::from)
         }
     }
 
@@ -50,7 +54,7 @@ data class Promotion private constructor(
         ): Promotion = Promotion(
             promotionId = null,
             promotionPhoto = promotionPhoto,
-            linkedPerformanceId = PerformanceId.of(performanceId),
+            linkedPerformanceId = PerformanceId.fromNullable(performanceId),
             redirectUrl = redirectUrl,
             isExternal = isExternal,
             carouselNumber = carouselNumber,
@@ -65,9 +69,9 @@ data class Promotion private constructor(
             isExternal: Boolean,
             carouselNumber: CarouselNumber,
         ): Promotion = Promotion(
-            promotionId = Id.of(id),
+            promotionId = Id.fromNullable(id),
             promotionPhoto = promotionPhoto,
-            linkedPerformanceId = PerformanceId.of(performanceId),
+            linkedPerformanceId = PerformanceId.fromNullable(performanceId),
             redirectUrl = redirectUrl,
             isExternal = isExternal,
             carouselNumber = carouselNumber,
