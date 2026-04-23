@@ -40,6 +40,26 @@ class PromotionPersistenceMapperTest {
 	}
 
 	@Test
+	void toEntityKeepsGeneratedIdNullForNewPromotion() {
+		Promotion promotion = Promotion.create(
+			"https://example.com/new.png",
+			44L,
+			"https://example.com/new-performance",
+			true,
+			CarouselNumber.TWO
+		);
+
+		PromotionJpaEntity entity = mapper.toEntity(promotion);
+
+		assertAll(
+			() -> assertNull(promotion.getId()),
+			() -> assertNull(entity.getId()),
+			() -> assertEquals(44L, entity.getPerformanceId()),
+			() -> assertEquals(CarouselNumber.TWO, entity.getCarouselNumber())
+		);
+	}
+
+	@Test
 	void toEntityPreservesDomainFieldsAndJavaVisiblePromotionJpaEntityContract() {
 		Promotion promotion = Promotion.rehydrate(
 			31L,
