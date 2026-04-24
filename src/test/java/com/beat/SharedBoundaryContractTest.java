@@ -570,6 +570,8 @@ class SharedBoundaryContractTest {
 
 		if (source.contains("fun rehydrate(")) {
 			assertFalse(source.contains("data class PromotionJpaEntity"));
+			assertFalse(source.contains("override fun equals("));
+			assertFalse(source.contains("override fun hashCode("));
 			assertTrue(source.contains("@JvmStatic"));
 			assertTrue(source.contains("class PromotionJpaEntity private constructor("));
 			assertFalse(source.contains("protected constructor()"));
