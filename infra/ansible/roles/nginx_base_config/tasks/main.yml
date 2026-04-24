@@ -11,6 +11,8 @@
     nginx_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/backend.conf"
     nginx_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/admin_backend.conf"
     nginx_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/actuator.conf"
+    nginx_legacy_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+    nginx_legacy_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
     nginx_route_source_path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
     nginx_route_target_path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
 
@@ -63,6 +65,11 @@
     - { name: "actuator", path: "{{ nginx_actuator_upstream_source_path }}" }
   register: nginx_base_config_upstream_source_stats
 
+- name: Check current legacy upstream fragment source
+  ansible.builtin.stat:
+    path: "{{ nginx_legacy_upstream_source_path }}"
+  register: nginx_base_config_legacy_upstream_source_stat
+
 - name: Check if route fragment already exists (deployed server)
   ansible.builtin.stat:
     path: "{{ nginx_route_source_path }}"
@@ -76,6 +83,11 @@
     - { name: "admin", path: "{{ nginx_admin_upstream_target_path }}" }
     - { name: "actuator", path: "{{ nginx_actuator_upstream_target_path }}" }
   register: nginx_base_config_upstream_target_stats
+
+- name: Check current legacy upstream fragment target
+  ansible.builtin.stat:
+    path: "{{ nginx_legacy_upstream_target_path }}"
+  register: nginx_base_config_legacy_upstream_target_stat
 
 - name: Check current route fragment target
   ansible.builtin.stat:
@@ -101,12 +113,16 @@
       - "Would backup {{ nginx_backend_upstream_source_path }} to {{ nginx_backend_upstream_source_path }}.bak"
       - "Would backup {{ nginx_admin_upstream_source_path }} to {{ nginx_admin_upstream_source_path }}.bak"
       - "Would backup {{ nginx_actuator_upstream_source_path }} to {{ nginx_actuator_upstream_source_path }}.bak"
+      - "Would backup {{ nginx_legacy_upstream_source_path }} to {{ nginx_legacy_upstream_source_path }}.bak"
       - "Would backup {{ nginx_route_source_path }} to {{ nginx_route_source_path }}.bak"
       - "Would backup {{ nginx_backend_upstream_target_path }} to {{ nginx_backend_upstream_target_path }}.bak"
       - "Would backup {{ nginx_admin_upstream_target_path }} to {{ nginx_admin_upstream_target_path }}.bak"
       - "Would backup {{ nginx_actuator_upstream_target_path }} to {{ nginx_actuator_upstream_target_path }}.bak"
+      - "Would backup {{ nginx_legacy_upstream_target_path }} to {{ nginx_legacy_upstream_target_path }}.bak"
       - "Would backup {{ nginx_route_target_path }} to {{ nginx_route_target_path }}.bak"
       - "Would backup {{ nginx_conf_target_path }} to {{ nginx_conf_target_path }}.bak"
+      - "Would split legacy upstreams/00-managed.conf into per-upstream fragments when present"
+      - "Would remove legacy upstreams/00-managed.conf before nginx validation"
       - "Would render {{ deployment_dir }}/nginx/default.conf and sync generated fragments to target"
       - "Would validate with docker exec {{ nginx_container_name }} nginx -t"
       - "Would reload nginx on validation success"
@@ -150,6 +166,24 @@
     - not item.stat.exists
   loop: "{{ nginx_base_config_upstream_source_stats.results }}"
 
+- name: Backup current legacy upstream fragment source
+  ansible.builtin.copy:
+    src: "{{ nginx_legacy_upstream_source_path }}"
+    dest: "{{ nginx_legacy_upstream_source_path }}.bak"
+    remote_src: true
+    mode: "0644"
+  when:
+    - not ansible_check_mode
+    - nginx_base_config_legacy_upstream_source_stat.stat.exists
+
+- name: Clear stale legacy upstream fragment source backup when file missing
+  ansible.builtin.file:
+    path: "{{ nginx_legacy_upstream_source_path }}.bak"
+    state: absent
+  when:
+    - not ansible_check_mode
+    - not nginx_base_config_legacy_upstream_source_stat.stat.exists
+
 - name: Backup current route fragment source
   ansible.builtin.copy:
     src: "{{ nginx_route_source_path }}"
@@ -188,6 +222,24 @@
     - not item.stat.exists
   loop: "{{ nginx_base_config_upstream_target_stats.results }}"
 
+- name: Backup current legacy upstream fragment target
+  ansible.builtin.copy:
+    src: "{{ nginx_legacy_upstream_target_path }}"
+    dest: "{{ nginx_legacy_upstream_target_path }}.bak"
+    remote_src: true
+    mode: "0644"
+  when:
+    - not ansible_check_mode
+    - nginx_base_config_legacy_upstream_target_stat.stat.exists
+
+- name: Clear stale legacy upstream fragment target backup when file missing
+  ansible.builtin.file:
+    path: "{{ nginx_legacy_upstream_target_path }}.bak"
+    state: absent
+  when:
+    - not ansible_check_mode
+    - not nginx_base_config_legacy_upstream_target_stat.stat.exists
+
 - name: Backup current route fragment target
   ansible.builtin.copy:
     src: "{{ nginx_route_target_path }}"
@@ -223,8 +275,73 @@
         dest: "{{ deployment_dir }}/nginx/default.conf"
         mode: "0644"
 
+    - name: Split legacy upstream source into per-upstream fragments
+      ansible.builtin.command:
+        argv:
+          - python3
+          - "{{ deployment_dir }}/update-nginx-config.py"
+          - split-upstreams
+          - --source
+          - "{{ nginx_legacy_upstream_source_path }}"
+          - --output-dir
+          - "{{ nginx_generated_source_dir }}/upstreams"
+          - --mapping
+          - "{{ backend_upstream_name | default('backend') }}=backend.conf"
+          - --mapping
+          - "{{ admin_upstream_name | default('admin_backend') }}=admin_backend.conf"
+          - --mapping
+          - "{{ actuator_upstream_name | default('actuator') }}=actuator.conf"
+          - --require-all
+          - --skip-existing
+      register: nginx_base_config_split_legacy_upstream_result
+      changed_when: "'changed=true' in nginx_base_config_split_legacy_upstream_result.stdout"
+      when: nginx_base_config_legacy_upstream_source_stat.stat.exists
+
+    - name: Remove legacy upstream source after split migration
+      ansible.builtin.file:
+        path: "{{ nginx_legacy_upstream_source_path }}"
+        state: absent
+      register: nginx_base_config_legacy_upstream_source_remove_result
+      when: nginx_base_config_legacy_upstream_source_stat.stat.exists
+
+    - name: Check upstream fragments after legacy migration
+      ansible.builtin.stat:
+        path: "{{ item.path }}"
+      loop:
+        - { name: "backend", path: "{{ nginx_backend_upstream_source_path }}" }
+        - { name: "admin", path: "{{ nginx_admin_upstream_source_path }}" }
+        - { name: "actuator", path: "{{ nginx_actuator_upstream_source_path }}" }
+      register: nginx_base_config_upstream_source_current_stats
+
+    - name: Resolve upstream source existence after migration
+      ansible.builtin.set_fact:
+        nginx_base_config_backend_source_exists: >-
+          {{
+            nginx_base_config_upstream_source_current_stats.results
+            | selectattr('item.name', 'equalto', 'backend')
+            | map(attribute='stat.exists')
+            | first
+            | default(false)
+          }}
+        nginx_base_config_admin_source_exists: >-
+          {{
+            nginx_base_config_upstream_source_current_stats.results
+            | selectattr('item.name', 'equalto', 'admin')
+            | map(attribute='stat.exists')
+            | first
+            | default(false)
+          }}
+        nginx_base_config_actuator_source_exists: >-
+          {{
+            nginx_base_config_upstream_source_current_stats.results
+            | selectattr('item.name', 'equalto', 'actuator')
+            | map(attribute='stat.exists')
+            | first
+            | default(false)
+          }}
+
     - name: Seed backend upstream fragment when missing
-      when: not nginx_base_config_upstream_source_stats.results[0].stat.exists
+      when: not (nginx_base_config_backend_source_exists | bool)
       block:
         - name: Seed backend upstream marker in source fragment
           ansible.builtin.command:
@@ -244,7 +361,7 @@
           changed_when: "'changed=true' in nginx_base_config_seed_backend_upstream_result.stdout"
 
     - name: Seed admin upstream fragment when missing
-      when: not nginx_base_config_upstream_source_stats.results[1].stat.exists
+      when: not (nginx_base_config_admin_source_exists | bool)
       block:
         - name: Seed admin upstream marker in source fragment
           ansible.builtin.command:
@@ -264,7 +381,7 @@
           changed_when: "'changed=true' in nginx_base_config_seed_admin_upstream_result.stdout"
 
     - name: Seed actuator upstream fragment when missing
-      when: not nginx_base_config_upstream_source_stats.results[2].stat.exists
+      when: not (nginx_base_config_actuator_source_exists | bool)
       block:
         - name: Seed actuator upstream marker in source fragment
           ansible.builtin.command:
@@ -315,6 +432,13 @@
         - { src: "{{ nginx_actuator_upstream_source_path }}", dest: "{{ nginx_actuator_upstream_target_path }}" }
       register: nginx_base_config_upstream_target_sync_results
 
+    - name: Remove legacy upstream target before nginx validation
+      ansible.builtin.file:
+        path: "{{ nginx_legacy_upstream_target_path }}"
+        state: absent
+      register: nginx_base_config_legacy_upstream_target_remove_result
+      when: nginx_base_config_legacy_upstream_target_stat.stat.exists
+
     - name: Sync route fragment to target
       ansible.builtin.copy:
         src: "{{ nginx_route_source_path }}"
@@ -350,6 +474,10 @@
             or (
               nginx_base_config_upstream_target_sync_results is defined
               and (nginx_base_config_upstream_target_sync_results.results | selectattr('changed') | list | length > 0)
+            )
+            or (
+              nginx_base_config_legacy_upstream_target_remove_result is defined
+              and nginx_base_config_legacy_upstream_target_remove_result.changed
             )
             or (
               nginx_base_config_route_target_sync_result is defined
@@ -394,6 +522,14 @@
       when: item.stat.exists
       loop: "{{ nginx_base_config_upstream_source_stats.results }}"
 
+    - name: Restore previous legacy upstream fragment source from backup
+      ansible.builtin.copy:
+        src: "{{ nginx_legacy_upstream_source_path }}.bak"
+        dest: "{{ nginx_legacy_upstream_source_path }}"
+        remote_src: true
+        mode: "0644"
+      when: nginx_base_config_legacy_upstream_source_stat.stat.exists
+
     - name: Restore previous route fragment source from backup
       ansible.builtin.copy:
         src: "{{ nginx_route_source_path }}.bak"
@@ -408,6 +544,12 @@
         state: absent
       when: not item.stat.exists
       loop: "{{ nginx_base_config_upstream_source_stats.results }}"
+
+    - name: Remove legacy upstream fragment source if no backup existed
+      ansible.builtin.file:
+        path: "{{ nginx_legacy_upstream_source_path }}"
+        state: absent
+      when: not nginx_base_config_legacy_upstream_source_stat.stat.exists
 
     - name: Remove route fragment source if no backup existed
       ansible.builtin.file:
@@ -424,6 +566,14 @@
       when: item.stat.exists
       loop: "{{ nginx_base_config_upstream_target_stats.results }}"
 
+    - name: Restore previous legacy upstream fragment target from backup
+      ansible.builtin.copy:
+        src: "{{ nginx_legacy_upstream_target_path }}.bak"
+        dest: "{{ nginx_legacy_upstream_target_path }}"
+        remote_src: true
+        mode: "0644"
+      when: nginx_base_config_legacy_upstream_target_stat.stat.exists
+
     - name: Restore previous route fragment target from backup
       ansible.builtin.copy:
         src: "{{ nginx_route_target_path }}.bak"
@@ -438,6 +588,12 @@
         state: absent
       when: not item.stat.exists
       loop: "{{ nginx_base_config_upstream_target_stats.results }}"
+
+    - name: Remove legacy upstream fragment target if no backup existed
+      ansible.builtin.file:
+        path: "{{ nginx_legacy_upstream_target_path }}"
+        state: absent
+      when: not nginx_base_config_legacy_upstream_target_stat.stat.exists
 
     - name: Remove route fragment target if no backup existed
       ansible.builtin.file:
@@ -476,10 +632,12 @@
     - "{{ nginx_backend_upstream_source_path }}.bak"
     - "{{ nginx_admin_upstream_source_path }}.bak"
     - "{{ nginx_actuator_upstream_source_path }}.bak"
+    - "{{ nginx_legacy_upstream_source_path }}.bak"
     - "{{ nginx_route_source_path }}.bak"
     - "{{ nginx_backend_upstream_target_path }}.bak"
     - "{{ nginx_admin_upstream_target_path }}.bak"
     - "{{ nginx_actuator_upstream_target_path }}.bak"
+    - "{{ nginx_legacy_upstream_target_path }}.bak"
     - "{{ nginx_route_target_path }}.bak"
     - "{{ nginx_conf_target_path }}.bak"
   when: not ansible_check_mode

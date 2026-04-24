@@ -3,6 +3,11 @@
   ansible.builtin.import_role:
     name: nginx_config_helper
 
+- name: Migrate legacy shared upstream fragment before blue-green switch
+  ansible.builtin.import_role:
+    name: nginx_config_helper
+    tasks_from: migrate_legacy_upstreams.yml
+
 - name: Resolve blue-green rollout paths
   ansible.builtin.set_fact:
     app_bluegreen_active_slot_file: "{{ release_dir }}/current-slot"

@@ -3,6 +3,11 @@
   ansible.builtin.import_role:
     name: nginx_config_helper
 
+- name: Migrate legacy shared upstream fragment before admin route update
+  ansible.builtin.import_role:
+    name: nginx_config_helper
+    tasks_from: migrate_legacy_upstreams.yml
+
 - name: Resolve admin nginx fragment paths
   ansible.builtin.set_fact:
     app_stopstart_admin_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/admin_backend.conf"
