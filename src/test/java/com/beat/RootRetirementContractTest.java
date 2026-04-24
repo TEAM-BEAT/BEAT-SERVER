@@ -234,6 +234,7 @@ class RootRetirementContractTest {
 		assertFalse(deployProd.contains("github.event.inputs.version"));
 		assertFalse(deployProd.contains("github.event.inputs.module"));
 		assertFalse(deployProd.contains("checkout_ref=refs/tags/"));
+		assertTrue(deployProd.contains("module_matrix={\"include\":[{\"module\":\"admin\"},{\"module\":\"apis\"},{\"module\":\"batch\"}]}"));
 
 		assertTrue(secretAwareVerify.contains("module: ${{ matrix.module }}"));
 		assertTrue(secretAwareVerify.contains("Verified resolver for module=${MODULE}"));
@@ -257,6 +258,7 @@ class RootRetirementContractTest {
 		String appStopStartRole = read("infra/ansible/roles/app_stopstart/tasks/main.yml");
 		String appStopStartRunContainer = read("infra/ansible/roles/app_stopstart/tasks/run_container.yml");
 		String appHealthcheckRole = read("infra/ansible/roles/app_healthcheck/tasks/main.yml");
+		String nginxBaseConfig = read("infra/ansible/roles/nginx_base_config/tasks/main.yml");
 		String adminNginxRoute = read("infra/ansible/roles/app_stopstart/tasks/admin_nginx_route.yml");
 		String deployDev = read(".github/workflows/deploy-dev.yml");
 		String deployProd = read(".github/workflows/deploy-prod.yml");
@@ -346,6 +348,9 @@ class RootRetirementContractTest {
 			assertFalse(deployDev.contains("inventory_label:"));
 			assertFalse(deployProd.contains("inventory_label:"));
 			assertFalse(rollbackProd.contains("inventory_label:"));
+			assertTrue(deployDev.contains("preferred_order = [\"admin\", \"apis\", \"batch\"]"));
+			assertTrue(deployDev.contains("modules = preferred_order if requested == \"all\" else [requested]"));
+			assertTrue(deployDev.contains("modules = [module for module in preferred_order if selected_modules[module]]"));
 			assertTrue(deployDev.contains("IMAGE_TAG=\"dev-${GITHUB_SHA}\""));
 			assertTrue(deployDev.contains("image: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ github.sha }}"));
 			assertTrue(deployProd.contains("IMAGE_TAG=\"${RELEASE_TAG}\""));
@@ -361,9 +366,11 @@ class RootRetirementContractTest {
 		assertTrue(appHealthcheckRole.contains("module_cfg.blue_container_name"));
 		assertTrue(appHealthcheckRole.contains("module_cfg.green_container_name"));
 		assertFalse(appHealthcheckRole.contains("target=\"apis-$slot\""));
+		assertTrue(nginxBaseConfig.contains("nginx_base_config_upstream_target_sync_results is defined"));
+		assertFalse(nginxBaseConfig.contains("nginx_base_config_upstream_target_sync_result is defined"));
 		assertTrue(adminNginxRoute.contains("bootstrap-includes"));
 		assertTrue(adminNginxRoute.contains("routes/10-managed.conf"));
-		assertTrue(adminNginxRoute.contains("upstreams/00-managed.conf"));
+		assertTrue(adminNginxRoute.contains("upstreams/admin_backend.conf"));
 		assertFalse(adminNginxRoute.contains("/api/admin/"));
 	}
 

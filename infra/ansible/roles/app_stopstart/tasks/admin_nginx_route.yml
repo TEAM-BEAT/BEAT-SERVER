@@ -3,14 +3,21 @@
   ansible.builtin.import_role:
     name: nginx_config_helper
 
+- name: Resolve admin nginx fragment paths
+  ansible.builtin.set_fact:
+    app_stopstart_admin_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/admin_backend.conf"
+    app_stopstart_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/admin_backend.conf"
+    app_stopstart_admin_route_source_path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+    app_stopstart_admin_route_target_path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+
 - name: Check current admin upstream source fragment
   ansible.builtin.stat:
-    path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+    path: "{{ app_stopstart_admin_upstream_source_path }}"
   register: app_stopstart_upstream_source_stat
 
 - name: Check current admin route source fragment
   ansible.builtin.stat:
-    path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+    path: "{{ app_stopstart_admin_route_source_path }}"
   register: app_stopstart_route_source_stat
 
 - name: Check current live nginx source config
@@ -20,12 +27,12 @@
 
 - name: Check current admin upstream target fragment
   ansible.builtin.stat:
-    path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
+    path: "{{ app_stopstart_admin_upstream_target_path }}"
   register: app_stopstart_upstream_target_stat
 
 - name: Check current admin route target fragment
   ansible.builtin.stat:
-    path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+    path: "{{ app_stopstart_admin_route_target_path }}"
   register: app_stopstart_route_target_stat
 
 - name: Check current live nginx target config
@@ -35,29 +42,29 @@
 
 - name: Backup current admin upstream source fragment
   ansible.builtin.copy:
-    src: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
-    dest: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf.bak"
+    src: "{{ app_stopstart_admin_upstream_source_path }}"
+    dest: "{{ app_stopstart_admin_upstream_source_path }}.bak"
     remote_src: true
     mode: "0644"
   when: app_stopstart_upstream_source_stat.stat.exists
 
 - name: Clear stale admin upstream source backup when file missing
   ansible.builtin.file:
-    path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf.bak"
+    path: "{{ app_stopstart_admin_upstream_source_path }}.bak"
     state: absent
   when: not app_stopstart_upstream_source_stat.stat.exists
 
 - name: Backup current admin route source fragment
   ansible.builtin.copy:
-    src: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
-    dest: "{{ nginx_generated_source_dir }}/routes/10-managed.conf.bak"
+    src: "{{ app_stopstart_admin_route_source_path }}"
+    dest: "{{ app_stopstart_admin_route_source_path }}.bak"
     remote_src: true
     mode: "0644"
   when: app_stopstart_route_source_stat.stat.exists
 
 - name: Clear stale admin route source backup when file missing
   ansible.builtin.file:
-    path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf.bak"
+    path: "{{ app_stopstart_admin_route_source_path }}.bak"
     state: absent
   when: not app_stopstart_route_source_stat.stat.exists
 
@@ -77,29 +84,29 @@
 
 - name: Backup current admin upstream target fragment
   ansible.builtin.copy:
-    src: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
-    dest: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf.bak"
+    src: "{{ app_stopstart_admin_upstream_target_path }}"
+    dest: "{{ app_stopstart_admin_upstream_target_path }}.bak"
     remote_src: true
     mode: "0644"
   when: app_stopstart_upstream_target_stat.stat.exists
 
 - name: Clear stale admin upstream target backup when file missing
   ansible.builtin.file:
-    path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf.bak"
+    path: "{{ app_stopstart_admin_upstream_target_path }}.bak"
     state: absent
   when: not app_stopstart_upstream_target_stat.stat.exists
 
 - name: Backup current admin route target fragment
   ansible.builtin.copy:
-    src: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
-    dest: "{{ nginx_generated_target_dir }}/routes/10-managed.conf.bak"
+    src: "{{ app_stopstart_admin_route_target_path }}"
+    dest: "{{ app_stopstart_admin_route_target_path }}.bak"
     remote_src: true
     mode: "0644"
   when: app_stopstart_route_target_stat.stat.exists
 
 - name: Clear stale admin route target backup when file missing
   ansible.builtin.file:
-    path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf.bak"
+    path: "{{ app_stopstart_admin_route_target_path }}.bak"
     state: absent
   when: not app_stopstart_route_target_stat.stat.exists
 
@@ -141,7 +148,7 @@
           - "{{ deployment_dir }}/update-nginx-config.py"
           - upsert-upstream
           - --path
-          - "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+          - "{{ app_stopstart_admin_upstream_source_path }}"
           - --upstream-name
           - "{{ module_cfg.nginx_route.upstream_name }}"
           - --container-name
@@ -158,7 +165,7 @@
           - "{{ deployment_dir }}/update-nginx-config.py"
           - ensure-route
           - --path
-          - "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+          - "{{ app_stopstart_admin_route_source_path }}"
           - --upstream-name
           - "{{ module_cfg.nginx_route.upstream_name }}"
           - --external-path
@@ -170,16 +177,16 @@
 
     - name: Sync generated nginx upstream fragment to target
       ansible.builtin.copy:
-        src: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
-        dest: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
+        src: "{{ app_stopstart_admin_upstream_source_path }}"
+        dest: "{{ app_stopstart_admin_upstream_target_path }}"
         remote_src: true
         mode: "0644"
       register: app_stopstart_upstream_sync_result
 
     - name: Sync generated nginx route fragment to target
       ansible.builtin.copy:
-        src: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
-        dest: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+        src: "{{ app_stopstart_admin_route_source_path }}"
+        dest: "{{ app_stopstart_admin_route_target_path }}"
         remote_src: true
         mode: "0644"
       register: app_stopstart_route_sync_result
@@ -233,44 +240,44 @@
 
     - name: Restore previous admin upstream source fragment
       ansible.builtin.copy:
-        src: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf.bak"
-        dest: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+        src: "{{ app_stopstart_admin_upstream_source_path }}.bak"
+        dest: "{{ app_stopstart_admin_upstream_source_path }}"
         remote_src: true
         mode: "0644"
       when: app_stopstart_upstream_source_stat.stat.exists
 
     - name: Restore previous admin route source fragment
       ansible.builtin.copy:
-        src: "{{ nginx_generated_source_dir }}/routes/10-managed.conf.bak"
-        dest: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+        src: "{{ app_stopstart_admin_route_source_path }}.bak"
+        dest: "{{ app_stopstart_admin_route_source_path }}"
         remote_src: true
         mode: "0644"
       when: app_stopstart_route_source_stat.stat.exists
 
     - name: Remove admin upstream source fragment if no backup existed
       ansible.builtin.file:
-        path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+        path: "{{ app_stopstart_admin_upstream_source_path }}"
         state: absent
       when: not app_stopstart_upstream_source_stat.stat.exists
 
     - name: Remove admin route source fragment if no backup existed
       ansible.builtin.file:
-        path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+        path: "{{ app_stopstart_admin_route_source_path }}"
         state: absent
       when: not app_stopstart_route_source_stat.stat.exists
 
     - name: Restore previous admin upstream target fragment
       ansible.builtin.copy:
-        src: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf.bak"
-        dest: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
+        src: "{{ app_stopstart_admin_upstream_target_path }}.bak"
+        dest: "{{ app_stopstart_admin_upstream_target_path }}"
         remote_src: true
         mode: "0644"
       when: app_stopstart_upstream_target_stat.stat.exists
 
     - name: Restore previous admin route target fragment
       ansible.builtin.copy:
-        src: "{{ nginx_generated_target_dir }}/routes/10-managed.conf.bak"
-        dest: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+        src: "{{ app_stopstart_admin_route_target_path }}.bak"
+        dest: "{{ app_stopstart_admin_route_target_path }}"
         remote_src: true
         mode: "0644"
       when: app_stopstart_route_target_stat.stat.exists
@@ -285,13 +292,13 @@
 
     - name: Remove admin upstream target fragment if no backup existed
       ansible.builtin.file:
-        path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
+        path: "{{ app_stopstart_admin_upstream_target_path }}"
         state: absent
       when: not app_stopstart_upstream_target_stat.stat.exists
 
     - name: Remove admin route target fragment if no backup existed
       ansible.builtin.file:
-        path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+        path: "{{ app_stopstart_admin_route_target_path }}"
         state: absent
       when: not app_stopstart_route_target_stat.stat.exists
 
@@ -321,9 +328,9 @@
     path: "{{ item }}"
     state: absent
   loop:
-    - "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf.bak"
-    - "{{ nginx_generated_source_dir }}/routes/10-managed.conf.bak"
+    - "{{ app_stopstart_admin_upstream_source_path }}.bak"
+    - "{{ app_stopstart_admin_route_source_path }}.bak"
     - "{{ nginx_conf_source_path }}.bak"
-    - "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf.bak"
-    - "{{ nginx_generated_target_dir }}/routes/10-managed.conf.bak"
+    - "{{ app_stopstart_admin_upstream_target_path }}.bak"
+    - "{{ app_stopstart_admin_route_target_path }}.bak"
     - "{{ nginx_conf_target_path }}.bak"

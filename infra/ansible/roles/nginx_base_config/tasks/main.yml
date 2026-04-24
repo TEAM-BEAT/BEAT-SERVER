@@ -3,6 +3,17 @@
   ansible.builtin.import_role:
     name: nginx_config_helper
 
+- name: Resolve generated nginx fragment paths
+  ansible.builtin.set_fact:
+    nginx_backend_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/backend.conf"
+    nginx_admin_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/admin_backend.conf"
+    nginx_actuator_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/actuator.conf"
+    nginx_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/backend.conf"
+    nginx_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/admin_backend.conf"
+    nginx_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/actuator.conf"
+    nginx_route_source_path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+    nginx_route_target_path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+
 - name: Ensure nginx candidate directory exists
   ansible.builtin.file:
     path: "{{ deployment_dir }}/nginx"
@@ -45,22 +56,30 @@
 
 - name: Check if upstream fragment already exists (deployed server)
   ansible.builtin.stat:
-    path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
-  register: nginx_base_config_upstream_fragment_stat
+    path: "{{ item.path }}"
+  loop:
+    - { name: "backend", path: "{{ nginx_backend_upstream_source_path }}" }
+    - { name: "admin", path: "{{ nginx_admin_upstream_source_path }}" }
+    - { name: "actuator", path: "{{ nginx_actuator_upstream_source_path }}" }
+  register: nginx_base_config_upstream_source_stats
 
 - name: Check if route fragment already exists (deployed server)
   ansible.builtin.stat:
-    path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+    path: "{{ nginx_route_source_path }}"
   register: nginx_base_config_route_fragment_stat
 
 - name: Check current upstream fragment target
   ansible.builtin.stat:
-    path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
-  register: nginx_base_config_upstream_target_stat
+    path: "{{ item.path }}"
+  loop:
+    - { name: "backend", path: "{{ nginx_backend_upstream_target_path }}" }
+    - { name: "admin", path: "{{ nginx_admin_upstream_target_path }}" }
+    - { name: "actuator", path: "{{ nginx_actuator_upstream_target_path }}" }
+  register: nginx_base_config_upstream_target_stats
 
 - name: Check current route fragment target
   ansible.builtin.stat:
-    path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+    path: "{{ nginx_route_target_path }}"
   register: nginx_base_config_route_target_stat
 
 - name: Ensure live nginx config exists before promotion
@@ -79,10 +98,14 @@
   ansible.builtin.debug:
     msg:
       - "Would backup {{ deployment_dir }}/nginx/default.conf to {{ deployment_dir }}/nginx/default.conf.bak"
-      - "Would backup {{ nginx_generated_source_dir }}/upstreams/00-managed.conf to {{ nginx_generated_source_dir }}/upstreams/00-managed.conf.bak"
-      - "Would backup {{ nginx_generated_source_dir }}/routes/10-managed.conf to {{ nginx_generated_source_dir }}/routes/10-managed.conf.bak"
-      - "Would backup {{ nginx_generated_target_dir }}/upstreams/00-managed.conf to {{ nginx_generated_target_dir }}/upstreams/00-managed.conf.bak"
-      - "Would backup {{ nginx_generated_target_dir }}/routes/10-managed.conf to {{ nginx_generated_target_dir }}/routes/10-managed.conf.bak"
+      - "Would backup {{ nginx_backend_upstream_source_path }} to {{ nginx_backend_upstream_source_path }}.bak"
+      - "Would backup {{ nginx_admin_upstream_source_path }} to {{ nginx_admin_upstream_source_path }}.bak"
+      - "Would backup {{ nginx_actuator_upstream_source_path }} to {{ nginx_actuator_upstream_source_path }}.bak"
+      - "Would backup {{ nginx_route_source_path }} to {{ nginx_route_source_path }}.bak"
+      - "Would backup {{ nginx_backend_upstream_target_path }} to {{ nginx_backend_upstream_target_path }}.bak"
+      - "Would backup {{ nginx_admin_upstream_target_path }} to {{ nginx_admin_upstream_target_path }}.bak"
+      - "Would backup {{ nginx_actuator_upstream_target_path }} to {{ nginx_actuator_upstream_target_path }}.bak"
+      - "Would backup {{ nginx_route_target_path }} to {{ nginx_route_target_path }}.bak"
       - "Would backup {{ nginx_conf_target_path }} to {{ nginx_conf_target_path }}.bak"
       - "Would render {{ deployment_dir }}/nginx/default.conf and sync generated fragments to target"
       - "Would validate with docker exec {{ nginx_container_name }} nginx -t"
@@ -109,26 +132,28 @@
 
 - name: Backup current upstream fragment source
   ansible.builtin.copy:
-    src: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
-    dest: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf.bak"
+    src: "{{ item.path }}"
+    dest: "{{ item.path }}.bak"
     remote_src: true
     mode: "0644"
+  loop: "{{ nginx_base_config_upstream_source_stats.results }}"
   when:
     - not ansible_check_mode
-    - nginx_base_config_upstream_fragment_stat.stat.exists
+    - item.stat.exists
 
 - name: Clear stale upstream fragment source backup when file missing
   ansible.builtin.file:
-    path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf.bak"
+    path: "{{ item.path }}.bak"
     state: absent
   when:
     - not ansible_check_mode
-    - not nginx_base_config_upstream_fragment_stat.stat.exists
+    - not item.stat.exists
+  loop: "{{ nginx_base_config_upstream_source_stats.results }}"
 
 - name: Backup current route fragment source
   ansible.builtin.copy:
-    src: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
-    dest: "{{ nginx_generated_source_dir }}/routes/10-managed.conf.bak"
+    src: "{{ nginx_route_source_path }}"
+    dest: "{{ nginx_route_source_path }}.bak"
     remote_src: true
     mode: "0644"
   when:
@@ -137,7 +162,7 @@
 
 - name: Clear stale route fragment source backup when file missing
   ansible.builtin.file:
-    path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf.bak"
+    path: "{{ nginx_route_source_path }}.bak"
     state: absent
   when:
     - not ansible_check_mode
@@ -145,26 +170,28 @@
 
 - name: Backup current upstream fragment target
   ansible.builtin.copy:
-    src: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
-    dest: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf.bak"
+    src: "{{ item.path }}"
+    dest: "{{ item.path }}.bak"
     remote_src: true
     mode: "0644"
   when:
     - not ansible_check_mode
-    - nginx_base_config_upstream_target_stat.stat.exists
+    - item.stat.exists
+  loop: "{{ nginx_base_config_upstream_target_stats.results }}"
 
 - name: Clear stale upstream fragment target backup when file missing
   ansible.builtin.file:
-    path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf.bak"
+    path: "{{ item.path }}.bak"
     state: absent
   when:
     - not ansible_check_mode
-    - not nginx_base_config_upstream_target_stat.stat.exists
+    - not item.stat.exists
+  loop: "{{ nginx_base_config_upstream_target_stats.results }}"
 
 - name: Backup current route fragment target
   ansible.builtin.copy:
-    src: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
-    dest: "{{ nginx_generated_target_dir }}/routes/10-managed.conf.bak"
+    src: "{{ nginx_route_target_path }}"
+    dest: "{{ nginx_route_target_path }}.bak"
     remote_src: true
     mode: "0644"
   when:
@@ -173,7 +200,7 @@
 
 - name: Clear stale route fragment target backup when file missing
   ansible.builtin.file:
-    path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf.bak"
+    path: "{{ nginx_route_target_path }}.bak"
     state: absent
   when:
     - not ansible_check_mode
@@ -196,8 +223,8 @@
         dest: "{{ deployment_dir }}/nginx/default.conf"
         mode: "0644"
 
-    - name: Seed upstream fragments when missing
-      when: not nginx_base_config_upstream_fragment_stat.stat.exists
+    - name: Seed backend upstream fragment when missing
+      when: not nginx_base_config_upstream_source_stats.results[0].stat.exists
       block:
         - name: Seed backend upstream marker in source fragment
           ansible.builtin.command:
@@ -206,7 +233,7 @@
               - "{{ deployment_dir }}/update-nginx-config.py"
               - upsert-upstream
               - --path
-              - "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+              - "{{ nginx_backend_upstream_source_path }}"
               - --upstream-name
               - "{{ backend_upstream_name | default('backend') }}"
               - --container-name
@@ -216,6 +243,9 @@
           register: nginx_base_config_seed_backend_upstream_result
           changed_when: "'changed=true' in nginx_base_config_seed_backend_upstream_result.stdout"
 
+    - name: Seed admin upstream fragment when missing
+      when: not nginx_base_config_upstream_source_stats.results[1].stat.exists
+      block:
         - name: Seed admin upstream marker in source fragment
           ansible.builtin.command:
             argv:
@@ -223,7 +253,7 @@
               - "{{ deployment_dir }}/update-nginx-config.py"
               - upsert-upstream
               - --path
-              - "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+              - "{{ nginx_admin_upstream_source_path }}"
               - --upstream-name
               - "{{ admin_upstream_name | default('admin_backend') }}"
               - --container-name
@@ -233,6 +263,9 @@
           register: nginx_base_config_seed_admin_upstream_result
           changed_when: "'changed=true' in nginx_base_config_seed_admin_upstream_result.stdout"
 
+    - name: Seed actuator upstream fragment when missing
+      when: not nginx_base_config_upstream_source_stats.results[2].stat.exists
+      block:
         - name: Seed actuator upstream marker in source fragment
           ansible.builtin.command:
             argv:
@@ -240,7 +273,7 @@
               - "{{ deployment_dir }}/update-nginx-config.py"
               - upsert-upstream
               - --path
-              - "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+              - "{{ nginx_actuator_upstream_source_path }}"
               - --upstream-name
               - "{{ actuator_upstream_name | default('actuator') }}"
               - --container-name
@@ -260,7 +293,7 @@
               - "{{ deployment_dir }}/update-nginx-config.py"
               - ensure-route
               - --path
-              - "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+              - "{{ nginx_route_source_path }}"
               - --upstream-name
               - "{{ admin_upstream_name | default('admin_backend') }}"
               - --external-path
@@ -270,18 +303,22 @@
           register: nginx_base_config_seed_route_result
           changed_when: "'changed=true' in nginx_base_config_seed_route_result.stdout"
 
-    - name: Sync upstream fragment to target
+    - name: Sync upstream fragments to target
       ansible.builtin.copy:
-        src: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
-        dest: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
         remote_src: true
         mode: "0644"
-      register: nginx_base_config_upstream_target_sync_result
+      loop:
+        - { src: "{{ nginx_backend_upstream_source_path }}", dest: "{{ nginx_backend_upstream_target_path }}" }
+        - { src: "{{ nginx_admin_upstream_source_path }}", dest: "{{ nginx_admin_upstream_target_path }}" }
+        - { src: "{{ nginx_actuator_upstream_source_path }}", dest: "{{ nginx_actuator_upstream_target_path }}" }
+      register: nginx_base_config_upstream_target_sync_results
 
     - name: Sync route fragment to target
       ansible.builtin.copy:
-        src: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
-        dest: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+        src: "{{ nginx_route_source_path }}"
+        dest: "{{ nginx_route_target_path }}"
         remote_src: true
         mode: "0644"
       register: nginx_base_config_route_target_sync_result
@@ -311,8 +348,8 @@
           {{
             nginx_base_config_live_config_sync_result.changed
             or (
-              nginx_base_config_upstream_target_sync_result is defined
-              and nginx_base_config_upstream_target_sync_result.changed
+              nginx_base_config_upstream_target_sync_results is defined
+              and (nginx_base_config_upstream_target_sync_results.results | selectattr('changed') | list | length > 0)
             )
             or (
               nginx_base_config_route_target_sync_result is defined
@@ -350,57 +387,61 @@
 
     - name: Restore previous upstream fragment source from backup
       ansible.builtin.copy:
-        src: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf.bak"
-        dest: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+        src: "{{ item.path }}.bak"
+        dest: "{{ item.path }}"
         remote_src: true
         mode: "0644"
-      when: nginx_base_config_upstream_fragment_stat.stat.exists
+      when: item.stat.exists
+      loop: "{{ nginx_base_config_upstream_source_stats.results }}"
 
     - name: Restore previous route fragment source from backup
       ansible.builtin.copy:
-        src: "{{ nginx_generated_source_dir }}/routes/10-managed.conf.bak"
-        dest: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+        src: "{{ nginx_route_source_path }}.bak"
+        dest: "{{ nginx_route_source_path }}"
         remote_src: true
         mode: "0644"
       when: nginx_base_config_route_fragment_stat.stat.exists
 
     - name: Remove upstream fragment source if no backup existed
       ansible.builtin.file:
-        path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+        path: "{{ item.path }}"
         state: absent
-      when: not nginx_base_config_upstream_fragment_stat.stat.exists
+      when: not item.stat.exists
+      loop: "{{ nginx_base_config_upstream_source_stats.results }}"
 
     - name: Remove route fragment source if no backup existed
       ansible.builtin.file:
-        path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
+        path: "{{ nginx_route_source_path }}"
         state: absent
       when: not nginx_base_config_route_fragment_stat.stat.exists
 
     - name: Restore previous upstream fragment target from backup
       ansible.builtin.copy:
-        src: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf.bak"
-        dest: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
+        src: "{{ item.path }}.bak"
+        dest: "{{ item.path }}"
         remote_src: true
         mode: "0644"
-      when: nginx_base_config_upstream_target_stat.stat.exists
+      when: item.stat.exists
+      loop: "{{ nginx_base_config_upstream_target_stats.results }}"
 
     - name: Restore previous route fragment target from backup
       ansible.builtin.copy:
-        src: "{{ nginx_generated_target_dir }}/routes/10-managed.conf.bak"
-        dest: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+        src: "{{ nginx_route_target_path }}.bak"
+        dest: "{{ nginx_route_target_path }}"
         remote_src: true
         mode: "0644"
       when: nginx_base_config_route_target_stat.stat.exists
 
     - name: Remove upstream fragment target if no backup existed
       ansible.builtin.file:
-        path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
+        path: "{{ item.path }}"
         state: absent
-      when: not nginx_base_config_upstream_target_stat.stat.exists
+      when: not item.stat.exists
+      loop: "{{ nginx_base_config_upstream_target_stats.results }}"
 
     - name: Remove route fragment target if no backup existed
       ansible.builtin.file:
-        path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+        path: "{{ nginx_route_target_path }}"
         state: absent
       when: not nginx_base_config_route_target_stat.stat.exists
 
@@ -432,9 +473,13 @@
     state: absent
   loop:
     - "{{ deployment_dir }}/nginx/default.conf.bak"
-    - "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf.bak"
-    - "{{ nginx_generated_source_dir }}/routes/10-managed.conf.bak"
-    - "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf.bak"
-    - "{{ nginx_generated_target_dir }}/routes/10-managed.conf.bak"
+    - "{{ nginx_backend_upstream_source_path }}.bak"
+    - "{{ nginx_admin_upstream_source_path }}.bak"
+    - "{{ nginx_actuator_upstream_source_path }}.bak"
+    - "{{ nginx_route_source_path }}.bak"
+    - "{{ nginx_backend_upstream_target_path }}.bak"
+    - "{{ nginx_admin_upstream_target_path }}.bak"
+    - "{{ nginx_actuator_upstream_target_path }}.bak"
+    - "{{ nginx_route_target_path }}.bak"
     - "{{ nginx_conf_target_path }}.bak"
   when: not ansible_check_mode
