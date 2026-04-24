@@ -335,13 +335,13 @@
 
     - name: Restore previous managed upstream target from backup
       ansible.builtin.copy:
-        src: "{{ item.path }}.bak"
-        dest: "{{ item.path }}"
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
         remote_src: true
         mode: "0644"
       loop:
-        - { path: "{{ app_bluegreen_backend_upstream_target_path }}", stat_exists: "{{ app_bluegreen_upstream_source_stats.results[0].stat.exists }}" }
-        - { path: "{{ app_bluegreen_actuator_upstream_target_path }}", stat_exists: "{{ app_bluegreen_upstream_source_stats.results[1].stat.exists }}" }
+        - { src: "{{ app_bluegreen_backend_upstream_source_path }}.bak", dest: "{{ app_bluegreen_backend_upstream_target_path }}", stat_exists: "{{ app_bluegreen_upstream_source_stats.results[0].stat.exists }}" }
+        - { src: "{{ app_bluegreen_actuator_upstream_source_path }}.bak", dest: "{{ app_bluegreen_actuator_upstream_target_path }}", stat_exists: "{{ app_bluegreen_upstream_source_stats.results[1].stat.exists }}" }
       when: item.stat_exists | bool
 
     - name: Remove managed upstream fragment if no backup existed
