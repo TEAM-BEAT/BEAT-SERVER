@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v2/tickets")
-class TicketV2Controller
+class TicketV2Controller(
     private val ticketFacade: TicketFacade,
 ) : TicketV2Api {
 
