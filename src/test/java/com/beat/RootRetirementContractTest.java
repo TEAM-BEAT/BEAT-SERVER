@@ -427,7 +427,13 @@ class RootRetirementContractTest {
 			"- { name: \"backend\", path: \"{{ app_bluegreen_backend_upstream_source_path }}\" }"));
 		assertTrue(appBluegreenRunSwitch.contains(
 			"- { name: \"actuator\", path: \"{{ app_bluegreen_actuator_upstream_source_path }}\" }"));
+		assertTrue(appBluegreenRunSwitch.contains("src: \"{{ item.item.path }}\""));
+		assertTrue(appBluegreenRunSwitch.contains("dest: \"{{ item.item.path }}.bak\""));
+		assertTrue(appBluegreenRunSwitch.contains("src: \"{{ item.item.path }}.bak\""));
 		assertFalse(appBluegreenRunSwitch.contains("path: \"{{ item }}\""));
+		assertFalse(appBluegreenRunSwitch.contains("src: \"{{ item.path }}\""));
+		assertFalse(appBluegreenRunSwitch.contains("dest: \"{{ item.path }}.bak\""));
+		assertFalse(appBluegreenRunSwitch.contains("src: \"{{ item.path }}.bak\""));
 		assertTrue(appBluegreenRunSwitch.contains("current-slot"));
 		assertTrue(appBluegreenRunSwitch.contains("upsert-upstream"));
 		assertTrue(appBluegreenRunSwitch.contains("public_smoke_url"));

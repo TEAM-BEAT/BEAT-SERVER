@@ -104,19 +104,23 @@
 
 - name: Backup current managed upstream fragment
   ansible.builtin.copy:
-    src: "{{ item.path }}"
-    dest: "{{ item.path }}.bak"
+    src: "{{ item.item.path }}"
+    dest: "{{ item.item.path }}.bak"
     remote_src: true
     mode: "0644"
   when: item.stat.exists
   loop: "{{ app_bluegreen_upstream_source_stats.results }}"
+  loop_control:
+    label: "{{ item.item.path }}"
 
 - name: Clear stale managed upstream backup when source missing
   ansible.builtin.file:
-    path: "{{ item.path }}.bak"
+    path: "{{ item.item.path }}.bak"
     state: absent
   when: not item.stat.exists
   loop: "{{ app_bluegreen_upstream_source_stats.results }}"
+  loop_control:
+    label: "{{ item.item.path }}"
 
 - name: Run blue-green rollout
   block:
@@ -333,12 +337,14 @@
 
     - name: Restore previous managed upstream fragment from backup
       ansible.builtin.copy:
-        src: "{{ item.path }}.bak"
-        dest: "{{ item.path }}"
+        src: "{{ item.item.path }}.bak"
+        dest: "{{ item.item.path }}"
         remote_src: true
         mode: "0644"
       when: item.stat.exists
       loop: "{{ app_bluegreen_upstream_source_stats.results }}"
+      loop_control:
+        label: "{{ item.item.path }}"
 
     - name: Restore previous managed upstream target from backup
       ansible.builtin.copy:
