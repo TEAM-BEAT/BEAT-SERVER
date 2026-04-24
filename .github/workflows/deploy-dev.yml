@@ -78,20 +78,21 @@ jobs:
 
           event_name = os.environ["EVENT_NAME"]
           requested = os.environ.get("INPUT_MODULE") or "all"
+          preferred_order = ["admin", "apis", "batch"]
           modules = []
 
           if event_name == "workflow_dispatch":
-              modules = ["apis", "admin", "batch"] if requested == "all" else [requested]
+              modules = preferred_order if requested == "all" else [requested]
           else:
               if os.environ["SHARED"] == "true":
-                  modules = ["apis", "admin", "batch"]
+                  modules = preferred_order
               else:
-                  if os.environ["APIS"] == "true":
-                      modules.append("apis")
-                  if os.environ["ADMIN"] == "true":
-                      modules.append("admin")
-                  if os.environ["BATCH"] == "true":
-                      modules.append("batch")
+                  selected_modules = {
+                      "admin": os.environ["ADMIN"] == "true",
+                      "apis": os.environ["APIS"] == "true",
+                      "batch": os.environ["BATCH"] == "true",
+                  }
+                  modules = [module for module in preferred_order if selected_modules[module]]
 
           matrix = {"include": [{"module": module} for module in modules]}
           github_output = os.environ["GITHUB_OUTPUT"]

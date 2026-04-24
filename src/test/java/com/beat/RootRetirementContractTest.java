@@ -1,9 +1,11 @@
 package com.beat;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -234,11 +236,137 @@ class RootRetirementContractTest {
 		assertFalse(deployProd.contains("github.event.inputs.version"));
 		assertFalse(deployProd.contains("github.event.inputs.module"));
 		assertFalse(deployProd.contains("checkout_ref=refs/tags/"));
+		assertTrue(deployProd.contains("module_matrix={\"include\":[{\"module\":\"admin\"},{\"module\":\"apis\"},{\"module\":\"batch\"}]}"));
 
 		assertTrue(secretAwareVerify.contains("module: ${{ matrix.module }}"));
 		assertTrue(secretAwareVerify.contains("Verified resolver for module=${MODULE}"));
 		assertTrue(secretAwareVerify.contains("- admin"));
 		assertTrue(secretAwareVerify.contains("- batch"));
+	}
+
+	@Test
+	void nginxHelperSplitsLegacyManagedUpstreamsIntoOwnedFragments() throws Exception {
+		Path script = Path.of("infra/ansible/roles/nginx_config_helper/files/update-nginx-config.py").toAbsolutePath();
+		Path tempDir = Files.createTempDirectory("beat-nginx-upstreams-");
+		Path upstreamDir = tempDir.resolve("upstreams");
+		Path legacy = upstreamDir.resolve("00-managed.conf");
+		Files.createDirectories(upstreamDir);
+		Files.writeString(legacy, """
+			# BEGIN BEAT MANAGED UPSTREAM backend
+			upstream backend {
+			    server apis-blue:4001;
+			}
+			# END BEAT MANAGED UPSTREAM backend
+
+			# BEGIN BEAT MANAGED UPSTREAM admin_backend
+			upstream admin_backend {
+			    server admin:4000;
+			}
+			# END BEAT MANAGED UPSTREAM admin_backend
+
+			# BEGIN BEAT MANAGED UPSTREAM actuator
+			upstream actuator {
+			    server apis-blue:9000;
+			}
+			# END BEAT MANAGED UPSTREAM actuator
+			""");
+
+		String firstRun = run(
+			"python3",
+			script.toString(),
+			"split-upstreams",
+			"--source",
+			legacy.toString(),
+			"--output-dir",
+			upstreamDir.toString(),
+			"--mapping",
+			"backend=backend.conf",
+			"--mapping",
+			"admin_backend=admin_backend.conf",
+			"--mapping",
+			"actuator=actuator.conf",
+			"--require-all");
+
+		assertTrue(firstRun.contains("changed=true"));
+		assertTrue(Files.readString(upstreamDir.resolve("backend.conf")).contains("server apis-blue:4001;"));
+		assertTrue(Files.readString(upstreamDir.resolve("admin_backend.conf")).contains("server admin:4000;"));
+		assertTrue(Files.readString(upstreamDir.resolve("actuator.conf")).contains("server apis-blue:9000;"));
+
+		String secondRun = run(
+			"python3",
+			script.toString(),
+			"split-upstreams",
+			"--source",
+			legacy.toString(),
+			"--output-dir",
+			upstreamDir.toString(),
+			"--mapping",
+			"backend=backend.conf",
+			"--mapping",
+			"admin_backend=admin_backend.conf",
+			"--mapping",
+			"actuator=actuator.conf",
+			"--require-all");
+
+		assertTrue(secondRun.contains("changed=false"));
+	}
+
+	@Test
+	void nginxHelperKeepsExistingOwnedFragmentsWhenSplittingLegacyUpstreams() throws Exception {
+		Path script = Path.of("infra/ansible/roles/nginx_config_helper/files/update-nginx-config.py").toAbsolutePath();
+		Path tempDir = Files.createTempDirectory("beat-nginx-upstream-preserve-");
+		Path upstreamDir = tempDir.resolve("upstreams");
+		Path legacy = upstreamDir.resolve("00-managed.conf");
+		Files.createDirectories(upstreamDir);
+		Files.writeString(upstreamDir.resolve("backend.conf"), """
+			# BEGIN BEAT MANAGED UPSTREAM backend
+			upstream backend {
+			    server apis-live:4001;
+			}
+			# END BEAT MANAGED UPSTREAM backend
+			""");
+		Files.writeString(legacy, """
+			# BEGIN BEAT MANAGED UPSTREAM backend
+			upstream backend {
+			    server apis-stale:4001;
+			}
+			# END BEAT MANAGED UPSTREAM backend
+
+			# BEGIN BEAT MANAGED UPSTREAM admin_backend
+			upstream admin_backend {
+			    server admin-live:4000;
+			}
+			# END BEAT MANAGED UPSTREAM admin_backend
+
+			# BEGIN BEAT MANAGED UPSTREAM actuator
+			upstream actuator {
+			    server apis-live:9000;
+			}
+			# END BEAT MANAGED UPSTREAM actuator
+			""");
+
+		String output = run(
+			"python3",
+			script.toString(),
+			"split-upstreams",
+			"--source",
+			legacy.toString(),
+			"--output-dir",
+			upstreamDir.toString(),
+			"--mapping",
+			"backend=backend.conf",
+			"--mapping",
+			"admin_backend=admin_backend.conf",
+			"--mapping",
+			"actuator=actuator.conf",
+			"--require-all",
+			"--skip-existing");
+
+		assertTrue(output.contains("changed=true"));
+		assertTrue(Files.readString(upstreamDir.resolve("backend.conf")).contains("server apis-live:4001;"));
+		assertFalse(Files.readString(upstreamDir.resolve("backend.conf")).contains("server apis-stale:4001;"));
+		assertTrue(Files.readString(upstreamDir.resolve("admin_backend.conf")).contains("server admin-live:4000;"));
+		assertTrue(Files.readString(upstreamDir.resolve("actuator.conf")).contains("server apis-live:9000;"));
 	}
 
 	@Test
@@ -257,6 +385,8 @@ class RootRetirementContractTest {
 		String appStopStartRole = read("infra/ansible/roles/app_stopstart/tasks/main.yml");
 		String appStopStartRunContainer = read("infra/ansible/roles/app_stopstart/tasks/run_container.yml");
 		String appHealthcheckRole = read("infra/ansible/roles/app_healthcheck/tasks/main.yml");
+		String nginxBaseConfig = read("infra/ansible/roles/nginx_base_config/tasks/main.yml");
+		String nginxLegacyMigration = read("infra/ansible/roles/nginx_config_helper/tasks/migrate_legacy_upstreams.yml");
 		String adminNginxRoute = read("infra/ansible/roles/app_stopstart/tasks/admin_nginx_route.yml");
 		String deployDev = read(".github/workflows/deploy-dev.yml");
 		String deployProd = read(".github/workflows/deploy-prod.yml");
@@ -272,6 +402,7 @@ class RootRetirementContractTest {
 			assertTrue(Files.exists(Path.of("infra/ansible/roles/nginx_config_helper/files/update-nginx-config.py")));
 			assertTrue(Files.exists(Path.of("infra/ansible/roles/foundation_stack/templates/foundation.compose.yml.j2")));
 			assertTrue(Files.exists(Path.of("infra/ansible/roles/nginx_base_config/templates/default.conf.j2")));
+			assertTrue(Files.exists(Path.of("infra/ansible/roles/nginx_config_helper/tasks/migrate_legacy_upstreams.yml")));
 		assertTrue(Files.exists(Path.of("scripts/generate-local-dev-secret.sh")));
 		assertTrue(Files.exists(Path.of("scripts/generate-local-prod-secret.sh")));
 		assertTrue(Files.exists(Path.of(".dockerignore")));
@@ -290,6 +421,7 @@ class RootRetirementContractTest {
 		assertTrue(dockerignore.contains(".omx"));
 		assertTrue(dockerignore.contains("src/"));
 		assertTrue(appBluegreenRunSwitch.contains("community.docker.docker_container"));
+		assertTrue(appBluegreenRunSwitch.contains("tasks_from: migrate_legacy_upstreams.yml"));
 		assertTrue(appBluegreenRunSwitch.contains("current-slot"));
 		assertTrue(appBluegreenRunSwitch.contains("upsert-upstream"));
 		assertTrue(appBluegreenRunSwitch.contains("public_smoke_url"));
@@ -316,6 +448,8 @@ class RootRetirementContractTest {
 		assertTrue(nginxUpdateScript.contains("BEAT MANAGED GENERATED ROUTE INCLUDES"));
 		assertTrue(nginxUpdateScript.contains("bootstrap-includes"));
 		assertTrue(nginxUpdateScript.contains("upsert-upstream"));
+		assertTrue(nginxUpdateScript.contains("split-upstreams"));
+		assertTrue(nginxUpdateScript.contains("skip_existing"));
 		assertTrue(deployPlaybook.contains("module_cfg.deploy_mode == 'blue_green'"));
 		assertTrue(deployPlaybook.contains("module_cfg.deploy_mode == 'stop_start'"));
 		assertTrue(deployPlaybook.contains("tags:"));
@@ -346,6 +480,9 @@ class RootRetirementContractTest {
 			assertFalse(deployDev.contains("inventory_label:"));
 			assertFalse(deployProd.contains("inventory_label:"));
 			assertFalse(rollbackProd.contains("inventory_label:"));
+			assertTrue(deployDev.contains("preferred_order = [\"admin\", \"apis\", \"batch\"]"));
+			assertTrue(deployDev.contains("modules = preferred_order if requested == \"all\" else [requested]"));
+			assertTrue(deployDev.contains("modules = [module for module in preferred_order if selected_modules[module]]"));
 			assertTrue(deployDev.contains("IMAGE_TAG=\"dev-${GITHUB_SHA}\""));
 			assertTrue(deployDev.contains("image: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ github.sha }}"));
 			assertTrue(deployProd.contains("IMAGE_TAG=\"${RELEASE_TAG}\""));
@@ -361,9 +498,27 @@ class RootRetirementContractTest {
 		assertTrue(appHealthcheckRole.contains("module_cfg.blue_container_name"));
 		assertTrue(appHealthcheckRole.contains("module_cfg.green_container_name"));
 		assertFalse(appHealthcheckRole.contains("target=\"apis-$slot\""));
+		assertTrue(nginxBaseConfig.contains("nginx_base_config_upstream_target_sync_results is defined"));
+		assertFalse(nginxBaseConfig.contains("nginx_base_config_upstream_target_sync_result is defined"));
+		assertTrue(nginxBaseConfig.contains("nginx_legacy_upstream_source_path"));
+		assertTrue(nginxBaseConfig.contains("Split legacy upstream source into per-upstream fragments"));
+		assertTrue(nginxBaseConfig.contains("Remove legacy upstream target before nginx validation"));
+		assertTrue(nginxBaseConfig.contains("selectattr('item.name', 'equalto', 'backend')"));
+		assertFalse(nginxBaseConfig.contains("nginx_base_config_upstream_source_stats.results[0]"));
+		assertTrue(nginxLegacyMigration.contains("00-managed.conf"));
+		assertTrue(nginxLegacyMigration.contains("Sync split upstream fragments before removing legacy target"));
+		assertTrue(nginxLegacyMigration.contains("Remove legacy upstream target before nginx validation"));
+		assertBefore(nginxLegacyMigration, "Split legacy upstream source", "Check split upstream sources");
+		assertBefore(nginxLegacyMigration, "Check split upstream sources", "Abort legacy upstream migration");
+		assertBefore(nginxLegacyMigration, "Abort legacy upstream migration", "Sync split upstream fragments");
+		assertBefore(nginxLegacyMigration, "Sync split upstream fragments", "Remove legacy upstream target");
+		assertBefore(nginxLegacyMigration, "Remove legacy upstream target", "Remove legacy upstream source");
+		assertBefore(appBluegreenRunSwitch, "tasks_from: migrate_legacy_upstreams.yml", "Validate nginx config after upstream switch");
+		assertBefore(adminNginxRoute, "tasks_from: migrate_legacy_upstreams.yml", "Validate nginx config after admin route update");
 		assertTrue(adminNginxRoute.contains("bootstrap-includes"));
+		assertTrue(adminNginxRoute.contains("tasks_from: migrate_legacy_upstreams.yml"));
 		assertTrue(adminNginxRoute.contains("routes/10-managed.conf"));
-		assertTrue(adminNginxRoute.contains("upstreams/00-managed.conf"));
+		assertTrue(adminNginxRoute.contains("upstreams/admin_backend.conf"));
 		assertFalse(adminNginxRoute.contains("/api/admin/"));
 	}
 
@@ -437,5 +592,23 @@ class RootRetirementContractTest {
 
 	private static String read(String path) throws IOException {
 		return Files.readString(Path.of(path));
+	}
+
+	private static String run(String... command) throws Exception {
+		Process process = new ProcessBuilder(command)
+			.redirectErrorStream(true)
+			.start();
+		String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+		int exitCode = process.waitFor();
+		assertEquals(0, exitCode, output);
+		return output;
+	}
+
+	private static void assertBefore(String content, String first, String second) {
+		int firstIndex = content.indexOf(first);
+		int secondIndex = content.indexOf(second);
+		assertTrue(firstIndex >= 0, first);
+		assertTrue(secondIndex >= 0, second);
+		assertTrue(firstIndex < secondIndex, first + " should appear before " + second);
 	}
 }

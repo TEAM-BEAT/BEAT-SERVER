@@ -123,6 +123,61 @@ def ensure_route(path: Path, upstream_name: str, external_path: str, upstream_pa
     return write_normalized(path, text)
 
 
+
+def parse_mapping(value: str) -> tuple[str, str]:
+    if "=" not in value:
+        raise argparse.ArgumentTypeError("mapping must be formatted as upstream_name=fragment_file")
+    upstream_name, fragment_file = value.split("=", 1)
+    if not upstream_name or not fragment_file:
+        raise argparse.ArgumentTypeError("mapping must include both upstream_name and fragment_file")
+    return upstream_name, fragment_file
+
+
+def extract_managed_or_upstream_block(text: str, upstream_name: str) -> str | None:
+    marker = f"BEAT MANAGED UPSTREAM {upstream_name}"
+    managed_pattern = re.compile(
+        rf"# BEGIN {re.escape(marker)}\n.*?# END {re.escape(marker)}",
+        flags=re.S,
+    )
+    managed_match = managed_pattern.search(text)
+    if managed_match:
+        return managed_match.group(0).strip() + "\n"
+
+    upstream_pattern = re.compile(
+        rf"(^|\n)(upstream\s+{re.escape(upstream_name)}\s*\{{.*?\n\s*\}})",
+        flags=re.S,
+    )
+    upstream_match = upstream_pattern.search(text)
+    if upstream_match:
+        return upstream_match.group(2).strip() + "\n"
+    return None
+
+
+def split_upstreams(
+    source: Path,
+    output_dir: Path,
+    mappings: list[tuple[str, str]],
+    require_all: bool,
+    skip_existing: bool,
+) -> bool:
+    if not source.exists():
+        return False
+
+    text = source.read_text()
+    changed = False
+    for upstream_name, fragment_file in mappings:
+        fragment_path = output_dir / fragment_file
+        if skip_existing and fragment_path.exists():
+            continue
+        block = extract_managed_or_upstream_block(text, upstream_name)
+        if block is None:
+            if require_all:
+                raise SystemExit(f"Required upstream '{upstream_name}' was not found in {source}")
+            continue
+        changed = write_normalized(fragment_path, block) or changed
+    return changed
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -144,31 +199,45 @@ def build_parser() -> argparse.ArgumentParser:
     ensure_route_parser.add_argument("--external-path", required=True)
     ensure_route_parser.add_argument("--upstream-path", required=True)
 
+    split_upstreams_parser = subcommands.add_parser("split-upstreams")
+    split_upstreams_parser.add_argument("--source", required=True)
+    split_upstreams_parser.add_argument("--output-dir", required=True)
+    split_upstreams_parser.add_argument("--mapping", action="append", type=parse_mapping, required=True)
+    split_upstreams_parser.add_argument("--require-all", action="store_true")
+    split_upstreams_parser.add_argument("--skip-existing", action="store_true")
+
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
-    path = Path(args.path)
     if args.command == "bootstrap-includes":
         changed = bootstrap_includes(
-            path,
+            Path(args.path),
             args.upstream_include_glob,
             args.route_include_glob,
         )
     elif args.command == "upsert-upstream":
         changed = upsert_upstream(
-            path,
+            Path(args.path),
             args.upstream_name,
             args.container_name,
             args.backend_port,
         )
-    else:
+    elif args.command == "ensure-route":
         changed = ensure_route(
-            path,
+            Path(args.path),
             args.upstream_name,
             args.external_path,
             args.upstream_path,
+        )
+    else:
+        changed = split_upstreams(
+            Path(args.source),
+            Path(args.output_dir),
+            args.mapping,
+            args.require_all,
+            args.skip_existing,
         )
     print(f"changed={'true' if changed else 'false'}")
 

@@ -496,10 +496,10 @@ flowchart LR
         Root["location / { proxy_pass backend }"]
     end
 
-    subgraph Upstreams["00-managed.conf"]
-        B["upstream backend { apis-blue:4001 }"]
-        AB["upstream admin_backend { admin:4000 }"]
-        AC["upstream actuator { apis-blue:port }"]
+    subgraph Upstreams["generated/upstreams/*.conf"]
+        B["backend.conf -> upstream backend { apis-blue:4001 }"]
+        AB["admin_backend.conf -> upstream admin_backend { admin:4000 }"]
+        AC["actuator.conf -> upstream actuator { apis-blue:port }"]
     end
 
     subgraph Routes["10-managed.conf"]
@@ -527,13 +527,17 @@ flowchart LR
 └── nginx/
     ├── default.conf                        # 후보 설정 (source, 다음 promotion 입력)
     └── generated/
-        ├── upstreams/00-managed.conf       # upstream fragment (source, helper가 갱신)
+        ├── upstreams/backend.conf          # backend upstream fragment (source)
+        ├── upstreams/admin_backend.conf    # admin upstream fragment (source)
+        ├── upstreams/actuator.conf         # actuator upstream fragment (source)
         └── routes/10-managed.conf          # route fragment (source, helper가 갱신)
 
 /var/lib/docker/volumes/nginx-config-volume/_data/
 ├── conf.d/default.conf                     # 실제 적용 설정 (target, 현재 live)
 └── generated/
-    ├── upstreams/00-managed.conf           # upstream fragment (target, 현재 live)
+    ├── upstreams/backend.conf              # backend upstream fragment (target, 현재 live)
+    ├── upstreams/admin_backend.conf        # admin upstream fragment (target, 현재 live)
+    ├── upstreams/actuator.conf             # actuator upstream fragment (target, 현재 live)
     └── routes/10-managed.conf              # route fragment (target, 현재 live)
 
 /opt/beat/

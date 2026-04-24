@@ -27,7 +27,7 @@ jobs:
             exit 1
           fi
           echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
-          echo 'module_matrix={"include":[{"module":"apis"},{"module":"admin"},{"module":"batch"}]}' >> "$GITHUB_OUTPUT"
+          echo 'module_matrix={"include":[{"module":"admin"},{"module":"apis"},{"module":"batch"}]}' >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
