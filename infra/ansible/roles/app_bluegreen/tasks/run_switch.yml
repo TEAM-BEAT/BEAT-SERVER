@@ -94,10 +94,12 @@
 
 - name: Check existing managed upstream fragment
   ansible.builtin.stat:
-    path: "{{ item }}"
+    path: "{{ item.path }}"
   loop:
-    - "{{ app_bluegreen_backend_upstream_source_path }}"
-    - "{{ app_bluegreen_actuator_upstream_source_path }}"
+    - { name: "backend", path: "{{ app_bluegreen_backend_upstream_source_path }}" }
+    - { name: "actuator", path: "{{ app_bluegreen_actuator_upstream_source_path }}" }
+  loop_control:
+    label: "{{ item.path }}"
   register: app_bluegreen_upstream_source_stats
 
 - name: Backup current managed upstream fragment

@@ -422,6 +422,12 @@ class RootRetirementContractTest {
 		assertTrue(dockerignore.contains("src/"));
 		assertTrue(appBluegreenRunSwitch.contains("community.docker.docker_container"));
 		assertTrue(appBluegreenRunSwitch.contains("tasks_from: migrate_legacy_upstreams.yml"));
+		assertTrue(appBluegreenRunSwitch.contains("path: \"{{ item.path }}\""));
+		assertTrue(appBluegreenRunSwitch.contains(
+			"- { name: \"backend\", path: \"{{ app_bluegreen_backend_upstream_source_path }}\" }"));
+		assertTrue(appBluegreenRunSwitch.contains(
+			"- { name: \"actuator\", path: \"{{ app_bluegreen_actuator_upstream_source_path }}\" }"));
+		assertFalse(appBluegreenRunSwitch.contains("path: \"{{ item }}\""));
 		assertTrue(appBluegreenRunSwitch.contains("current-slot"));
 		assertTrue(appBluegreenRunSwitch.contains("upsert-upstream"));
 		assertTrue(appBluegreenRunSwitch.contains("public_smoke_url"));
