@@ -24,14 +24,34 @@
     path: "{{ pending_metadata_path }}"
     state: absent
 
+- name: Assert docker image prune failure policy is supported
+  ansible.builtin.assert:
+    that:
+      - docker_image_prune_failure_policy | default('warn') in ['warn', 'fail']
+    fail_msg: >-
+      docker_image_prune_failure_policy must be either 'warn' or 'fail'
+      (got {{ docker_image_prune_failure_policy | default('warn') }}).
+
 - name: Remove dangling Docker images
-  ansible.builtin.shell: |
-    docker image prune -f --filter "until=72h"
+  ansible.builtin.command:
+    argv:
+      - docker
+      - image
+      - prune
+      - -f
+      - --filter
+      - "until={{ docker_image_prune_retention | default('72h') }}"
   register: app_cleanup_docker_prune_result
   changed_when: app_cleanup_docker_prune_result.rc == 0
-  failed_when: false
+  failed_when:
+    - app_cleanup_docker_prune_result.rc != 0
+    - docker_image_prune_failure_policy | default('warn') == 'fail'
 
 - name: Report docker prune cleanup issue
   ansible.builtin.debug:
-    msg: "docker image prune failed during cleanup: {{ app_cleanup_docker_prune_result.stderr | default('unknown error') }}"
-  when: app_cleanup_docker_prune_result.rc != 0
+    msg: >-
+      docker image prune failed during cleanup with policy=warn:
+      {{ app_cleanup_docker_prune_result.stderr | default('unknown error') }}
+  when:
+    - app_cleanup_docker_prune_result.rc != 0
+    - docker_image_prune_failure_policy | default('warn') == 'warn'

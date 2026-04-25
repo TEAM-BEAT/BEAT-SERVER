@@ -549,6 +549,22 @@ flowchart LR
     └── previous.json                       # 이전 배포 (롤백용)
 ```
 
+### Release metadata schema
+
+`app_release`는 배포 시작 시 `pending.json`을 쓰고, 배포/검증이 끝난 뒤 `app_cleanup`이 이를 `current.json`으로 승격한다. 기존 `current.json`은 `previous.json`으로 보존되어 rollback 입력이 된다. `app_rollback`은 rollback 전에 기존 `current.json`을 `reverted-<UTC>.json`으로 archive한다.
+
+| 필드 | 의미 | 출처 / provenance |
+|------|------|-------------------|
+| `module` | 배포 대상 모듈 (`apis`, `admin`, `batch`) | GitHub workflow matrix/input이 Ansible extra var로 전달 |
+| `image` | 실제 실행할 Docker image 전체 이름 | deploy/rollback workflow에서 전달한 image extra var |
+| `image_tag` | image tag 또는 release tag | dev는 `dev-{GITHUB_SHA}`, prod는 release tag 기준 |
+| `commit_sha` | 배포 기준 Git commit SHA | GitHub run에서 해석한 commit SHA (`github.sha` 또는 release ref resolve 결과), 없으면 `unknown` |
+| `deploy_actor` | 배포를 트리거한 GitHub actor | GitHub workflow의 actor 값, 없으면 `unknown` |
+| `deploy_environment` | Ansible inventory 환경 (`dev`/`prod`) | inventory `deploy_environment` |
+| `created_at` | metadata 생성 시각 | Ansible controller(GitHub runner)에서 계산한 UTC (`now(utc=true, ...)`) |
+
+`created_at`은 원격 EC2의 시스템 시간이 아니라 controller UTC이다. 서버 로그와 비교할 때는 GitHub runner에서 metadata가 생성된 시각으로 해석한다.
+
 ## GitHub Secrets
 
 ### 필수 (Environment: dev)
@@ -592,6 +608,16 @@ ssh-keyscan -p 22 <서버IP> 2>/dev/null | ssh-keygen -lf - -E sha256
 
 > **참고**: `DEV_SSH_HOST`와 `ansible_host`(secrets.sops.yml)는 동일한 IP이다.
 > 전자는 GHA runner의 SSH known_hosts 설정에, 후자는 Ansible inventory 접속에 사용된다.
+
+### SSH pipelining + sudo `requiretty` caveat
+
+`infra/ansible/ansible.cfg`는 SSH pipelining을 켠다. Ubuntu 22.04 계열 기본 EC2 AMI에서는 `become: true`와 함께 정상 동작하지만, 일부 커스텀 AMI나 레거시 sudoers 정책에서 `Defaults requiretty`가 켜져 있으면 Ansible pipelining + sudo 조합이 실패할 수 있다.
+
+- Ubuntu 기본 AMI처럼 `requiretty`가 없는 환경: 현재 설정 유지 (`pipelining = True`)
+- 커스텀 AMI에서 sudo가 TTY를 요구하는 환경: sudoers에서 `requiretty`를 끄거나, 해당 inventory/ansible.cfg에서 pipelining을 비활성화한 뒤 재검증
+- 증상: SSH 접속은 성공하지만 `become` 태스크가 sudo/TTY 관련 오류로 실패
+
+운영 AMI를 교체할 때는 foundation/deploy/rollback syntax check만으로 충분하지 않다. 실제 `become` 태스크가 포함된 dry-run 또는 제한된 smoke deploy로 pipelining 호환성을 확인한다.
 
 ## 로컬 개발
 

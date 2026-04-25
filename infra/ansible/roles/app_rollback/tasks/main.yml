@@ -32,10 +32,15 @@
       Unsupported deploy_mode '{{ module_cfg.deploy_mode }}' for module '{{ module }}'.
       Rollback aborted before any state change. Supported values: blue_green, stop_start
 
+- name: Capture rollback archive timestamp
+  ansible.builtin.set_fact:
+    app_rollback_archive_timestamp: "{{ now(utc=true, fmt='%Y%m%dT%H%M%SZ') }}"
+  when: app_rollback_current_release_stat.stat.exists
+
 - name: Archive the current release metadata before rollback
   ansible.builtin.copy:
     src: "{{ release_dir }}/current.json"
-    dest: "{{ release_dir }}/reverted-{{ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') }}.json"
+    dest: "{{ release_dir }}/reverted-{{ app_rollback_archive_timestamp }}.json"
     remote_src: true
     mode: "0644"
   when: app_rollback_current_release_stat.stat.exists

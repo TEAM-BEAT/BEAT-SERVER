@@ -392,6 +392,9 @@ class RootRetirementContractTest {
 		String appContainerRuntimeEnv = read("infra/ansible/roles/app_container_runtime/tasks/env.yml");
 		String appHealthcheckRole = read("infra/ansible/roles/app_healthcheck/tasks/main.yml");
 		String appHealthcheckProbe = read("infra/ansible/roles/app_healthcheck/tasks/probe.yml");
+		String appCleanupRole = read("infra/ansible/roles/app_cleanup/tasks/main.yml");
+		String appRollbackRole = read("infra/ansible/roles/app_rollback/tasks/main.yml");
+		String infraReadme = read("infra/README.md");
 		String nginxBaseConfig = read("infra/ansible/roles/nginx_base_config/tasks/main.yml");
 		String nginxLegacyMigration = read("infra/ansible/roles/nginx_config_helper/tasks/migrate_legacy_upstreams.yml");
 		String adminNginxRoute = read("infra/ansible/roles/app_stopstart/tasks/admin_nginx_route.yml");
@@ -538,6 +541,18 @@ class RootRetirementContractTest {
 		assertFalse(appHealthcheckRole.contains("slurp:"));
 		assertFalse(appHealthcheckRole.contains("module_cfg.container_name | default(module)"));
 		assertFalse(appHealthcheckRole.contains("target=\"apis-$slot\""));
+		assertTrue(appCleanupRole.contains("docker_image_prune_retention | default('72h')"));
+		assertTrue(appCleanupRole.contains("docker_image_prune_failure_policy | default('warn') in ['warn', 'fail']"));
+		assertTrue(appCleanupRole.contains("docker_image_prune_failure_policy | default('warn') == 'fail'"));
+		assertFalse(appCleanupRole.contains("until=72h"));
+		assertFalse(appCleanupRole.contains("failed_when: false"));
+		assertTrue(appRollbackRole.contains("app_rollback_archive_timestamp"));
+		assertTrue(appRollbackRole.contains("now(utc=true, fmt='%Y%m%dT%H%M%SZ')"));
+		assertFalse(appRollbackRole.contains("lookup('pipe', 'date -u"));
+		assertTrue(infraReadme.contains("Release metadata schema"));
+		assertTrue(infraReadme.contains("created_at`은 원격 EC2의 시스템 시간이 아니라 controller UTC"));
+		assertTrue(infraReadme.contains("SSH pipelining + sudo `requiretty` caveat"));
+		assertTrue(infraReadme.contains("Defaults requiretty"));
 		assertTrue(nginxBaseConfig.contains("nginx_base_config_transaction_operations"));
 		assertTrue(nginxBaseConfig.contains("sync-backend-upstream-target"));
 		assertFalse(nginxBaseConfig.contains("nginx_base_config_upstream_target_sync_result is defined"));
