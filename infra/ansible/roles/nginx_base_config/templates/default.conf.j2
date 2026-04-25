@@ -5,7 +5,7 @@
 include {{ nginx_generated_include_dir }}/upstreams/*.conf;
 # END BEAT MANAGED GENERATED UPSTREAM INCLUDES
 
-log_format {{ nginx_access_log_format_name | default('custom') }} '$request_id $remote_addr - $remote_user [$time_local] "$request" '
+log_format {{ nginx_access_log_format_name }} '$request_id $remote_addr - $remote_user [$time_local] "$request" '
     '$status $body_bytes_sent "$http_referer" '
     '"$http_user_agent" "$http_x_forwarded_for" "$request_time"';
 
@@ -16,7 +16,7 @@ server {
         root /var/www/certbot;
     }
 
-    access_log /var/log/nginx/access.log {{ nginx_access_log_format_name | default('custom') }};
+    access_log /var/log/nginx/access.log {{ nginx_access_log_format_name }};
 
     location / {
         return 301 https://$host$request_uri;
@@ -56,7 +56,7 @@ server {
 {% endif %}
     }
 
-    access_log /var/log/nginx/access.log {{ nginx_access_log_format_name | default('custom') }};
+    access_log /var/log/nginx/access.log {{ nginx_access_log_format_name }};
 
     location / {
         proxy_pass http://{{ backend_upstream_name | default('backend') }};

@@ -18,7 +18,6 @@ certbot_conf_dir: /home/ubuntu/data/certbot/conf
 certbot_www_dir: /home/ubuntu/data/certbot/www
 nginx_access_log_format_name: custom
 actuator_upstream_name: actuator
-actuator_active_container: "{{ apis_active_container }}"
 foundation_manage_nginx: true
 nginx_generated_include_dir: /etc/nginx/generated
 
@@ -31,7 +30,6 @@ redis_container_name: beat-prod-redis
 redis_conf_path: /home/ubuntu/redis.conf
 redis_data_volume_name: redis-data
 
-apis_active_container: apis-blue
 apis_app_port: 4001
 admin_upstream_name: admin_backend
 admin_container_name: admin

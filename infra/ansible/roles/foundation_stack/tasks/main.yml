@@ -52,7 +52,6 @@
       - -f
       - "{{ deployment_dir }}/docker-compose.yml"
       - config
-  register: foundation_stack_compose_config_result
   changed_when: false
   no_log: true
 
@@ -77,4 +76,3 @@
           | list
           | sort
         }}
-      compose_config_valid: "{{ foundation_stack_compose_config_result.rc | default(1) == 0 }}"
