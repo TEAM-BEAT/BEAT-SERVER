@@ -3,11 +3,6 @@
   ansible.builtin.import_role:
     name: nginx_config_helper
 
-- name: Migrate legacy shared upstream fragment before admin route update
-  ansible.builtin.import_role:
-    name: nginx_config_helper
-    tasks_from: migrate_legacy_upstreams.yml
-
 - name: Resolve admin nginx fragment paths
   ansible.builtin.set_fact:
     app_stopstart_admin_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/admin_backend.conf"
@@ -131,6 +126,11 @@
 
 - name: Sync admin nginx source and target files safely
   block:
+    - name: Migrate legacy shared upstream fragment inside admin route transaction
+      ansible.builtin.import_role:
+        name: nginx_config_helper
+        tasks_from: migrate_legacy_upstreams.yml
+
     - name: Ensure admin nginx upstream and route exist
       ansible.builtin.command:
         argv:
@@ -233,7 +233,12 @@
           or app_stopstart_upstream_sync_result.changed
           or app_stopstart_route_sync_result.changed
           or app_stopstart_nginx_target_sync_result.changed
+          or (
+            nginx_legacy_migration_target_remove_result is defined
+            and nginx_legacy_migration_target_remove_result.changed | default(false)
+          )
       changed_when: true
+
   rescue:
     - name: Restore previous live nginx source config
       ansible.builtin.copy:
@@ -313,6 +318,16 @@
         state: absent
       when: not app_stopstart_nginx_target_stat.stat.exists
 
+    - name: Restore legacy upstream target after failed admin route migration
+      ansible.builtin.copy:
+        src: "{{ nginx_legacy_migration_target_path }}.bak"
+        dest: "{{ nginx_legacy_migration_target_path }}"
+        remote_src: true
+        mode: "0644"
+      when:
+        - nginx_legacy_migration_target_stat is defined
+        - nginx_legacy_migration_target_stat.stat.exists
+
     - name: Validate restored nginx config after admin route rollback
       ansible.builtin.command:
         argv:
@@ -321,12 +336,50 @@
           - "{{ nginx_container_name }}"
           - nginx
           - -t
+      register: app_stopstart_restore_nginx_test_result
       failed_when: false
       changed_when: false
 
+    - name: Reload nginx after restored admin route rollback validation
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ nginx_container_name }}"
+          - nginx
+          - -s
+          - reload
+      register: app_stopstart_restore_nginx_reload_result
+      failed_when: false
+      changed_when: app_stopstart_restore_nginx_reload_result.rc == 0
+      when: app_stopstart_restore_nginx_test_result.rc == 0
+
     - name: Fail after restoring admin nginx source and target files
       ansible.builtin.fail:
-        msg: "Admin nginx route update failed and nginx source and target files were restored"
+        msg: |-
+          Admin nginx route update failed and nginx source and target files were restored.
+          Restored nginx validation rc={{ app_stopstart_restore_nginx_test_result.rc | default('unknown') }}
+          Restored nginx validation stdout={{ app_stopstart_restore_nginx_test_result.stdout | default('') }}
+          Restored nginx validation stderr={{ app_stopstart_restore_nginx_test_result.stderr | default('') }}
+          Restored nginx reload rc={{ app_stopstart_restore_nginx_reload_result.rc | default('skipped') }}
+          Restored nginx reload stdout={{ app_stopstart_restore_nginx_reload_result.stdout | default('') }}
+          Restored nginx reload stderr={{ app_stopstart_restore_nginx_reload_result.stderr | default('') }}
+
+- name: Remove legacy upstream source after successful admin route update
+  ansible.builtin.file:
+    path: "{{ nginx_legacy_migration_source_path }}"
+    state: absent
+  when:
+    - nginx_legacy_migration_source_stat is defined
+    - nginx_legacy_migration_source_stat.stat.exists
+
+- name: Remove legacy upstream target backup after successful admin route update
+  ansible.builtin.file:
+    path: "{{ nginx_legacy_migration_target_path }}.bak"
+    state: absent
+  when:
+    - nginx_legacy_migration_target_stat is defined
+    - nginx_legacy_migration_target_stat.stat.exists
 
 - name: Remove admin nginx backup files after successful validation
   ansible.builtin.file:

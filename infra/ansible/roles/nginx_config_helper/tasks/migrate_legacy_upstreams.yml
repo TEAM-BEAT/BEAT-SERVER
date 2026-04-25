@@ -20,6 +20,20 @@
     path: "{{ nginx_legacy_migration_target_path }}"
   register: nginx_legacy_migration_target_stat
 
+- name: Backup legacy upstream target before migration
+  ansible.builtin.copy:
+    src: "{{ nginx_legacy_migration_target_path }}"
+    dest: "{{ nginx_legacy_migration_target_path }}.bak"
+    remote_src: true
+    mode: "0644"
+  when: nginx_legacy_migration_target_stat.stat.exists
+
+- name: Clear stale legacy upstream target backup when target missing
+  ansible.builtin.file:
+    path: "{{ nginx_legacy_migration_target_path }}.bak"
+    state: absent
+  when: not nginx_legacy_migration_target_stat.stat.exists
+
 - name: Split legacy upstream source into owned fragments
   ansible.builtin.command:
     argv:
@@ -79,10 +93,5 @@
   ansible.builtin.file:
     path: "{{ nginx_legacy_migration_target_path }}"
     state: absent
+  register: nginx_legacy_migration_target_remove_result
   when: nginx_legacy_migration_target_stat.stat.exists
-
-- name: Remove legacy upstream source after migration
-  ansible.builtin.file:
-    path: "{{ nginx_legacy_migration_source_path }}"
-    state: absent
-  when: nginx_legacy_migration_source_stat.stat.exists

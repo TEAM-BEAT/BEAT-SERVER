@@ -167,9 +167,14 @@ def split_upstreams(
     changed = False
     for upstream_name, fragment_file in mappings:
         fragment_path = output_dir / fragment_file
-        if skip_existing and fragment_path.exists():
-            continue
         block = extract_managed_or_upstream_block(text, upstream_name)
+        if skip_existing and fragment_path.exists():
+            if block is not None and normalize_text(fragment_path.read_text()) != normalize_text(block):
+                raise SystemExit(
+                    f"Existing upstream fragment {fragment_path} differs from legacy "
+                    f"upstream '{upstream_name}' in {source}"
+                )
+            continue
         if block is None:
             if require_all:
                 raise SystemExit(f"Required upstream '{upstream_name}' was not found in {source}")

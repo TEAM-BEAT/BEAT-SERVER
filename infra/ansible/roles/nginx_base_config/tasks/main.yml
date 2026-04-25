@@ -148,23 +148,27 @@
 
 - name: Backup current upstream fragment source
   ansible.builtin.copy:
-    src: "{{ item.path }}"
-    dest: "{{ item.path }}.bak"
+    src: "{{ item.item.path }}"
+    dest: "{{ item.item.path }}.bak"
     remote_src: true
     mode: "0644"
   loop: "{{ nginx_base_config_upstream_source_stats.results }}"
+  loop_control:
+    label: "{{ item.item.path }}"
   when:
     - not ansible_check_mode
     - item.stat.exists
 
 - name: Clear stale upstream fragment source backup when file missing
   ansible.builtin.file:
-    path: "{{ item.path }}.bak"
+    path: "{{ item.item.path }}.bak"
     state: absent
   when:
     - not ansible_check_mode
     - not item.stat.exists
   loop: "{{ nginx_base_config_upstream_source_stats.results }}"
+  loop_control:
+    label: "{{ item.item.path }}"
 
 - name: Backup current legacy upstream fragment source
   ansible.builtin.copy:
@@ -204,23 +208,27 @@
 
 - name: Backup current upstream fragment target
   ansible.builtin.copy:
-    src: "{{ item.path }}"
-    dest: "{{ item.path }}.bak"
+    src: "{{ item.item.path }}"
+    dest: "{{ item.item.path }}.bak"
     remote_src: true
     mode: "0644"
   when:
     - not ansible_check_mode
     - item.stat.exists
   loop: "{{ nginx_base_config_upstream_target_stats.results }}"
+  loop_control:
+    label: "{{ item.item.path }}"
 
 - name: Clear stale upstream fragment target backup when file missing
   ansible.builtin.file:
-    path: "{{ item.path }}.bak"
+    path: "{{ item.item.path }}.bak"
     state: absent
   when:
     - not ansible_check_mode
     - not item.stat.exists
   loop: "{{ nginx_base_config_upstream_target_stats.results }}"
+  loop_control:
+    label: "{{ item.item.path }}"
 
 - name: Backup current legacy upstream fragment target
   ansible.builtin.copy:
@@ -515,12 +523,14 @@
 
     - name: Restore previous upstream fragment source from backup
       ansible.builtin.copy:
-        src: "{{ item.path }}.bak"
-        dest: "{{ item.path }}"
+        src: "{{ item.item.path }}.bak"
+        dest: "{{ item.item.path }}"
         remote_src: true
         mode: "0644"
       when: item.stat.exists
       loop: "{{ nginx_base_config_upstream_source_stats.results }}"
+      loop_control:
+        label: "{{ item.item.path }}"
 
     - name: Restore previous legacy upstream fragment source from backup
       ansible.builtin.copy:
@@ -540,10 +550,12 @@
 
     - name: Remove upstream fragment source if no backup existed
       ansible.builtin.file:
-        path: "{{ item.path }}"
+        path: "{{ item.item.path }}"
         state: absent
       when: not item.stat.exists
       loop: "{{ nginx_base_config_upstream_source_stats.results }}"
+      loop_control:
+        label: "{{ item.item.path }}"
 
     - name: Remove legacy upstream fragment source if no backup existed
       ansible.builtin.file:
@@ -559,12 +571,14 @@
 
     - name: Restore previous upstream fragment target from backup
       ansible.builtin.copy:
-        src: "{{ item.path }}.bak"
-        dest: "{{ item.path }}"
+        src: "{{ item.item.path }}.bak"
+        dest: "{{ item.item.path }}"
         remote_src: true
         mode: "0644"
       when: item.stat.exists
       loop: "{{ nginx_base_config_upstream_target_stats.results }}"
+      loop_control:
+        label: "{{ item.item.path }}"
 
     - name: Restore previous legacy upstream fragment target from backup
       ansible.builtin.copy:
@@ -584,10 +598,12 @@
 
     - name: Remove upstream fragment target if no backup existed
       ansible.builtin.file:
-        path: "{{ item.path }}"
+        path: "{{ item.item.path }}"
         state: absent
       when: not item.stat.exists
       loop: "{{ nginx_base_config_upstream_target_stats.results }}"
+      loop_control:
+        label: "{{ item.item.path }}"
 
     - name: Remove legacy upstream fragment target if no backup existed
       ansible.builtin.file:
@@ -616,12 +632,34 @@
           - "{{ nginx_container_name }}"
           - nginx
           - -t
+      register: nginx_base_config_restore_nginx_test_result
       failed_when: false
       changed_when: false
 
+    - name: Reload restored nginx config after promotion rollback
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ nginx_container_name }}"
+          - nginx
+          - -s
+          - reload
+      register: nginx_base_config_restore_nginx_reload_result
+      failed_when: false
+      changed_when: false
+      when: nginx_base_config_restore_nginx_test_result.rc == 0
+
     - name: Fail after nginx config restore
       ansible.builtin.fail:
-        msg: "nginx config promotion failed and previous source/target config was restored"
+        msg:
+          - "nginx config promotion failed and previous source/target config was restored"
+          - "restore validation rc={{ nginx_base_config_restore_nginx_test_result.rc }}"
+          - "restore validation stdout={{ nginx_base_config_restore_nginx_test_result.stdout | default('') }}"
+          - "restore validation stderr={{ nginx_base_config_restore_nginx_test_result.stderr | default('') }}"
+          - "restore reload rc={{ nginx_base_config_restore_nginx_reload_result.rc if nginx_base_config_restore_nginx_reload_result is defined else 'skipped' }}"
+          - "restore reload stdout={{ nginx_base_config_restore_nginx_reload_result.stdout if nginx_base_config_restore_nginx_reload_result is defined else '' }}"
+          - "restore reload stderr={{ nginx_base_config_restore_nginx_reload_result.stderr if nginx_base_config_restore_nginx_reload_result is defined else 'skipped because restore validation failed' }}"
 
 - name: Remove nginx source and target backup files after successful promotion
   ansible.builtin.file:
