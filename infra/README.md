@@ -262,8 +262,6 @@ infra/ansible/
 │   ├── app_secret/                      # SOPS → properties 파일
 │   ├── app_scripts/                     # 배포 디렉토리 + nginx helper 준비
 │   ├── app_release/                     # 릴리즈 메타데이터
-│   ├── app_dev_switch/                  # dev blue-green 진입점
-│   ├── app_prod_switch/                 # prod blue-green 진입점
 │   ├── app_bluegreen/                   # blue-green 핵심 로직
 │   ├── app_stopstart/                   # stop-start 배포
 │   ├── app_healthcheck/                 # 헬스체크
@@ -274,7 +272,7 @@ infra/ansible/
 설명:
 - 공용 nginx helper `update-nginx-config.py`는 더 이상 `infra/ansible/files/`에 두지 않고 `roles/nginx_config_helper/files/`로 이동했다.
 - foundation / nginx 템플릿도 전역 `templates/`가 아니라 각 role의 `templates/` 안에서 관리한다.
-- `app_dev_switch`, `app_prod_switch`, `app_rollback`은 상대 `import_tasks` 대신 `import_role` + 명시적 vars 전달 구조를 사용한다.
+- `deploy.yml`은 blue-green 모듈에서 `app_bluegreen`을 직접 import하고, `app_rollback`은 상대 `import_tasks` 대신 `import_role` + 명시적 vars 전달 구조를 사용한다.
 
 ### Playbook 흐름
 

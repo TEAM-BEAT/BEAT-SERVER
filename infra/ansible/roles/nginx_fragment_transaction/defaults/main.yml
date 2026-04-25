@@ -1,0 +1,20 @@
+---
+# Scaffold defaults for the future nginx fragment transaction role. The role is
+# not imported by current playbooks and remains non-mutating by default.
+nginx_fragment_transaction_fragments: []
+nginx_fragment_transaction_backup_suffix: ".bak"
+nginx_fragment_transaction_source_config: "{{ nginx_conf_source_path | default('') }}"
+nginx_fragment_transaction_target_config: "{{ nginx_conf_target_path | default('') }}"
+nginx_fragment_transaction_validate_command:
+  - docker
+  - exec
+  - "{{ nginx_container_name | default('nginx') }}"
+  - nginx
+  - -t
+nginx_fragment_transaction_reload_command:
+  - docker
+  - exec
+  - "{{ nginx_container_name | default('nginx') }}"
+  - nginx
+  - -s
+  - reload

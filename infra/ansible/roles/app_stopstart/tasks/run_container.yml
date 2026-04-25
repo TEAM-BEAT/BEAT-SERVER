@@ -1,4 +1,15 @@
 ---
+- name: Resolve stop-start runtime facts
+  ansible.builtin.set_fact:
+    healthcheck_target_container: "{{ module_cfg.container_name | default(module) }}"
+
+- name: Build stop-start container environment
+  ansible.builtin.import_role:
+    name: app_container_runtime
+    tasks_from: env.yml
+  vars:
+    app_container_env_include_scheduler_owner: true
+
 - name: Ensure stop-start container is recreated with the target image
   community.docker.docker_container:
     name: "{{ module_cfg.container_name }}"
@@ -10,14 +21,4 @@
       - name: "{{ docker_network }}"
     volumes:
       - "{{ secret_dir }}:/app/secret:ro"
-    env: >-
-      {{
-        {
-          'SPRING_PROFILES_ACTIVE': module_cfg.spring_profile,
-          'BEAT_SCHEDULER_OWNER': module_cfg.scheduler_owner | default(false) | string
-        }
-        | combine({
-          (module_cfg.spring_profile | upper ~ '_ACTUATOR_PORT'): actuator_port | string,
-          (module_cfg.spring_profile | upper ~ '_ACTUATOR_PATH'): actuator_path
-        })
-      }}
+    env: "{{ app_container_env }}"

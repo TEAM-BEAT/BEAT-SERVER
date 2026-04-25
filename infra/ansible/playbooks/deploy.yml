@@ -42,24 +42,15 @@
       tags:
         - deploy
         - release
-    - role: app_dev_switch
-      when:
-        - deploy_environment == 'dev'
-        - module_cfg.deploy_mode == 'blue_green'
+    - role: app_bluegreen
+      tasks_from: run_switch.yml
+      vars:
+        app_bluegreen_image: "{{ image }}"
+      when: module_cfg.deploy_mode == 'blue_green'
       tags:
         - deploy
         - switch
         - blue-green
-        - dev
-    - role: app_prod_switch
-      when:
-        - deploy_environment == 'prod'
-        - module_cfg.deploy_mode == 'blue_green'
-      tags:
-        - deploy
-        - switch
-        - blue-green
-        - prod
     - role: app_stopstart
       when: module_cfg.deploy_mode == 'stop_start'
       tags:

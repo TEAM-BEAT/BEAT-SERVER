@@ -69,6 +69,10 @@
         else module_cfg.green_container_name
       }}
 
+- name: Expose blue-green healthcheck target container
+  ansible.builtin.set_fact:
+    healthcheck_target_container: "{{ app_bluegreen_target_container }}"
+
 - name: Check existing nginx config backup source
   ansible.builtin.stat:
     path: "{{ nginx_conf_source_path }}"
@@ -191,6 +195,13 @@
         name: "{{ app_bluegreen_target_container }}"
         state: absent
 
+    - name: Build blue-green container environment
+      ansible.builtin.import_role:
+        name: app_container_runtime
+        tasks_from: env.yml
+      vars:
+        app_container_env_include_scheduler_owner: false
+
     - name: Start target blue-green container via Docker module
       community.docker.docker_container:
         name: "{{ app_bluegreen_target_container }}"
@@ -202,33 +213,14 @@
           - name: "{{ docker_network }}"
         volumes:
           - "{{ secret_dir }}:/app/secret:ro"
-        env: >-
-          {{
-            {
-              'SPRING_PROFILES_ACTIVE': module_cfg.spring_profile
-            }
-            | combine({
-              (module_cfg.spring_profile | upper ~ '_ACTUATOR_PORT'): actuator_port | string,
-              (module_cfg.spring_profile | upper ~ '_ACTUATOR_PATH'): actuator_path
-            })
-          }}
+        env: "{{ app_container_env }}"
 
     - name: Wait for target blue-green container internal health
-      ansible.builtin.shell: |
-        set -euo pipefail
-        attempts="{{ network_health_max_attempts }}"
-        delay="{{ network_health_sleep_seconds }}"
-        for attempt in $(seq 1 "$attempts"); do
-          if docker run --rm --network "{{ docker_network }}" {{ curl_image | quote }} \
-              -fsS "http://{{ app_bluegreen_target_container }}:{{ actuator_port }}{{ actuator_path }}/health" >/dev/null 2>&1; then
-            exit 0
-          fi
-          sleep "$delay"
-        done
-        exit 1
-      args:
-        executable: /bin/bash
-      changed_when: false
+      ansible.builtin.include_role:
+        name: app_healthcheck
+        tasks_from: probe.yml
+      vars:
+        app_healthcheck_probe_target_container: "{{ app_bluegreen_target_container }}"
 
     - name: Update managed backend upstream to target container
       ansible.builtin.command:
@@ -316,21 +308,11 @@
       changed_when: true
 
     - name: Recheck target blue-green container internal health after switch
-      ansible.builtin.shell: |
-        set -euo pipefail
-        attempts="{{ network_health_max_attempts }}"
-        delay="{{ network_health_sleep_seconds }}"
-        for attempt in $(seq 1 "$attempts"); do
-          if docker run --rm --network "{{ docker_network }}" {{ curl_image | quote }} \
-              -fsS "http://{{ app_bluegreen_target_container }}:{{ actuator_port }}{{ actuator_path }}/health" >/dev/null 2>&1; then
-            exit 0
-          fi
-          sleep "$delay"
-        done
-        exit 1
-      args:
-        executable: /bin/bash
-      changed_when: false
+      ansible.builtin.include_role:
+        name: app_healthcheck
+        tasks_from: probe.yml
+      vars:
+        app_healthcheck_probe_target_container: "{{ app_bluegreen_target_container }}"
 
     - name: Verify public smoke URL after blue-green switch
       ansible.builtin.shell: |

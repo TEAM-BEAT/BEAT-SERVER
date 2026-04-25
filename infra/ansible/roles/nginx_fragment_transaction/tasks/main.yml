@@ -1,0 +1,27 @@
+---
+- name: Validate nginx fragment transaction scaffold input
+  ansible.builtin.assert:
+    that:
+      - nginx_fragment_transaction_fragments is sequence
+      - nginx_fragment_transaction_fragments is not string
+    fail_msg: >-
+      nginx_fragment_transaction_fragments must be a list of fragment records;
+      see roles/nginx_fragment_transaction/README.md for the planned schema.
+
+- name: Build nginx fragment transaction scaffold plan
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_plan:
+      fragments: "{{ nginx_fragment_transaction_fragments }}"
+      backup_suffix: "{{ nginx_fragment_transaction_backup_suffix }}"
+      source_config: "{{ nginx_fragment_transaction_source_config }}"
+      target_config: "{{ nginx_fragment_transaction_target_config }}"
+      validate_command: "{{ nginx_fragment_transaction_validate_command }}"
+      reload_command: "{{ nginx_fragment_transaction_reload_command }}"
+
+- name: Report nginx fragment transaction scaffold plan
+  ansible.builtin.debug:
+    msg:
+      - "nginx_fragment_transaction is scaffold-only and did not mutate nginx files."
+      - "Planned fragment count={{ nginx_fragment_transaction_fragments | length }}"
+      - "Read roles/nginx_fragment_transaction/README.md before migrating callers."
+  changed_when: false
