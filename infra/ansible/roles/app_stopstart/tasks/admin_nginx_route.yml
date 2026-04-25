@@ -13,8 +13,6 @@
     app_stopstart_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/backend.conf"
     app_stopstart_actuator_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/actuator.conf"
     app_stopstart_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/actuator.conf"
-    app_stopstart_legacy_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
-    app_stopstart_legacy_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
 
 - name: Build admin nginx route transaction plan
   ansible.builtin.set_fact:
@@ -59,16 +57,6 @@
         role: target
         backup: true
         required: false
-      - id: legacy-upstream-source
-        path: "{{ app_stopstart_legacy_upstream_source_path }}"
-        role: legacy
-        backup: true
-        required: false
-      - id: legacy-upstream-target
-        path: "{{ app_stopstart_legacy_upstream_target_path }}"
-        role: legacy
-        backup: true
-        required: false
       - id: admin-route-source
         path: "{{ app_stopstart_admin_route_source_path }}"
         role: source
@@ -80,93 +68,6 @@
         backup: true
         required: false
     app_stopstart_admin_nginx_transaction_operations:
-      - id: split-legacy-upstream-source
-        name: Split legacy upstream source into owned fragments
-        kind: command
-        when_file_exists: legacy-upstream-source
-        command:
-          argv:
-            - python3
-            - "{{ deployment_dir }}/update-nginx-config.py"
-            - split-upstreams
-            - --source
-            - "{{ app_stopstart_legacy_upstream_source_path }}"
-            - --output-dir
-            - "{{ nginx_generated_source_dir }}/upstreams"
-            - --mapping
-            - "{{ backend_upstream_name | default('backend') }}=backend.conf"
-            - --mapping
-            - "{{ admin_upstream_name | default('admin_backend') }}=admin_backend.conf"
-            - --mapping
-            - "{{ actuator_upstream_name | default('actuator') }}=actuator.conf"
-            - --require-all
-            - --skip-existing
-        changed_if:
-          stdout_json:
-            changed: true
-        affects_reload: false
-      - id: remove-legacy-upstream-source
-        name: Remove legacy upstream source after split migration
-        kind: file_absent
-        file: legacy-upstream-source
-        when_file_preexisted: legacy-upstream-source
-        affects_reload: false
-      - id: verify-legacy-target-fragments
-        name: Verify split upstream fragments before removing legacy target
-        kind: command
-        when_file_preexisted: legacy-upstream-target
-        command:
-          argv:
-            - python3
-            - -c
-            - |
-              import pathlib
-              import sys
-
-              missing = [path for path in sys.argv[1:] if not pathlib.Path(path).exists()]
-              if missing:
-                  raise SystemExit(
-                      "Cannot remove legacy upstreams/00-managed.conf until "
-                      "backend/admin/actuator fragments exist: " + ", ".join(missing)
-                  )
-              print('{"changed": false}')
-            - "{{ app_stopstart_backend_upstream_source_path }}"
-            - "{{ app_stopstart_admin_upstream_source_path }}"
-            - "{{ app_stopstart_actuator_upstream_source_path }}"
-        changed_if:
-          stdout_json:
-            changed: true
-        affects_reload: false
-      - id: sync-legacy-backend-upstream-target
-        name: Sync split backend upstream before removing legacy target
-        kind: copy
-        src_file: backend-upstream-source
-        dest_file: backend-upstream-target
-        mode: "0644"
-        when_file_preexisted: legacy-upstream-target
-        affects_reload: true
-      - id: sync-legacy-admin-upstream-target
-        name: Sync split admin upstream before removing legacy target
-        kind: copy
-        src_file: admin-upstream-source
-        dest_file: admin-upstream-target
-        mode: "0644"
-        when_file_preexisted: legacy-upstream-target
-        affects_reload: true
-      - id: sync-legacy-actuator-upstream-target
-        name: Sync split actuator upstream before removing legacy target
-        kind: copy
-        src_file: actuator-upstream-source
-        dest_file: actuator-upstream-target
-        mode: "0644"
-        when_file_preexisted: legacy-upstream-target
-        affects_reload: true
-      - id: remove-legacy-upstream-target-before-validation
-        name: Remove legacy upstream target before nginx validation
-        kind: file_absent
-        file: legacy-upstream-target
-        when_file_preexisted: legacy-upstream-target
-        affects_reload: true
       - id: bootstrap-nginx-include-markers
         name: Ensure nginx generated include markers exist
         kind: command

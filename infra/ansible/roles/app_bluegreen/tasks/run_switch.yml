@@ -12,8 +12,6 @@
     app_bluegreen_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/admin_backend.conf"
     app_bluegreen_actuator_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/actuator.conf"
     app_bluegreen_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/actuator.conf"
-    app_bluegreen_legacy_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
-    app_bluegreen_legacy_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
 
 - name: Ensure release directory exists for blue-green rollout
   ansible.builtin.file:
@@ -163,50 +161,7 @@
             backup: true
             cleanup_backup_on_success: false
             required: false
-          - id: legacy-upstream-source
-            path: "{{ app_bluegreen_legacy_upstream_source_path }}"
-            role: legacy
-            backup: true
-            cleanup_backup_on_success: false
-            required: false
-          - id: legacy-upstream-target
-            path: "{{ app_bluegreen_legacy_upstream_target_path }}"
-            role: legacy
-            backup: true
-            cleanup_backup_on_success: false
-            required: false
         app_bluegreen_nginx_transaction_operations:
-          - id: split-legacy-upstream-source
-            name: Split legacy upstream source into per-upstream fragments
-            kind: command
-            when_file_exists: legacy-upstream-source
-            command:
-              argv:
-                - python3
-                - "{{ deployment_dir }}/update-nginx-config.py"
-                - split-upstreams
-                - --source
-                - "{{ app_bluegreen_legacy_upstream_source_path }}"
-                - --output-dir
-                - "{{ nginx_generated_source_dir }}/upstreams"
-                - --mapping
-                - "{{ backend_upstream_name | default('backend') }}=backend.conf"
-                - --mapping
-                - "{{ admin_upstream_name | default('admin_backend') }}=admin_backend.conf"
-                - --mapping
-                - "{{ actuator_upstream_name | default('actuator') }}=actuator.conf"
-                - --require-all
-                - --skip-existing
-            changed_if:
-              stdout_json:
-                changed: true
-            affects_reload: false
-          - id: remove-legacy-upstream-source
-            name: Remove legacy upstream source after split migration
-            kind: file_absent
-            file: legacy-upstream-source
-            when_file_preexisted: legacy-upstream-source
-            affects_reload: false
           - id: bootstrap-nginx-include-markers
             name: Ensure nginx generated include markers exist
             kind: command
@@ -286,21 +241,6 @@
             dest_file: actuator-upstream-target
             mode: "0644"
             affects_reload: true
-          - id: sync-admin-upstream-target-for-legacy-migration
-            name: Sync admin upstream fragment before removing legacy target
-            kind: copy
-            src_file: admin-upstream-source
-            dest_file: admin-upstream-target
-            mode: "0644"
-            when_file_preexisted: legacy-upstream-target
-            affects_reload: true
-          - id: remove-legacy-upstream-target-before-validation
-            name: Remove legacy upstream target before nginx validation
-            kind: file_absent
-            file: legacy-upstream-target
-            when_file_preexisted: legacy-upstream-target
-            affects_reload: true
-
     - name: Switch blue-green nginx upstreams transactionally
       ansible.builtin.include_role:
         name: nginx_fragment_transaction
