@@ -483,6 +483,11 @@ class RootRetirementContractTest {
 		assertTrue(nginxUpdateScript.contains("split-upstreams"));
 		assertTrue(nginxUpdateScript.contains("skip_existing"));
 		assertTrue(nginxUpdateScript.contains("json.dumps({\"changed\": changed})"));
+		assertTrue(nginxUpdateScript.contains("LOCK_DIR_ENV = \"BEAT_NGINX_LOCK_DIR\""));
+		assertTrue(nginxUpdateScript.contains("DEFAULT_LOCK_DIR = Path(\"/run/lock/beat-nginx\")"));
+		assertTrue(nginxUpdateScript.contains("lock_root.mkdir(parents=True, exist_ok=True)"));
+		assertTrue(nginxUpdateScript.contains("Path(tempfile.gettempdir()) / \"beat-nginx-locks\""));
+		assertFalse(nginxUpdateScript.contains("lock_path = path.parent / (path.name + \".lock\")"));
 		assertFalse(deployPlaybook.contains("app_dev_switch"));
 		assertFalse(deployPlaybook.contains("app_prod_switch"));
 		assertTrue(deployPlaybook.contains("role: app_bluegreen"));

@@ -12,6 +12,8 @@ from pathlib import Path
 
 UPSTREAM_INCLUDE_MARKER = "BEAT MANAGED GENERATED UPSTREAM INCLUDES"
 ROUTE_INCLUDE_MARKER = "BEAT MANAGED GENERATED ROUTE INCLUDES"
+LOCK_DIR_ENV = "BEAT_NGINX_LOCK_DIR"
+DEFAULT_LOCK_DIR = Path("/run/lock/beat-nginx")
 
 
 def normalize_text(text: str) -> str:
@@ -22,10 +24,28 @@ def read_text_or_empty(path: Path) -> str:
     return path.read_text() if path.exists() else ""
 
 
+def lock_dir() -> Path:
+    return Path(os.environ.get(LOCK_DIR_ENV, str(DEFAULT_LOCK_DIR)))
+
+
+def ensure_lock_dir() -> Path:
+    lock_root = lock_dir()
+    try:
+        lock_root.mkdir(parents=True, exist_ok=True)
+        return lock_root
+    except OSError:
+        if LOCK_DIR_ENV in os.environ:
+            raise
+        fallback = Path(tempfile.gettempdir()) / "beat-nginx-locks"
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
+
 def write_normalized(path: Path, text: str) -> bool:
     normalized = normalize_text(text)
     path.parent.mkdir(parents=True, exist_ok=True)
-    lock_path = path.parent / (path.name + ".lock")
+    lock_root = ensure_lock_dir()
+    lock_path = lock_root / (path.name + ".lock")
     with open(lock_path, "w") as lock_fh:
         fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
         current = read_text_or_empty(path)

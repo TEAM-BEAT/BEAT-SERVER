@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -40,6 +41,27 @@ class HelperChangedOutputTest(unittest.TestCase):
             self.assertEqual({"changed": True}, json.loads(first_run.stdout))
             self.assertEqual(["{\"changed\": false}"], second_run.stdout.strip().splitlines())
             self.assertEqual({"changed": False}, json.loads(second_run.stdout))
+
+    def test_write_normalized_keeps_lock_out_of_generated_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            workdir = Path(tmp)
+            generated_dir = workdir / "generated"
+            lock_dir = workdir / "locks"
+            fragment = generated_dir / "upstreams" / "backend.conf"
+            previous_lock_dir = os.environ.get("BEAT_NGINX_LOCK_DIR")
+            os.environ["BEAT_NGINX_LOCK_DIR"] = str(lock_dir)
+            try:
+                changed = update_nginx_config.write_normalized(fragment, "upstream backend { server apis:4001; }")
+            finally:
+                if previous_lock_dir is None:
+                    os.environ.pop("BEAT_NGINX_LOCK_DIR", None)
+                else:
+                    os.environ["BEAT_NGINX_LOCK_DIR"] = previous_lock_dir
+
+            self.assertTrue(changed)
+            self.assertTrue(fragment.exists())
+            self.assertFalse(list(generated_dir.rglob("*.lock")))
+            self.assertTrue((lock_dir / "backend.conf.lock").exists())
 
 
 class ManagedBlockMarkerCollisionTest(unittest.TestCase):
