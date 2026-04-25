@@ -350,6 +350,7 @@ class RootRetirementContractTest {
 		assertTrue(nginxUpdateScript.contains("bootstrap-includes"));
 		assertTrue(nginxUpdateScript.contains("upsert-upstream"));
 		assertFalse(nginxUpdateScript.contains("split-upstreams"));
+		assertFalse(nginxUpdateScript.contains("split_upstreams"));
 		assertFalse(nginxUpdateScript.contains("skip_existing"));
 		assertTrue(nginxUpdateScript.contains("json.dumps({\"changed\": changed})"));
 		assertTrue(nginxUpdateScript.contains("LOCK_DIR_ENV = \"BEAT_NGINX_LOCK_DIR\""));
@@ -450,6 +451,7 @@ class RootRetirementContractTest {
 		assertTrue(adminNginxRoute.contains("nginx_fragment_transaction_reload_command:"));
 		assertTrue(adminNginxRoute.contains("bootstrap-includes"));
 		assertFalse(adminNginxRoute.contains("split-upstreams"));
+		assertFalse(adminNginxRoute.contains("split_upstreams"));
 		assertTrue(adminNginxRoute.contains("upsert-upstream"));
 		assertTrue(adminNginxRoute.contains("ensure-route"));
 		assertTrue(adminNginxRoute.contains("sync-admin-upstream-target"));
@@ -555,6 +557,7 @@ class RootRetirementContractTest {
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_reload_command:"));
 		assertTrue(appBluegreenRunSwitch.contains("stdout_json:"));
 		assertFalse(appBluegreenRunSwitch.contains("stdout_contains: changed=true"));
+		assertFalse(appBluegreenRunSwitch.contains("split-upstreams"));
 		assertFalse(appBluegreenRunSwitch.contains("legacy-upstream-source"));
 		assertFalse(appBluegreenRunSwitch.contains("legacy-upstream-target"));
 		assertFalse(appBluegreenRunSwitch.contains("split-legacy-upstream-source"));

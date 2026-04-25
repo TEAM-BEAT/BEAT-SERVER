@@ -78,17 +78,5 @@ class ManagedBlockMarkerCollisionTest(unittest.TestCase):
             update_nginx_config.upsert_managed_block("", marker, block_body)
 
 
-class RetiredSplitUpstreamsCommandTest(unittest.TestCase):
-    def test_split_upstreams_subcommand_is_retired(self) -> None:
-        process = subprocess.run(
-            ["python3", str(HELPER_PATH), "split-upstreams"],
-            capture_output=True,
-            text=True,
-        )
-
-        self.assertNotEqual(0, process.returncode)
-        self.assertIn("invalid choice", process.stderr)
-
-
 if __name__ == "__main__":
     unittest.main()
