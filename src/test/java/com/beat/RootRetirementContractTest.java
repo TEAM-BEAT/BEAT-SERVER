@@ -391,6 +391,7 @@ class RootRetirementContractTest {
 		String appStopStartRunContainer = read("infra/ansible/roles/app_stopstart/tasks/run_container.yml");
 		String appContainerRuntimeEnv = read("infra/ansible/roles/app_container_runtime/tasks/env.yml");
 		String appHealthcheckRole = read("infra/ansible/roles/app_healthcheck/tasks/main.yml");
+		String appHealthcheckProbe = read("infra/ansible/roles/app_healthcheck/tasks/probe.yml");
 		String nginxBaseConfig = read("infra/ansible/roles/nginx_base_config/tasks/main.yml");
 		String nginxLegacyMigration = read("infra/ansible/roles/nginx_config_helper/tasks/migrate_legacy_upstreams.yml");
 		String adminNginxRoute = read("infra/ansible/roles/app_stopstart/tasks/admin_nginx_route.yml");
@@ -405,6 +406,8 @@ class RootRetirementContractTest {
 		assertFalse(Files.exists(Path.of("infra/ansible/files/deploy-blue-green.sh")));
 		assertFalse(Files.exists(Path.of("infra/ansible/files/deploy-stop-start.sh")));
 		assertFalse(Files.exists(Path.of("infra/ansible/files/deploy-common.sh")));
+		assertFalse(Files.exists(Path.of("infra/ansible/roles/app_dev_switch")));
+		assertFalse(Files.exists(Path.of("infra/ansible/roles/app_prod_switch")));
 		assertTrue(Files.exists(Path.of("infra/ansible/roles/nginx_config_helper/files/update-nginx-config.py")));
 		assertTrue(Files.exists(Path.of("infra/ansible/roles/foundation_stack/templates/foundation.compose.yml.j2")));
 		assertTrue(Files.exists(Path.of("infra/ansible/roles/nginx_base_config/templates/default.conf.j2")));
@@ -441,14 +444,23 @@ class RootRetirementContractTest {
 		assertTrue(appBluegreenRunSwitch.contains("upsert-upstream"));
 		assertTrue(appBluegreenRunSwitch.contains("public_smoke_url"));
 		assertTrue(appBluegreenRunSwitch.contains("app_container_env"));
+		assertTrue(appBluegreenRunSwitch.contains("name: app_container_runtime"));
+		assertTrue(appBluegreenRunSwitch.contains(
+			"healthcheck_target_container: \"{{ app_bluegreen_target_container }}\""));
 		assertTrue(appContainerRuntimeEnv.contains("| combine({"));
+		assertTrue(appContainerRuntimeEnv.contains("'SPRING_PROFILES_ACTIVE': module_cfg.spring_profile"));
 		assertFalse(appBluegreenRunSwitch.contains("\"{{ module_cfg.spring_profile | upper }}_ACTUATOR_PORT\""));
+		assertFalse(appBluegreenRunSwitch.contains("SPRING_PROFILES_ACTIVE"));
 		assertTrue(appStopStartRole.contains("run_container.yml"));
 		assertTrue(appStopStartRunContainer.contains("community.docker.docker_container"));
 		assertTrue(appContainerRuntimeEnv.contains("BEAT_SCHEDULER_OWNER"));
 		assertTrue(appStopStartRunContainer.contains("app_container_env"));
+		assertTrue(appStopStartRunContainer.contains("name: app_container_runtime"));
+		assertTrue(appStopStartRunContainer.contains(
+			"healthcheck_target_container: \"{{ module_cfg.container_name | default(module) }}\""));
 		assertTrue(appContainerRuntimeEnv.contains("| combine({"));
 		assertFalse(appStopStartRunContainer.contains("\"{{ module_cfg.spring_profile | upper }}_ACTUATOR_PORT\""));
+		assertFalse(appStopStartRunContainer.contains("SPRING_PROFILES_ACTIVE"));
 		assertTrue(foundationPlaybook.contains("role: foundation_stack"));
 		assertTrue(foundationPlaybook.contains("role: nginx_base_config"));
 		assertTrue(foundationComposeTemplate.contains("services:"));
@@ -467,11 +479,16 @@ class RootRetirementContractTest {
 		assertTrue(nginxUpdateScript.contains("upsert-upstream"));
 		assertTrue(nginxUpdateScript.contains("split-upstreams"));
 		assertTrue(nginxUpdateScript.contains("skip_existing"));
+		assertFalse(deployPlaybook.contains("app_dev_switch"));
+		assertFalse(deployPlaybook.contains("app_prod_switch"));
+		assertTrue(deployPlaybook.contains("role: app_bluegreen"));
+		assertTrue(deployPlaybook.contains("tasks_from: run_switch.yml"));
 		assertTrue(deployPlaybook.contains("module_cfg.deploy_mode == 'blue_green'"));
 		assertTrue(deployPlaybook.contains("module_cfg.deploy_mode == 'stop_start'"));
 		assertTrue(deployPlaybook.contains("tags:"));
 		assertTrue(deployPlaybook.contains("- healthcheck"));
 		assertTrue(deployPlaybook.contains("- cleanup"));
+		assertTrue(rollbackPlaybook.contains("name: app_healthcheck"));
 		assertTrue(rollbackPlaybook.contains("module in modules"));
 		assertTrue(rollbackPlaybook.contains("module_cfg.nginx_route is defined"));
 		assertTrue(rollbackPlaybook.contains("- rollback"));
@@ -512,7 +529,12 @@ class RootRetirementContractTest {
 		assertTrue(appScriptsRole.contains("nginx_generated_source_dir"));
 		assertTrue(appScriptsRole.contains("nginx_generated_target_dir"));
 		assertTrue(appHealthcheckRole.contains("healthcheck_target_container"));
+		assertTrue(appHealthcheckRole.contains("healthcheck_target_container must be set"));
+		assertTrue(appHealthcheckRole.contains("include_tasks: probe.yml"));
 		assertTrue(appHealthcheckRole.contains("app_healthcheck_probe_target_container"));
+		assertTrue(appHealthcheckProbe.contains("app_healthcheck_probe_target_container"));
+		assertFalse(appHealthcheckRole.contains("current-slot"));
+		assertFalse(appHealthcheckRole.contains("slurp:"));
 		assertFalse(appHealthcheckRole.contains("module_cfg.container_name | default(module)"));
 		assertFalse(appHealthcheckRole.contains("target=\"apis-$slot\""));
 		assertTrue(nginxBaseConfig.contains("nginx_base_config_transaction_operations"));
@@ -607,6 +629,7 @@ class RootRetirementContractTest {
 			+ "    - nginx_fragment_transaction_operation.kind == 'file_absent'"));
 
 		assertTrue(nginxBaseConfig.contains("name: nginx_fragment_transaction"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_id: nginx-base-config"));
 		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_files:"));
 		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_operations:"));
 		assertFalse(nginxBaseConfig.contains("Backup current upstream fragment source"));
@@ -620,6 +643,7 @@ class RootRetirementContractTest {
 		assertTrue(nginxBaseConfig.contains("when_file_missing: backend-upstream-source"));
 		assertTrue(readme.contains("nginx_base_config"));
 		assertTrue(appBluegreenRunSwitch.contains("name: nginx_fragment_transaction"));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_id: app-bluegreen-switch"));
 		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_nginx_transaction_files:"));
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_files: \"{{ app_bluegreen_nginx_transaction_files }}\""));
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_files:"));
