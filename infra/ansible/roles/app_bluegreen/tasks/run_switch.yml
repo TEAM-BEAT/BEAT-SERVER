@@ -111,7 +111,10 @@
 
     - name: Build blue-green nginx transaction plan
       ansible.builtin.set_fact:
-        nginx_fragment_transaction_files:
+        # Keep nginx backups until the full rollout succeeds. The shared role
+        # validates/reloads nginx, but this caller still owns post-switch health,
+        # public smoke, old-container cleanup, and active-slot persistence.
+        app_bluegreen_nginx_transaction_files:
           - id: live-config-source
             path: "{{ nginx_conf_source_path }}"
             role: source-config
@@ -172,7 +175,7 @@
             backup: true
             cleanup_backup_on_success: false
             required: false
-        nginx_fragment_transaction_operations:
+        app_bluegreen_nginx_transaction_operations:
           - id: split-legacy-upstream-source
             name: Split legacy upstream source into per-upstream fragments
             kind: command
@@ -299,6 +302,8 @@
         name: nginx_fragment_transaction
       vars:
         nginx_fragment_transaction_id: app-bluegreen-switch
+        nginx_fragment_transaction_files: "{{ app_bluegreen_nginx_transaction_files }}"
+        nginx_fragment_transaction_operations: "{{ app_bluegreen_nginx_transaction_operations }}"
         nginx_fragment_transaction_validate_command:
           - docker
           - exec
@@ -355,7 +360,7 @@
   rescue:
     - name: Restore blue-green nginx transaction files after failed rollout
       ansible.builtin.copy:
-        src: "{{ item.path }}.bak"
+        src: "{{ item.path }}{{ nginx_fragment_transaction_backup_suffix | default('.bak') }}"
         dest: "{{ item.path }}"
         remote_src: true
         mode: "{{ item.mode | default('0644') }}"
