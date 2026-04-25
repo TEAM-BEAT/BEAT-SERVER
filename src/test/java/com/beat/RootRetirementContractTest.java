@@ -632,6 +632,8 @@ class RootRetirementContractTest {
 		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_id: nginx-base-config"));
 		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_files:"));
 		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_operations:"));
+		assertTrue(nginxBaseConfig.contains("src: \"{{ role_path }}/templates/default.conf.j2\""));
+		assertFalse(nginxBaseConfig.contains("playbook_dir }}/../roles/nginx_base_config/templates/default.conf.j2"));
 		assertFalse(nginxBaseConfig.contains("Backup current upstream fragment source"));
 		assertFalse(nginxBaseConfig.contains("Backup current upstream fragment target"));
 		assertFalse(nginxBaseConfig.contains("Validate nginx config after base config update"));
@@ -642,6 +644,8 @@ class RootRetirementContractTest {
 		assertTrue(nginxBaseConfig.contains("Remove legacy upstream target before nginx validation"));
 		assertTrue(nginxBaseConfig.contains("when_file_missing: backend-upstream-source"));
 		assertTrue(readme.contains("nginx_base_config"));
+		assertTrue(readme.contains("nginx_fragment_transaction_file_pre_state"));
+		assertTrue(readme.contains("published file pre-state"));
 		assertTrue(appBluegreenRunSwitch.contains("name: nginx_fragment_transaction"));
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_id: app-bluegreen-switch"));
 		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_nginx_transaction_files:"));

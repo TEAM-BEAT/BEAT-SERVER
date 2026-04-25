@@ -198,7 +198,7 @@
         kind: template
         dest_file: candidate-config-source
         template:
-          src: "{{ playbook_dir }}/../roles/nginx_base_config/templates/default.conf.j2"
+          src: "{{ role_path }}/templates/default.conf.j2"
           mode: "0644"
         affects_reload: false
       - id: split-legacy-upstream-source

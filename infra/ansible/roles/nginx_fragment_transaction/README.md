@@ -92,6 +92,10 @@ The role publishes these facts for caller/reporting use:
 - `nginx_fragment_transaction_operation_results`
 - `nginx_fragment_transaction_changed`
 - `nginx_fragment_transaction_reload_required`
+- `nginx_fragment_transaction_file_pre_state`: per-file pre-transaction
+  `stat` map keyed by file id. This is published so callers that intentionally
+  keep backups after the role succeeds can restore nginx files if a later
+  caller-owned step fails.
 - `nginx_fragment_transaction_validate_result`
 - `nginx_fragment_transaction_reload_result` when reload ran
 - `nginx_fragment_transaction_restore_validate_result` on rescue
@@ -124,7 +128,12 @@ Migrate callers one at a time and keep application lifecycle outside this role:
 1. `nginx_base_config` in PR8-A.
 2. `app_bluegreen/tasks/run_switch.yml` in PR8-B. Its nginx file changes now
    use this role, but the caller intentionally keeps transaction backups until
-   post-switch health checks and public smoke checks pass.
+   post-switch health checks and public smoke checks pass. If those
+   application-level checks fail after the transaction role has already
+   validated/reloaded nginx, `app_bluegreen` owns the outer rescue path: it uses
+   the published file pre-state to restore each nginx file from its own backup,
+   validates/reloads the restored config, then reports both transaction-level
+   and post-transaction restore diagnostics.
 3. `app_stopstart/tasks/admin_nginx_route.yml` in PR8-C. Its admin upstream and
    route fragments now use this role for backup, sync, validation, reload,
    restore, and cleanup while the stop-start container lifecycle stays in the
