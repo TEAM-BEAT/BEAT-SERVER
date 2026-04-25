@@ -11,8 +11,6 @@
     nginx_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/backend.conf"
     nginx_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/admin_backend.conf"
     nginx_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/actuator.conf"
-    nginx_legacy_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
-    nginx_legacy_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
     nginx_route_source_path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
     nginx_route_target_path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
 
@@ -56,36 +54,6 @@
     path: "{{ nginx_conf_target_path }}"
   register: nginx_base_config_nginx_conf_target_stat
 
-- name: Check legacy upstream migration source
-  ansible.builtin.stat:
-    path: "{{ nginx_legacy_upstream_source_path }}"
-  register: nginx_base_config_legacy_upstream_source_stat
-
-- name: Check legacy upstream migration target
-  ansible.builtin.stat:
-    path: "{{ nginx_legacy_upstream_target_path }}"
-  register: nginx_base_config_legacy_upstream_target_stat
-
-- name: Check per-upstream source fragments before legacy target removal
-  ansible.builtin.stat:
-    path: "{{ item.path }}"
-  loop:
-    - { name: "backend", path: "{{ nginx_backend_upstream_source_path }}" }
-    - { name: "admin", path: "{{ nginx_admin_upstream_source_path }}" }
-    - { name: "actuator", path: "{{ nginx_actuator_upstream_source_path }}" }
-  register: nginx_base_config_upstream_source_stats
-  loop_control:
-    label: "{{ item.name }} -> {{ item.path }}"
-
-- name: Build missing per-upstream source list for legacy target guard
-  ansible.builtin.set_fact:
-    nginx_base_config_missing_upstream_sources: >-
-      {{
-        nginx_base_config_upstream_source_stats.results
-        | rejectattr('stat.exists')
-        | map(attribute='item.name')
-        | list
-      }}
 
 - name: Abort when live nginx config path is missing
   ansible.builtin.fail:
@@ -94,18 +62,6 @@
     - not ansible_check_mode
     - not nginx_base_config_nginx_conf_target_stat.stat.exists
 
-- name: Abort unsafe legacy-target-only upstream migration
-  ansible.builtin.fail:
-    msg:
-      - "Refusing to replace legacy target upstream config with placeholder fragments."
-      - "legacy target exists={{ nginx_base_config_legacy_upstream_target_stat.stat.exists | default(false) }}"
-      - "legacy source exists={{ nginx_base_config_legacy_upstream_source_stat.stat.exists | default(false) }}"
-      - "missing source fragments={{ nginx_base_config_missing_upstream_sources | join(', ') }}"
-      - "Restore {{ nginx_legacy_upstream_source_path }} or create all per-upstream source fragments before running nginx_base_config."
-  when:
-    - nginx_base_config_legacy_upstream_target_stat.stat.exists | default(false)
-    - not (nginx_base_config_legacy_upstream_source_stat.stat.exists | default(false))
-    - nginx_base_config_missing_upstream_sources | length > 0
 
 - name: Report nginx promotion plan in check mode
   ansible.builtin.debug:
@@ -114,16 +70,12 @@
       - "Would backup {{ nginx_backend_upstream_source_path }} to {{ nginx_backend_upstream_source_path }}.bak"
       - "Would backup {{ nginx_admin_upstream_source_path }} to {{ nginx_admin_upstream_source_path }}.bak"
       - "Would backup {{ nginx_actuator_upstream_source_path }} to {{ nginx_actuator_upstream_source_path }}.bak"
-      - "Would backup {{ nginx_legacy_upstream_source_path }} to {{ nginx_legacy_upstream_source_path }}.bak"
       - "Would backup {{ nginx_route_source_path }} to {{ nginx_route_source_path }}.bak"
       - "Would backup {{ nginx_backend_upstream_target_path }} to {{ nginx_backend_upstream_target_path }}.bak"
       - "Would backup {{ nginx_admin_upstream_target_path }} to {{ nginx_admin_upstream_target_path }}.bak"
       - "Would backup {{ nginx_actuator_upstream_target_path }} to {{ nginx_actuator_upstream_target_path }}.bak"
-      - "Would backup {{ nginx_legacy_upstream_target_path }} to {{ nginx_legacy_upstream_target_path }}.bak"
       - "Would backup {{ nginx_route_target_path }} to {{ nginx_route_target_path }}.bak"
       - "Would backup {{ nginx_conf_target_path }} to {{ nginx_conf_target_path }}.bak"
-      - "Would split legacy upstreams/00-managed.conf into per-upstream fragments when present"
-      - "Would remove legacy upstreams/00-managed.conf before nginx validation"
       - "Would render {{ deployment_dir }}/nginx/default.conf and sync generated fragments to target"
       - "Would validate with docker exec {{ nginx_container_name }} nginx -t"
       - "Would reload nginx on validation success"
@@ -152,11 +104,6 @@
         role: source
         backup: true
         required: false
-      - id: legacy-upstream-source
-        path: "{{ nginx_legacy_upstream_source_path }}"
-        role: legacy
-        backup: true
-        required: false
       - id: route-source
         path: "{{ nginx_route_source_path }}"
         role: source
@@ -177,11 +124,6 @@
         role: target
         backup: true
         required: false
-      - id: legacy-upstream-target
-        path: "{{ nginx_legacy_upstream_target_path }}"
-        role: legacy
-        backup: true
-        required: false
       - id: route-target
         path: "{{ nginx_route_target_path }}"
         role: target
@@ -200,37 +142,6 @@
         template:
           src: "{{ role_path }}/templates/default.conf.j2"
           mode: "0644"
-        affects_reload: false
-      - id: split-legacy-upstream-source
-        name: Split legacy upstream source into per-upstream fragments
-        kind: command
-        when_file_exists: legacy-upstream-source
-        command:
-          argv:
-            - python3
-            - "{{ deployment_dir }}/update-nginx-config.py"
-            - split-upstreams
-            - --source
-            - "{{ nginx_legacy_upstream_source_path }}"
-            - --output-dir
-            - "{{ nginx_generated_source_dir }}/upstreams"
-            - --mapping
-            - "{{ backend_upstream_name | default('backend') }}=backend.conf"
-            - --mapping
-            - "{{ admin_upstream_name | default('admin_backend') }}=admin_backend.conf"
-            - --mapping
-            - "{{ actuator_upstream_name | default('actuator') }}=actuator.conf"
-            - --require-all
-            - --skip-existing
-        changed_if:
-          stdout_json:
-            changed: true
-        affects_reload: false
-      - id: remove-legacy-upstream-source
-        name: Remove legacy upstream source after split migration
-        kind: file_absent
-        file: legacy-upstream-source
-        when_file_preexisted: legacy-upstream-source
         affects_reload: false
       - id: seed-backend-upstream
         name: Seed backend upstream marker in source fragment
@@ -336,12 +247,6 @@
         src_file: actuator-upstream-source
         dest_file: actuator-upstream-target
         mode: "0644"
-        affects_reload: true
-      - id: remove-legacy-upstream-target-before-validation
-        name: Remove legacy upstream target before nginx validation
-        kind: file_absent
-        file: legacy-upstream-target
-        when_file_preexisted: legacy-upstream-target
         affects_reload: true
       - id: sync-route-target
         name: Sync route fragment to target
