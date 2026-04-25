@@ -593,6 +593,18 @@ class RootRetirementContractTest {
 		assertTrue(validateOperation.contains("changed_if.stdout_contains is defined"));
 		assertTrue(validateOperation.contains("changed_if.stdout_contains | length > 0"));
 		assertFalse(operation.contains("__nginx_transaction_no_change_marker__"));
+		assertTrue(operation.contains("  when:\n"
+			+ "    - nginx_fragment_transaction_operation_should_run | bool\n"
+			+ "    - nginx_fragment_transaction_operation.kind == 'template'"));
+		assertTrue(operation.contains("  when:\n"
+			+ "    - nginx_fragment_transaction_operation_should_run | bool\n"
+			+ "    - nginx_fragment_transaction_operation.kind == 'command'"));
+		assertTrue(operation.contains("  when:\n"
+			+ "    - nginx_fragment_transaction_operation_should_run | bool\n"
+			+ "    - nginx_fragment_transaction_operation.kind == 'copy'"));
+		assertTrue(operation.contains("  when:\n"
+			+ "    - nginx_fragment_transaction_operation_should_run | bool\n"
+			+ "    - nginx_fragment_transaction_operation.kind == 'file_absent'"));
 
 		assertTrue(nginxBaseConfig.contains("name: nginx_fragment_transaction"));
 		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_files:"));
