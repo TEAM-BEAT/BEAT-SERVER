@@ -151,65 +151,6 @@ def ensure_route(path: Path, upstream_name: str, external_path: str, upstream_pa
 
 
 
-def parse_mapping(value: str) -> tuple[str, str]:
-    if "=" not in value:
-        raise argparse.ArgumentTypeError("mapping must be formatted as upstream_name=fragment_file")
-    upstream_name, fragment_file = value.split("=", 1)
-    if not upstream_name or not fragment_file:
-        raise argparse.ArgumentTypeError("mapping must include both upstream_name and fragment_file")
-    return upstream_name, fragment_file
-
-
-def extract_managed_or_upstream_block(text: str, upstream_name: str) -> str | None:
-    marker = f"BEAT MANAGED UPSTREAM {upstream_name}"
-    managed_pattern = re.compile(
-        rf"# BEGIN {re.escape(marker)}\n.*?# END {re.escape(marker)}",
-        flags=re.S,
-    )
-    managed_match = managed_pattern.search(text)
-    if managed_match:
-        return managed_match.group(0).strip() + "\n"
-
-    upstream_pattern = re.compile(
-        rf"(^|\n)(upstream\s+{re.escape(upstream_name)}\s*\{{.*?\n\s*\}})",
-        flags=re.S,
-    )
-    upstream_match = upstream_pattern.search(text)
-    if upstream_match:
-        return upstream_match.group(2).strip() + "\n"
-    return None
-
-
-def split_upstreams(
-    source: Path,
-    output_dir: Path,
-    mappings: list[tuple[str, str]],
-    require_all: bool,
-    skip_existing: bool,
-) -> bool:
-    if not source.exists():
-        return False
-
-    text = source.read_text()
-    changed = False
-    for upstream_name, fragment_file in mappings:
-        fragment_path = output_dir / fragment_file
-        block = extract_managed_or_upstream_block(text, upstream_name)
-        if skip_existing and fragment_path.exists():
-            if block is not None and normalize_text(fragment_path.read_text()) != normalize_text(block):
-                raise SystemExit(
-                    f"Existing upstream fragment {fragment_path} differs from legacy "
-                    f"upstream '{upstream_name}' in {source}"
-                )
-            continue
-        if block is None:
-            if require_all:
-                raise SystemExit(f"Required upstream '{upstream_name}' was not found in {source}")
-            continue
-        changed = write_normalized(fragment_path, block) or changed
-    return changed
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -230,13 +171,6 @@ def build_parser() -> argparse.ArgumentParser:
     ensure_route_parser.add_argument("--upstream-name", required=True)
     ensure_route_parser.add_argument("--external-path", required=True)
     ensure_route_parser.add_argument("--upstream-path", required=True)
-
-    split_upstreams_parser = subcommands.add_parser("split-upstreams")
-    split_upstreams_parser.add_argument("--source", required=True)
-    split_upstreams_parser.add_argument("--output-dir", required=True)
-    split_upstreams_parser.add_argument("--mapping", action="append", type=parse_mapping, required=True)
-    split_upstreams_parser.add_argument("--require-all", action="store_true")
-    split_upstreams_parser.add_argument("--skip-existing", action="store_true")
 
     return parser
 
@@ -264,13 +198,7 @@ def main() -> None:
             args.upstream_path,
         )
     else:
-        changed = split_upstreams(
-            Path(args.source),
-            Path(args.output_dir),
-            args.mapping,
-            args.require_all,
-            args.skip_existing,
-        )
+        raise SystemExit(f"Unsupported command: {args.command}")
     print(json.dumps({"changed": changed}))
 
 

@@ -78,75 +78,16 @@ class ManagedBlockMarkerCollisionTest(unittest.TestCase):
             update_nginx_config.upsert_managed_block("", marker, block_body)
 
 
-class SplitUpstreamsSkipExistingTest(unittest.TestCase):
-    def test_skip_existing_keeps_equal_fragment_unchanged(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            workdir = Path(tmp)
-            source = workdir / "00-managed.conf"
-            output_dir = workdir / "fragments"
-            output_dir.mkdir()
-            fragment = output_dir / "backend.conf"
-            source.write_text(
-                "# BEGIN BEAT MANAGED UPSTREAM backend\n"
-                "upstream backend {\n"
-                "    server backend-blue:8080;\n"
-                "}\n"
-                "# END BEAT MANAGED UPSTREAM backend\n",
-            )
-            fragment.write_text(
-                "# BEGIN BEAT MANAGED UPSTREAM backend\n"
-                "upstream backend {\n"
-                "    server backend-blue:8080;\n"
-                "}\n"
-                "# END BEAT MANAGED UPSTREAM backend\n\n",
-            )
+class RetiredSplitUpstreamsCommandTest(unittest.TestCase):
+    def test_split_upstreams_subcommand_is_retired(self) -> None:
+        process = subprocess.run(
+            ["python3", str(HELPER_PATH), "split-upstreams"],
+            capture_output=True,
+            text=True,
+        )
 
-            changed = update_nginx_config.split_upstreams(
-                source,
-                output_dir,
-                [("backend", "backend.conf")],
-                require_all=True,
-                skip_existing=True,
-            )
-
-            self.assertFalse(changed)
-            self.assertEqual(
-                update_nginx_config.normalize_text(source.read_text()),
-                update_nginx_config.normalize_text(fragment.read_text()),
-            )
-
-    def test_skip_existing_rejects_divergent_fragment(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            workdir = Path(tmp)
-            source = workdir / "00-managed.conf"
-            output_dir = workdir / "fragments"
-            output_dir.mkdir()
-            fragment = output_dir / "backend.conf"
-            source.write_text(
-                "# BEGIN BEAT MANAGED UPSTREAM backend\n"
-                "upstream backend {\n"
-                "    server backend-green:8080;\n"
-                "}\n"
-                "# END BEAT MANAGED UPSTREAM backend\n",
-            )
-            fragment.write_text(
-                "# BEGIN BEAT MANAGED UPSTREAM backend\n"
-                "upstream backend {\n"
-                "    server backend-blue:8080;\n"
-                "}\n"
-                "# END BEAT MANAGED UPSTREAM backend\n",
-            )
-
-            with self.assertRaisesRegex(SystemExit, "differs from legacy upstream 'backend'"):
-                update_nginx_config.split_upstreams(
-                    source,
-                    output_dir,
-                    [("backend", "backend.conf")],
-                    require_all=True,
-                    skip_existing=True,
-                )
-
-            self.assertIn("backend-blue:8080", fragment.read_text())
+        self.assertNotEqual(0, process.returncode)
+        self.assertIn("invalid choice", process.stderr)
 
 
 if __name__ == "__main__":

@@ -38,7 +38,7 @@ nginx_fragment_transaction_operations:
 
 - `id`: unique stable key used by operations and restore facts.
 - `path`: absolute remote path.
-- `role`: caller-facing label (`source`, `target`, `legacy`, `live-config`, ...).
+- `role`: caller-facing label (`source`, `target`, `live-config`, ...).
 - `backup`: whether `<path>.bak` is created for existing files and stale backups
   are cleared for absent files. Defaults to `true`.
 - `required`: fail before mutation if the file is absent. Defaults to `false`.
@@ -80,8 +80,8 @@ Conditional execution is available through file ids:
 - `when_file_missing`: run only when that file is absent at operation time.
 - `when_file_preexisted`: run only when that file existed before the transaction.
 
-`when_file_missing` is evaluated at operation time, so callers can split legacy
-upstreams first and then seed only fragments that are still missing.
+`when_file_missing` is evaluated at operation time, so callers can seed or
+create only fragments that are still missing.
 
 ## Transaction sequence
 
@@ -122,22 +122,17 @@ preview, and the live-config existence gate. It then passes the full base nginx
 promotion plan to this role:
 
 1. render `default.conf.j2` to `{{ deployment_dir }}/nginx/default.conf`;
-2. split legacy `upstreams/00-managed.conf` into backend/admin/actuator
-   fragments with `--require-all --skip-existing` when legacy source exists;
-3. remove legacy source when it existed before the transaction;
-4. seed missing backend/admin/actuator upstream source fragments with the
+2. seed missing backend/admin/actuator upstream source fragments with the
    localhost `127.0.0.1:65535` placeholder;
-5. seed the admin route source fragment when missing;
-6. sync upstream fragments to the target generated directory;
-7. remove legacy target before nginx validation when it existed before the
-   transaction;
-8. sync the route fragment to target;
-9. promote the rendered candidate config to the live target config;
-10. validate and conditionally reload through the transaction role.
+3. seed the admin route source fragment when missing;
+4. sync upstream fragments to the target generated directory;
+5. sync the route fragment to target;
+6. promote the rendered candidate config to the live target config;
+7. validate and conditionally reload through the transaction role.
 
 ## Migration status
 
-Migrate callers one at a time and keep application lifecycle outside this role:
+Migration callers are wired; keep application lifecycle outside this role:
 
 1. `nginx_base_config` in PR8-A.
 2. `app_bluegreen/tasks/run_switch.yml` in PR8-B. Its nginx file changes now
