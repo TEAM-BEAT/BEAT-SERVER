@@ -6,6 +6,7 @@
         lookup('ansible.builtin.template', 'foundation.compose.yml.j2')
         | from_yaml
       }}
+  no_log: true
 
 - name: Ensure deployment directory exists
   ansible.builtin.file:
@@ -41,6 +42,7 @@
     dest: "{{ deployment_dir }}/docker-compose.yml"
     mode: "0640"
     backup: false
+  no_log: true
 
 - name: Validate rendered foundation compose
   ansible.builtin.command:
@@ -52,6 +54,7 @@
       - config
   register: foundation_stack_compose_config_result
   changed_when: false
+  no_log: true
 
 - name: Ensure foundation stack is present
   community.docker.docker_compose_v2:
@@ -59,7 +62,19 @@
     definition: "{{ foundation_stack_compose_definition }}"
     state: present
   register: foundation_stack_compose_result
+  no_log: true
 
-- name: Report foundation compose result
+- name: Report foundation compose result (redacted)
   ansible.builtin.debug:
-    var: foundation_stack_compose_result
+    msg:
+      changed: "{{ foundation_stack_compose_result.changed | default(false) }}"
+      services: >-
+        {{
+          foundation_stack_compose_definition.services
+          | default({})
+          | dict2items
+          | map(attribute='key')
+          | list
+          | sort
+        }}
+      compose_config_valid: "{{ foundation_stack_compose_config_result.rc | default(1) == 0 }}"

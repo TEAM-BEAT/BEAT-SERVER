@@ -307,10 +307,12 @@ flowchart TD
 
     subgraph Rollback["rollback.yml"]
         RB["app_rollback<br/>이전 릴리스로 런타임 복원"]
+        RHC["app_healthcheck<br/>복원된 런타임 검증"]
+        RNR["admin_nginx_route<br/>(admin만)"]
         RR["previous.json → current.json<br/>메타데이터 정합성 복원"]
     end
 
-    RB --> RR
+    RB --> RHC --> RNR --> RR
 ```
 
 ### 모듈별 배포 전략
@@ -665,17 +667,22 @@ prod 전용 `rollback-prod.yml` 워크플로우가 제공된다.
 
 ```mermaid
 flowchart LR
-    A["workflow_dispatch<br/>(module 선택)"] --> B["_ansible-exec.yml<br/>playbook: rollback.yml"]
-    B --> C["previous.json 읽기"]
-    C --> D{"deploy_mode?"}
-    D -->|"blue_green"| E["반대 슬롯으로<br/>BG 재배포"]
-    D -->|"stop_start"| F["이전 이미지로<br/>컨테이너 재생성"]
-    E & F --> G["previous.json → current.json"]
+    A["workflow_dispatch<br/>(module + release_ref 선택)"] --> B["release_ref checkout<br/>commit SHA 고정"]
+    B --> C["_ansible-exec.yml<br/>checkout_ref = commit SHA<br/>playbook: rollback.yml"]
+    C --> D["previous.json 읽기"]
+    D --> E{"deploy_mode?"}
+    E -->|"blue_green"| F["반대 슬롯으로<br/>BG 재배포"]
+    E -->|"stop_start"| G["이전 이미지로<br/>컨테이너 재생성"]
+    F & G --> H["app_healthcheck"]
+    H --> I["admin nginx route 갱신<br/>(admin만)"]
+    I --> J["previous.json → current.json"]
 ```
 
 - `previous.json`이 없으면 롤백 불가 (assert 실패)
-- 롤백 후 `current.json`은 실제로 다시 live 가 된 이전 배포 메타데이터로 복원된다
+- 롤백은 `release_ref` 입력(릴리스 태그 또는 커밋 SHA)을 먼저 immutable commit SHA로 해석하고, `_ansible-exec.yml`의 `checkout_ref`로 전달해 prod 배포 때와 같은 코드 기준에서 실행한다.
+- 롤백 후 `app_healthcheck`와 nginx route 갱신이 모두 성공해야 `current.json`을 실제로 다시 live 가 된 이전 배포 메타데이터로 복원한다.
 - 이 승격은 선택사항이 아니다. 다음 deploy의 `app_cleanup`이 항상 `current.json -> previous.json`을 수행하므로, rollback 직후 `current.json`이 실제 live 릴리스를 가리키지 않으면 다음 rollback 대상이 틀어진다.
+- 반대로 post-rollback healthcheck 또는 route 갱신이 실패하면 metadata promotion을 차단하여 검증되지 않은 runtime 상태를 `current.json`에 기록하지 않는다.
 - blue-green 모듈은 `run_switch.yml`을 재활용하여 역방향 전환을 수행한다
 
 ### Nginx source/target contract
