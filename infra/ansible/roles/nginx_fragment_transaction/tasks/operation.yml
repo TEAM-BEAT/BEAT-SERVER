@@ -1,0 +1,127 @@
+---
+- name: Reset nginx transaction operation condition
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_operation_should_run: true
+    nginx_fragment_transaction_operation_changed: false
+
+- name: Check nginx transaction when_file_exists condition
+  ansible.builtin.stat:
+    path: "{{ nginx_fragment_transaction_file_map[nginx_fragment_transaction_operation.when_file_exists].path }}"
+  register: nginx_fragment_transaction_when_file_exists_stat
+  when: nginx_fragment_transaction_operation.when_file_exists is defined
+
+- name: Apply nginx transaction when_file_exists condition
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_operation_should_run: >-
+      {{
+        nginx_fragment_transaction_operation_should_run | bool
+        and (nginx_fragment_transaction_when_file_exists_stat.stat.exists | default(false))
+      }}
+  when: nginx_fragment_transaction_operation.when_file_exists is defined
+
+- name: Check nginx transaction when_file_missing condition
+  ansible.builtin.stat:
+    path: "{{ nginx_fragment_transaction_file_map[nginx_fragment_transaction_operation.when_file_missing].path }}"
+  register: nginx_fragment_transaction_when_file_missing_stat
+  when: nginx_fragment_transaction_operation.when_file_missing is defined
+
+- name: Apply nginx transaction when_file_missing condition
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_operation_should_run: >-
+      {{
+        nginx_fragment_transaction_operation_should_run | bool
+        and not (nginx_fragment_transaction_when_file_missing_stat.stat.exists | default(false))
+      }}
+  when: nginx_fragment_transaction_operation.when_file_missing is defined
+
+- name: Apply nginx transaction when_file_preexisted condition
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_operation_should_run: >-
+      {{
+        nginx_fragment_transaction_operation_should_run | bool
+        and (
+          nginx_fragment_transaction_file_pre_state[nginx_fragment_transaction_operation.when_file_preexisted].exists
+          | default(false)
+        )
+      }}
+  when: nginx_fragment_transaction_operation.when_file_preexisted is defined
+
+- name: Track current nginx transaction operation
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_failed_operation: "{{ nginx_fragment_transaction_operation.id }}"
+  when: nginx_fragment_transaction_operation_should_run | bool
+
+- name: Render nginx transaction template operation
+  ansible.builtin.template:
+    src: "{{ nginx_fragment_transaction_operation.template.src }}"
+    dest: "{{ nginx_fragment_transaction_file_map[nginx_fragment_transaction_operation.dest_file].path }}"
+    mode: "{{ nginx_fragment_transaction_operation.template.mode | default('0644') }}"
+  register: nginx_fragment_transaction_template_operation_result
+  when:
+    - nginx_fragment_transaction_operation_should_run | bool
+    - nginx_fragment_transaction_operation.kind == 'template'
+
+- name: Run nginx transaction command operation
+  ansible.builtin.command:
+    argv: "{{ nginx_fragment_transaction_operation.command.argv }}"
+  register: nginx_fragment_transaction_command_operation_result
+  changed_when: >-
+    nginx_fragment_transaction_operation.changed_if.stdout_contains in
+    nginx_fragment_transaction_command_operation_result.stdout
+  when:
+    - nginx_fragment_transaction_operation_should_run | bool
+    - nginx_fragment_transaction_operation.kind == 'command'
+
+- name: Copy nginx transaction file operation
+  ansible.builtin.copy:
+    src: "{{ nginx_fragment_transaction_file_map[nginx_fragment_transaction_operation.src_file].path }}"
+    dest: "{{ nginx_fragment_transaction_file_map[nginx_fragment_transaction_operation.dest_file].path }}"
+    remote_src: true
+    mode: "{{ nginx_fragment_transaction_operation.mode | default('0644') }}"
+  register: nginx_fragment_transaction_copy_operation_result
+  when:
+    - nginx_fragment_transaction_operation_should_run | bool
+    - nginx_fragment_transaction_operation.kind == 'copy'
+
+- name: Remove nginx transaction file operation
+  ansible.builtin.file:
+    path: "{{ nginx_fragment_transaction_file_map[nginx_fragment_transaction_operation.file].path }}"
+    state: absent
+  register: nginx_fragment_transaction_absent_operation_result
+  when:
+    - nginx_fragment_transaction_operation_should_run | bool
+    - nginx_fragment_transaction_operation.kind == 'file_absent'
+
+- name: Resolve nginx transaction template operation changed state
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_operation_changed: "{{ nginx_fragment_transaction_template_operation_result.changed | default(false) }}"
+  when: nginx_fragment_transaction_operation.kind == 'template'
+
+- name: Resolve nginx transaction command operation changed state
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_operation_changed: "{{ nginx_fragment_transaction_command_operation_result.changed | default(false) }}"
+  when: nginx_fragment_transaction_operation.kind == 'command'
+
+- name: Resolve nginx transaction copy operation changed state
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_operation_changed: "{{ nginx_fragment_transaction_copy_operation_result.changed | default(false) }}"
+  when: nginx_fragment_transaction_operation.kind == 'copy'
+
+- name: Resolve nginx transaction absent operation changed state
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_operation_changed: "{{ nginx_fragment_transaction_absent_operation_result.changed | default(false) }}"
+  when: nginx_fragment_transaction_operation.kind == 'file_absent'
+
+- name: Append nginx transaction operation result
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_operation_results: >-
+      {{
+        nginx_fragment_transaction_operation_results
+        + [{
+          'id': nginx_fragment_transaction_operation.id,
+          'kind': nginx_fragment_transaction_operation.kind,
+          'skipped': not (nginx_fragment_transaction_operation_should_run | bool),
+          'changed': nginx_fragment_transaction_operation_changed | bool,
+          'affects_reload': nginx_fragment_transaction_operation.affects_reload | bool
+        }]
+      }}

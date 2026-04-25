@@ -474,10 +474,12 @@
 
 - name: Remove blue-green nginx backup files after successful rollout
   ansible.builtin.file:
-    path: "{{ item }}"
+    path: "{{ item.path }}"
     state: absent
   loop:
-    - "{{ app_bluegreen_conf_backup_path }}"
-    - "{{ app_bluegreen_conf_target_backup_path }}"
-    - "{{ app_bluegreen_backend_upstream_source_path }}.bak"
-    - "{{ app_bluegreen_actuator_upstream_source_path }}.bak"
+    - { name: "source config", path: "{{ app_bluegreen_conf_backup_path }}" }
+    - { name: "target config", path: "{{ app_bluegreen_conf_target_backup_path }}" }
+    - { name: "backend upstream source", path: "{{ app_bluegreen_backend_upstream_source_path }}.bak" }
+    - { name: "actuator upstream source", path: "{{ app_bluegreen_actuator_upstream_source_path }}.bak" }
+  loop_control:
+    label: "{{ item.name }} -> {{ item.path }}"

@@ -312,7 +312,7 @@ class RootRetirementContractTest {
 	}
 
 	@Test
-	void nginxHelperKeepsExistingOwnedFragmentsWhenSplittingLegacyUpstreams() throws Exception {
+	void nginxHelperFailsWhenExistingOwnedFragmentDiffersFromLegacyUpstream() throws Exception {
 		Path script = Path.of("infra/ansible/roles/nginx_config_helper/files/update-nginx-config.py").toAbsolutePath();
 		Path tempDir = Files.createTempDirectory("beat-nginx-upstream-preserve-");
 		Path upstreamDir = tempDir.resolve("upstreams");
@@ -345,7 +345,7 @@ class RootRetirementContractTest {
 			# END BEAT MANAGED UPSTREAM actuator
 			""");
 
-		String output = run(
+		Process process = new ProcessBuilder(
 			"python3",
 			script.toString(),
 			"split-upstreams",
@@ -360,13 +360,18 @@ class RootRetirementContractTest {
 			"--mapping",
 			"actuator=actuator.conf",
 			"--require-all",
-			"--skip-existing");
+			"--skip-existing")
+			.redirectErrorStream(true)
+			.start();
+		String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+		int exitCode = process.waitFor();
 
-		assertTrue(output.contains("changed=true"));
+		assertTrue(exitCode != 0, output);
+		assertTrue(output.contains("differs from legacy"));
 		assertTrue(Files.readString(upstreamDir.resolve("backend.conf")).contains("server apis-live:4001;"));
 		assertFalse(Files.readString(upstreamDir.resolve("backend.conf")).contains("server apis-stale:4001;"));
-		assertTrue(Files.readString(upstreamDir.resolve("admin_backend.conf")).contains("server admin-live:4000;"));
-		assertTrue(Files.readString(upstreamDir.resolve("actuator.conf")).contains("server apis-live:9000;"));
+		assertFalse(Files.exists(upstreamDir.resolve("admin_backend.conf")));
+		assertFalse(Files.exists(upstreamDir.resolve("actuator.conf")));
 	}
 
 	@Test
@@ -384,6 +389,7 @@ class RootRetirementContractTest {
 		String appBluegreenRunSwitch = read("infra/ansible/roles/app_bluegreen/tasks/run_switch.yml");
 		String appStopStartRole = read("infra/ansible/roles/app_stopstart/tasks/main.yml");
 		String appStopStartRunContainer = read("infra/ansible/roles/app_stopstart/tasks/run_container.yml");
+		String appContainerRuntimeEnv = read("infra/ansible/roles/app_container_runtime/tasks/env.yml");
 		String appHealthcheckRole = read("infra/ansible/roles/app_healthcheck/tasks/main.yml");
 		String nginxBaseConfig = read("infra/ansible/roles/nginx_base_config/tasks/main.yml");
 		String nginxLegacyMigration = read("infra/ansible/roles/nginx_config_helper/tasks/migrate_legacy_upstreams.yml");
@@ -437,12 +443,14 @@ class RootRetirementContractTest {
 		assertTrue(appBluegreenRunSwitch.contains("current-slot"));
 		assertTrue(appBluegreenRunSwitch.contains("upsert-upstream"));
 		assertTrue(appBluegreenRunSwitch.contains("public_smoke_url"));
-		assertTrue(appBluegreenRunSwitch.contains("| combine({"));
+		assertTrue(appBluegreenRunSwitch.contains("app_container_env"));
+		assertTrue(appContainerRuntimeEnv.contains("| combine({"));
 		assertFalse(appBluegreenRunSwitch.contains("\"{{ module_cfg.spring_profile | upper }}_ACTUATOR_PORT\""));
 		assertTrue(appStopStartRole.contains("run_container.yml"));
 		assertTrue(appStopStartRunContainer.contains("community.docker.docker_container"));
-		assertTrue(appStopStartRunContainer.contains("BEAT_SCHEDULER_OWNER"));
-		assertTrue(appStopStartRunContainer.contains("| combine({"));
+		assertTrue(appContainerRuntimeEnv.contains("BEAT_SCHEDULER_OWNER"));
+		assertTrue(appStopStartRunContainer.contains("app_container_env"));
+		assertTrue(appContainerRuntimeEnv.contains("| combine({"));
 		assertFalse(appStopStartRunContainer.contains("\"{{ module_cfg.spring_profile | upper }}_ACTUATOR_PORT\""));
 		assertTrue(foundationPlaybook.contains("role: foundation_stack"));
 		assertTrue(foundationPlaybook.contains("role: nginx_base_config"));
@@ -506,17 +514,13 @@ class RootRetirementContractTest {
 			assertTrue(appScriptsRole.contains("name: nginx_config_helper"));
 		assertTrue(appScriptsRole.contains("nginx_generated_source_dir"));
 		assertTrue(appScriptsRole.contains("nginx_generated_target_dir"));
-		assertTrue(appHealthcheckRole.contains("module_cfg.container_name | default(module)"));
-		assertTrue(appHealthcheckRole.contains("module_cfg.blue_container_name"));
-		assertTrue(appHealthcheckRole.contains("module_cfg.green_container_name"));
+		assertTrue(appHealthcheckRole.contains("healthcheck_target_container"));
+		assertTrue(appHealthcheckRole.contains("app_healthcheck_probe_target_container"));
+		assertFalse(appHealthcheckRole.contains("module_cfg.container_name | default(module)"));
 		assertFalse(appHealthcheckRole.contains("target=\"apis-$slot\""));
-		assertTrue(nginxBaseConfig.contains("nginx_base_config_upstream_target_sync_results is defined"));
+		assertTrue(nginxBaseConfig.contains("nginx_base_config_transaction_operations"));
+		assertTrue(nginxBaseConfig.contains("sync-backend-upstream-target"));
 		assertFalse(nginxBaseConfig.contains("nginx_base_config_upstream_target_sync_result is defined"));
-		assertTrue(nginxBaseConfig.contains("nginx_legacy_upstream_source_path"));
-		assertTrue(nginxBaseConfig.contains("Split legacy upstream source into per-upstream fragments"));
-		assertTrue(nginxBaseConfig.contains("Remove legacy upstream target before nginx validation"));
-		assertTrue(nginxBaseConfig.contains("selectattr('item.name', 'equalto', 'backend')"));
-		assertFalse(nginxBaseConfig.contains("nginx_base_config_upstream_source_stats.results[0]"));
 		assertTrue(nginxLegacyMigration.contains("00-managed.conf"));
 		assertTrue(nginxLegacyMigration.contains("Sync split upstream fragments before removing legacy target"));
 		assertTrue(nginxLegacyMigration.contains("Remove legacy upstream target before nginx validation"));
@@ -524,7 +528,7 @@ class RootRetirementContractTest {
 		assertBefore(nginxLegacyMigration, "Check split upstream sources", "Abort legacy upstream migration");
 		assertBefore(nginxLegacyMigration, "Abort legacy upstream migration", "Sync split upstream fragments");
 		assertBefore(nginxLegacyMigration, "Sync split upstream fragments", "Remove legacy upstream target");
-		assertBefore(nginxLegacyMigration, "Remove legacy upstream target", "Remove legacy upstream source");
+		assertFalse(nginxLegacyMigration.contains("Remove legacy upstream source"));
 		assertBefore(appBluegreenRunSwitch, "tasks_from: migrate_legacy_upstreams.yml", "Validate nginx config after upstream switch");
 		assertBefore(adminNginxRoute, "tasks_from: migrate_legacy_upstreams.yml", "Validate nginx config after admin route update");
 		assertTrue(adminNginxRoute.contains("bootstrap-includes"));
@@ -532,6 +536,54 @@ class RootRetirementContractTest {
 		assertTrue(adminNginxRoute.contains("routes/10-managed.conf"));
 		assertTrue(adminNginxRoute.contains("upstreams/admin_backend.conf"));
 		assertFalse(adminNginxRoute.contains("/api/admin/"));
+	}
+
+	@Test
+	void nginxFragmentTransactionOwnsBaseConfigValidateReloadAndRestoreBoundary() throws Exception {
+		String transaction = read("infra/ansible/roles/nginx_fragment_transaction/tasks/main.yml");
+		String operation = read("infra/ansible/roles/nginx_fragment_transaction/tasks/operation.yml");
+		String validateOperation = read("infra/ansible/roles/nginx_fragment_transaction/tasks/validate_operation.yml");
+		String defaults = read("infra/ansible/roles/nginx_fragment_transaction/defaults/main.yml");
+		String readme = read("infra/ansible/roles/nginx_fragment_transaction/README.md");
+		String nginxBaseConfig = read("infra/ansible/roles/nginx_base_config/tasks/main.yml");
+		String appBluegreenRunSwitch = read("infra/ansible/roles/app_bluegreen/tasks/run_switch.yml");
+		String adminNginxRoute = read("infra/ansible/roles/app_stopstart/tasks/admin_nginx_route.yml");
+
+		assertFalse(transaction.contains("scaffold-only"));
+		assertFalse(readme.contains("Current scaffold behavior"));
+		assertTrue(defaults.contains("nginx_fragment_transaction_files: []"));
+		assertTrue(defaults.contains("nginx_fragment_transaction_operations: []"));
+		assertTrue(transaction.contains("nginx_fragment_transaction_files"));
+		assertTrue(transaction.contains("nginx_fragment_transaction_operations"));
+		assertTrue(transaction.contains("block:"));
+		assertTrue(transaction.contains("rescue:"));
+		assertTrue(transaction.contains("remote_src: true"));
+		assertTrue(transaction.contains("nginx_fragment_transaction_validate_command"));
+		assertTrue(transaction.contains("nginx_fragment_transaction_reload_command"));
+		assertTrue(transaction.contains("failed_when: false"));
+		assertTrue(transaction.contains("restore"));
+		assertTrue(transaction.contains("stdout"));
+		assertTrue(transaction.contains("stderr"));
+		assertBefore(transaction, "nginx_fragment_transaction_validate_command", "nginx_fragment_transaction_reload_command");
+		assertTrue(validateOperation.contains("changed_if.stdout_contains is defined"));
+		assertTrue(validateOperation.contains("changed_if.stdout_contains | length > 0"));
+		assertFalse(operation.contains("__nginx_transaction_no_change_marker__"));
+
+		assertTrue(nginxBaseConfig.contains("name: nginx_fragment_transaction"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_files:"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_operations:"));
+		assertFalse(nginxBaseConfig.contains("Backup current upstream fragment source"));
+		assertFalse(nginxBaseConfig.contains("Backup current upstream fragment target"));
+		assertFalse(nginxBaseConfig.contains("Validate nginx config after base config update"));
+		assertFalse(nginxBaseConfig.contains("Reload nginx after base config update"));
+		assertTrue(nginxBaseConfig.contains("Abort unsafe legacy-target-only upstream migration"));
+		assertTrue(nginxBaseConfig.contains("Refusing to replace legacy target upstream config with placeholder fragments."));
+		assertTrue(nginxBaseConfig.contains("nginx_base_config_missing_upstream_sources | length > 0"));
+		assertTrue(nginxBaseConfig.contains("Remove legacy upstream target before nginx validation"));
+		assertTrue(nginxBaseConfig.contains("when_file_missing: backend-upstream-source"));
+		assertTrue(readme.contains("nginx_base_config"));
+		assertFalse(appBluegreenRunSwitch.contains("name: nginx_fragment_transaction"));
+		assertFalse(adminNginxRoute.contains("name: nginx_fragment_transaction"));
 	}
 
 	@Test

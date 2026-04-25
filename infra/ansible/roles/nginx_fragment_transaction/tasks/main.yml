@@ -1,27 +1,249 @@
 ---
-- name: Validate nginx fragment transaction scaffold input
+- name: Validate nginx fragment transaction file declarations
   ansible.builtin.assert:
     that:
-      - nginx_fragment_transaction_fragments is sequence
-      - nginx_fragment_transaction_fragments is not string
+      - nginx_fragment_transaction_files is sequence
+      - nginx_fragment_transaction_files is not string
+      - nginx_fragment_transaction_files | length > 0
+      - nginx_fragment_transaction_operations is sequence
+      - nginx_fragment_transaction_operations is not string
+      - nginx_fragment_transaction_validate_command is sequence
+      - nginx_fragment_transaction_validate_command is not string
+      - nginx_fragment_transaction_validate_command | length > 0
+      - nginx_fragment_transaction_reload_command is sequence
+      - nginx_fragment_transaction_reload_command is not string
+      - nginx_fragment_transaction_reload_command | length > 0
     fail_msg: >-
-      nginx_fragment_transaction_fragments must be a list of fragment records;
-      see roles/nginx_fragment_transaction/README.md for the planned schema.
+      nginx_fragment_transaction requires explicit files, operations,
+      validate_command, and reload_command lists.
 
-- name: Build nginx fragment transaction scaffold plan
+- name: Reset nginx fragment transaction public facts
   ansible.builtin.set_fact:
-    nginx_fragment_transaction_plan:
-      fragments: "{{ nginx_fragment_transaction_fragments }}"
-      backup_suffix: "{{ nginx_fragment_transaction_backup_suffix }}"
-      source_config: "{{ nginx_fragment_transaction_source_config }}"
-      target_config: "{{ nginx_fragment_transaction_target_config }}"
-      validate_command: "{{ nginx_fragment_transaction_validate_command }}"
-      reload_command: "{{ nginx_fragment_transaction_reload_command }}"
+    nginx_fragment_transaction_file_map: {}
+    nginx_fragment_transaction_operation_results: []
+    nginx_fragment_transaction_changed: false
+    nginx_fragment_transaction_reload_required: false
+    nginx_fragment_transaction_failed_operation: ""
 
-- name: Report nginx fragment transaction scaffold plan
+- name: Build nginx fragment transaction file map
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_file_map: >-
+      {{
+        nginx_fragment_transaction_file_map
+        | combine({
+          item.id: item | combine({
+            'backup': item.backup | default(true),
+            'required': item.required | default(false),
+            'cleanup_backup_on_success': item.cleanup_backup_on_success | default(true)
+          })
+        })
+      }}
+  loop: "{{ nginx_fragment_transaction_files }}"
+  loop_control:
+    label: "{{ item.id | default('missing-id') }}"
+
+- name: Validate nginx fragment transaction file records
+  ansible.builtin.assert:
+    that:
+      - item.id is defined
+      - item.id | length > 0
+      - item.path is defined
+      - item.path | length > 0
+      - item.path is match('^/')
+      - nginx_fragment_transaction_files | selectattr('id', 'equalto', item.id) | list | length == 1
+    fail_msg: "Invalid nginx transaction file record: {{ item | to_json }}"
+  loop: "{{ nginx_fragment_transaction_files }}"
+  loop_control:
+    label: "{{ item.id | default('missing-id') }}"
+
+- name: Validate nginx fragment transaction operation records
+  ansible.builtin.assert:
+    that:
+      - item.id is defined
+      - item.id | length > 0
+      - item.kind is defined
+      - item.kind in ['template', 'command', 'copy', 'file_absent']
+      - nginx_fragment_transaction_operations | selectattr('id', 'equalto', item.id) | list | length == 1
+      - item.affects_reload is defined
+    fail_msg: "Invalid nginx transaction operation record: {{ item | to_json }}"
+  loop: "{{ nginx_fragment_transaction_operations }}"
+  loop_control:
+    label: "{{ item.id | default('missing-id') }}"
+
+- name: Validate nginx fragment transaction operation references
+  ansible.builtin.include_tasks: validate_operation.yml
+  loop: "{{ nginx_fragment_transaction_operations }}"
+  loop_control:
+    loop_var: nginx_fragment_transaction_operation
+    label: "{{ nginx_fragment_transaction_operation.id }}"
+
+- name: Capture nginx transaction file pre-state
+  ansible.builtin.stat:
+    path: "{{ item.path }}"
+  loop: "{{ nginx_fragment_transaction_files }}"
+  loop_control:
+    label: "{{ item.id }} -> {{ item.path }}"
+  register: nginx_fragment_transaction_file_stats
+
+- name: Build nginx transaction file pre-state map
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_file_pre_state: >-
+      {{
+        nginx_fragment_transaction_file_pre_state | default({})
+        | combine({
+          item.item.id: item.stat
+        })
+      }}
+  loop: "{{ nginx_fragment_transaction_file_stats.results }}"
+  loop_control:
+    label: "{{ item.item.id }}"
+
+- name: Abort when required nginx transaction file is missing
+  ansible.builtin.fail:
+    msg: "Required nginx transaction file {{ item.id }} does not exist at {{ item.path }}"
+  when:
+    - item.required | default(false)
+    - not (nginx_fragment_transaction_file_pre_state[item.id].exists | default(false))
+  loop: "{{ nginx_fragment_transaction_files }}"
+  loop_control:
+    label: "{{ item.id }}"
+
+- name: Backup existing nginx transaction files
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "{{ item.path }}{{ nginx_fragment_transaction_backup_suffix }}"
+    remote_src: true
+    mode: "{{ item.mode | default('0644') }}"
+  when:
+    - item.backup | default(true)
+    - nginx_fragment_transaction_file_pre_state[item.id].exists | default(false)
+  loop: "{{ nginx_fragment_transaction_files }}"
+  loop_control:
+    label: "{{ item.id }} -> {{ item.path }}"
+
+- name: Clear stale nginx transaction backups for absent files
+  ansible.builtin.file:
+    path: "{{ item.path }}{{ nginx_fragment_transaction_backup_suffix }}"
+    state: absent
+  when:
+    - item.backup | default(true)
+    - not (nginx_fragment_transaction_file_pre_state[item.id].exists | default(false))
+  loop: "{{ nginx_fragment_transaction_files }}"
+  loop_control:
+    label: "{{ item.id }} -> {{ item.path }}"
+
+- name: Apply nginx fragment transaction
+  block:
+    - name: Execute nginx fragment transaction operations
+      ansible.builtin.include_tasks: operation.yml
+      loop: "{{ nginx_fragment_transaction_operations }}"
+      loop_control:
+        loop_var: nginx_fragment_transaction_operation
+        label: "{{ nginx_fragment_transaction_operation.id }}"
+
+    - name: Track nginx transaction validation step
+      ansible.builtin.set_fact:
+        nginx_fragment_transaction_failed_operation: validate-nginx-config
+
+    - name: Validate nginx config after transaction operations
+      ansible.builtin.command:
+        argv: "{{ nginx_fragment_transaction_validate_command }}"
+      register: nginx_fragment_transaction_validate_result
+      changed_when: false
+
+    - name: Aggregate nginx fragment transaction change state
+      ansible.builtin.set_fact:
+        nginx_fragment_transaction_changed: >-
+          {{
+            nginx_fragment_transaction_operation_results
+            | selectattr('changed')
+            | list
+            | length > 0
+          }}
+        nginx_fragment_transaction_reload_required: >-
+          {{
+            nginx_fragment_transaction_operation_results
+            | selectattr('changed')
+            | selectattr('affects_reload')
+            | list
+            | length > 0
+          }}
+
+    - name: Track nginx transaction reload step
+      ansible.builtin.set_fact:
+        nginx_fragment_transaction_failed_operation: reload-nginx-config
+      when: nginx_fragment_transaction_reload_required | bool
+
+    - name: Reload nginx after successful transaction validation
+      ansible.builtin.command:
+        argv: "{{ nginx_fragment_transaction_reload_command }}"
+      register: nginx_fragment_transaction_reload_result
+      when:
+        - nginx_fragment_transaction_validate_result.rc == 0
+        - nginx_fragment_transaction_reload_required | bool
+      changed_when: true
+  rescue:
+    - name: Restore nginx transaction files from backups
+      ansible.builtin.copy:
+        src: "{{ item.path }}{{ nginx_fragment_transaction_backup_suffix }}"
+        dest: "{{ item.path }}"
+        remote_src: true
+        mode: "{{ item.mode | default('0644') }}"
+      when:
+        - item.backup | default(true)
+        - nginx_fragment_transaction_file_pre_state[item.id].exists | default(false)
+      loop: "{{ nginx_fragment_transaction_files }}"
+      loop_control:
+        label: "{{ item.id }} -> {{ item.path }}"
+
+    - name: Remove nginx transaction files that did not exist before transaction
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      when: not (nginx_fragment_transaction_file_pre_state[item.id].exists | default(false))
+      loop: "{{ nginx_fragment_transaction_files }}"
+      loop_control:
+        label: "{{ item.id }} -> {{ item.path }}"
+
+    - name: Validate restored nginx config after transaction rollback
+      ansible.builtin.command:
+        argv: "{{ nginx_fragment_transaction_validate_command }}"
+      register: nginx_fragment_transaction_restore_validate_result
+      failed_when: false
+      changed_when: false
+
+    - name: Reload restored nginx config after transaction rollback
+      ansible.builtin.command:
+        argv: "{{ nginx_fragment_transaction_reload_command }}"
+      register: nginx_fragment_transaction_restore_reload_result
+      failed_when: false
+      changed_when: false
+      when: nginx_fragment_transaction_restore_validate_result.rc == 0
+
+    - name: Fail after nginx fragment transaction restore
+      ansible.builtin.fail:
+        msg:
+          - "{{ nginx_fragment_transaction_failure_summary }}"
+          - "failed operation={{ nginx_fragment_transaction_failed_operation | default('unknown') }}"
+          - "restore validation rc={{ nginx_fragment_transaction_restore_validate_result.rc }}"
+          - "restore validation stdout={{ nginx_fragment_transaction_restore_validate_result.stdout | default('') }}"
+          - "restore validation stderr={{ nginx_fragment_transaction_restore_validate_result.stderr | default('') }}"
+          - "restore reload rc={{ nginx_fragment_transaction_restore_reload_result.rc if nginx_fragment_transaction_restore_reload_result is defined else 'skipped' }}"
+          - "restore reload stdout={{ nginx_fragment_transaction_restore_reload_result.stdout if nginx_fragment_transaction_restore_reload_result is defined else '' }}"
+          - "restore reload stderr={{ nginx_fragment_transaction_restore_reload_result.stderr if nginx_fragment_transaction_restore_reload_result is defined else 'skipped because restore validation failed' }}"
+
+- name: Remove nginx fragment transaction backup files after success
+  ansible.builtin.file:
+    path: "{{ item.path }}{{ nginx_fragment_transaction_backup_suffix }}"
+    state: absent
+  when:
+    - item.backup | default(true)
+    - item.cleanup_backup_on_success | default(true)
+  loop: "{{ nginx_fragment_transaction_files }}"
+  loop_control:
+    label: "{{ item.id }} -> {{ item.path }}"
+
+- name: Expose nginx fragment transaction aggregate changed state
   ansible.builtin.debug:
-    msg:
-      - "nginx_fragment_transaction is scaffold-only and did not mutate nginx files."
-      - "Planned fragment count={{ nginx_fragment_transaction_fragments | length }}"
-      - "Read roles/nginx_fragment_transaction/README.md before migrating callers."
-  changed_when: false
+    msg: "nginx_fragment_transaction {{ nginx_fragment_transaction_id }} changed={{ nginx_fragment_transaction_changed }} reload_required={{ nginx_fragment_transaction_reload_required }}"
+  changed_when: nginx_fragment_transaction_changed | bool
