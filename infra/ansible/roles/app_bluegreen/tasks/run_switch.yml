@@ -198,7 +198,8 @@
                 - --require-all
                 - --skip-existing
             changed_if:
-              stdout_contains: changed=true
+              stdout_json:
+                changed: true
             affects_reload: false
           - id: remove-legacy-upstream-source
             name: Remove legacy upstream source after split migration
@@ -221,7 +222,8 @@
                 - --route-include-glob
                 - "{{ nginx_generated_include_dir }}/routes/*.conf"
             changed_if:
-              stdout_contains: changed=true
+              stdout_json:
+                changed: true
             affects_reload: false
           - id: sync-bootstrapped-live-config
             name: Sync bootstrapped nginx config to live target
@@ -247,7 +249,8 @@
                 - --backend-port
                 - "{{ module_cfg.app_port | string }}"
             changed_if:
-              stdout_contains: changed=true
+              stdout_json:
+                changed: true
             affects_reload: false
           - id: update-actuator-upstream-source
             name: Update managed actuator upstream to target container
@@ -266,7 +269,8 @@
                 - --backend-port
                 - "{{ actuator_port }}"
             changed_if:
-              stdout_contains: changed=true
+              stdout_json:
+                changed: true
             affects_reload: false
           - id: sync-backend-upstream-target
             name: Sync backend upstream fragment to target

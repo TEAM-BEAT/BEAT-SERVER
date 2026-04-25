@@ -287,7 +287,7 @@ class RootRetirementContractTest {
 			"actuator=actuator.conf",
 			"--require-all");
 
-		assertTrue(firstRun.contains("changed=true"));
+		assertTrue(firstRun.contains("\"changed\": true"));
 		assertTrue(Files.readString(upstreamDir.resolve("backend.conf")).contains("server apis-blue:4001;"));
 		assertTrue(Files.readString(upstreamDir.resolve("admin_backend.conf")).contains("server admin:4000;"));
 		assertTrue(Files.readString(upstreamDir.resolve("actuator.conf")).contains("server apis-blue:9000;"));
@@ -308,7 +308,7 @@ class RootRetirementContractTest {
 			"actuator=actuator.conf",
 			"--require-all");
 
-		assertTrue(secondRun.contains("changed=false"));
+		assertTrue(secondRun.contains("\"changed\": false"));
 	}
 
 	@Test
@@ -479,6 +479,7 @@ class RootRetirementContractTest {
 		assertTrue(nginxUpdateScript.contains("upsert-upstream"));
 		assertTrue(nginxUpdateScript.contains("split-upstreams"));
 		assertTrue(nginxUpdateScript.contains("skip_existing"));
+		assertTrue(nginxUpdateScript.contains("json.dumps({\"changed\": changed})"));
 		assertFalse(deployPlaybook.contains("app_dev_switch"));
 		assertFalse(deployPlaybook.contains("app_prod_switch"));
 		assertTrue(deployPlaybook.contains("role: app_bluegreen"));
@@ -612,8 +613,10 @@ class RootRetirementContractTest {
 		assertTrue(transaction.contains("stdout"));
 		assertTrue(transaction.contains("stderr"));
 		assertBefore(transaction, "nginx_fragment_transaction_validate_command", "nginx_fragment_transaction_reload_command");
+		assertTrue(validateOperation.contains("changed_if.stdout_json.changed is defined"));
 		assertTrue(validateOperation.contains("changed_if.stdout_contains is defined"));
-		assertTrue(validateOperation.contains("changed_if.stdout_contains | length > 0"));
+		assertTrue(operation.contains("nginx_fragment_transaction_command_stdout_json"));
+		assertTrue(operation.contains("from_json"));
 		assertFalse(operation.contains("__nginx_transaction_no_change_marker__"));
 		assertTrue(operation.contains("  when:\n"
 			+ "    - nginx_fragment_transaction_operation_should_run | bool\n"
@@ -632,6 +635,8 @@ class RootRetirementContractTest {
 		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_id: nginx-base-config"));
 		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_files:"));
 		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_operations:"));
+		assertTrue(nginxBaseConfig.contains("stdout_json:"));
+		assertFalse(nginxBaseConfig.contains("stdout_contains: changed=true"));
 		assertTrue(nginxBaseConfig.contains("src: \"{{ role_path }}/templates/default.conf.j2\""));
 		assertFalse(nginxBaseConfig.contains("playbook_dir }}/../roles/nginx_base_config/templates/default.conf.j2"));
 		assertFalse(nginxBaseConfig.contains("Backup current upstream fragment source"));
@@ -646,6 +651,7 @@ class RootRetirementContractTest {
 		assertTrue(readme.contains("nginx_base_config"));
 		assertTrue(readme.contains("nginx_fragment_transaction_file_pre_state"));
 		assertTrue(readme.contains("published file pre-state"));
+		assertTrue(readme.contains("changed_if.stdout_json.changed: true"));
 		assertTrue(appBluegreenRunSwitch.contains("name: nginx_fragment_transaction"));
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_id: app-bluegreen-switch"));
 		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_nginx_transaction_files:"));
@@ -656,6 +662,8 @@ class RootRetirementContractTest {
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_operations:"));
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_validate_command:"));
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_reload_command:"));
+		assertTrue(appBluegreenRunSwitch.contains("stdout_json:"));
+		assertFalse(appBluegreenRunSwitch.contains("stdout_contains: changed=true"));
 		assertTrue(appBluegreenRunSwitch.contains("upsert-upstream"));
 		assertFalse(appBluegreenRunSwitch.contains("Validate nginx config after upstream switch"));
 		assertFalse(appBluegreenRunSwitch.contains("Reload nginx after upstream switch"));
@@ -674,6 +682,8 @@ class RootRetirementContractTest {
 			"nginx_fragment_transaction_operations: \"{{ app_stopstart_admin_nginx_transaction_operations }}\""));
 		assertTrue(adminNginxRoute.contains("nginx_fragment_transaction_validate_command:"));
 		assertTrue(adminNginxRoute.contains("nginx_fragment_transaction_reload_command:"));
+		assertTrue(adminNginxRoute.contains("stdout_json:"));
+		assertFalse(adminNginxRoute.contains("stdout_contains: changed=true"));
 		assertTrue(adminNginxRoute.contains("remove-legacy-upstream-target-before-validation"));
 		assertFalse(adminNginxRoute.contains("Validate nginx config after admin route update"));
 		assertFalse(adminNginxRoute.contains("Reload nginx after admin route update"));

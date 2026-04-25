@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import json
 import os
 import re
 import tempfile
@@ -45,6 +46,12 @@ def write_normalized(path: Path, text: str) -> bool:
 
 
 def upsert_managed_block(body: str, marker: str, block_body: str) -> str:
+    reserved_end_marker = f"# END {marker}"
+    if reserved_end_marker in block_body:
+        raise SystemExit(
+            f"Managed block body for marker '{marker}' contains reserved end marker '{reserved_end_marker}'"
+        )
+
     pattern = re.compile(
         rf"\n?# BEGIN {re.escape(marker)}.*?# END {re.escape(marker)}\n?",
         flags=re.S,
@@ -244,7 +251,7 @@ def main() -> None:
             args.require_all,
             args.skip_existing,
         )
-    print(f"changed={'true' if changed else 'false'}")
+    print(json.dumps({"changed": changed}))
 
 
 if __name__ == "__main__":

@@ -58,7 +58,21 @@ Supported `kind` values are intentionally small and auditable:
 - `file_absent`: remove one declared file.
 
 Each operation must declare `affects_reload`. Command operations must use `argv`
-not shell strings, and must declare `changed_if.stdout_contains`.
+not shell strings, and must declare one changed parser:
+
+```yaml
+changed_if:
+  stdout_json:
+    changed: true
+```
+
+`stdout_json.changed` parses command stdout as one-line JSON and treats the
+operation as changed when the parsed `changed` value matches the declared
+boolean. In other words, the published contract key is
+`changed_if.stdout_json.changed: true|false`. The legacy
+`changed_if.stdout_contains` parser is still supported for older commands, but
+new helper calls should emit `{"changed": true|false}` and use
+`stdout_json.changed`.
 
 Conditional execution is available through file ids:
 

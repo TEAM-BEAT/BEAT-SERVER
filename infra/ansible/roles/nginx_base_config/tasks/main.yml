@@ -223,7 +223,8 @@
             - --require-all
             - --skip-existing
         changed_if:
-          stdout_contains: changed=true
+          stdout_json:
+            changed: true
         affects_reload: false
       - id: remove-legacy-upstream-source
         name: Remove legacy upstream source after split migration
@@ -249,7 +250,8 @@
             - --backend-port
             - "65535"
         changed_if:
-          stdout_contains: changed=true
+          stdout_json:
+            changed: true
         affects_reload: false
       - id: seed-admin-upstream
         name: Seed admin upstream marker in source fragment
@@ -269,7 +271,8 @@
             - --backend-port
             - "65535"
         changed_if:
-          stdout_contains: changed=true
+          stdout_json:
+            changed: true
         affects_reload: false
       - id: seed-actuator-upstream
         name: Seed actuator upstream marker in source fragment
@@ -289,7 +292,8 @@
             - --backend-port
             - "65535"
         changed_if:
-          stdout_contains: changed=true
+          stdout_json:
+            changed: true
         affects_reload: false
       - id: seed-admin-route
         name: Seed admin route marker in source fragment
@@ -309,7 +313,8 @@
             - --upstream-path
             - "{{ modules.admin.nginx_route.upstream_path | default('/api/admin') }}"
         changed_if:
-          stdout_contains: changed=true
+          stdout_json:
+            changed: true
         affects_reload: false
       - id: sync-backend-upstream-target
         name: Sync backend upstream fragment to target

@@ -19,8 +19,16 @@
       - nginx_fragment_transaction_operation.command.argv is not string
       - nginx_fragment_transaction_operation.command.argv | length > 0
       - nginx_fragment_transaction_operation.changed_if is defined
-      - nginx_fragment_transaction_operation.changed_if.stdout_contains is defined
-      - nginx_fragment_transaction_operation.changed_if.stdout_contains | length > 0
+      - >-
+        (
+          nginx_fragment_transaction_operation.changed_if.stdout_json is defined
+          and nginx_fragment_transaction_operation.changed_if.stdout_json.changed is defined
+          and nginx_fragment_transaction_operation.changed_if.stdout_json.changed in [true, false]
+        )
+        or (
+          nginx_fragment_transaction_operation.changed_if.stdout_contains is defined
+          and nginx_fragment_transaction_operation.changed_if.stdout_contains | length > 0
+        )
     fail_msg: "Invalid nginx transaction command operation: {{ nginx_fragment_transaction_operation | to_json }}"
   when: nginx_fragment_transaction_operation.kind == 'command'
 

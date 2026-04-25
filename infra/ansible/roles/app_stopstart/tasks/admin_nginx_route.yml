@@ -102,7 +102,8 @@
             - --require-all
             - --skip-existing
         changed_if:
-          stdout_contains: changed=true
+          stdout_json:
+            changed: true
         affects_reload: false
       - id: remove-legacy-upstream-source
         name: Remove legacy upstream source after split migration
@@ -128,12 +129,13 @@
                       "Cannot remove legacy upstreams/00-managed.conf until "
                       "backend/admin/actuator fragments exist: " + ", ".join(missing)
                   )
-              print("changed=false")
+              print('{"changed": false}')
             - "{{ app_stopstart_backend_upstream_source_path }}"
             - "{{ app_stopstart_admin_upstream_source_path }}"
             - "{{ app_stopstart_actuator_upstream_source_path }}"
         changed_if:
-          stdout_contains: changed=true
+          stdout_json:
+            changed: true
         affects_reload: false
       - id: sync-legacy-backend-upstream-target
         name: Sync split backend upstream before removing legacy target
@@ -180,7 +182,8 @@
             - --route-include-glob
             - "{{ nginx_generated_include_dir }}/routes/*.conf"
         changed_if:
-          stdout_contains: changed=true
+          stdout_json:
+            changed: true
         affects_reload: false
       - id: update-admin-upstream-source
         name: Ensure admin upstream fragment exists
@@ -199,7 +202,8 @@
             - --backend-port
             - "{{ module_cfg.app_port | string }}"
         changed_if:
-          stdout_contains: changed=true
+          stdout_json:
+            changed: true
         affects_reload: false
       - id: update-admin-route-source
         name: Ensure admin route fragment exists
@@ -218,7 +222,8 @@
             - --upstream-path
             - "{{ module_cfg.nginx_route.upstream_path }}"
         changed_if:
-          stdout_contains: changed=true
+          stdout_json:
+            changed: true
         affects_reload: false
       - id: sync-admin-upstream-target
         name: Sync generated admin upstream fragment to target

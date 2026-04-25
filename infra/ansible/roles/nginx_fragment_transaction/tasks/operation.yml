@@ -3,6 +3,7 @@
   ansible.builtin.set_fact:
     nginx_fragment_transaction_operation_should_run: true
     nginx_fragment_transaction_operation_changed: false
+    nginx_fragment_transaction_command_stdout_json: {}
 
 - name: Check nginx transaction when_file_exists condition
   ansible.builtin.stat:
@@ -65,12 +66,31 @@
   ansible.builtin.command:
     argv: "{{ nginx_fragment_transaction_operation.command.argv }}"
   register: nginx_fragment_transaction_command_operation_result
-  changed_when: >-
-    nginx_fragment_transaction_operation.changed_if.stdout_contains in
-    nginx_fragment_transaction_command_operation_result.stdout
+  changed_when: false
   when:
     - nginx_fragment_transaction_operation_should_run | bool
     - nginx_fragment_transaction_operation.kind == 'command'
+
+- name: Parse nginx transaction command JSON stdout
+  ansible.builtin.set_fact:
+    nginx_fragment_transaction_command_stdout_json: "{{ nginx_fragment_transaction_command_operation_result.stdout | from_json }}"
+  when:
+    - nginx_fragment_transaction_operation_should_run | bool
+    - nginx_fragment_transaction_operation.kind == 'command'
+    - nginx_fragment_transaction_operation.changed_if.stdout_json is defined
+
+- name: Validate nginx transaction command JSON stdout
+  ansible.builtin.assert:
+    that:
+      - nginx_fragment_transaction_command_stdout_json.changed is defined
+      - nginx_fragment_transaction_command_stdout_json.changed in [true, false]
+    fail_msg: >-
+      Command operation {{ nginx_fragment_transaction_operation.id }} must emit
+      one-line JSON with a boolean changed field: {{ nginx_fragment_transaction_command_operation_result.stdout }}
+  when:
+    - nginx_fragment_transaction_operation_should_run | bool
+    - nginx_fragment_transaction_operation.kind == 'command'
+    - nginx_fragment_transaction_operation.changed_if.stdout_json is defined
 
 - name: Copy nginx transaction file operation
   ansible.builtin.copy:
@@ -101,7 +121,21 @@
 
 - name: Resolve nginx transaction command operation changed state
   ansible.builtin.set_fact:
-    nginx_fragment_transaction_operation_changed: "{{ nginx_fragment_transaction_command_operation_result.changed | default(false) }}"
+    nginx_fragment_transaction_operation_changed: >-
+      {{
+        (
+          nginx_fragment_transaction_operation.changed_if.stdout_json is defined
+          and nginx_fragment_transaction_operation.changed_if.stdout_json.changed is defined
+          and (
+            nginx_fragment_transaction_command_stdout_json.changed | default(false) | bool
+          ) == (nginx_fragment_transaction_operation.changed_if.stdout_json.changed | bool)
+        )
+        or (
+          nginx_fragment_transaction_operation.changed_if.stdout_contains is defined
+          and nginx_fragment_transaction_operation.changed_if.stdout_contains
+              in nginx_fragment_transaction_command_operation_result.stdout
+        )
+      }}
   when:
     - nginx_fragment_transaction_operation_should_run | bool
     - nginx_fragment_transaction_operation.kind == 'command'

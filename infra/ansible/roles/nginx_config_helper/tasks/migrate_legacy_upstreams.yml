@@ -53,7 +53,7 @@
       - --require-all
       - --skip-existing
   register: nginx_legacy_migration_split_result
-  changed_when: "'changed=true' in nginx_legacy_migration_split_result.stdout"
+  changed_when: (nginx_legacy_migration_split_result.stdout | from_json).changed | bool
   when: nginx_legacy_migration_source_stat.stat.exists
 
 - name: Check split upstream sources before removing legacy target
