@@ -9,386 +9,259 @@
     app_stopstart_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/admin_backend.conf"
     app_stopstart_admin_route_source_path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
     app_stopstart_admin_route_target_path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+    app_stopstart_backend_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/backend.conf"
+    app_stopstart_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/backend.conf"
+    app_stopstart_actuator_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/actuator.conf"
+    app_stopstart_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/actuator.conf"
+    app_stopstart_legacy_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+    app_stopstart_legacy_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
 
-- name: Check current admin upstream source fragment
-  ansible.builtin.stat:
-    path: "{{ app_stopstart_admin_upstream_source_path }}"
-  register: app_stopstart_upstream_source_stat
-
-- name: Check current admin route source fragment
-  ansible.builtin.stat:
-    path: "{{ app_stopstart_admin_route_source_path }}"
-  register: app_stopstart_route_source_stat
-
-- name: Check current live nginx source config
-  ansible.builtin.stat:
-    path: "{{ nginx_conf_source_path }}"
-  register: app_stopstart_nginx_source_stat
-
-- name: Check current admin upstream target fragment
-  ansible.builtin.stat:
-    path: "{{ app_stopstart_admin_upstream_target_path }}"
-  register: app_stopstart_upstream_target_stat
-
-- name: Check current admin route target fragment
-  ansible.builtin.stat:
-    path: "{{ app_stopstart_admin_route_target_path }}"
-  register: app_stopstart_route_target_stat
-
-- name: Check current live nginx target config
-  ansible.builtin.stat:
-    path: "{{ nginx_conf_target_path }}"
-  register: app_stopstart_nginx_target_stat
-
-- name: Backup current admin upstream source fragment
-  ansible.builtin.copy:
-    src: "{{ app_stopstart_admin_upstream_source_path }}"
-    dest: "{{ app_stopstart_admin_upstream_source_path }}.bak"
-    remote_src: true
-    mode: "0644"
-  when: app_stopstart_upstream_source_stat.stat.exists
-
-- name: Clear stale admin upstream source backup when file missing
-  ansible.builtin.file:
-    path: "{{ app_stopstart_admin_upstream_source_path }}.bak"
-    state: absent
-  when: not app_stopstart_upstream_source_stat.stat.exists
-
-- name: Backup current admin route source fragment
-  ansible.builtin.copy:
-    src: "{{ app_stopstart_admin_route_source_path }}"
-    dest: "{{ app_stopstart_admin_route_source_path }}.bak"
-    remote_src: true
-    mode: "0644"
-  when: app_stopstart_route_source_stat.stat.exists
-
-- name: Clear stale admin route source backup when file missing
-  ansible.builtin.file:
-    path: "{{ app_stopstart_admin_route_source_path }}.bak"
-    state: absent
-  when: not app_stopstart_route_source_stat.stat.exists
-
-- name: Backup current live nginx source config
-  ansible.builtin.copy:
-    src: "{{ nginx_conf_source_path }}"
-    dest: "{{ nginx_conf_source_path }}.bak"
-    remote_src: true
-    mode: "0644"
-  when: app_stopstart_nginx_source_stat.stat.exists
-
-- name: Clear stale live nginx source backup when file missing
-  ansible.builtin.file:
-    path: "{{ nginx_conf_source_path }}.bak"
-    state: absent
-  when: not app_stopstart_nginx_source_stat.stat.exists
-
-- name: Backup current admin upstream target fragment
-  ansible.builtin.copy:
-    src: "{{ app_stopstart_admin_upstream_target_path }}"
-    dest: "{{ app_stopstart_admin_upstream_target_path }}.bak"
-    remote_src: true
-    mode: "0644"
-  when: app_stopstart_upstream_target_stat.stat.exists
-
-- name: Clear stale admin upstream target backup when file missing
-  ansible.builtin.file:
-    path: "{{ app_stopstart_admin_upstream_target_path }}.bak"
-    state: absent
-  when: not app_stopstart_upstream_target_stat.stat.exists
-
-- name: Backup current admin route target fragment
-  ansible.builtin.copy:
-    src: "{{ app_stopstart_admin_route_target_path }}"
-    dest: "{{ app_stopstart_admin_route_target_path }}.bak"
-    remote_src: true
-    mode: "0644"
-  when: app_stopstart_route_target_stat.stat.exists
-
-- name: Clear stale admin route target backup when file missing
-  ansible.builtin.file:
-    path: "{{ app_stopstart_admin_route_target_path }}.bak"
-    state: absent
-  when: not app_stopstart_route_target_stat.stat.exists
-
-- name: Backup current live nginx target config
-  ansible.builtin.copy:
-    src: "{{ nginx_conf_target_path }}"
-    dest: "{{ nginx_conf_target_path }}.bak"
-    remote_src: true
-    mode: "0644"
-  when: app_stopstart_nginx_target_stat.stat.exists
-
-- name: Clear stale live nginx target backup when file missing
-  ansible.builtin.file:
-    path: "{{ nginx_conf_target_path }}.bak"
-    state: absent
-  when: not app_stopstart_nginx_target_stat.stat.exists
-
-- name: Sync admin nginx source and target files safely
-  block:
-    - name: Migrate legacy shared upstream fragment inside admin route transaction
-      ansible.builtin.import_role:
-        name: nginx_config_helper
-        tasks_from: migrate_legacy_upstreams.yml
-
-    - name: Ensure admin nginx upstream and route exist
-      ansible.builtin.command:
-        argv:
-          - python3
-          - "{{ deployment_dir }}/update-nginx-config.py"
-          - bootstrap-includes
-          - --path
-          - "{{ nginx_conf_source_path }}"
-          - --upstream-include-glob
-          - "{{ nginx_generated_include_dir }}/upstreams/*.conf"
-          - --route-include-glob
-          - "{{ nginx_generated_include_dir }}/routes/*.conf"
-      register: app_stopstart_bootstrap_includes_result
-      changed_when: "'changed=true' in app_stopstart_bootstrap_includes_result.stdout"
-
-    - name: Ensure admin upstream fragment exists
-      ansible.builtin.command:
-        argv:
-          - python3
-          - "{{ deployment_dir }}/update-nginx-config.py"
-          - upsert-upstream
-          - --path
-          - "{{ app_stopstart_admin_upstream_source_path }}"
-          - --upstream-name
-          - "{{ module_cfg.nginx_route.upstream_name }}"
-          - --container-name
-          - "{{ module_cfg.container_name }}"
-          - --backend-port
-          - "{{ module_cfg.app_port | string }}"
-      register: app_stopstart_admin_upstream_result
-      changed_when: "'changed=true' in app_stopstart_admin_upstream_result.stdout"
-
-    - name: Ensure admin route fragment exists
-      ansible.builtin.command:
-        argv:
-          - python3
-          - "{{ deployment_dir }}/update-nginx-config.py"
-          - ensure-route
-          - --path
-          - "{{ app_stopstart_admin_route_source_path }}"
-          - --upstream-name
-          - "{{ module_cfg.nginx_route.upstream_name }}"
-          - --external-path
-          - "{{ module_cfg.nginx_route.external_path }}"
-          - --upstream-path
-          - "{{ module_cfg.nginx_route.upstream_path }}"
-      register: app_stopstart_admin_route_result
-      changed_when: "'changed=true' in app_stopstart_admin_route_result.stdout"
-
-    - name: Sync generated nginx upstream fragment to target
-      ansible.builtin.copy:
-        src: "{{ app_stopstart_admin_upstream_source_path }}"
-        dest: "{{ app_stopstart_admin_upstream_target_path }}"
-        remote_src: true
-        mode: "0644"
-      register: app_stopstart_upstream_sync_result
-
-    - name: Sync generated nginx route fragment to target
-      ansible.builtin.copy:
-        src: "{{ app_stopstart_admin_route_source_path }}"
-        dest: "{{ app_stopstart_admin_route_target_path }}"
-        remote_src: true
-        mode: "0644"
-      register: app_stopstart_route_sync_result
-
-    - name: Sync bootstrapped nginx source config to target
-      ansible.builtin.copy:
-        src: "{{ nginx_conf_source_path }}"
-        dest: "{{ nginx_conf_target_path }}"
-        remote_src: true
-        mode: "0644"
-      register: app_stopstart_nginx_target_sync_result
-
-    - name: Validate nginx config after admin route update
-      ansible.builtin.command:
-        argv:
-          - docker
-          - exec
-          - "{{ nginx_container_name }}"
-          - nginx
-          - -t
-      register: app_stopstart_nginx_test_result
-      changed_when: false
-
-    - name: Reload nginx after admin route update
-      ansible.builtin.command:
-        argv:
-          - docker
-          - exec
-          - "{{ nginx_container_name }}"
-          - nginx
-          - -s
-          - reload
-      when:
-        - app_stopstart_nginx_test_result.rc == 0
-        - >-
-          app_stopstart_bootstrap_includes_result.changed
-          or app_stopstart_admin_upstream_result.changed
-          or app_stopstart_admin_route_result.changed
-          or app_stopstart_upstream_sync_result.changed
-          or app_stopstart_route_sync_result.changed
-          or app_stopstart_nginx_target_sync_result.changed
-          or (
-            nginx_legacy_migration_target_remove_result is defined
-            and nginx_legacy_migration_target_remove_result.changed | default(false)
-          )
-      changed_when: true
-
-  rescue:
-    - name: Restore previous live nginx source config
-      ansible.builtin.copy:
-        src: "{{ nginx_conf_source_path }}.bak"
-        dest: "{{ nginx_conf_source_path }}"
-        remote_src: true
-        mode: "0644"
-      when: app_stopstart_nginx_source_stat.stat.exists
-
-    - name: Restore previous admin upstream source fragment
-      ansible.builtin.copy:
-        src: "{{ app_stopstart_admin_upstream_source_path }}.bak"
-        dest: "{{ app_stopstart_admin_upstream_source_path }}"
-        remote_src: true
-        mode: "0644"
-      when: app_stopstart_upstream_source_stat.stat.exists
-
-    - name: Restore previous admin route source fragment
-      ansible.builtin.copy:
-        src: "{{ app_stopstart_admin_route_source_path }}.bak"
-        dest: "{{ app_stopstart_admin_route_source_path }}"
-        remote_src: true
-        mode: "0644"
-      when: app_stopstart_route_source_stat.stat.exists
-
-    - name: Remove admin upstream source fragment if no backup existed
-      ansible.builtin.file:
-        path: "{{ app_stopstart_admin_upstream_source_path }}"
-        state: absent
-      when: not app_stopstart_upstream_source_stat.stat.exists
-
-    - name: Remove admin route source fragment if no backup existed
-      ansible.builtin.file:
-        path: "{{ app_stopstart_admin_route_source_path }}"
-        state: absent
-      when: not app_stopstart_route_source_stat.stat.exists
-
-    - name: Restore previous admin upstream target fragment
-      ansible.builtin.copy:
-        src: "{{ app_stopstart_admin_upstream_target_path }}.bak"
-        dest: "{{ app_stopstart_admin_upstream_target_path }}"
-        remote_src: true
-        mode: "0644"
-      when: app_stopstart_upstream_target_stat.stat.exists
-
-    - name: Restore previous admin route target fragment
-      ansible.builtin.copy:
-        src: "{{ app_stopstart_admin_route_target_path }}.bak"
-        dest: "{{ app_stopstart_admin_route_target_path }}"
-        remote_src: true
-        mode: "0644"
-      when: app_stopstart_route_target_stat.stat.exists
-
-    - name: Restore previous live nginx target config
-      ansible.builtin.copy:
-        src: "{{ nginx_conf_target_path }}.bak"
-        dest: "{{ nginx_conf_target_path }}"
-        remote_src: true
-        mode: "0644"
-      when: app_stopstart_nginx_target_stat.stat.exists
-
-    - name: Remove admin upstream target fragment if no backup existed
-      ansible.builtin.file:
-        path: "{{ app_stopstart_admin_upstream_target_path }}"
-        state: absent
-      when: not app_stopstart_upstream_target_stat.stat.exists
-
-    - name: Remove admin route target fragment if no backup existed
-      ansible.builtin.file:
-        path: "{{ app_stopstart_admin_route_target_path }}"
-        state: absent
-      when: not app_stopstart_route_target_stat.stat.exists
-
-    - name: Remove live nginx target config if no backup existed
-      ansible.builtin.file:
+- name: Build admin nginx route transaction plan
+  ansible.builtin.set_fact:
+    app_stopstart_admin_nginx_transaction_files:
+      - id: live-config-source
+        path: "{{ nginx_conf_source_path }}"
+        role: source-config
+        backup: true
+        required: false
+      - id: live-config-target
         path: "{{ nginx_conf_target_path }}"
-        state: absent
-      when: not app_stopstart_nginx_target_stat.stat.exists
+        role: live-config
+        backup: true
+        required: false
+      - id: backend-upstream-source
+        path: "{{ app_stopstart_backend_upstream_source_path }}"
+        role: source
+        backup: true
+        required: false
+      - id: backend-upstream-target
+        path: "{{ app_stopstart_backend_upstream_target_path }}"
+        role: target
+        backup: true
+        required: false
+      - id: admin-upstream-source
+        path: "{{ app_stopstart_admin_upstream_source_path }}"
+        role: source
+        backup: true
+        required: false
+      - id: admin-upstream-target
+        path: "{{ app_stopstart_admin_upstream_target_path }}"
+        role: target
+        backup: true
+        required: false
+      - id: actuator-upstream-source
+        path: "{{ app_stopstart_actuator_upstream_source_path }}"
+        role: source
+        backup: true
+        required: false
+      - id: actuator-upstream-target
+        path: "{{ app_stopstart_actuator_upstream_target_path }}"
+        role: target
+        backup: true
+        required: false
+      - id: legacy-upstream-source
+        path: "{{ app_stopstart_legacy_upstream_source_path }}"
+        role: legacy
+        backup: true
+        required: false
+      - id: legacy-upstream-target
+        path: "{{ app_stopstart_legacy_upstream_target_path }}"
+        role: legacy
+        backup: true
+        required: false
+      - id: admin-route-source
+        path: "{{ app_stopstart_admin_route_source_path }}"
+        role: source
+        backup: true
+        required: false
+      - id: admin-route-target
+        path: "{{ app_stopstart_admin_route_target_path }}"
+        role: target
+        backup: true
+        required: false
+    app_stopstart_admin_nginx_transaction_operations:
+      - id: split-legacy-upstream-source
+        name: Split legacy upstream source into owned fragments
+        kind: command
+        when_file_exists: legacy-upstream-source
+        command:
+          argv:
+            - python3
+            - "{{ deployment_dir }}/update-nginx-config.py"
+            - split-upstreams
+            - --source
+            - "{{ app_stopstart_legacy_upstream_source_path }}"
+            - --output-dir
+            - "{{ nginx_generated_source_dir }}/upstreams"
+            - --mapping
+            - "{{ backend_upstream_name | default('backend') }}=backend.conf"
+            - --mapping
+            - "{{ admin_upstream_name | default('admin_backend') }}=admin_backend.conf"
+            - --mapping
+            - "{{ actuator_upstream_name | default('actuator') }}=actuator.conf"
+            - --require-all
+            - --skip-existing
+        changed_if:
+          stdout_contains: changed=true
+        affects_reload: false
+      - id: remove-legacy-upstream-source
+        name: Remove legacy upstream source after split migration
+        kind: file_absent
+        file: legacy-upstream-source
+        when_file_preexisted: legacy-upstream-source
+        affects_reload: false
+      - id: verify-legacy-target-fragments
+        name: Verify split upstream fragments before removing legacy target
+        kind: command
+        when_file_preexisted: legacy-upstream-target
+        command:
+          argv:
+            - python3
+            - -c
+            - |
+              import pathlib
+              import sys
 
-    - name: Restore legacy upstream target after failed admin route migration
-      ansible.builtin.copy:
-        src: "{{ nginx_legacy_migration_target_path }}.bak"
-        dest: "{{ nginx_legacy_migration_target_path }}"
-        remote_src: true
+              missing = [path for path in sys.argv[1:] if not pathlib.Path(path).exists()]
+              if missing:
+                  raise SystemExit(
+                      "Cannot remove legacy upstreams/00-managed.conf until "
+                      "backend/admin/actuator fragments exist: " + ", ".join(missing)
+                  )
+              print("changed=false")
+            - "{{ app_stopstart_backend_upstream_source_path }}"
+            - "{{ app_stopstart_admin_upstream_source_path }}"
+            - "{{ app_stopstart_actuator_upstream_source_path }}"
+        changed_if:
+          stdout_contains: changed=true
+        affects_reload: false
+      - id: sync-legacy-backend-upstream-target
+        name: Sync split backend upstream before removing legacy target
+        kind: copy
+        src_file: backend-upstream-source
+        dest_file: backend-upstream-target
         mode: "0644"
-      when:
-        - nginx_legacy_migration_target_stat is defined
-        - nginx_legacy_migration_target_stat.stat.exists
+        when_file_preexisted: legacy-upstream-target
+        affects_reload: true
+      - id: sync-legacy-admin-upstream-target
+        name: Sync split admin upstream before removing legacy target
+        kind: copy
+        src_file: admin-upstream-source
+        dest_file: admin-upstream-target
+        mode: "0644"
+        when_file_preexisted: legacy-upstream-target
+        affects_reload: true
+      - id: sync-legacy-actuator-upstream-target
+        name: Sync split actuator upstream before removing legacy target
+        kind: copy
+        src_file: actuator-upstream-source
+        dest_file: actuator-upstream-target
+        mode: "0644"
+        when_file_preexisted: legacy-upstream-target
+        affects_reload: true
+      - id: remove-legacy-upstream-target-before-validation
+        name: Remove legacy upstream target before nginx validation
+        kind: file_absent
+        file: legacy-upstream-target
+        when_file_preexisted: legacy-upstream-target
+        affects_reload: true
+      - id: bootstrap-nginx-include-markers
+        name: Ensure nginx generated include markers exist
+        kind: command
+        command:
+          argv:
+            - python3
+            - "{{ deployment_dir }}/update-nginx-config.py"
+            - bootstrap-includes
+            - --path
+            - "{{ nginx_conf_source_path }}"
+            - --upstream-include-glob
+            - "{{ nginx_generated_include_dir }}/upstreams/*.conf"
+            - --route-include-glob
+            - "{{ nginx_generated_include_dir }}/routes/*.conf"
+        changed_if:
+          stdout_contains: changed=true
+        affects_reload: false
+      - id: update-admin-upstream-source
+        name: Ensure admin upstream fragment exists
+        kind: command
+        command:
+          argv:
+            - python3
+            - "{{ deployment_dir }}/update-nginx-config.py"
+            - upsert-upstream
+            - --path
+            - "{{ app_stopstart_admin_upstream_source_path }}"
+            - --upstream-name
+            - "{{ module_cfg.nginx_route.upstream_name }}"
+            - --container-name
+            - "{{ module_cfg.container_name }}"
+            - --backend-port
+            - "{{ module_cfg.app_port | string }}"
+        changed_if:
+          stdout_contains: changed=true
+        affects_reload: false
+      - id: update-admin-route-source
+        name: Ensure admin route fragment exists
+        kind: command
+        command:
+          argv:
+            - python3
+            - "{{ deployment_dir }}/update-nginx-config.py"
+            - ensure-route
+            - --path
+            - "{{ app_stopstart_admin_route_source_path }}"
+            - --upstream-name
+            - "{{ module_cfg.nginx_route.upstream_name }}"
+            - --external-path
+            - "{{ module_cfg.nginx_route.external_path }}"
+            - --upstream-path
+            - "{{ module_cfg.nginx_route.upstream_path }}"
+        changed_if:
+          stdout_contains: changed=true
+        affects_reload: false
+      - id: sync-admin-upstream-target
+        name: Sync generated admin upstream fragment to target
+        kind: copy
+        src_file: admin-upstream-source
+        dest_file: admin-upstream-target
+        mode: "0644"
+        affects_reload: true
+      - id: sync-admin-route-target
+        name: Sync generated admin route fragment to target
+        kind: copy
+        src_file: admin-route-source
+        dest_file: admin-route-target
+        mode: "0644"
+        affects_reload: true
+      - id: sync-bootstrapped-live-config
+        name: Sync bootstrapped nginx source config to target
+        kind: copy
+        src_file: live-config-source
+        dest_file: live-config-target
+        mode: "0644"
+        affects_reload: true
 
-    - name: Validate restored nginx config after admin route rollback
-      ansible.builtin.command:
-        argv:
-          - docker
-          - exec
-          - "{{ nginx_container_name }}"
-          - nginx
-          - -t
-      register: app_stopstart_restore_nginx_test_result
-      failed_when: false
-      changed_when: false
-
-    - name: Reload nginx after restored admin route rollback validation
-      ansible.builtin.command:
-        argv:
-          - docker
-          - exec
-          - "{{ nginx_container_name }}"
-          - nginx
-          - -s
-          - reload
-      register: app_stopstart_restore_nginx_reload_result
-      failed_when: false
-      changed_when: app_stopstart_restore_nginx_reload_result.rc == 0
-      when: app_stopstart_restore_nginx_test_result.rc == 0
-
-    - name: Fail after restoring admin nginx source and target files
-      ansible.builtin.fail:
-        msg: |-
-          Admin nginx route update failed and nginx source and target files were restored.
-          Restored nginx validation rc={{ app_stopstart_restore_nginx_test_result.rc | default('unknown') }}
-          Restored nginx validation stdout={{ app_stopstart_restore_nginx_test_result.stdout | default('') }}
-          Restored nginx validation stderr={{ app_stopstart_restore_nginx_test_result.stderr | default('') }}
-          Restored nginx reload rc={{ app_stopstart_restore_nginx_reload_result.rc | default('skipped') }}
-          Restored nginx reload stdout={{ app_stopstart_restore_nginx_reload_result.stdout | default('') }}
-          Restored nginx reload stderr={{ app_stopstart_restore_nginx_reload_result.stderr | default('') }}
-
-- name: Remove legacy upstream source after successful admin route update
-  ansible.builtin.file:
-    path: "{{ nginx_legacy_migration_source_path }}"
-    state: absent
-  when:
-    - nginx_legacy_migration_source_stat is defined
-    - nginx_legacy_migration_source_stat.stat.exists
-
-- name: Remove legacy upstream target backup after successful admin route update
-  ansible.builtin.file:
-    path: "{{ nginx_legacy_migration_target_path }}.bak"
-    state: absent
-  when:
-    - nginx_legacy_migration_target_stat is defined
-    - nginx_legacy_migration_target_stat.stat.exists
-
-- name: Remove admin nginx backup files after successful validation
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - "{{ app_stopstart_admin_upstream_source_path }}.bak"
-    - "{{ app_stopstart_admin_route_source_path }}.bak"
-    - "{{ nginx_conf_source_path }}.bak"
-    - "{{ app_stopstart_admin_upstream_target_path }}.bak"
-    - "{{ app_stopstart_admin_route_target_path }}.bak"
-    - "{{ nginx_conf_target_path }}.bak"
+- name: Sync admin nginx source and target files transactionally
+  ansible.builtin.include_role:
+    name: nginx_fragment_transaction
+  vars:
+    nginx_fragment_transaction_id: app-stopstart-admin-route
+    nginx_fragment_transaction_files: "{{ app_stopstart_admin_nginx_transaction_files }}"
+    nginx_fragment_transaction_operations: "{{ app_stopstart_admin_nginx_transaction_operations }}"
+    nginx_fragment_transaction_validate_command:
+      - docker
+      - exec
+      - "{{ nginx_container_name }}"
+      - nginx
+      - -t
+    nginx_fragment_transaction_reload_command:
+      - docker
+      - exec
+      - "{{ nginx_container_name }}"
+      - nginx
+      - -s
+      - reload
+    nginx_fragment_transaction_failure_summary: >-
+      Admin nginx route update failed for {{ module }} and previous nginx
+      source/target state was restored

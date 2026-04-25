@@ -530,11 +530,36 @@ class RootRetirementContractTest {
 			appBluegreenRunSwitch,
 			"nginx_fragment_transaction_operations:",
 			"nginx_fragment_transaction_validate_command:");
-		assertBefore(adminNginxRoute, "tasks_from: migrate_legacy_upstreams.yml", "Validate nginx config after admin route update");
+		assertBefore(
+			adminNginxRoute,
+			"app_stopstart_admin_nginx_transaction_operations:",
+			"nginx_fragment_transaction_validate_command:");
+		assertBefore(adminNginxRoute, "split-legacy-upstream-source", "remove-legacy-upstream-source");
+		assertBefore(adminNginxRoute, "verify-legacy-target-fragments", "remove-legacy-upstream-target-before-validation");
+		assertTrue(adminNginxRoute.contains("app_stopstart_admin_nginx_transaction_files:"));
+		assertTrue(adminNginxRoute.contains("app_stopstart_admin_nginx_transaction_operations:"));
+		assertTrue(adminNginxRoute.contains("name: nginx_fragment_transaction"));
+		assertTrue(adminNginxRoute.contains("nginx_fragment_transaction_id: app-stopstart-admin-route"));
+		assertTrue(adminNginxRoute.contains(
+			"nginx_fragment_transaction_files: \"{{ app_stopstart_admin_nginx_transaction_files }}\""));
+		assertTrue(adminNginxRoute.contains(
+			"nginx_fragment_transaction_operations: \"{{ app_stopstart_admin_nginx_transaction_operations }}\""));
+		assertTrue(adminNginxRoute.contains("nginx_fragment_transaction_validate_command:"));
+		assertTrue(adminNginxRoute.contains("nginx_fragment_transaction_reload_command:"));
 		assertTrue(adminNginxRoute.contains("bootstrap-includes"));
-		assertTrue(adminNginxRoute.contains("tasks_from: migrate_legacy_upstreams.yml"));
+		assertTrue(adminNginxRoute.contains("split-upstreams"));
+		assertTrue(adminNginxRoute.contains("upsert-upstream"));
+		assertTrue(adminNginxRoute.contains("ensure-route"));
+		assertTrue(adminNginxRoute.contains("sync-admin-upstream-target"));
+		assertTrue(adminNginxRoute.contains("sync-admin-route-target"));
 		assertTrue(adminNginxRoute.contains("routes/10-managed.conf"));
 		assertTrue(adminNginxRoute.contains("upstreams/admin_backend.conf"));
+		assertFalse(adminNginxRoute.contains("tasks_from: migrate_legacy_upstreams.yml"));
+		assertFalse(adminNginxRoute.contains("Validate nginx config after admin route update"));
+		assertFalse(adminNginxRoute.contains("Reload nginx after admin route update"));
+		assertFalse(adminNginxRoute.contains("Backup current admin upstream source fragment"));
+		assertFalse(adminNginxRoute.contains("Restore previous live nginx source config"));
+		assertFalse(adminNginxRoute.contains("Remove admin nginx backup files after successful validation"));
 		assertFalse(adminNginxRoute.contains("/api/admin/"));
 	}
 
@@ -600,7 +625,19 @@ class RootRetirementContractTest {
 		assertTrue(appBluegreenRunSwitch.contains("Remove blue-green nginx transaction files absent before failed rollout"));
 		assertTrue(appBluegreenRunSwitch.contains("post_failure_restore_validate_rc="));
 		assertTrue(appBluegreenRunSwitch.contains("Remove blue-green nginx transaction backup files after successful rollout"));
-		assertFalse(adminNginxRoute.contains("name: nginx_fragment_transaction"));
+		assertTrue(adminNginxRoute.contains("name: nginx_fragment_transaction"));
+		assertTrue(adminNginxRoute.contains("app_stopstart_admin_nginx_transaction_files:"));
+		assertTrue(adminNginxRoute.contains(
+			"nginx_fragment_transaction_files: \"{{ app_stopstart_admin_nginx_transaction_files }}\""));
+		assertTrue(adminNginxRoute.contains("app_stopstart_admin_nginx_transaction_operations:"));
+		assertTrue(adminNginxRoute.contains(
+			"nginx_fragment_transaction_operations: \"{{ app_stopstart_admin_nginx_transaction_operations }}\""));
+		assertTrue(adminNginxRoute.contains("nginx_fragment_transaction_validate_command:"));
+		assertTrue(adminNginxRoute.contains("nginx_fragment_transaction_reload_command:"));
+		assertTrue(adminNginxRoute.contains("remove-legacy-upstream-target-before-validation"));
+		assertFalse(adminNginxRoute.contains("Validate nginx config after admin route update"));
+		assertFalse(adminNginxRoute.contains("Reload nginx after admin route update"));
+		assertFalse(adminNginxRoute.contains("Restore previous nginx source config from backup"));
 	}
 
 	@Test
@@ -640,9 +677,13 @@ class RootRetirementContractTest {
 		assertFalse(read("infra/ansible/inventories/dev/group_vars/all/main.yml").contains("actuator_upstream_port:"));
 		assertFalse(read("infra/ansible/inventories/dev/group_vars/all/main.yml").contains("actuator_public_path:"));
 		assertFalse(read("infra/ansible/inventories/dev/group_vars/all/main.yml").contains("nginx_server_name:"));
+		assertTrue(read("infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml").contains("nginx_server_name:"));
 		assertFalse(read("infra/ansible/inventories/dev/group_vars/all/main.yml").contains("letsencrypt_cert_name:"));
+		assertTrue(read("infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml").contains("letsencrypt_cert_name:"));
 		assertFalse(read("infra/ansible/inventories/dev/group_vars/all/main.yml").contains("actuator_allow_cidrs:"));
+		assertTrue(read("infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml").contains("actuator_allow_cidrs:"));
 		assertFalse(read("infra/ansible/inventories/dev/hosts.yml").contains("ansible_host:"));
+		assertTrue(read("infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml").contains("ansible_host:"));
 		assertTrue(localDevSecretScript.contains("sops -d --extract '[\"actuator_port\"]'"));
 		assertTrue(localProdSecretScript.contains("PROD_ACTUATOR_PORT"));
 		assertTrue(localProdSecretScript.contains("PROD_ACTUATOR_PATH"));
@@ -654,9 +695,13 @@ class RootRetirementContractTest {
 		assertFalse(read("infra/ansible/inventories/prod/group_vars/all/main.yml").contains("actuator_upstream_port:"));
 		assertFalse(read("infra/ansible/inventories/prod/group_vars/all/main.yml").contains("actuator_public_path:"));
 		assertFalse(read("infra/ansible/inventories/prod/group_vars/all/main.yml").contains("nginx_server_name:"));
+		assertTrue(read("infra/ansible/inventories/prod/group_vars/all/secrets.sops.yml").contains("nginx_server_name:"));
 		assertFalse(read("infra/ansible/inventories/prod/group_vars/all/main.yml").contains("letsencrypt_cert_name:"));
+		assertTrue(read("infra/ansible/inventories/prod/group_vars/all/secrets.sops.yml").contains("letsencrypt_cert_name:"));
 		assertFalse(read("infra/ansible/inventories/prod/group_vars/all/main.yml").contains("actuator_allow_cidrs:"));
+		assertTrue(read("infra/ansible/inventories/prod/group_vars/all/secrets.sops.yml").contains("actuator_allow_cidrs:"));
 		assertFalse(read("infra/ansible/inventories/prod/hosts.yml").contains("ansible_host:"));
+		assertTrue(read("infra/ansible/inventories/prod/group_vars/all/secrets.sops.yml").contains("ansible_host:"));
 		assertTrue(localProdSecretScript.contains("sops -d --extract '[\"actuator_port\"]'"));
 		assertTrue(localVarsHelper.contains("require_sops_identity"));
 		assertFalse(localVarsHelper.contains("read_yaml_value"));

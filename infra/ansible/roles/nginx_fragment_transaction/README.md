@@ -10,8 +10,9 @@ restore, and backup cleanup. Application lifecycle concerns stay in the caller.
 
 PR8-A wires this role into `nginx_base_config`. PR8-B wires blue-green upstream
 switching into the same transaction boundary while keeping container lifecycle,
-health checks, smoke checks, and slot persistence in `app_bluegreen`.
-`app_stopstart` admin routing remains a separate follow-up migration.
+health checks, smoke checks, and slot persistence in `app_bluegreen`. PR8-C
+wires `app_stopstart` admin routing into this role, completing the originally
+duplicated nginx transaction migration.
 
 ## Contract
 
@@ -124,5 +125,7 @@ Migrate callers one at a time and keep application lifecycle outside this role:
 2. `app_bluegreen/tasks/run_switch.yml` in PR8-B. Its nginx file changes now
    use this role, but the caller intentionally keeps transaction backups until
    post-switch health checks and public smoke checks pass.
-3. `app_stopstart/tasks/admin_nginx_route.yml` remains the PR8-C migration
-   candidate after base and blue-green transaction behavior is proven.
+3. `app_stopstart/tasks/admin_nginx_route.yml` in PR8-C. Its admin upstream and
+   route fragments now use this role for backup, sync, validation, reload,
+   restore, and cleanup while the stop-start container lifecycle stays in the
+   caller.
