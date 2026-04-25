@@ -8,10 +8,12 @@
     app_bluegreen_active_slot_file: "{{ release_dir }}/current-slot"
     app_bluegreen_backend_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/backend.conf"
     app_bluegreen_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/backend.conf"
+    app_bluegreen_admin_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/admin_backend.conf"
+    app_bluegreen_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/admin_backend.conf"
     app_bluegreen_actuator_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/actuator.conf"
     app_bluegreen_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/actuator.conf"
-    app_bluegreen_conf_backup_path: "{{ nginx_conf_source_path }}.bak"
-    app_bluegreen_conf_target_backup_path: "{{ nginx_conf_target_path }}.bak"
+    app_bluegreen_legacy_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/00-managed.conf"
+    app_bluegreen_legacy_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/00-managed.conf"
 
 - name: Ensure release directory exists for blue-green rollout
   ansible.builtin.file:
@@ -73,123 +75,8 @@
   ansible.builtin.set_fact:
     healthcheck_target_container: "{{ app_bluegreen_target_container }}"
 
-- name: Check existing nginx config backup source
-  ansible.builtin.stat:
-    path: "{{ nginx_conf_source_path }}"
-  register: app_bluegreen_conf_source_stat
-
-- name: Check existing nginx config backup target
-  ansible.builtin.stat:
-    path: "{{ nginx_conf_target_path }}"
-  register: app_bluegreen_conf_target_stat
-
-- name: Backup current nginx source config
-  ansible.builtin.copy:
-    src: "{{ nginx_conf_source_path }}"
-    dest: "{{ app_bluegreen_conf_backup_path }}"
-    remote_src: true
-    mode: "0644"
-  when: app_bluegreen_conf_source_stat.stat.exists
-
-- name: Clear stale nginx source config backup when source missing
-  ansible.builtin.file:
-    path: "{{ app_bluegreen_conf_backup_path }}"
-    state: absent
-  when: not app_bluegreen_conf_source_stat.stat.exists
-
-- name: Backup current nginx target config
-  ansible.builtin.copy:
-    src: "{{ nginx_conf_target_path }}"
-    dest: "{{ app_bluegreen_conf_target_backup_path }}"
-    remote_src: true
-    mode: "0644"
-  when: app_bluegreen_conf_target_stat.stat.exists
-
-- name: Clear stale nginx target config backup when target missing
-  ansible.builtin.file:
-    path: "{{ app_bluegreen_conf_target_backup_path }}"
-    state: absent
-  when: not app_bluegreen_conf_target_stat.stat.exists
-
-- name: Check existing managed upstream fragment
-  ansible.builtin.stat:
-    path: "{{ item.path }}"
-  loop:
-    - { name: "backend", path: "{{ app_bluegreen_backend_upstream_source_path }}" }
-    - { name: "actuator", path: "{{ app_bluegreen_actuator_upstream_source_path }}" }
-  loop_control:
-    label: "{{ item.path }}"
-  register: app_bluegreen_upstream_source_stats
-
-- name: Resolve existing managed upstream fragments by name
-  ansible.builtin.set_fact:
-    app_bluegreen_backend_upstream_source_existed: >-
-      {{
-        app_bluegreen_upstream_source_stats.results
-        | selectattr('item.name', 'equalto', 'backend')
-        | map(attribute='stat.exists')
-        | first
-        | default(false)
-      }}
-    app_bluegreen_actuator_upstream_source_existed: >-
-      {{
-        app_bluegreen_upstream_source_stats.results
-        | selectattr('item.name', 'equalto', 'actuator')
-        | map(attribute='stat.exists')
-        | first
-        | default(false)
-      }}
-
-- name: Backup current managed upstream fragment
-  ansible.builtin.copy:
-    src: "{{ item.item.path }}"
-    dest: "{{ item.item.path }}.bak"
-    remote_src: true
-    mode: "0644"
-  when: item.stat.exists
-  loop: "{{ app_bluegreen_upstream_source_stats.results }}"
-  loop_control:
-    label: "{{ item.item.path }}"
-
-- name: Clear stale managed upstream backup when source missing
-  ansible.builtin.file:
-    path: "{{ item.item.path }}.bak"
-    state: absent
-  when: not item.stat.exists
-  loop: "{{ app_bluegreen_upstream_source_stats.results }}"
-  loop_control:
-    label: "{{ item.item.path }}"
-
 - name: Run blue-green rollout
   block:
-    - name: Migrate legacy shared upstream fragment inside blue-green transaction
-      ansible.builtin.import_role:
-        name: nginx_config_helper
-        tasks_from: migrate_legacy_upstreams.yml
-
-    - name: Ensure nginx generated include markers exist
-      ansible.builtin.command:
-        argv:
-          - python3
-          - "{{ deployment_dir }}/update-nginx-config.py"
-          - bootstrap-includes
-          - --path
-          - "{{ nginx_conf_source_path }}"
-          - --upstream-include-glob
-          - "{{ nginx_generated_include_dir }}/upstreams/*.conf"
-          - --route-include-glob
-          - "{{ nginx_generated_include_dir }}/routes/*.conf"
-      register: app_bluegreen_bootstrap_includes_result
-      changed_when: "'changed=true' in app_bluegreen_bootstrap_includes_result.stdout"
-
-    - name: Sync bootstrapped nginx config to live target
-      ansible.builtin.copy:
-        src: "{{ nginx_conf_source_path }}"
-        dest: "{{ nginx_conf_target_path }}"
-        remote_src: true
-        mode: "0644"
-      register: app_bluegreen_nginx_target_sync_result
-
     - name: Remove target blue-green container before recreate
       community.docker.docker_container:
         name: "{{ app_bluegreen_target_container }}"
@@ -222,90 +109,212 @@
       vars:
         app_healthcheck_probe_target_container: "{{ app_bluegreen_target_container }}"
 
-    - name: Update managed backend upstream to target container
-      ansible.builtin.command:
-        argv:
-          - python3
-          - "{{ deployment_dir }}/update-nginx-config.py"
-          - upsert-upstream
-          - --path
-          - "{{ app_bluegreen_backend_upstream_source_path }}"
-          - --upstream-name
-          - "{{ module_cfg.backend_upstream_name }}"
-          - --container-name
-          - "{{ app_bluegreen_target_container }}"
-          - --backend-port
-          - "{{ module_cfg.app_port | string }}"
-      register: app_bluegreen_backend_upstream_result
-      changed_when: "'changed=true' in app_bluegreen_backend_upstream_result.stdout"
+    - name: Build blue-green nginx transaction plan
+      ansible.builtin.set_fact:
+        nginx_fragment_transaction_files:
+          - id: live-config-source
+            path: "{{ nginx_conf_source_path }}"
+            role: source-config
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: live-config-target
+            path: "{{ nginx_conf_target_path }}"
+            role: live-config
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: backend-upstream-source
+            path: "{{ app_bluegreen_backend_upstream_source_path }}"
+            role: source
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: backend-upstream-target
+            path: "{{ app_bluegreen_backend_upstream_target_path }}"
+            role: target
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: admin-upstream-source
+            path: "{{ app_bluegreen_admin_upstream_source_path }}"
+            role: source
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: admin-upstream-target
+            path: "{{ app_bluegreen_admin_upstream_target_path }}"
+            role: target
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: actuator-upstream-source
+            path: "{{ app_bluegreen_actuator_upstream_source_path }}"
+            role: source
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: actuator-upstream-target
+            path: "{{ app_bluegreen_actuator_upstream_target_path }}"
+            role: target
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: legacy-upstream-source
+            path: "{{ app_bluegreen_legacy_upstream_source_path }}"
+            role: legacy
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: legacy-upstream-target
+            path: "{{ app_bluegreen_legacy_upstream_target_path }}"
+            role: legacy
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+        nginx_fragment_transaction_operations:
+          - id: split-legacy-upstream-source
+            name: Split legacy upstream source into per-upstream fragments
+            kind: command
+            when_file_exists: legacy-upstream-source
+            command:
+              argv:
+                - python3
+                - "{{ deployment_dir }}/update-nginx-config.py"
+                - split-upstreams
+                - --source
+                - "{{ app_bluegreen_legacy_upstream_source_path }}"
+                - --output-dir
+                - "{{ nginx_generated_source_dir }}/upstreams"
+                - --mapping
+                - "{{ backend_upstream_name | default('backend') }}=backend.conf"
+                - --mapping
+                - "{{ admin_upstream_name | default('admin_backend') }}=admin_backend.conf"
+                - --mapping
+                - "{{ actuator_upstream_name | default('actuator') }}=actuator.conf"
+                - --require-all
+                - --skip-existing
+            changed_if:
+              stdout_contains: changed=true
+            affects_reload: false
+          - id: remove-legacy-upstream-source
+            name: Remove legacy upstream source after split migration
+            kind: file_absent
+            file: legacy-upstream-source
+            when_file_preexisted: legacy-upstream-source
+            affects_reload: false
+          - id: bootstrap-nginx-include-markers
+            name: Ensure nginx generated include markers exist
+            kind: command
+            command:
+              argv:
+                - python3
+                - "{{ deployment_dir }}/update-nginx-config.py"
+                - bootstrap-includes
+                - --path
+                - "{{ nginx_conf_source_path }}"
+                - --upstream-include-glob
+                - "{{ nginx_generated_include_dir }}/upstreams/*.conf"
+                - --route-include-glob
+                - "{{ nginx_generated_include_dir }}/routes/*.conf"
+            changed_if:
+              stdout_contains: changed=true
+            affects_reload: false
+          - id: sync-bootstrapped-live-config
+            name: Sync bootstrapped nginx config to live target
+            kind: copy
+            src_file: live-config-source
+            dest_file: live-config-target
+            mode: "0644"
+            affects_reload: true
+          - id: update-backend-upstream-source
+            name: Update managed backend upstream to target container
+            kind: command
+            command:
+              argv:
+                - python3
+                - "{{ deployment_dir }}/update-nginx-config.py"
+                - upsert-upstream
+                - --path
+                - "{{ app_bluegreen_backend_upstream_source_path }}"
+                - --upstream-name
+                - "{{ module_cfg.backend_upstream_name }}"
+                - --container-name
+                - "{{ app_bluegreen_target_container }}"
+                - --backend-port
+                - "{{ module_cfg.app_port | string }}"
+            changed_if:
+              stdout_contains: changed=true
+            affects_reload: false
+          - id: update-actuator-upstream-source
+            name: Update managed actuator upstream to target container
+            kind: command
+            command:
+              argv:
+                - python3
+                - "{{ deployment_dir }}/update-nginx-config.py"
+                - upsert-upstream
+                - --path
+                - "{{ app_bluegreen_actuator_upstream_source_path }}"
+                - --upstream-name
+                - "{{ actuator_upstream_name }}"
+                - --container-name
+                - "{{ app_bluegreen_target_container }}"
+                - --backend-port
+                - "{{ actuator_port }}"
+            changed_if:
+              stdout_contains: changed=true
+            affects_reload: false
+          - id: sync-backend-upstream-target
+            name: Sync backend upstream fragment to target
+            kind: copy
+            src_file: backend-upstream-source
+            dest_file: backend-upstream-target
+            mode: "0644"
+            affects_reload: true
+          - id: sync-actuator-upstream-target
+            name: Sync actuator upstream fragment to target
+            kind: copy
+            src_file: actuator-upstream-source
+            dest_file: actuator-upstream-target
+            mode: "0644"
+            affects_reload: true
+          - id: sync-admin-upstream-target-for-legacy-migration
+            name: Sync admin upstream fragment before removing legacy target
+            kind: copy
+            src_file: admin-upstream-source
+            dest_file: admin-upstream-target
+            mode: "0644"
+            when_file_preexisted: legacy-upstream-target
+            affects_reload: true
+          - id: remove-legacy-upstream-target-before-validation
+            name: Remove legacy upstream target before nginx validation
+            kind: file_absent
+            file: legacy-upstream-target
+            when_file_preexisted: legacy-upstream-target
+            affects_reload: true
 
-    - name: Update managed actuator upstream to target container
-      ansible.builtin.command:
-        argv:
-          - python3
-          - "{{ deployment_dir }}/update-nginx-config.py"
-          - upsert-upstream
-          - --path
-          - "{{ app_bluegreen_actuator_upstream_source_path }}"
-          - --upstream-name
-          - "{{ actuator_upstream_name }}"
-          - --container-name
-          - "{{ app_bluegreen_target_container }}"
-          - --backend-port
-          - "{{ actuator_port }}"
-      register: app_bluegreen_actuator_upstream_result
-      changed_when: "'changed=true' in app_bluegreen_actuator_upstream_result.stdout"
-
-    - name: Sync managed upstream fragments to target
-      ansible.builtin.copy:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
-        remote_src: true
-        mode: "0644"
-      loop:
-        - { src: "{{ app_bluegreen_backend_upstream_source_path }}", dest: "{{ app_bluegreen_backend_upstream_target_path }}" }
-        - { src: "{{ app_bluegreen_actuator_upstream_source_path }}", dest: "{{ app_bluegreen_actuator_upstream_target_path }}" }
-      register: app_bluegreen_upstream_target_sync_results
-
-    - name: Validate nginx config after upstream switch
-      ansible.builtin.command:
-        argv:
+    - name: Switch blue-green nginx upstreams transactionally
+      ansible.builtin.include_role:
+        name: nginx_fragment_transaction
+      vars:
+        nginx_fragment_transaction_id: app-bluegreen-switch
+        nginx_fragment_transaction_validate_command:
           - docker
           - exec
           - "{{ nginx_container_name }}"
           - nginx
           - -t
-      register: app_bluegreen_nginx_test_result
-      changed_when: false
-
-    - name: Determine whether nginx reload is required
-      ansible.builtin.set_fact:
-        app_bluegreen_requires_reload: >-
-          {{
-            app_bluegreen_bootstrap_includes_result.changed
-            or app_bluegreen_nginx_target_sync_result.changed
-            or app_bluegreen_backend_upstream_result.changed
-            or app_bluegreen_actuator_upstream_result.changed
-            or (app_bluegreen_upstream_target_sync_results.results | selectattr('changed') | list | length > 0)
-            or (
-              nginx_legacy_migration_target_remove_result is defined
-              and nginx_legacy_migration_target_remove_result.changed | default(false)
-            )
-          }}
-
-    - name: Reload nginx after upstream switch
-      ansible.builtin.command:
-        argv:
+        nginx_fragment_transaction_reload_command:
           - docker
           - exec
           - "{{ nginx_container_name }}"
           - nginx
           - -s
           - reload
-      when:
-        - app_bluegreen_nginx_test_result.rc == 0
-        - app_bluegreen_requires_reload
-      changed_when: true
+        nginx_fragment_transaction_failure_summary: >-
+          Blue-green nginx upstream switch failed for {{ module }} and previous
+          nginx source/target state was restored
 
     - name: Recheck target blue-green container internal health after switch
       ansible.builtin.include_role:
@@ -344,76 +353,34 @@
         mode: "0644"
 
   rescue:
-    - name: Restore previous nginx source config from backup
+    - name: Restore blue-green nginx transaction files after failed rollout
       ansible.builtin.copy:
-        src: "{{ app_bluegreen_conf_backup_path }}"
-        dest: "{{ nginx_conf_source_path }}"
+        src: "{{ item.path }}.bak"
+        dest: "{{ item.path }}"
         remote_src: true
-        mode: "0644"
-      when: app_bluegreen_conf_source_stat.stat.exists
-
-    - name: Restore previous nginx target config from backup
-      ansible.builtin.copy:
-        src: "{{ app_bluegreen_conf_target_backup_path }}"
-        dest: "{{ nginx_conf_target_path }}"
-        remote_src: true
-        mode: "0644"
-      when: app_bluegreen_conf_target_stat.stat.exists
-
-    - name: Remove nginx target config if no backup existed
-      ansible.builtin.file:
-        path: "{{ nginx_conf_target_path }}"
-        state: absent
-      when: not app_bluegreen_conf_target_stat.stat.exists
-
-    - name: Restore previous managed upstream fragment from backup
-      ansible.builtin.copy:
-        src: "{{ item.item.path }}.bak"
-        dest: "{{ item.item.path }}"
-        remote_src: true
-        mode: "0644"
-      when: item.stat.exists
-      loop: "{{ app_bluegreen_upstream_source_stats.results }}"
+        mode: "{{ item.mode | default('0644') }}"
+      when:
+        - app_bluegreen_nginx_transaction_files is defined
+        - nginx_fragment_transaction_file_pre_state is defined
+        - item.backup | default(true)
+        - nginx_fragment_transaction_file_pre_state[item.id].exists | default(false)
+      loop: "{{ app_bluegreen_nginx_transaction_files | default([]) }}"
       loop_control:
-        label: "{{ item.item.path }}"
+        label: "{{ item.id }} -> {{ item.path }}"
 
-    - name: Restore previous managed upstream target from backup
-      ansible.builtin.copy:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
-        remote_src: true
-        mode: "0644"
-      loop:
-        - src: "{{ app_bluegreen_backend_upstream_source_path }}.bak"
-          dest: "{{ app_bluegreen_backend_upstream_target_path }}"
-          stat_exists: "{{ app_bluegreen_backend_upstream_source_existed }}"
-        - src: "{{ app_bluegreen_actuator_upstream_source_path }}.bak"
-          dest: "{{ app_bluegreen_actuator_upstream_target_path }}"
-          stat_exists: "{{ app_bluegreen_actuator_upstream_source_existed }}"
-      when: item.stat_exists | bool
-
-    - name: Remove managed upstream fragment if no backup existed
+    - name: Remove blue-green nginx transaction files absent before failed rollout
       ansible.builtin.file:
         path: "{{ item.path }}"
         state: absent
-      loop:
-        - { path: "{{ app_bluegreen_backend_upstream_source_path }}", exists: "{{ app_bluegreen_backend_upstream_source_existed }}" }
-        - { path: "{{ app_bluegreen_backend_upstream_target_path }}", exists: "{{ app_bluegreen_backend_upstream_source_existed }}" }
-        - { path: "{{ app_bluegreen_actuator_upstream_source_path }}", exists: "{{ app_bluegreen_actuator_upstream_source_existed }}" }
-        - { path: "{{ app_bluegreen_actuator_upstream_target_path }}", exists: "{{ app_bluegreen_actuator_upstream_source_existed }}" }
-      when: not (item.exists | bool)
-
-    - name: Restore legacy upstream target after failed blue-green migration
-      ansible.builtin.copy:
-        src: "{{ nginx_legacy_migration_target_path }}.bak"
-        dest: "{{ nginx_legacy_migration_target_path }}"
-        remote_src: true
-        mode: "0644"
       when:
-        - nginx_legacy_migration_target_stat is defined
-        - nginx_legacy_migration_target_stat.stat.exists
+        - app_bluegreen_nginx_transaction_files is defined
+        - nginx_fragment_transaction_file_pre_state is defined
+        - not (nginx_fragment_transaction_file_pre_state[item.id].exists | default(false))
+      loop: "{{ app_bluegreen_nginx_transaction_files | default([]) }}"
+      loop_control:
+        label: "{{ item.id }} -> {{ item.path }}"
 
-    - name: Validate restored nginx config
+    - name: Validate restored nginx config after failed blue-green rollout
       ansible.builtin.command:
         argv:
           - docker
@@ -421,11 +388,14 @@
           - "{{ nginx_container_name }}"
           - nginx
           - -t
-      register: app_bluegreen_restore_nginx_test_result
+      register: app_bluegreen_post_failure_restore_validate_result
       failed_when: false
       changed_when: false
+      when:
+        - app_bluegreen_nginx_transaction_files is defined
+        - nginx_fragment_transaction_file_pre_state is defined
 
-    - name: Reload restored nginx config
+    - name: Reload restored nginx config after failed blue-green rollout
       ansible.builtin.command:
         argv:
           - docker
@@ -434,10 +404,12 @@
           - nginx
           - -s
           - reload
-      register: app_bluegreen_restore_nginx_reload_result
-      when: app_bluegreen_restore_nginx_test_result.rc == 0
+      register: app_bluegreen_post_failure_restore_reload_result
       failed_when: false
       changed_when: false
+      when:
+        - app_bluegreen_post_failure_restore_validate_result is defined
+        - app_bluegreen_post_failure_restore_validate_result.rc == 0
 
     - name: Remove failed blue-green target container
       community.docker.docker_container:
@@ -445,41 +417,28 @@
         state: absent
       failed_when: false
 
-    - name: Abort blue-green rollout after rollback
+    - name: Abort blue-green rollout after failure
       ansible.builtin.fail:
         msg: |-
-          Blue-green rollout failed for {{ module }} and nginx state restore was attempted.
-          restore_validate_rc={{ app_bluegreen_restore_nginx_test_result.rc | default('unavailable') }}
-          restore_validate_stdout={{ app_bluegreen_restore_nginx_test_result.stdout | default('') }}
-          restore_validate_stderr={{ app_bluegreen_restore_nginx_test_result.stderr | default('') }}
-          restore_reload_rc={{ app_bluegreen_restore_nginx_reload_result.rc | default('skipped') }}
-          restore_reload_stdout={{ app_bluegreen_restore_nginx_reload_result.stdout | default('') }}
-          restore_reload_stderr={{ app_bluegreen_restore_nginx_reload_result.stderr | default('') }}
+          Blue-green rollout failed for {{ module }}.
+          nginx_transaction_failed_operation={{ nginx_fragment_transaction_failed_operation | default('not-run') }}
+          nginx_transaction_restore_validate_rc={{ nginx_fragment_transaction_restore_validate_result.rc | default('not-run') }}
+          nginx_transaction_restore_validate_stdout={{ nginx_fragment_transaction_restore_validate_result.stdout | default('') }}
+          nginx_transaction_restore_validate_stderr={{ nginx_fragment_transaction_restore_validate_result.stderr | default('') }}
+          nginx_transaction_restore_reload_rc={{ nginx_fragment_transaction_restore_reload_result.rc | default('skipped') }}
+          nginx_transaction_restore_reload_stdout={{ nginx_fragment_transaction_restore_reload_result.stdout | default('') }}
+          nginx_transaction_restore_reload_stderr={{ nginx_fragment_transaction_restore_reload_result.stderr | default('') }}
+          post_failure_restore_validate_rc={{ app_bluegreen_post_failure_restore_validate_result.rc | default('not-run') }}
+          post_failure_restore_validate_stdout={{ app_bluegreen_post_failure_restore_validate_result.stdout | default('') }}
+          post_failure_restore_validate_stderr={{ app_bluegreen_post_failure_restore_validate_result.stderr | default('') }}
+          post_failure_restore_reload_rc={{ app_bluegreen_post_failure_restore_reload_result.rc | default('skipped') }}
+          post_failure_restore_reload_stdout={{ app_bluegreen_post_failure_restore_reload_result.stdout | default('') }}
+          post_failure_restore_reload_stderr={{ app_bluegreen_post_failure_restore_reload_result.stderr | default('') }}
 
-- name: Remove legacy upstream source after successful blue-green rollout
+- name: Remove blue-green nginx transaction backup files after successful rollout
   ansible.builtin.file:
-    path: "{{ nginx_legacy_migration_source_path }}"
+    path: "{{ item.path }}{{ nginx_fragment_transaction_backup_suffix | default('.bak') }}"
     state: absent
-  when:
-    - nginx_legacy_migration_source_stat is defined
-    - nginx_legacy_migration_source_stat.stat.exists
-
-- name: Remove legacy upstream target backup after successful blue-green rollout
-  ansible.builtin.file:
-    path: "{{ nginx_legacy_migration_target_path }}.bak"
-    state: absent
-  when:
-    - nginx_legacy_migration_target_stat is defined
-    - nginx_legacy_migration_target_stat.stat.exists
-
-- name: Remove blue-green nginx backup files after successful rollout
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: absent
-  loop:
-    - { name: "source config", path: "{{ app_bluegreen_conf_backup_path }}" }
-    - { name: "target config", path: "{{ app_bluegreen_conf_target_backup_path }}" }
-    - { name: "backend upstream source", path: "{{ app_bluegreen_backend_upstream_source_path }}.bak" }
-    - { name: "actuator upstream source", path: "{{ app_bluegreen_actuator_upstream_source_path }}.bak" }
+  loop: "{{ app_bluegreen_nginx_transaction_files }}"
   loop_control:
-    label: "{{ item.name }} -> {{ item.path }}"
+    label: "{{ item.id }} -> {{ item.path }}"

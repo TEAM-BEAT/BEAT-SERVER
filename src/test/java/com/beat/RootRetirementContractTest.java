@@ -427,19 +427,16 @@ class RootRetirementContractTest {
 		assertTrue(dockerignore.contains(".omx"));
 		assertTrue(dockerignore.contains("src/"));
 		assertTrue(appBluegreenRunSwitch.contains("community.docker.docker_container"));
-		assertTrue(appBluegreenRunSwitch.contains("tasks_from: migrate_legacy_upstreams.yml"));
-		assertTrue(appBluegreenRunSwitch.contains("path: \"{{ item.path }}\""));
-		assertTrue(appBluegreenRunSwitch.contains(
-			"- { name: \"backend\", path: \"{{ app_bluegreen_backend_upstream_source_path }}\" }"));
-		assertTrue(appBluegreenRunSwitch.contains(
-			"- { name: \"actuator\", path: \"{{ app_bluegreen_actuator_upstream_source_path }}\" }"));
-		assertTrue(appBluegreenRunSwitch.contains("src: \"{{ item.item.path }}\""));
-		assertTrue(appBluegreenRunSwitch.contains("dest: \"{{ item.item.path }}.bak\""));
-		assertTrue(appBluegreenRunSwitch.contains("src: \"{{ item.item.path }}.bak\""));
-		assertFalse(appBluegreenRunSwitch.contains("path: \"{{ item }}\""));
-		assertFalse(appBluegreenRunSwitch.contains("src: \"{{ item.path }}\""));
-		assertFalse(appBluegreenRunSwitch.contains("dest: \"{{ item.path }}.bak\""));
-		assertFalse(appBluegreenRunSwitch.contains("src: \"{{ item.path }}.bak\""));
+		assertTrue(appBluegreenRunSwitch.contains("name: nginx_fragment_transaction"));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_files:"));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_operations:"));
+		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_backend_upstream_source_path"));
+		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_backend_upstream_target_path"));
+		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_actuator_upstream_source_path"));
+		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_actuator_upstream_target_path"));
+		assertFalse(appBluegreenRunSwitch.contains("Backup current nginx source config"));
+		assertFalse(appBluegreenRunSwitch.contains("Backup current nginx target config"));
+		assertFalse(appBluegreenRunSwitch.contains("Backup current managed upstream fragment"));
 		assertTrue(appBluegreenRunSwitch.contains("current-slot"));
 		assertTrue(appBluegreenRunSwitch.contains("upsert-upstream"));
 		assertTrue(appBluegreenRunSwitch.contains("public_smoke_url"));
@@ -529,7 +526,10 @@ class RootRetirementContractTest {
 		assertBefore(nginxLegacyMigration, "Abort legacy upstream migration", "Sync split upstream fragments");
 		assertBefore(nginxLegacyMigration, "Sync split upstream fragments", "Remove legacy upstream target");
 		assertFalse(nginxLegacyMigration.contains("Remove legacy upstream source"));
-		assertBefore(appBluegreenRunSwitch, "tasks_from: migrate_legacy_upstreams.yml", "Validate nginx config after upstream switch");
+		assertBefore(
+			appBluegreenRunSwitch,
+			"nginx_fragment_transaction_operations:",
+			"nginx_fragment_transaction_validate_command:");
 		assertBefore(adminNginxRoute, "tasks_from: migrate_legacy_upstreams.yml", "Validate nginx config after admin route update");
 		assertTrue(adminNginxRoute.contains("bootstrap-includes"));
 		assertTrue(adminNginxRoute.contains("tasks_from: migrate_legacy_upstreams.yml"));
@@ -582,7 +582,20 @@ class RootRetirementContractTest {
 		assertTrue(nginxBaseConfig.contains("Remove legacy upstream target before nginx validation"));
 		assertTrue(nginxBaseConfig.contains("when_file_missing: backend-upstream-source"));
 		assertTrue(readme.contains("nginx_base_config"));
-		assertFalse(appBluegreenRunSwitch.contains("name: nginx_fragment_transaction"));
+		assertTrue(appBluegreenRunSwitch.contains("name: nginx_fragment_transaction"));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_files:"));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_operations:"));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_validate_command:"));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_reload_command:"));
+		assertTrue(appBluegreenRunSwitch.contains("upsert-upstream"));
+		assertFalse(appBluegreenRunSwitch.contains("Validate nginx config after upstream switch"));
+		assertFalse(appBluegreenRunSwitch.contains("Reload nginx after upstream switch"));
+		assertFalse(appBluegreenRunSwitch.contains("Restore previous nginx source config from backup"));
+		assertTrue(appBluegreenRunSwitch.contains("cleanup_backup_on_success: false"));
+		assertTrue(appBluegreenRunSwitch.contains("Restore blue-green nginx transaction files after failed rollout"));
+		assertTrue(appBluegreenRunSwitch.contains("Remove blue-green nginx transaction files absent before failed rollout"));
+		assertTrue(appBluegreenRunSwitch.contains("post_failure_restore_validate_rc="));
+		assertTrue(appBluegreenRunSwitch.contains("Remove blue-green nginx transaction backup files after successful rollout"));
 		assertFalse(adminNginxRoute.contains("name: nginx_fragment_transaction"));
 	}
 
