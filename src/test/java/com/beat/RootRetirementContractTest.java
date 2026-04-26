@@ -458,6 +458,10 @@ class RootRetirementContractTest {
 		assertTrue(adminNginxRoute.contains("sync-admin-route-target"));
 		assertTrue(adminNginxRoute.contains("routes/10-managed.conf"));
 		assertTrue(adminNginxRoute.contains("upstreams/admin_backend.conf"));
+		assertFalse(adminNginxRoute.contains("backend-upstream-source"));
+		assertFalse(adminNginxRoute.contains("backend-upstream-target"));
+		assertFalse(adminNginxRoute.contains("actuator-upstream-source"));
+		assertFalse(adminNginxRoute.contains("actuator-upstream-target"));
 		assertFalse(adminNginxRoute.contains("tasks_from: migrate_legacy_upstreams.yml"));
 		assertFalse(adminNginxRoute.contains("legacy-upstream-source"));
 		assertFalse(adminNginxRoute.contains("legacy-upstream-target"));
@@ -561,6 +565,8 @@ class RootRetirementContractTest {
 		assertFalse(appBluegreenRunSwitch.contains("legacy-upstream-source"));
 		assertFalse(appBluegreenRunSwitch.contains("legacy-upstream-target"));
 		assertFalse(appBluegreenRunSwitch.contains("split-legacy-upstream-source"));
+		assertFalse(appBluegreenRunSwitch.contains("admin-upstream-source"));
+		assertFalse(appBluegreenRunSwitch.contains("admin-upstream-target"));
 		assertFalse(appBluegreenRunSwitch.contains("sync-admin-upstream-target-for-legacy-migration"));
 		assertFalse(appBluegreenRunSwitch.contains("remove-legacy-upstream-target-before-validation"));
 		assertTrue(appBluegreenRunSwitch.contains("upsert-upstream"));

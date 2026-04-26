@@ -8,8 +8,6 @@
     app_bluegreen_active_slot_file: "{{ release_dir }}/current-slot"
     app_bluegreen_backend_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/backend.conf"
     app_bluegreen_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/backend.conf"
-    app_bluegreen_admin_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/admin_backend.conf"
-    app_bluegreen_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/admin_backend.conf"
     app_bluegreen_actuator_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/actuator.conf"
     app_bluegreen_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/actuator.conf"
 
@@ -133,18 +131,6 @@
             required: false
           - id: backend-upstream-target
             path: "{{ app_bluegreen_backend_upstream_target_path }}"
-            role: target
-            backup: true
-            cleanup_backup_on_success: false
-            required: false
-          - id: admin-upstream-source
-            path: "{{ app_bluegreen_admin_upstream_source_path }}"
-            role: source
-            backup: true
-            cleanup_backup_on_success: false
-            required: false
-          - id: admin-upstream-target
-            path: "{{ app_bluegreen_admin_upstream_target_path }}"
             role: target
             backup: true
             cleanup_backup_on_success: false

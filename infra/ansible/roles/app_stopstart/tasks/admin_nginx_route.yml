@@ -9,10 +9,6 @@
     app_stopstart_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/admin_backend.conf"
     app_stopstart_admin_route_source_path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
     app_stopstart_admin_route_target_path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
-    app_stopstart_backend_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/backend.conf"
-    app_stopstart_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/backend.conf"
-    app_stopstart_actuator_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/actuator.conf"
-    app_stopstart_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/actuator.conf"
 
 - name: Build admin nginx route transaction plan
   ansible.builtin.set_fact:
@@ -27,16 +23,6 @@
         role: live-config
         backup: true
         required: false
-      - id: backend-upstream-source
-        path: "{{ app_stopstart_backend_upstream_source_path }}"
-        role: source
-        backup: true
-        required: false
-      - id: backend-upstream-target
-        path: "{{ app_stopstart_backend_upstream_target_path }}"
-        role: target
-        backup: true
-        required: false
       - id: admin-upstream-source
         path: "{{ app_stopstart_admin_upstream_source_path }}"
         role: source
@@ -44,16 +30,6 @@
         required: false
       - id: admin-upstream-target
         path: "{{ app_stopstart_admin_upstream_target_path }}"
-        role: target
-        backup: true
-        required: false
-      - id: actuator-upstream-source
-        path: "{{ app_stopstart_actuator_upstream_source_path }}"
-        role: source
-        backup: true
-        required: false
-      - id: actuator-upstream-target
-        path: "{{ app_stopstart_actuator_upstream_target_path }}"
         role: target
         backup: true
         required: false

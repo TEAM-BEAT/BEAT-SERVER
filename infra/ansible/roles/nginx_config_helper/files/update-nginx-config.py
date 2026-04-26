@@ -150,7 +150,6 @@ def ensure_route(path: Path, upstream_name: str, external_path: str, upstream_pa
     return write_normalized(path, text)
 
 
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     subcommands = parser.add_subparsers(dest="command", required=True)
