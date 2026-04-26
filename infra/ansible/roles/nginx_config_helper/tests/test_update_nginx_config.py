@@ -78,5 +78,125 @@ class ManagedBlockMarkerCollisionTest(unittest.TestCase):
             update_nginx_config.upsert_managed_block("", marker, block_body)
 
 
+class BootstrapIncludesTest(unittest.TestCase):
+    def test_missing_config_path_fails_with_explicit_bootstrap_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            missing_path = Path(tmp) / "default.conf"
+
+            with self.assertRaises(SystemExit) as raised:
+                update_nginx_config.bootstrap_includes(
+                    missing_path,
+                    "/etc/nginx/generated/upstreams/*.conf",
+                    "/etc/nginx/generated/routes/*.conf",
+                )
+
+            self.assertEqual(
+                f"nginx config does not exist at {missing_path}; run nginx_base_config first",
+                str(raised.exception),
+            )
+
+    def test_route_include_is_inserted_only_into_443_server_block(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "default.conf"
+            config_path.write_text(
+                """\
+log_format main '$request';
+
+server {
+    listen 80;
+    server_name example.com;
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name example.com;
+
+    location / {
+        proxy_pass http://backend;
+    }
+}
+"""
+            )
+
+            changed = update_nginx_config.bootstrap_includes(
+                config_path,
+                "/etc/nginx/generated/upstreams/*.conf",
+                "/etc/nginx/generated/routes/*.conf",
+            )
+            second_run_changed = update_nginx_config.bootstrap_includes(
+                config_path,
+                "/etc/nginx/generated/upstreams/*.conf",
+                "/etc/nginx/generated/routes/*.conf",
+            )
+            text = config_path.read_text()
+            server_blocks = text.split("server {")
+            route_marker = update_nginx_config.ROUTE_INCLUDE_MARKER
+
+            self.assertTrue(changed)
+            self.assertFalse(second_run_changed)
+            self.assertEqual(1, text.count(f"# BEGIN {route_marker}"))
+            self.assertNotIn(route_marker, server_blocks[1])
+            self.assertIn("listen 80;", server_blocks[1])
+            self.assertIn(route_marker, server_blocks[2])
+            self.assertIn("listen 443 ssl;", server_blocks[2])
+
+    def test_existing_route_include_is_moved_from_80_to_443_server_block(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "default.conf"
+            route_marker = update_nginx_config.ROUTE_INCLUDE_MARKER
+            config_path.write_text(
+                f"""\
+server {{
+    listen 80;
+    # BEGIN {route_marker}
+    include /old/routes/*.conf;
+    # END {route_marker}
+}}
+
+server {{
+    listen 443 ssl;
+    server_name example.com;
+}}
+"""
+            )
+
+            changed = update_nginx_config.bootstrap_includes(
+                config_path,
+                "/etc/nginx/generated/upstreams/*.conf",
+                "/etc/nginx/generated/routes/*.conf",
+            )
+
+            text = config_path.read_text()
+            server_blocks = text.split("server {")
+            self.assertTrue(changed)
+            self.assertEqual(1, text.count(f"# BEGIN {route_marker}"))
+            self.assertNotIn(route_marker, server_blocks[1])
+            self.assertIn(route_marker, server_blocks[2])
+            self.assertIn("include /etc/nginx/generated/routes/*.conf;", server_blocks[2])
+
+    def test_route_include_fails_when_443_server_block_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "default.conf"
+            config_path.write_text(
+                """\
+server {
+    listen 80;
+    server_name example.com;
+}
+"""
+            )
+
+            with self.assertRaisesRegex(SystemExit, "listening on 443"):
+                update_nginx_config.bootstrap_includes(
+                    config_path,
+                    "/etc/nginx/generated/upstreams/*.conf",
+                    "/etc/nginx/generated/routes/*.conf",
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
