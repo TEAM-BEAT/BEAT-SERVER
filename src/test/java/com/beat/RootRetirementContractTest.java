@@ -117,7 +117,7 @@ class RootRetirementContractTest {
 		String ansibleLintWorkflow = read(".github/workflows/ansible-lint.yml");
 		String ansibleExecWorkflow = read(".github/workflows/_ansible-exec.yml");
 		String trivyImageConfig = read(".trivy-image.yaml");
-			String deployDev = read(".github/workflows/deploy-dev.yml");
+		String deployDev = read(".github/workflows/deploy-dev.yml");
 		String deployProd = read(".github/workflows/deploy-prod.yml");
 		String rollbackProd = read(".github/workflows/rollback-prod.yml");
 		String setupAnsibleTooling = read(".github/actions/setup-ansible-tooling/action.yml");
@@ -148,50 +148,50 @@ class RootRetirementContractTest {
 		assertTrue(deployDev.contains("uses: ./.github/workflows/_ansible-exec.yml"));
 		assertTrue(deployProd.contains("uses: ./.github/workflows/_ansible-exec.yml"));
 		assertTrue(rollbackProd.contains("uses: ./.github/workflows/_ansible-exec.yml"));
-			assertTrue(deployDev.contains("environment_name: dev"));
-			assertTrue(deployProd.contains("environment_name: prod"));
-			assertTrue(rollbackProd.contains("environment_name: prod"));
-			assertFalse(deployDev.contains("secrets: inherit"));
-			assertFalse(deployProd.contains("secrets: inherit"));
-			assertFalse(rollbackProd.contains("secrets: inherit"));
-			assertFalse(deployDev.contains("ssh_host: ${{"));
-			assertFalse(deployProd.contains("ssh_host: ${{"));
-			assertFalse(rollbackProd.contains("ssh_host: ${{"));
-			assertFalse(deployDev.contains("ssh_host_fingerprint: ${{"));
-			assertFalse(deployProd.contains("ssh_host_fingerprint: ${{"));
-			assertFalse(rollbackProd.contains("ssh_host_fingerprint: ${{"));
-			assertTrue(deployDev.contains("ssh_private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}"));
-			assertTrue(deployProd.contains("ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}"));
-			assertTrue(rollbackProd.contains("ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}"));
-			assertTrue(ansibleExecWorkflow.contains("workflow_call:"));
-			assertTrue(ansibleExecWorkflow.contains("checkout_ref:"));
-			assertTrue(ansibleExecWorkflow.contains("environment: ${{ inputs.environment_name }}"));
-			assertTrue(ansibleExecWorkflow.contains("Setup Ansible tooling"));
-			assertTrue(ansibleExecWorkflow.contains("resolve-ansible-connection"));
-			assertTrue(ansibleExecWorkflow.contains("setup-ssh-client"));
-			assertTrue(ansibleExecWorkflow.contains("cmd=(ansible-playbook"));
-			assertTrue(ansibleExecWorkflow.contains("EXTRA_VARS_PATH=\"$(mktemp /tmp/beat-extra-vars."));
-			assertTrue(ansibleExecWorkflow.contains("echo \"EXTRA_VARS_PATH=$EXTRA_VARS_PATH\" >> \"$GITHUB_ENV\""));
-			assertTrue(ansibleExecWorkflow.contains("cmd+=(--extra-vars \"@$EXTRA_VARS_PATH\")"));
-			assertTrue(ansibleExecWorkflow.contains("Cleanup temporary credentials"));
+		assertTrue(deployDev.contains("environment_name: dev"));
+		assertTrue(deployProd.contains("environment_name: prod"));
+		assertTrue(rollbackProd.contains("environment_name: prod"));
+		assertFalse(deployDev.contains("secrets: inherit"));
+		assertFalse(deployProd.contains("secrets: inherit"));
+		assertFalse(rollbackProd.contains("secrets: inherit"));
+		assertFalse(deployDev.contains("ssh_host: ${{"));
+		assertFalse(deployProd.contains("ssh_host: ${{"));
+		assertFalse(rollbackProd.contains("ssh_host: ${{"));
+		assertFalse(deployDev.contains("ssh_host_fingerprint: ${{"));
+		assertFalse(deployProd.contains("ssh_host_fingerprint: ${{"));
+		assertFalse(rollbackProd.contains("ssh_host_fingerprint: ${{"));
+		assertTrue(deployDev.contains("ssh_private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}"));
+		assertTrue(deployProd.contains("ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}"));
+		assertTrue(rollbackProd.contains("ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}"));
+		assertTrue(ansibleExecWorkflow.contains("workflow_call:"));
+		assertTrue(ansibleExecWorkflow.contains("checkout_ref:"));
+		assertTrue(ansibleExecWorkflow.contains("environment: ${{ inputs.environment_name }}"));
+		assertTrue(ansibleExecWorkflow.contains("Setup Ansible tooling"));
+		assertTrue(ansibleExecWorkflow.contains("resolve-ansible-connection"));
+		assertTrue(ansibleExecWorkflow.contains("setup-ssh-client"));
+		assertTrue(ansibleExecWorkflow.contains("cmd=(ansible-playbook"));
+		assertTrue(ansibleExecWorkflow.contains("EXTRA_VARS_PATH=\"$(mktemp /tmp/beat-extra-vars."));
+		assertTrue(ansibleExecWorkflow.contains("echo \"EXTRA_VARS_PATH=$EXTRA_VARS_PATH\" >> \"$GITHUB_ENV\""));
+		assertTrue(ansibleExecWorkflow.contains("cmd+=(--extra-vars \"@$EXTRA_VARS_PATH\")"));
+		assertTrue(ansibleExecWorkflow.contains("Cleanup temporary credentials"));
 		assertTrue(ansibleExecWorkflow.contains("Notify Slack (success)"));
-			assertFalse(ansibleExecWorkflow.contains("ssh_host:"));
-			assertFalse(ansibleExecWorkflow.contains("ssh_port:"));
-			assertFalse(ansibleExecWorkflow.contains("ssh_host_fingerprint:"));
-			assertTrue(ansibleExecWorkflow.contains("ssh_private_key:"));
-			assertTrue(ansibleExecWorkflow.contains("sops_age_key:"));
-			assertTrue(ansibleExecWorkflow.contains("slack_webhook_url:"));
-			assertFalse(ansibleExecWorkflow.contains("continue-on-error: true"));
-			assertFalse(ansibleExecWorkflow.contains("LEGACY_HOST:"));
-			assertFalse(ansibleExecWorkflow.contains("LEGACY_PORT:"));
-			assertFalse(ansibleExecWorkflow.contains("SSH_CONNECTION_SOURCE"));
-			assertTrue(ansibleExecWorkflow.contains("HAS_SLACK_WEBHOOK"));
-			assertTrue(ansibleExecWorkflow.contains("ssh-private-key: ${{ secrets.ssh_private_key }}"));
-			assertTrue(ansibleExecWorkflow.contains("SOPS_AGE_KEY: ${{ secrets.sops_age_key }}"));
-			assertFalse(ansibleExecWorkflow.contains("ANSIBLE_SOPS_AGE_SSH_PRIVATE_KEYFILE"));
-			assertFalse(ansibleExecWorkflow.contains("SOPS_AGE_SSH_PRIVATE_KEY_FILE=\"$HOME/.ssh/deploy_key\""));
-			assertTrue(ansibleExecWorkflow.contains("SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}"));
-			assertTrue(ansibleExecWorkflow.contains("python3 - \"$EXTRA_VARS_PATH\" <<'PY'"));
+		assertFalse(ansibleExecWorkflow.contains("ssh_host:"));
+		assertFalse(ansibleExecWorkflow.contains("ssh_port:"));
+		assertFalse(ansibleExecWorkflow.contains("ssh_host_fingerprint:"));
+		assertTrue(ansibleExecWorkflow.contains("ssh_private_key:"));
+		assertTrue(ansibleExecWorkflow.contains("sops_age_key:"));
+		assertTrue(ansibleExecWorkflow.contains("slack_webhook_url:"));
+		assertFalse(ansibleExecWorkflow.contains("continue-on-error: true"));
+		assertFalse(ansibleExecWorkflow.contains("LEGACY_HOST:"));
+		assertFalse(ansibleExecWorkflow.contains("LEGACY_PORT:"));
+		assertFalse(ansibleExecWorkflow.contains("SSH_CONNECTION_SOURCE"));
+		assertTrue(ansibleExecWorkflow.contains("HAS_SLACK_WEBHOOK"));
+		assertTrue(ansibleExecWorkflow.contains("ssh-private-key: ${{ secrets.ssh_private_key }}"));
+		assertTrue(ansibleExecWorkflow.contains("SOPS_AGE_KEY: ${{ secrets.sops_age_key }}"));
+		assertFalse(ansibleExecWorkflow.contains("ANSIBLE_SOPS_AGE_SSH_PRIVATE_KEYFILE"));
+		assertFalse(ansibleExecWorkflow.contains("SOPS_AGE_SSH_PRIVATE_KEY_FILE=\"$HOME/.ssh/deploy_key\""));
+		assertTrue(ansibleExecWorkflow.contains("SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}"));
+		assertTrue(ansibleExecWorkflow.contains("python3 - \"$EXTRA_VARS_PATH\" <<'PY'"));
 		assertFalse(ansibleExecWorkflow.contains("inventory_sops_path:"));
 		assertFalse(ansibleExecWorkflow.contains("INVENTORY_SOPS_PATH"));
 		assertFalse(ansibleExecWorkflow.contains("inventory_label:"));
@@ -236,7 +236,9 @@ class RootRetirementContractTest {
 		assertFalse(deployProd.contains("github.event.inputs.version"));
 		assertFalse(deployProd.contains("github.event.inputs.module"));
 		assertFalse(deployProd.contains("checkout_ref=refs/tags/"));
-		assertTrue(deployProd.contains("module_matrix={\"include\":[{\"module\":\"admin\"},{\"module\":\"apis\"},{\"module\":\"batch\"}]}"));
+		String prodModuleMatrix =
+			"module_matrix={\"include\":[{\"module\":\"admin\"},{\"module\":\"apis\"},{\"module\":\"batch\"}]}";
+		assertTrue(deployProd.contains(prodModuleMatrix));
 
 		assertTrue(secretAwareVerify.contains("module: ${{ matrix.module }}"));
 		assertTrue(secretAwareVerify.contains("Verified resolver for module=${MODULE}"));
@@ -296,23 +298,44 @@ class RootRetirementContractTest {
 		assertBefore(rollbackPlaybook, "name: Stat foundation marker", "role: app_rollback");
 
 		assertBefore(deployDev, "\n  foundation:", "\n  deploy:");
-		assertTrue(deployDev.contains("  foundation:\n    needs:\n      - detect-changes\n      - verify\n      - build-image"));
+		String devFoundationNeeds =
+			"  foundation:\n"
+				+ "    needs:\n"
+				+ "      - detect-changes\n"
+				+ "      - verify\n"
+				+ "      - build-image";
+		String devDeployNeedsFoundation =
+			"      - build-image\n"
+				+ "      - foundation\n"
+				+ "    if: needs.detect-changes.outputs.has_modules == 'true'";
+		assertTrue(deployDev.contains(devFoundationNeeds));
 		assertTrue(deployDev.contains("module: foundation"));
 		assertTrue(deployDev.contains("connection_module: ${{ vars.DEV_FOUNDATION_CONNECTION_MODULE || 'apis' }}"));
 		assertTrue(deployDev.contains("playbook: playbooks/foundation.yml"));
 		assertTrue(deployDev.contains("commit_sha: ${{ github.sha }}"));
 		assertTrue(deployDev.contains("checkout_ref: ${{ github.sha }}"));
-		assertTrue(deployDev.contains("      - build-image\n      - foundation\n    if: needs.detect-changes.outputs.has_modules == 'true'"));
+		assertTrue(deployDev.contains(devDeployNeedsFoundation));
 		assertTrue(deployDev.contains("group: deploy-dev-runtime-${{ github.ref }}"));
 
 		assertBefore(deployProd, "\n  foundation:", "\n  deploy:");
-		assertTrue(deployProd.contains("  foundation:\n    needs:\n      - resolve-release\n      - verify\n      - build-image"));
+		String prodFoundationNeeds =
+			"  foundation:\n"
+				+ "    needs:\n"
+				+ "      - resolve-release\n"
+				+ "      - verify\n"
+				+ "      - build-image";
+		String prodDeployNeedsFoundation =
+			"      - build-image\n"
+				+ "      - foundation\n"
+				+ "    concurrency:\n"
+				+ "      group: prod-runtime";
+		assertTrue(deployProd.contains(prodFoundationNeeds));
 		assertTrue(deployProd.contains("module: foundation"));
 		assertTrue(deployProd.contains("connection_module: ${{ vars.PROD_FOUNDATION_CONNECTION_MODULE || 'apis' }}"));
 		assertTrue(deployProd.contains("playbook: playbooks/foundation.yml"));
 		assertTrue(deployProd.contains("commit_sha: ${{ needs.resolve-release.outputs.commit_sha }}"));
 		assertTrue(deployProd.contains("checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}"));
-		assertTrue(deployProd.contains("      - build-image\n      - foundation\n    concurrency:\n      group: prod-runtime"));
+		assertTrue(deployProd.contains(prodDeployNeedsFoundation));
 		assertTrue(deployProd.contains("group: prod-runtime"));
 
 		assertTrue(infraReadme.contains("Foundation marker contract"));
@@ -406,7 +429,7 @@ class RootRetirementContractTest {
 		assertTrue(appBluegreenRunSwitch.contains(
 			"healthcheck_target_container: \"{{ app_bluegreen_target_container }}\""));
 		assertTrue(appContainerRuntimeEnv.contains("| combine({"));
-		assertTrue(appContainerRuntimeEnv.contains("'SPRING_PROFILES_ACTIVE': module_cfg.spring_profile"));
+		assertTrue(appContainerRuntimeEnv.contains("'SPRING_PROFILES_ACTIVE': app_container_runtime_module_cfg.spring_profile"));
 		assertFalse(appBluegreenRunSwitch.contains("\"{{ module_cfg.spring_profile | upper }}_ACTUATOR_PORT\""));
 		assertFalse(appBluegreenRunSwitch.contains("SPRING_PROFILES_ACTIVE"));
 		assertTrue(appStopStartRole.contains("run_container.yml"));
@@ -415,7 +438,7 @@ class RootRetirementContractTest {
 		assertTrue(appStopStartRunContainer.contains("app_container_env"));
 		assertTrue(appStopStartRunContainer.contains("name: app_container_runtime"));
 		assertTrue(appStopStartRunContainer.contains(
-			"healthcheck_target_container: \"{{ module_cfg.container_name | default(module) }}\""));
+			"healthcheck_target_container: \"{{ app_stopstart_module_cfg.container_name | default(module) }}\""));
 		assertTrue(appContainerRuntimeEnv.contains("| combine({"));
 		assertFalse(appStopStartRunContainer.contains("\"{{ module_cfg.spring_profile | upper }}_ACTUATOR_PORT\""));
 		assertFalse(appStopStartRunContainer.contains("SPRING_PROFILES_ACTIVE"));
@@ -423,10 +446,25 @@ class RootRetirementContractTest {
 		assertTrue(foundationPlaybook.contains("role: nginx_base_config"));
 		assertTrue(foundationStackTasks.contains("project_src: \"{{ deployment_dir }}\""));
 		assertTrue(foundationStackTasks.contains("- docker-compose.yml"));
+		assertTrue(foundationStackTasks.contains("Ensure nginx bind mount and candidate directories exist"));
+		assertTrue(foundationStackTasks.contains("Migrate legacy nginx named volume config to bind mount"));
+		assertTrue(foundationStackTasks.contains("Migrate legacy nginx named volume fragments to bind mount"));
+		assertTrue(foundationStackTasks.contains("Inspect legacy nginx named volume metadata"));
+		assertTrue(foundationStackTasks.contains("community.docker.docker_volume_info"));
+		assertTrue(foundationStackTasks.contains("foundation_stack_legacy_nginx_volume_info.exists"));
+		assertTrue(foundationStackTasks.contains("when: not foundation_stack_bind_migration_marker_stat.stat.exists"));
+		assertFalse(foundationStackTasks.contains("- docker\n      - volume\n      - inspect"));
+		assertTrue(foundationStackTasks.contains(".bind-mount-migrated-from-{{ foundation_stack_legacy_nginx_volume_name"));
+		assertTrue(foundationStackTasks.contains("Remove stale nginx helper lock files from deployment-owned nginx tree"));
+		assertFalse(foundationStackTasks.contains("/var/lib/docker/volumes"));
 		assertFalse(foundationStackTasks.contains("foundation_stack_compose_definition"));
 		assertFalse(foundationStackTasks.contains("definition: \"{{ foundation_stack_compose_definition }}\""));
 		assertTrue(foundationComposeTemplate.contains("services:"));
 		assertTrue(foundationComposeTemplate.contains("container_name: \"{{ nginx_container_name }}\""));
+		assertTrue(foundationComposeTemplate.contains("{{ deployment_dir }}/nginx/conf.d:/etc/nginx/conf.d"));
+		assertTrue(foundationComposeTemplate.contains("{{ deployment_dir }}/nginx/generated:/etc/nginx/generated"));
+		assertFalse(foundationComposeTemplate.contains(":/etc/nginx\""));
+		assertFalse(foundationComposeTemplate.contains("nginx-config-volume"));
 		assertTrue(foundationComposeTemplate.contains("foundation_mysql_enabled"));
 		assertTrue(foundationComposeTemplate.contains("foundation_redis_enabled"));
 		assertFalse(defaultConfTemplate.contains("upstream {{ backend_upstream_name"));
@@ -450,16 +488,19 @@ class RootRetirementContractTest {
 		assertFalse(nginxUpdateScript.contains("lock_path = path.parent / (path.name + \".lock\")"));
 		assertFalse(deployPlaybook.contains("app_dev_switch"));
 		assertFalse(deployPlaybook.contains("app_prod_switch"));
-		assertTrue(deployPlaybook.contains("role: app_bluegreen"));
+		assertTrue(deployPlaybook.contains("name: app_bluegreen"));
 		assertTrue(deployPlaybook.contains("tasks_from: run_switch.yml"));
-		assertTrue(deployPlaybook.contains("module_cfg.deploy_mode == 'blue_green'"));
-		assertTrue(deployPlaybook.contains("module_cfg.deploy_mode == 'stop_start'"));
+		assertTrue(deployPlaybook.contains("modules[module].deploy_mode == \"blue_green\""));
+		assertTrue(deployPlaybook.contains("modules[module].deploy_mode == \"stop_start\""));
+		String postFailureRestoreValidationSuccess =
+			"(app_bluegreen_post_failure_restore_validate_result.rc | default(1)) == 0";
+		assertTrue(appBluegreenRunSwitch.contains(postFailureRestoreValidationSuccess));
 		assertTrue(deployPlaybook.contains("tags:"));
 		assertTrue(deployPlaybook.contains("- healthcheck"));
 		assertTrue(deployPlaybook.contains("- cleanup"));
 		assertTrue(rollbackPlaybook.contains("name: app_healthcheck"));
 		assertTrue(rollbackPlaybook.contains("module in modules"));
-		assertTrue(rollbackPlaybook.contains("module_cfg.nginx_route is defined"));
+		assertTrue(rollbackPlaybook.contains("app_rollback_module_cfg.nginx_route is defined"));
 		assertTrue(rollbackPlaybook.contains("- rollback"));
 		assertTrue(appSecretRole.contains("application-secret.properties.j2"));
 		assertFalse(appSecretRole.contains("app_secret_content_normalized"));
@@ -487,9 +528,14 @@ class RootRetirementContractTest {
 		assertTrue(deployDev.contains("modules = preferred_order if requested == \"all\" else [requested]"));
 		assertTrue(deployDev.contains("modules = [module for module in preferred_order if selected_modules[module]]"));
 		assertTrue(deployDev.contains("IMAGE_TAG=\"dev-${GITHUB_SHA}\""));
-		assertTrue(deployDev.contains("image: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ github.sha }}"));
+		String devRuntimeImage =
+			"image: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ github.sha }}";
+		String prodRuntimeImage =
+			"image: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:"
+				+ "${{ needs.resolve-release.outputs.release_tag }}";
+		assertTrue(deployDev.contains(devRuntimeImage));
 		assertTrue(deployProd.contains("IMAGE_TAG=\"${RELEASE_TAG}\""));
-		assertTrue(deployProd.contains("image: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:${{ needs.resolve-release.outputs.release_tag }}"));
+		assertTrue(deployProd.contains(prodRuntimeImage));
 		assertFalse(appScriptsRole.contains("deploy-common.sh"));
 		assertFalse(appScriptsRole.contains("deploy-stop-start.sh"));
 		assertFalse(appScriptsRole.contains("Install repo-owned stop-start deployment helper"));
@@ -521,11 +567,20 @@ class RootRetirementContractTest {
 		assertTrue(infraReadme.contains("Seed placeholder upstreams"));
 		assertTrue(infraReadme.contains("nginx_seed_placeholder_host:nginx_seed_placeholder_port"));
 		assertTrue(infraReadme.contains("127.0.0.1:65535"));
+		assertTrue(infraReadme.contains("community.docker.docker_volume_info"));
+		assertTrue(infraReadme.contains("nginx_legacy_config_volume_name"));
+		assertFalse(infraReadme.contains("/var/lib/docker/volumes"));
 		assertTrue(infraReadme.contains("Nginx fragment mapping contract"));
 		assertTrue(infraReadme.contains("nginx_fragments"));
 		assertTrue(infraReadme.contains("read-only contract"));
 		assertTrue(devInventory.contains("nginx_seed_placeholder_host: \"127.0.0.1\""));
 		assertTrue(devInventory.contains("nginx_seed_placeholder_port: 65535"));
+		assertTrue(devInventory.contains("nginx_legacy_config_volume_name: nginx-config-volume"));
+		assertFalse(devInventory.contains("nginx_config_volume_name:"));
+		assertTrue(devInventory.contains("nginx_conf_target_path: /home/ubuntu/deployment/nginx/conf.d/default.conf"));
+		assertTrue(devInventory.contains("nginx_generated_source_dir: /home/ubuntu/deployment/nginx/generated-source"));
+		assertTrue(devInventory.contains("nginx_generated_target_dir: /home/ubuntu/deployment/nginx/generated"));
+		assertFalse(devInventory.contains("/var/lib/docker/volumes/nginx-config-volume/_data"));
 		assertTrue(devInventory.contains("nginx_fragments:"));
 		assertTrue(devInventory.contains("fragment_file: backend.conf"));
 		assertTrue(devInventory.contains("fragment_file: admin_backend.conf"));
@@ -533,6 +588,12 @@ class RootRetirementContractTest {
 		assertTrue(devInventory.contains("fragment_file: 10-managed.conf"));
 		assertTrue(prodInventory.contains("nginx_seed_placeholder_host: \"127.0.0.1\""));
 		assertTrue(prodInventory.contains("nginx_seed_placeholder_port: 65535"));
+		assertTrue(prodInventory.contains("nginx_legacy_config_volume_name: nginx-config-volume"));
+		assertFalse(prodInventory.contains("nginx_config_volume_name:"));
+		assertTrue(prodInventory.contains("nginx_conf_target_path: /home/ubuntu/deployment/nginx/conf.d/default.conf"));
+		assertTrue(prodInventory.contains("nginx_generated_source_dir: /home/ubuntu/deployment/nginx/generated-source"));
+		assertTrue(prodInventory.contains("nginx_generated_target_dir: /home/ubuntu/deployment/nginx/generated"));
+		assertFalse(prodInventory.contains("/var/lib/docker/volumes/nginx-config-volume/_data"));
 		assertTrue(prodInventory.contains("nginx_fragments:"));
 		assertTrue(nginxBaseConfig.contains("nginx_base_config_transaction_operations"));
 		assertTrue(nginxBaseConfig.contains("sync-backend-upstream-target"));
@@ -666,7 +727,9 @@ class RootRetirementContractTest {
 		assertFalse(nginxBaseConfig.contains("nginx_legacy_upstream_source_path"));
 		assertFalse(nginxBaseConfig.contains("nginx_legacy_upstream_target_path"));
 		assertFalse(nginxBaseConfig.contains("Abort unsafe legacy-target-only upstream migration"));
-		assertFalse(nginxBaseConfig.contains("Refusing to replace legacy target upstream config with placeholder fragments."));
+		String legacyTargetPlaceholderRefusal =
+			"Refusing to replace legacy target upstream config with placeholder fragments.";
+		assertFalse(nginxBaseConfig.contains(legacyTargetPlaceholderRefusal));
 		assertFalse(nginxBaseConfig.contains("nginx_base_config_missing_upstream_sources"));
 		assertFalse(nginxBaseConfig.contains("legacy-upstream-source"));
 		assertFalse(nginxBaseConfig.contains("legacy-upstream-target"));
@@ -677,13 +740,19 @@ class RootRetirementContractTest {
 		assertTrue(readme.contains("nginx_fragment_transaction_file_pre_state"));
 		assertTrue(readme.contains("published file pre-state"));
 		assertTrue(readme.contains("changed_if.stdout_json.changed: true"));
+		String bluegreenTransactionFilesVar =
+			"nginx_fragment_transaction_files: \"{{ app_bluegreen_nginx_transaction_files }}\"";
+		String bluegreenTransactionOperationsVar =
+			"nginx_fragment_transaction_operations: \"{{ app_bluegreen_nginx_transaction_operations }}\"";
+		String bluegreenTransactionBackupCleanupTask =
+			"Remove blue-green nginx transaction backup files after successful rollout";
 		assertTrue(appBluegreenRunSwitch.contains("name: nginx_fragment_transaction"));
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_id: app-bluegreen-switch"));
 		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_nginx_transaction_files:"));
-		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_files: \"{{ app_bluegreen_nginx_transaction_files }}\""));
+		assertTrue(appBluegreenRunSwitch.contains(bluegreenTransactionFilesVar));
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_files:"));
 		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_nginx_transaction_operations:"));
-		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_operations: \"{{ app_bluegreen_nginx_transaction_operations }}\""));
+		assertTrue(appBluegreenRunSwitch.contains(bluegreenTransactionOperationsVar));
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_operations:"));
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_validate_command:"));
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_reload_command:"));
@@ -705,7 +774,7 @@ class RootRetirementContractTest {
 		assertTrue(appBluegreenRunSwitch.contains("Restore blue-green nginx transaction files after failed rollout"));
 		assertTrue(appBluegreenRunSwitch.contains("Remove blue-green nginx transaction files absent before failed rollout"));
 		assertTrue(appBluegreenRunSwitch.contains("post_failure_restore_validate_rc="));
-		assertTrue(appBluegreenRunSwitch.contains("Remove blue-green nginx transaction backup files after successful rollout"));
+		assertTrue(appBluegreenRunSwitch.contains(bluegreenTransactionBackupCleanupTask));
 		assertTrue(adminNginxRoute.contains("name: nginx_fragment_transaction"));
 		assertTrue(adminNginxRoute.contains("app_stopstart_admin_nginx_transaction_files:"));
 		assertTrue(adminNginxRoute.contains(

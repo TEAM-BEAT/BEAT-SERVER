@@ -6,10 +6,22 @@
 - name: Resolve blue-green rollout paths
   ansible.builtin.set_fact:
     app_bluegreen_active_slot_file: "{{ release_dir }}/current-slot"
-    app_bluegreen_backend_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/{{ nginx_fragments.backend.fragment_file }}"
-    app_bluegreen_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/{{ nginx_fragments.backend.fragment_file }}"
-    app_bluegreen_actuator_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/{{ nginx_fragments.actuator.fragment_file }}"
-    app_bluegreen_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/{{ nginx_fragments.actuator.fragment_file }}"
+    app_bluegreen_backend_upstream_source_path: >-
+      {{
+        nginx_generated_source_dir ~ '/upstreams/' ~ nginx_fragments.backend.fragment_file
+      }}
+    app_bluegreen_backend_upstream_target_path: >-
+      {{
+        nginx_generated_target_dir ~ '/upstreams/' ~ nginx_fragments.backend.fragment_file
+      }}
+    app_bluegreen_actuator_upstream_source_path: >-
+      {{
+        nginx_generated_source_dir ~ '/upstreams/' ~ nginx_fragments.actuator.fragment_file
+      }}
+    app_bluegreen_actuator_upstream_target_path: >-
+      {{
+        nginx_generated_target_dir ~ '/upstreams/' ~ nginx_fragments.actuator.fragment_file
+      }}
 
 - name: Ensure release directory exists for blue-green rollout
   ansible.builtin.file:
@@ -56,15 +68,15 @@
     app_bluegreen_target_slot: "{{ 'green' if app_bluegreen_is_blue_active else 'blue' }}"
     app_bluegreen_target_container: >-
       {{
-        module_cfg.green_container_name
+        app_bluegreen_module_cfg.green_container_name
         if app_bluegreen_is_blue_active
-        else module_cfg.blue_container_name
+        else app_bluegreen_module_cfg.blue_container_name
       }}
     app_bluegreen_old_container: >-
       {{
-        module_cfg.blue_container_name
+        app_bluegreen_module_cfg.blue_container_name
         if app_bluegreen_is_blue_active
-        else module_cfg.green_container_name
+        else app_bluegreen_module_cfg.green_container_name
       }}
 
 - name: Expose blue-green healthcheck target container
@@ -83,7 +95,8 @@
         name: app_container_runtime
         tasks_from: env.yml
       vars:
-        app_container_env_include_scheduler_owner: false
+        app_container_runtime_module_cfg: "{{ app_bluegreen_module_cfg }}"
+        app_container_runtime_include_scheduler_owner: false
 
     - name: Start target blue-green container via Docker module
       community.docker.docker_container:
@@ -184,11 +197,11 @@
                 - --path
                 - "{{ app_bluegreen_backend_upstream_source_path }}"
                 - --upstream-name
-                - "{{ module_cfg.backend_upstream_name }}"
+                - "{{ app_bluegreen_module_cfg.backend_upstream_name }}"
                 - --container-name
                 - "{{ app_bluegreen_target_container }}"
                 - --backend-port
-                - "{{ module_cfg.app_port | string }}"
+                - "{{ app_bluegreen_module_cfg.app_port | string }}"
             changed_if:
               stdout_json:
                 changed: true
@@ -264,7 +277,7 @@
         attempts="{{ service_smoke_max_attempts }}"
         delay="{{ service_smoke_sleep_seconds }}"
         for attempt in $(seq 1 "$attempts"); do
-          if curl -fsS --connect-timeout 5 --max-time 10 "{{ module_cfg.public_smoke_url }}" >/dev/null 2>&1; then
+          if curl -fsS --connect-timeout 5 --max-time 10 "{{ app_bluegreen_module_cfg.public_smoke_url }}" >/dev/null 2>&1; then
             exit 0
           fi
           sleep "$delay"
@@ -272,7 +285,7 @@
         exit 1
       args:
         executable: /bin/bash
-      when: module_cfg.public_smoke_url | default('') | length > 0
+      when: app_bluegreen_module_cfg.public_smoke_url | default('') | length > 0
       changed_when: false
 
     - name: Remove old blue-green container after successful switch
@@ -344,7 +357,7 @@
       changed_when: false
       when:
         - app_bluegreen_post_failure_restore_validate_result is defined
-        - app_bluegreen_post_failure_restore_validate_result.rc == 0
+        - (app_bluegreen_post_failure_restore_validate_result.rc | default(1)) == 0
 
     - name: Remove failed blue-green target container
       community.docker.docker_container:
@@ -357,18 +370,42 @@
         msg: |-
           Blue-green rollout failed for {{ module }}.
           nginx_transaction_failed_operation={{ nginx_fragment_transaction_failed_operation | default('not-run') }}
-          nginx_transaction_restore_validate_rc={{ nginx_fragment_transaction_restore_validate_result.rc | default('not-run') }}
-          nginx_transaction_restore_validate_stdout={{ nginx_fragment_transaction_restore_validate_result.stdout | default('') }}
-          nginx_transaction_restore_validate_stderr={{ nginx_fragment_transaction_restore_validate_result.stderr | default('') }}
-          nginx_transaction_restore_reload_rc={{ nginx_fragment_transaction_restore_reload_result.rc | default('skipped') }}
-          nginx_transaction_restore_reload_stdout={{ nginx_fragment_transaction_restore_reload_result.stdout | default('') }}
-          nginx_transaction_restore_reload_stderr={{ nginx_fragment_transaction_restore_reload_result.stderr | default('') }}
-          post_failure_restore_validate_rc={{ app_bluegreen_post_failure_restore_validate_result.rc | default('not-run') }}
-          post_failure_restore_validate_stdout={{ app_bluegreen_post_failure_restore_validate_result.stdout | default('') }}
-          post_failure_restore_validate_stderr={{ app_bluegreen_post_failure_restore_validate_result.stderr | default('') }}
-          post_failure_restore_reload_rc={{ app_bluegreen_post_failure_restore_reload_result.rc | default('skipped') }}
-          post_failure_restore_reload_stdout={{ app_bluegreen_post_failure_restore_reload_result.stdout | default('') }}
-          post_failure_restore_reload_stderr={{ app_bluegreen_post_failure_restore_reload_result.stderr | default('') }}
+          nginx_transaction_restore_validate_rc={{
+            nginx_fragment_transaction_restore_validate_result.rc | default('not-run')
+          }}
+          nginx_transaction_restore_validate_stdout={{
+            nginx_fragment_transaction_restore_validate_result.stdout | default('')
+          }}
+          nginx_transaction_restore_validate_stderr={{
+            nginx_fragment_transaction_restore_validate_result.stderr | default('')
+          }}
+          nginx_transaction_restore_reload_rc={{
+            nginx_fragment_transaction_restore_reload_result.rc | default('skipped')
+          }}
+          nginx_transaction_restore_reload_stdout={{
+            nginx_fragment_transaction_restore_reload_result.stdout | default('')
+          }}
+          nginx_transaction_restore_reload_stderr={{
+            nginx_fragment_transaction_restore_reload_result.stderr | default('')
+          }}
+          post_failure_restore_validate_rc={{
+            app_bluegreen_post_failure_restore_validate_result.rc | default('not-run')
+          }}
+          post_failure_restore_validate_stdout={{
+            app_bluegreen_post_failure_restore_validate_result.stdout | default('')
+          }}
+          post_failure_restore_validate_stderr={{
+            app_bluegreen_post_failure_restore_validate_result.stderr | default('')
+          }}
+          post_failure_restore_reload_rc={{
+            app_bluegreen_post_failure_restore_reload_result.rc | default('skipped')
+          }}
+          post_failure_restore_reload_stdout={{
+            app_bluegreen_post_failure_restore_reload_result.stdout | default('')
+          }}
+          post_failure_restore_reload_stderr={{
+            app_bluegreen_post_failure_restore_reload_result.stderr | default('')
+          }}
 
 - name: Remove blue-green nginx transaction backup files after successful rollout
   ansible.builtin.file:

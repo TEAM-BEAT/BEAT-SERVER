@@ -5,10 +5,22 @@
 
 - name: Resolve admin nginx fragment paths
   ansible.builtin.set_fact:
-    app_stopstart_admin_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/{{ nginx_fragments.admin.fragment_file }}"
-    app_stopstart_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/{{ nginx_fragments.admin.fragment_file }}"
-    app_stopstart_admin_route_source_path: "{{ nginx_generated_source_dir }}/routes/{{ nginx_fragments.route.fragment_file }}"
-    app_stopstart_admin_route_target_path: "{{ nginx_generated_target_dir }}/routes/{{ nginx_fragments.route.fragment_file }}"
+    app_stopstart_admin_upstream_source_path: >-
+      {{
+        nginx_generated_source_dir ~ '/upstreams/' ~ nginx_fragments.admin.fragment_file
+      }}
+    app_stopstart_admin_upstream_target_path: >-
+      {{
+        nginx_generated_target_dir ~ '/upstreams/' ~ nginx_fragments.admin.fragment_file
+      }}
+    app_stopstart_admin_route_source_path: >-
+      {{
+        nginx_generated_source_dir ~ '/routes/' ~ nginx_fragments.route.fragment_file
+      }}
+    app_stopstart_admin_route_target_path: >-
+      {{
+        nginx_generated_target_dir ~ '/routes/' ~ nginx_fragments.route.fragment_file
+      }}
 
 - name: Build admin nginx route transaction plan
   ansible.builtin.set_fact:
@@ -73,11 +85,11 @@
             - --path
             - "{{ app_stopstart_admin_upstream_source_path }}"
             - --upstream-name
-            - "{{ module_cfg.nginx_route.upstream_name }}"
+            - "{{ app_stopstart_module_cfg.nginx_route.upstream_name }}"
             - --container-name
-            - "{{ module_cfg.container_name }}"
+            - "{{ app_stopstart_module_cfg.container_name }}"
             - --backend-port
-            - "{{ module_cfg.app_port | string }}"
+            - "{{ app_stopstart_module_cfg.app_port | string }}"
         changed_if:
           stdout_json:
             changed: true
@@ -93,11 +105,11 @@
             - --path
             - "{{ app_stopstart_admin_route_source_path }}"
             - --upstream-name
-            - "{{ module_cfg.nginx_route.upstream_name }}"
+            - "{{ app_stopstart_module_cfg.nginx_route.upstream_name }}"
             - --external-path
-            - "{{ module_cfg.nginx_route.external_path }}"
+            - "{{ app_stopstart_module_cfg.nginx_route.external_path }}"
             - --upstream-path
-            - "{{ module_cfg.nginx_route.upstream_path }}"
+            - "{{ app_stopstart_module_cfg.nginx_route.upstream_path }}"
         changed_if:
           stdout_json:
             changed: true

@@ -19,10 +19,19 @@
       - nginx_fragments.actuator.fragment_file | default('') | length > 0
       - nginx_fragments.route.fragment_file | default('') | length > 0
       - (nginx_fragment_files | unique | list | length) == (nginx_fragment_files | length)
-      - modules.apis.backend_upstream_name | default(nginx_fragments.backend.upstream_name) == nginx_fragments.backend.upstream_name
-      - modules.admin.nginx_route.upstream_name | default(nginx_fragments.admin.upstream_name) == nginx_fragments.admin.upstream_name
+      - >-
+        modules.apis.backend_upstream_name
+        | default(nginx_fragments.backend.upstream_name)
+        == nginx_fragments.backend.upstream_name
+      - >-
+        modules.admin.nginx_route.upstream_name
+        | default(nginx_fragments.admin.upstream_name)
+        == nginx_fragments.admin.upstream_name
       - admin_upstream_name | default(nginx_fragments.admin.upstream_name) == nginx_fragments.admin.upstream_name
-      - actuator_upstream_name | default(nginx_fragments.actuator.upstream_name) == nginx_fragments.actuator.upstream_name
+      - >-
+        actuator_upstream_name
+        | default(nginx_fragments.actuator.upstream_name)
+        == nginx_fragments.actuator.upstream_name
     fail_msg: "nginx_fragments mapping has invalid or duplicate entries"
   tags:
     - always

@@ -49,20 +49,6 @@
     - upstreams
     - routes
 
-- name: Ensure live nginx config exists before promotion
-  ansible.builtin.stat:
-    path: "{{ nginx_conf_target_path }}"
-  register: nginx_base_config_nginx_conf_target_stat
-
-
-- name: Abort when live nginx config path is missing
-  ansible.builtin.fail:
-    msg: "Live nginx config does not exist at {{ nginx_conf_target_path }}"
-  when:
-    - not ansible_check_mode
-    - not nginx_base_config_nginx_conf_target_stat.stat.exists
-
-
 - name: Report nginx promotion plan in check mode
   ansible.builtin.debug:
     msg:
@@ -133,7 +119,7 @@
         path: "{{ nginx_conf_target_path }}"
         role: live-config
         backup: true
-        required: true
+        required: false
     nginx_base_config_transaction_operations:
       - id: render-candidate-nginx-config
         name: Render candidate nginx default.conf

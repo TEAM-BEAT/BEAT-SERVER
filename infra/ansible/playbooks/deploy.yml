@@ -5,7 +5,6 @@
   gather_facts: false
 
   vars:
-    module_cfg: "{{ modules[module] }}"
     release_dir: "{{ release_root }}/{{ module }}"
     pending_metadata_path: "{{ release_dir }}/pending.json"
     foundation_marker_path: "{{ deployment_dir }}/.foundation-applied"
@@ -62,7 +61,11 @@
           - "Foundation has not been applied on host {{ inventory_hostname }}."
           - "Marker missing: {{ foundation_marker_path }}"
           - "Run foundation first via:"
-          - "  ansible-playbook playbooks/foundation.yml -i {{ (ansible_inventory_sources | default(['inventories/dev/hosts.yml'])) | first }}"
+          - >-
+            {{
+              "  ansible-playbook playbooks/foundation.yml -i "
+              ~ ((ansible_inventory_sources | default(['inventories/dev/hosts.yml'])) | first)
+            }}
           - "Or trigger the foundation step on GitHub Actions before retrying deploy."
       when: not deploy_foundation_marker_stat.stat.exists
       tags:
@@ -81,6 +84,8 @@
 
   roles:
     - role: app_secret
+      vars:
+        app_secret_module_cfg: "{{ modules[module] }}"
       tags:
         - deploy
         - secrets
@@ -92,32 +97,46 @@
       tags:
         - deploy
         - release
-    - role: app_bluegreen
-      tasks_from: run_switch.yml
+
+  tasks:
+    - name: Run blue-green switch
+      ansible.builtin.import_role:
+        name: app_bluegreen
+        tasks_from: run_switch.yml
       vars:
         app_bluegreen_image: "{{ image }}"
-      when: module_cfg.deploy_mode == 'blue_green'
+        app_bluegreen_module_cfg: "{{ modules[module] }}"
+      when: modules[module].deploy_mode == "blue_green"
       tags:
         - deploy
         - switch
         - blue-green
-    - role: app_stopstart
-      when: module_cfg.deploy_mode == 'stop_start'
+
+    - name: Run stop-start switch
+      ansible.builtin.import_role:
+        name: app_stopstart
+      vars:
+        app_stopstart_module_cfg: "{{ modules[module] }}"
+      when: modules[module].deploy_mode == "stop_start"
       tags:
         - deploy
         - switch
         - stop-start
-    - role: app_healthcheck
+
+    - name: Run app healthcheck
+      ansible.builtin.import_role:
+        name: app_healthcheck
       tags:
         - deploy
         - healthcheck
 
-  tasks:
     - name: Configure nginx routing for stop-start module
       ansible.builtin.import_role:
         name: app_stopstart
         tasks_from: admin_nginx_route.yml
-      when: module_cfg.nginx_route is defined
+      vars:
+        app_stopstart_module_cfg: "{{ modules[module] }}"
+      when: modules[module].nginx_route is defined
       tags:
         - deploy
         - nginx

@@ -226,11 +226,32 @@
           - "{{ nginx_fragment_transaction_failure_summary }}"
           - "failed operation={{ nginx_fragment_transaction_failed_operation | default('unknown') }}"
           - "restore validation rc={{ nginx_fragment_transaction_restore_validate_result.rc }}"
-          - "restore validation stdout={{ nginx_fragment_transaction_restore_validate_result.stdout | default('') }}"
-          - "restore validation stderr={{ nginx_fragment_transaction_restore_validate_result.stderr | default('') }}"
-          - "restore reload rc={{ nginx_fragment_transaction_restore_reload_result.rc if nginx_fragment_transaction_restore_reload_result is defined else 'skipped' }}"
-          - "restore reload stdout={{ nginx_fragment_transaction_restore_reload_result.stdout if nginx_fragment_transaction_restore_reload_result is defined else '' }}"
-          - "restore reload stderr={{ nginx_fragment_transaction_restore_reload_result.stderr if nginx_fragment_transaction_restore_reload_result is defined else 'skipped because restore validation failed' }}"
+          - >-
+            restore validation stdout={{
+            nginx_fragment_transaction_restore_validate_result.stdout | default('')
+            }}
+          - >-
+            restore validation stderr={{
+            nginx_fragment_transaction_restore_validate_result.stderr | default('')
+            }}
+          - >-
+            restore reload rc={{
+            nginx_fragment_transaction_restore_reload_result.rc
+            if nginx_fragment_transaction_restore_reload_result is defined
+            else 'skipped'
+            }}
+          - >-
+            restore reload stdout={{
+            nginx_fragment_transaction_restore_reload_result.stdout
+            if nginx_fragment_transaction_restore_reload_result is defined
+            else ''
+            }}
+          - >-
+            restore reload stderr={{
+            nginx_fragment_transaction_restore_reload_result.stderr
+            if nginx_fragment_transaction_restore_reload_result is defined
+            else 'skipped because restore validation failed'
+            }}
 
 - name: Remove nginx fragment transaction backup files after success
   ansible.builtin.file:
@@ -245,5 +266,8 @@
 
 - name: Expose nginx fragment transaction aggregate changed state
   ansible.builtin.debug:
-    msg: "nginx_fragment_transaction {{ nginx_fragment_transaction_id }} changed={{ nginx_fragment_transaction_changed }} reload_required={{ nginx_fragment_transaction_reload_required }}"
+    msg: >-
+      nginx_fragment_transaction {{ nginx_fragment_transaction_id }}
+      changed={{ nginx_fragment_transaction_changed }}
+      reload_required={{ nginx_fragment_transaction_reload_required }}
   changed_when: nginx_fragment_transaction_changed | bool

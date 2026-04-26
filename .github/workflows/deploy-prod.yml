@@ -178,7 +178,6 @@ jobs:
       image_tag: ${{ needs.resolve-release.outputs.release_tag }}
       commit_sha: ${{ needs.resolve-release.outputs.commit_sha }}
       deploy_actor: ${{ github.actor }}
-      commit_sha: ${{ needs.resolve-release.outputs.commit_sha }}
       checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}
     secrets:
       ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}

@@ -73,7 +73,10 @@
 
 - name: Parse nginx transaction command JSON stdout
   ansible.builtin.set_fact:
-    nginx_fragment_transaction_command_stdout_json: "{{ nginx_fragment_transaction_command_operation_result.stdout | from_json }}"
+    nginx_fragment_transaction_command_stdout_json: >-
+      {{
+        nginx_fragment_transaction_command_operation_result.stdout | from_json
+      }}
   when:
     - nginx_fragment_transaction_operation_should_run | bool
     - nginx_fragment_transaction_operation.kind == 'command'
@@ -114,7 +117,10 @@
 
 - name: Resolve nginx transaction template operation changed state
   ansible.builtin.set_fact:
-    nginx_fragment_transaction_operation_changed: "{{ nginx_fragment_transaction_template_operation_result.changed | default(false) }}"
+    nginx_fragment_transaction_operation_changed: >-
+      {{
+        nginx_fragment_transaction_template_operation_result.changed | default(false)
+      }}
   when:
     - nginx_fragment_transaction_operation_should_run | bool
     - nginx_fragment_transaction_operation.kind == 'template'
@@ -142,14 +148,20 @@
 
 - name: Resolve nginx transaction copy operation changed state
   ansible.builtin.set_fact:
-    nginx_fragment_transaction_operation_changed: "{{ nginx_fragment_transaction_copy_operation_result.changed | default(false) }}"
+    nginx_fragment_transaction_operation_changed: >-
+      {{
+        nginx_fragment_transaction_copy_operation_result.changed | default(false)
+      }}
   when:
     - nginx_fragment_transaction_operation_should_run | bool
     - nginx_fragment_transaction_operation.kind == 'copy'
 
 - name: Resolve nginx transaction absent operation changed state
   ansible.builtin.set_fact:
-    nginx_fragment_transaction_operation_changed: "{{ nginx_fragment_transaction_absent_operation_result.changed | default(false) }}"
+    nginx_fragment_transaction_operation_changed: >-
+      {{
+        nginx_fragment_transaction_absent_operation_result.changed | default(false)
+      }}
   when:
     - nginx_fragment_transaction_operation_should_run | bool
     - nginx_fragment_transaction_operation.kind == 'file_absent'

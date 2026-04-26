@@ -5,15 +5,15 @@ secret_dir: /opt/beat/secret
 release_root: /opt/beat/releases
 nginx_container_name: nginx
 nginx_conf_source_path: /home/ubuntu/deployment/nginx/default.conf
-nginx_conf_target_path: /var/lib/docker/volumes/nginx-config-volume/_data/conf.d/default.conf
-nginx_generated_source_dir: /home/ubuntu/deployment/nginx/generated
-nginx_generated_target_dir: /var/lib/docker/volumes/nginx-config-volume/_data/generated
+nginx_conf_target_path: /home/ubuntu/deployment/nginx/conf.d/default.conf
+nginx_generated_source_dir: /home/ubuntu/deployment/nginx/generated-source
+nginx_generated_target_dir: /home/ubuntu/deployment/nginx/generated
 curl_image: curlimages/curl:8.12.1
 
 foundation_mysql_enabled: true
 foundation_redis_enabled: true
 nginx_image: nginx:alpine
-nginx_config_volume_name: nginx-config-volume
+nginx_legacy_config_volume_name: nginx-config-volume
 certbot_conf_dir: /home/ubuntu/data/certbot/conf
 certbot_www_dir: /home/ubuntu/data/certbot/www
 nginx_access_log_format_name: custom

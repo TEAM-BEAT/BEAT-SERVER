@@ -7,7 +7,9 @@
       - nginx_fragment_transaction_operation.template.src | length > 0
       - nginx_fragment_transaction_operation.dest_file is defined
       - nginx_fragment_transaction_operation.dest_file in nginx_fragment_transaction_file_map
-    fail_msg: "Invalid nginx transaction template operation: {{ nginx_fragment_transaction_operation | to_json }}"
+    fail_msg: >-
+      Invalid nginx transaction template operation:
+      {{ nginx_fragment_transaction_operation | to_json }}
   when: nginx_fragment_transaction_operation.kind == 'template'
 
 - name: Validate nginx transaction command operation
@@ -29,7 +31,9 @@
           nginx_fragment_transaction_operation.changed_if.stdout_contains is defined
           and nginx_fragment_transaction_operation.changed_if.stdout_contains | length > 0
         )
-    fail_msg: "Invalid nginx transaction command operation: {{ nginx_fragment_transaction_operation | to_json }}"
+    fail_msg: >-
+      Invalid nginx transaction command operation:
+      {{ nginx_fragment_transaction_operation | to_json }}
   when: nginx_fragment_transaction_operation.kind == 'command'
 
 - name: Validate nginx transaction copy operation
@@ -47,13 +51,23 @@
     that:
       - nginx_fragment_transaction_operation.file is defined
       - nginx_fragment_transaction_operation.file in nginx_fragment_transaction_file_map
-    fail_msg: "Invalid nginx transaction file_absent operation: {{ nginx_fragment_transaction_operation | to_json }}"
+    fail_msg: >-
+      Invalid nginx transaction file_absent operation:
+      {{ nginx_fragment_transaction_operation | to_json }}
   when: nginx_fragment_transaction_operation.kind == 'file_absent'
 
 - name: Validate nginx transaction conditional file references
   ansible.builtin.assert:
     that:
-      - nginx_fragment_transaction_operation.when_file_exists | default('') == '' or nginx_fragment_transaction_operation.when_file_exists in nginx_fragment_transaction_file_map
-      - nginx_fragment_transaction_operation.when_file_missing | default('') == '' or nginx_fragment_transaction_operation.when_file_missing in nginx_fragment_transaction_file_map
-      - nginx_fragment_transaction_operation.when_file_preexisted | default('') == '' or nginx_fragment_transaction_operation.when_file_preexisted in nginx_fragment_transaction_file_map
-    fail_msg: "Invalid nginx transaction conditional reference: {{ nginx_fragment_transaction_operation | to_json }}"
+      - >-
+        nginx_fragment_transaction_operation.when_file_exists | default('') == ''
+        or nginx_fragment_transaction_operation.when_file_exists in nginx_fragment_transaction_file_map
+      - >-
+        nginx_fragment_transaction_operation.when_file_missing | default('') == ''
+        or nginx_fragment_transaction_operation.when_file_missing in nginx_fragment_transaction_file_map
+      - >-
+        nginx_fragment_transaction_operation.when_file_preexisted | default('') == ''
+        or nginx_fragment_transaction_operation.when_file_preexisted in nginx_fragment_transaction_file_map
+    fail_msg: >-
+      Invalid nginx transaction conditional reference:
+      {{ nginx_fragment_transaction_operation | to_json }}

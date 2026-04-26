@@ -3,16 +3,13 @@
 ## Purpose
 
 `nginx_fragment_transaction` is the common boundary for nginx generated-file
-updates that used to be hand-rolled in `nginx_base_config`, `app_bluegreen`, and
-`app_stopstart` admin routing. The role owns only nginx source/target file
-mutation, source-to-target promotion, validation, conditional reload, rescue
-restore, and backup cleanup. Application lifecycle concerns stay in the caller.
+updates shared by `nginx_base_config`, `app_bluegreen`, and `app_stopstart`
+admin routing. The role owns only nginx source/target file mutation,
+source-to-target promotion, validation, conditional reload, rescue restore, and
+backup cleanup. Application lifecycle concerns stay in the caller.
 
-PR8-A wires this role into `nginx_base_config`. PR8-B wires blue-green upstream
-switching into the same transaction boundary while keeping container lifecycle,
-health checks, smoke checks, and slot persistence in `app_bluegreen`. PR8-C
-wires `app_stopstart` admin routing into this role, completing the originally
-duplicated nginx transaction migration.
+Each caller provides its own file and operation plan; this role keeps the nginx
+mutation, validation, reload, and restore behavior consistent across them.
 
 ## Contract
 
@@ -42,8 +39,8 @@ nginx_fragment_transaction_operations:
 - `backup`: whether `<path>.bak` is created for existing files and stale backups
   are cleared for absent files. Defaults to `true`.
 - `required`: fail before mutation if the file is absent. Defaults to `false`.
-- `cleanup_backup_on_success`: remove the backup after successful validation and
-  reload. Defaults to `true`.
+- `cleanup_backup_on_success`: remove the backup after the transaction succeeds.
+  Defaults to `true`.
 
 Source and target files are intentionally modeled as separate records. The role
 never restores a target from a source backup.
@@ -52,10 +49,11 @@ never restores a target from a source backup.
 
 Supported `kind` values are intentionally small and auditable:
 
-- `template`: render a controller template into a declared destination file.
-- `command`: run an argv command; changed state is parsed from `changed_if`.
-- `copy`: copy one declared file to another with `remote_src: true`.
-- `file_absent`: remove one declared file.
+- `template`: render `template.src` into the declared `dest_file`.
+- `command`: run `command.argv`; changed state is parsed from `changed_if`.
+- `copy`: copy declared `src_file` to declared `dest_file` with
+  `remote_src: true`.
+- `file_absent`: remove the declared `file`.
 
 Each operation must declare `affects_reload`. Command operations must use `argv`
 not shell strings, and must declare one changed parser:
@@ -99,7 +97,10 @@ create only fragments that are still missing.
 8. Validate restored nginx with `failed_when: false`; reload restored nginx only
    when restored validation succeeds.
 9. Fail with caller summary plus restore validation/reload stdout and stderr.
-10. On success, remove all transaction backup files.
+10. On success, remove backup files whose file records keep
+    `cleanup_backup_on_success: true`. Callers that need an outer application
+    rescue, such as blue-green health/smoke checks, may set it to `false` and
+    clean those backups after their own post-transaction checks pass.
 
 The role publishes these facts for caller/reporting use:
 
@@ -115,7 +116,12 @@ The role publishes these facts for caller/reporting use:
 - `nginx_fragment_transaction_restore_validate_result` on rescue
 - `nginx_fragment_transaction_restore_reload_result` on rescue when reload ran
 
-## `nginx_base_config` mapping
+The role defaults `nginx_fragment_transaction_files` and
+`nginx_fragment_transaction_operations` to empty lists so accidental direct
+imports fail during input validation instead of mutating nginx with an implicit
+plan.
+
+## Example caller mapping: `nginx_base_config`
 
 `nginx_base_config` keeps path resolution, directory creation, check-mode
 preview, and the live-config existence gate. It then passes the full base nginx
@@ -130,20 +136,19 @@ promotion plan to this role:
 6. promote the rendered candidate config to the live target config;
 7. validate and conditionally reload through the transaction role.
 
-## Migration status
+## Caller boundaries
 
-Migration callers are wired; keep application lifecycle outside this role:
+Keep application lifecycle outside this role:
 
-1. `nginx_base_config` in PR8-A.
-2. `app_bluegreen/tasks/run_switch.yml` in PR8-B. Its nginx file changes now
-   use this role, but the caller intentionally keeps transaction backups until
-   post-switch health checks and public smoke checks pass. If those
-   application-level checks fail after the transaction role has already
-   validated/reloaded nginx, `app_bluegreen` owns the outer rescue path: it uses
+1. `nginx_base_config` owns path resolution, directory creation, check-mode
+   preview, and the live-config existence gate.
+2. `app_bluegreen/tasks/run_switch.yml` owns container lifecycle, health checks,
+   smoke checks, and slot persistence. It intentionally keeps transaction
+   backups until post-switch checks pass. If those application-level checks fail
+   after this role has already validated/reloaded nginx, `app_bluegreen` uses
    the published file pre-state to restore each nginx file from its own backup,
    validates/reloads the restored config, then reports both transaction-level
    and post-transaction restore diagnostics.
-3. `app_stopstart/tasks/admin_nginx_route.yml` in PR8-C. Its admin upstream and
-   route fragments now use this role for backup, sync, validation, reload,
-   restore, and cleanup while the stop-start container lifecycle stays in the
-   caller.
+3. `app_stopstart/tasks/admin_nginx_route.yml` owns admin route intent and
+   stop-start container lifecycle; this role only handles backup, sync,
+   validation, reload, restore, and cleanup for the nginx files.

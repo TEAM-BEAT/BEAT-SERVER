@@ -238,7 +238,6 @@ jobs:
       image_tag: dev-${{ github.sha }}
       commit_sha: ${{ github.sha }}
       deploy_actor: ${{ github.actor }}
-      commit_sha: ${{ github.sha }}
       checkout_ref: ${{ github.sha }}
     secrets:
       ssh_private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}

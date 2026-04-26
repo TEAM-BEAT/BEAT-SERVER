@@ -5,7 +5,7 @@
   gather_facts: false
 
   vars:
-    module_cfg: "{{ modules[module] }}"
+    app_rollback_module_cfg: "{{ modules[module] }}"
     release_dir: "{{ release_root }}/{{ module }}"
     foundation_marker_path: "{{ deployment_dir }}/.foundation-applied"
     network_health_max_attempts: 30
@@ -59,7 +59,11 @@
           - "Foundation has not been applied on host {{ inventory_hostname }}."
           - "Marker missing: {{ foundation_marker_path }}"
           - "Run foundation first via:"
-          - "  ansible-playbook playbooks/foundation.yml -i {{ (ansible_inventory_sources | default(['inventories/dev/hosts.yml'])) | first }}"
+          - >-
+            {{
+              "  ansible-playbook playbooks/foundation.yml -i "
+              ~ ((ansible_inventory_sources | default(['inventories/dev/hosts.yml'])) | first)
+            }}
           - "Or trigger the foundation step on GitHub Actions before retrying rollback."
       when: not rollback_foundation_marker_stat.stat.exists
       tags:
@@ -96,7 +100,9 @@
           ansible.builtin.import_role:
             name: app_stopstart
             tasks_from: admin_nginx_route.yml
-          when: module_cfg.nginx_route is defined
+          vars:
+            app_stopstart_module_cfg: "{{ app_rollback_module_cfg }}"
+          when: app_rollback_module_cfg.nginx_route is defined
           tags:
             - rollback
             - nginx

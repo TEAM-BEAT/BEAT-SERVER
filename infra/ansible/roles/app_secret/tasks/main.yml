@@ -10,7 +10,7 @@
 - name: Write profile secret properties
   ansible.builtin.template:
     src: application-secret.properties.j2
-    dest: "{{ secret_dir }}/application-{{ module_cfg.spring_profile }}-secret.properties"
+    dest: "{{ secret_dir }}/application-{{ app_secret_module_cfg.spring_profile }}-secret.properties"
     owner: root
     group: "10001"
     mode: "0640"

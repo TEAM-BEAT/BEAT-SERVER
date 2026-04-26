@@ -568,19 +568,17 @@ flowchart LR
 ├── update-nginx-config.py                  # nginx fragment 관리
 └── nginx/
     ├── default.conf                        # 후보 설정 (source, 다음 promotion 입력)
-    └── generated/
-        ├── upstreams/backend.conf          # backend upstream fragment (source)
-        ├── upstreams/admin_backend.conf    # admin upstream fragment (source)
-        ├── upstreams/actuator.conf         # actuator upstream fragment (source)
-        └── routes/10-managed.conf          # route fragment (source, helper가 갱신)
-
-/var/lib/docker/volumes/nginx-config-volume/_data/
-├── conf.d/default.conf                     # 실제 적용 설정 (target, 현재 live)
-└── generated/
-    ├── upstreams/backend.conf              # backend upstream fragment (target, 현재 live)
-    ├── upstreams/admin_backend.conf        # admin upstream fragment (target, 현재 live)
-    ├── upstreams/actuator.conf             # actuator upstream fragment (target, 현재 live)
-    └── routes/10-managed.conf              # route fragment (target, 현재 live)
+    ├── generated-source/                   # 후보 fragment (source, 다음 promotion 입력)
+    │   ├── upstreams/backend.conf
+    │   ├── upstreams/admin_backend.conf
+    │   ├── upstreams/actuator.conf
+    │   └── routes/10-managed.conf
+    ├── conf.d/default.conf                 # bind mount target → /etc/nginx/conf.d/default.conf
+    └── generated/                          # bind mount target → /etc/nginx/generated
+        ├── upstreams/backend.conf
+        ├── upstreams/admin_backend.conf
+        ├── upstreams/actuator.conf
+        └── routes/10-managed.conf
 
 /opt/beat/
 ├── secret/
@@ -757,6 +755,7 @@ flowchart LR
 
 ### Nginx source/target contract
 
-- `deployment/nginx/**` 는 후보(source) 설정이다. helper와 seed 로직이 이 경로를 갱신하고, 다음 promotion의 입력으로 재사용된다.
-- `nginx-config-volume/_data/**` 는 실제 적용(target) 설정이다. `nginx -t` 와 reload가 통과한 live 구성이 여기에 존재한다.
+- `deployment/nginx/default.conf` 와 `deployment/nginx/generated-source/**` 는 후보(source) 설정이다. helper와 seed 로직이 이 경로를 갱신하고, 다음 promotion의 입력으로 재사용된다.
+- `deployment/nginx/conf.d/**` 와 `deployment/nginx/generated/**` 는 nginx 컨테이너에 bind mount되는 실제 적용(target) 설정이다. 컨테이너 안에서는 각각 `/etc/nginx/conf.d` 와 `/etc/nginx/generated` 로 보인다.
+- 예전 named volume(`nginx_legacy_config_volume_name`, 기본 `nginx-config-volume`)은 신규 target contract에서 제외했다. foundation은 첫 실행 시 Ansible `community.docker.docker_volume_info`로 legacy mountpoint를 해석하고, 그 안의 `conf.d`/`generated` 내용을 deployment-owned bind mount 경로로 한 번 복사한다. 이후 `.bind-mount-migrated-from-<legacy-volume-name>` marker로 재실행 시 overwrite를 막는다.
 - Nginx 관련 role은 실패 시 target만이 아니라 source도 함께 복원해야 한다. 그렇지 않으면 다음 실행에서 오염된 source가 다시 target으로 승격될 수 있다.
