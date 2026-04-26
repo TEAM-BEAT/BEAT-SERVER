@@ -324,6 +324,7 @@ class RootRetirementContractTest {
 		String dockerignore = read(".dockerignore");
 		String nginxUpdateScript = read("infra/ansible/roles/nginx_config_helper/files/update-nginx-config.py");
 		String foundationPlaybook = read("infra/ansible/playbooks/foundation.yml");
+		String foundationStackTasks = read("infra/ansible/roles/foundation_stack/tasks/main.yml");
 		String foundationComposeTemplate = read("infra/ansible/roles/foundation_stack/templates/foundation.compose.yml.j2");
 		String defaultConfTemplate = read("infra/ansible/roles/nginx_base_config/templates/default.conf.j2");
 		String deployPlaybook = read("infra/ansible/playbooks/deploy.yml");
@@ -411,6 +412,10 @@ class RootRetirementContractTest {
 		assertFalse(appStopStartRunContainer.contains("SPRING_PROFILES_ACTIVE"));
 		assertTrue(foundationPlaybook.contains("role: foundation_stack"));
 		assertTrue(foundationPlaybook.contains("role: nginx_base_config"));
+		assertTrue(foundationStackTasks.contains("project_src: \"{{ deployment_dir }}\""));
+		assertTrue(foundationStackTasks.contains("- docker-compose.yml"));
+		assertFalse(foundationStackTasks.contains("foundation_stack_compose_definition"));
+		assertFalse(foundationStackTasks.contains("definition: \"{{ foundation_stack_compose_definition }}\""));
 		assertTrue(foundationComposeTemplate.contains("services:"));
 		assertTrue(foundationComposeTemplate.contains("container_name: \"{{ nginx_container_name }}\""));
 		assertTrue(foundationComposeTemplate.contains("foundation_mysql_enabled"));

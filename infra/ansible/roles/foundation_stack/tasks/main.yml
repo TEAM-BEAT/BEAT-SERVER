@@ -1,18 +1,17 @@
 ---
-- name: Build foundation compose definition from template
-  ansible.builtin.set_fact:
-    foundation_stack_compose_definition: >-
-      {{
-        lookup('ansible.builtin.template', 'foundation.compose.yml.j2')
-        | from_yaml
-      }}
-  no_log: true
-
 - name: Ensure deployment directory exists
   ansible.builtin.file:
     path: "{{ deployment_dir }}"
     state: directory
     mode: "0755"
+
+- name: Render foundation compose file
+  ansible.builtin.template:
+    src: foundation.compose.yml.j2
+    dest: "{{ deployment_dir }}/docker-compose.yml"
+    mode: "0640"
+    backup: false
+  no_log: true
 
 - name: Ensure deployment Docker network exists
   community.docker.docker_network:
@@ -36,14 +35,6 @@
     state: present
   when: foundation_redis_enabled | default(true)
 
-- name: Render foundation compose file
-  ansible.builtin.template:
-    src: foundation.compose.yml.j2
-    dest: "{{ deployment_dir }}/docker-compose.yml"
-    mode: "0640"
-    backup: false
-  no_log: true
-
 - name: Validate rendered foundation compose
   ansible.builtin.command:
     argv:
@@ -58,7 +49,9 @@
 - name: Ensure foundation stack is present
   community.docker.docker_compose_v2:
     project_name: deployment
-    definition: "{{ foundation_stack_compose_definition }}"
+    project_src: "{{ deployment_dir }}"
+    files:
+      - docker-compose.yml
     state: present
   register: foundation_stack_compose_result
   no_log: true
@@ -69,10 +62,10 @@
       changed: "{{ foundation_stack_compose_result.changed | default(false) }}"
       services: >-
         {{
-          foundation_stack_compose_definition.services
-          | default({})
-          | dict2items
-          | map(attribute='key')
-          | list
+          (
+            ['nginx']
+            + (['mysql'] if foundation_mysql_enabled | default(true) else [])
+            + (['redis'] if foundation_redis_enabled | default(true) else [])
+          )
           | sort
         }}
