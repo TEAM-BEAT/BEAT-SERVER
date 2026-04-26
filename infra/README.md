@@ -301,6 +301,18 @@ placeholder는 `app_bluegreen`(apis)이나 `app_stopstart/admin_nginx_route`(adm
 `upsert-upstream`으로 실제 컨테이너 이름과 포트로 덮어쓴다. inventory에서 host/port를 변경할 수는
 있지만, nginx pre-deploy validation + blackhole 계약을 깨지 않는 값으로만 유지해야 한다.
 
+### Nginx fragment mapping contract
+
+`nginx_fragments` inventory 값은 upstream 이름과 generated fragment 파일명을 묶는 canonical mapping이다.
+`nginx_base_config`, `app_bluegreen`, `app_stopstart/admin_nginx_route`는 `backend.conf` 같은 파일명을
+직접 하드코딩하지 않고 이 mapping의 `fragment_file`을 참조한다. `foundation.yml`, `deploy.yml`,
+`rollback.yml`은 preflight에서 mapping 누락/빈 값/중복 파일명을 즉시 실패시킨다.
+
+운영 중인 host에서 `fragment_file`을 바꾸면 기존 `nginx/generated` source/target fragment와 `.bak`
+복구 경계가 서로 다른 경로를 보게 될 수 있다. 따라서 `nginx_fragments`는 일반 운영 변수라기보다
+read-only contract로 취급하고, 변경이 필요하면 기존 fragment 이동/정리 계획과 함께 별도 마이그레이션으로
+진행한다.
+
 ### Playbook 흐름
 
 ```mermaid

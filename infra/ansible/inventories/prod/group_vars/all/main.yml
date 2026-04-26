@@ -24,6 +24,20 @@ nginx_generated_include_dir: /etc/nginx/generated
 # Keeps nginx -t valid while blackholing accidental traffic until app deploy rewrites it.
 nginx_seed_placeholder_host: "127.0.0.1"
 nginx_seed_placeholder_port: 65535
+# nginx upstream/fragment canonical mapping. Treat as read-only after foundation is applied:
+# changing fragment_file values can orphan existing generated fragments on hosts.
+nginx_fragments:
+  backend:
+    upstream_name: "{{ backend_upstream_name | default('backend') }}"
+    fragment_file: backend.conf
+  admin:
+    upstream_name: "{{ admin_upstream_name | default('admin_backend') }}"
+    fragment_file: admin_backend.conf
+  actuator:
+    upstream_name: "{{ actuator_upstream_name | default('actuator') }}"
+    fragment_file: actuator.conf
+  route:
+    fragment_file: 10-managed.conf
 
 mysql_image: mysql:8.4.5
 mysql_container_name: mysql

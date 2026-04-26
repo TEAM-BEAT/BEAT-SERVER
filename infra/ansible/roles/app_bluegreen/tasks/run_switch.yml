@@ -6,10 +6,10 @@
 - name: Resolve blue-green rollout paths
   ansible.builtin.set_fact:
     app_bluegreen_active_slot_file: "{{ release_dir }}/current-slot"
-    app_bluegreen_backend_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/backend.conf"
-    app_bluegreen_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/backend.conf"
-    app_bluegreen_actuator_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/actuator.conf"
-    app_bluegreen_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/actuator.conf"
+    app_bluegreen_backend_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/{{ nginx_fragments.backend.fragment_file }}"
+    app_bluegreen_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/{{ nginx_fragments.backend.fragment_file }}"
+    app_bluegreen_actuator_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/{{ nginx_fragments.actuator.fragment_file }}"
+    app_bluegreen_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/{{ nginx_fragments.actuator.fragment_file }}"
 
 - name: Ensure release directory exists for blue-green rollout
   ansible.builtin.file:
@@ -204,7 +204,7 @@
                 - --path
                 - "{{ app_bluegreen_actuator_upstream_source_path }}"
                 - --upstream-name
-                - "{{ actuator_upstream_name }}"
+                - "{{ nginx_fragments.actuator.upstream_name }}"
                 - --container-name
                 - "{{ app_bluegreen_target_container }}"
                 - --backend-port

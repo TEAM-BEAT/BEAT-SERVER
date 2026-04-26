@@ -1,0 +1,30 @@
+---
+- name: Collect nginx fragment filenames
+  ansible.builtin.set_fact:
+    nginx_fragment_files: "{{ nginx_fragments | dict2items | map(attribute='value.fragment_file') | list }}"
+  tags:
+    - always
+    - validate
+    - preflight
+
+- name: Validate nginx fragments mapping invariant
+  ansible.builtin.assert:
+    that:
+      - nginx_fragments is mapping
+      - nginx_fragments.backend.upstream_name | default('') | length > 0
+      - nginx_fragments.backend.fragment_file | default('') | length > 0
+      - nginx_fragments.admin.upstream_name | default('') | length > 0
+      - nginx_fragments.admin.fragment_file | default('') | length > 0
+      - nginx_fragments.actuator.upstream_name | default('') | length > 0
+      - nginx_fragments.actuator.fragment_file | default('') | length > 0
+      - nginx_fragments.route.fragment_file | default('') | length > 0
+      - (nginx_fragment_files | unique | list | length) == (nginx_fragment_files | length)
+      - modules.apis.backend_upstream_name | default(nginx_fragments.backend.upstream_name) == nginx_fragments.backend.upstream_name
+      - modules.admin.nginx_route.upstream_name | default(nginx_fragments.admin.upstream_name) == nginx_fragments.admin.upstream_name
+      - admin_upstream_name | default(nginx_fragments.admin.upstream_name) == nginx_fragments.admin.upstream_name
+      - actuator_upstream_name | default(nginx_fragments.actuator.upstream_name) == nginx_fragments.actuator.upstream_name
+    fail_msg: "nginx_fragments mapping has invalid or duplicate entries"
+  tags:
+    - always
+    - validate
+    - preflight

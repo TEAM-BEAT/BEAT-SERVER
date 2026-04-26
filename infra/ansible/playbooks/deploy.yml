@@ -30,6 +30,13 @@
         - always
         - validate
 
+    - name: Validate nginx fragments mapping invariant
+      ansible.builtin.import_tasks: tasks/validate_nginx_fragments.yml
+      tags:
+        - always
+        - validate
+        - preflight
+
     - name: Stat foundation marker
       ansible.builtin.stat:
         path: "{{ foundation_marker_path }}"

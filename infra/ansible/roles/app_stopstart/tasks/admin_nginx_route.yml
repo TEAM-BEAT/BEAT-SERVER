@@ -5,10 +5,10 @@
 
 - name: Resolve admin nginx fragment paths
   ansible.builtin.set_fact:
-    app_stopstart_admin_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/admin_backend.conf"
-    app_stopstart_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/admin_backend.conf"
-    app_stopstart_admin_route_source_path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
-    app_stopstart_admin_route_target_path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+    app_stopstart_admin_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/{{ nginx_fragments.admin.fragment_file }}"
+    app_stopstart_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/{{ nginx_fragments.admin.fragment_file }}"
+    app_stopstart_admin_route_source_path: "{{ nginx_generated_source_dir }}/routes/{{ nginx_fragments.route.fragment_file }}"
+    app_stopstart_admin_route_target_path: "{{ nginx_generated_target_dir }}/routes/{{ nginx_fragments.route.fragment_file }}"
 
 - name: Build admin nginx route transaction plan
   ansible.builtin.set_fact:

@@ -252,6 +252,7 @@ class RootRetirementContractTest {
 		String foundationPlaybook = read("infra/ansible/playbooks/foundation.yml");
 		String deployPlaybook = read("infra/ansible/playbooks/deploy.yml");
 		String rollbackPlaybook = read("infra/ansible/playbooks/rollback.yml");
+		String nginxFragmentsPreflight = read("infra/ansible/playbooks/tasks/validate_nginx_fragments.yml");
 		String infraReadme = read("infra/README.md");
 
 		assertTrue(ansibleExecWorkflow.contains("connection_module:"));
@@ -259,6 +260,7 @@ class RootRetirementContractTest {
 			"module: ${{ inputs.connection_module != '' && inputs.connection_module || inputs.module }}"));
 
 		assertTrue(foundationPlaybook.contains("foundation_marker_path: \"{{ deployment_dir }}/.foundation-applied\""));
+		assertTrue(foundationPlaybook.contains("tasks/validate_nginx_fragments.yml"));
 		assertTrue(foundationPlaybook.contains("post_tasks:"));
 		assertTrue(foundationPlaybook.contains("name: Mark foundation as applied"));
 		assertTrue(foundationPlaybook.contains("applied_at: {{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}"));
@@ -271,6 +273,7 @@ class RootRetirementContractTest {
 		assertBefore(foundationPlaybook, "role: nginx_base_config", "name: Mark foundation as applied");
 
 		assertTrue(deployPlaybook.contains("foundation_marker_path: \"{{ deployment_dir }}/.foundation-applied\""));
+		assertTrue(deployPlaybook.contains("tasks/validate_nginx_fragments.yml"));
 		assertTrue(deployPlaybook.contains("name: Stat foundation marker"));
 		assertTrue(deployPlaybook.contains("register: deploy_foundation_marker_stat"));
 		assertTrue(deployPlaybook.contains("name: Read foundation marker for diagnostics"));
@@ -282,6 +285,7 @@ class RootRetirementContractTest {
 		assertBefore(deployPlaybook, "name: Stat foundation marker", "role: app_secret");
 
 		assertTrue(rollbackPlaybook.contains("foundation_marker_path: \"{{ deployment_dir }}/.foundation-applied\""));
+		assertTrue(rollbackPlaybook.contains("tasks/validate_nginx_fragments.yml"));
 		assertTrue(rollbackPlaybook.contains("name: Stat foundation marker"));
 		assertTrue(rollbackPlaybook.contains("register: rollback_foundation_marker_stat"));
 		assertTrue(rollbackPlaybook.contains("name: Read foundation marker for diagnostics"));
@@ -316,6 +320,11 @@ class RootRetirementContractTest {
 		assertTrue(infraReadme.contains("applied_at`, `commit_sha`, `deploy_environment`"));
 		assertTrue(infraReadme.contains("DEV_FOUNDATION_CONNECTION_MODULE"));
 		assertTrue(infraReadme.contains("PROD_FOUNDATION_CONNECTION_MODULE"));
+		assertTrue(nginxFragmentsPreflight.contains("nginx_fragments is mapping"));
+		assertTrue(nginxFragmentsPreflight.contains("nginx_fragments mapping has invalid or duplicate entries"));
+		assertTrue(nginxFragmentsPreflight.contains("nginx_fragment_files | unique | list | length"));
+		assertTrue(nginxFragmentsPreflight.contains("modules.apis.backend_upstream_name"));
+		assertTrue(nginxFragmentsPreflight.contains("modules.admin.nginx_route.upstream_name"));
 	}
 
 	@Test
@@ -512,18 +521,42 @@ class RootRetirementContractTest {
 		assertTrue(infraReadme.contains("Seed placeholder upstreams"));
 		assertTrue(infraReadme.contains("nginx_seed_placeholder_host:nginx_seed_placeholder_port"));
 		assertTrue(infraReadme.contains("127.0.0.1:65535"));
+		assertTrue(infraReadme.contains("Nginx fragment mapping contract"));
+		assertTrue(infraReadme.contains("nginx_fragments"));
+		assertTrue(infraReadme.contains("read-only contract"));
 		assertTrue(devInventory.contains("nginx_seed_placeholder_host: \"127.0.0.1\""));
 		assertTrue(devInventory.contains("nginx_seed_placeholder_port: 65535"));
+		assertTrue(devInventory.contains("nginx_fragments:"));
+		assertTrue(devInventory.contains("fragment_file: backend.conf"));
+		assertTrue(devInventory.contains("fragment_file: admin_backend.conf"));
+		assertTrue(devInventory.contains("fragment_file: actuator.conf"));
+		assertTrue(devInventory.contains("fragment_file: 10-managed.conf"));
 		assertTrue(prodInventory.contains("nginx_seed_placeholder_host: \"127.0.0.1\""));
 		assertTrue(prodInventory.contains("nginx_seed_placeholder_port: 65535"));
+		assertTrue(prodInventory.contains("nginx_fragments:"));
 		assertTrue(nginxBaseConfig.contains("nginx_base_config_transaction_operations"));
 		assertTrue(nginxBaseConfig.contains("sync-backend-upstream-target"));
 		assertFalse(nginxBaseConfig.contains("nginx_base_config_upstream_target_sync_result is defined"));
 		assertTrue(nginxBaseConfig.contains("nginx_seed_placeholder_host"));
 		assertTrue(nginxBaseConfig.contains("nginx_seed_placeholder_port"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.backend.fragment_file"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.admin.fragment_file"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.actuator.fragment_file"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.route.fragment_file"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.backend.upstream_name"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.admin.upstream_name"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.actuator.upstream_name"));
 		assertFalse(nginxBaseConfig.contains("- \"127.0.0.1\"\n"
 			+ "            - --backend-port\n"
 			+ "            - \"65535\""));
+		assertFalse(nginxBaseConfig.contains("/upstreams/backend.conf\""));
+		assertFalse(nginxBaseConfig.contains("/upstreams/admin_backend.conf\""));
+		assertFalse(nginxBaseConfig.contains("/upstreams/actuator.conf\""));
+		assertFalse(nginxBaseConfig.contains("/routes/10-managed.conf\""));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragments.backend.fragment_file"));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragments.actuator.fragment_file"));
+		assertFalse(appBluegreenRunSwitch.contains("/upstreams/backend.conf\""));
+		assertFalse(appBluegreenRunSwitch.contains("/upstreams/actuator.conf\""));
 		assertBefore(
 			appBluegreenRunSwitch,
 			"nginx_fragment_transaction_operations:",
@@ -549,8 +582,10 @@ class RootRetirementContractTest {
 		assertTrue(adminNginxRoute.contains("ensure-route"));
 		assertTrue(adminNginxRoute.contains("sync-admin-upstream-target"));
 		assertTrue(adminNginxRoute.contains("sync-admin-route-target"));
-		assertTrue(adminNginxRoute.contains("routes/10-managed.conf"));
-		assertTrue(adminNginxRoute.contains("upstreams/admin_backend.conf"));
+		assertTrue(adminNginxRoute.contains("nginx_fragments.admin.fragment_file"));
+		assertTrue(adminNginxRoute.contains("nginx_fragments.route.fragment_file"));
+		assertFalse(adminNginxRoute.contains("/upstreams/admin_backend.conf\""));
+		assertFalse(adminNginxRoute.contains("/routes/10-managed.conf\""));
 		assertFalse(adminNginxRoute.contains("backend-upstream-source"));
 		assertFalse(adminNginxRoute.contains("backend-upstream-target"));
 		assertFalse(adminNginxRoute.contains("actuator-upstream-source"));

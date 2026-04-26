@@ -5,14 +5,14 @@
 
 - name: Resolve generated nginx fragment paths
   ansible.builtin.set_fact:
-    nginx_backend_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/backend.conf"
-    nginx_admin_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/admin_backend.conf"
-    nginx_actuator_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/actuator.conf"
-    nginx_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/backend.conf"
-    nginx_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/admin_backend.conf"
-    nginx_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/actuator.conf"
-    nginx_route_source_path: "{{ nginx_generated_source_dir }}/routes/10-managed.conf"
-    nginx_route_target_path: "{{ nginx_generated_target_dir }}/routes/10-managed.conf"
+    nginx_backend_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/{{ nginx_fragments.backend.fragment_file }}"
+    nginx_admin_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/{{ nginx_fragments.admin.fragment_file }}"
+    nginx_actuator_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/{{ nginx_fragments.actuator.fragment_file }}"
+    nginx_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/{{ nginx_fragments.backend.fragment_file }}"
+    nginx_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/{{ nginx_fragments.admin.fragment_file }}"
+    nginx_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/{{ nginx_fragments.actuator.fragment_file }}"
+    nginx_route_source_path: "{{ nginx_generated_source_dir }}/routes/{{ nginx_fragments.route.fragment_file }}"
+    nginx_route_target_path: "{{ nginx_generated_target_dir }}/routes/{{ nginx_fragments.route.fragment_file }}"
 
 - name: Ensure nginx candidate directory exists
   ansible.builtin.file:
@@ -157,7 +157,7 @@
             - --path
             - "{{ nginx_backend_upstream_source_path }}"
             - --upstream-name
-            - "{{ backend_upstream_name | default('backend') }}"
+            - "{{ nginx_fragments.backend.upstream_name }}"
             - --container-name
             - "{{ nginx_seed_placeholder_host }}"
             - --backend-port
@@ -180,7 +180,7 @@
             - --path
             - "{{ nginx_admin_upstream_source_path }}"
             - --upstream-name
-            - "{{ admin_upstream_name | default('admin_backend') }}"
+            - "{{ nginx_fragments.admin.upstream_name }}"
             - --container-name
             - "{{ nginx_seed_placeholder_host }}"
             - --backend-port
@@ -203,7 +203,7 @@
             - --path
             - "{{ nginx_actuator_upstream_source_path }}"
             - --upstream-name
-            - "{{ actuator_upstream_name | default('actuator') }}"
+            - "{{ nginx_fragments.actuator.upstream_name }}"
             - --container-name
             - "{{ nginx_seed_placeholder_host }}"
             - --backend-port
@@ -224,7 +224,7 @@
             - --path
             - "{{ nginx_route_source_path }}"
             - --upstream-name
-            - "{{ admin_upstream_name | default('admin_backend') }}"
+            - "{{ nginx_fragments.admin.upstream_name }}"
             - --external-path
             - "{{ modules.admin.nginx_route.external_path | default('/admin') }}"
             - --upstream-path
