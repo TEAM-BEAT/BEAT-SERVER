@@ -344,6 +344,8 @@ class RootRetirementContractTest {
 		String deployDev = read(".github/workflows/deploy-dev.yml");
 		String deployProd = read(".github/workflows/deploy-prod.yml");
 		String rollbackProd = read(".github/workflows/rollback-prod.yml");
+		String devInventory = read("infra/ansible/inventories/dev/group_vars/all/main.yml");
+		String prodInventory = read("infra/ansible/inventories/prod/group_vars/all/main.yml");
 
 		assertTrue(Files.exists(Path.of("infra/ansible/playbooks/deploy.yml")));
 		assertTrue(Files.exists(Path.of("infra/ansible/playbooks/rollback.yml")));
@@ -502,9 +504,21 @@ class RootRetirementContractTest {
 		assertTrue(infraReadme.contains("created_at`은 원격 EC2의 시스템 시간이 아니라 controller UTC"));
 		assertTrue(infraReadme.contains("SSH pipelining + sudo `requiretty` caveat"));
 		assertTrue(infraReadme.contains("Defaults requiretty"));
+		assertTrue(infraReadme.contains("Seed placeholder upstreams"));
+		assertTrue(infraReadme.contains("nginx_seed_placeholder_host:nginx_seed_placeholder_port"));
+		assertTrue(infraReadme.contains("127.0.0.1:65535"));
+		assertTrue(devInventory.contains("nginx_seed_placeholder_host: \"127.0.0.1\""));
+		assertTrue(devInventory.contains("nginx_seed_placeholder_port: 65535"));
+		assertTrue(prodInventory.contains("nginx_seed_placeholder_host: \"127.0.0.1\""));
+		assertTrue(prodInventory.contains("nginx_seed_placeholder_port: 65535"));
 		assertTrue(nginxBaseConfig.contains("nginx_base_config_transaction_operations"));
 		assertTrue(nginxBaseConfig.contains("sync-backend-upstream-target"));
 		assertFalse(nginxBaseConfig.contains("nginx_base_config_upstream_target_sync_result is defined"));
+		assertTrue(nginxBaseConfig.contains("nginx_seed_placeholder_host"));
+		assertTrue(nginxBaseConfig.contains("nginx_seed_placeholder_port"));
+		assertFalse(nginxBaseConfig.contains("- \"127.0.0.1\"\n"
+			+ "            - --backend-port\n"
+			+ "            - \"65535\""));
 		assertBefore(
 			appBluegreenRunSwitch,
 			"nginx_fragment_transaction_operations:",

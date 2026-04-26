@@ -20,6 +20,10 @@ nginx_access_log_format_name: custom
 actuator_upstream_name: actuator
 foundation_manage_nginx: true
 nginx_generated_include_dir: /etc/nginx/generated
+# nginx upstream seed placeholder used by nginx_base_config before any app is deployed.
+# Keeps nginx -t valid while blackholing accidental traffic until app deploy rewrites it.
+nginx_seed_placeholder_host: "127.0.0.1"
+nginx_seed_placeholder_port: 65535
 
 mysql_image: mysql:8.4.5
 mysql_container_name: mysql

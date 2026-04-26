@@ -143,6 +143,8 @@
           src: "{{ role_path }}/templates/default.conf.j2"
           mode: "0644"
         affects_reload: false
+      # Seed placeholder upstream so nginx -t passes before any module is deployed.
+      # upsert-upstream rewrites this with the real container at first deploy.
       - id: seed-backend-upstream
         name: Seed backend upstream marker in source fragment
         kind: command
@@ -157,13 +159,15 @@
             - --upstream-name
             - "{{ backend_upstream_name | default('backend') }}"
             - --container-name
-            - "127.0.0.1"
+            - "{{ nginx_seed_placeholder_host }}"
             - --backend-port
-            - "65535"
+            - "{{ nginx_seed_placeholder_port | string }}"
         changed_if:
           stdout_json:
             changed: true
         affects_reload: false
+      # Seed placeholder upstream so nginx -t passes before any module is deployed.
+      # upsert-upstream rewrites this with the real container at first deploy.
       - id: seed-admin-upstream
         name: Seed admin upstream marker in source fragment
         kind: command
@@ -178,13 +182,15 @@
             - --upstream-name
             - "{{ admin_upstream_name | default('admin_backend') }}"
             - --container-name
-            - "127.0.0.1"
+            - "{{ nginx_seed_placeholder_host }}"
             - --backend-port
-            - "65535"
+            - "{{ nginx_seed_placeholder_port | string }}"
         changed_if:
           stdout_json:
             changed: true
         affects_reload: false
+      # Seed placeholder upstream so nginx -t passes before any module is deployed.
+      # upsert-upstream rewrites this with the real container at first deploy.
       - id: seed-actuator-upstream
         name: Seed actuator upstream marker in source fragment
         kind: command
@@ -199,9 +205,9 @@
             - --upstream-name
             - "{{ actuator_upstream_name | default('actuator') }}"
             - --container-name
-            - "127.0.0.1"
+            - "{{ nginx_seed_placeholder_host }}"
             - --backend-port
-            - "65535"
+            - "{{ nginx_seed_placeholder_port | string }}"
         changed_if:
           stdout_json:
             changed: true

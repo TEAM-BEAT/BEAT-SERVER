@@ -286,6 +286,21 @@ infra/ansible/
 - `deploy-dev.yml`과 `deploy-prod.yml`은 deploy job 전에 `foundation` job을 실행한다. reusable workflow `_ansible-exec.yml`에 `module: foundation`을 전달하되, SSH metadata resolver는 현재 단일 host inventory contract를 재사용하기 위해 `connection_module`을 조회한다. 기본값은 `apis`이며, inventory 대표 호스트가 바뀌면 GitHub environment/repository variable `DEV_FOUNDATION_CONNECTION_MODULE` / `PROD_FOUNDATION_CONNECTION_MODULE`로 `${connection_module}_servers` 조회 대상을 바꾼다.
 - foundation job과 deploy/rollback job은 각각 기존 `deploy-dev-runtime-${{ github.ref }}` / `prod-runtime` concurrency group을 공유하므로 foundation, deploy, rollback이 같은 런타임에서 겹치지 않는다.
 
+### Seed placeholder upstreams
+
+`nginx_base_config`는 첫 foundation 실행 시 backend/admin/actuator upstream fragment가 없으면
+`nginx_seed_placeholder_host:nginx_seed_placeholder_port`(기본 `127.0.0.1:65535`)를 가리키는
+placeholder upstream을 생성한다. 이는 다음 두 가지를 보장한다.
+
+1. **`nginx -t` 통과**: nginx가 시작하려면 모든 referenced upstream이 정의되어 있어야 한다.
+   placeholder가 없으면 첫 deploy 전 nginx 부팅/검증이 실패한다.
+2. **Blackhole 동작**: `127.0.0.1:65535`는 의도적으로 도달 불가능한 endpoint다.
+   placeholder가 실수로 트래픽을 받더라도 실제 애플리케이션으로 라우팅되지 않는다.
+
+placeholder는 `app_bluegreen`(apis)이나 `app_stopstart/admin_nginx_route`(admin)이 첫 배포될 때
+`upsert-upstream`으로 실제 컨테이너 이름과 포트로 덮어쓴다. inventory에서 host/port를 변경할 수는
+있지만, nginx pre-deploy validation + blackhole 계약을 깨지 않는 값으로만 유지해야 한다.
+
 ### Playbook 흐름
 
 ```mermaid
