@@ -245,6 +245,80 @@ class RootRetirementContractTest {
 	}
 
 	@Test
+	void foundationMarkerContractProtectsDeployAndRollback() throws Exception {
+		String ansibleExecWorkflow = read(".github/workflows/_ansible-exec.yml");
+		String deployDev = read(".github/workflows/deploy-dev.yml");
+		String deployProd = read(".github/workflows/deploy-prod.yml");
+		String foundationPlaybook = read("infra/ansible/playbooks/foundation.yml");
+		String deployPlaybook = read("infra/ansible/playbooks/deploy.yml");
+		String rollbackPlaybook = read("infra/ansible/playbooks/rollback.yml");
+		String infraReadme = read("infra/README.md");
+
+		assertTrue(ansibleExecWorkflow.contains("connection_module:"));
+		assertTrue(ansibleExecWorkflow.contains(
+			"module: ${{ inputs.connection_module != '' && inputs.connection_module || inputs.module }}"));
+
+		assertTrue(foundationPlaybook.contains("foundation_marker_path: \"{{ deployment_dir }}/.foundation-applied\""));
+		assertTrue(foundationPlaybook.contains("post_tasks:"));
+		assertTrue(foundationPlaybook.contains("name: Mark foundation as applied"));
+		assertTrue(foundationPlaybook.contains("applied_at: {{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}"));
+		assertTrue(foundationPlaybook.contains("commit_sha: {{ commit_sha | default('unknown') }}"));
+		assertTrue(foundationPlaybook.contains("deploy_environment: {{ deploy_environment }}"));
+		assertTrue(foundationPlaybook.contains("foundation_mysql_enabled: {{ foundation_mysql_enabled | default(true) }}"));
+		assertTrue(foundationPlaybook.contains("foundation_redis_enabled: {{ foundation_redis_enabled | default(true) }}"));
+		assertTrue(foundationPlaybook.contains("foundation_manage_nginx: {{ foundation_manage_nginx | default(false) }}"));
+		assertBefore(foundationPlaybook, "role: foundation_stack", "name: Mark foundation as applied");
+		assertBefore(foundationPlaybook, "role: nginx_base_config", "name: Mark foundation as applied");
+
+		assertTrue(deployPlaybook.contains("foundation_marker_path: \"{{ deployment_dir }}/.foundation-applied\""));
+		assertTrue(deployPlaybook.contains("name: Stat foundation marker"));
+		assertTrue(deployPlaybook.contains("register: deploy_foundation_marker_stat"));
+		assertTrue(deployPlaybook.contains("name: Read foundation marker for diagnostics"));
+		assertTrue(deployPlaybook.contains("register: deploy_foundation_marker_raw"));
+		assertTrue(deployPlaybook.contains("name: Abort deploy when foundation is not applied"));
+		assertTrue(deployPlaybook.contains("Foundation has not been applied on host {{ inventory_hostname }}."));
+		assertTrue(deployPlaybook.contains("Or trigger the foundation step on GitHub Actions before retrying deploy."));
+		assertTrue(deployPlaybook.contains("name: Report foundation marker contents"));
+		assertBefore(deployPlaybook, "name: Stat foundation marker", "role: app_secret");
+
+		assertTrue(rollbackPlaybook.contains("foundation_marker_path: \"{{ deployment_dir }}/.foundation-applied\""));
+		assertTrue(rollbackPlaybook.contains("name: Stat foundation marker"));
+		assertTrue(rollbackPlaybook.contains("register: rollback_foundation_marker_stat"));
+		assertTrue(rollbackPlaybook.contains("name: Read foundation marker for diagnostics"));
+		assertTrue(rollbackPlaybook.contains("register: rollback_foundation_marker_raw"));
+		assertTrue(rollbackPlaybook.contains("name: Abort rollback when foundation is not applied"));
+		assertTrue(rollbackPlaybook.contains("Or trigger the foundation step on GitHub Actions before retrying rollback."));
+		assertTrue(rollbackPlaybook.contains("name: Report foundation marker contents"));
+		assertBefore(rollbackPlaybook, "name: Stat foundation marker", "role: app_rollback");
+
+		assertBefore(deployDev, "\n  foundation:", "\n  deploy:");
+		assertTrue(deployDev.contains("  foundation:\n    needs:\n      - detect-changes\n      - verify\n      - build-image"));
+		assertTrue(deployDev.contains("module: foundation"));
+		assertTrue(deployDev.contains("connection_module: ${{ vars.DEV_FOUNDATION_CONNECTION_MODULE || 'apis' }}"));
+		assertTrue(deployDev.contains("playbook: playbooks/foundation.yml"));
+		assertTrue(deployDev.contains("commit_sha: ${{ github.sha }}"));
+		assertTrue(deployDev.contains("checkout_ref: ${{ github.sha }}"));
+		assertTrue(deployDev.contains("      - build-image\n      - foundation\n    if: needs.detect-changes.outputs.has_modules == 'true'"));
+		assertTrue(deployDev.contains("group: deploy-dev-runtime-${{ github.ref }}"));
+
+		assertBefore(deployProd, "\n  foundation:", "\n  deploy:");
+		assertTrue(deployProd.contains("  foundation:\n    needs:\n      - resolve-release\n      - verify\n      - build-image"));
+		assertTrue(deployProd.contains("module: foundation"));
+		assertTrue(deployProd.contains("connection_module: ${{ vars.PROD_FOUNDATION_CONNECTION_MODULE || 'apis' }}"));
+		assertTrue(deployProd.contains("playbook: playbooks/foundation.yml"));
+		assertTrue(deployProd.contains("commit_sha: ${{ needs.resolve-release.outputs.commit_sha }}"));
+		assertTrue(deployProd.contains("checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}"));
+		assertTrue(deployProd.contains("      - build-image\n      - foundation\n    concurrency:\n      group: prod-runtime"));
+		assertTrue(deployProd.contains("group: prod-runtime"));
+
+		assertTrue(infraReadme.contains("Foundation marker contract"));
+		assertTrue(infraReadme.contains("{{ deployment_dir }}/.foundation-applied"));
+		assertTrue(infraReadme.contains("applied_at`, `commit_sha`, `deploy_environment`"));
+		assertTrue(infraReadme.contains("DEV_FOUNDATION_CONNECTION_MODULE"));
+		assertTrue(infraReadme.contains("PROD_FOUNDATION_CONNECTION_MODULE"));
+	}
+
+	@Test
 	void deploymentInfraUsesRepoOwnedHelpersAndConfiguredModuleContracts() throws Exception {
 		String dockerfileModule = read("Dockerfile.module");
 		String dockerignore = read(".dockerignore");

@@ -7,6 +7,7 @@
   vars:
     module_cfg: "{{ modules[module] }}"
     release_dir: "{{ release_root }}/{{ module }}"
+    foundation_marker_path: "{{ deployment_dir }}/.foundation-applied"
     network_health_max_attempts: 30
     network_health_sleep_seconds: 2
     service_smoke_max_attempts: 15
@@ -25,6 +26,48 @@
       tags:
         - always
         - validate
+
+    - name: Stat foundation marker
+      ansible.builtin.stat:
+        path: "{{ foundation_marker_path }}"
+      register: rollback_foundation_marker_stat
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Read foundation marker for diagnostics
+      ansible.builtin.slurp:
+        src: "{{ foundation_marker_path }}"
+      register: rollback_foundation_marker_raw
+      when: rollback_foundation_marker_stat.stat.exists
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Abort rollback when foundation is not applied
+      ansible.builtin.fail:
+        msg:
+          - "Foundation has not been applied on host {{ inventory_hostname }}."
+          - "Marker missing: {{ foundation_marker_path }}"
+          - "Run foundation first via:"
+          - "  ansible-playbook playbooks/foundation.yml -i {{ (ansible_inventory_sources | default(['inventories/dev/hosts.yml'])) | first }}"
+          - "Or trigger the foundation step on GitHub Actions before retrying rollback."
+      when: not rollback_foundation_marker_stat.stat.exists
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Report foundation marker contents
+      ansible.builtin.debug:
+        msg: "Foundation applied: {{ rollback_foundation_marker_raw.content | b64decode }}"
+      when: rollback_foundation_marker_stat.stat.exists
+      tags:
+        - always
+        - validate
+        - preflight
 
   roles:
     - role: app_rollback

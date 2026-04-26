@@ -179,11 +179,41 @@ jobs:
           docker push "${{ steps.image.outputs.image }}"
           docker push "${{ steps.image.outputs.latest }}"
 
+  foundation:
+    needs:
+      - detect-changes
+      - verify
+      - build-image
+    if: needs.detect-changes.outputs.has_modules == 'true'
+    concurrency:
+      group: deploy-dev-runtime-${{ github.ref }}
+      cancel-in-progress: false
+    uses: ./.github/workflows/_ansible-exec.yml
+    with:
+      environment_name: dev
+      module: foundation
+      connection_module: ${{ vars.DEV_FOUNDATION_CONNECTION_MODULE || 'apis' }}
+      playbook: playbooks/foundation.yml
+      inventory_path: inventories/dev/hosts.yml
+      success_title: Foundation Dev Succeeded
+      failure_title: Foundation Dev Failed
+      notify_description: |
+        Foundation stack
+        Actor: ${{ github.actor }}
+        Commit: ${{ github.sha }}
+      commit_sha: ${{ github.sha }}
+      checkout_ref: ${{ github.sha }}
+    secrets:
+      ssh_private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+      sops_age_key: ${{ secrets.AGE_SECRET_KEY }}
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
   deploy:
     needs:
       - detect-changes
       - verify
       - build-image
+      - foundation
     if: needs.detect-changes.outputs.has_modules == 'true'
     concurrency:
       group: deploy-dev-runtime-${{ github.ref }}
@@ -208,6 +238,7 @@ jobs:
       image_tag: dev-${{ github.sha }}
       commit_sha: ${{ github.sha }}
       deploy_actor: ${{ github.actor }}
+      commit_sha: ${{ github.sha }}
       checkout_ref: ${{ github.sha }}
     secrets:
       ssh_private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}

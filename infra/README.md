@@ -183,12 +183,14 @@ flowchart LR
     B -->|"shared/** 변경"| E["matrix: all"]
     C & D & E --> F["verify<br/>(Gradle 테스트)"]
     F --> G["build-image<br/>(Docker 병렬 빌드)"]
-    G --> H["deploy<br/>(Ansible 순차 실행)"]
-    H --> I["Slack 알림"]
+    G --> H["foundation<br/>(Ansible 기반 스택 확인)"]
+    H --> I["deploy<br/>(Ansible 순차 실행)"]
+    I --> J["Slack 알림"]
 ```
 
 - `shared` 경로(domain, gateway, build-logic, gradle 등) 변경 시 **전체 모듈** 배포
 - 이미지 태그: `dev-${GITHUB_SHA}`
+- foundation job은 build-image 이후 deploy 전에 실행되며, deploy와 같은 `deploy-dev-runtime-${{ github.ref }}` concurrency group을 사용하고 `needs: foundation`으로 marker 생성을 강제한다
 - deploy job은 `max-parallel: 1` — nginx 설정 충돌 방지
 
 ### Ansible lint / secret-aware 검증
@@ -214,8 +216,9 @@ flowchart LR
     C --> D["verify<br/>checkout by commit SHA"]
     D --> E["build-image<br/>apis/admin/batch<br/>checkout by commit SHA"]
     E --> F["docker push<br/>tag: $release_tag + prod-latest"]
-    F --> G["deploy<br/>(Ansible, module sequential,<br/>checkout_ref = commit SHA)"]
-    G --> H["Slack 알림"]
+    F --> G["foundation<br/>(checkout_ref = commit SHA)"]
+    G --> H["deploy<br/>(Ansible, module sequential,<br/>checkout_ref = commit SHA)"]
+    H --> I["Slack 알림"]
 ```
 
 - `github.event.release.tag_name` 을 **prod 공통 버전 source**로 사용
@@ -225,7 +228,7 @@ flowchart LR
 - deploy 단계는 `max-parallel: 1` 로 모듈을 순차 배포
 - `release-drafter.yml` 은 draft release 갱신용이며, **실제 prod deploy trigger는 published release** 뿐이다
 - `rollback-prod.yml` 은 계속 **수동 workflow_dispatch** 로 유지
-- `concurrency: prod-runtime` — prod 배포/롤백은 동시에 1개만
+- foundation/deploy/rollback은 모두 `concurrency: prod-runtime` — prod 런타임 변경은 동시에 1개만
 - resolver는 `ansible-inventory`로 대상 host/group를 선택하고, `community.sops` 환경에서 `ansible-inventory --host` 결과에 `ENC[...]` 가 남을 수 있기 때문에 평문이 필요한 `ssh_host / ssh_port / ssh_host_fingerprint`만 임시 `ansible-playbook`으로 materialize 한다
 - `_ansible-exec.yml` 은 inventory resolver 성공을 전제로 하며, prod caller 쪽 legacy SSH fallback은 두지 않는다
 
@@ -274,6 +277,15 @@ infra/ansible/
 - foundation / nginx 템플릿도 전역 `templates/`가 아니라 각 role의 `templates/` 안에서 관리한다.
 - `deploy.yml`은 blue-green 모듈에서 `app_bluegreen`을 직접 import하고, `app_rollback`은 상대 `import_tasks` 대신 `import_role` + 명시적 vars 전달 구조를 사용한다.
 
+### Foundation marker contract
+
+- `foundation.yml`은 `foundation_stack`과 선택적 `nginx_base_config`가 모두 성공한 뒤 `{{ deployment_dir }}/.foundation-applied` marker를 생성한다.
+- marker는 foundation의 마지막 `post_tasks`에서 쓰이므로, foundation 도중 실패하면 새 marker가 생성되지 않는다. inventory나 foundation 변수 변경 후에는 `foundation.yml`을 다시 실행해 marker를 갱신한다.
+- marker 내용은 YAML 형식이며 `applied_at`, `commit_sha`, `deploy_environment`, `foundation_mysql_enabled`, `foundation_redis_enabled`, `foundation_manage_nginx`를 기록한다.
+- `deploy.yml`과 `rollback.yml`은 앱 role을 실행하기 전에 같은 marker를 `stat`/`slurp`로 확인한다. marker가 없으면 foundation이 적용되지 않은 host로 보고 즉시 실패하고, marker가 있으면 내용을 diagnostic log로 출력한다.
+- `deploy-dev.yml`과 `deploy-prod.yml`은 deploy job 전에 `foundation` job을 실행한다. reusable workflow `_ansible-exec.yml`에 `module: foundation`을 전달하되, SSH metadata resolver는 현재 단일 host inventory contract를 재사용하기 위해 `connection_module`을 조회한다. 기본값은 `apis`이며, inventory 대표 호스트가 바뀌면 GitHub environment/repository variable `DEV_FOUNDATION_CONNECTION_MODULE` / `PROD_FOUNDATION_CONNECTION_MODULE`로 `${connection_module}_servers` 조회 대상을 바꾼다.
+- foundation job과 deploy/rollback job은 각각 기존 `deploy-dev-runtime-${{ github.ref }}` / `prod-runtime` concurrency group을 공유하므로 foundation, deploy, rollback이 같은 런타임에서 겹치지 않는다.
+
 ### Playbook 흐름
 
 ```mermaid
@@ -281,11 +293,13 @@ flowchart TD
     subgraph Foundation["foundation.yml"]
         FS["foundation_stack<br/>nginx + mysql + redis"]
         NBC["nginx_base_config<br/>설정 렌더링 + seed"]
-        FS --> NBC
+        MARK[".foundation-applied<br/>post_tasks marker"]
+        FS --> NBC --> MARK
     end
 
     subgraph Deploy["deploy.yml"]
         VAL["pre_tasks: validate"]
+        FM["pre_tasks: foundation marker check"]
         SEC["app_secret<br/>SOPS 복호화"]
         SCR["app_scripts<br/>유틸리티 배포"]
         REL["app_release<br/>메타데이터 기록"]
@@ -295,7 +309,7 @@ flowchart TD
         NR["admin_nginx_route<br/>(admin만)"]
         CL["app_cleanup<br/>메타데이터 승격"]
 
-        VAL --> SEC --> SCR --> REL
+        VAL --> FM --> SEC --> SCR --> REL
         REL -->|"blue_green"| BG
         REL -->|"stop_start"| SS
         BG --> HC
@@ -304,13 +318,14 @@ flowchart TD
     end
 
     subgraph Rollback["rollback.yml"]
+        RFM["pre_tasks: foundation marker check"]
         RB["app_rollback<br/>이전 릴리스로 런타임 복원"]
         RHC["app_healthcheck<br/>복원된 런타임 검증"]
         RNR["admin_nginx_route<br/>(admin만)"]
         RR["previous.json → current.json<br/>메타데이터 정합성 복원"]
     end
 
-    RB --> RHC --> RNR --> RR
+    RFM --> RB --> RHC --> RNR --> RR
 ```
 
 ### 모듈별 배포 전략
@@ -671,6 +686,10 @@ cd infra/ansible
 ansible-playbook playbooks/foundation.yml -i inventories/dev/hosts.yml --syntax-check
 ansible-playbook playbooks/deploy.yml -i inventories/dev/hosts.yml --syntax-check \
   -e module=apis -e image=test -e image_tag=test
+ansible-playbook playbooks/deploy.yml -i inventories/prod/hosts.yml --syntax-check \
+  -e module=admin -e image=test -e image_tag=test
+ansible-playbook playbooks/rollback.yml -i inventories/dev/hosts.yml --syntax-check -e module=batch
+ansible-playbook playbooks/rollback.yml -i inventories/prod/hosts.yml --syntax-check -e module=apis
 ```
 
 ## 환경별 차이

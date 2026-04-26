@@ -121,11 +121,40 @@ jobs:
           docker push "${{ steps.image.outputs.image }}"
           docker push "${{ steps.image.outputs.latest }}"
 
+  foundation:
+    needs:
+      - resolve-release
+      - verify
+      - build-image
+    concurrency:
+      group: prod-runtime
+      cancel-in-progress: false
+    uses: ./.github/workflows/_ansible-exec.yml
+    with:
+      environment_name: prod
+      module: foundation
+      connection_module: ${{ vars.PROD_FOUNDATION_CONNECTION_MODULE || 'apis' }}
+      playbook: playbooks/foundation.yml
+      inventory_path: inventories/prod/hosts.yml
+      success_title: Foundation Prod Succeeded
+      failure_title: Foundation Prod Failed
+      notify_description: |
+        Foundation stack
+        Release Tag: ${{ needs.resolve-release.outputs.release_tag }}
+        Actor: ${{ github.actor }}
+      commit_sha: ${{ needs.resolve-release.outputs.commit_sha }}
+      checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}
+    secrets:
+      ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+      sops_age_key: ${{ secrets.AGE_SECRET_KEY }}
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
   deploy:
     needs:
       - resolve-release
       - verify
       - build-image
+      - foundation
     concurrency:
       group: prod-runtime
       cancel-in-progress: false
@@ -149,6 +178,7 @@ jobs:
       image_tag: ${{ needs.resolve-release.outputs.release_tag }}
       commit_sha: ${{ needs.resolve-release.outputs.commit_sha }}
       deploy_actor: ${{ github.actor }}
+      commit_sha: ${{ needs.resolve-release.outputs.commit_sha }}
       checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}
     secrets:
       ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
