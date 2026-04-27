@@ -170,13 +170,29 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void infraPersistenceBootstrapUsesSingleMarkerAndNoDomainSpecificConfig() throws Exception {
-		Set<String> expectedInfraPersistenceFiles = Set.of(
+		Set<String> requiredInfraPersistenceFiles = Set.of(
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceMarker.java",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.java"
+		);
+		Set<String> allowedInfraPersistenceFiles = Set.of(
+			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
+			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceMarker.java",
+			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
+			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java",
+			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.java",
+			castJpaEntitySourcePath().toString().replace('\\', '/'),
+			"infra/src/main/java/com/beat/infra/persistence/cast/mapper/CastPersistenceMapper.java",
+			"infra/src/main/java/com/beat/infra/persistence/cast/repository/CastJpaRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/cast/repository/CastRepositoryImpl.java",
+			staffJpaEntitySourcePath().toString().replace('\\', '/'),
+			"infra/src/main/java/com/beat/infra/persistence/staff/mapper/StaffPersistenceMapper.java",
+			"infra/src/main/java/com/beat/infra/persistence/staff/repository/StaffJpaRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/staff/repository/StaffRepositoryImpl.java"
 		);
 
 		Set<String> actualInfraPersistenceFiles = sourceFiles(
@@ -189,7 +205,12 @@ class SharedBoundaryContractTest {
 		String persistenceConfig = Files.readString(
 			Path.of("infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java"));
 
-		assertEquals(expectedInfraPersistenceFiles, actualInfraPersistenceFiles);
+		assertTrue(actualInfraPersistenceFiles.containsAll(requiredInfraPersistenceFiles));
+		assertTrue(allowedInfraPersistenceFiles.containsAll(actualInfraPersistenceFiles),
+			"Unexpected infra persistence files:\n" + actualInfraPersistenceFiles.stream()
+				.filter(path -> !allowedInfraPersistenceFiles.contains(path))
+				.collect(Collectors.joining("\n")));
+		assertPairedPackagePresence(actualInfraPersistenceFiles, "/cast/", "/staff/");
 		assertTrue(persistenceConfig.contains("@ComponentScan(basePackageClasses = InfraPersistenceMarker.class)"));
 		assertFalse(persistenceConfig.contains("PromotionPersistenceConfig"));
 		assertFalse(Files.exists(
@@ -203,8 +224,6 @@ class SharedBoundaryContractTest {
 			"domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java",
 			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepository.java",
 			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
-			"domain/src/main/java/com/beat/domain/cast/dao/CastRepository.java",
-			"domain/src/main/java/com/beat/domain/cast/domain/Cast.java",
 			"domain/src/main/java/com/beat/domain/member/dao/MemberRepository.java",
 			"domain/src/main/java/com/beat/domain/member/domain/Member.java",
 			"domain/src/main/java/com/beat/domain/performance/dao/PerformanceImageRepository.java",
@@ -214,8 +233,6 @@ class SharedBoundaryContractTest {
 			"domain/src/main/java/com/beat/domain/schedule/dao/ScheduleRepository.java",
 			"domain/src/main/java/com/beat/domain/schedule/dao/dto/MinPerformanceDateDto.java",
 			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java",
-			"domain/src/main/java/com/beat/domain/staff/dao/StaffRepository.java",
-			"domain/src/main/java/com/beat/domain/staff/domain/Staff.java",
 			"domain/src/main/java/com/beat/domain/user/dao/UserRepository.java",
 			"domain/src/main/java/com/beat/domain/user/domain/Users.java"
 		);
@@ -247,6 +264,49 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
+	void castAndStaffDomainContractsStayPureAndTechnologyNeutral() throws Exception {
+		Path castDomain = Path.of("domain/src/main/java/com/beat/domain/cast/domain/Cast.java");
+		Path staffDomain = Path.of("domain/src/main/java/com/beat/domain/staff/domain/Staff.java");
+		Path castRepository = Path.of("domain/src/main/java/com/beat/domain/cast/repository/CastRepository.java");
+		Path staffRepository = Path.of("domain/src/main/java/com/beat/domain/staff/repository/StaffRepository.java");
+		List<Path> domainContractSources = List.of(castDomain, staffDomain, castRepository, staffRepository);
+		List<String> forbiddenTechnologyReferences = List.of(
+			"jakarta.persistence.",
+			"org.hibernate.annotations.",
+			"org.springframework.data.",
+			"org.springframework.transaction.",
+			"com.querydsl.",
+			"@Entity",
+			"@Table",
+			"@ManyToOne",
+			"@JoinColumn",
+			"JpaRepository",
+			"Performance performance",
+			"com.beat.domain.performance.domain.Performance"
+		);
+
+		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/cast/dao/CastRepository.java")));
+		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/staff/dao/StaffRepository.java")));
+		assertTrue(Files.exists(castRepository));
+		assertTrue(Files.exists(staffRepository));
+
+		List<String> violations = domainContractSources.stream()
+			.flatMap(path -> forbiddenTechnologyReferences.stream()
+				.filter(pattern -> contains(path, pattern))
+				.map(pattern -> path + ": " + pattern))
+			.toList();
+
+		assertTrue(violations.isEmpty(),
+			"Cast/Staff domain contracts must stay persistence-technology neutral:\n" + String.join("\n", violations));
+		assertTrue(Files.readString(castDomain).contains("private Long performanceId;"));
+		assertTrue(Files.readString(staffDomain).contains("private Long performanceId;"));
+		assertTrue(Files.readString(castDomain).contains(
+			"public static Cast create(String castName, String castRole, String castPhoto, Long performanceId)"));
+		assertTrue(Files.readString(staffDomain).contains(
+			"public static Staff create(String staffName, String staffRole, String staffPhoto, Long performanceId)"));
+	}
+
+	@Test
 	void domainCustomRepositoryContractsRemainExplicitIssue380TransitionalAllowlist() throws Exception {
 		Set<String> allowedCustomRepositoryContracts = Set.of(
 			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepositoryCustom.java",
@@ -268,23 +328,19 @@ class SharedBoundaryContractTest {
 		Set<String> allowedJpaModelSources = Set.of(
 			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java",
 			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
-			"domain/src/main/java/com/beat/domain/cast/domain/Cast.java",
 			"domain/src/main/java/com/beat/domain/member/domain/Member.java",
 			"domain/src/main/java/com/beat/domain/performance/domain/Performance.java",
 			"domain/src/main/java/com/beat/domain/performance/domain/PerformanceImage.java",
 			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java",
-			"domain/src/main/java/com/beat/domain/staff/domain/Staff.java",
 			"domain/src/main/java/com/beat/domain/user/domain/Users.java"
 		);
 		Set<String> allowedJpaRepositorySources = Set.of(
 			"domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java",
 			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepository.java",
-			"domain/src/main/java/com/beat/domain/cast/dao/CastRepository.java",
 			"domain/src/main/java/com/beat/domain/member/dao/MemberRepository.java",
 			"domain/src/main/java/com/beat/domain/performance/dao/PerformanceImageRepository.java",
 			"domain/src/main/java/com/beat/domain/performance/dao/PerformanceRepository.java",
 			"domain/src/main/java/com/beat/domain/schedule/dao/ScheduleRepository.java",
-			"domain/src/main/java/com/beat/domain/staff/dao/StaffRepository.java",
 			"domain/src/main/java/com/beat/domain/user/dao/UserRepository.java"
 		);
 
@@ -396,12 +452,10 @@ class SharedBoundaryContractTest {
 	void domainJpaAnnotationsAndAuditingStayLimitedToIssue380Baseline() throws Exception {
 		Set<String> allowedEntitySources = Set.of(
 			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
-			"domain/src/main/java/com/beat/domain/cast/domain/Cast.java",
 			"domain/src/main/java/com/beat/domain/member/domain/Member.java",
 			"domain/src/main/java/com/beat/domain/performance/domain/Performance.java",
 			"domain/src/main/java/com/beat/domain/performance/domain/PerformanceImage.java",
 			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java",
-			"domain/src/main/java/com/beat/domain/staff/domain/Staff.java",
 			"domain/src/main/java/com/beat/domain/user/domain/Users.java"
 		);
 		Set<String> allowedMappedSuperclassSources = Set.of(
@@ -511,36 +565,34 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
-	void issue380StaffOnlyPersistenceSliceRemainsDeferredUntilPerformanceSeamExists() throws Exception {
+	void castAndStaffPersistenceSeamMovesAsPairedIssue404Slice() throws Exception {
 		String migration = Files.readString(Path.of("MIGRATION.md"));
-		String staffEntity = Files.readString(Path.of("domain/src/main/java/com/beat/domain/staff/domain/Staff.java"));
-		String staffRepository = Files.readString(
-			Path.of("domain/src/main/java/com/beat/domain/staff/dao/StaffRepository.java"));
 
+		assertTrue(migration.contains("## #404 Cast + Staff persistence seam"));
 		assertTrue(migration.contains("### First slice candidate ranking"));
-		assertTrue(migration.contains("Staff-only pure-domain/persistence split"));
 		assertTrue(migration.contains("Cast` + `Staff` pair"));
 		List<String> staffOnlySplitViolations = sourceFiles(
 			Path.of("infra/src/main"),
 			Path.of("domain/src/main")
 			).stream()
 			.map(path -> path.toString().replace('\\', '/'))
-			.filter(path -> path.startsWith("infra/src/main/")
-				&& (path.contains("/persistence/staff/")
-					|| path.contains("/staff/persistence/")
-					|| path.contains("/staff/dao/")
-					|| path.contains("/staff/adapter/")
-					|| path.contains("/staff/repository/"))
-				|| path.contains("/domain/staff/port/")
-				|| path.contains("/domain/staff/repository/")
+			.filter(path -> path.contains("/domain/staff/port/")
 				|| path.contains("/domain/staff/model/"))
 			.toList();
+		Set<String> actualInfraPersistenceFiles = sourceFiles(
+			Path.of("infra/src/main/java/com/beat/infra/persistence"),
+			Path.of("infra/src/main/kotlin/com/beat/infra/persistence")
+		)
+			.stream()
+			.map(path -> path.toString().replace('\\', '/'))
+			.collect(Collectors.toSet());
 
 		assertTrue(staffOnlySplitViolations.isEmpty(),
-			"Do not add a Staff-only split without updating the #380 ADR and migration guard:\n"
+			"Do not add a Staff-only domain split without updating the #380/#404 ADR and migration guard:\n"
 				+ String.join("\n", staffOnlySplitViolations));
-		assertTrue(staffEntity.contains("private Performance performance;"));
-		assertTrue(staffRepository.contains("extends JpaRepository<Staff, Long>"));
+		assertPairedPackagePresence(actualInfraPersistenceFiles, "/cast/", "/staff/");
+		assertInfraCastStaffPersistenceUsesScalarPerformanceIdWhenPresent();
+		assertExecutableModulesDoNotImportInfraPersistenceTypes();
 	}
 
 	@Test
@@ -593,6 +645,71 @@ class SharedBoundaryContractTest {
 		assertTrue(Files.exists(javaEntity) ^ Files.exists(kotlinEntity),
 			"PromotionJpaEntity must exist as exactly one Java or Kotlin source during the #389 conversion");
 		return Files.exists(kotlinEntity) ? kotlinEntity : javaEntity;
+	}
+
+	private Path castJpaEntitySourcePath() {
+		return singleJpaEntitySourcePath(
+			"infra/src/main/java/com/beat/infra/persistence/cast/entity/CastJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/cast/entity/CastJpaEntity.kt",
+			"CastJpaEntity"
+		);
+	}
+
+	private Path staffJpaEntitySourcePath() {
+		return singleJpaEntitySourcePath(
+			"infra/src/main/java/com/beat/infra/persistence/staff/entity/StaffJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/staff/entity/StaffJpaEntity.kt",
+			"StaffJpaEntity"
+		);
+	}
+
+	private Path singleJpaEntitySourcePath(String javaSource, String kotlinSource, String entityName) {
+		Path javaEntity = Path.of(javaSource);
+		Path kotlinEntity = Path.of(kotlinSource);
+
+		assertTrue(Files.exists(javaEntity) ^ Files.exists(kotlinEntity),
+			entityName + " must exist as exactly one Java or Kotlin source during the slice migration");
+		return Files.exists(kotlinEntity) ? kotlinEntity : javaEntity;
+	}
+
+	private void assertPairedPackagePresence(Set<String> paths, String leftPackageToken, String rightPackageToken) {
+		boolean leftPresent = paths.stream().anyMatch(path -> path.contains(leftPackageToken));
+		boolean rightPresent = paths.stream().anyMatch(path -> path.contains(rightPackageToken));
+
+		assertEquals(leftPresent, rightPresent,
+			"Cast/Staff persistence migration must move as a pair, not as a Staff-only or Cast-only split");
+	}
+
+	private void assertInfraCastStaffPersistenceUsesScalarPerformanceIdWhenPresent() throws Exception {
+		List<Path> entitySources = List.of(castJpaEntitySourcePath(), staffJpaEntitySourcePath());
+
+		for (Path source : entitySources) {
+			String content = Files.readString(source);
+
+			assertTrue(content.contains("performanceId"));
+			assertTrue(content.contains("\"performance_id\""));
+			assertFalse(content.contains("com.beat.domain.performance.domain.Performance"));
+			assertFalse(content.contains("private Performance performance"));
+			assertFalse(content.contains("@ManyToOne"));
+			assertFalse(content.contains("@JoinColumn"));
+		}
+	}
+
+	private void assertExecutableModulesDoNotImportInfraPersistenceTypes() throws Exception {
+		List<Path> executableSources = sourceFiles(
+			Path.of("apis/src/main"),
+			Path.of("admin/src/main"),
+			Path.of("batch/src/main")
+		);
+		List<String> violations = executableSources.stream()
+				.flatMap(path -> readLines(path).stream()
+					.filter(line -> line.startsWith("import com.beat.infra.persistence."))
+					.filter(line -> !line.equals("import com.beat.infra.persistence.InfraPersistenceConfig"))
+					.map(line -> path.toString().replace('\\', '/') + ": " + line))
+			.toList();
+
+		assertTrue(violations.isEmpty(),
+			"Executable modules must not import infra persistence types:\n" + String.join("\n", violations));
 	}
 
 	private void assertPromotionJpaEntityMappingContract(String source) {
