@@ -748,7 +748,7 @@ flowchart LR
 
 - `previous.json`이 없으면 롤백 불가 (assert 실패)
 - 롤백은 `release_ref` 입력(릴리스 태그 또는 커밋 SHA)을 먼저 immutable commit SHA로 해석하고, `_ansible-exec.yml`의 `checkout_ref`로 전달해 prod 배포 때와 같은 코드 기준에서 실행한다.
-- 롤백 후 `app_healthcheck`와 nginx route 갱신이 모두 성공해야 `current.json`을 실제로 다시 live 가 된 이전 배포 메타데이터로 복원한다.
+- 롤백 후 `app_healthcheck`와 nginx route 갱신이 모두 성공해야 `current.json`을 다시 live 상태가 된 이전 배포의 메타데이터로 복원한다.
 - 이 승격은 선택사항이 아니다. 다음 deploy의 `app_cleanup`이 항상 `current.json -> previous.json`을 수행하므로, rollback 직후 `current.json`이 실제 live 릴리스를 가리키지 않으면 다음 rollback 대상이 틀어진다.
 - 반대로 post-rollback healthcheck 또는 route 갱신이 실패하면 metadata promotion을 차단하여 검증되지 않은 runtime 상태를 `current.json`에 기록하지 않는다.
 - blue-green 모듈은 `run_switch.yml`을 재활용하여 역방향 전환을 수행한다

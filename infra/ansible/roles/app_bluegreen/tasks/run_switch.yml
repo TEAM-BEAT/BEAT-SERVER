@@ -247,19 +247,6 @@
         nginx_fragment_transaction_id: app-bluegreen-switch
         nginx_fragment_transaction_files: "{{ app_bluegreen_nginx_transaction_files }}"
         nginx_fragment_transaction_operations: "{{ app_bluegreen_nginx_transaction_operations }}"
-        nginx_fragment_transaction_validate_command:
-          - docker
-          - exec
-          - "{{ nginx_container_name }}"
-          - nginx
-          - -t
-        nginx_fragment_transaction_reload_command:
-          - docker
-          - exec
-          - "{{ nginx_container_name }}"
-          - nginx
-          - -s
-          - reload
         nginx_fragment_transaction_failure_summary: >-
           Blue-green nginx upstream switch failed for {{ module }} and previous
           nginx source/target state was restored
@@ -306,12 +293,12 @@
         src: "{{ item.path }}{{ nginx_fragment_transaction_backup_suffix | default('.bak') }}"
         dest: "{{ item.path }}"
         remote_src: true
-        mode: "{{ item.mode | default('0644') }}"
+        mode: preserve
       when:
         - app_bluegreen_nginx_transaction_files is defined
         - nginx_fragment_transaction_file_pre_state is defined
         - item.backup | default(true)
-        - nginx_fragment_transaction_file_pre_state[item.id].exists | default(false)
+        - nginx_fragment_transaction_file_pre_state.get(item.id, {}).exists | default(false)
       loop: "{{ app_bluegreen_nginx_transaction_files | default([]) }}"
       loop_control:
         label: "{{ item.id }} -> {{ item.path }}"
@@ -323,7 +310,7 @@
       when:
         - app_bluegreen_nginx_transaction_files is defined
         - nginx_fragment_transaction_file_pre_state is defined
-        - not (nginx_fragment_transaction_file_pre_state[item.id].exists | default(false))
+        - not (nginx_fragment_transaction_file_pre_state.get(item.id, {}).exists | default(false))
       loop: "{{ app_bluegreen_nginx_transaction_files | default([]) }}"
       loop_control:
         label: "{{ item.id }} -> {{ item.path }}"
@@ -358,6 +345,18 @@
       when:
         - app_bluegreen_post_failure_restore_validate_result is defined
         - (app_bluegreen_post_failure_restore_validate_result.rc | default(1)) == 0
+
+    - name: Remove blue-green nginx transaction backup files after failed rollout restore
+      ansible.builtin.file:
+        path: "{{ item.path }}{{ nginx_fragment_transaction_backup_suffix | default('.bak') }}"
+        state: absent
+      when:
+        - app_bluegreen_nginx_transaction_files is defined
+        - nginx_fragment_transaction_file_pre_state is defined
+        - item.backup | default(true)
+      loop: "{{ app_bluegreen_nginx_transaction_files | default([]) }}"
+      loop_control:
+        label: "{{ item.id }} -> {{ item.path }}"
 
     - name: Remove failed blue-green target container
       community.docker.docker_container:

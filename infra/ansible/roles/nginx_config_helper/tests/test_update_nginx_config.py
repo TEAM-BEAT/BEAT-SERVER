@@ -61,7 +61,27 @@ class HelperChangedOutputTest(unittest.TestCase):
             self.assertTrue(changed)
             self.assertTrue(fragment.exists())
             self.assertFalse(list(generated_dir.rglob("*.lock")))
-            self.assertTrue((lock_dir / "backend.conf.lock").exists())
+            lock_files = list(lock_dir.glob("backend.conf.*.lock"))
+            self.assertEqual(1, len(lock_files))
+
+    def test_write_normalized_uses_full_path_hash_for_same_basename_locks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            workdir = Path(tmp)
+            lock_dir = workdir / "locks"
+            first = workdir / "first" / "default.conf"
+            second = workdir / "second" / "default.conf"
+            previous_lock_dir = os.environ.get("BEAT_NGINX_LOCK_DIR")
+            os.environ["BEAT_NGINX_LOCK_DIR"] = str(lock_dir)
+            try:
+                update_nginx_config.write_normalized(first, "server { listen 80; }")
+                update_nginx_config.write_normalized(second, "server { listen 443 ssl; }")
+            finally:
+                if previous_lock_dir is None:
+                    os.environ.pop("BEAT_NGINX_LOCK_DIR", None)
+                else:
+                    os.environ["BEAT_NGINX_LOCK_DIR"] = previous_lock_dir
+
+            self.assertEqual(2, len(list(lock_dir.glob("default.conf.*.lock"))))
 
 
 class ManagedBlockMarkerCollisionTest(unittest.TestCase):
@@ -79,6 +99,21 @@ class ManagedBlockMarkerCollisionTest(unittest.TestCase):
 
 
 class BootstrapIncludesTest(unittest.TestCase):
+    def test_find_matching_brace_ignores_quoted_and_commented_braces(self) -> None:
+        text = """\
+server {
+    add_header X-Debug "{not a block}";
+    # } not a closing brace
+    location / {
+        return 200;
+    }
+}
+"""
+        opening = text.index("{")
+        closing = update_nginx_config.find_matching_brace(text, opening)
+
+        self.assertEqual(text.rindex("}") + 1, closing)
+
     def test_missing_config_path_fails_with_explicit_bootstrap_guidance(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             missing_path = Path(tmp) / "default.conf"

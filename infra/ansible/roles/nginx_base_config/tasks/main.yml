@@ -262,19 +262,6 @@
     nginx_fragment_transaction_id: nginx-base-config
     nginx_fragment_transaction_files: "{{ nginx_base_config_transaction_files }}"
     nginx_fragment_transaction_operations: "{{ nginx_base_config_transaction_operations }}"
-    nginx_fragment_transaction_validate_command:
-      - docker
-      - exec
-      - "{{ nginx_container_name }}"
-      - nginx
-      - -t
-    nginx_fragment_transaction_reload_command:
-      - docker
-      - exec
-      - "{{ nginx_container_name }}"
-      - nginx
-      - -s
-      - reload
     nginx_fragment_transaction_failure_summary: >-
       nginx config promotion failed and previous source/target config was restored
   when: not ansible_check_mode

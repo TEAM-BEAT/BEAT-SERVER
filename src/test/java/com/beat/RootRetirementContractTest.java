@@ -263,6 +263,8 @@ class RootRetirementContractTest {
 
 		assertTrue(foundationPlaybook.contains("foundation_marker_path: \"{{ deployment_dir }}/.foundation-applied\""));
 		assertTrue(foundationPlaybook.contains("tasks/validate_nginx_fragments.yml"));
+		assertTrue(foundationPlaybook.contains("name: Assert required foundation marker inputs"));
+		assertTrue(foundationPlaybook.contains("deploy_environment is defined"));
 		assertTrue(foundationPlaybook.contains("post_tasks:"));
 		assertTrue(foundationPlaybook.contains("name: Mark foundation as applied"));
 		assertTrue(foundationPlaybook.contains("applied_at: {{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}"));
@@ -282,6 +284,8 @@ class RootRetirementContractTest {
 		assertTrue(deployPlaybook.contains("register: deploy_foundation_marker_raw"));
 		assertTrue(deployPlaybook.contains("name: Abort deploy when foundation is not applied"));
 		assertTrue(deployPlaybook.contains("Foundation has not been applied on host {{ inventory_hostname }}."));
+		assertTrue(deployPlaybook.contains("inventories/<env>/hosts.yml"));
+		assertFalse(deployPlaybook.contains("default(['inventories/dev/hosts.yml'])"));
 		assertTrue(deployPlaybook.contains("Or trigger the foundation step on GitHub Actions before retrying deploy."));
 		assertTrue(deployPlaybook.contains("name: Report foundation marker contents"));
 		assertBefore(deployPlaybook, "name: Stat foundation marker", "role: app_secret");
@@ -293,6 +297,8 @@ class RootRetirementContractTest {
 		assertTrue(rollbackPlaybook.contains("name: Read foundation marker for diagnostics"));
 		assertTrue(rollbackPlaybook.contains("register: rollback_foundation_marker_raw"));
 		assertTrue(rollbackPlaybook.contains("name: Abort rollback when foundation is not applied"));
+		assertTrue(rollbackPlaybook.contains("inventories/<env>/hosts.yml"));
+		assertFalse(rollbackPlaybook.contains("default(['inventories/dev/hosts.yml'])"));
 		assertTrue(rollbackPlaybook.contains("Or trigger the foundation step on GitHub Actions before retrying rollback."));
 		assertTrue(rollbackPlaybook.contains("name: Report foundation marker contents"));
 		assertBefore(rollbackPlaybook, "name: Stat foundation marker", "role: app_rollback");
@@ -346,8 +352,10 @@ class RootRetirementContractTest {
 		assertTrue(nginxFragmentsPreflight.contains("nginx_fragments is mapping"));
 		assertTrue(nginxFragmentsPreflight.contains("nginx_fragments mapping has invalid or duplicate entries"));
 		assertTrue(nginxFragmentsPreflight.contains("nginx_fragment_files | unique | list | length"));
-		assertTrue(nginxFragmentsPreflight.contains("modules.apis.backend_upstream_name"));
-		assertTrue(nginxFragmentsPreflight.contains("modules.admin.nginx_route.upstream_name"));
+		assertTrue(nginxFragmentsPreflight.contains("modules is mapping"));
+		assertTrue(nginxFragmentsPreflight.contains("((modules | default({})).apis | default({})).backend_upstream_name"));
+		assertTrue(nginxFragmentsPreflight.contains(
+			"(((modules | default({})).admin | default({})).nginx_route | default({})).upstream_name"));
 	}
 
 	@Test
@@ -438,8 +446,10 @@ class RootRetirementContractTest {
 		assertTrue(appStopStartRunContainer.contains("app_container_env"));
 		assertTrue(appStopStartRunContainer.contains("name: app_container_runtime"));
 		assertTrue(appStopStartRunContainer.contains(
-			"healthcheck_target_container: \"{{ app_stopstart_module_cfg.container_name | default(module) }}\""));
+			"healthcheck_target_container: \"{{ app_stopstart_module_cfg.container_name }}\""));
+		assertFalse(appStopStartRunContainer.contains("| default(module)"));
 		assertTrue(appContainerRuntimeEnv.contains("| combine({"));
+		assertTrue(appContainerRuntimeEnv.contains("| string | lower"));
 		assertFalse(appStopStartRunContainer.contains("\"{{ module_cfg.spring_profile | upper }}_ACTUATOR_PORT\""));
 		assertFalse(appStopStartRunContainer.contains("SPRING_PROFILES_ACTIVE"));
 		assertTrue(foundationPlaybook.contains("role: foundation_stack"));
@@ -449,6 +459,8 @@ class RootRetirementContractTest {
 		assertTrue(foundationStackTasks.contains("Ensure nginx bind mount and candidate directories exist"));
 		assertTrue(foundationStackTasks.contains("Migrate legacy nginx named volume config to bind mount"));
 		assertTrue(foundationStackTasks.contains("Migrate legacy nginx named volume fragments to bind mount"));
+		assertTrue(foundationStackTasks.contains("- -anv"));
+		assertTrue(foundationStackTasks.contains("foundation_stack_legacy_config_migration_result.stdout"));
 		assertTrue(foundationStackTasks.contains("Inspect legacy nginx named volume metadata"));
 		assertTrue(foundationStackTasks.contains("community.docker.docker_volume_info"));
 		assertTrue(foundationStackTasks.contains("foundation_stack_legacy_nginx_volume_info.exists"));
@@ -482,9 +494,11 @@ class RootRetirementContractTest {
 		assertFalse(nginxUpdateScript.contains("skip_existing"));
 		assertTrue(nginxUpdateScript.contains("json.dumps({\"changed\": changed})"));
 		assertTrue(nginxUpdateScript.contains("LOCK_DIR_ENV = \"BEAT_NGINX_LOCK_DIR\""));
+		assertTrue(nginxUpdateScript.contains("import hashlib"));
 		assertTrue(nginxUpdateScript.contains("DEFAULT_LOCK_DIR = Path(\"/run/lock/beat-nginx\")"));
 		assertTrue(nginxUpdateScript.contains("lock_root.mkdir(parents=True, exist_ok=True)"));
 		assertTrue(nginxUpdateScript.contains("Path(tempfile.gettempdir()) / \"beat-nginx-locks\""));
+		assertTrue(nginxUpdateScript.contains("def lock_filename(path: Path) -> str:"));
 		assertFalse(nginxUpdateScript.contains("lock_path = path.parent / (path.name + \".lock\")"));
 		assertFalse(deployPlaybook.contains("app_dev_switch"));
 		assertFalse(deployPlaybook.contains("app_prod_switch"));
@@ -548,6 +562,8 @@ class RootRetirementContractTest {
 		assertTrue(appHealthcheckRole.contains("include_tasks: probe.yml"));
 		assertTrue(appHealthcheckRole.contains("app_healthcheck_probe_target_container"));
 		assertTrue(appHealthcheckProbe.contains("app_healthcheck_probe_target_container"));
+		assertTrue(appHealthcheckProbe.contains("printf 'health attempt %s/%s failed"));
+		assertTrue(appHealthcheckProbe.contains("if [ \"$attempt\" -lt \"$attempts\" ]; then"));
 		assertFalse(appHealthcheckRole.contains("current-slot"));
 		assertFalse(appHealthcheckRole.contains("slurp:"));
 		assertFalse(appHealthcheckRole.contains("module_cfg.container_name | default(module)"));
@@ -555,6 +571,8 @@ class RootRetirementContractTest {
 		assertTrue(appCleanupRole.contains("docker_image_prune_retention | default('72h')"));
 		assertTrue(appCleanupRole.contains("docker_image_prune_failure_policy | default('warn') in ['warn', 'fail']"));
 		assertTrue(appCleanupRole.contains("docker_image_prune_failure_policy | default('warn') == 'fail'"));
+		assertTrue(appCleanupRole.contains("Total reclaimed space:\\\\s*0\\\\s*B"));
+		assertTrue(appCleanupRole.contains("app_cleanup_docker_prune_result.stdout | default('unknown error', true)"));
 		assertFalse(appCleanupRole.contains("until=72h"));
 		assertFalse(appCleanupRole.contains("failed_when: false"));
 		assertTrue(appRollbackRole.contains("app_rollback_archive_timestamp"));
@@ -621,11 +639,11 @@ class RootRetirementContractTest {
 		assertBefore(
 			appBluegreenRunSwitch,
 			"nginx_fragment_transaction_operations:",
-			"nginx_fragment_transaction_validate_command:");
+			"nginx_fragment_transaction_failure_summary:");
 		assertBefore(
 			adminNginxRoute,
 			"app_stopstart_admin_nginx_transaction_operations:",
-			"nginx_fragment_transaction_validate_command:");
+			"nginx_fragment_transaction_failure_summary:");
 		assertTrue(adminNginxRoute.contains("app_stopstart_admin_nginx_transaction_files:"));
 		assertTrue(adminNginxRoute.contains("app_stopstart_admin_nginx_transaction_operations:"));
 		assertTrue(adminNginxRoute.contains("name: nginx_fragment_transaction"));
@@ -634,8 +652,8 @@ class RootRetirementContractTest {
 			"nginx_fragment_transaction_files: \"{{ app_stopstart_admin_nginx_transaction_files }}\""));
 		assertTrue(adminNginxRoute.contains(
 			"nginx_fragment_transaction_operations: \"{{ app_stopstart_admin_nginx_transaction_operations }}\""));
-		assertTrue(adminNginxRoute.contains("nginx_fragment_transaction_validate_command:"));
-		assertTrue(adminNginxRoute.contains("nginx_fragment_transaction_reload_command:"));
+		assertFalse(adminNginxRoute.contains("nginx_fragment_transaction_validate_command:"));
+		assertFalse(adminNginxRoute.contains("nginx_fragment_transaction_reload_command:"));
 		assertTrue(adminNginxRoute.contains("bootstrap-includes"));
 		assertFalse(adminNginxRoute.contains("split-upstreams"));
 		assertFalse(adminNginxRoute.contains("split_upstreams"));
@@ -687,6 +705,10 @@ class RootRetirementContractTest {
 		assertTrue(transaction.contains("block:"));
 		assertTrue(transaction.contains("rescue:"));
 		assertTrue(transaction.contains("remote_src: true"));
+		assertTrue(transaction.contains("nginx_fragment_transaction_file_pre_state: {}"));
+		assertTrue(transaction.contains("item.affects_reload is boolean"));
+		assertTrue(transaction.contains("mode: preserve"));
+		assertTrue(transaction.contains("nginx_fragment_transaction_file_pre_state.get(item.id, {})"));
 		assertTrue(transaction.contains("nginx_fragment_transaction_validate_command"));
 		assertTrue(transaction.contains("nginx_fragment_transaction_reload_command"));
 		assertTrue(transaction.contains("failed_when: false"));
@@ -754,8 +776,8 @@ class RootRetirementContractTest {
 		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_nginx_transaction_operations:"));
 		assertTrue(appBluegreenRunSwitch.contains(bluegreenTransactionOperationsVar));
 		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_operations:"));
-		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_validate_command:"));
-		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_reload_command:"));
+		assertFalse(appBluegreenRunSwitch.contains("nginx_fragment_transaction_validate_command:"));
+		assertFalse(appBluegreenRunSwitch.contains("nginx_fragment_transaction_reload_command:"));
 		assertTrue(appBluegreenRunSwitch.contains("stdout_json:"));
 		assertFalse(appBluegreenRunSwitch.contains("stdout_contains: changed=true"));
 		assertFalse(appBluegreenRunSwitch.contains("split-upstreams"));
@@ -773,6 +795,8 @@ class RootRetirementContractTest {
 		assertTrue(appBluegreenRunSwitch.contains("cleanup_backup_on_success: false"));
 		assertTrue(appBluegreenRunSwitch.contains("Restore blue-green nginx transaction files after failed rollout"));
 		assertTrue(appBluegreenRunSwitch.contains("Remove blue-green nginx transaction files absent before failed rollout"));
+		assertTrue(appBluegreenRunSwitch.contains(
+			"Remove blue-green nginx transaction backup files after failed rollout restore"));
 		assertTrue(appBluegreenRunSwitch.contains("post_failure_restore_validate_rc="));
 		assertTrue(appBluegreenRunSwitch.contains(bluegreenTransactionBackupCleanupTask));
 		assertTrue(adminNginxRoute.contains("name: nginx_fragment_transaction"));
@@ -782,8 +806,8 @@ class RootRetirementContractTest {
 		assertTrue(adminNginxRoute.contains("app_stopstart_admin_nginx_transaction_operations:"));
 		assertTrue(adminNginxRoute.contains(
 			"nginx_fragment_transaction_operations: \"{{ app_stopstart_admin_nginx_transaction_operations }}\""));
-		assertTrue(adminNginxRoute.contains("nginx_fragment_transaction_validate_command:"));
-		assertTrue(adminNginxRoute.contains("nginx_fragment_transaction_reload_command:"));
+		assertFalse(adminNginxRoute.contains("nginx_fragment_transaction_validate_command:"));
+		assertFalse(adminNginxRoute.contains("nginx_fragment_transaction_reload_command:"));
 		assertTrue(adminNginxRoute.contains("stdout_json:"));
 		assertFalse(adminNginxRoute.contains("stdout_contains: changed=true"));
 		assertFalse(adminNginxRoute.contains("remove-legacy-upstream-target-before-validation"));

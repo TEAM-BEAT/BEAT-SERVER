@@ -1,7 +1,7 @@
 ---
 - name: Resolve stop-start runtime facts
   ansible.builtin.set_fact:
-    healthcheck_target_container: "{{ app_stopstart_module_cfg.container_name | default(module) }}"
+    healthcheck_target_container: "{{ app_stopstart_module_cfg.container_name }}"
 
 - name: Build stop-start container environment
   ansible.builtin.import_role:

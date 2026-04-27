@@ -64,7 +64,11 @@
           - >-
             {{
               "  ansible-playbook playbooks/foundation.yml -i "
-              ~ ((ansible_inventory_sources | default(['inventories/dev/hosts.yml'])) | first)
+              ~ (
+                (ansible_inventory_sources | default([]))
+                | first
+                | default('inventories/<env>/hosts.yml', true)
+              )
             }}
           - "Or trigger the foundation step on GitHub Actions before retrying deploy."
       when: not deploy_foundation_marker_stat.stat.exists

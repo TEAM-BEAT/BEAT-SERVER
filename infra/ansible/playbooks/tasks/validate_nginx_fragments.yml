@@ -1,7 +1,7 @@
 ---
 - name: Collect nginx fragment filenames
   ansible.builtin.set_fact:
-    nginx_fragment_files: "{{ nginx_fragments | dict2items | map(attribute='value.fragment_file') | list }}"
+    nginx_fragment_files: "{{ nginx_fragments | default({}) | dict2items | map(attribute='value.fragment_file') | list }}"
   tags:
     - always
     - validate
@@ -11,6 +11,7 @@
   ansible.builtin.assert:
     that:
       - nginx_fragments is mapping
+      - modules is mapping
       - nginx_fragments.backend.upstream_name | default('') | length > 0
       - nginx_fragments.backend.fragment_file | default('') | length > 0
       - nginx_fragments.admin.upstream_name | default('') | length > 0
@@ -20,11 +21,11 @@
       - nginx_fragments.route.fragment_file | default('') | length > 0
       - (nginx_fragment_files | unique | list | length) == (nginx_fragment_files | length)
       - >-
-        modules.apis.backend_upstream_name
+        ((modules | default({})).apis | default({})).backend_upstream_name
         | default(nginx_fragments.backend.upstream_name)
         == nginx_fragments.backend.upstream_name
       - >-
-        modules.admin.nginx_route.upstream_name
+        (((modules | default({})).admin | default({})).nginx_route | default({})).upstream_name
         | default(nginx_fragments.admin.upstream_name)
         == nginx_fragments.admin.upstream_name
       - admin_upstream_name | default(nginx_fragments.admin.upstream_name) == nginx_fragments.admin.upstream_name

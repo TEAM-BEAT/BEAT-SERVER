@@ -42,7 +42,9 @@
       - --filter
       - "until={{ docker_image_prune_retention | default('72h') }}"
   register: app_cleanup_docker_prune_result
-  changed_when: app_cleanup_docker_prune_result.rc == 0
+  changed_when:
+    - app_cleanup_docker_prune_result.rc == 0
+    - app_cleanup_docker_prune_result.stdout | default('') is not search('Total reclaimed space:\\s*0\\s*B')
   failed_when:
     - app_cleanup_docker_prune_result.rc != 0
     - docker_image_prune_failure_policy | default('warn') == 'fail'
@@ -51,7 +53,11 @@
   ansible.builtin.debug:
     msg: >-
       docker image prune failed during cleanup with policy=warn:
-      {{ app_cleanup_docker_prune_result.stderr | default('unknown error') }}
+      {{
+        app_cleanup_docker_prune_result.stderr
+        | default('', true)
+        | default(app_cleanup_docker_prune_result.stdout | default('unknown error', true), true)
+      }}
   when:
     - app_cleanup_docker_prune_result.rc != 0
     - docker_image_prune_failure_policy | default('warn') == 'warn'

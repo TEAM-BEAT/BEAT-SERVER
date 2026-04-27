@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import hashlib
 import json
 import os
 import re
@@ -43,11 +44,17 @@ def ensure_lock_dir() -> Path:
         return fallback
 
 
+def lock_filename(path: Path) -> str:
+    path_key = str(path.resolve(strict=False))
+    path_hash = hashlib.sha256(path_key.encode()).hexdigest()[:16]
+    return f"{path.name}.{path_hash}.lock"
+
+
 def write_normalized(path: Path, text: str) -> bool:
     normalized = normalize_text(text)
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_root = ensure_lock_dir()
-    lock_path = lock_root / (path.name + ".lock")
+    lock_path = lock_root / lock_filename(path)
     with open(lock_path, "w") as lock_fh:
         fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
         current = read_text_or_empty(path)
@@ -69,10 +76,30 @@ def write_normalized(path: Path, text: str) -> bool:
 
 def find_matching_brace(text: str, opening_brace_index: int) -> int | None:
     depth = 0
+    quote: str | None = None
+    escaped = False
+    in_comment = False
     for index in range(opening_brace_index, len(text)):
-        if text[index] == "{":
+        char = text[index]
+        if in_comment:
+            if char == "\n":
+                in_comment = False
+            continue
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char == "#":
+            in_comment = True
+        elif char in {"'", '"'}:
+            quote = char
+        elif char == "{":
             depth += 1
-        elif text[index] == "}":
+        elif char == "}":
             depth -= 1
             if depth == 0:
                 return index + 1

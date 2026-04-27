@@ -21,6 +21,7 @@
   ansible.builtin.set_fact:
     nginx_fragment_transaction_file_map: {}
     nginx_fragment_transaction_operation_results: []
+    nginx_fragment_transaction_file_pre_state: {}
     nginx_fragment_transaction_changed: false
     nginx_fragment_transaction_reload_required: false
     nginx_fragment_transaction_failed_operation: ""
@@ -65,6 +66,7 @@
       - item.kind in ['template', 'command', 'copy', 'file_absent']
       - nginx_fragment_transaction_operations | selectattr('id', 'equalto', item.id) | list | length == 1
       - item.affects_reload is defined
+      - item.affects_reload is boolean
     fail_msg: "Invalid nginx transaction operation record: {{ item | to_json }}"
   loop: "{{ nginx_fragment_transaction_operations }}"
   loop_control:
@@ -89,7 +91,7 @@
   ansible.builtin.set_fact:
     nginx_fragment_transaction_file_pre_state: >-
       {{
-        nginx_fragment_transaction_file_pre_state | default({})
+        nginx_fragment_transaction_file_pre_state
         | combine({
           item.item.id: item.stat
         })
@@ -103,7 +105,7 @@
     msg: "Required nginx transaction file {{ item.id }} does not exist at {{ item.path }}"
   when:
     - item.required | default(false)
-    - not (nginx_fragment_transaction_file_pre_state[item.id].exists | default(false))
+    - not (nginx_fragment_transaction_file_pre_state.get(item.id, {}).exists | default(false))
   loop: "{{ nginx_fragment_transaction_files }}"
   loop_control:
     label: "{{ item.id }}"
@@ -113,10 +115,10 @@
     src: "{{ item.path }}"
     dest: "{{ item.path }}{{ nginx_fragment_transaction_backup_suffix }}"
     remote_src: true
-    mode: "{{ item.mode | default('0644') }}"
+    mode: preserve
   when:
     - item.backup | default(true)
-    - nginx_fragment_transaction_file_pre_state[item.id].exists | default(false)
+    - nginx_fragment_transaction_file_pre_state.get(item.id, {}).exists | default(false)
   loop: "{{ nginx_fragment_transaction_files }}"
   loop_control:
     label: "{{ item.id }} -> {{ item.path }}"
@@ -127,7 +129,7 @@
     state: absent
   when:
     - item.backup | default(true)
-    - not (nginx_fragment_transaction_file_pre_state[item.id].exists | default(false))
+    - not (nginx_fragment_transaction_file_pre_state.get(item.id, {}).exists | default(false))
   loop: "{{ nginx_fragment_transaction_files }}"
   loop_control:
     label: "{{ item.id }} -> {{ item.path }}"
@@ -188,10 +190,10 @@
         src: "{{ item.path }}{{ nginx_fragment_transaction_backup_suffix }}"
         dest: "{{ item.path }}"
         remote_src: true
-        mode: "{{ item.mode | default('0644') }}"
+        mode: preserve
       when:
         - item.backup | default(true)
-        - nginx_fragment_transaction_file_pre_state[item.id].exists | default(false)
+        - nginx_fragment_transaction_file_pre_state.get(item.id, {}).exists | default(false)
       loop: "{{ nginx_fragment_transaction_files }}"
       loop_control:
         label: "{{ item.id }} -> {{ item.path }}"
@@ -200,7 +202,7 @@
       ansible.builtin.file:
         path: "{{ item.path }}"
         state: absent
-      when: not (nginx_fragment_transaction_file_pre_state[item.id].exists | default(false))
+      when: not (nginx_fragment_transaction_file_pre_state.get(item.id, {}).exists | default(false))
       loop: "{{ nginx_fragment_transaction_files }}"
       loop_control:
         label: "{{ item.id }} -> {{ item.path }}"

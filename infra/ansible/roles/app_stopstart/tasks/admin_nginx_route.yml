@@ -143,19 +143,6 @@
     nginx_fragment_transaction_id: app-stopstart-admin-route
     nginx_fragment_transaction_files: "{{ app_stopstart_admin_nginx_transaction_files }}"
     nginx_fragment_transaction_operations: "{{ app_stopstart_admin_nginx_transaction_operations }}"
-    nginx_fragment_transaction_validate_command:
-      - docker
-      - exec
-      - "{{ nginx_container_name }}"
-      - nginx
-      - -t
-    nginx_fragment_transaction_reload_command:
-      - docker
-      - exec
-      - "{{ nginx_container_name }}"
-      - nginx
-      - -s
-      - reload
     nginx_fragment_transaction_failure_summary: >-
       Admin nginx route update failed for {{ module }} and previous nginx
       source/target state was restored

@@ -79,25 +79,29 @@
   ansible.builtin.command:
     argv:
       - cp
-      - -a
+      - -anv
       - "{{ foundation_stack_legacy_nginx_volume_data_dir }}/conf.d/."
       - "{{ deployment_dir }}/nginx/conf.d/"
+  register: foundation_stack_legacy_config_migration_result
   when:
     - foundation_stack_should_migrate_legacy_nginx_volume
+    - not foundation_stack_bind_migration_marker_stat.stat.exists
     - foundation_stack_legacy_nginx_volume_config_stat.stat.exists | default(false)
-  changed_when: true
+  changed_when: foundation_stack_legacy_config_migration_result.stdout | default('') | length > 0
 
 - name: Migrate legacy nginx named volume fragments to bind mount
   ansible.builtin.command:
     argv:
       - cp
-      - -a
+      - -anv
       - "{{ foundation_stack_legacy_nginx_volume_data_dir }}/generated/."
       - "{{ nginx_generated_target_dir }}/"
+  register: foundation_stack_legacy_fragments_migration_result
   when:
     - foundation_stack_should_migrate_legacy_nginx_volume
+    - not foundation_stack_bind_migration_marker_stat.stat.exists
     - foundation_stack_legacy_nginx_volume_generated_stat.stat.exists | default(false)
-  changed_when: true
+  changed_when: foundation_stack_legacy_fragments_migration_result.stdout | default('') | length > 0
 
 - name: Mark legacy nginx named volume migration complete
   ansible.builtin.copy:

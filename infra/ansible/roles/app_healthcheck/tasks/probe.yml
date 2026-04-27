@@ -7,11 +7,14 @@
     target="{{ app_healthcheck_probe_target_container }}"
 
     for attempt in $(seq 1 "$attempts"); do
-      if docker run --rm --network "{{ docker_network }}" {{ curl_image | quote }} \
-          -fsS "http://${target}:{{ actuator_port }}{{ actuator_path }}/health" >/dev/null 2>&1; then
+      if output=$(docker run --rm --network "{{ docker_network }}" {{ curl_image | quote }} \
+          -fsS "http://${target}:{{ actuator_port }}{{ actuator_path }}/health" 2>&1); then
         exit 0
       fi
-      sleep "$delay"
+      printf 'health attempt %s/%s failed for %s: %s\n' "$attempt" "$attempts" "$target" "$output" >&2
+      if [ "$attempt" -lt "$attempts" ]; then
+        sleep "$delay"
+      fi
     done
     exit 1
   args:

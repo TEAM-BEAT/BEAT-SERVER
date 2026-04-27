@@ -41,7 +41,10 @@
       {{
         nginx_fragment_transaction_operation_should_run | bool
         and (
-          nginx_fragment_transaction_file_pre_state[nginx_fragment_transaction_operation.when_file_preexisted].exists
+          nginx_fragment_transaction_file_pre_state.get(
+            nginx_fragment_transaction_operation.when_file_preexisted,
+            {}
+          ).exists
           | default(false)
         )
       }}
