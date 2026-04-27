@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
@@ -282,8 +283,7 @@ class SharedBoundaryContractTest {
 			"@JoinColumn",
 			"JpaRepository",
 			"Performance performance",
-			"com.beat.domain.performance.domain.Performance\n",
-			"com.beat.domain.performance.domain.Performance;"
+			"com.beat.domain.performance.domain.Performance"
 		);
 
 		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/cast/dao/CastRepository.java")));
@@ -740,7 +740,12 @@ class SharedBoundaryContractTest {
 
 	private boolean contains(Path path, String pattern) {
 		try {
-			return Files.readString(path).contains(pattern);
+			String content = Files.readString(path);
+			char last = pattern.charAt(pattern.length() - 1);
+			if (Character.isLetterOrDigit(last) || last == '_') {
+				return Pattern.compile(Pattern.quote(pattern) + "(?!\\w)").matcher(content).find();
+			}
+			return content.contains(pattern);
 		} catch (IOException exception) {
 			throw new IllegalStateException("Failed to read " + path, exception);
 		}
