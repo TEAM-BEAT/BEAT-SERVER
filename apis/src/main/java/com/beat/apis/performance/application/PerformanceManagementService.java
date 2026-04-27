@@ -112,25 +112,23 @@ public class PerformanceManagementService {
 		performance.updatePerformancePeriod(performanceDates);
 		performanceRepository.save(performance);
 
-		List<Cast> casts = request.castList().stream()
+		List<Cast> casts = castRepository.saveAll(request.castList().stream()
 			.map(castRequest -> Cast.create(
 				castRequest.castName(),
 				castRequest.castRole(),
 				castRequest.castPhoto(),
 				performance.getId()
 			))
-			.toList();
-		castRepository.saveAll(casts);
+			.toList());
 
-		List<Staff> staffs = request.staffList().stream()
+		List<Staff> staffs = staffRepository.saveAll(request.staffList().stream()
 			.map(staffRequest -> Staff.create(
 				staffRequest.staffName(),
 				staffRequest.staffRole(),
 				staffRequest.staffPhoto(),
 				performance.getId()
 			))
-			.toList();
-		staffRepository.saveAll(staffs);
+			.toList());
 
 		List<PerformanceImage> performanceImageList = request.performanceImageList().stream()
 			.map(performanceImageRequest -> PerformanceImage.create(
