@@ -12,8 +12,8 @@ import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
-import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
+import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.NotFoundException;
 
@@ -42,15 +42,15 @@ public class GuestBookingService {
 
 		updateSoldTicketCountAndIsBooking(schedule, guestBookingRequest.purchaseTicketCount());
 
-		Users users = bookingRepository.findFirstByBookerNameAndBookerPhoneNumberAndBirthDateAndPassword(
+		Long userId = bookingRepository.findFirstByBookerNameAndBookerPhoneNumberAndBirthDateAndPassword(
 			guestBookingRequest.bookerName(),
 			guestBookingRequest.bookerPhoneNumber(),
 			guestBookingRequest.birthDate(),
 			guestBookingRequest.password()
-		).map(Booking::getUsers).orElseGet(() -> {
+		).map(Booking::getUserId).orElseGet(() -> {
 			Users newUser = Users.create();
-			userRepository.save(newUser);
-			return newUser;
+			Users savedUser = userRepository.save(newUser);
+			return savedUser.getId();
 		});
 
 		int ticketPrice = schedule.getPerformance().getTicketPrice();
@@ -68,7 +68,7 @@ public class GuestBookingService {
 			null,
 			null,
 			schedule,
-			users
+			userId
 		);
 		bookingRepository.save(booking);
 
@@ -79,7 +79,7 @@ public class GuestBookingService {
 		return GuestBookingResponse.of(
 			booking.getId(),
 			schedule.getId(),
-			booking.getUsers().getId(),
+			booking.getUserId(),
 			booking.getPurchaseTicketCount(),
 			schedule.getScheduleNumber(),
 			booking.getBookerName(),

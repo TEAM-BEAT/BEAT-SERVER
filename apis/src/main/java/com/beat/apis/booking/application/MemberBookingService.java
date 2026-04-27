@@ -15,9 +15,7 @@ import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
-import com.beat.domain.user.dao.UserRepository;
-import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.exception.UserErrorCode;
+import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.NotFoundException;
 
@@ -50,9 +48,6 @@ public class MemberBookingService {
 		Member member = memberRepository.findById(memberId).orElseThrow(
 			() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-		Users user = userRepository.findById(member.getUser().getId()).orElseThrow(
-			() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
-
 		Booking booking = Booking.create(
 			memberBookingRequest.purchaseTicketCount(),
 			memberBookingRequest.bookerName(),
@@ -64,7 +59,7 @@ public class MemberBookingService {
 			null,
 			null,
 			schedule,
-			user
+			member.getUserId()
 		);
 		bookingRepository.save(booking);
 		scheduleRepository.save(schedule);

@@ -10,15 +10,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.contracts.schedule.ScheduleJobPort;
-import com.beat.domain.booking.dao.BookingRepository;
-import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.cast.repository.CastRepository;
-import com.beat.domain.cast.domain.Cast;
-import com.beat.domain.cast.exception.CastErrorCode;
-import com.beat.domain.member.dao.MemberRepository;
-import com.beat.domain.member.domain.Member;
-import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyRequest;
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyResponse;
 import com.beat.apis.performance.application.dto.modify.cast.CastModifyRequest;
@@ -29,19 +20,28 @@ import com.beat.apis.performance.application.dto.modify.schedule.ScheduleModifyR
 import com.beat.apis.performance.application.dto.modify.schedule.ScheduleModifyResponse;
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyRequest;
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyResponse;
-import com.beat.domain.performance.repository.PerformanceImageRepository;
+import com.beat.contracts.schedule.ScheduleJobPort;
+import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.domain.cast.domain.Cast;
+import com.beat.domain.cast.exception.CastErrorCode;
+import com.beat.domain.cast.repository.CastRepository;
+import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.domain.Member;
+import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.exception.PerformanceImageErrorCode;
+import com.beat.domain.performance.repository.PerformanceImageRepository;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
-import com.beat.domain.staff.repository.StaffRepository;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.staff.exception.StaffErrorCode;
+import com.beat.domain.staff.repository.StaffRepository;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
@@ -68,7 +68,7 @@ public class PerformanceModifyService {
 		log.info("Starting updatePerformance for memberId: {}, performanceId: {}", memberId, request.performanceId());
 
 		Member member = validateMember(memberId);
-		Long userId = member.getUser().getId();
+		Long userId = member.getUserId();
 		Performance performance = findPerformance(request.performanceId());
 
 		validateOwnership(userId, performance);
@@ -118,7 +118,7 @@ public class PerformanceModifyService {
 	}
 
 	private void validateOwnership(Long userId, Performance performance) {
-		if (!performance.getUsers().getId().equals(userId)) {
+		if (!performance.getUserId().equals(userId)) {
 			log.error("User ID {} does not own performance ID {}", userId, performance.getId());
 			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
 		}
@@ -571,7 +571,7 @@ public class PerformanceModifyService {
 	) {
 		log.debug("Creating PerformanceModifyResponse for performanceId: {}", performance.getId());
 		PerformanceModifyResponse response = PerformanceModifyResponse.of(
-			performance.getUsers().getId(),
+			performance.getUserId(),
 			performance.getId(),
 			performance.getPerformanceTitle(),
 			performance.getGenre(),
@@ -601,3 +601,4 @@ public class PerformanceModifyService {
 		return response;
 	}
 }
+

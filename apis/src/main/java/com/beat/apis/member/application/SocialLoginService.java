@@ -1,19 +1,22 @@
 package com.beat.apis.member.application;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.beat.apis.member.application.dto.request.MemberLoginRequest;
+import com.beat.apis.member.application.dto.response.LoginSuccessResponse;
 import com.beat.contracts.auth.social.SocialLoginCommand;
 import com.beat.contracts.auth.social.SocialLoginPort;
 import com.beat.contracts.auth.social.SocialMemberInfo;
 import com.beat.domain.member.domain.Member;
-import com.beat.apis.member.application.dto.response.LoginSuccessResponse;
-import com.beat.apis.member.application.dto.request.MemberLoginRequest;
 import com.beat.domain.member.port.in.MemberUseCase;
 import com.beat.domain.user.domain.Users;
+import com.beat.domain.user.exception.UserErrorCode;
+import com.beat.domain.user.repository.UserRepository;
+import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class SocialLoginService {
 	private final AuthenticationService authenticationService;
 	private final SocialLoginPort socialLoginPort;
 	private final MemberUseCase memberUseCase;
+	private final UserRepository userRepository;
 
 	/**
 	 * 소셜 로그인 또는 회원가입을 처리하는 메서드.
@@ -57,11 +61,12 @@ public class SocialLoginService {
 		log.info("Found or registered member with memberId: {}", memberId);
 
 		Member member = memberUseCase.findMemberByMemberId(memberId);
-		Users user = member.getUser();
+		Users user = userRepository.findById(member.getUserId())
+			.orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
 
 		log.info("User role before generating token: {}", user.getRole());
 
-		return authenticationService.generateLoginSuccessResponse(memberId, user, socialMemberInfo);
+		return authenticationService.generateLoginSuccessResponse(memberId, user.getRole(), socialMemberInfo);
 	}
 
 	/**
@@ -78,7 +83,9 @@ public class SocialLoginService {
 		if (memberExists) {
 			Member existingMember = memberUseCase.findMemberBySocialIdAndSocialType(socialMemberInfo.socialId(),
 				socialMemberInfo.socialType());
-			log.info("Existing member role: {}", existingMember.getUser().getRole());
+			Users user = userRepository.findById(existingMember.getUserId())
+				.orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+			log.info("Existing member role: {}", user.getRole());
 			return existingMember.getId();
 		}
 

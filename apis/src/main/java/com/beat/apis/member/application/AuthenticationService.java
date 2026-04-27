@@ -1,24 +1,23 @@
 package com.beat.apis.member.application;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.beat.apis.member.application.dto.response.AccessTokenGenerateResponse;
+import com.beat.apis.member.application.dto.response.LoginSuccessResponse;
 import com.beat.contracts.auth.JwtSubject;
 import com.beat.contracts.auth.JwtTokenPort;
 import com.beat.contracts.auth.RefreshTokenPort;
 import com.beat.contracts.auth.TokenErrorCode;
 import com.beat.contracts.auth.TokenValidationResult;
 import com.beat.contracts.auth.social.SocialMemberInfo;
-import com.beat.apis.member.application.dto.response.AccessTokenGenerateResponse;
-import com.beat.apis.member.application.dto.response.LoginSuccessResponse;
 import com.beat.domain.user.domain.Role;
-import com.beat.domain.user.domain.Users;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.BeatException;
 import com.beat.global.common.exception.UnauthorizedException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -32,14 +31,13 @@ public class AuthenticationService {
 	 * 로그인 성공 응답 객체(LoginSuccessResponse)를 반환하는 메서드.
 	 *
 	 * @param memberId 회원의 고유 ID
-	 * @param user 로그인한 사용자의 정보가 포함된 Users 객체
+	 * @param role 사용자의 역할
 	 * @param socialMemberInfo 로그인 시 외부로부터 전달된 회원 정보
 	 * @return 로그인 성공 응답(LoginSuccessResponse)
 	 */
-	public LoginSuccessResponse generateLoginSuccessResponse(final Long memberId, final Users user,
+	public LoginSuccessResponse generateLoginSuccessResponse(final Long memberId, final Role role,
 		final SocialMemberInfo socialMemberInfo) {
 		String nickname = socialMemberInfo.nickname();
-		Role role = user.getRole();
 
 		log.info("Starting login success response generation for memberId: {}, nickname: {}, role: {}", memberId,
 			nickname, role.getRoleName());

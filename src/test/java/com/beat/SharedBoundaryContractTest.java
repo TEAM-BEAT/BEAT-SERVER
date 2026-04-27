@@ -177,7 +177,11 @@ class SharedBoundaryContractTest {
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.java"
+			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.java",
+			usersJpaEntitySourcePath().toString().replace('\\', '/'),
+			"infra/src/main/java/com/beat/infra/persistence/user/mapper/UsersPersistenceMapper.java",
+			"infra/src/main/java/com/beat/infra/persistence/user/repository/UsersJpaRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/user/repository/UsersRepositoryImpl.java"
 		);
 		Set<String> allowedInfraPersistenceFiles = Set.of(
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
@@ -197,7 +201,11 @@ class SharedBoundaryContractTest {
 			performanceImageJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/performanceimage/mapper/PerformanceImagePersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/performanceimage/repository/PerformanceImageJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/performanceimage/repository/PerformanceImageRepositoryImpl.java"
+			"infra/src/main/java/com/beat/infra/persistence/performanceimage/repository/PerformanceImageRepositoryImpl.java",
+			usersJpaEntitySourcePath().toString().replace('\\', '/'),
+			"infra/src/main/java/com/beat/infra/persistence/user/mapper/UsersPersistenceMapper.java",
+			"infra/src/main/java/com/beat/infra/persistence/user/repository/UsersJpaRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/user/repository/UsersRepositoryImpl.java"
 		);
 
 		Set<String> actualInfraPersistenceFiles = sourceFiles(
@@ -219,7 +227,8 @@ class SharedBoundaryContractTest {
 		assertTrue(persistenceConfig.contains("@ComponentScan(basePackageClasses = InfraPersistenceMarker.class)"));
 		assertFalse(persistenceConfig.contains("PromotionPersistenceConfig"));
 		assertFalse(Files.exists(
-			Path.of("infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionPersistenceConfig.java")));
+			Path.of(
+				"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionPersistenceConfig.java")));
 	}
 
 	@Test
@@ -235,9 +244,7 @@ class SharedBoundaryContractTest {
 			"domain/src/main/java/com/beat/domain/performance/domain/Performance.java",
 			"domain/src/main/java/com/beat/domain/schedule/dao/ScheduleRepository.java",
 			"domain/src/main/java/com/beat/domain/schedule/dao/dto/MinPerformanceDateDto.java",
-			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java",
-			"domain/src/main/java/com/beat/domain/user/dao/UserRepository.java",
-			"domain/src/main/java/com/beat/domain/user/domain/Users.java"
+			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java"
 		);
 		List<String> forbiddenPersistencePatterns = List.of(
 			"jakarta.persistence.",
@@ -267,12 +274,15 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
-	void castAndStaffDomainContractsStayPureAndTechnologyNeutral() throws Exception {
+	void castStaffAndUsersDomainContractsStayPureAndTechnologyNeutral() throws Exception {
 		Path castDomain = Path.of("domain/src/main/kotlin/com/beat/domain/cast/domain/Cast.kt");
 		Path staffDomain = Path.of("domain/src/main/kotlin/com/beat/domain/staff/domain/Staff.kt");
+		Path usersDomain = Path.of("domain/src/main/kotlin/com/beat/domain/user/domain/Users.kt");
 		Path castRepository = Path.of("domain/src/main/java/com/beat/domain/cast/repository/CastRepository.java");
 		Path staffRepository = Path.of("domain/src/main/java/com/beat/domain/staff/repository/StaffRepository.java");
-		List<Path> domainContractSources = List.of(castDomain, staffDomain, castRepository, staffRepository);
+		Path usersRepository = Path.of("domain/src/main/java/com/beat/domain/user/repository/UserRepository.java");
+		List<Path> domainContractSources = List.of(castDomain, staffDomain, usersDomain, castRepository,
+			staffRepository, usersRepository);
 		List<String> forbiddenTechnologyReferences = List.of(
 			"jakarta.persistence.",
 			"org.hibernate.annotations.",
@@ -290,8 +300,10 @@ class SharedBoundaryContractTest {
 
 		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/cast/dao/CastRepository.java")));
 		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/staff/dao/StaffRepository.java")));
+		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/user/dao/UserRepository.java")));
 		assertTrue(Files.exists(castRepository));
 		assertTrue(Files.exists(staffRepository));
+		assertTrue(Files.exists(usersRepository));
 
 		List<String> violations = domainContractSources.stream()
 			.flatMap(path -> forbiddenTechnologyReferences.stream()
@@ -300,13 +312,11 @@ class SharedBoundaryContractTest {
 			.toList();
 
 		assertTrue(violations.isEmpty(),
-			"Cast/Staff domain contracts must stay persistence-technology neutral:\n" + String.join("\n", violations));
+			"Cast/Staff/Users domain contracts must stay persistence-technology neutral:\n" + String.join("\n",
+				violations));
 		assertTrue(Files.readString(castDomain).contains("linkedPerformanceId: PerformanceId"));
 		assertTrue(Files.readString(staffDomain).contains("linkedPerformanceId: PerformanceId"));
-		assertTrue(Files.readString(castDomain).contains(
-			"fun create(castName: String, castRole: String, castPhoto: String, performanceId: Long): Cast"));
-		assertTrue(Files.readString(staffDomain).contains(
-			"fun create(staffName: String, staffRole: String, staffPhoto: String, performanceId: Long): Staff"));
+		assertTrue(Files.readString(usersDomain).contains("class Users private constructor"));
 	}
 
 	@Test
@@ -333,16 +343,14 @@ class SharedBoundaryContractTest {
 			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
 			"domain/src/main/java/com/beat/domain/member/domain/Member.java",
 			"domain/src/main/java/com/beat/domain/performance/domain/Performance.java",
-			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java",
-			"domain/src/main/java/com/beat/domain/user/domain/Users.java"
+			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java"
 		);
 		Set<String> allowedJpaRepositorySources = Set.of(
 			"domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java",
 			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepository.java",
 			"domain/src/main/java/com/beat/domain/member/dao/MemberRepository.java",
 			"domain/src/main/java/com/beat/domain/performance/dao/PerformanceRepository.java",
-			"domain/src/main/java/com/beat/domain/schedule/dao/ScheduleRepository.java",
-			"domain/src/main/java/com/beat/domain/user/dao/UserRepository.java"
+			"domain/src/main/java/com/beat/domain/schedule/dao/ScheduleRepository.java"
 		);
 
 		Set<String> actualJpaModelSources = sourceFiles(Path.of("domain/src/main")).stream()
@@ -384,7 +392,7 @@ class SharedBoundaryContractTest {
 			Path.of("apis/src/main"),
 			Path.of("admin/src/main"),
 			Path.of("batch/src/main")
-			).stream()
+		).stream()
 			.flatMap(path -> readLines(path).stream()
 				.filter(line -> line.contains("PromotionRepository"))
 				.map(line -> path.toString().replace('\\', '/') + ": " + line))
@@ -436,8 +444,10 @@ class SharedBoundaryContractTest {
 		assertFalse(persistenceMapperSource.contains("PerformanceRepository"));
 		assertFalse(persistenceMapperSource.contains("EntityManager"));
 		assertTrue(repositoryImplementationSource.contains("implements PromotionRepository"));
-		assertTrue(repositoryImplementationSource.contains("private final PromotionJpaRepository promotionJpaRepository;"));
-		assertTrue(repositoryImplementationSource.contains("private final PromotionPersistenceMapper promotionPersistenceMapper;"));
+		assertTrue(
+			repositoryImplementationSource.contains("private final PromotionJpaRepository promotionJpaRepository;"));
+		assertTrue(repositoryImplementationSource.contains(
+			"private final PromotionPersistenceMapper promotionPersistenceMapper;"));
 		assertFalse(repositoryImplementationSource.contains("PerformanceRepository"));
 		assertTrue(repositoryImplementationSource.contains("public PromotionRepositoryImpl("));
 		assertTrue(repositoryImplementationSource.contains("@Repository"));
@@ -455,8 +465,7 @@ class SharedBoundaryContractTest {
 			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
 			"domain/src/main/java/com/beat/domain/member/domain/Member.java",
 			"domain/src/main/java/com/beat/domain/performance/domain/Performance.java",
-			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java",
-			"domain/src/main/java/com/beat/domain/user/domain/Users.java"
+			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java"
 		);
 		Set<String> allowedMappedSuperclassSources = Set.of(
 			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java"
@@ -574,7 +583,7 @@ class SharedBoundaryContractTest {
 		List<String> staffOnlySplitViolations = sourceFiles(
 			Path.of("infra/src/main"),
 			Path.of("domain/src/main")
-			).stream()
+		).stream()
 			.map(path -> path.toString().replace('\\', '/'))
 			.filter(path -> path.contains("/domain/staff/port/")
 				|| path.contains("/domain/staff/model/"))
@@ -663,6 +672,14 @@ class SharedBoundaryContractTest {
 		);
 	}
 
+	private Path usersJpaEntitySourcePath() {
+		return singleJpaEntitySourcePath(
+			"infra/src/main/java/com/beat/infra/persistence/user/entity/UsersJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/user/entity/UsersJpaEntity.kt",
+			"UsersJpaEntity"
+		);
+	}
+
 	private Path performanceImageJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
 			"infra/src/main/java/com/beat/infra/persistence/performanceimage/entity/PerformanceImageJpaEntity.java",
@@ -710,10 +727,10 @@ class SharedBoundaryContractTest {
 			Path.of("batch/src/main")
 		);
 		List<String> violations = executableSources.stream()
-				.flatMap(path -> readLines(path).stream()
-					.filter(line -> line.startsWith("import com.beat.infra.persistence."))
-					.filter(line -> !line.equals("import com.beat.infra.persistence.InfraPersistenceConfig"))
-					.map(line -> path.toString().replace('\\', '/') + ": " + line))
+			.flatMap(path -> readLines(path).stream()
+				.filter(line -> line.startsWith("import com.beat.infra.persistence."))
+				.filter(line -> !line.equals("import com.beat.infra.persistence.InfraPersistenceConfig"))
+				.map(line -> path.toString().replace('\\', '/') + ": " + line))
 			.toList();
 
 		assertTrue(violations.isEmpty(),
@@ -735,11 +752,16 @@ class SharedBoundaryContractTest {
 			assertTrue(source.contains("class PromotionJpaEntity private constructor("));
 			assertFalse(source.contains("protected constructor()"));
 			assertTrue(source.matches("(?s).*\\bvar\\s+id\\s*:\\s*Long\\?\\s*=\\s*id\\s+protected set.*"));
-			assertTrue(source.matches("(?s).*\\bvar\\s+performanceId\\s*:\\s*Long\\?\\s*=\\s*performanceId\\s+protected set.*"));
-			assertTrue(source.matches("(?s).*\\bvar\\s+promotionPhoto\\s*:\\s*String\\s*=\\s*promotionPhoto\\s+protected set.*"));
-			assertTrue(source.matches("(?s).*\\bvar\\s+redirectUrl\\s*:\\s*String\\s*=\\s*redirectUrl\\s+protected set.*"));
-			assertTrue(source.matches("(?s).*\\bvar\\s+isExternal\\s*:\\s*Boolean\\s*=\\s*isExternal\\s+protected set.*"));
-			assertTrue(source.matches("(?s).*\\bvar\\s+carouselNumber\\s*:\\s*CarouselNumber\\s*=\\s*carouselNumber\\s+protected set.*"));
+			assertTrue(source.matches(
+				"(?s).*\\bvar\\s+performanceId\\s*:\\s*Long\\?\\s*=\\s*performanceId\\s+protected set.*"));
+			assertTrue(source.matches(
+				"(?s).*\\bvar\\s+promotionPhoto\\s*:\\s*String\\s*=\\s*promotionPhoto\\s+protected set.*"));
+			assertTrue(
+				source.matches("(?s).*\\bvar\\s+redirectUrl\\s*:\\s*String\\s*=\\s*redirectUrl\\s+protected set.*"));
+			assertTrue(
+				source.matches("(?s).*\\bvar\\s+isExternal\\s*:\\s*Boolean\\s*=\\s*isExternal\\s+protected set.*"));
+			assertTrue(source.matches(
+				"(?s).*\\bvar\\s+carouselNumber\\s*:\\s*CarouselNumber\\s*=\\s*carouselNumber\\s+protected set.*"));
 		} else {
 			assertTrue(source.contains("private Long performanceId;"));
 		}

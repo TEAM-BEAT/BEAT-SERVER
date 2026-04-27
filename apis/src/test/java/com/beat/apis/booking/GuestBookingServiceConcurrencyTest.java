@@ -21,10 +21,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.apis.support.AbstractIntegrationTest;
 import com.beat.apis.booking.application.GuestBookingService;
 import com.beat.apis.booking.application.dto.GuestBookingRequest;
 import com.beat.apis.booking.application.dto.GuestBookingResponse;
+import com.beat.apis.support.AbstractIntegrationTest;
 import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.performance.dao.PerformanceRepository;
@@ -35,8 +35,8 @@ import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
-import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
+import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.BadRequestException;
 
 class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
@@ -99,9 +99,7 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 
 	private Users createMakerUser() {
 		Users maker = Users.create();
-		userRepository.save(maker);
-		logger.info("Setting up maker user.");
-		return maker;
+		return userRepository.save(maker);
 	}
 
 	private Performance createPerformance(Users maker) {
@@ -125,7 +123,7 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 			"2024-01-01 to 2024-12-31",
 			10000,
 			30,
-			maker
+			maker.getId()
 		);
 		performanceRepository.save(performance);
 		return performance;

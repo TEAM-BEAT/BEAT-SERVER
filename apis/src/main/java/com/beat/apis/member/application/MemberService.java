@@ -1,19 +1,19 @@
 package com.beat.apis.member.application;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.beat.domain.member.dao.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
 import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.member.port.in.MemberUseCase;
-import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
-import com.beat.global.common.exception.*;
+import com.beat.domain.user.repository.UserRepository;
+import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @RequiredArgsConstructor

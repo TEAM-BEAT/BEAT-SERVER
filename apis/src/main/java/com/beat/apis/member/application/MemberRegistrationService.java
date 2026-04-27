@@ -1,19 +1,19 @@
 package com.beat.apis.member.application;
 
-import com.beat.contracts.auth.social.SocialMemberInfo;
-import com.beat.apis.member.application.dto.event.MemberRegisteredEvent;
-import com.beat.domain.member.dao.MemberRepository;
-import com.beat.domain.member.domain.Member;
-import com.beat.domain.user.dao.UserRepository;
-import com.beat.domain.user.domain.Role;
-import com.beat.domain.user.domain.Users;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.beat.apis.member.application.dto.event.MemberRegisteredEvent;
+import com.beat.contracts.auth.social.SocialMemberInfo;
+import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.domain.Member;
+import com.beat.domain.user.domain.Role;
+import com.beat.domain.user.domain.Users;
+import com.beat.domain.user.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -31,14 +31,13 @@ public class MemberRegistrationService {
 		log.info("Granting MEMBER role to new user with role: {}", users.getRole());
 
 		users = userRepository.save(users);
-		userRepository.flush();
 
 		log.info("Registering new user with role: {}", users.getRole());
 
 		Member member = Member.create(
 			socialMemberInfo.nickname(),
 			socialMemberInfo.email(),
-			users,
+			users.getId(),
 			socialMemberInfo.socialId(),
 			socialMemberInfo.socialType()
 		);

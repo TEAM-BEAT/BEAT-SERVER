@@ -32,7 +32,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 		String password
 	);
 
-	List<Booking> findByUsersId(Long userId);
+	List<Booking> findByUserId(Long userId);
 
 	@Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.schedule.id IN :scheduleIds AND b.bookingStatus NOT IN :excludedStatuses")
 	boolean existsActiveBookingByScheduleIds(
