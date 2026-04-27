@@ -39,9 +39,9 @@ class PerformanceCastStaffBoundaryTest {
 			() -> assertTrue(managementService.contains("castRepository.deleteByPerformanceId(performanceId);")),
 			() -> assertTrue(managementService.contains("staffRepository.deleteByPerformanceId(performanceId);")),
 			() -> assertTrue(managementService.indexOf("castRepository.deleteByPerformanceId(performanceId);")
-				< managementService.indexOf("performanceRepository.delete(performance);")),
+				< managementService.indexOf("performanceRepository.deleteById(performance.getId());")),
 			() -> assertTrue(managementService.indexOf("staffRepository.deleteByPerformanceId(performanceId);")
-				< managementService.indexOf("performanceRepository.delete(performance);"))
+				< managementService.indexOf("performanceRepository.deleteById(performance.getId());"))
 		);
 	}
 
