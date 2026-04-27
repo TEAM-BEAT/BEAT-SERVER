@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.beat.contracts.schedule.ScheduleJobPort;
 import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.cast.dao.CastRepository;
+import com.beat.domain.cast.repository.CastRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.member.dao.MemberRepository;
 import com.beat.domain.member.domain.Member;
@@ -31,7 +31,7 @@ import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.promotion.repository.PromotionRepository;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.staff.dao.StaffRepository;
+import com.beat.domain.staff.repository.StaffRepository;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.user.domain.Users;
 import com.beat.global.common.exception.BadRequestException;
@@ -112,25 +112,23 @@ public class PerformanceManagementService {
 		performance.updatePerformancePeriod(performanceDates);
 		performanceRepository.save(performance);
 
-		List<Cast> casts = request.castList().stream()
+		List<Cast> casts = castRepository.saveAll(request.castList().stream()
 			.map(castRequest -> Cast.create(
 				castRequest.castName(),
 				castRequest.castRole(),
 				castRequest.castPhoto(),
-				performance
+				performance.getId()
 			))
-			.toList();
-		castRepository.saveAll(casts);
+			.toList());
 
-		List<Staff> staffs = request.staffList().stream()
+		List<Staff> staffs = staffRepository.saveAll(request.staffList().stream()
 			.map(staffRequest -> Staff.create(
 				staffRequest.staffName(),
 				staffRequest.staffRole(),
 				staffRequest.staffPhoto(),
-				performance
+				performance.getId()
 			))
-			.toList();
-		staffRepository.saveAll(staffs);
+			.toList());
 
 		List<PerformanceImage> performanceImageList = request.performanceImageList().stream()
 			.map(performanceImageRequest -> PerformanceImage.create(
@@ -242,7 +240,9 @@ public class PerformanceManagementService {
 			scheduleJobPort.cancel(schedule);
 		}
 
+		castRepository.deleteByPerformanceId(performanceId);
+		staffRepository.deleteByPerformanceId(performanceId);
 		promotionRepository.deleteByPerformanceId(performanceId);
-		performanceRepository.delete(performance);
+		performanceRepository.deleteById(performance.getId());
 	}
 }

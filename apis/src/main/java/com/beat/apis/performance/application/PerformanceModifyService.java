@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.beat.contracts.schedule.ScheduleJobPort;
 import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.cast.dao.CastRepository;
+import com.beat.domain.cast.repository.CastRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.exception.CastErrorCode;
 import com.beat.domain.member.dao.MemberRepository;
@@ -39,7 +39,7 @@ import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
-import com.beat.domain.staff.dao.StaffRepository;
+import com.beat.domain.staff.repository.StaffRepository;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.staff.exception.StaffErrorCode;
 import com.beat.global.common.exception.BadRequestException;
@@ -341,7 +341,7 @@ public class PerformanceModifyService {
 			request.castName(),
 			request.castRole(),
 			request.castPhoto(),
-			performance
+			performance.getId()
 		);
 		Cast savedCast = castRepository.save(cast);
 		log.debug("Added cast with castId: {} for performanceId: {}", savedCast.getId(), performance.getId());
@@ -362,16 +362,15 @@ public class PerformanceModifyService {
 				return new NotFoundException(CastErrorCode.CAST_NOT_FOUND);
 			});
 
-		if (!cast.getPerformance().equals(performance)) {
+		if (!Objects.equals(cast.getPerformanceId(), performance.getId())) {
 			throw new ForbiddenException(CastErrorCode.CAST_NOT_BELONG_TO_PERFORMANCE);
 		}
 
-		cast.update(
+		cast = castRepository.save(cast.update(
 			request.castName(),
 			request.castRole(),
 			request.castPhoto()
-		);
-		castRepository.save(cast);
+		));
 		log.debug("Updated cast with castId: {}", cast.getId());
 		return CastModifyResponse.of(
 			cast.getId(),
@@ -426,7 +425,7 @@ public class PerformanceModifyService {
 			request.staffName(),
 			request.staffRole(),
 			request.staffPhoto(),
-			performance
+			performance.getId()
 		);
 		Staff savedStaff = staffRepository.save(staff);
 		log.debug("Added staff with staffId: {} for performanceId: {}", savedStaff.getId(), performance.getId());
@@ -447,16 +446,15 @@ public class PerformanceModifyService {
 				return new NotFoundException(StaffErrorCode.STAFF_NOT_FOUND);
 			});
 
-		if (!staff.getPerformance().equals(performance)) {
+		if (!Objects.equals(staff.getPerformanceId(), performance.getId())) {
 			throw new ForbiddenException(StaffErrorCode.STAFF_NOT_BELONG_TO_PERFORMANCE);
 		}
 
-		staff.update(
+		staff = staffRepository.save(staff.update(
 			request.staffName(),
 			request.staffRole(),
 			request.staffPhoto()
-		);
-		staffRepository.save(staff);
+		));
 		log.debug("Updated staff with staffId: {}", staff.getId());
 		return StaffModifyResponse.of(
 			staff.getId(),

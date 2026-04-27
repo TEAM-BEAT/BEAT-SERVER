@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.cast.dao.CastRepository;
+import com.beat.domain.cast.repository.CastRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.member.dao.MemberRepository;
 import com.beat.domain.member.domain.Member;
@@ -40,7 +40,7 @@ import com.beat.domain.performance.port.in.PerformanceUseCase;
 import com.beat.apis.schedule.application.ScheduleService;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.staff.dao.StaffRepository;
+import com.beat.domain.staff.repository.StaffRepository;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
@@ -81,13 +81,13 @@ public class PerformanceService implements PerformanceUseCase {
 
 		int minDueDate = scheduleService.getMinDueDate(scheduleRepository.findAllByPerformanceId(performanceId));
 
-		List<PerformanceDetailCastResponse> castList = castRepository.findByPerformanceId(performanceId)
+		List<PerformanceDetailCastResponse> castList = castRepository.findAllByPerformanceId(performanceId)
 			.stream()
 			.map(cast -> PerformanceDetailCastResponse.of(cast.getId(), cast.getCastName(), cast.getCastRole(),
 				cast.getCastPhoto()))
 			.toList();
 
-		List<PerformanceDetailStaffResponse> staffList = staffRepository.findByPerformanceId(performanceId)
+		List<PerformanceDetailStaffResponse> staffList = staffRepository.findAllByPerformanceId(performanceId)
 			.stream()
 			.map(staff -> PerformanceDetailStaffResponse.of(staff.getId(), staff.getStaffName(), staff.getStaffRole(),
 				staff.getStaffPhoto()))
