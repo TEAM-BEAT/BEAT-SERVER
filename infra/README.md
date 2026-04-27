@@ -682,13 +682,15 @@ ssh-keyscan -p 22 <서버IP> 2>/dev/null | ssh-keygen -lf - -E sha256
    # → secret/application-dev-secret.properties 생성
    ```
    이 스크립트는 SOPS로 `secrets.sops.yml`을 복호화하여 로컬용 properties 파일을 만든다.
-   `DEV_REDIS_HOST`는 자동으로 `localhost`로 오버라이드된다.
+   dev 서버 배포용 시크릿은 Docker network 기준 값을 사용하므로, 로컬 실행용 파일을 만들 때
+   `DEV_DB_URL`과 `DEV_REDIS_HOST`는 자동으로 로컬 실행 기준 값으로 오버라이드된다.
+   `DEV_DB_URL`은 암호화된 원본 값에서 host만 `localhost`로 치환하므로 별도 입력 없이 바로 실행할 수 있다.
 
 ### 로컬 실행
 
 ```bash
 # 로컬 MySQL, Redis가 필요
-# MySQL: localhost:3306
+# MySQL: secret/application-dev-secret.properties의 DEV_DB_URL
 # Redis: localhost:6379
 
 # 모듈별 실행
