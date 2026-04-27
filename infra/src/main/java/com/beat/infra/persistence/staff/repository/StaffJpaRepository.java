@@ -11,8 +11,6 @@ import com.beat.infra.persistence.staff.entity.StaffJpaEntity;
 
 public interface StaffJpaRepository extends JpaRepository<StaffJpaEntity, Long> {
 
-	List<StaffJpaEntity> findByPerformanceId(Long performanceId);
-
 	List<StaffJpaEntity> findAllByPerformanceId(Long performanceId);
 
 	@Query("SELECT s.id FROM Staff s WHERE s.performanceId = :performanceId")

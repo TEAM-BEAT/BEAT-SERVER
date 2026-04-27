@@ -81,13 +81,13 @@ public class PerformanceService implements PerformanceUseCase {
 
 		int minDueDate = scheduleService.getMinDueDate(scheduleRepository.findAllByPerformanceId(performanceId));
 
-		List<PerformanceDetailCastResponse> castList = castRepository.findByPerformanceId(performanceId)
+		List<PerformanceDetailCastResponse> castList = castRepository.findAllByPerformanceId(performanceId)
 			.stream()
 			.map(cast -> PerformanceDetailCastResponse.of(cast.getId(), cast.getCastName(), cast.getCastRole(),
 				cast.getCastPhoto()))
 			.toList();
 
-		List<PerformanceDetailStaffResponse> staffList = staffRepository.findByPerformanceId(performanceId)
+		List<PerformanceDetailStaffResponse> staffList = staffRepository.findAllByPerformanceId(performanceId)
 			.stream()
 			.map(staff -> PerformanceDetailStaffResponse.of(staff.getId(), staff.getStaffName(), staff.getStaffRole(),
 				staff.getStaffPhoto()))

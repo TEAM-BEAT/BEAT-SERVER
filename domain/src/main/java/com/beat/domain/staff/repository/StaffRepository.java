@@ -9,8 +9,6 @@ public interface StaffRepository {
 
 	Optional<Staff> findById(Long staffId);
 
-	List<Staff> findByPerformanceId(Long performanceId);
-
 	List<Staff> findAllByPerformanceId(Long performanceId);
 
 	List<Long> findIdsByPerformanceId(Long performanceId);

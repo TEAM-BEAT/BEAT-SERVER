@@ -28,13 +28,6 @@ public class StaffRepositoryImpl implements StaffRepository {
 	}
 
 	@Override
-	public List<Staff> findByPerformanceId(Long performanceId) {
-		return staffJpaRepository.findByPerformanceId(performanceId).stream()
-			.map(staffPersistenceMapper::toDomain)
-			.toList();
-	}
-
-	@Override
 	public List<Staff> findAllByPerformanceId(Long performanceId) {
 		return staffJpaRepository.findAllByPerformanceId(performanceId).stream()
 			.map(staffPersistenceMapper::toDomain)
@@ -64,9 +57,10 @@ public class StaffRepositoryImpl implements StaffRepository {
 
 	@Override
 	public void delete(Staff staff) {
-		if (staff.getId() != null) {
-			staffJpaRepository.deleteById(staff.getId());
+		if (staff.getId() == null) {
+			throw new IllegalArgumentException("Cannot delete unpersisted Staff");
 		}
+		staffJpaRepository.deleteById(staff.getId());
 	}
 
 	@Override

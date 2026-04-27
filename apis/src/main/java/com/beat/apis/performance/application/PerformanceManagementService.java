@@ -243,6 +243,6 @@ public class PerformanceManagementService {
 		castRepository.deleteByPerformanceId(performanceId);
 		staffRepository.deleteByPerformanceId(performanceId);
 		promotionRepository.deleteByPerformanceId(performanceId);
-		performanceRepository.delete(performance);
+		performanceRepository.deleteById(performance.getId());
 	}
 }

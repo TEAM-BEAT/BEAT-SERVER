@@ -9,8 +9,6 @@ public interface CastRepository {
 
 	Optional<Cast> findById(Long castId);
 
-	List<Cast> findByPerformanceId(Long performanceId);
-
 	List<Cast> findAllByPerformanceId(Long performanceId);
 
 	List<Long> findIdsByPerformanceId(Long performanceId);

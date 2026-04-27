@@ -28,13 +28,6 @@ public class CastRepositoryImpl implements CastRepository {
 	}
 
 	@Override
-	public List<Cast> findByPerformanceId(Long performanceId) {
-		return castJpaRepository.findByPerformanceId(performanceId).stream()
-			.map(castPersistenceMapper::toDomain)
-			.toList();
-	}
-
-	@Override
 	public List<Cast> findAllByPerformanceId(Long performanceId) {
 		return castJpaRepository.findAllByPerformanceId(performanceId).stream()
 			.map(castPersistenceMapper::toDomain)
@@ -64,9 +57,10 @@ public class CastRepositoryImpl implements CastRepository {
 
 	@Override
 	public void delete(Cast cast) {
-		if (cast.getId() != null) {
-			castJpaRepository.deleteById(cast.getId());
+		if (cast.getId() == null) {
+			throw new IllegalArgumentException("Cannot delete unpersisted Cast");
 		}
+		castJpaRepository.deleteById(cast.getId());
 	}
 
 	@Override
