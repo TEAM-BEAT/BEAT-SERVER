@@ -193,7 +193,11 @@ class SharedBoundaryContractTest {
 			staffJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/staff/mapper/StaffPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/staff/repository/StaffJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/staff/repository/StaffRepositoryImpl.java"
+			"infra/src/main/java/com/beat/infra/persistence/staff/repository/StaffRepositoryImpl.java",
+			performanceImageJpaEntitySourcePath().toString().replace('\\', '/'),
+			"infra/src/main/java/com/beat/infra/persistence/performanceimage/mapper/PerformanceImagePersistenceMapper.java",
+			"infra/src/main/java/com/beat/infra/persistence/performanceimage/repository/PerformanceImageJpaRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/performanceimage/repository/PerformanceImageRepositoryImpl.java"
 		);
 
 		Set<String> actualInfraPersistenceFiles = sourceFiles(
@@ -227,10 +231,8 @@ class SharedBoundaryContractTest {
 			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
 			"domain/src/main/java/com/beat/domain/member/dao/MemberRepository.java",
 			"domain/src/main/java/com/beat/domain/member/domain/Member.java",
-			"domain/src/main/java/com/beat/domain/performance/dao/PerformanceImageRepository.java",
 			"domain/src/main/java/com/beat/domain/performance/dao/PerformanceRepository.java",
 			"domain/src/main/java/com/beat/domain/performance/domain/Performance.java",
-			"domain/src/main/java/com/beat/domain/performance/domain/PerformanceImage.java",
 			"domain/src/main/java/com/beat/domain/schedule/dao/ScheduleRepository.java",
 			"domain/src/main/java/com/beat/domain/schedule/dao/dto/MinPerformanceDateDto.java",
 			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java",
@@ -331,7 +333,6 @@ class SharedBoundaryContractTest {
 			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
 			"domain/src/main/java/com/beat/domain/member/domain/Member.java",
 			"domain/src/main/java/com/beat/domain/performance/domain/Performance.java",
-			"domain/src/main/java/com/beat/domain/performance/domain/PerformanceImage.java",
 			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java",
 			"domain/src/main/java/com/beat/domain/user/domain/Users.java"
 		);
@@ -339,7 +340,6 @@ class SharedBoundaryContractTest {
 			"domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java",
 			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepository.java",
 			"domain/src/main/java/com/beat/domain/member/dao/MemberRepository.java",
-			"domain/src/main/java/com/beat/domain/performance/dao/PerformanceImageRepository.java",
 			"domain/src/main/java/com/beat/domain/performance/dao/PerformanceRepository.java",
 			"domain/src/main/java/com/beat/domain/schedule/dao/ScheduleRepository.java",
 			"domain/src/main/java/com/beat/domain/user/dao/UserRepository.java"
@@ -455,7 +455,6 @@ class SharedBoundaryContractTest {
 			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
 			"domain/src/main/java/com/beat/domain/member/domain/Member.java",
 			"domain/src/main/java/com/beat/domain/performance/domain/Performance.java",
-			"domain/src/main/java/com/beat/domain/performance/domain/PerformanceImage.java",
 			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java",
 			"domain/src/main/java/com/beat/domain/user/domain/Users.java"
 		);
@@ -661,6 +660,14 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/staff/entity/StaffJpaEntity.java",
 			"infra/src/main/kotlin/com/beat/infra/persistence/staff/entity/StaffJpaEntity.kt",
 			"StaffJpaEntity"
+		);
+	}
+
+	private Path performanceImageJpaEntitySourcePath() {
+		return singleJpaEntitySourcePath(
+			"infra/src/main/java/com/beat/infra/persistence/performanceimage/entity/PerformanceImageJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/performanceimage/entity/PerformanceImageJpaEntity.kt",
+			"PerformanceImageJpaEntity"
 		);
 	}
 

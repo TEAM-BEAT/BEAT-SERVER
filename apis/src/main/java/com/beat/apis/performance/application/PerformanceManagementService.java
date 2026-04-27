@@ -23,7 +23,7 @@ import com.beat.apis.performance.application.dto.create.PerformanceRequest;
 import com.beat.apis.performance.application.dto.create.PerformanceResponse;
 import com.beat.apis.performance.application.dto.create.ScheduleResponse;
 import com.beat.apis.performance.application.dto.create.StaffResponse;
-import com.beat.domain.performance.dao.PerformanceImageRepository;
+import com.beat.domain.performance.repository.PerformanceImageRepository;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.domain.PerformanceImage;
@@ -130,13 +130,14 @@ public class PerformanceManagementService {
 			))
 			.toList());
 
-		List<PerformanceImage> performanceImageList = request.performanceImageList().stream()
-			.map(performanceImageRequest -> PerformanceImage.create(
-				performanceImageRequest.performanceImage(),
-				performance
-			))
-			.toList();
-		performanceImageRepository.saveAll(performanceImageList);
+		List<PerformanceImage> performanceImageList = performanceImageRepository.saveAll(
+			request.performanceImageList().stream()
+				.map(performanceImageRequest -> PerformanceImage.create(
+					performanceImageRequest.performanceImage(),
+					performance.getId()
+				))
+				.toList()
+		);
 
 		return mapToPerformanceResponse(performance, schedules, casts, staffs, performanceImageList);
 	}
@@ -243,6 +244,7 @@ public class PerformanceManagementService {
 		castRepository.deleteByPerformanceId(performanceId);
 		staffRepository.deleteByPerformanceId(performanceId);
 		promotionRepository.deleteByPerformanceId(performanceId);
+		performanceImageRepository.deleteByPerformanceId(performanceId);
 		performanceRepository.deleteById(performance.getId());
 	}
 }
