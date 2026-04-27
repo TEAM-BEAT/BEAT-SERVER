@@ -9,14 +9,14 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.contracts.sms.SmsMessage;
-import com.beat.contracts.sms.SmsPort;
 import com.beat.apis.booking.application.dto.TicketDeleteRequest;
 import com.beat.apis.booking.application.dto.TicketDetail;
 import com.beat.apis.booking.application.dto.TicketRefundRequest;
 import com.beat.apis.booking.application.dto.TicketRetrieveResponse;
 import com.beat.apis.booking.application.dto.TicketUpdateDetail;
 import com.beat.apis.booking.application.dto.TicketUpdateRequest;
+import com.beat.contracts.sms.SmsMessage;
+import com.beat.contracts.sms.SmsPort;
 import com.beat.domain.booking.dao.TicketRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
@@ -32,11 +32,10 @@ import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
-import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.exception.UserErrorCode;
+import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.BadRequestException;
-import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -220,10 +219,6 @@ public class TicketService {
 		Performance performance = findPerformance(ticketDeleteRequest.performanceId());
 		performance.validatePerformanceOwnership(userId);
 
-		if (!performance.getUsers().getId().equals(userId)) {
-			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
-		}
-
 		for (TicketDeleteRequest.Booking bookingRequest : ticketDeleteRequest.bookingList()) {
 			Long bookingId = bookingRequest.bookingId();
 			Booking booking = ticketRepository.findById(bookingId)
@@ -248,7 +243,7 @@ public class TicketService {
 	}
 
 	private Users findUser(Member member) {
-		return userRepository.findById(member.getUser().getId()).orElseThrow(
+		return userRepository.findById(member.getUserId()).orElseThrow(
 			() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
 	}
 

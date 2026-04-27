@@ -10,13 +10,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.domain.booking.dao.BookingRepository;
-import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.cast.repository.CastRepository;
-import com.beat.domain.cast.domain.Cast;
-import com.beat.domain.member.dao.MemberRepository;
-import com.beat.domain.member.domain.Member;
-import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.apis.performance.application.dto.bookingPerformanceDetail.BookingPerformanceDetailResponse;
 import com.beat.apis.performance.application.dto.bookingPerformanceDetail.BookingPerformanceDetailScheduleResponse;
 import com.beat.apis.performance.application.dto.create.CastResponse;
@@ -31,20 +24,26 @@ import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDe
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailResponse;
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailScheduleResponse;
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailStaffResponse;
-import com.beat.domain.performance.repository.PerformanceImageRepository;
+import com.beat.apis.schedule.application.ScheduleService;
+import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.domain.cast.domain.Cast;
+import com.beat.domain.cast.repository.CastRepository;
+import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.domain.Member;
+import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.port.in.PerformanceUseCase;
-import com.beat.apis.schedule.application.ScheduleService;
+import com.beat.domain.performance.repository.PerformanceImageRepository;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.staff.repository.StaffRepository;
 import com.beat.domain.staff.domain.Staff;
-import com.beat.domain.user.dao.UserRepository;
-import com.beat.domain.user.domain.Users;
+import com.beat.domain.staff.repository.StaffRepository;
 import com.beat.domain.user.exception.UserErrorCode;
+import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
 
@@ -135,10 +134,10 @@ public class PerformanceService implements PerformanceUseCase {
 		Member member = memberRepository.findById(memberId)
 			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-		Users user = userRepository.findById(member.getUser().getId())
+		userRepository.findById(member.getUserId())
 			.orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
 
-		List<Performance> performances = performanceRepository.findByUsersId(user.getId());
+		List<Performance> performances = performanceRepository.findByUserId(member.getUserId());
 
 		List<MakerPerformanceDetailResponse> performanceDetails = performances.stream().map(performance -> {
 			List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performance.getId());
@@ -161,7 +160,7 @@ public class PerformanceService implements PerformanceUseCase {
 
 		positiveDueDates.addAll(negativeDueDates);
 
-		return MakerPerformanceResponse.of(user.getId(), positiveDueDates);
+		return MakerPerformanceResponse.of(member.getUserId(), positiveDueDates);
 	}
 
 	@Override
@@ -176,12 +175,12 @@ public class PerformanceService implements PerformanceUseCase {
 		Member member = memberRepository.findById(memberId)
 			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-		Long userId = member.getUser().getId();
+		Long userId = member.getUserId();
 
 		Performance performance = performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-		if (!performance.getUsers().getId().equals(userId)) {
+		if (!performance.getUserId().equals(userId)) {
 			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
 		}
 
@@ -221,7 +220,7 @@ public class PerformanceService implements PerformanceUseCase {
 				performanceImage.getPerformanceImageUrl()))
 			.toList();
 
-		return PerformanceModifyDetailResponse.of(performance.getUsers().getId(), performance.getId(),
+		return PerformanceModifyDetailResponse.of(performance.getUserId(), performance.getId(),
 			performance.getPerformanceTitle(), performance.getGenre(), performance.getRunningTime(),
 			performance.getPerformanceDescription(), performance.getPerformanceAttentionNote(),
 			performance.getBankName(), performance.getAccountNumber(), performance.getAccountHolder(),

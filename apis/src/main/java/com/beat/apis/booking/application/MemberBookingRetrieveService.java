@@ -1,5 +1,13 @@
 package com.beat.apis.booking.application;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
 import com.beat.apis.booking.application.dto.MemberBookingRetrieveResponse;
 import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
@@ -8,20 +16,12 @@ import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.user.dao.UserRepository;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.exception.UserErrorCode;
+import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,10 +35,11 @@ public class MemberBookingRetrieveService {
 		Member member = memberRepository.findById(memberId).orElseThrow(
 			() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-		Users user = userRepository.findById(member.getUser().getId()).orElseThrow(
-			() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+		Users user = userRepository.findById(member.getUserId()).orElseThrow(
+			() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND)
+		);
 
-		List<Booking> bookings = bookingRepository.findByUsersId(user.getId());
+		List<Booking> bookings = bookingRepository.findByUserId(user.getId());
 
 		return bookings.stream()
 			.map(this::toMemberBookingResponse)
@@ -51,7 +52,7 @@ public class MemberBookingRetrieveService {
 		int totalPaymentAmount = booking.getPurchaseTicketCount() * performance.getTicketPrice();
 
 		return MemberBookingRetrieveResponse.of(
-			booking.getUsers().getId(),
+			booking.getUserId(),
 			booking.getId(),
 			schedule.getId(),
 			performance.getId(),
