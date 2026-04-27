@@ -9,6 +9,10 @@ on:
       module:
         required: true
         type: string
+      connection_module:
+        required: false
+        type: string
+        default: ""
       playbook:
         required: true
         type: string
@@ -88,7 +92,7 @@ jobs:
         uses: ./.github/actions/resolve-ansible-connection
         with:
           inventory_path: ${{ inputs.inventory_path }}
-          module: ${{ inputs.module }}
+          module: ${{ inputs.connection_module != '' && inputs.connection_module || inputs.module }}
           SOPS_AGE_KEY: ${{ secrets.sops_age_key }}
 
       - name: Setup SSH client

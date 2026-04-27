@@ -117,7 +117,7 @@ class RootRetirementContractTest {
 		String ansibleLintWorkflow = read(".github/workflows/ansible-lint.yml");
 		String ansibleExecWorkflow = read(".github/workflows/_ansible-exec.yml");
 		String trivyImageConfig = read(".trivy-image.yaml");
-			String deployDev = read(".github/workflows/deploy-dev.yml");
+		String deployDev = read(".github/workflows/deploy-dev.yml");
 		String deployProd = read(".github/workflows/deploy-prod.yml");
 		String rollbackProd = read(".github/workflows/rollback-prod.yml");
 		String setupAnsibleTooling = read(".github/actions/setup-ansible-tooling/action.yml");
@@ -148,50 +148,50 @@ class RootRetirementContractTest {
 		assertTrue(deployDev.contains("uses: ./.github/workflows/_ansible-exec.yml"));
 		assertTrue(deployProd.contains("uses: ./.github/workflows/_ansible-exec.yml"));
 		assertTrue(rollbackProd.contains("uses: ./.github/workflows/_ansible-exec.yml"));
-			assertTrue(deployDev.contains("environment_name: dev"));
-			assertTrue(deployProd.contains("environment_name: prod"));
-			assertTrue(rollbackProd.contains("environment_name: prod"));
-			assertFalse(deployDev.contains("secrets: inherit"));
-			assertFalse(deployProd.contains("secrets: inherit"));
-			assertFalse(rollbackProd.contains("secrets: inherit"));
-			assertFalse(deployDev.contains("ssh_host: ${{"));
-			assertFalse(deployProd.contains("ssh_host: ${{"));
-			assertFalse(rollbackProd.contains("ssh_host: ${{"));
-			assertFalse(deployDev.contains("ssh_host_fingerprint: ${{"));
-			assertFalse(deployProd.contains("ssh_host_fingerprint: ${{"));
-			assertFalse(rollbackProd.contains("ssh_host_fingerprint: ${{"));
-			assertTrue(deployDev.contains("ssh_private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}"));
-			assertTrue(deployProd.contains("ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}"));
-			assertTrue(rollbackProd.contains("ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}"));
-			assertTrue(ansibleExecWorkflow.contains("workflow_call:"));
-			assertTrue(ansibleExecWorkflow.contains("checkout_ref:"));
-			assertTrue(ansibleExecWorkflow.contains("environment: ${{ inputs.environment_name }}"));
-			assertTrue(ansibleExecWorkflow.contains("Setup Ansible tooling"));
-			assertTrue(ansibleExecWorkflow.contains("resolve-ansible-connection"));
-			assertTrue(ansibleExecWorkflow.contains("setup-ssh-client"));
-			assertTrue(ansibleExecWorkflow.contains("cmd=(ansible-playbook"));
-			assertTrue(ansibleExecWorkflow.contains("EXTRA_VARS_PATH=\"$(mktemp /tmp/beat-extra-vars."));
-			assertTrue(ansibleExecWorkflow.contains("echo \"EXTRA_VARS_PATH=$EXTRA_VARS_PATH\" >> \"$GITHUB_ENV\""));
-			assertTrue(ansibleExecWorkflow.contains("cmd+=(--extra-vars \"@$EXTRA_VARS_PATH\")"));
-			assertTrue(ansibleExecWorkflow.contains("Cleanup temporary credentials"));
+		assertTrue(deployDev.contains("environment_name: dev"));
+		assertTrue(deployProd.contains("environment_name: prod"));
+		assertTrue(rollbackProd.contains("environment_name: prod"));
+		assertFalse(deployDev.contains("secrets: inherit"));
+		assertFalse(deployProd.contains("secrets: inherit"));
+		assertFalse(rollbackProd.contains("secrets: inherit"));
+		assertFalse(deployDev.contains("ssh_host: ${{"));
+		assertFalse(deployProd.contains("ssh_host: ${{"));
+		assertFalse(rollbackProd.contains("ssh_host: ${{"));
+		assertFalse(deployDev.contains("ssh_host_fingerprint: ${{"));
+		assertFalse(deployProd.contains("ssh_host_fingerprint: ${{"));
+		assertFalse(rollbackProd.contains("ssh_host_fingerprint: ${{"));
+		assertTrue(deployDev.contains("ssh_private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}"));
+		assertTrue(deployProd.contains("ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}"));
+		assertTrue(rollbackProd.contains("ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}"));
+		assertTrue(ansibleExecWorkflow.contains("workflow_call:"));
+		assertTrue(ansibleExecWorkflow.contains("checkout_ref:"));
+		assertTrue(ansibleExecWorkflow.contains("environment: ${{ inputs.environment_name }}"));
+		assertTrue(ansibleExecWorkflow.contains("Setup Ansible tooling"));
+		assertTrue(ansibleExecWorkflow.contains("resolve-ansible-connection"));
+		assertTrue(ansibleExecWorkflow.contains("setup-ssh-client"));
+		assertTrue(ansibleExecWorkflow.contains("cmd=(ansible-playbook"));
+		assertTrue(ansibleExecWorkflow.contains("EXTRA_VARS_PATH=\"$(mktemp /tmp/beat-extra-vars."));
+		assertTrue(ansibleExecWorkflow.contains("echo \"EXTRA_VARS_PATH=$EXTRA_VARS_PATH\" >> \"$GITHUB_ENV\""));
+		assertTrue(ansibleExecWorkflow.contains("cmd+=(--extra-vars \"@$EXTRA_VARS_PATH\")"));
+		assertTrue(ansibleExecWorkflow.contains("Cleanup temporary credentials"));
 		assertTrue(ansibleExecWorkflow.contains("Notify Slack (success)"));
-			assertFalse(ansibleExecWorkflow.contains("ssh_host:"));
-			assertFalse(ansibleExecWorkflow.contains("ssh_port:"));
-			assertFalse(ansibleExecWorkflow.contains("ssh_host_fingerprint:"));
-			assertTrue(ansibleExecWorkflow.contains("ssh_private_key:"));
-			assertTrue(ansibleExecWorkflow.contains("sops_age_key:"));
-			assertTrue(ansibleExecWorkflow.contains("slack_webhook_url:"));
-			assertFalse(ansibleExecWorkflow.contains("continue-on-error: true"));
-			assertFalse(ansibleExecWorkflow.contains("LEGACY_HOST:"));
-			assertFalse(ansibleExecWorkflow.contains("LEGACY_PORT:"));
-			assertFalse(ansibleExecWorkflow.contains("SSH_CONNECTION_SOURCE"));
-			assertTrue(ansibleExecWorkflow.contains("HAS_SLACK_WEBHOOK"));
-			assertTrue(ansibleExecWorkflow.contains("ssh-private-key: ${{ secrets.ssh_private_key }}"));
-			assertTrue(ansibleExecWorkflow.contains("SOPS_AGE_KEY: ${{ secrets.sops_age_key }}"));
-			assertFalse(ansibleExecWorkflow.contains("ANSIBLE_SOPS_AGE_SSH_PRIVATE_KEYFILE"));
-			assertFalse(ansibleExecWorkflow.contains("SOPS_AGE_SSH_PRIVATE_KEY_FILE=\"$HOME/.ssh/deploy_key\""));
-			assertTrue(ansibleExecWorkflow.contains("SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}"));
-			assertTrue(ansibleExecWorkflow.contains("python3 - \"$EXTRA_VARS_PATH\" <<'PY'"));
+		assertFalse(ansibleExecWorkflow.contains("ssh_host:"));
+		assertFalse(ansibleExecWorkflow.contains("ssh_port:"));
+		assertFalse(ansibleExecWorkflow.contains("ssh_host_fingerprint:"));
+		assertTrue(ansibleExecWorkflow.contains("ssh_private_key:"));
+		assertTrue(ansibleExecWorkflow.contains("sops_age_key:"));
+		assertTrue(ansibleExecWorkflow.contains("slack_webhook_url:"));
+		assertFalse(ansibleExecWorkflow.contains("continue-on-error: true"));
+		assertFalse(ansibleExecWorkflow.contains("LEGACY_HOST:"));
+		assertFalse(ansibleExecWorkflow.contains("LEGACY_PORT:"));
+		assertFalse(ansibleExecWorkflow.contains("SSH_CONNECTION_SOURCE"));
+		assertTrue(ansibleExecWorkflow.contains("HAS_SLACK_WEBHOOK"));
+		assertTrue(ansibleExecWorkflow.contains("ssh-private-key: ${{ secrets.ssh_private_key }}"));
+		assertTrue(ansibleExecWorkflow.contains("SOPS_AGE_KEY: ${{ secrets.sops_age_key }}"));
+		assertFalse(ansibleExecWorkflow.contains("ANSIBLE_SOPS_AGE_SSH_PRIVATE_KEYFILE"));
+		assertFalse(ansibleExecWorkflow.contains("SOPS_AGE_SSH_PRIVATE_KEY_FILE=\"$HOME/.ssh/deploy_key\""));
+		assertTrue(ansibleExecWorkflow.contains("SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}"));
+		assertTrue(ansibleExecWorkflow.contains("python3 - \"$EXTRA_VARS_PATH\" <<'PY'"));
 		assertFalse(ansibleExecWorkflow.contains("inventory_sops_path:"));
 		assertFalse(ansibleExecWorkflow.contains("INVENTORY_SOPS_PATH"));
 		assertFalse(ansibleExecWorkflow.contains("inventory_label:"));
@@ -236,7 +236,9 @@ class RootRetirementContractTest {
 		assertFalse(deployProd.contains("github.event.inputs.version"));
 		assertFalse(deployProd.contains("github.event.inputs.module"));
 		assertFalse(deployProd.contains("checkout_ref=refs/tags/"));
-		assertTrue(deployProd.contains("module_matrix={\"include\":[{\"module\":\"admin\"},{\"module\":\"apis\"},{\"module\":\"batch\"}]}"));
+		String prodModuleMatrix =
+			"module_matrix={\"include\":[{\"module\":\"admin\"},{\"module\":\"apis\"},{\"module\":\"batch\"}]}";
+		assertTrue(deployProd.contains(prodModuleMatrix));
 
 		assertTrue(secretAwareVerify.contains("module: ${{ matrix.module }}"));
 		assertTrue(secretAwareVerify.contains("Verified resolver for module=${MODULE}"));
@@ -245,138 +247,126 @@ class RootRetirementContractTest {
 	}
 
 	@Test
-	void nginxHelperSplitsLegacyManagedUpstreamsIntoOwnedFragments() throws Exception {
-		Path script = Path.of("infra/ansible/roles/nginx_config_helper/files/update-nginx-config.py").toAbsolutePath();
-		Path tempDir = Files.createTempDirectory("beat-nginx-upstreams-");
-		Path upstreamDir = tempDir.resolve("upstreams");
-		Path legacy = upstreamDir.resolve("00-managed.conf");
-		Files.createDirectories(upstreamDir);
-		Files.writeString(legacy, """
-			# BEGIN BEAT MANAGED UPSTREAM backend
-			upstream backend {
-			    server apis-blue:4001;
-			}
-			# END BEAT MANAGED UPSTREAM backend
+	void foundationMarkerContractProtectsDeployAndRollback() throws Exception {
+		String ansibleExecWorkflow = read(".github/workflows/_ansible-exec.yml");
+		String deployDev = read(".github/workflows/deploy-dev.yml");
+		String deployProd = read(".github/workflows/deploy-prod.yml");
+		String foundationPlaybook = read("infra/ansible/playbooks/foundation.yml");
+		String deployPlaybook = read("infra/ansible/playbooks/deploy.yml");
+		String rollbackPlaybook = read("infra/ansible/playbooks/rollback.yml");
+		String nginxFragmentsPreflight = read("infra/ansible/playbooks/tasks/validate_nginx_fragments.yml");
+		String infraReadme = read("infra/README.md");
 
-			# BEGIN BEAT MANAGED UPSTREAM admin_backend
-			upstream admin_backend {
-			    server admin:4000;
-			}
-			# END BEAT MANAGED UPSTREAM admin_backend
+		assertTrue(ansibleExecWorkflow.contains("connection_module:"));
+		assertTrue(ansibleExecWorkflow.contains(
+			"module: ${{ inputs.connection_module != '' && inputs.connection_module || inputs.module }}"));
 
-			# BEGIN BEAT MANAGED UPSTREAM actuator
-			upstream actuator {
-			    server apis-blue:9000;
-			}
-			# END BEAT MANAGED UPSTREAM actuator
-			""");
+		assertTrue(foundationPlaybook.contains("foundation_marker_path: \"{{ deployment_dir }}/.foundation-applied\""));
+		assertTrue(foundationPlaybook.contains("tasks/validate_nginx_fragments.yml"));
+		assertTrue(foundationPlaybook.contains("name: Assert required foundation marker inputs"));
+		assertTrue(foundationPlaybook.contains("deploy_environment is defined"));
+		assertTrue(foundationPlaybook.contains("post_tasks:"));
+		assertTrue(foundationPlaybook.contains("name: Mark foundation as applied"));
+		assertTrue(foundationPlaybook.contains("applied_at: {{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}"));
+		assertTrue(foundationPlaybook.contains("commit_sha: {{ commit_sha | default('unknown') }}"));
+		assertTrue(foundationPlaybook.contains("deploy_environment: {{ deploy_environment }}"));
+		assertTrue(foundationPlaybook.contains("foundation_mysql_enabled: {{ foundation_mysql_enabled | default(true) }}"));
+		assertTrue(foundationPlaybook.contains("foundation_redis_enabled: {{ foundation_redis_enabled | default(true) }}"));
+		assertTrue(foundationPlaybook.contains("foundation_manage_nginx: {{ foundation_manage_nginx | default(false) }}"));
+		assertBefore(foundationPlaybook, "role: foundation_stack", "name: Mark foundation as applied");
+		assertBefore(foundationPlaybook, "role: nginx_base_config", "name: Mark foundation as applied");
 
-		String firstRun = run(
-			"python3",
-			script.toString(),
-			"split-upstreams",
-			"--source",
-			legacy.toString(),
-			"--output-dir",
-			upstreamDir.toString(),
-			"--mapping",
-			"backend=backend.conf",
-			"--mapping",
-			"admin_backend=admin_backend.conf",
-			"--mapping",
-			"actuator=actuator.conf",
-			"--require-all");
+		assertTrue(deployPlaybook.contains("foundation_marker_path: \"{{ deployment_dir }}/.foundation-applied\""));
+		assertTrue(deployPlaybook.contains("tasks/validate_nginx_fragments.yml"));
+		assertTrue(deployPlaybook.contains("name: Stat foundation marker"));
+		assertTrue(deployPlaybook.contains("register: deploy_foundation_marker_stat"));
+		assertTrue(deployPlaybook.contains("name: Read foundation marker for diagnostics"));
+		assertTrue(deployPlaybook.contains("register: deploy_foundation_marker_raw"));
+		assertTrue(deployPlaybook.contains("name: Abort deploy when foundation is not applied"));
+		assertTrue(deployPlaybook.contains("Foundation has not been applied on host {{ inventory_hostname }}."));
+		assertTrue(deployPlaybook.contains("inventories/<env>/hosts.yml"));
+		assertFalse(deployPlaybook.contains("default(['inventories/dev/hosts.yml'])"));
+		assertTrue(deployPlaybook.contains("Or trigger the foundation step on GitHub Actions before retrying deploy."));
+		assertTrue(deployPlaybook.contains("name: Report foundation marker contents"));
+		assertBefore(deployPlaybook, "name: Stat foundation marker", "role: app_secret");
 
-		assertTrue(firstRun.contains("changed=true"));
-		assertTrue(Files.readString(upstreamDir.resolve("backend.conf")).contains("server apis-blue:4001;"));
-		assertTrue(Files.readString(upstreamDir.resolve("admin_backend.conf")).contains("server admin:4000;"));
-		assertTrue(Files.readString(upstreamDir.resolve("actuator.conf")).contains("server apis-blue:9000;"));
+		assertTrue(rollbackPlaybook.contains("foundation_marker_path: \"{{ deployment_dir }}/.foundation-applied\""));
+		assertTrue(rollbackPlaybook.contains("tasks/validate_nginx_fragments.yml"));
+		assertTrue(rollbackPlaybook.contains("name: Stat foundation marker"));
+		assertTrue(rollbackPlaybook.contains("register: rollback_foundation_marker_stat"));
+		assertTrue(rollbackPlaybook.contains("name: Read foundation marker for diagnostics"));
+		assertTrue(rollbackPlaybook.contains("register: rollback_foundation_marker_raw"));
+		assertTrue(rollbackPlaybook.contains("name: Abort rollback when foundation is not applied"));
+		assertTrue(rollbackPlaybook.contains("inventories/<env>/hosts.yml"));
+		assertFalse(rollbackPlaybook.contains("default(['inventories/dev/hosts.yml'])"));
+		assertTrue(rollbackPlaybook.contains("Or trigger the foundation step on GitHub Actions before retrying rollback."));
+		assertTrue(rollbackPlaybook.contains("name: Report foundation marker contents"));
+		assertBefore(rollbackPlaybook, "name: Stat foundation marker", "role: app_rollback");
 
-		String secondRun = run(
-			"python3",
-			script.toString(),
-			"split-upstreams",
-			"--source",
-			legacy.toString(),
-			"--output-dir",
-			upstreamDir.toString(),
-			"--mapping",
-			"backend=backend.conf",
-			"--mapping",
-			"admin_backend=admin_backend.conf",
-			"--mapping",
-			"actuator=actuator.conf",
-			"--require-all");
+		assertBefore(deployDev, "\n  foundation:", "\n  deploy:");
+		String devFoundationNeeds =
+			"  foundation:\n"
+				+ "    needs:\n"
+				+ "      - detect-changes\n"
+				+ "      - verify\n"
+				+ "      - build-image";
+		String devDeployNeedsFoundation =
+			"      - build-image\n"
+				+ "      - foundation\n"
+				+ "    if: needs.detect-changes.outputs.has_modules == 'true'";
+		assertTrue(deployDev.contains(devFoundationNeeds));
+		assertTrue(deployDev.contains("module: foundation"));
+		assertTrue(deployDev.contains("connection_module: ${{ vars.DEV_FOUNDATION_CONNECTION_MODULE || 'apis' }}"));
+		assertTrue(deployDev.contains("playbook: playbooks/foundation.yml"));
+		assertTrue(deployDev.contains("commit_sha: ${{ github.sha }}"));
+		assertTrue(deployDev.contains("checkout_ref: ${{ github.sha }}"));
+		assertTrue(deployDev.contains(devDeployNeedsFoundation));
+		assertTrue(deployDev.contains("group: deploy-dev-runtime-${{ github.ref }}"));
 
-		assertTrue(secondRun.contains("changed=false"));
-	}
+		assertBefore(deployProd, "\n  foundation:", "\n  deploy:");
+		String prodFoundationNeeds =
+			"  foundation:\n"
+				+ "    needs:\n"
+				+ "      - resolve-release\n"
+				+ "      - verify\n"
+				+ "      - build-image";
+		String prodDeployNeedsFoundation =
+			"      - build-image\n"
+				+ "      - foundation\n"
+				+ "    concurrency:\n"
+				+ "      group: prod-runtime";
+		assertTrue(deployProd.contains(prodFoundationNeeds));
+		assertTrue(deployProd.contains("module: foundation"));
+		assertTrue(deployProd.contains("connection_module: ${{ vars.PROD_FOUNDATION_CONNECTION_MODULE || 'apis' }}"));
+		assertTrue(deployProd.contains("playbook: playbooks/foundation.yml"));
+		assertTrue(deployProd.contains("commit_sha: ${{ needs.resolve-release.outputs.commit_sha }}"));
+		assertTrue(deployProd.contains("checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}"));
+		assertTrue(deployProd.contains(prodDeployNeedsFoundation));
+		assertTrue(deployProd.contains("group: prod-runtime"));
 
-	@Test
-	void nginxHelperKeepsExistingOwnedFragmentsWhenSplittingLegacyUpstreams() throws Exception {
-		Path script = Path.of("infra/ansible/roles/nginx_config_helper/files/update-nginx-config.py").toAbsolutePath();
-		Path tempDir = Files.createTempDirectory("beat-nginx-upstream-preserve-");
-		Path upstreamDir = tempDir.resolve("upstreams");
-		Path legacy = upstreamDir.resolve("00-managed.conf");
-		Files.createDirectories(upstreamDir);
-		Files.writeString(upstreamDir.resolve("backend.conf"), """
-			# BEGIN BEAT MANAGED UPSTREAM backend
-			upstream backend {
-			    server apis-live:4001;
-			}
-			# END BEAT MANAGED UPSTREAM backend
-			""");
-		Files.writeString(legacy, """
-			# BEGIN BEAT MANAGED UPSTREAM backend
-			upstream backend {
-			    server apis-stale:4001;
-			}
-			# END BEAT MANAGED UPSTREAM backend
-
-			# BEGIN BEAT MANAGED UPSTREAM admin_backend
-			upstream admin_backend {
-			    server admin-live:4000;
-			}
-			# END BEAT MANAGED UPSTREAM admin_backend
-
-			# BEGIN BEAT MANAGED UPSTREAM actuator
-			upstream actuator {
-			    server apis-live:9000;
-			}
-			# END BEAT MANAGED UPSTREAM actuator
-			""");
-
-		String output = run(
-			"python3",
-			script.toString(),
-			"split-upstreams",
-			"--source",
-			legacy.toString(),
-			"--output-dir",
-			upstreamDir.toString(),
-			"--mapping",
-			"backend=backend.conf",
-			"--mapping",
-			"admin_backend=admin_backend.conf",
-			"--mapping",
-			"actuator=actuator.conf",
-			"--require-all",
-			"--skip-existing");
-
-		assertTrue(output.contains("changed=true"));
-		assertTrue(Files.readString(upstreamDir.resolve("backend.conf")).contains("server apis-live:4001;"));
-		assertFalse(Files.readString(upstreamDir.resolve("backend.conf")).contains("server apis-stale:4001;"));
-		assertTrue(Files.readString(upstreamDir.resolve("admin_backend.conf")).contains("server admin-live:4000;"));
-		assertTrue(Files.readString(upstreamDir.resolve("actuator.conf")).contains("server apis-live:9000;"));
+		assertTrue(infraReadme.contains("Foundation marker contract"));
+		assertTrue(infraReadme.contains("{{ deployment_dir }}/.foundation-applied"));
+		assertTrue(infraReadme.contains("applied_at`, `commit_sha`, `deploy_environment`"));
+		assertTrue(infraReadme.contains("DEV_FOUNDATION_CONNECTION_MODULE"));
+		assertTrue(infraReadme.contains("PROD_FOUNDATION_CONNECTION_MODULE"));
+		assertTrue(nginxFragmentsPreflight.contains("nginx_fragments is mapping"));
+		assertTrue(nginxFragmentsPreflight.contains("nginx_fragments mapping has invalid or duplicate entries"));
+		assertTrue(nginxFragmentsPreflight.contains("nginx_fragment_files | unique | list | length"));
+		assertTrue(nginxFragmentsPreflight.contains("modules is mapping"));
+		assertTrue(nginxFragmentsPreflight.contains("((modules | default({})).apis | default({})).backend_upstream_name"));
+		assertTrue(nginxFragmentsPreflight.contains(
+			"(((modules | default({})).admin | default({})).nginx_route | default({})).upstream_name"));
 	}
 
 	@Test
 	void deploymentInfraUsesRepoOwnedHelpersAndConfiguredModuleContracts() throws Exception {
 		String dockerfileModule = read("Dockerfile.module");
 		String dockerignore = read(".dockerignore");
-			String nginxUpdateScript = read("infra/ansible/roles/nginx_config_helper/files/update-nginx-config.py");
-			String foundationPlaybook = read("infra/ansible/playbooks/foundation.yml");
-			String foundationComposeTemplate = read("infra/ansible/roles/foundation_stack/templates/foundation.compose.yml.j2");
-			String defaultConfTemplate = read("infra/ansible/roles/nginx_base_config/templates/default.conf.j2");
+		String nginxUpdateScript = read("infra/ansible/roles/nginx_config_helper/files/update-nginx-config.py");
+		String foundationPlaybook = read("infra/ansible/playbooks/foundation.yml");
+		String foundationStackTasks = read("infra/ansible/roles/foundation_stack/tasks/main.yml");
+		String foundationComposeTemplate = read("infra/ansible/roles/foundation_stack/templates/foundation.compose.yml.j2");
+		String defaultConfTemplate = read("infra/ansible/roles/nginx_base_config/templates/default.conf.j2");
 		String deployPlaybook = read("infra/ansible/playbooks/deploy.yml");
 		String rollbackPlaybook = read("infra/ansible/playbooks/rollback.yml");
 		String appSecretRole = read("infra/ansible/roles/app_secret/tasks/main.yml");
@@ -384,13 +374,19 @@ class RootRetirementContractTest {
 		String appBluegreenRunSwitch = read("infra/ansible/roles/app_bluegreen/tasks/run_switch.yml");
 		String appStopStartRole = read("infra/ansible/roles/app_stopstart/tasks/main.yml");
 		String appStopStartRunContainer = read("infra/ansible/roles/app_stopstart/tasks/run_container.yml");
+		String appContainerRuntimeEnv = read("infra/ansible/roles/app_container_runtime/tasks/env.yml");
 		String appHealthcheckRole = read("infra/ansible/roles/app_healthcheck/tasks/main.yml");
+		String appHealthcheckProbe = read("infra/ansible/roles/app_healthcheck/tasks/probe.yml");
+		String appCleanupRole = read("infra/ansible/roles/app_cleanup/tasks/main.yml");
+		String appRollbackRole = read("infra/ansible/roles/app_rollback/tasks/main.yml");
+		String infraReadme = read("infra/README.md");
 		String nginxBaseConfig = read("infra/ansible/roles/nginx_base_config/tasks/main.yml");
-		String nginxLegacyMigration = read("infra/ansible/roles/nginx_config_helper/tasks/migrate_legacy_upstreams.yml");
 		String adminNginxRoute = read("infra/ansible/roles/app_stopstart/tasks/admin_nginx_route.yml");
 		String deployDev = read(".github/workflows/deploy-dev.yml");
 		String deployProd = read(".github/workflows/deploy-prod.yml");
 		String rollbackProd = read(".github/workflows/rollback-prod.yml");
+		String devInventory = read("infra/ansible/inventories/dev/group_vars/all/main.yml");
+		String prodInventory = read("infra/ansible/inventories/prod/group_vars/all/main.yml");
 
 		assertTrue(Files.exists(Path.of("infra/ansible/playbooks/deploy.yml")));
 		assertTrue(Files.exists(Path.of("infra/ansible/playbooks/rollback.yml")));
@@ -399,10 +395,12 @@ class RootRetirementContractTest {
 		assertFalse(Files.exists(Path.of("infra/ansible/files/deploy-blue-green.sh")));
 		assertFalse(Files.exists(Path.of("infra/ansible/files/deploy-stop-start.sh")));
 		assertFalse(Files.exists(Path.of("infra/ansible/files/deploy-common.sh")));
-			assertTrue(Files.exists(Path.of("infra/ansible/roles/nginx_config_helper/files/update-nginx-config.py")));
-			assertTrue(Files.exists(Path.of("infra/ansible/roles/foundation_stack/templates/foundation.compose.yml.j2")));
-			assertTrue(Files.exists(Path.of("infra/ansible/roles/nginx_base_config/templates/default.conf.j2")));
-			assertTrue(Files.exists(Path.of("infra/ansible/roles/nginx_config_helper/tasks/migrate_legacy_upstreams.yml")));
+		assertFalse(Files.exists(Path.of("infra/ansible/roles/app_dev_switch")));
+		assertFalse(Files.exists(Path.of("infra/ansible/roles/app_prod_switch")));
+		assertTrue(Files.exists(Path.of("infra/ansible/roles/nginx_config_helper/files/update-nginx-config.py")));
+		assertTrue(Files.exists(Path.of("infra/ansible/roles/foundation_stack/templates/foundation.compose.yml.j2")));
+		assertTrue(Files.exists(Path.of("infra/ansible/roles/nginx_base_config/templates/default.conf.j2")));
+		assertFalse(Files.exists(Path.of("infra/ansible/roles/nginx_config_helper/tasks/migrate_legacy_upstreams.yml")));
 		assertTrue(Files.exists(Path.of("scripts/generate-local-dev-secret.sh")));
 		assertTrue(Files.exists(Path.of("scripts/generate-local-prod-secret.sh")));
 		assertTrue(Files.exists(Path.of(".dockerignore")));
@@ -421,33 +419,64 @@ class RootRetirementContractTest {
 		assertTrue(dockerignore.contains(".omx"));
 		assertTrue(dockerignore.contains("src/"));
 		assertTrue(appBluegreenRunSwitch.contains("community.docker.docker_container"));
-		assertTrue(appBluegreenRunSwitch.contains("tasks_from: migrate_legacy_upstreams.yml"));
-		assertTrue(appBluegreenRunSwitch.contains("path: \"{{ item.path }}\""));
-		assertTrue(appBluegreenRunSwitch.contains(
-			"- { name: \"backend\", path: \"{{ app_bluegreen_backend_upstream_source_path }}\" }"));
-		assertTrue(appBluegreenRunSwitch.contains(
-			"- { name: \"actuator\", path: \"{{ app_bluegreen_actuator_upstream_source_path }}\" }"));
-		assertTrue(appBluegreenRunSwitch.contains("src: \"{{ item.item.path }}\""));
-		assertTrue(appBluegreenRunSwitch.contains("dest: \"{{ item.item.path }}.bak\""));
-		assertTrue(appBluegreenRunSwitch.contains("src: \"{{ item.item.path }}.bak\""));
-		assertFalse(appBluegreenRunSwitch.contains("path: \"{{ item }}\""));
-		assertFalse(appBluegreenRunSwitch.contains("src: \"{{ item.path }}\""));
-		assertFalse(appBluegreenRunSwitch.contains("dest: \"{{ item.path }}.bak\""));
-		assertFalse(appBluegreenRunSwitch.contains("src: \"{{ item.path }}.bak\""));
+		assertTrue(appBluegreenRunSwitch.contains("name: nginx_fragment_transaction"));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_files:"));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_operations:"));
+		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_backend_upstream_source_path"));
+		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_backend_upstream_target_path"));
+		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_actuator_upstream_source_path"));
+		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_actuator_upstream_target_path"));
+		assertFalse(appBluegreenRunSwitch.contains("Backup current nginx source config"));
+		assertFalse(appBluegreenRunSwitch.contains("Backup current nginx target config"));
+		assertFalse(appBluegreenRunSwitch.contains("Backup current managed upstream fragment"));
 		assertTrue(appBluegreenRunSwitch.contains("current-slot"));
 		assertTrue(appBluegreenRunSwitch.contains("upsert-upstream"));
 		assertTrue(appBluegreenRunSwitch.contains("public_smoke_url"));
-		assertTrue(appBluegreenRunSwitch.contains("| combine({"));
+		assertTrue(appBluegreenRunSwitch.contains("app_container_env"));
+		assertTrue(appBluegreenRunSwitch.contains("name: app_container_runtime"));
+		assertTrue(appBluegreenRunSwitch.contains(
+			"healthcheck_target_container: \"{{ app_bluegreen_target_container }}\""));
+		assertTrue(appContainerRuntimeEnv.contains("| combine({"));
+		assertTrue(appContainerRuntimeEnv.contains("'SPRING_PROFILES_ACTIVE': app_container_runtime_module_cfg.spring_profile"));
 		assertFalse(appBluegreenRunSwitch.contains("\"{{ module_cfg.spring_profile | upper }}_ACTUATOR_PORT\""));
+		assertFalse(appBluegreenRunSwitch.contains("SPRING_PROFILES_ACTIVE"));
 		assertTrue(appStopStartRole.contains("run_container.yml"));
 		assertTrue(appStopStartRunContainer.contains("community.docker.docker_container"));
-		assertTrue(appStopStartRunContainer.contains("BEAT_SCHEDULER_OWNER"));
-		assertTrue(appStopStartRunContainer.contains("| combine({"));
+		assertTrue(appContainerRuntimeEnv.contains("BEAT_SCHEDULER_OWNER"));
+		assertTrue(appStopStartRunContainer.contains("app_container_env"));
+		assertTrue(appStopStartRunContainer.contains("name: app_container_runtime"));
+		assertTrue(appStopStartRunContainer.contains(
+			"healthcheck_target_container: \"{{ app_stopstart_module_cfg.container_name }}\""));
+		assertFalse(appStopStartRunContainer.contains("| default(module)"));
+		assertTrue(appContainerRuntimeEnv.contains("| combine({"));
+		assertTrue(appContainerRuntimeEnv.contains("| string | lower"));
 		assertFalse(appStopStartRunContainer.contains("\"{{ module_cfg.spring_profile | upper }}_ACTUATOR_PORT\""));
+		assertFalse(appStopStartRunContainer.contains("SPRING_PROFILES_ACTIVE"));
 		assertTrue(foundationPlaybook.contains("role: foundation_stack"));
 		assertTrue(foundationPlaybook.contains("role: nginx_base_config"));
+		assertTrue(foundationStackTasks.contains("project_src: \"{{ deployment_dir }}\""));
+		assertTrue(foundationStackTasks.contains("- docker-compose.yml"));
+		assertTrue(foundationStackTasks.contains("Ensure nginx bind mount and candidate directories exist"));
+		assertTrue(foundationStackTasks.contains("Migrate legacy nginx named volume config to bind mount"));
+		assertTrue(foundationStackTasks.contains("Migrate legacy nginx named volume fragments to bind mount"));
+		assertTrue(foundationStackTasks.contains("- -anv"));
+		assertTrue(foundationStackTasks.contains("foundation_stack_legacy_config_migration_result.stdout"));
+		assertTrue(foundationStackTasks.contains("Inspect legacy nginx named volume metadata"));
+		assertTrue(foundationStackTasks.contains("community.docker.docker_volume_info"));
+		assertTrue(foundationStackTasks.contains("foundation_stack_legacy_nginx_volume_info.exists"));
+		assertTrue(foundationStackTasks.contains("when: not foundation_stack_bind_migration_marker_stat.stat.exists"));
+		assertFalse(foundationStackTasks.contains("- docker\n      - volume\n      - inspect"));
+		assertTrue(foundationStackTasks.contains(".bind-mount-migrated-from-{{ foundation_stack_legacy_nginx_volume_name"));
+		assertTrue(foundationStackTasks.contains("Remove stale nginx helper lock files from deployment-owned nginx tree"));
+		assertFalse(foundationStackTasks.contains("/var/lib/docker/volumes"));
+		assertFalse(foundationStackTasks.contains("foundation_stack_compose_definition"));
+		assertFalse(foundationStackTasks.contains("definition: \"{{ foundation_stack_compose_definition }}\""));
 		assertTrue(foundationComposeTemplate.contains("services:"));
 		assertTrue(foundationComposeTemplate.contains("container_name: \"{{ nginx_container_name }}\""));
+		assertTrue(foundationComposeTemplate.contains("{{ deployment_dir }}/nginx/conf.d:/etc/nginx/conf.d"));
+		assertTrue(foundationComposeTemplate.contains("{{ deployment_dir }}/nginx/generated:/etc/nginx/generated"));
+		assertFalse(foundationComposeTemplate.contains(":/etc/nginx\""));
+		assertFalse(foundationComposeTemplate.contains("nginx-config-volume"));
 		assertTrue(foundationComposeTemplate.contains("foundation_mysql_enabled"));
 		assertTrue(foundationComposeTemplate.contains("foundation_redis_enabled"));
 		assertFalse(defaultConfTemplate.contains("upstream {{ backend_upstream_name"));
@@ -460,78 +489,331 @@ class RootRetirementContractTest {
 		assertTrue(nginxUpdateScript.contains("BEAT MANAGED GENERATED ROUTE INCLUDES"));
 		assertTrue(nginxUpdateScript.contains("bootstrap-includes"));
 		assertTrue(nginxUpdateScript.contains("upsert-upstream"));
-		assertTrue(nginxUpdateScript.contains("split-upstreams"));
-		assertTrue(nginxUpdateScript.contains("skip_existing"));
-		assertTrue(deployPlaybook.contains("module_cfg.deploy_mode == 'blue_green'"));
-		assertTrue(deployPlaybook.contains("module_cfg.deploy_mode == 'stop_start'"));
+		assertFalse(nginxUpdateScript.contains("split-upstreams"));
+		assertFalse(nginxUpdateScript.contains("split_upstreams"));
+		assertFalse(nginxUpdateScript.contains("skip_existing"));
+		assertTrue(nginxUpdateScript.contains("json.dumps({\"changed\": changed})"));
+		assertTrue(nginxUpdateScript.contains("LOCK_DIR_ENV = \"BEAT_NGINX_LOCK_DIR\""));
+		assertTrue(nginxUpdateScript.contains("import hashlib"));
+		assertTrue(nginxUpdateScript.contains("DEFAULT_LOCK_DIR = Path(\"/run/lock/beat-nginx\")"));
+		assertTrue(nginxUpdateScript.contains("lock_root.mkdir(parents=True, exist_ok=True)"));
+		assertTrue(nginxUpdateScript.contains("Path(tempfile.gettempdir()) / \"beat-nginx-locks\""));
+		assertTrue(nginxUpdateScript.contains("def lock_filename(path: Path) -> str:"));
+		assertFalse(nginxUpdateScript.contains("lock_path = path.parent / (path.name + \".lock\")"));
+		assertFalse(deployPlaybook.contains("app_dev_switch"));
+		assertFalse(deployPlaybook.contains("app_prod_switch"));
+		assertTrue(deployPlaybook.contains("name: app_bluegreen"));
+		assertTrue(deployPlaybook.contains("tasks_from: run_switch.yml"));
+		assertTrue(deployPlaybook.contains("modules[module].deploy_mode == \"blue_green\""));
+		assertTrue(deployPlaybook.contains("modules[module].deploy_mode == \"stop_start\""));
+		String postFailureRestoreValidationSuccess =
+			"(app_bluegreen_post_failure_restore_validate_result.rc | default(1)) == 0";
+		assertTrue(appBluegreenRunSwitch.contains(postFailureRestoreValidationSuccess));
 		assertTrue(deployPlaybook.contains("tags:"));
 		assertTrue(deployPlaybook.contains("- healthcheck"));
 		assertTrue(deployPlaybook.contains("- cleanup"));
+		assertTrue(rollbackPlaybook.contains("name: app_healthcheck"));
 		assertTrue(rollbackPlaybook.contains("module in modules"));
-		assertTrue(rollbackPlaybook.contains("module_cfg.nginx_route is defined"));
+		assertTrue(rollbackPlaybook.contains("app_rollback_module_cfg.nginx_route is defined"));
 		assertTrue(rollbackPlaybook.contains("- rollback"));
 		assertTrue(appSecretRole.contains("application-secret.properties.j2"));
 		assertFalse(appSecretRole.contains("app_secret_content_normalized"));
-			assertTrue(deployPlaybook.contains("network_health_max_attempts: 30"));
-			assertTrue(rollbackPlaybook.contains("network_health_max_attempts: 30"));
-			assertTrue(deployDev.contains(".dockerignore"));
-			assertTrue(deployDev.contains("Build and push image"));
-			assertTrue(deployProd.contains("Build and push image"));
-			assertTrue(deployProd.contains("Validate release tag"));
-			assertTrue(deployProd.contains("resolve-release"));
-			assertTrue(deployProd.contains("release_tag"));
-			assertTrue(rollbackProd.contains("playbook: playbooks/rollback.yml"));
-			assertFalse(deployDev.contains("ansible-playbook playbooks/deploy.yml"));
-			assertFalse(deployProd.contains("ansible-playbook playbooks/deploy.yml"));
-			assertFalse(rollbackProd.contains("ansible-playbook playbooks/rollback.yml"));
-			assertFalse(deployDev.contains("Setup deploy tooling"));
-			assertFalse(deployProd.contains("Setup deploy tooling"));
-			assertFalse(deployDev.contains("inventory_sops_path:"));
-			assertFalse(deployProd.contains("inventory_sops_path:"));
-			assertFalse(rollbackProd.contains("inventory_sops_path:"));
-			assertFalse(deployDev.contains("inventory_label:"));
-			assertFalse(deployProd.contains("inventory_label:"));
-			assertFalse(rollbackProd.contains("inventory_label:"));
-			assertTrue(deployDev.contains("preferred_order = [\"admin\", \"apis\", \"batch\"]"));
-			assertTrue(deployDev.contains("modules = preferred_order if requested == \"all\" else [requested]"));
-			assertTrue(deployDev.contains("modules = [module for module in preferred_order if selected_modules[module]]"));
-			assertTrue(deployDev.contains("IMAGE_TAG=\"dev-${GITHUB_SHA}\""));
-			assertTrue(deployDev.contains("image: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ github.sha }}"));
-			assertTrue(deployProd.contains("IMAGE_TAG=\"${RELEASE_TAG}\""));
-			assertTrue(deployProd.contains("image: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:${{ needs.resolve-release.outputs.release_tag }}"));
-			assertFalse(appScriptsRole.contains("deploy-common.sh"));
+		assertTrue(deployPlaybook.contains("network_health_max_attempts: 30"));
+		assertTrue(rollbackPlaybook.contains("network_health_max_attempts: 30"));
+		assertTrue(deployDev.contains(".dockerignore"));
+		assertTrue(deployDev.contains("Build and push image"));
+		assertTrue(deployProd.contains("Build and push image"));
+		assertTrue(deployProd.contains("Validate release tag"));
+		assertTrue(deployProd.contains("resolve-release"));
+		assertTrue(deployProd.contains("release_tag"));
+		assertTrue(rollbackProd.contains("playbook: playbooks/rollback.yml"));
+		assertFalse(deployDev.contains("ansible-playbook playbooks/deploy.yml"));
+		assertFalse(deployProd.contains("ansible-playbook playbooks/deploy.yml"));
+		assertFalse(rollbackProd.contains("ansible-playbook playbooks/rollback.yml"));
+		assertFalse(deployDev.contains("Setup deploy tooling"));
+		assertFalse(deployProd.contains("Setup deploy tooling"));
+		assertFalse(deployDev.contains("inventory_sops_path:"));
+		assertFalse(deployProd.contains("inventory_sops_path:"));
+		assertFalse(rollbackProd.contains("inventory_sops_path:"));
+		assertFalse(deployDev.contains("inventory_label:"));
+		assertFalse(deployProd.contains("inventory_label:"));
+		assertFalse(rollbackProd.contains("inventory_label:"));
+		assertTrue(deployDev.contains("preferred_order = [\"admin\", \"apis\", \"batch\"]"));
+		assertTrue(deployDev.contains("modules = preferred_order if requested == \"all\" else [requested]"));
+		assertTrue(deployDev.contains("modules = [module for module in preferred_order if selected_modules[module]]"));
+		assertTrue(deployDev.contains("IMAGE_TAG=\"dev-${GITHUB_SHA}\""));
+		String devRuntimeImage =
+			"image: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ github.sha }}";
+		String prodRuntimeImage =
+			"image: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:"
+				+ "${{ needs.resolve-release.outputs.release_tag }}";
+		assertTrue(deployDev.contains(devRuntimeImage));
+		assertTrue(deployProd.contains("IMAGE_TAG=\"${RELEASE_TAG}\""));
+		assertTrue(deployProd.contains(prodRuntimeImage));
+		assertFalse(appScriptsRole.contains("deploy-common.sh"));
 		assertFalse(appScriptsRole.contains("deploy-stop-start.sh"));
 		assertFalse(appScriptsRole.contains("Install repo-owned stop-start deployment helper"));
 		assertFalse(appScriptsRole.contains("deploy-blue-green.sh"));
-			assertTrue(appScriptsRole.contains("name: nginx_config_helper"));
+		assertTrue(appScriptsRole.contains("name: nginx_config_helper"));
 		assertTrue(appScriptsRole.contains("nginx_generated_source_dir"));
 		assertTrue(appScriptsRole.contains("nginx_generated_target_dir"));
-		assertTrue(appHealthcheckRole.contains("module_cfg.container_name | default(module)"));
-		assertTrue(appHealthcheckRole.contains("module_cfg.blue_container_name"));
-		assertTrue(appHealthcheckRole.contains("module_cfg.green_container_name"));
+		assertTrue(appHealthcheckRole.contains("healthcheck_target_container"));
+		assertTrue(appHealthcheckRole.contains("healthcheck_target_container must be set"));
+		assertTrue(appHealthcheckRole.contains("include_tasks: probe.yml"));
+		assertTrue(appHealthcheckRole.contains("app_healthcheck_probe_target_container"));
+		assertTrue(appHealthcheckProbe.contains("app_healthcheck_probe_target_container"));
+		assertTrue(appHealthcheckProbe.contains("printf 'health attempt %s/%s failed"));
+		assertTrue(appHealthcheckProbe.contains("if [ \"$attempt\" -lt \"$attempts\" ]; then"));
+		assertFalse(appHealthcheckRole.contains("current-slot"));
+		assertFalse(appHealthcheckRole.contains("slurp:"));
+		assertFalse(appHealthcheckRole.contains("module_cfg.container_name | default(module)"));
 		assertFalse(appHealthcheckRole.contains("target=\"apis-$slot\""));
-		assertTrue(nginxBaseConfig.contains("nginx_base_config_upstream_target_sync_results is defined"));
+		assertTrue(appCleanupRole.contains("docker_image_prune_retention | default('72h')"));
+		assertTrue(appCleanupRole.contains("docker_image_prune_failure_policy | default('warn') in ['warn', 'fail']"));
+		assertTrue(appCleanupRole.contains("docker_image_prune_failure_policy | default('warn') == 'fail'"));
+		assertTrue(appCleanupRole.contains("Total reclaimed space:\\\\s*0\\\\s*B"));
+		assertTrue(appCleanupRole.contains("app_cleanup_docker_prune_result.stdout | default('unknown error', true)"));
+		assertFalse(appCleanupRole.contains("until=72h"));
+		assertFalse(appCleanupRole.contains("failed_when: false"));
+		assertTrue(appRollbackRole.contains("app_rollback_archive_timestamp"));
+		assertTrue(appRollbackRole.contains("now(utc=true, fmt='%Y%m%dT%H%M%SZ')"));
+		assertFalse(appRollbackRole.contains("lookup('pipe', 'date -u"));
+		assertTrue(infraReadme.contains("Release metadata schema"));
+		assertTrue(infraReadme.contains("created_at`은 원격 EC2의 시스템 시간이 아니라 controller UTC"));
+		assertTrue(infraReadme.contains("SSH pipelining + sudo `requiretty` caveat"));
+		assertTrue(infraReadme.contains("Defaults requiretty"));
+		assertTrue(infraReadme.contains("Seed placeholder upstreams"));
+		assertTrue(infraReadme.contains("nginx_seed_placeholder_host:nginx_seed_placeholder_port"));
+		assertTrue(infraReadme.contains("127.0.0.1:65535"));
+		assertTrue(infraReadme.contains("community.docker.docker_volume_info"));
+		assertTrue(infraReadme.contains("nginx_legacy_config_volume_name"));
+		assertFalse(infraReadme.contains("/var/lib/docker/volumes"));
+		assertTrue(infraReadme.contains("Nginx fragment mapping contract"));
+		assertTrue(infraReadme.contains("nginx_fragments"));
+		assertTrue(infraReadme.contains("read-only contract"));
+		assertTrue(devInventory.contains("nginx_seed_placeholder_host: \"127.0.0.1\""));
+		assertTrue(devInventory.contains("nginx_seed_placeholder_port: 65535"));
+		assertTrue(devInventory.contains("nginx_legacy_config_volume_name: nginx-config-volume"));
+		assertFalse(devInventory.contains("nginx_config_volume_name:"));
+		assertTrue(devInventory.contains("nginx_conf_target_path: /home/ubuntu/deployment/nginx/conf.d/default.conf"));
+		assertTrue(devInventory.contains("nginx_generated_source_dir: /home/ubuntu/deployment/nginx/generated-source"));
+		assertTrue(devInventory.contains("nginx_generated_target_dir: /home/ubuntu/deployment/nginx/generated"));
+		assertFalse(devInventory.contains("/var/lib/docker/volumes/nginx-config-volume/_data"));
+		assertTrue(devInventory.contains("nginx_fragments:"));
+		assertTrue(devInventory.contains("fragment_file: backend.conf"));
+		assertTrue(devInventory.contains("fragment_file: admin_backend.conf"));
+		assertTrue(devInventory.contains("fragment_file: actuator.conf"));
+		assertTrue(devInventory.contains("fragment_file: 10-managed.conf"));
+		assertTrue(prodInventory.contains("nginx_seed_placeholder_host: \"127.0.0.1\""));
+		assertTrue(prodInventory.contains("nginx_seed_placeholder_port: 65535"));
+		assertTrue(prodInventory.contains("nginx_legacy_config_volume_name: nginx-config-volume"));
+		assertFalse(prodInventory.contains("nginx_config_volume_name:"));
+		assertTrue(prodInventory.contains("nginx_conf_target_path: /home/ubuntu/deployment/nginx/conf.d/default.conf"));
+		assertTrue(prodInventory.contains("nginx_generated_source_dir: /home/ubuntu/deployment/nginx/generated-source"));
+		assertTrue(prodInventory.contains("nginx_generated_target_dir: /home/ubuntu/deployment/nginx/generated"));
+		assertFalse(prodInventory.contains("/var/lib/docker/volumes/nginx-config-volume/_data"));
+		assertTrue(prodInventory.contains("nginx_fragments:"));
+		assertTrue(nginxBaseConfig.contains("nginx_base_config_transaction_operations"));
+		assertTrue(nginxBaseConfig.contains("sync-backend-upstream-target"));
 		assertFalse(nginxBaseConfig.contains("nginx_base_config_upstream_target_sync_result is defined"));
-		assertTrue(nginxBaseConfig.contains("nginx_legacy_upstream_source_path"));
-		assertTrue(nginxBaseConfig.contains("Split legacy upstream source into per-upstream fragments"));
-		assertTrue(nginxBaseConfig.contains("Remove legacy upstream target before nginx validation"));
-		assertTrue(nginxBaseConfig.contains("selectattr('item.name', 'equalto', 'backend')"));
-		assertFalse(nginxBaseConfig.contains("nginx_base_config_upstream_source_stats.results[0]"));
-		assertTrue(nginxLegacyMigration.contains("00-managed.conf"));
-		assertTrue(nginxLegacyMigration.contains("Sync split upstream fragments before removing legacy target"));
-		assertTrue(nginxLegacyMigration.contains("Remove legacy upstream target before nginx validation"));
-		assertBefore(nginxLegacyMigration, "Split legacy upstream source", "Check split upstream sources");
-		assertBefore(nginxLegacyMigration, "Check split upstream sources", "Abort legacy upstream migration");
-		assertBefore(nginxLegacyMigration, "Abort legacy upstream migration", "Sync split upstream fragments");
-		assertBefore(nginxLegacyMigration, "Sync split upstream fragments", "Remove legacy upstream target");
-		assertBefore(nginxLegacyMigration, "Remove legacy upstream target", "Remove legacy upstream source");
-		assertBefore(appBluegreenRunSwitch, "tasks_from: migrate_legacy_upstreams.yml", "Validate nginx config after upstream switch");
-		assertBefore(adminNginxRoute, "tasks_from: migrate_legacy_upstreams.yml", "Validate nginx config after admin route update");
+		assertTrue(nginxBaseConfig.contains("nginx_seed_placeholder_host"));
+		assertTrue(nginxBaseConfig.contains("nginx_seed_placeholder_port"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.backend.fragment_file"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.admin.fragment_file"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.actuator.fragment_file"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.route.fragment_file"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.backend.upstream_name"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.admin.upstream_name"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragments.actuator.upstream_name"));
+		assertFalse(nginxBaseConfig.contains("- \"127.0.0.1\"\n"
+			+ "            - --backend-port\n"
+			+ "            - \"65535\""));
+		assertFalse(nginxBaseConfig.contains("/upstreams/backend.conf\""));
+		assertFalse(nginxBaseConfig.contains("/upstreams/admin_backend.conf\""));
+		assertFalse(nginxBaseConfig.contains("/upstreams/actuator.conf\""));
+		assertFalse(nginxBaseConfig.contains("/routes/10-managed.conf\""));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragments.backend.fragment_file"));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragments.actuator.fragment_file"));
+		assertFalse(appBluegreenRunSwitch.contains("/upstreams/backend.conf\""));
+		assertFalse(appBluegreenRunSwitch.contains("/upstreams/actuator.conf\""));
+		assertBefore(
+			appBluegreenRunSwitch,
+			"nginx_fragment_transaction_operations:",
+			"nginx_fragment_transaction_failure_summary:");
+		assertBefore(
+			adminNginxRoute,
+			"app_stopstart_admin_nginx_transaction_operations:",
+			"nginx_fragment_transaction_failure_summary:");
+		assertTrue(adminNginxRoute.contains("app_stopstart_admin_nginx_transaction_files:"));
+		assertTrue(adminNginxRoute.contains("app_stopstart_admin_nginx_transaction_operations:"));
+		assertTrue(adminNginxRoute.contains("name: nginx_fragment_transaction"));
+		assertTrue(adminNginxRoute.contains("nginx_fragment_transaction_id: app-stopstart-admin-route"));
+		assertTrue(adminNginxRoute.contains(
+			"nginx_fragment_transaction_files: \"{{ app_stopstart_admin_nginx_transaction_files }}\""));
+		assertTrue(adminNginxRoute.contains(
+			"nginx_fragment_transaction_operations: \"{{ app_stopstart_admin_nginx_transaction_operations }}\""));
+		assertFalse(adminNginxRoute.contains("nginx_fragment_transaction_validate_command:"));
+		assertFalse(adminNginxRoute.contains("nginx_fragment_transaction_reload_command:"));
 		assertTrue(adminNginxRoute.contains("bootstrap-includes"));
-		assertTrue(adminNginxRoute.contains("tasks_from: migrate_legacy_upstreams.yml"));
-		assertTrue(adminNginxRoute.contains("routes/10-managed.conf"));
-		assertTrue(adminNginxRoute.contains("upstreams/admin_backend.conf"));
+		assertFalse(adminNginxRoute.contains("split-upstreams"));
+		assertFalse(adminNginxRoute.contains("split_upstreams"));
+		assertTrue(adminNginxRoute.contains("upsert-upstream"));
+		assertTrue(adminNginxRoute.contains("ensure-route"));
+		assertTrue(adminNginxRoute.contains("sync-admin-upstream-target"));
+		assertTrue(adminNginxRoute.contains("sync-admin-route-target"));
+		assertTrue(adminNginxRoute.contains("nginx_fragments.admin.fragment_file"));
+		assertTrue(adminNginxRoute.contains("nginx_fragments.route.fragment_file"));
+		assertFalse(adminNginxRoute.contains("/upstreams/admin_backend.conf\""));
+		assertFalse(adminNginxRoute.contains("/routes/10-managed.conf\""));
+		assertFalse(adminNginxRoute.contains("backend-upstream-source"));
+		assertFalse(adminNginxRoute.contains("backend-upstream-target"));
+		assertFalse(adminNginxRoute.contains("actuator-upstream-source"));
+		assertFalse(adminNginxRoute.contains("actuator-upstream-target"));
+		assertFalse(adminNginxRoute.contains("tasks_from: migrate_legacy_upstreams.yml"));
+		assertFalse(adminNginxRoute.contains("legacy-upstream-source"));
+		assertFalse(adminNginxRoute.contains("legacy-upstream-target"));
+		assertFalse(adminNginxRoute.contains("verify-legacy-target-fragments"));
+		assertFalse(adminNginxRoute.contains("sync-legacy-backend-upstream-target"));
+		assertFalse(adminNginxRoute.contains("sync-legacy-admin-upstream-target"));
+		assertFalse(adminNginxRoute.contains("sync-legacy-actuator-upstream-target"));
+		assertFalse(adminNginxRoute.contains("remove-legacy-upstream-target-before-validation"));
+		assertFalse(adminNginxRoute.contains("Validate nginx config after admin route update"));
+		assertFalse(adminNginxRoute.contains("Reload nginx after admin route update"));
+		assertFalse(adminNginxRoute.contains("Backup current admin upstream source fragment"));
+		assertFalse(adminNginxRoute.contains("Restore previous live nginx source config"));
+		assertFalse(adminNginxRoute.contains("Remove admin nginx backup files after successful validation"));
 		assertFalse(adminNginxRoute.contains("/api/admin/"));
+	}
+
+	@Test
+	void nginxFragmentTransactionOwnsBaseConfigValidateReloadAndRestoreBoundary() throws Exception {
+		String transaction = read("infra/ansible/roles/nginx_fragment_transaction/tasks/main.yml");
+		String operation = read("infra/ansible/roles/nginx_fragment_transaction/tasks/operation.yml");
+		String validateOperation = read("infra/ansible/roles/nginx_fragment_transaction/tasks/validate_operation.yml");
+		String defaults = read("infra/ansible/roles/nginx_fragment_transaction/defaults/main.yml");
+		String readme = read("infra/ansible/roles/nginx_fragment_transaction/README.md");
+		String nginxBaseConfig = read("infra/ansible/roles/nginx_base_config/tasks/main.yml");
+		String appBluegreenRunSwitch = read("infra/ansible/roles/app_bluegreen/tasks/run_switch.yml");
+		String adminNginxRoute = read("infra/ansible/roles/app_stopstart/tasks/admin_nginx_route.yml");
+
+		assertFalse(transaction.contains("scaffold-only"));
+		assertFalse(readme.contains("Current scaffold behavior"));
+		assertTrue(defaults.contains("nginx_fragment_transaction_files: []"));
+		assertTrue(defaults.contains("nginx_fragment_transaction_operations: []"));
+		assertTrue(transaction.contains("nginx_fragment_transaction_files"));
+		assertTrue(transaction.contains("nginx_fragment_transaction_operations"));
+		assertTrue(transaction.contains("block:"));
+		assertTrue(transaction.contains("rescue:"));
+		assertTrue(transaction.contains("remote_src: true"));
+		assertTrue(transaction.contains("nginx_fragment_transaction_file_pre_state: {}"));
+		assertTrue(transaction.contains("item.affects_reload is boolean"));
+		assertTrue(transaction.contains("mode: preserve"));
+		assertTrue(transaction.contains("nginx_fragment_transaction_file_pre_state.get(item.id, {})"));
+		assertTrue(transaction.contains("nginx_fragment_transaction_validate_command"));
+		assertTrue(transaction.contains("nginx_fragment_transaction_reload_command"));
+		assertTrue(transaction.contains("failed_when: false"));
+		assertTrue(transaction.contains("restore"));
+		assertTrue(transaction.contains("stdout"));
+		assertTrue(transaction.contains("stderr"));
+		assertBefore(transaction, "nginx_fragment_transaction_validate_command", "nginx_fragment_transaction_reload_command");
+		assertTrue(validateOperation.contains("changed_if.stdout_json.changed is defined"));
+		assertTrue(validateOperation.contains("changed_if.stdout_contains is defined"));
+		assertTrue(operation.contains("nginx_fragment_transaction_command_stdout_json"));
+		assertTrue(operation.contains("from_json"));
+		assertFalse(operation.contains("__nginx_transaction_no_change_marker__"));
+		assertTrue(operation.contains("  when:\n"
+			+ "    - nginx_fragment_transaction_operation_should_run | bool\n"
+			+ "    - nginx_fragment_transaction_operation.kind == 'template'"));
+		assertTrue(operation.contains("  when:\n"
+			+ "    - nginx_fragment_transaction_operation_should_run | bool\n"
+			+ "    - nginx_fragment_transaction_operation.kind == 'command'"));
+		assertTrue(operation.contains("  when:\n"
+			+ "    - nginx_fragment_transaction_operation_should_run | bool\n"
+			+ "    - nginx_fragment_transaction_operation.kind == 'copy'"));
+		assertTrue(operation.contains("  when:\n"
+			+ "    - nginx_fragment_transaction_operation_should_run | bool\n"
+			+ "    - nginx_fragment_transaction_operation.kind == 'file_absent'"));
+
+		assertTrue(nginxBaseConfig.contains("name: nginx_fragment_transaction"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_id: nginx-base-config"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_files:"));
+		assertTrue(nginxBaseConfig.contains("nginx_fragment_transaction_operations:"));
+		assertTrue(nginxBaseConfig.contains("stdout_json:"));
+		assertFalse(nginxBaseConfig.contains("stdout_contains: changed=true"));
+		assertTrue(nginxBaseConfig.contains("src: \"{{ role_path }}/templates/default.conf.j2\""));
+		assertFalse(nginxBaseConfig.contains("playbook_dir }}/../roles/nginx_base_config/templates/default.conf.j2"));
+		assertFalse(nginxBaseConfig.contains("Backup current upstream fragment source"));
+		assertFalse(nginxBaseConfig.contains("Backup current upstream fragment target"));
+		assertFalse(nginxBaseConfig.contains("Validate nginx config after base config update"));
+		assertFalse(nginxBaseConfig.contains("Reload nginx after base config update"));
+		assertFalse(nginxBaseConfig.contains("nginx_legacy_upstream_source_path"));
+		assertFalse(nginxBaseConfig.contains("nginx_legacy_upstream_target_path"));
+		assertFalse(nginxBaseConfig.contains("Abort unsafe legacy-target-only upstream migration"));
+		String legacyTargetPlaceholderRefusal =
+			"Refusing to replace legacy target upstream config with placeholder fragments.";
+		assertFalse(nginxBaseConfig.contains(legacyTargetPlaceholderRefusal));
+		assertFalse(nginxBaseConfig.contains("nginx_base_config_missing_upstream_sources"));
+		assertFalse(nginxBaseConfig.contains("legacy-upstream-source"));
+		assertFalse(nginxBaseConfig.contains("legacy-upstream-target"));
+		assertFalse(nginxBaseConfig.contains("split-legacy-upstream-source"));
+		assertFalse(nginxBaseConfig.contains("remove-legacy-upstream-target-before-validation"));
+		assertTrue(nginxBaseConfig.contains("when_file_missing: backend-upstream-source"));
+		assertTrue(readme.contains("nginx_base_config"));
+		assertTrue(readme.contains("nginx_fragment_transaction_file_pre_state"));
+		assertTrue(readme.contains("published file pre-state"));
+		assertTrue(readme.contains("changed_if.stdout_json.changed: true"));
+		String bluegreenTransactionFilesVar =
+			"nginx_fragment_transaction_files: \"{{ app_bluegreen_nginx_transaction_files }}\"";
+		String bluegreenTransactionOperationsVar =
+			"nginx_fragment_transaction_operations: \"{{ app_bluegreen_nginx_transaction_operations }}\"";
+		String bluegreenTransactionBackupCleanupTask =
+			"Remove blue-green nginx transaction backup files after successful rollout";
+		assertTrue(appBluegreenRunSwitch.contains("name: nginx_fragment_transaction"));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_id: app-bluegreen-switch"));
+		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_nginx_transaction_files:"));
+		assertTrue(appBluegreenRunSwitch.contains(bluegreenTransactionFilesVar));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_files:"));
+		assertTrue(appBluegreenRunSwitch.contains("app_bluegreen_nginx_transaction_operations:"));
+		assertTrue(appBluegreenRunSwitch.contains(bluegreenTransactionOperationsVar));
+		assertTrue(appBluegreenRunSwitch.contains("nginx_fragment_transaction_operations:"));
+		assertFalse(appBluegreenRunSwitch.contains("nginx_fragment_transaction_validate_command:"));
+		assertFalse(appBluegreenRunSwitch.contains("nginx_fragment_transaction_reload_command:"));
+		assertTrue(appBluegreenRunSwitch.contains("stdout_json:"));
+		assertFalse(appBluegreenRunSwitch.contains("stdout_contains: changed=true"));
+		assertFalse(appBluegreenRunSwitch.contains("split-upstreams"));
+		assertFalse(appBluegreenRunSwitch.contains("legacy-upstream-source"));
+		assertFalse(appBluegreenRunSwitch.contains("legacy-upstream-target"));
+		assertFalse(appBluegreenRunSwitch.contains("split-legacy-upstream-source"));
+		assertFalse(appBluegreenRunSwitch.contains("admin-upstream-source"));
+		assertFalse(appBluegreenRunSwitch.contains("admin-upstream-target"));
+		assertFalse(appBluegreenRunSwitch.contains("sync-admin-upstream-target-for-legacy-migration"));
+		assertFalse(appBluegreenRunSwitch.contains("remove-legacy-upstream-target-before-validation"));
+		assertTrue(appBluegreenRunSwitch.contains("upsert-upstream"));
+		assertFalse(appBluegreenRunSwitch.contains("Validate nginx config after upstream switch"));
+		assertFalse(appBluegreenRunSwitch.contains("Reload nginx after upstream switch"));
+		assertFalse(appBluegreenRunSwitch.contains("Restore previous nginx source config from backup"));
+		assertTrue(appBluegreenRunSwitch.contains("cleanup_backup_on_success: false"));
+		assertTrue(appBluegreenRunSwitch.contains("Restore blue-green nginx transaction files after failed rollout"));
+		assertTrue(appBluegreenRunSwitch.contains("Remove blue-green nginx transaction files absent before failed rollout"));
+		assertTrue(appBluegreenRunSwitch.contains(
+			"Remove blue-green nginx transaction backup files after failed rollout restore"));
+		assertTrue(appBluegreenRunSwitch.contains("post_failure_restore_validate_rc="));
+		assertTrue(appBluegreenRunSwitch.contains(bluegreenTransactionBackupCleanupTask));
+		assertTrue(adminNginxRoute.contains("name: nginx_fragment_transaction"));
+		assertTrue(adminNginxRoute.contains("app_stopstart_admin_nginx_transaction_files:"));
+		assertTrue(adminNginxRoute.contains(
+			"nginx_fragment_transaction_files: \"{{ app_stopstart_admin_nginx_transaction_files }}\""));
+		assertTrue(adminNginxRoute.contains("app_stopstart_admin_nginx_transaction_operations:"));
+		assertTrue(adminNginxRoute.contains(
+			"nginx_fragment_transaction_operations: \"{{ app_stopstart_admin_nginx_transaction_operations }}\""));
+		assertFalse(adminNginxRoute.contains("nginx_fragment_transaction_validate_command:"));
+		assertFalse(adminNginxRoute.contains("nginx_fragment_transaction_reload_command:"));
+		assertTrue(adminNginxRoute.contains("stdout_json:"));
+		assertFalse(adminNginxRoute.contains("stdout_contains: changed=true"));
+		assertFalse(adminNginxRoute.contains("remove-legacy-upstream-target-before-validation"));
+		assertFalse(adminNginxRoute.contains("Validate nginx config after admin route update"));
+		assertFalse(adminNginxRoute.contains("Reload nginx after admin route update"));
+		assertFalse(adminNginxRoute.contains("Restore previous nginx source config from backup"));
 	}
 
 	@Test
@@ -571,9 +853,13 @@ class RootRetirementContractTest {
 		assertFalse(read("infra/ansible/inventories/dev/group_vars/all/main.yml").contains("actuator_upstream_port:"));
 		assertFalse(read("infra/ansible/inventories/dev/group_vars/all/main.yml").contains("actuator_public_path:"));
 		assertFalse(read("infra/ansible/inventories/dev/group_vars/all/main.yml").contains("nginx_server_name:"));
+		assertTrue(read("infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml").contains("nginx_server_name:"));
 		assertFalse(read("infra/ansible/inventories/dev/group_vars/all/main.yml").contains("letsencrypt_cert_name:"));
+		assertTrue(read("infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml").contains("letsencrypt_cert_name:"));
 		assertFalse(read("infra/ansible/inventories/dev/group_vars/all/main.yml").contains("actuator_allow_cidrs:"));
+		assertTrue(read("infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml").contains("actuator_allow_cidrs:"));
 		assertFalse(read("infra/ansible/inventories/dev/hosts.yml").contains("ansible_host:"));
+		assertTrue(read("infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml").contains("ansible_host:"));
 		assertTrue(localDevSecretScript.contains("sops -d --extract '[\"actuator_port\"]'"));
 		assertTrue(localProdSecretScript.contains("PROD_ACTUATOR_PORT"));
 		assertTrue(localProdSecretScript.contains("PROD_ACTUATOR_PATH"));
@@ -585,9 +871,13 @@ class RootRetirementContractTest {
 		assertFalse(read("infra/ansible/inventories/prod/group_vars/all/main.yml").contains("actuator_upstream_port:"));
 		assertFalse(read("infra/ansible/inventories/prod/group_vars/all/main.yml").contains("actuator_public_path:"));
 		assertFalse(read("infra/ansible/inventories/prod/group_vars/all/main.yml").contains("nginx_server_name:"));
+		assertTrue(read("infra/ansible/inventories/prod/group_vars/all/secrets.sops.yml").contains("nginx_server_name:"));
 		assertFalse(read("infra/ansible/inventories/prod/group_vars/all/main.yml").contains("letsencrypt_cert_name:"));
+		assertTrue(read("infra/ansible/inventories/prod/group_vars/all/secrets.sops.yml").contains("letsencrypt_cert_name:"));
 		assertFalse(read("infra/ansible/inventories/prod/group_vars/all/main.yml").contains("actuator_allow_cidrs:"));
+		assertTrue(read("infra/ansible/inventories/prod/group_vars/all/secrets.sops.yml").contains("actuator_allow_cidrs:"));
 		assertFalse(read("infra/ansible/inventories/prod/hosts.yml").contains("ansible_host:"));
+		assertTrue(read("infra/ansible/inventories/prod/group_vars/all/secrets.sops.yml").contains("ansible_host:"));
 		assertTrue(localProdSecretScript.contains("sops -d --extract '[\"actuator_port\"]'"));
 		assertTrue(localVarsHelper.contains("require_sops_identity"));
 		assertFalse(localVarsHelper.contains("read_yaml_value"));

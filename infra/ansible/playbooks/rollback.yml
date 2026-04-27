@@ -5,8 +5,9 @@
   gather_facts: false
 
   vars:
-    module_cfg: "{{ modules[module] }}"
+    app_rollback_module_cfg: "{{ modules[module] }}"
     release_dir: "{{ release_root }}/{{ module }}"
+    foundation_marker_path: "{{ deployment_dir }}/.foundation-applied"
     network_health_max_attempts: 30
     network_health_sleep_seconds: 2
     service_smoke_max_attempts: 15
@@ -26,6 +27,63 @@
         - always
         - validate
 
+    - name: Validate nginx fragments mapping invariant
+      ansible.builtin.import_tasks: tasks/validate_nginx_fragments.yml
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Stat foundation marker
+      ansible.builtin.stat:
+        path: "{{ foundation_marker_path }}"
+      register: rollback_foundation_marker_stat
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Read foundation marker for diagnostics
+      ansible.builtin.slurp:
+        src: "{{ foundation_marker_path }}"
+      register: rollback_foundation_marker_raw
+      when: rollback_foundation_marker_stat.stat.exists
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Abort rollback when foundation is not applied
+      ansible.builtin.fail:
+        msg:
+          - "Foundation has not been applied on host {{ inventory_hostname }}."
+          - "Marker missing: {{ foundation_marker_path }}"
+          - "Run foundation first via:"
+          - >-
+            {{
+              "  ansible-playbook playbooks/foundation.yml -i "
+              ~ (
+                (ansible_inventory_sources | default([]))
+                | first
+                | default('inventories/<env>/hosts.yml', true)
+              )
+            }}
+          - "Or trigger the foundation step on GitHub Actions before retrying rollback."
+      when: not rollback_foundation_marker_stat.stat.exists
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Report foundation marker contents
+      ansible.builtin.debug:
+        msg: "Foundation applied: {{ rollback_foundation_marker_raw.content | b64decode }}"
+      when: rollback_foundation_marker_stat.stat.exists
+      tags:
+        - always
+        - validate
+        - preflight
+
   roles:
     - role: app_rollback
       tags:
@@ -33,24 +91,42 @@
         - release
 
   tasks:
-    - name: Configure nginx routing after rollback
-      ansible.builtin.import_role:
-        name: app_stopstart
-        tasks_from: admin_nginx_route.yml
-      when: module_cfg.nginx_route is defined
-      tags:
-        - rollback
-        - nginx
-        - routing
+    - name: Verify rollback result and restore metadata truth
+      block:
+        - name: Healthcheck module after rollback before metadata promotion
+          ansible.builtin.import_role:
+            name: app_healthcheck
+          tags:
+            - rollback
+            - healthcheck
 
-    - name: Promote previous metadata back to current after rollback completion to restore live metadata truth
-      # Keep current.json aligned with the release that is live again after
-      # rollback so the next deploy snapshots the correct previous release.
-      ansible.builtin.copy:
-        src: "{{ release_dir }}/previous.json"
-        dest: "{{ release_dir }}/current.json"
-        remote_src: true
-        mode: "0644"
-      tags:
-        - rollback
-        - release
+        - name: Configure nginx routing after rollback
+          ansible.builtin.import_role:
+            name: app_stopstart
+            tasks_from: admin_nginx_route.yml
+          vars:
+            app_stopstart_module_cfg: "{{ app_rollback_module_cfg }}"
+          when: app_rollback_module_cfg.nginx_route is defined
+          tags:
+            - rollback
+            - nginx
+            - routing
+
+        - name: Promote previous metadata back to current after rollback completion to restore live metadata truth
+          # Keep current.json aligned with the release that is live again after
+          # rollback so the next deploy snapshots the correct previous release.
+          ansible.builtin.copy:
+            src: "{{ release_dir }}/previous.json"
+            dest: "{{ release_dir }}/current.json"
+            remote_src: true
+            mode: "0644"
+          tags:
+            - rollback
+            - release
+      rescue:
+        - name: Abort rollback metadata promotion when post-rollback invariant fails
+          ansible.builtin.fail:
+            msg: >-
+              Rollback runtime change completed but post-rollback healthcheck or nginx route update failed
+              for module '{{ module }}'. Metadata promotion was intentionally skipped so
+              {{ release_dir }}/current.json is not advanced to an unverified runtime state.

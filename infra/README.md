@@ -183,12 +183,14 @@ flowchart LR
     B -->|"shared/** 변경"| E["matrix: all"]
     C & D & E --> F["verify<br/>(Gradle 테스트)"]
     F --> G["build-image<br/>(Docker 병렬 빌드)"]
-    G --> H["deploy<br/>(Ansible 순차 실행)"]
-    H --> I["Slack 알림"]
+    G --> H["foundation<br/>(Ansible 기반 스택 확인)"]
+    H --> I["deploy<br/>(Ansible 순차 실행)"]
+    I --> J["Slack 알림"]
 ```
 
 - `shared` 경로(domain, gateway, build-logic, gradle 등) 변경 시 **전체 모듈** 배포
 - 이미지 태그: `dev-${GITHUB_SHA}`
+- foundation job은 build-image 이후 deploy 전에 실행되며, deploy와 같은 `deploy-dev-runtime-${{ github.ref }}` concurrency group을 사용하고 `needs: foundation`으로 marker 생성을 강제한다
 - deploy job은 `max-parallel: 1` — nginx 설정 충돌 방지
 
 ### Ansible lint / secret-aware 검증
@@ -214,8 +216,9 @@ flowchart LR
     C --> D["verify<br/>checkout by commit SHA"]
     D --> E["build-image<br/>apis/admin/batch<br/>checkout by commit SHA"]
     E --> F["docker push<br/>tag: $release_tag + prod-latest"]
-    F --> G["deploy<br/>(Ansible, module sequential,<br/>checkout_ref = commit SHA)"]
-    G --> H["Slack 알림"]
+    F --> G["foundation<br/>(checkout_ref = commit SHA)"]
+    G --> H["deploy<br/>(Ansible, module sequential,<br/>checkout_ref = commit SHA)"]
+    H --> I["Slack 알림"]
 ```
 
 - `github.event.release.tag_name` 을 **prod 공통 버전 source**로 사용
@@ -225,7 +228,7 @@ flowchart LR
 - deploy 단계는 `max-parallel: 1` 로 모듈을 순차 배포
 - `release-drafter.yml` 은 draft release 갱신용이며, **실제 prod deploy trigger는 published release** 뿐이다
 - `rollback-prod.yml` 은 계속 **수동 workflow_dispatch** 로 유지
-- `concurrency: prod-runtime` — prod 배포/롤백은 동시에 1개만
+- foundation/deploy/rollback은 모두 `concurrency: prod-runtime` — prod 런타임 변경은 동시에 1개만
 - resolver는 `ansible-inventory`로 대상 host/group를 선택하고, `community.sops` 환경에서 `ansible-inventory --host` 결과에 `ENC[...]` 가 남을 수 있기 때문에 평문이 필요한 `ssh_host / ssh_port / ssh_host_fingerprint`만 임시 `ansible-playbook`으로 materialize 한다
 - `_ansible-exec.yml` 은 inventory resolver 성공을 전제로 하며, prod caller 쪽 legacy SSH fallback은 두지 않는다
 
@@ -262,8 +265,6 @@ infra/ansible/
 │   ├── app_secret/                      # SOPS → properties 파일
 │   ├── app_scripts/                     # 배포 디렉토리 + nginx helper 준비
 │   ├── app_release/                     # 릴리즈 메타데이터
-│   ├── app_dev_switch/                  # dev blue-green 진입점
-│   ├── app_prod_switch/                 # prod blue-green 진입점
 │   ├── app_bluegreen/                   # blue-green 핵심 로직
 │   ├── app_stopstart/                   # stop-start 배포
 │   ├── app_healthcheck/                 # 헬스체크
@@ -274,7 +275,43 @@ infra/ansible/
 설명:
 - 공용 nginx helper `update-nginx-config.py`는 더 이상 `infra/ansible/files/`에 두지 않고 `roles/nginx_config_helper/files/`로 이동했다.
 - foundation / nginx 템플릿도 전역 `templates/`가 아니라 각 role의 `templates/` 안에서 관리한다.
-- `app_dev_switch`, `app_prod_switch`, `app_rollback`은 상대 `import_tasks` 대신 `import_role` + 명시적 vars 전달 구조를 사용한다.
+- `deploy.yml`은 blue-green 모듈에서 `app_bluegreen`을 직접 import하고, `app_rollback`은 상대 `import_tasks` 대신 `import_role` + 명시적 vars 전달 구조를 사용한다.
+
+### Foundation marker contract
+
+- `foundation.yml`은 `foundation_stack`과 선택적 `nginx_base_config`가 모두 성공한 뒤 `{{ deployment_dir }}/.foundation-applied` marker를 생성한다.
+- marker는 foundation의 마지막 `post_tasks`에서 쓰이므로, foundation 도중 실패하면 새 marker가 생성되지 않는다. inventory나 foundation 변수 변경 후에는 `foundation.yml`을 다시 실행해 marker를 갱신한다.
+- marker 내용은 YAML 형식이며 `applied_at`, `commit_sha`, `deploy_environment`, `foundation_mysql_enabled`, `foundation_redis_enabled`, `foundation_manage_nginx`를 기록한다.
+- `deploy.yml`과 `rollback.yml`은 앱 role을 실행하기 전에 같은 marker를 `stat`/`slurp`로 확인한다. marker가 없으면 foundation이 적용되지 않은 host로 보고 즉시 실패하고, marker가 있으면 내용을 diagnostic log로 출력한다.
+- `deploy-dev.yml`과 `deploy-prod.yml`은 deploy job 전에 `foundation` job을 실행한다. reusable workflow `_ansible-exec.yml`에 `module: foundation`을 전달하되, SSH metadata resolver는 현재 단일 host inventory contract를 재사용하기 위해 `connection_module`을 조회한다. 기본값은 `apis`이며, inventory 대표 호스트가 바뀌면 GitHub environment/repository variable `DEV_FOUNDATION_CONNECTION_MODULE` / `PROD_FOUNDATION_CONNECTION_MODULE`로 `${connection_module}_servers` 조회 대상을 바꾼다.
+- foundation job과 deploy/rollback job은 각각 기존 `deploy-dev-runtime-${{ github.ref }}` / `prod-runtime` concurrency group을 공유하므로 foundation, deploy, rollback이 같은 런타임에서 겹치지 않는다.
+
+### Seed placeholder upstreams
+
+`nginx_base_config`는 첫 foundation 실행 시 backend/admin/actuator upstream fragment가 없으면
+`nginx_seed_placeholder_host:nginx_seed_placeholder_port`(기본 `127.0.0.1:65535`)를 가리키는
+placeholder upstream을 생성한다. 이는 다음 두 가지를 보장한다.
+
+1. **`nginx -t` 통과**: nginx가 시작하려면 모든 referenced upstream이 정의되어 있어야 한다.
+   placeholder가 없으면 첫 deploy 전 nginx 부팅/검증이 실패한다.
+2. **Blackhole 동작**: `127.0.0.1:65535`는 의도적으로 도달 불가능한 endpoint다.
+   placeholder가 실수로 트래픽을 받더라도 실제 애플리케이션으로 라우팅되지 않는다.
+
+placeholder는 `app_bluegreen`(apis)이나 `app_stopstart/admin_nginx_route`(admin)이 첫 배포될 때
+`upsert-upstream`으로 실제 컨테이너 이름과 포트로 덮어쓴다. inventory에서 host/port를 변경할 수는
+있지만, nginx pre-deploy validation + blackhole 계약을 깨지 않는 값으로만 유지해야 한다.
+
+### Nginx fragment mapping contract
+
+`nginx_fragments` inventory 값은 upstream 이름과 generated fragment 파일명을 묶는 canonical mapping이다.
+`nginx_base_config`, `app_bluegreen`, `app_stopstart/admin_nginx_route`는 `backend.conf` 같은 파일명을
+직접 하드코딩하지 않고 이 mapping의 `fragment_file`을 참조한다. `foundation.yml`, `deploy.yml`,
+`rollback.yml`은 preflight에서 mapping 누락/빈 값/중복 파일명을 즉시 실패시킨다.
+
+운영 중인 host에서 `fragment_file`을 바꾸면 기존 `nginx/generated` source/target fragment와 `.bak`
+복구 경계가 서로 다른 경로를 보게 될 수 있다. 따라서 `nginx_fragments`는 일반 운영 변수라기보다
+read-only contract로 취급하고, 변경이 필요하면 기존 fragment 이동/정리 계획과 함께 별도 마이그레이션으로
+진행한다.
 
 ### Playbook 흐름
 
@@ -283,11 +320,13 @@ flowchart TD
     subgraph Foundation["foundation.yml"]
         FS["foundation_stack<br/>nginx + mysql + redis"]
         NBC["nginx_base_config<br/>설정 렌더링 + seed"]
-        FS --> NBC
+        MARK[".foundation-applied<br/>post_tasks marker"]
+        FS --> NBC --> MARK
     end
 
     subgraph Deploy["deploy.yml"]
         VAL["pre_tasks: validate"]
+        FM["pre_tasks: foundation marker check"]
         SEC["app_secret<br/>SOPS 복호화"]
         SCR["app_scripts<br/>유틸리티 배포"]
         REL["app_release<br/>메타데이터 기록"]
@@ -297,7 +336,7 @@ flowchart TD
         NR["admin_nginx_route<br/>(admin만)"]
         CL["app_cleanup<br/>메타데이터 승격"]
 
-        VAL --> SEC --> SCR --> REL
+        VAL --> FM --> SEC --> SCR --> REL
         REL -->|"blue_green"| BG
         REL -->|"stop_start"| SS
         BG --> HC
@@ -306,11 +345,14 @@ flowchart TD
     end
 
     subgraph Rollback["rollback.yml"]
+        RFM["pre_tasks: foundation marker check"]
         RB["app_rollback<br/>이전 릴리스로 런타임 복원"]
+        RHC["app_healthcheck<br/>복원된 런타임 검증"]
+        RNR["admin_nginx_route<br/>(admin만)"]
         RR["previous.json → current.json<br/>메타데이터 정합성 복원"]
     end
 
-    RB --> RR
+    RFM --> RB --> RHC --> RNR --> RR
 ```
 
 ### 모듈별 배포 전략
@@ -526,19 +568,17 @@ flowchart LR
 ├── update-nginx-config.py                  # nginx fragment 관리
 └── nginx/
     ├── default.conf                        # 후보 설정 (source, 다음 promotion 입력)
-    └── generated/
-        ├── upstreams/backend.conf          # backend upstream fragment (source)
-        ├── upstreams/admin_backend.conf    # admin upstream fragment (source)
-        ├── upstreams/actuator.conf         # actuator upstream fragment (source)
-        └── routes/10-managed.conf          # route fragment (source, helper가 갱신)
-
-/var/lib/docker/volumes/nginx-config-volume/_data/
-├── conf.d/default.conf                     # 실제 적용 설정 (target, 현재 live)
-└── generated/
-    ├── upstreams/backend.conf              # backend upstream fragment (target, 현재 live)
-    ├── upstreams/admin_backend.conf        # admin upstream fragment (target, 현재 live)
-    ├── upstreams/actuator.conf             # actuator upstream fragment (target, 현재 live)
-    └── routes/10-managed.conf              # route fragment (target, 현재 live)
+    ├── generated-source/                   # 후보 fragment (source, 다음 promotion 입력)
+    │   ├── upstreams/backend.conf
+    │   ├── upstreams/admin_backend.conf
+    │   ├── upstreams/actuator.conf
+    │   └── routes/10-managed.conf
+    ├── conf.d/default.conf                 # bind mount target → /etc/nginx/conf.d/default.conf
+    └── generated/                          # bind mount target → /etc/nginx/generated
+        ├── upstreams/backend.conf
+        ├── upstreams/admin_backend.conf
+        ├── upstreams/actuator.conf
+        └── routes/10-managed.conf
 
 /opt/beat/
 ├── secret/
@@ -548,6 +588,22 @@ flowchart LR
     ├── current.json                        # 현재 배포 메타데이터
     └── previous.json                       # 이전 배포 (롤백용)
 ```
+
+### Release metadata schema
+
+`app_release`는 배포 시작 시 `pending.json`을 쓰고, 배포/검증이 끝난 뒤 `app_cleanup`이 이를 `current.json`으로 승격한다. 기존 `current.json`은 `previous.json`으로 보존되어 rollback 입력이 된다. `app_rollback`은 rollback 전에 기존 `current.json`을 `reverted-<UTC>.json`으로 archive한다.
+
+| 필드 | 의미 | 출처 / provenance |
+|------|------|-------------------|
+| `module` | 배포 대상 모듈 (`apis`, `admin`, `batch`) | GitHub workflow matrix/input이 Ansible extra var로 전달 |
+| `image` | 실제 실행할 Docker image 전체 이름 | deploy/rollback workflow에서 전달한 image extra var |
+| `image_tag` | image tag 또는 release tag | dev는 `dev-{GITHUB_SHA}`, prod는 release tag 기준 |
+| `commit_sha` | 배포 기준 Git commit SHA | GitHub run에서 해석한 commit SHA (`github.sha` 또는 release ref resolve 결과), 없으면 `unknown` |
+| `deploy_actor` | 배포를 트리거한 GitHub actor | GitHub workflow의 actor 값, 없으면 `unknown` |
+| `deploy_environment` | Ansible inventory 환경 (`dev`/`prod`) | inventory `deploy_environment` |
+| `created_at` | metadata 생성 시각 | Ansible controller(GitHub runner)에서 계산한 UTC (`now(utc=true, ...)`) |
+
+`created_at`은 원격 EC2의 시스템 시간이 아니라 controller UTC이다. 서버 로그와 비교할 때는 GitHub runner에서 metadata가 생성된 시각으로 해석한다.
 
 ## GitHub Secrets
 
@@ -592,6 +648,16 @@ ssh-keyscan -p 22 <서버IP> 2>/dev/null | ssh-keygen -lf - -E sha256
 
 > **참고**: `DEV_SSH_HOST`와 `ansible_host`(secrets.sops.yml)는 동일한 IP이다.
 > 전자는 GHA runner의 SSH known_hosts 설정에, 후자는 Ansible inventory 접속에 사용된다.
+
+### SSH pipelining + sudo `requiretty` caveat
+
+`infra/ansible/ansible.cfg`는 SSH pipelining을 켠다. Ubuntu 22.04 계열 기본 EC2 AMI에서는 `become: true`와 함께 정상 동작하지만, 일부 커스텀 AMI나 레거시 sudoers 정책에서 `Defaults requiretty`가 켜져 있으면 Ansible pipelining + sudo 조합이 실패할 수 있다.
+
+- Ubuntu 기본 AMI처럼 `requiretty`가 없는 환경: 현재 설정 유지 (`pipelining = True`)
+- 커스텀 AMI에서 sudo가 TTY를 요구하는 환경: sudoers에서 `requiretty`를 끄거나, 해당 inventory/ansible.cfg에서 pipelining을 비활성화한 뒤 재검증
+- 증상: SSH 접속은 성공하지만 `become` 태스크가 sudo/TTY 관련 오류로 실패
+
+운영 AMI를 교체할 때는 foundation/deploy/rollback syntax check만으로 충분하지 않다. 실제 `become` 태스크가 포함된 dry-run 또는 제한된 smoke deploy로 pipelining 호환성을 확인한다.
 
 ## 로컬 개발
 
@@ -645,6 +711,10 @@ cd infra/ansible
 ansible-playbook playbooks/foundation.yml -i inventories/dev/hosts.yml --syntax-check
 ansible-playbook playbooks/deploy.yml -i inventories/dev/hosts.yml --syntax-check \
   -e module=apis -e image=test -e image_tag=test
+ansible-playbook playbooks/deploy.yml -i inventories/prod/hosts.yml --syntax-check \
+  -e module=admin -e image=test -e image_tag=test
+ansible-playbook playbooks/rollback.yml -i inventories/dev/hosts.yml --syntax-check -e module=batch
+ansible-playbook playbooks/rollback.yml -i inventories/prod/hosts.yml --syntax-check -e module=apis
 ```
 
 ## 환경별 차이
@@ -665,21 +735,27 @@ prod 전용 `rollback-prod.yml` 워크플로우가 제공된다.
 
 ```mermaid
 flowchart LR
-    A["workflow_dispatch<br/>(module 선택)"] --> B["_ansible-exec.yml<br/>playbook: rollback.yml"]
-    B --> C["previous.json 읽기"]
-    C --> D{"deploy_mode?"}
-    D -->|"blue_green"| E["반대 슬롯으로<br/>BG 재배포"]
-    D -->|"stop_start"| F["이전 이미지로<br/>컨테이너 재생성"]
-    E & F --> G["previous.json → current.json"]
+    A["workflow_dispatch<br/>(module + release_ref 선택)"] --> B["release_ref checkout<br/>commit SHA 고정"]
+    B --> C["_ansible-exec.yml<br/>checkout_ref = commit SHA<br/>playbook: rollback.yml"]
+    C --> D["previous.json 읽기"]
+    D --> E{"deploy_mode?"}
+    E -->|"blue_green"| F["반대 슬롯으로<br/>BG 재배포"]
+    E -->|"stop_start"| G["이전 이미지로<br/>컨테이너 재생성"]
+    F & G --> H["app_healthcheck"]
+    H --> I["admin nginx route 갱신<br/>(admin만)"]
+    I --> J["previous.json → current.json"]
 ```
 
 - `previous.json`이 없으면 롤백 불가 (assert 실패)
-- 롤백 후 `current.json`은 실제로 다시 live 가 된 이전 배포 메타데이터로 복원된다
+- 롤백은 `release_ref` 입력(릴리스 태그 또는 커밋 SHA)을 먼저 immutable commit SHA로 해석하고, `_ansible-exec.yml`의 `checkout_ref`로 전달해 prod 배포 때와 같은 코드 기준에서 실행한다.
+- 롤백 후 `app_healthcheck`와 nginx route 갱신이 모두 성공해야 `current.json`을 다시 live 상태가 된 이전 배포의 메타데이터로 복원한다.
 - 이 승격은 선택사항이 아니다. 다음 deploy의 `app_cleanup`이 항상 `current.json -> previous.json`을 수행하므로, rollback 직후 `current.json`이 실제 live 릴리스를 가리키지 않으면 다음 rollback 대상이 틀어진다.
+- 반대로 post-rollback healthcheck 또는 route 갱신이 실패하면 metadata promotion을 차단하여 검증되지 않은 runtime 상태를 `current.json`에 기록하지 않는다.
 - blue-green 모듈은 `run_switch.yml`을 재활용하여 역방향 전환을 수행한다
 
 ### Nginx source/target contract
 
-- `deployment/nginx/**` 는 후보(source) 설정이다. helper와 seed 로직이 이 경로를 갱신하고, 다음 promotion의 입력으로 재사용된다.
-- `nginx-config-volume/_data/**` 는 실제 적용(target) 설정이다. `nginx -t` 와 reload가 통과한 live 구성이 여기에 존재한다.
+- `deployment/nginx/default.conf` 와 `deployment/nginx/generated-source/**` 는 후보(source) 설정이다. helper와 seed 로직이 이 경로를 갱신하고, 다음 promotion의 입력으로 재사용된다.
+- `deployment/nginx/conf.d/**` 와 `deployment/nginx/generated/**` 는 nginx 컨테이너에 bind mount되는 실제 적용(target) 설정이다. 컨테이너 안에서는 각각 `/etc/nginx/conf.d` 와 `/etc/nginx/generated` 로 보인다.
+- 예전 named volume(`nginx_legacy_config_volume_name`, 기본 `nginx-config-volume`)은 신규 target contract에서 제외했다. foundation은 첫 실행 시 Ansible `community.docker.docker_volume_info`로 legacy mountpoint를 해석하고, 그 안의 `conf.d`/`generated` 내용을 deployment-owned bind mount 경로로 한 번 복사한다. 이후 `.bind-mount-migrated-from-<legacy-volume-name>` marker로 재실행 시 overwrite를 막는다.
 - Nginx 관련 role은 실패 시 target만이 아니라 source도 함께 복원해야 한다. 그렇지 않으면 다음 실행에서 오염된 source가 다시 target으로 승격될 수 있다.

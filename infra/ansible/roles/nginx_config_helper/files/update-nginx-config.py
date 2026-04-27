@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import hashlib
+import json
 import os
 import re
 import tempfile
@@ -11,6 +13,10 @@ from pathlib import Path
 
 UPSTREAM_INCLUDE_MARKER = "BEAT MANAGED GENERATED UPSTREAM INCLUDES"
 ROUTE_INCLUDE_MARKER = "BEAT MANAGED GENERATED ROUTE INCLUDES"
+LOCK_DIR_ENV = "BEAT_NGINX_LOCK_DIR"
+DEFAULT_LOCK_DIR = Path("/run/lock/beat-nginx")
+SERVER_OPEN_PATTERN = re.compile(r"(?m)^(?P<indent>[ \t]*)server[ \t]*\{")
+LISTEN_DIRECTIVE_PATTERN = re.compile(r"(?m)^[ \t]*listen[ \t]+(?P<args>[^;#]+)")
 
 
 def normalize_text(text: str) -> str:
@@ -21,10 +27,34 @@ def read_text_or_empty(path: Path) -> str:
     return path.read_text() if path.exists() else ""
 
 
+def lock_dir() -> Path:
+    return Path(os.environ.get(LOCK_DIR_ENV, str(DEFAULT_LOCK_DIR)))
+
+
+def ensure_lock_dir() -> Path:
+    lock_root = lock_dir()
+    try:
+        lock_root.mkdir(parents=True, exist_ok=True)
+        return lock_root
+    except OSError:
+        if LOCK_DIR_ENV in os.environ:
+            raise
+        fallback = Path(tempfile.gettempdir()) / "beat-nginx-locks"
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
+
+def lock_filename(path: Path) -> str:
+    path_key = str(path.resolve(strict=False))
+    path_hash = hashlib.sha256(path_key.encode()).hexdigest()[:16]
+    return f"{path.name}.{path_hash}.lock"
+
+
 def write_normalized(path: Path, text: str) -> bool:
     normalized = normalize_text(text)
     path.parent.mkdir(parents=True, exist_ok=True)
-    lock_path = path.parent / (path.name + ".lock")
+    lock_root = ensure_lock_dir()
+    lock_path = lock_root / lock_filename(path)
     with open(lock_path, "w") as lock_fh:
         fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
         current = read_text_or_empty(path)
@@ -44,7 +74,65 @@ def write_normalized(path: Path, text: str) -> bool:
     return True
 
 
+def find_matching_brace(text: str, opening_brace_index: int) -> int | None:
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    in_comment = False
+    for index in range(opening_brace_index, len(text)):
+        char = text[index]
+        if in_comment:
+            if char == "\n":
+                in_comment = False
+            continue
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char == "#":
+            in_comment = True
+        elif char in {"'", '"'}:
+            quote = char
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return index + 1
+    return None
+
+
+def listens_on_443(server_block: str) -> bool:
+    for listen_match in LISTEN_DIRECTIVE_PATTERN.finditer(server_block):
+        for token in listen_match.group("args").split():
+            if token == "443" or token.endswith(":443"):
+                return True
+    return False
+
+
+def find_443_server_insert_at(text: str) -> int | None:
+    for server_match in SERVER_OPEN_PATTERN.finditer(text):
+        block_end = find_matching_brace(text, server_match.end() - 1)
+        if block_end is None:
+            raise SystemExit("Could not locate complete server block to insert generated route include")
+
+        if listens_on_443(text[server_match.start() : block_end]):
+            line_end = text.find("\n", server_match.end() - 1)
+            return server_match.end() if line_end == -1 else line_end + 1
+    return None
+
+
 def upsert_managed_block(body: str, marker: str, block_body: str) -> str:
+    reserved_end_marker = f"# END {marker}"
+    if reserved_end_marker in block_body:
+        raise SystemExit(
+            f"Managed block body for marker '{marker}' contains reserved end marker '{reserved_end_marker}'"
+        )
+
     pattern = re.compile(
         rf"\n?# BEGIN {re.escape(marker)}.*?# END {re.escape(marker)}\n?",
         flags=re.S,
@@ -58,6 +146,9 @@ def upsert_managed_block(body: str, marker: str, block_body: str) -> str:
 
 
 def bootstrap_includes(path: Path, upstream_include_glob: str, route_include_glob: str) -> bool:
+    if not path.exists():
+        raise SystemExit(f"nginx config does not exist at {path}; run nginx_base_config first")
+
     text = path.read_text()
 
     upstream_block = (
@@ -79,13 +170,11 @@ def bootstrap_includes(path: Path, upstream_include_glob: str, route_include_glo
         rf"\n?\s*# BEGIN {re.escape(ROUTE_INCLUDE_MARKER)}.*?# END {re.escape(ROUTE_INCLUDE_MARKER)}\n?",
         flags=re.S,
     )
-    if route_pattern.search(text):
-        text = route_pattern.sub(f"\n{route_block}", text)
-    else:
-        server_open_pattern = re.compile(r"(\n\s*server\s*\{\n)")
-        if not server_open_pattern.search(text):
-            raise SystemExit("Could not locate server block to insert generated route include")
-        text = server_open_pattern.sub(rf"\1{route_block}\n", text, count=1)
+    text = route_pattern.sub("\n", text)
+    insert_at = find_443_server_insert_at(text)
+    if insert_at is None:
+        raise SystemExit("Could not locate server block listening on 443 to insert generated route include")
+    text = f"{text[:insert_at]}{route_block}{text[insert_at:]}"
 
     return write_normalized(path, text)
 
@@ -123,61 +212,6 @@ def ensure_route(path: Path, upstream_name: str, external_path: str, upstream_pa
     return write_normalized(path, text)
 
 
-
-def parse_mapping(value: str) -> tuple[str, str]:
-    if "=" not in value:
-        raise argparse.ArgumentTypeError("mapping must be formatted as upstream_name=fragment_file")
-    upstream_name, fragment_file = value.split("=", 1)
-    if not upstream_name or not fragment_file:
-        raise argparse.ArgumentTypeError("mapping must include both upstream_name and fragment_file")
-    return upstream_name, fragment_file
-
-
-def extract_managed_or_upstream_block(text: str, upstream_name: str) -> str | None:
-    marker = f"BEAT MANAGED UPSTREAM {upstream_name}"
-    managed_pattern = re.compile(
-        rf"# BEGIN {re.escape(marker)}\n.*?# END {re.escape(marker)}",
-        flags=re.S,
-    )
-    managed_match = managed_pattern.search(text)
-    if managed_match:
-        return managed_match.group(0).strip() + "\n"
-
-    upstream_pattern = re.compile(
-        rf"(^|\n)(upstream\s+{re.escape(upstream_name)}\s*\{{.*?\n\s*\}})",
-        flags=re.S,
-    )
-    upstream_match = upstream_pattern.search(text)
-    if upstream_match:
-        return upstream_match.group(2).strip() + "\n"
-    return None
-
-
-def split_upstreams(
-    source: Path,
-    output_dir: Path,
-    mappings: list[tuple[str, str]],
-    require_all: bool,
-    skip_existing: bool,
-) -> bool:
-    if not source.exists():
-        return False
-
-    text = source.read_text()
-    changed = False
-    for upstream_name, fragment_file in mappings:
-        fragment_path = output_dir / fragment_file
-        if skip_existing and fragment_path.exists():
-            continue
-        block = extract_managed_or_upstream_block(text, upstream_name)
-        if block is None:
-            if require_all:
-                raise SystemExit(f"Required upstream '{upstream_name}' was not found in {source}")
-            continue
-        changed = write_normalized(fragment_path, block) or changed
-    return changed
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -198,13 +232,6 @@ def build_parser() -> argparse.ArgumentParser:
     ensure_route_parser.add_argument("--upstream-name", required=True)
     ensure_route_parser.add_argument("--external-path", required=True)
     ensure_route_parser.add_argument("--upstream-path", required=True)
-
-    split_upstreams_parser = subcommands.add_parser("split-upstreams")
-    split_upstreams_parser.add_argument("--source", required=True)
-    split_upstreams_parser.add_argument("--output-dir", required=True)
-    split_upstreams_parser.add_argument("--mapping", action="append", type=parse_mapping, required=True)
-    split_upstreams_parser.add_argument("--require-all", action="store_true")
-    split_upstreams_parser.add_argument("--skip-existing", action="store_true")
 
     return parser
 
@@ -232,14 +259,8 @@ def main() -> None:
             args.upstream_path,
         )
     else:
-        changed = split_upstreams(
-            Path(args.source),
-            Path(args.output_dir),
-            args.mapping,
-            args.require_all,
-            args.skip_existing,
-        )
-    print(f"changed={'true' if changed else 'false'}")
+        raise SystemExit(f"Unsupported command: {args.command}")
+    print(json.dumps({"changed": changed}))
 
 
 if __name__ == "__main__":

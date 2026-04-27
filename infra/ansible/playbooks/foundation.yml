@@ -4,6 +4,28 @@
   become: true
   gather_facts: false
 
+  vars:
+    foundation_marker_path: "{{ deployment_dir }}/.foundation-applied"
+
+  pre_tasks:
+    - name: Assert required foundation marker inputs
+      ansible.builtin.assert:
+        that:
+          - deploy_environment is defined
+          - deploy_environment | length > 0
+        fail_msg: "deploy_environment must be provided (e.g., -e deploy_environment=dev)."
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Validate nginx fragments mapping invariant
+      ansible.builtin.import_tasks: tasks/validate_nginx_fragments.yml
+      tags:
+        - always
+        - validate
+        - preflight
+
   roles:
     - role: foundation_stack
       tags:
@@ -14,3 +36,19 @@
       tags:
         - foundation
         - nginx
+
+  post_tasks:
+    - name: Mark foundation as applied
+      ansible.builtin.copy:
+        dest: "{{ foundation_marker_path }}"
+        mode: "0644"
+        content: |
+          applied_at: {{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}
+          commit_sha: {{ commit_sha | default('unknown') }}
+          deploy_environment: {{ deploy_environment }}
+          foundation_mysql_enabled: {{ foundation_mysql_enabled | default(true) }}
+          foundation_redis_enabled: {{ foundation_redis_enabled | default(true) }}
+          foundation_manage_nginx: {{ foundation_manage_nginx | default(false) }}
+      tags:
+        - foundation
+        - marker

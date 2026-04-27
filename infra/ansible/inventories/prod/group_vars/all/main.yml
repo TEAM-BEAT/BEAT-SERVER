@@ -5,22 +5,39 @@ secret_dir: /opt/beat/secret
 release_root: /opt/beat/releases
 nginx_container_name: nginx
 nginx_conf_source_path: /home/ubuntu/deployment/nginx/default.conf
-nginx_conf_target_path: /var/lib/docker/volumes/nginx-config-volume/_data/conf.d/default.conf
-nginx_generated_source_dir: /home/ubuntu/deployment/nginx/generated
-nginx_generated_target_dir: /var/lib/docker/volumes/nginx-config-volume/_data/generated
+nginx_conf_target_path: /home/ubuntu/deployment/nginx/conf.d/default.conf
+nginx_generated_source_dir: /home/ubuntu/deployment/nginx/generated-source
+nginx_generated_target_dir: /home/ubuntu/deployment/nginx/generated
 curl_image: curlimages/curl:8.12.1
 
 foundation_mysql_enabled: false
 foundation_redis_enabled: true
 nginx_image: nginx:alpine
-nginx_config_volume_name: nginx-config-volume
+nginx_legacy_config_volume_name: nginx-config-volume
 certbot_conf_dir: /home/ubuntu/data/certbot/conf
 certbot_www_dir: /home/ubuntu/data/certbot/www
 nginx_access_log_format_name: custom
 actuator_upstream_name: actuator
-actuator_active_container: "{{ apis_active_container }}"
 foundation_manage_nginx: true
 nginx_generated_include_dir: /etc/nginx/generated
+# nginx upstream seed placeholder used by nginx_base_config before any app is deployed.
+# Keeps nginx -t valid while blackholing accidental traffic until app deploy rewrites it.
+nginx_seed_placeholder_host: "127.0.0.1"
+nginx_seed_placeholder_port: 65535
+# nginx upstream/fragment canonical mapping. Treat as read-only after foundation is applied:
+# changing fragment_file values can orphan existing generated fragments on hosts.
+nginx_fragments:
+  backend:
+    upstream_name: "{{ backend_upstream_name | default('backend') }}"
+    fragment_file: backend.conf
+  admin:
+    upstream_name: "{{ admin_upstream_name | default('admin_backend') }}"
+    fragment_file: admin_backend.conf
+  actuator:
+    upstream_name: "{{ actuator_upstream_name | default('actuator') }}"
+    fragment_file: actuator.conf
+  route:
+    fragment_file: 10-managed.conf
 
 mysql_image: mysql:8.4.5
 mysql_container_name: mysql
@@ -31,7 +48,6 @@ redis_container_name: beat-prod-redis
 redis_conf_path: /home/ubuntu/redis.conf
 redis_data_volume_name: redis-data
 
-apis_active_container: apis-blue
 apis_app_port: 4001
 admin_upstream_name: admin_backend
 admin_container_name: admin
