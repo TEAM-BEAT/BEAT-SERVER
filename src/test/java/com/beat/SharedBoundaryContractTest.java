@@ -265,8 +265,8 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void castAndStaffDomainContractsStayPureAndTechnologyNeutral() throws Exception {
-		Path castDomain = Path.of("domain/src/main/java/com/beat/domain/cast/domain/Cast.java");
-		Path staffDomain = Path.of("domain/src/main/java/com/beat/domain/staff/domain/Staff.java");
+		Path castDomain = Path.of("domain/src/main/kotlin/com/beat/domain/cast/domain/Cast.kt");
+		Path staffDomain = Path.of("domain/src/main/kotlin/com/beat/domain/staff/domain/Staff.kt");
 		Path castRepository = Path.of("domain/src/main/java/com/beat/domain/cast/repository/CastRepository.java");
 		Path staffRepository = Path.of("domain/src/main/java/com/beat/domain/staff/repository/StaffRepository.java");
 		List<Path> domainContractSources = List.of(castDomain, staffDomain, castRepository, staffRepository);
@@ -298,12 +298,12 @@ class SharedBoundaryContractTest {
 
 		assertTrue(violations.isEmpty(),
 			"Cast/Staff domain contracts must stay persistence-technology neutral:\n" + String.join("\n", violations));
-		assertTrue(Files.readString(castDomain).contains("private Long performanceId;"));
-		assertTrue(Files.readString(staffDomain).contains("private Long performanceId;"));
+		assertTrue(Files.readString(castDomain).contains("linkedPerformanceId: PerformanceId"));
+		assertTrue(Files.readString(staffDomain).contains("linkedPerformanceId: PerformanceId"));
 		assertTrue(Files.readString(castDomain).contains(
-			"public static Cast create(String castName, String castRole, String castPhoto, Long performanceId)"));
+			"fun create(castName: String, castRole: String, castPhoto: String, performanceId: Long): Cast"));
 		assertTrue(Files.readString(staffDomain).contains(
-			"public static Staff create(String staffName, String staffRole, String staffPhoto, Long performanceId)"));
+			"fun create(staffName: String, staffRole: String, staffPhoto: String, performanceId: Long): Staff"));
 	}
 
 	@Test

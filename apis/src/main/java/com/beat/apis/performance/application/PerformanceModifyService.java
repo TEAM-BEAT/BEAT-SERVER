@@ -366,12 +366,11 @@ public class PerformanceModifyService {
 			throw new ForbiddenException(CastErrorCode.CAST_NOT_BELONG_TO_PERFORMANCE);
 		}
 
-		cast.update(
+		cast = castRepository.save(cast.update(
 			request.castName(),
 			request.castRole(),
 			request.castPhoto()
-		);
-		castRepository.save(cast);
+		));
 		log.debug("Updated cast with castId: {}", cast.getId());
 		return CastModifyResponse.of(
 			cast.getId(),
@@ -451,12 +450,11 @@ public class PerformanceModifyService {
 			throw new ForbiddenException(StaffErrorCode.STAFF_NOT_BELONG_TO_PERFORMANCE);
 		}
 
-		staff.update(
+		staff = staffRepository.save(staff.update(
 			request.staffName(),
 			request.staffRole(),
 			request.staffPhoto()
-		);
-		staffRepository.save(staff);
+		));
 		log.debug("Updated staff with staffId: {}", staff.getId());
 		return StaffModifyResponse.of(
 			staff.getId(),

@@ -64,7 +64,9 @@ public class CastRepositoryImpl implements CastRepository {
 
 	@Override
 	public void delete(Cast cast) {
-		castJpaRepository.deleteById(cast.getId());
+		if (cast.getId() != null) {
+			castJpaRepository.deleteById(cast.getId());
+		}
 	}
 
 	@Override

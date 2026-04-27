@@ -64,7 +64,9 @@ public class StaffRepositoryImpl implements StaffRepository {
 
 	@Override
 	public void delete(Staff staff) {
-		staffJpaRepository.deleteById(staff.getId());
+		if (staff.getId() != null) {
+			staffJpaRepository.deleteById(staff.getId());
+		}
 	}
 
 	@Override
