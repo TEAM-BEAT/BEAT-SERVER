@@ -282,7 +282,8 @@ class SharedBoundaryContractTest {
 			"@JoinColumn",
 			"JpaRepository",
 			"Performance performance",
-			"com.beat.domain.performance.domain.Performance"
+			"com.beat.domain.performance.domain.Performance\n",
+			"com.beat.domain.performance.domain.Performance;"
 		);
 
 		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/cast/dao/CastRepository.java")));
