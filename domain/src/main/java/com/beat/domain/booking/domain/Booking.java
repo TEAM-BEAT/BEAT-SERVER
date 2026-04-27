@@ -7,7 +7,6 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.user.domain.Users;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -73,15 +72,13 @@ public class Booking {
 	@OnDelete(action = OnDeleteAction.CASCADE)
 	private Schedule schedule;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_id", nullable = false)
-	@OnDelete(action = OnDeleteAction.CASCADE)
-	private Users users;
+	@Column(name = "user_id", nullable = false)
+	private Long userId;
 
 	@Builder
 	private Booking(int purchaseTicketCount, String bookerName, String bookerPhoneNumber, BookingStatus bookingStatus,
 		String birthDate, String password, BankName bankName, String accountNumber, String accountHolder,
-		Schedule schedule, Users users) {
+		Schedule schedule, Long userId) {
 		this.purchaseTicketCount = purchaseTicketCount;
 		this.bookerName = bookerName;
 		this.bookerPhoneNumber = bookerPhoneNumber;
@@ -92,12 +89,12 @@ public class Booking {
 		this.accountNumber = accountNumber;
 		this.accountHolder = accountHolder;
 		this.schedule = schedule;
-		this.users = users;
+		this.userId = userId;
 	}
 
 	public static Booking create(int purchaseTicketCount, String bookerName, String bookerPhoneNumber,
 		BookingStatus bookingStatus, String birthDate, String password,
-		BankName bankName, String accountNumber, String accountHolder, Schedule schedule, Users users) {
+		BankName bankName, String accountNumber, String accountHolder, Schedule schedule, Long userId) {
 		return Booking.builder()
 			.purchaseTicketCount(purchaseTicketCount)
 			.bookerName(bookerName)
@@ -109,7 +106,7 @@ public class Booking {
 			.accountNumber(accountNumber)
 			.accountHolder(accountHolder)
 			.schedule(schedule)
-			.users(users)
+			.userId(userId)
 			.build();
 	}
 

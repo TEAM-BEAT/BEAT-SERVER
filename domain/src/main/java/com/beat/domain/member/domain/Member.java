@@ -1,27 +1,20 @@
 package com.beat.domain.member.domain;
 
+import java.time.LocalDateTime;
+
 import com.beat.domain.BaseTimeEntity;
-import com.beat.domain.user.domain.Users;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -41,10 +34,8 @@ public class Member extends BaseTimeEntity {
 	@Column(nullable = true)
 	private LocalDateTime deletedAt;
 
-	@OneToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "user_id", nullable = false)
-	@OnDelete(action = OnDeleteAction.CASCADE)
-	private Users user;
+	@Column(name = "user_id", nullable = false)
+	private Long userId;
 
 	@Column(nullable = false)
 	private Long socialId;  // 카카오 회원번호 저장
@@ -53,12 +44,12 @@ public class Member extends BaseTimeEntity {
 	private SocialType socialType;
 
 	@Builder
-	private Member(String nickname, String email, LocalDateTime deletedAt, Users user, Long socialId,
+	private Member(String nickname, String email, LocalDateTime deletedAt, Long userId, Long socialId,
 		SocialType socialType) {
 		this.nickname = nickname;
 		this.email = email;
 		this.deletedAt = deletedAt;
-		this.user = user;
+		this.userId = userId;
 		this.socialId = socialId;
 		this.socialType = socialType;
 	}
@@ -66,14 +57,14 @@ public class Member extends BaseTimeEntity {
 	public static Member create(
 		final String nickname,
 		final String email,
-		final Users user,
+		final Long userId,
 		final Long socialId,
 		final SocialType socialType
 	) {
 		return Member.builder()
 			.nickname(nickname)
 			.email(email)
-			.user(user)
+			.userId(userId)
 			.socialId(socialId)
 			.socialType(socialType)
 			.build();

@@ -4,14 +4,10 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
 import com.beat.domain.BaseTimeEntity;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
-import com.beat.domain.user.domain.Users;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.ForbiddenException;
 
@@ -19,12 +15,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -98,17 +91,15 @@ public class Performance extends BaseTimeEntity {
 	@Column(nullable = false)
 	private int totalScheduleCount;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_id", nullable = false)
-	@OnDelete(action = OnDeleteAction.CASCADE)
-	private Users users;
+	@Column(name = "user_id", nullable = false)
+	private Long userId;
 
 	@Builder
 	private Performance(String performanceTitle, Genre genre, int runningTime, String performanceDescription,
 		String performanceAttentionNote,
 		BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName,
 		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longitude,
-		String performanceContact, String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
+		String performanceContact, String performancePeriod, int ticketPrice, int totalScheduleCount, Long userId) {
 		this.performanceTitle = performanceTitle;
 		this.genre = genre;
 		this.runningTime = runningTime;
@@ -128,7 +119,7 @@ public class Performance extends BaseTimeEntity {
 		this.performancePeriod = performancePeriod;
 		this.ticketPrice = ticketPrice;
 		this.totalScheduleCount = totalScheduleCount;
-		this.users = users;
+		this.userId = userId;
 	}
 
 	public static Performance create(
@@ -136,7 +127,7 @@ public class Performance extends BaseTimeEntity {
 		String performanceAttentionNote,
 		BankName bankName, String accountNumber, String accountHolder, String posterImage, String performanceTeamName,
 		String performanceVenue, String roadAddressName, String placeDetailAddress, String latitude, String longitude,
-		String performanceContact, String performancePeriod, int ticketPrice, int totalScheduleCount, Users users) {
+		String performanceContact, String performancePeriod, int ticketPrice, int totalScheduleCount, Long userId) {
 		return Performance.builder()
 			.performanceTitle(performanceTitle)
 			.genre(genre)
@@ -157,7 +148,7 @@ public class Performance extends BaseTimeEntity {
 			.performancePeriod(performancePeriod)
 			.ticketPrice(ticketPrice)
 			.totalScheduleCount(totalScheduleCount)
-			.users(users)
+			.userId(userId)
 			.build();
 	}
 
@@ -217,7 +208,7 @@ public class Performance extends BaseTimeEntity {
 	}
 
 	public void validatePerformanceOwnership(Long userId) {
-		if (!this.users.getId().equals(userId)) {
+		if (!this.userId.equals(userId)) {
 			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
 		}
 	}
