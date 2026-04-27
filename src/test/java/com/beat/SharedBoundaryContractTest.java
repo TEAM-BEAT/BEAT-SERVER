@@ -300,7 +300,7 @@ class SharedBoundaryContractTest {
 
 		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/cast/dao/CastRepository.java")));
 		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/staff/dao/StaffRepository.java")));
-		assertFalse(Files.exists(Path.of("domain/src/main/java/com.beat.domain.user.repository.UserRepository.java")));
+		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/user/dao/UserRepository.java")));
 		assertTrue(Files.exists(castRepository));
 		assertTrue(Files.exists(staffRepository));
 		assertTrue(Files.exists(usersRepository));
