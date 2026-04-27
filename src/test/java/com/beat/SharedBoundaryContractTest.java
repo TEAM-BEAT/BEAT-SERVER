@@ -17,6 +17,40 @@ import org.junit.jupiter.api.Test;
 class SharedBoundaryContractTest {
 
 	@Test
+	void migrationRuntimeBaselineMatchesCurrentBuildAndDockerSettings() throws Exception {
+		String migration = Files.readString(Path.of("MIGRATION.md"));
+		String sdkman = Files.readString(Path.of(".sdkmanrc"));
+		String rootBuild = Files.readString(Path.of("build.gradle.kts"));
+		String buildLogic = Files.readString(Path.of("build-logic/src/main/kotlin/beat.kotlin-base.gradle.kts"));
+		String buildLogicBuild = Files.readString(Path.of("build-logic/build.gradle.kts"));
+		String dockerfile = Files.readString(Path.of("Dockerfile.module"));
+		String versions = Files.readString(Path.of("gradle/libs.versions.toml"));
+
+		assertTrue(versions.contains("spring-boot = \"4.0.5\""));
+		assertTrue(versions.contains("kotlin = \"2.3.20\""));
+		assertTrue(migration.contains("Spring Boot `4.0.5`"));
+		assertTrue(migration.contains("Kotlin `2.3.20`"));
+		assertTrue(migration.contains("Docker runtime Java `25`"));
+
+		assertTrue(sdkman.contains("java=25.0.2-tem"));
+		assertTrue(sdkman.contains("Runtime target: Java 25"));
+		assertFalse(sdkman.contains("Runtime target: Java 21"));
+
+		assertTrue(rootBuild.contains("JavaLanguageVersion.of(25)"));
+		assertTrue(rootBuild.contains("options.release.set(25)"));
+		assertTrue(rootBuild.contains("JvmTarget.JVM_25"));
+		assertTrue(buildLogic.contains("JavaLanguageVersion.of(25)"));
+		assertTrue(buildLogic.contains("options.release.set(25)"));
+		assertTrue(buildLogic.contains("JvmTarget.JVM_25"));
+		assertTrue(buildLogicBuild.contains("JavaLanguageVersion.of(25)"));
+		assertTrue(buildLogicBuild.contains("options.release.set(25)"));
+		assertTrue(buildLogicBuild.contains("JvmTarget.JVM_25"));
+
+		assertTrue(dockerfile.contains("eclipse-temurin:25-jdk"));
+		assertTrue(dockerfile.contains("eclipse-temurin:25-jre-alpine"));
+	}
+
+	@Test
 	void domainRoleNoLongerOwnsSpringSecurityAuthorityBridge() throws Exception {
 		String roleSource = Files.readString(Path.of("domain/src/main/java/com/beat/domain/user/domain/Role.java"));
 		String buildFile = Files.readString(Path.of("domain/build.gradle.kts"));

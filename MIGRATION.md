@@ -9,7 +9,7 @@
 | 구분 | 현재 기준 |
 | --- | --- |
 | Spring | Spring Boot `4.0.5` |
-| Language / Runtime | Kotlin `2.3.20`, Java toolchain JDK `25`, Java compile release / Kotlin JVM target `25` |
+| Language / Runtime | Kotlin `2.3.20`, Java toolchain JDK `25`, Java compile release / Kotlin JVM target `25`, Docker runtime Java `25` |
 | Build | Gradle wrapper, root project는 실행 모듈이 아니라 공통 검증/조정 역할 |
 | 실행 모듈 | `apis`, `admin`, `batch` |
 | shared/support 모듈 | `domain`, `gateway`, `infra`, `global-utils`, `module-contracts`, `observability` |
@@ -28,6 +28,8 @@
 | Java toolchain | root `build.gradle.kts`와 `build-logic/build.gradle.kts`의 `JavaLanguageVersion.of(25)` | JDK `25` |
 | Java bytecode target | root `build.gradle.kts`와 `build-logic/build.gradle.kts`의 `options.release.set(25)` | release `25` |
 | Kotlin JVM target | root `build.gradle.kts`와 `build-logic/build.gradle.kts`의 `JvmTarget.JVM_25` | JVM `25` |
+| SDKMAN local JDK | `.sdkmanrc`의 `java=25.0.2-tem` 및 BEAT team standard 주석 | JDK `25` |
+| Docker runtime | `Dockerfile.module`의 `eclipse-temurin:25-jre-alpine` | Java `25` |
 
 확인 명령:
 
