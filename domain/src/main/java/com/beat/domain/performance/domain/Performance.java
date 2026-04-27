@@ -1,7 +1,6 @@
 package com.beat.domain.performance.domain;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -16,7 +15,6 @@ import com.beat.domain.user.domain.Users;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.ForbiddenException;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -27,7 +25,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -105,9 +102,6 @@ public class Performance extends BaseTimeEntity {
 	@JoinColumn(name = "user_id", nullable = false)
 	@OnDelete(action = OnDeleteAction.CASCADE)
 	private Users users;
-
-	@OneToMany(mappedBy = "performance", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<PerformanceImage> performanceImageList = new ArrayList<>();
 
 	@Builder
 	private Performance(String performanceTitle, Genre genre, int runningTime, String performanceDescription,

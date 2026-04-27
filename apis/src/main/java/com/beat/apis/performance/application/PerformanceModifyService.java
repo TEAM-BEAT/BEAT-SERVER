@@ -29,7 +29,7 @@ import com.beat.apis.performance.application.dto.modify.schedule.ScheduleModifyR
 import com.beat.apis.performance.application.dto.modify.schedule.ScheduleModifyResponse;
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyRequest;
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyResponse;
-import com.beat.domain.performance.dao.PerformanceImageRepository;
+import com.beat.domain.performance.repository.PerformanceImageRepository;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.domain.PerformanceImage;
@@ -513,7 +513,7 @@ public class PerformanceModifyService {
 
 		PerformanceImage performanceImage = PerformanceImage.create(
 			request.performanceImage(),
-			performance
+			performance.getId()
 		);
 		PerformanceImage savedPerformanceImage = performanceImageRepository.save(performanceImage);
 		log.debug("Added performanceImage: {}", savedPerformanceImage.getId());
@@ -533,14 +533,11 @@ public class PerformanceModifyService {
 				return new NotFoundException(PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_FOUND);
 			});
 
-		if (!performanceImage.getPerformance().equals(performance)) {
+		if (!Objects.equals(performanceImage.getPerformanceId(), performance.getId())) {
 			throw new ForbiddenException(PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_BELONG_TO_PERFORMANCE);
 		}
 
-		performanceImage.updatePerformanceImageUrl(
-			request.performanceImage()
-		);
-		performanceImageRepository.save(performanceImage);
+		performanceImage = performanceImageRepository.save(performanceImage.update(request.performanceImage()));
 		log.debug("Updated performanceImage: {}", performanceImage.getId());
 		return PerformanceImageModifyResponse.of(
 			performanceImage.getId(),

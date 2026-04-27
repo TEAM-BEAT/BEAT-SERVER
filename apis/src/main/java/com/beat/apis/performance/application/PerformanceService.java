@@ -31,7 +31,7 @@ import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDe
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailResponse;
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailScheduleResponse;
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailStaffResponse;
-import com.beat.domain.performance.dao.PerformanceImageRepository;
+import com.beat.domain.performance.repository.PerformanceImageRepository;
 import com.beat.domain.performance.dao.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.domain.PerformanceImage;
