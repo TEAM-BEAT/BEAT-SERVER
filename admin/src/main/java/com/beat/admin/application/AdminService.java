@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
 import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
 import com.beat.admin.port.in.AdminUseCase;
-import com.beat.domain.performance.dao.PerformanceRepository;
+import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.exception.PromotionErrorCode;

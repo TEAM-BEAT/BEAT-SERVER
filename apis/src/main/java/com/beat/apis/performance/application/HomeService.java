@@ -18,7 +18,7 @@ import com.beat.apis.performance.application.dto.home.HomePromotionDetail;
 import com.beat.apis.promotion.application.PromotionService;
 import com.beat.apis.schedule.application.ScheduleService;
 import com.beat.apis.schedule.application.dto.response.MinPerformanceDateResponse;
-import com.beat.domain.performance.dao.PerformanceRepository;
+import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.promotion.domain.Promotion;

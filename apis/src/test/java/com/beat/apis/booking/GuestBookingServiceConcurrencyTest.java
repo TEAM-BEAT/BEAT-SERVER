@@ -27,7 +27,7 @@ import com.beat.apis.booking.application.dto.GuestBookingResponse;
 import com.beat.apis.support.AbstractIntegrationTest;
 import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.performance.dao.PerformanceRepository;
+import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
@@ -125,8 +125,7 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 			30,
 			maker.getId()
 		);
-		performanceRepository.save(performance);
-		return performance;
+		return performanceRepository.save(performance);
 	}
 
 	private Schedule createSchedule(Performance performance, ScheduleNumber scheduleNumber, int remainingTicketCount) {
@@ -136,7 +135,7 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 			0,
 			true,
 			scheduleNumber,
-			performance
+			performance.getId()
 		);
 		scheduleRepository.save(schedule);
 		return schedule;

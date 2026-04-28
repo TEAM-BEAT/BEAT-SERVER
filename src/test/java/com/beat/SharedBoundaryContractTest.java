@@ -209,7 +209,11 @@ class SharedBoundaryContractTest {
 			"infra/src/main/kotlin/com/beat/infra/persistence/member/entity/MemberJpaEntity.kt",
 			"infra/src/main/java/com/beat/infra/persistence/member/mapper/MemberPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/member/repository/MemberJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/member/repository/MemberRepositoryImpl.java"
+			"infra/src/main/java/com/beat/infra/persistence/member/repository/MemberRepositoryImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.kt",
+			"infra/src/main/java/com/beat/infra/persistence/performance/mapper/PerformancePersistenceMapper.java",
+			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.java"
 		);
 
 		Set<String> actualInfraPersistenceFiles = sourceFiles(
@@ -242,8 +246,6 @@ class SharedBoundaryContractTest {
 			"domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java",
 			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepository.java",
 			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
-			"domain/src/main/java/com/beat/domain/performance/dao/PerformanceRepository.java",
-			"domain/src/main/java/com/beat/domain/performance/domain/Performance.java",
 			"domain/src/main/java/com/beat/domain/schedule/dao/ScheduleRepository.java",
 			"domain/src/main/java/com/beat/domain/schedule/dao/dto/MinPerformanceDateDto.java",
 			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java"
@@ -342,13 +344,11 @@ class SharedBoundaryContractTest {
 		Set<String> allowedJpaModelSources = Set.of(
 			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java",
 			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
-			"domain/src/main/java/com/beat/domain/performance/domain/Performance.java",
 			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java"
 		);
 		Set<String> allowedJpaRepositorySources = Set.of(
 			"domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java",
 			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepository.java",
-			"domain/src/main/java/com/beat/domain/performance/dao/PerformanceRepository.java",
 			"domain/src/main/java/com/beat/domain/schedule/dao/ScheduleRepository.java"
 		);
 
@@ -462,7 +462,6 @@ class SharedBoundaryContractTest {
 	void domainJpaAnnotationsAndAuditingStayLimitedToIssue380Baseline() throws Exception {
 		Set<String> allowedEntitySources = Set.of(
 			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
-			"domain/src/main/java/com/beat/domain/performance/domain/Performance.java",
 			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java"
 		);
 		Set<String> allowedMappedSuperclassSources = Set.of(
