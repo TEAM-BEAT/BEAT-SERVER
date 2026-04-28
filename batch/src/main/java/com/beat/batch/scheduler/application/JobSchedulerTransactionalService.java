@@ -3,7 +3,6 @@ package com.beat.batch.scheduler.application;
 import java.util.List;
 import java.util.Optional;
 
-import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,11 +24,7 @@ public class JobSchedulerTransactionalService {
 
 	@Transactional
 	public Optional<Schedule> lockSchedule(Long scheduleId) {
-		return scheduleRepository.lockById(scheduleId)
-			.map(schedule -> {
-				Hibernate.initialize(schedule.getPerformance());
-				return schedule;
-			});
+		return scheduleRepository.lockById(scheduleId);
 	}
 
 	@Transactional
