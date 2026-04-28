@@ -1,6 +1,5 @@
 package com.beat.domain.schedule.domain;
 
-import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.global.common.exception.ConflictException;
 
@@ -8,20 +7,14 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
@@ -51,31 +44,29 @@ public class Schedule {
 	@Column(nullable = false)
 	private ScheduleNumber scheduleNumber;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "performance_id", nullable = false)
-	@OnDelete(action = OnDeleteAction.CASCADE)
-	private Performance performance;
+	@Column(name = "performance_id", nullable = false)
+	private Long performanceId;
 
 	@Builder
 	private Schedule(LocalDateTime performanceDate, int totalTicketCount, int soldTicketCount, boolean isBooking,
-		ScheduleNumber scheduleNumber, Performance performance) {
+		ScheduleNumber scheduleNumber, Long performanceId) {
 		this.performanceDate = performanceDate;
 		this.totalTicketCount = totalTicketCount;
 		this.soldTicketCount = soldTicketCount;
 		this.isBooking = isBooking;
 		this.scheduleNumber = scheduleNumber;
-		this.performance = performance;
+		this.performanceId = performanceId;
 	}
 
 	public static Schedule create(LocalDateTime performanceDate, int totalTicketCount, int soldTicketCount,
-		boolean isBooking, ScheduleNumber scheduleNumber, Performance performance) {
+		boolean isBooking, ScheduleNumber scheduleNumber, Long performanceId) {
 		return Schedule.builder()
 			.performanceDate(performanceDate)
 			.totalTicketCount(totalTicketCount)
 			.soldTicketCount(soldTicketCount)
 			.isBooking(isBooking)
 			.scheduleNumber(scheduleNumber)
-			.performance(performance)
+			.performanceId(performanceId)
 			.build();
 	}
 

@@ -45,12 +45,12 @@ public class ScheduleRepositoryCustomImpl implements ScheduleRepositoryCustom {
 
 		return queryFactory
 			.select(new QMinPerformanceDateDto(
-				schedule.performance.id,
+				schedule.performanceId,
 				finalPerformanceDate
 			))
 			.from(schedule)
-			.where(schedule.performance.id.in(performanceIds))
-			.groupBy(schedule.performance.id)
+			.where(schedule.performanceId.in(performanceIds))
+			.groupBy(schedule.performanceId)
 			.fetch();
 	}
 }
