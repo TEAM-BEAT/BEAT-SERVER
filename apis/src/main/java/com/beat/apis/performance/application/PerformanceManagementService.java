@@ -133,7 +133,7 @@ public class PerformanceManagementService {
 			request.performanceImageList().stream()
 				.map(performanceImageRequest -> PerformanceImage.create(
 					performanceImageRequest.performanceImage(),
-					performance.getId()
+					savedPerformanceId
 				))
 				.toList()
 		);
@@ -250,6 +250,7 @@ public class PerformanceManagementService {
 			scheduleJobPort.cancel(schedule);
 		}
 
+		scheduleRepository.deleteByPerformanceId(performanceId);
 		castRepository.deleteByPerformanceId(performanceId);
 		staffRepository.deleteByPerformanceId(performanceId);
 		promotionRepository.deleteByPerformanceId(performanceId);

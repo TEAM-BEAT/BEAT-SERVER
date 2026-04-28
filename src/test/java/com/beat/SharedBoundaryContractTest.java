@@ -181,7 +181,11 @@ class SharedBoundaryContractTest {
 			usersJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/user/mapper/UsersPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/user/repository/UsersJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/user/repository/UsersRepositoryImpl.java"
+			"infra/src/main/java/com/beat/infra/persistence/user/repository/UsersRepositoryImpl.java",
+			performanceJpaEntitySourcePath().toString().replace('\\', '/'),
+			"infra/src/main/java/com/beat/infra/persistence/performance/mapper/PerformancePersistenceMapper.java",
+			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.java"
 		);
 		Set<String> allowedInfraPersistenceFiles = Set.of(
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
@@ -210,7 +214,7 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/member/mapper/MemberPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/member/repository/MemberJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/member/repository/MemberRepositoryImpl.java",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.kt",
+			performanceJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/performance/mapper/PerformancePersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.java"
@@ -674,6 +678,14 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/user/entity/UsersJpaEntity.java",
 			"infra/src/main/kotlin/com/beat/infra/persistence/user/entity/UsersJpaEntity.kt",
 			"UsersJpaEntity"
+		);
+	}
+
+	private Path performanceJpaEntitySourcePath() {
+		return singleJpaEntitySourcePath(
+			"infra/src/main/java/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.kt",
+			"PerformanceJpaEntity"
 		);
 	}
 
