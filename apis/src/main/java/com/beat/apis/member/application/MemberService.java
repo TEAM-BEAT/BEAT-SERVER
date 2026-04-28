@@ -3,7 +3,7 @@ package com.beat.apis.member.application;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
 import com.beat.domain.member.exception.MemberErrorCode;

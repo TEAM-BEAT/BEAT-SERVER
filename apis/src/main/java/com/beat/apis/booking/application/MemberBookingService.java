@@ -9,7 +9,7 @@ import com.beat.apis.booking.application.dto.MemberBookingResponse;
 import com.beat.apis.booking.application.dto.event.BookingCreatedEvent;
 import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
-import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.schedule.dao.ScheduleRepository;
