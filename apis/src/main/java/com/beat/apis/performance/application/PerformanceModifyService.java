@@ -26,7 +26,7 @@ import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.exception.CastErrorCode;
 import com.beat.domain.cast.repository.CastRepository;
-import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.dao.PerformanceRepository;

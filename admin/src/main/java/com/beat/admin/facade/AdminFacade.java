@@ -20,7 +20,7 @@ import com.beat.admin.application.dto.response.CarouselPresignedUrlFindAllRespon
 import com.beat.admin.application.dto.response.UserFindAllResponse;
 import com.beat.admin.port.in.AdminUseCase;
 import com.beat.contracts.storage.FileStoragePort;
-import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.user.domain.Users;

@@ -6,7 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.apis.member.application.dto.event.MemberRegisteredEvent;
 import com.beat.contracts.auth.social.SocialMemberInfo;
-import com.beat.domain.member.dao.MemberRepository;
+import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.user.domain.Role;
 import com.beat.domain.user.domain.Users;
@@ -42,11 +42,11 @@ public class MemberRegistrationService {
 			socialMemberInfo.socialType()
 		);
 
-		memberRepository.save(member);
-		log.info("Member registered with memberId: {}, role: {}", member.getId(), users.getRole());
+		Member savedMember = memberRepository.save(member);
+		log.info("Member registered with memberId: {}, role: {}", savedMember.getId(), users.getRole());
 
-		eventPublisher.publishEvent(new MemberRegisteredEvent(member.getNickname()));
+		eventPublisher.publishEvent(new MemberRegisteredEvent(savedMember.getNickname()));
 
-		return member.getId();
+		return savedMember.getId();
 	}
 }
