@@ -211,11 +211,12 @@ public class PerformanceManagementService {
 
 	private void assignScheduleNumbers(List<Schedule> schedules) {
 		List<ScheduleNumber> scheduleNumbers = List.of(ScheduleNumber.values());
+		if (schedules.size() > scheduleNumbers.size()) {
+			throw new BadRequestException(PerformanceErrorCode.MAX_SCHEDULE_LIMIT_EXCEEDED);
+		}
 		schedules.sort(comparing(Schedule::getPerformanceDate));
 		for (int i = 0; i < schedules.size(); i++) {
-			if (i < scheduleNumbers.size()) {
-				schedules.get(i).setScheduleNumber(scheduleNumbers.get(i));
-			}
+			schedules.get(i).setScheduleNumber(scheduleNumbers.get(i));
 		}
 	}
 
