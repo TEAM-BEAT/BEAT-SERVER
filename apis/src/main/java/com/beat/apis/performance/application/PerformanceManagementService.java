@@ -1,5 +1,7 @@
 package com.beat.apis.performance.application;
 
+import static java.util.Comparator.comparing;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -20,14 +22,14 @@ import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.repository.CastRepository;
-import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
-import com.beat.domain.performance.repository.PerformanceRepository;
+import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceImageRepository;
+import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.promotion.repository.PromotionRepository;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
@@ -209,7 +211,7 @@ public class PerformanceManagementService {
 
 	private void assignScheduleNumbers(List<Schedule> schedules) {
 		List<ScheduleNumber> scheduleNumbers = List.of(ScheduleNumber.values());
-		schedules.sort(java.util.Comparator.comparing(Schedule::getPerformanceDate));
+		schedules.sort(comparing(Schedule::getPerformanceDate));
 		for (int i = 0; i < schedules.size(); i++) {
 			if (i < scheduleNumbers.size()) {
 				schedules.get(i).setScheduleNumber(scheduleNumbers.get(i));
