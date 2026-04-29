@@ -281,6 +281,8 @@ class SharedBoundaryContractTest {
 			Path.of("domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java"));
 		String ticketService = Files.readString(
 			Path.of("apis/src/main/java/com/beat/apis/booking/application/TicketService.java"));
+		String bookingCancelService = Files.readString(
+			Path.of("apis/src/main/java/com/beat/apis/booking/application/BookingCancelService.java"));
 
 		assertTrue(performanceManagement.contains("schedules = scheduleRepository.saveAll(schedules);"));
 		assertTrue(performanceModify.contains("schedules = scheduleRepository.saveAll(schedules);"));
@@ -291,6 +293,9 @@ class SharedBoundaryContractTest {
 		assertTrue(bookingRepository.contains("DELETE FROM Booking b WHERE b.scheduleId IN :scheduleIds"));
 		assertTrue(ticketService.contains("findScheduleForBooking(scheduleMap, booking)"));
 		assertTrue(ticketService.contains("throw new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND)"));
+		assertTrue(ticketService.contains("scheduleRepository.lockById(booking.getScheduleId())"));
+		assertTrue(bookingCancelService.contains("@Transactional"));
+		assertTrue(bookingCancelService.contains("scheduleRepository.lockById(booking.getScheduleId())"));
 	}
 
 	@Test

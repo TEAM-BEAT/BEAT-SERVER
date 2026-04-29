@@ -1,6 +1,7 @@
 package com.beat.apis.booking.application;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.apis.booking.application.dto.BookingCancelRequest;
 import com.beat.apis.booking.application.dto.BookingCancelResponse;
@@ -40,6 +41,7 @@ public class BookingCancelService {
 		);
 	}
 
+	@Transactional
 	public BookingCancelResponse cancelBooking(BookingCancelRequest request) {
 		Booking booking = bookingRepository.findById(request.bookingId())
 			.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
@@ -47,7 +49,7 @@ public class BookingCancelService {
 		booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
 		bookingRepository.save(booking);
 
-		Schedule schedule = scheduleRepository.findById(booking.getScheduleId())
+		Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
 			.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
 		scheduleRepository.save(schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount()));
 

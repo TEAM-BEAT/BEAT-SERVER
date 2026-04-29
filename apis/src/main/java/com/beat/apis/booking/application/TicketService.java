@@ -217,7 +217,7 @@ public class TicketService {
 			booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
 			ticketRepository.save(booking);
 
-			Schedule schedule = scheduleRepository.findById(booking.getScheduleId())
+			Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
 				.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
 			Schedule updated = schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
 			if (!updated.isBooking()) {
@@ -242,7 +242,7 @@ public class TicketService {
 			booking.updateBookingStatus(BookingStatus.BOOKING_DELETED);
 			ticketRepository.save(booking);
 
-			Schedule schedule = scheduleRepository.findById(booking.getScheduleId())
+			Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
 				.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
 			Schedule updated = schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
 			if (!updated.isBooking()) {

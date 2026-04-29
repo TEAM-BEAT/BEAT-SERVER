@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import com.beat.domain.schedule.repository.dto.MinPerformanceDateDto;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
+import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
 
 @Repository
@@ -19,6 +19,10 @@ public class ScheduleQueryRepositoryImpl implements ScheduleQueryRepository {
 
     @Override
     public List<MinPerformanceDateDto> findMinPerformanceDateByPerformanceIds(List<Long> performanceIds) {
+        if (performanceIds == null || performanceIds.isEmpty()) {
+            return List.of();
+        }
+
         String jpql = """
             SELECT new com.beat.domain.schedule.repository.dto.MinPerformanceDateDto(
                 s.performanceId,
@@ -33,13 +37,13 @@ public class ScheduleQueryRepositoryImpl implements ScheduleQueryRepository {
             GROUP BY s.performanceId
             """;
 
-        @SuppressWarnings("unchecked")
-        Query query = entityManager.createQuery(jpql, MinPerformanceDateDto.class);
+        TypedQuery<MinPerformanceDateDto> query = entityManager.createQuery(
+            jpql,
+            MinPerformanceDateDto.class
+        );
         query.setParameter("now", LocalDateTime.now());
         query.setParameter("performanceIds", performanceIds);
 
-        @SuppressWarnings("unchecked")
-        List<MinPerformanceDateDto> result = query.getResultList();
-        return result;
+        return query.getResultList();
     }
 }

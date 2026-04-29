@@ -2,6 +2,7 @@ package com.beat.domain.schedule.domain
 
 import com.beat.domain.performance.domain.PerformanceId
 import com.beat.domain.schedule.exception.ScheduleErrorCode
+import com.beat.global.common.exception.BadRequestException
 import com.beat.global.common.exception.ConflictException
 import java.time.LocalDateTime
 import kotlin.ConsistentCopyVisibility
@@ -30,15 +31,32 @@ data class Schedule private constructor(
 
     fun getScheduleNumber(): ScheduleNumber = scheduleNumber
 
-    fun update(performanceDate: LocalDateTime, totalTicketCount: Int, scheduleNumber: ScheduleNumber): Schedule = copy(
-        performanceDate = performanceDate,
-        totalTicketCount = totalTicketCount,
-        scheduleNumber = scheduleNumber
-    )
+    fun update(performanceDate: LocalDateTime, totalTicketCount: Int, scheduleNumber: ScheduleNumber): Schedule {
+        if (totalTicketCount < soldTicketCount) {
+            throw BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT)
+        }
 
-    fun increaseSoldTicketCount(count: Int): Schedule = copy(soldTicketCount = soldTicketCount + count)
+        return copy(
+            performanceDate = performanceDate,
+            totalTicketCount = totalTicketCount,
+            scheduleNumber = scheduleNumber
+        )
+    }
+
+    fun increaseSoldTicketCount(count: Int): Schedule {
+        validatePositiveCount(count)
+
+        val updatedSoldTicketCount = soldTicketCount + count
+        if (updatedSoldTicketCount > totalTicketCount) {
+            throw ConflictException(ScheduleErrorCode.INSUFFICIENT_TICKETS)
+        }
+
+        return copy(soldTicketCount = updatedSoldTicketCount)
+    }
 
     fun decreaseSoldTicketCount(count: Int): Schedule {
+        validatePositiveCount(count)
+
         if (soldTicketCount < count) {
             throw ConflictException(ScheduleErrorCode.EXCESS_TICKET_DELETE)
         }
@@ -48,6 +66,12 @@ data class Schedule private constructor(
     fun updateScheduleNumber(scheduleNumber: ScheduleNumber): Schedule = copy(scheduleNumber = scheduleNumber)
 
     fun updateIsBooking(isBooking: Boolean): Schedule = copy(isBooking = isBooking)
+
+    private fun validatePositiveCount(count: Int) {
+        if (count <= 0) {
+            throw BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT)
+        }
+    }
 
     @JvmInline
     value class Id private constructor(val value: Long) {

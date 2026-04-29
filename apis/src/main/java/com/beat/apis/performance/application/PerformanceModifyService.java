@@ -266,10 +266,13 @@ public class PerformanceModifyService {
 				throw new BadRequestException(PerformanceErrorCode.INVALID_TICKET_COUNT);
 			}
 
+			boolean wasSoldOut = schedule.getSoldTicketCount() == schedule.getTotalTicketCount();
+
 			// 매진 상태로 변경 (soldTicketCount와 totalTicketCount가 동일하고, 기존 isBooking이 true인 경우)
 			if (request.totalTicketCount() == schedule.getSoldTicketCount() && schedule.isBooking()) {
 				schedule = schedule.updateIsBooking(false);
-			} else if (request.totalTicketCount() > schedule.getTotalTicketCount() && !schedule.isBooking()) {
+			} else if (request.totalTicketCount() > schedule.getTotalTicketCount()
+				&& wasSoldOut && !schedule.isBooking()) {
 				schedule = schedule.updateIsBooking(true);
 			}
 		}

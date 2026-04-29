@@ -368,7 +368,9 @@ Boundary rules:
 
 ## #415 Schedule persistence seam
 
-#415에서는 `Schedule` 엔티티를 Kotlin 순수 도메인 모델로 마이그레이션하고 영속성 경계를 `infra` 레이어로 분리합니다. #404 Cast + Staff pair 패턴을 따르며, Schedule은 `PerformanceId` value class를 통해 `performance_id` column을 추상화합니다.
+Issue #415에서는 `Schedule` 엔티티를 Kotlin 순수 도메인 모델로 마이그레이션하고
+영속성 경계를 `infra` 레이어로 분리합니다. #404 Cast + Staff pair 패턴을 따르며,
+Schedule은 `PerformanceId` value class를 통해 `performance_id` column을 추상화합니다.
 
 Boundary rules:
 - `domain/src/main/kotlin/com/beat/domain/schedule/domain/Schedule.kt`는 JPA 의존성이 없는 순수 Kotlin data class입니다.
