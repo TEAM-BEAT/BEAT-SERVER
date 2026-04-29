@@ -378,7 +378,9 @@ Boundary rules:
 - 모든 mutation method(`update`, `decreaseSoldTicketCount`, `updateScheduleNumber`, `updateIsBooking`)는 new copy를 반환하며, dirty tracking을 사용하지 않습니다.
 - `domain/src/main/java/com/beat/domain/schedule/repository/dto/MinPerformanceDateDto.java`는 `@QueryProjection` 없는 순수 POJO이며, query adapter의 JPQL constructor DTO query로 조회합니다.
 - `infra.persistence.schedule` 패키지에서 `ScheduleJpaEntity`, `ScheduleJpaRepository`, `SchedulePersistenceMapper`, `ScheduleRepositoryImpl`, `ScheduleQueryRepository`, `ScheduleQueryRepositoryImpl`을 소유합니다.
-- `infra/src/main/java/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.java`는 `TicketRepositoryCustomImpl`의 Schedule 조건 조인을 위한 임시 수동 QueryDSL Q-type입니다. `ScheduleJpaEntity` 필드가 바뀌면 `SharedBoundaryContractTest.manualScheduleQueryDslTypeMatchesScheduleJpaEntityFields`와 함께 갱신해야 하며, Kotlin entity Q-type 자동 생성(KAPT/KSP)은 별도 이슈에서 다룹니다.
+- `TicketRepositoryCustomImpl`의 Schedule 조건 조인은 수동 `QScheduleJpaEntity` 없이
+  JPQL `TypedQuery<Booking>`로 수행합니다. KSP2/Kotlin JDSL 전환 전까지는
+  임시 `TypedQuery` bridge를 유지하며 generated Q-type을 source tree에 커밋하지 않습니다.
 - 실행 모듈(`apis`, `batch`)은 domain repository contract와 domain model만 import하며 `com.beat.infra.persistence.schedule.*` type을 직접 import하지 않습니다.
 - `JobSchedulerTransactionalService.closeBooking()`은 immutable domain object 반환값을 명시적으로 `scheduleRepository.save(schedule.updateIsBooking(false))`로 저장합니다.
 - DB schema, pessimistic lock 기술 세부사항, ScheduleNumber enum은 변경하지 않습니다.

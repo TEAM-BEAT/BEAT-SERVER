@@ -222,7 +222,6 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.java",
 			scheduleJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/java/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.java",
@@ -299,39 +298,16 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
-	void manualScheduleQueryDslTypeMatchesScheduleJpaEntityFields() throws Exception {
-		String scheduleJpaEntity = Files.readString(scheduleJpaEntitySourcePath());
-		String qScheduleJpaEntity = Files.readString(
-			Path.of("infra/src/main/java/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.java"));
+	void ticketRepositoryCustomAvoidsManualScheduleQueryDslType() throws Exception {
 		String ticketRepositoryCustom = Files.readString(
 			Path.of("infra/src/main/java/com/beat/domain/booking/dao/TicketRepositoryCustomImpl.java"));
 
-		assertTrue(scheduleJpaEntity.matches("(?s).*\\bvar\\s+id\\s*:\\s*Long\\?\\s*=\\s*id\\s+protected set.*"));
-		assertTrue(scheduleJpaEntity.matches(
-			"(?s).*\\bvar\\s+performanceDate\\s*:\\s*LocalDateTime\\s*=\\s*performanceDate\\s+protected set.*"));
-		assertTrue(scheduleJpaEntity.matches(
-			"(?s).*\\bvar\\s+totalTicketCount\\s*:\\s*Int\\s*=\\s*totalTicketCount\\s+protected set.*"));
-		assertTrue(scheduleJpaEntity.matches(
-			"(?s).*\\bvar\\s+soldTicketCount\\s*:\\s*Int\\s*=\\s*soldTicketCount\\s+protected set.*"));
-		assertTrue(scheduleJpaEntity.matches(
-			"(?s).*\\bvar\\s+isBooking\\s*:\\s*Boolean\\s*=\\s*isBooking\\s+protected set.*"));
-		assertTrue(scheduleJpaEntity.matches(
-			"(?s).*\\bvar\\s+scheduleNumber\\s*:\\s*ScheduleNumber\\s*=\\s*scheduleNumber\\s+protected set.*"));
-		assertTrue(scheduleJpaEntity.matches(
-			"(?s).*\\bvar\\s+performanceId\\s*:\\s*Long\\s*=\\s*performanceId\\s+protected set.*"));
-
-		assertTrue(qScheduleJpaEntity.contains("createNumber(\"id\", Long.class)"));
-		assertTrue(qScheduleJpaEntity.contains(
-			"createDateTime(\"performanceDate\", java.time.LocalDateTime.class)"));
-		assertTrue(qScheduleJpaEntity.contains("createNumber(\"totalTicketCount\", Integer.class)"));
-		assertTrue(qScheduleJpaEntity.contains("createNumber(\"soldTicketCount\", Integer.class)"));
-		assertTrue(qScheduleJpaEntity.contains("createBoolean(\"isBooking\")"));
-		assertTrue(qScheduleJpaEntity.contains("createEnum(\"scheduleNumber\", ScheduleNumber.class)"));
-		assertTrue(qScheduleJpaEntity.contains("createNumber(\"performanceId\", Long.class)"));
-		assertTrue(ticketRepositoryCustom.contains(
-			"import static com.beat.infra.persistence.schedule.entity.QScheduleJpaEntity.scheduleJpaEntity;"));
-		assertFalse(qScheduleJpaEntity.contains("com.beat.domain.schedule.domain.QSchedule"));
-		assertFalse(ticketRepositoryCustom.contains("com.beat.domain.schedule.domain.QSchedule"));
+		assertFalse(Files.exists(
+			Path.of("infra/src/main/java/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.java")));
+		assertFalse(ticketRepositoryCustom.contains("QScheduleJpaEntity"));
+		assertFalse(ticketRepositoryCustom.contains("com.querydsl"));
+		assertTrue(ticketRepositoryCustom.contains("TypedQuery<Booking>"));
+		assertTrue(ticketRepositoryCustom.contains("FROM Booking b, Schedule s"));
 	}
 
 	@Test

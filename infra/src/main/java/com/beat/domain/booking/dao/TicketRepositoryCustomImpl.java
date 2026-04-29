@@ -1,26 +1,22 @@
 package com.beat.domain.booking.dao;
 
+import java.util.List;
+
+import org.springframework.stereotype.Repository;
+
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.schedule.domain.ScheduleNumber;
-import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.CaseBuilder;
-import com.querydsl.core.types.dsl.NumberTemplate;
-import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.jpa.impl.JPAQueryFactory;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
-
-import static com.beat.domain.booking.domain.QBooking.booking;
-import static com.beat.infra.persistence.schedule.entity.QScheduleJpaEntity.scheduleJpaEntity;
 
 @Repository
 @RequiredArgsConstructor
 public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
 
-	private final JPAQueryFactory queryFactory;
+	private final EntityManager entityManager;
 
 	/**
 	 * performanceId, scheduleNumbers, bookingStatuses 조건 필터
@@ -31,25 +27,18 @@ public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
 		List<ScheduleNumber> scheduleNumbers,
 		List<BookingStatus> bookingStatuses
 	) {
-		return queryFactory
-			.selectFrom(booking)
-			.join(scheduleJpaEntity).on(scheduleJpaEntity.id.eq(booking.scheduleId))
-			.where(
-				eqPerformanceId(performanceId),
-				booking.bookingStatus.ne(BookingStatus.BOOKING_DELETED),
-				inScheduleNumbers(scheduleNumbers),
-				inBookingStatuses(bookingStatuses)
-			)
-			.orderBy(
-				new CaseBuilder()
-					.when(booking.bookingStatus.eq(BookingStatus.REFUND_REQUESTED)).then(1)
-					.when(booking.bookingStatus.eq(BookingStatus.CHECKING_PAYMENT)).then(2)
-					.when(booking.bookingStatus.eq(BookingStatus.BOOKING_CONFIRMED)).then(3)
-					.when(booking.bookingStatus.eq(BookingStatus.BOOKING_CANCELLED)).then(4)
-					.otherwise(5).asc(),
-				booking.createdAt.desc()
-			)
-			.fetch();
+		StringBuilder jpql = baseBookingScheduleJpql();
+		appendPerformanceCondition(jpql, performanceId);
+		appendScheduleNumberCondition(jpql, scheduleNumbers);
+		appendBookingStatusCondition(jpql, bookingStatuses);
+		jpql.append(orderByBookingStatusAndCreatedAt());
+
+		TypedQuery<Booking> query = entityManager.createQuery(jpql.toString(), Booking.class);
+		bindCommonParameters(query);
+		bindPerformanceParameter(query, performanceId);
+		bindScheduleNumberParameter(query, scheduleNumbers);
+		bindBookingStatusParameter(query, bookingStatuses);
+		return query.getResultList();
 	}
 
 	/**
@@ -63,70 +52,111 @@ public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
 		List<String> selectedScheduleNumbers,
 		List<String> selectedBookingStatuses
 	) {
-		return queryFactory
-			.selectFrom(booking)
-			.join(scheduleJpaEntity).on(scheduleJpaEntity.id.eq(booking.scheduleId))
-			.where(
-				eqPerformanceId(performanceId),
-				booking.bookingStatus.ne(BookingStatus.BOOKING_DELETED),
-				inScheduleNumbersByString(selectedScheduleNumbers),
-				inBookingStatusesByString(selectedBookingStatuses),
-				matchBookerName(searchWord).gt(0) // FullText match 결과가 0보다 큰 row만
-			)
-			.orderBy(
-				new CaseBuilder()
-					.when(booking.bookingStatus.eq(BookingStatus.REFUND_REQUESTED)).then(1)
-					.when(booking.bookingStatus.eq(BookingStatus.CHECKING_PAYMENT)).then(2)
-					.when(booking.bookingStatus.eq(BookingStatus.BOOKING_CONFIRMED)).then(3)
-					.when(booking.bookingStatus.eq(BookingStatus.BOOKING_CANCELLED)).then(4)
-					.otherwise(5).asc(),
-				booking.createdAt.desc()
-			)
-			.fetch();
-	}
-
-	/* ======================
-	   BooleanExpression 메서드들
-	   ====================== */
-	private BooleanExpression eqPerformanceId(Long performanceId) {
-		if (performanceId == null) return null;
-		return scheduleJpaEntity.performanceId.eq(performanceId);
-	}
-
-	private BooleanExpression inScheduleNumbers(List<ScheduleNumber> scheduleNumbers) {
-		if (scheduleNumbers == null || scheduleNumbers.isEmpty()) return null;
-		return scheduleJpaEntity.scheduleNumber.in(scheduleNumbers);
-	}
-
-	private BooleanExpression inScheduleNumbersByString(List<String> scheduleNumbers) {
-		if (scheduleNumbers == null || scheduleNumbers.isEmpty()) return null;
-		return scheduleJpaEntity.scheduleNumber.stringValue().in(scheduleNumbers);
-	}
-
-	private BooleanExpression inBookingStatuses(List<BookingStatus> bookingStatuses) {
-		if (bookingStatuses == null || bookingStatuses.isEmpty()) return null;
-		return booking.bookingStatus.in(bookingStatuses);
-	}
-
-	private BooleanExpression inBookingStatusesByString(List<String> bookingStatuses) {
-		if (bookingStatuses == null || bookingStatuses.isEmpty()) return null;
-		return booking.bookingStatus.stringValue().in(bookingStatuses);
-	}
-
-	/**
-	 * Dialect에 등록한 match( col, keyword ) 함수를 이용한 검색
-	 */
-	private NumberTemplate<Double> matchBookerName(String searchWord) {
 		if (searchWord == null || searchWord.isBlank()) {
-			// null이나 공백이면 조건을 무시하기 위해 null 반환 -> .where(...)에서 skip
-			// 또는 null 대신 0.0 반환도 가능
-			return Expressions.numberTemplate(Double.class, "0");
+			return List.of();
 		}
-		return Expressions.numberTemplate(
-			Double.class,
-			"function('match', {0}, {1})",   // match( booking.bookerName, :searchWord )
-			booking.bookerName,
-			searchWord
-		);
+
+		List<ScheduleNumber> scheduleNumbers = toScheduleNumbers(selectedScheduleNumbers);
+		List<BookingStatus> bookingStatuses = toBookingStatuses(selectedBookingStatuses);
+
+		StringBuilder jpql = baseBookingScheduleJpql();
+		appendPerformanceCondition(jpql, performanceId);
+		appendScheduleNumberCondition(jpql, scheduleNumbers);
+		appendBookingStatusCondition(jpql, bookingStatuses);
+		jpql.append("  AND function('match', b.bookerName, :searchWord) > 0\n");
+		jpql.append(orderByBookingStatusAndCreatedAt());
+
+		TypedQuery<Booking> query = entityManager.createQuery(jpql.toString(), Booking.class);
+		bindCommonParameters(query);
+		bindPerformanceParameter(query, performanceId);
+		bindScheduleNumberParameter(query, scheduleNumbers);
+		bindBookingStatusParameter(query, bookingStatuses);
+		query.setParameter("searchWord", searchWord);
+		return query.getResultList();
+	}
+
+	private StringBuilder baseBookingScheduleJpql() {
+		return new StringBuilder("""
+			SELECT b
+			FROM Booking b, Schedule s
+			WHERE s.id = b.scheduleId
+			  AND b.bookingStatus <> :deletedStatus
+			""");
+	}
+
+	private void appendPerformanceCondition(StringBuilder jpql, Long performanceId) {
+		if (performanceId != null) {
+			jpql.append("  AND s.performanceId = :performanceId\n");
+		}
+	}
+
+	private void appendScheduleNumberCondition(StringBuilder jpql, List<ScheduleNumber> scheduleNumbers) {
+		if (scheduleNumbers != null && !scheduleNumbers.isEmpty()) {
+			jpql.append("  AND s.scheduleNumber IN :scheduleNumbers\n");
+		}
+	}
+
+	private void appendBookingStatusCondition(StringBuilder jpql, List<BookingStatus> bookingStatuses) {
+		if (bookingStatuses != null && !bookingStatuses.isEmpty()) {
+			jpql.append("  AND b.bookingStatus IN :bookingStatuses\n");
+		}
+	}
+
+	private String orderByBookingStatusAndCreatedAt() {
+		return """
+			ORDER BY
+			  CASE
+			    WHEN b.bookingStatus = :refundRequestedStatus THEN 1
+			    WHEN b.bookingStatus = :checkingPaymentStatus THEN 2
+			    WHEN b.bookingStatus = :bookingConfirmedStatus THEN 3
+			    WHEN b.bookingStatus = :bookingCancelledStatus THEN 4
+			    ELSE 5
+			  END ASC,
+			  b.createdAt DESC
+			""";
+	}
+
+	private void bindCommonParameters(TypedQuery<Booking> query) {
+		query.setParameter("deletedStatus", BookingStatus.BOOKING_DELETED);
+		query.setParameter("refundRequestedStatus", BookingStatus.REFUND_REQUESTED);
+		query.setParameter("checkingPaymentStatus", BookingStatus.CHECKING_PAYMENT);
+		query.setParameter("bookingConfirmedStatus", BookingStatus.BOOKING_CONFIRMED);
+		query.setParameter("bookingCancelledStatus", BookingStatus.BOOKING_CANCELLED);
+	}
+
+	private void bindPerformanceParameter(TypedQuery<Booking> query, Long performanceId) {
+		if (performanceId != null) {
+			query.setParameter("performanceId", performanceId);
+		}
+	}
+
+	private void bindScheduleNumberParameter(TypedQuery<Booking> query, List<ScheduleNumber> scheduleNumbers) {
+		if (scheduleNumbers != null && !scheduleNumbers.isEmpty()) {
+			query.setParameter("scheduleNumbers", scheduleNumbers);
+		}
+	}
+
+	private void bindBookingStatusParameter(TypedQuery<Booking> query, List<BookingStatus> bookingStatuses) {
+		if (bookingStatuses != null && !bookingStatuses.isEmpty()) {
+			query.setParameter("bookingStatuses", bookingStatuses);
+		}
+	}
+
+	private List<ScheduleNumber> toScheduleNumbers(List<String> scheduleNumbers) {
+		if (scheduleNumbers == null || scheduleNumbers.isEmpty()) {
+			return List.of();
+		}
+		return scheduleNumbers.stream()
+			.map(ScheduleNumber::valueOf)
+			.toList();
+	}
+
+	private List<BookingStatus> toBookingStatuses(List<String> bookingStatuses) {
+		if (bookingStatuses == null || bookingStatuses.isEmpty()) {
+			return List.of();
+		}
+		return bookingStatuses.stream()
+			.map(BookingStatus::valueOf)
+			.toList();
 	}
 }
