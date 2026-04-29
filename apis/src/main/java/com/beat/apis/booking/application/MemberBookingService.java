@@ -15,7 +15,7 @@ import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
-import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.user.repository.UserRepository;
@@ -47,7 +47,7 @@ public class MemberBookingService {
 			throw new BadRequestException(ScheduleErrorCode.INSUFFICIENT_TICKETS);
 		}
 
-		updateSoldTicketCountAndIsBooking(schedule, memberBookingRequest.purchaseTicketCount());
+		schedule = updateSoldTicketCountAndIsBooking(schedule, memberBookingRequest.purchaseTicketCount());
 
 		Performance performance = performanceRepository.findById(schedule.getPerformanceId())
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
@@ -65,11 +65,11 @@ public class MemberBookingService {
 			null,
 			null,
 			null,
-			schedule,
+			schedule.getId(),
 			member.getUserId()
 		);
 		bookingRepository.save(booking);
-		scheduleRepository.save(schedule);
+		schedule = scheduleRepository.save(schedule);
 
 		log.info("Member Booking created: {}", booking);
 
@@ -87,16 +87,15 @@ public class MemberBookingService {
 			performance.getBankName(),
 			performance.getAccountNumber(),
 			memberBookingRequest.totalPaymentAmount(),
-			//  비회원 예매처럼 int totalPaymentAmount = ticketPrice * guestBookingRequest.purchaseTicketCount();로 계산해서 반영하기 + 요청한 총 가격 == 티켓 가격 * 수 같은지 검증하는 로직 추가하기
 			booking.getCreatedAt()
 		);
 	}
 
-	private void updateSoldTicketCountAndIsBooking(Schedule schedule, int purchaseTicketCount) {
-		schedule.setSoldTicketCount(schedule.getSoldTicketCount() + purchaseTicketCount);
-
+	private Schedule updateSoldTicketCountAndIsBooking(Schedule schedule, int purchaseTicketCount) {
+		schedule = schedule.increaseSoldTicketCount(purchaseTicketCount);
 		if (schedule.getTotalTicketCount() == schedule.getSoldTicketCount()) {
-			schedule.updateIsBooking(false);
+			schedule = schedule.updateIsBooking(false);
 		}
+		return schedule;
 	}
 }

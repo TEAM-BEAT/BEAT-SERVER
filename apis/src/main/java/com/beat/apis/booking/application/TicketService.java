@@ -2,6 +2,7 @@ package com.beat.apis.booking.application;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -29,9 +30,10 @@ import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
-import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.exception.UserErrorCode;
 import com.beat.domain.user.repository.UserRepository;
@@ -71,7 +73,7 @@ public class TicketService {
 			performanceId, scheduleNumbers, bookingStatuses);
 
 		return findTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
-			bookings);
+			schedules, bookings);
 	}
 
 	public TicketRetrieveResponse searchAllTicketsByConditions(Long memberId, Long performanceId, String searchWord,
@@ -122,26 +124,31 @@ public class TicketService {
 		log.info("searchTickets result: {}", bookings);
 
 		return findTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
-			bookings);
+			schedules, bookings);
 	}
 
 	@NotNull
 	private TicketRetrieveResponse findTicketRetrieveResponse(Performance performance, int totalPerformanceTicketCount,
-		int totalPerformanceSoldTicketCount, List<Booking> bookings) {
+		int totalPerformanceSoldTicketCount, List<Schedule> schedules, List<Booking> bookings) {
+		Map<Long, Schedule> scheduleMap = schedules.stream()
+			.collect(Collectors.toMap(s -> s.getId(), s -> s));
 		List<TicketDetail> bookingList = bookings.stream()
-			.map(booking -> TicketDetail.of(
-				booking.getId(),
-				booking.getBookerName(),
-				booking.getBookerPhoneNumber(),
-				booking.getSchedule().getId(),
-				booking.getPurchaseTicketCount(),
-				booking.getCreatedAt(),
-				booking.getBookingStatus(),
-				booking.getSchedule().getScheduleNumber().name(),
-				Optional.ofNullable(booking.getBankName()).map(BankName::name).orElse(BankName.NONE.getDisplayName()),
-				booking.getAccountNumber(),
-				booking.getAccountHolder()
-			))
+			.map(booking -> {
+				Schedule schedule = findScheduleForBooking(scheduleMap, booking);
+				return TicketDetail.of(
+					booking.getId(),
+					booking.getBookerName(),
+					booking.getBookerPhoneNumber(),
+					booking.getScheduleId(),
+					booking.getPurchaseTicketCount(),
+					booking.getCreatedAt(),
+					booking.getBookingStatus(),
+					schedule.getScheduleNumber().name(),
+					Optional.ofNullable(booking.getBankName()).map(BankName::name).orElse(BankName.NONE.getDisplayName()),
+					booking.getAccountNumber(),
+					booking.getAccountHolder()
+				);
+			})
 			.collect(Collectors.toList());
 		log.info("Converted TicketDetail list: {}", bookingList);
 
@@ -153,6 +160,14 @@ public class TicketService {
 			totalPerformanceSoldTicketCount,
 			bookingList
 		);
+	}
+
+	private Schedule findScheduleForBooking(Map<Long, Schedule> scheduleMap, Booking booking) {
+		Schedule schedule = scheduleMap.get(booking.getScheduleId());
+		if (schedule == null) {
+			throw new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
+		}
+		return schedule;
 	}
 
 	@Transactional
@@ -202,13 +217,13 @@ public class TicketService {
 			booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
 			ticketRepository.save(booking);
 
-			Schedule schedule = booking.getSchedule();
-			schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
-
-			if (!schedule.isBooking()) {
-				schedule.updateIsBooking(true);
-				scheduleRepository.save(schedule);
+			Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
+				.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
+			Schedule updated = schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
+			if (!updated.isBooking()) {
+				updated = updated.updateIsBooking(true);
 			}
+			scheduleRepository.save(updated);
 		}
 	}
 
@@ -227,13 +242,13 @@ public class TicketService {
 			booking.updateBookingStatus(BookingStatus.BOOKING_DELETED);
 			ticketRepository.save(booking);
 
-			Schedule schedule = booking.getSchedule();
-			schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
-
-			if (!schedule.isBooking()) {
-				schedule.updateIsBooking(true);
-				scheduleRepository.save(schedule);
+			Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
+				.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
+			Schedule updated = schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
+			if (!updated.isBooking()) {
+				updated = updated.updateIsBooking(true);
 			}
+			scheduleRepository.save(updated);
 		}
 	}
 

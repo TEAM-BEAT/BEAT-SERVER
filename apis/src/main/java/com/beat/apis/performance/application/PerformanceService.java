@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -38,7 +39,7 @@ import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.port.in.PerformanceUseCase;
 import com.beat.domain.performance.repository.PerformanceImageRepository;
-import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.staff.repository.StaffRepository;
@@ -180,7 +181,7 @@ public class PerformanceService implements PerformanceUseCase {
 		Performance performance = performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-		if (performance.getUserId() != userId) {
+		if (!Objects.equals(performance.getUserId(), userId)) {
 			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
 		}
 

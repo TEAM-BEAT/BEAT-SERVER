@@ -22,10 +22,10 @@ private object NonOwnerScheduleJobPort : ScheduleJobPort {
     private val log = LoggerFactory.getLogger(NonOwnerScheduleJobPort::class.java)
 
     override fun registerOrRefresh(schedule: Schedule) {
-        log.debug("Skipping schedule registration in apis runtime for scheduleId={}", schedule.id)
+        log.debug("Skipping schedule registration in apis runtime for scheduleId={}", schedule.getId())
     }
 
     override fun cancel(schedule: Schedule) {
-        log.debug("Skipping schedule cancellation in apis runtime for scheduleId={}", schedule.id)
+        log.debug("Skipping schedule cancellation in apis runtime for scheduleId={}", schedule.getId())
     }
 }

@@ -2,22 +2,15 @@ package com.beat.domain.booking.domain;
 
 import java.time.LocalDateTime;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
 import com.beat.domain.performance.domain.BankName;
-import com.beat.domain.schedule.domain.Schedule;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -67,10 +60,8 @@ public class Booking {
 	@Column(nullable = true)
 	private String accountHolder;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "schedule_id", nullable = false)
-	@OnDelete(action = OnDeleteAction.CASCADE)
-	private Schedule schedule;
+	@Column(name = "schedule_id", nullable = false)
+	private Long scheduleId;
 
 	@Column(name = "user_id", nullable = false)
 	private Long userId;
@@ -78,7 +69,7 @@ public class Booking {
 	@Builder
 	private Booking(int purchaseTicketCount, String bookerName, String bookerPhoneNumber, BookingStatus bookingStatus,
 		String birthDate, String password, BankName bankName, String accountNumber, String accountHolder,
-		Schedule schedule, Long userId) {
+		Long scheduleId, Long userId) {
 		this.purchaseTicketCount = purchaseTicketCount;
 		this.bookerName = bookerName;
 		this.bookerPhoneNumber = bookerPhoneNumber;
@@ -88,13 +79,13 @@ public class Booking {
 		this.bankName = bankName;
 		this.accountNumber = accountNumber;
 		this.accountHolder = accountHolder;
-		this.schedule = schedule;
+		this.scheduleId = scheduleId;
 		this.userId = userId;
 	}
 
 	public static Booking create(int purchaseTicketCount, String bookerName, String bookerPhoneNumber,
 		BookingStatus bookingStatus, String birthDate, String password,
-		BankName bankName, String accountNumber, String accountHolder, Schedule schedule, Long userId) {
+		BankName bankName, String accountNumber, String accountHolder, Long scheduleId, Long userId) {
 		return Booking.builder()
 			.purchaseTicketCount(purchaseTicketCount)
 			.bookerName(bookerName)
@@ -105,7 +96,7 @@ public class Booking {
 			.bankName(bankName)
 			.accountNumber(accountNumber)
 			.accountHolder(accountHolder)
-			.schedule(schedule)
+			.scheduleId(scheduleId)
 			.userId(userId)
 			.build();
 	}

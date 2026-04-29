@@ -31,7 +31,7 @@ import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
@@ -132,13 +132,10 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 		Schedule schedule = Schedule.create(
 			LocalDateTime.now().plusDays(1),
 			remainingTicketCount,
-			0,
-			true,
 			scheduleNumber,
 			performance.getId()
 		);
-		scheduleRepository.save(schedule);
-		return schedule;
+		return scheduleRepository.save(schedule);
 	}
 
 	private List<Future<Boolean>> submitGuestBookings(
@@ -231,10 +228,10 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 		assertFalse(secondSchedule.isBooking());
 
 		long firstScheduleBookingCount = bookingRepository.findAll().stream()
-			.filter(booking -> booking.getSchedule().getId().equals(firstSchedule.getId()))
+			.filter(booking -> booking.getScheduleId().equals(firstSchedule.getId()))
 			.count();
 		long secondScheduleBookingCount = bookingRepository.findAll().stream()
-			.filter(booking -> booking.getSchedule().getId().equals(secondSchedule.getId()))
+			.filter(booking -> booking.getScheduleId().equals(secondSchedule.getId()))
 			.count();
 
 		assertEquals(5L, firstScheduleBookingCount);

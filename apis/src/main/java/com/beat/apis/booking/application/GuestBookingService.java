@@ -12,7 +12,7 @@ import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
-import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.user.domain.Users;
@@ -44,7 +44,7 @@ public class GuestBookingService {
 			throw new BadRequestException(ScheduleErrorCode.INSUFFICIENT_TICKETS);
 		}
 
-		updateSoldTicketCountAndIsBooking(schedule, guestBookingRequest.purchaseTicketCount());
+		schedule = updateSoldTicketCountAndIsBooking(schedule, guestBookingRequest.purchaseTicketCount());
 
 		Long userId = bookingRepository.findFirstByBookerNameAndBookerPhoneNumberAndBirthDateAndPassword(
 			guestBookingRequest.bookerName(),
@@ -61,7 +61,7 @@ public class GuestBookingService {
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 		int ticketPrice = performance.getTicketPrice();
 		int totalPaymentAmount = ticketPrice * guestBookingRequest.purchaseTicketCount();
-		scheduleRepository.save(schedule);
+		schedule = scheduleRepository.save(schedule);
 
 		Booking booking = Booking.create(
 			guestBookingRequest.purchaseTicketCount(),
@@ -73,7 +73,7 @@ public class GuestBookingService {
 			null,
 			null,
 			null,
-			schedule,
+			schedule.getId(),
 			userId
 		);
 		bookingRepository.save(booking);
@@ -98,11 +98,11 @@ public class GuestBookingService {
 		);
 	}
 
-	private void updateSoldTicketCountAndIsBooking(Schedule schedule, int purchaseTicketCount) {
-		schedule.setSoldTicketCount(schedule.getSoldTicketCount() + purchaseTicketCount);
-
+	private Schedule updateSoldTicketCountAndIsBooking(Schedule schedule, int purchaseTicketCount) {
+		schedule = schedule.increaseSoldTicketCount(purchaseTicketCount);
 		if (schedule.getTotalTicketCount() == schedule.getSoldTicketCount()) {
-			schedule.updateIsBooking(false);
+			schedule = schedule.updateIsBooking(false);
 		}
+		return schedule;
 	}
 }
