@@ -77,14 +77,15 @@ current transitional sources:
 
 ## #378 known deferred package exceptions
 
-아래 두 파일은 physical module은 `infra`지만 Spring Data custom repository fragment discovery와 현재 `JpaConfig`/domain repository 구조에 묶여 있어 #378에서 package move하지 않는다. 누락이 아니라 #380/#381로 넘기는 명시적 예외다.
+아래 파일은 physical module은 `infra`지만 Spring Data custom repository fragment discovery와 현재 `JpaConfig`/domain repository 구조에 묶여 있어 #378에서 package move하지 않는다. 누락이 아니라 #380/#381로 넘기는 명시적 예외다.
 
 | File | Current package | Deferred reason | Follow-up |
 | --- | --- | --- | --- |
 | `infra/src/main/java/com/beat/domain/booking/dao/TicketRepositoryCustomImpl.java` | `com.beat.domain.booking.dao` | Spring Data custom fragment discovery가 domain repository interface package와 결합되어 있음 | #380/#381 |
-| `infra/src/main/java/com/beat/domain/schedule/dao/ScheduleRepositoryCustomImpl.java` | `com.beat.domain.schedule.dao` | QueryDSL implementation boundary와 `JpaConfig` scan 결정이 함께 필요함 | #381 |
 
-`SharedBoundaryContractTest`는 infra source에서 `com.beat.domain.*` package residue가 위 두 파일을 넘지 않도록 고정한다.
+#415에서 Schedule query/custom repository boundary는 `infra.persistence.schedule.repository.query`로 이동했고, 삭제된 `com.beat.domain.schedule.dao.ScheduleRepositoryCustomImpl`는 더 이상 deferred exception이 아니다.
+
+`SharedBoundaryContractTest`는 infra source에서 `com.beat.domain.*` package residue가 위 파일을 넘지 않도록 고정한다.
 
 ## To-Be 패키지 구조
 
