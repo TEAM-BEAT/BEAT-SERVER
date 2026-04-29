@@ -285,6 +285,7 @@ class SharedBoundaryContractTest {
 
 		assertTrue(performanceManagement.contains("schedules = scheduleRepository.saveAll(schedules);"));
 		assertTrue(performanceModify.contains("schedules = scheduleRepository.saveAll(schedules);"));
+		assertTrue(performanceModify.contains("scheduleRepository.lockById(request.scheduleId())"));
 		assertTrue(performanceManagement.contains("bookingRepository.deleteInactiveBookingsByScheduleIds("));
 		assertTrue(performanceModify.contains("bookingRepository.deleteInactiveBookingsByScheduleIds("));
 		assertTrue(performanceModify.contains("bookingRepository.existsActiveBookingByScheduleIds(scheduleIds"));

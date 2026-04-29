@@ -234,7 +234,7 @@ public class PerformanceModifyService {
 	private Schedule updateSchedule(ScheduleModifyRequest request, Performance performance) {
 		log.debug("Updating schedules for scheduleId: {}", request.scheduleId());
 
-		Schedule schedule = scheduleRepository.findById(request.scheduleId())
+		Schedule schedule = scheduleRepository.lockById(request.scheduleId())
 			.orElseThrow(() -> {
 				log.error("Schedule not found: scheduleId: {}", request.scheduleId());
 				return new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);

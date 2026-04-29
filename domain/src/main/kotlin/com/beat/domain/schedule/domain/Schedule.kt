@@ -32,9 +32,7 @@ data class Schedule private constructor(
     fun getScheduleNumber(): ScheduleNumber = scheduleNumber
 
     fun update(performanceDate: LocalDateTime, totalTicketCount: Int, scheduleNumber: ScheduleNumber): Schedule {
-        if (totalTicketCount < soldTicketCount) {
-            throw BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT)
-        }
+        validateTicketCounts(totalTicketCount, soldTicketCount)
 
         return copy(
             performanceDate = performanceDate,
@@ -91,15 +89,19 @@ data class Schedule private constructor(
             totalTicketCount: Int,
             scheduleNumber: ScheduleNumber,
             performanceId: Long,
-        ): Schedule = Schedule(
-            scheduleId = null,
-            performanceDate = performanceDate,
-            totalTicketCount = totalTicketCount,
-            soldTicketCount = 0,
-            isBooking = true,
-            scheduleNumber = scheduleNumber,
-            linkedPerformanceId = PerformanceId.from(performanceId)
-        )
+        ): Schedule {
+            validateTicketCounts(totalTicketCount, 0)
+
+            return Schedule(
+                scheduleId = null,
+                performanceDate = performanceDate,
+                totalTicketCount = totalTicketCount,
+                soldTicketCount = 0,
+                isBooking = true,
+                scheduleNumber = scheduleNumber,
+                linkedPerformanceId = PerformanceId.from(performanceId)
+            )
+        }
 
         @JvmStatic
         fun rehydrate(
@@ -110,14 +112,24 @@ data class Schedule private constructor(
             isBooking: Boolean,
             scheduleNumber: ScheduleNumber,
             performanceId: Long,
-        ): Schedule = Schedule(
-            scheduleId = Id.fromNullable(id),
-            performanceDate = performanceDate,
-            totalTicketCount = totalTicketCount,
-            soldTicketCount = soldTicketCount,
-            isBooking = isBooking,
-            scheduleNumber = scheduleNumber,
-            linkedPerformanceId = PerformanceId.from(performanceId)
-        )
+        ): Schedule {
+            validateTicketCounts(totalTicketCount, soldTicketCount)
+
+            return Schedule(
+                scheduleId = Id.fromNullable(id),
+                performanceDate = performanceDate,
+                totalTicketCount = totalTicketCount,
+                soldTicketCount = soldTicketCount,
+                isBooking = isBooking,
+                scheduleNumber = scheduleNumber,
+                linkedPerformanceId = PerformanceId.from(performanceId)
+            )
+        }
+    }
+}
+
+private fun validateTicketCounts(totalTicketCount: Int, soldTicketCount: Int) {
+    if (totalTicketCount < 0 || soldTicketCount < 0 || soldTicketCount > totalTicketCount) {
+        throw BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT)
     }
 }

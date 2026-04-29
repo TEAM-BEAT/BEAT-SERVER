@@ -64,12 +64,54 @@ class ScheduleDomainInvariantTest {
 	}
 
 	@Test
+	void createRejectsNegativeTotalTicketCount() {
+		BadRequestException exception = assertThrows(
+			BadRequestException.class,
+			() -> Schedule.create(LocalDateTime.now().plusDays(1), -1, ScheduleNumber.FIRST, 1L)
+		);
+
+		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+	}
+
+	@Test
+	void rehydrateRejectsNegativeSoldTicketCount() {
+		BadRequestException exception = assertThrows(
+			BadRequestException.class,
+			() -> scheduleWithSoldTicketCount(10, -1)
+		);
+
+		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+	}
+
+	@Test
+	void rehydrateRejectsSoldTicketCountAboveTotalTicketCount() {
+		BadRequestException exception = assertThrows(
+			BadRequestException.class,
+			() -> scheduleWithSoldTicketCount(3, 4)
+		);
+
+		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+	}
+
+	@Test
 	void updateRejectsTotalTicketCountBelowSoldTicketCount() {
 		Schedule schedule = scheduleWithSoldTicketCount(10, 3);
 
 		BadRequestException exception = assertThrows(
 			BadRequestException.class,
 			() -> schedule.update(LocalDateTime.now().plusDays(1), 2, ScheduleNumber.SECOND)
+		);
+
+		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+	}
+
+	@Test
+	void updateRejectsNegativeTotalTicketCount() {
+		Schedule schedule = scheduleWithSoldTicketCount(10, 3);
+
+		BadRequestException exception = assertThrows(
+			BadRequestException.class,
+			() -> schedule.update(LocalDateTime.now().plusDays(1), -1, ScheduleNumber.SECOND)
 		);
 
 		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
