@@ -1,5 +1,7 @@
 package com.beat.apis.performance.application;
 
+import static java.util.Comparator.comparing;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -20,17 +22,18 @@ import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.repository.CastRepository;
-import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
-import com.beat.domain.performance.dao.PerformanceRepository;
+import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceImageRepository;
+import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.promotion.repository.PromotionRepository;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
+import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.staff.repository.StaffRepository;
 import com.beat.global.common.exception.BadRequestException;
@@ -80,7 +83,8 @@ public class PerformanceManagementService {
 			request.totalScheduleCount(),
 			member.getUserId()
 		);
-		performanceRepository.save(performance);
+		Performance savedPerformance = performanceRepository.save(performance);
+		final Long savedPerformanceId = savedPerformance.getId();
 
 		List<Schedule> schedules = request.scheduleList().stream()
 			.map(scheduleRequest -> {
@@ -93,12 +97,12 @@ public class PerformanceManagementService {
 					0,
 					true,
 					scheduleRequest.scheduleNumber(),
-					performance
+					savedPerformanceId
 				);
 			})
 			.collect(Collectors.toList());
 
-		performance.assignScheduleNumbers(schedules);
+		assignScheduleNumbers(schedules);
 		scheduleRepository.saveAll(schedules);
 
 		schedules.forEach(scheduleJobPort::registerOrRefresh);
@@ -106,15 +110,15 @@ public class PerformanceManagementService {
 		List<LocalDateTime> performanceDates = schedules.stream()
 			.map(Schedule::getPerformanceDate)
 			.toList();
-		performance.updatePerformancePeriod(performanceDates);
-		performanceRepository.save(performance);
+		savedPerformance = savedPerformance.updatePerformancePeriod(performanceDates);
+		savedPerformance = performanceRepository.save(savedPerformance);
 
 		List<Cast> casts = castRepository.saveAll(request.castList().stream()
 			.map(castRequest -> Cast.create(
 				castRequest.castName(),
 				castRequest.castRole(),
 				castRequest.castPhoto(),
-				performance.getId()
+				savedPerformanceId
 			))
 			.toList());
 
@@ -123,7 +127,7 @@ public class PerformanceManagementService {
 				staffRequest.staffName(),
 				staffRequest.staffRole(),
 				staffRequest.staffPhoto(),
-				performance.getId()
+				savedPerformanceId
 			))
 			.toList());
 
@@ -131,12 +135,12 @@ public class PerformanceManagementService {
 			request.performanceImageList().stream()
 				.map(performanceImageRequest -> PerformanceImage.create(
 					performanceImageRequest.performanceImage(),
-					performance.getId()
+					savedPerformanceId
 				))
 				.toList()
 		);
 
-		return mapToPerformanceResponse(performance, schedules, casts, staffs, performanceImageList);
+		return mapToPerformanceResponse(savedPerformance, schedules, casts, staffs, performanceImageList);
 	}
 
 	private PerformanceResponse mapToPerformanceResponse(Performance performance, List<Schedule> schedules,
@@ -205,6 +209,17 @@ public class PerformanceManagementService {
 		);
 	}
 
+	private void assignScheduleNumbers(List<Schedule> schedules) {
+		List<ScheduleNumber> scheduleNumbers = List.of(ScheduleNumber.values());
+		if (schedules.size() > scheduleNumbers.size()) {
+			throw new BadRequestException(PerformanceErrorCode.MAX_SCHEDULE_LIMIT_EXCEEDED);
+		}
+		schedules.sort(comparing(Schedule::getPerformanceDate));
+		for (int i = 0; i < schedules.size(); i++) {
+			schedules.get(i).setScheduleNumber(scheduleNumbers.get(i));
+		}
+	}
+
 	private int calculateDueDate(LocalDate performanceDate) {
 		return (int)ChronoUnit.DAYS.between(LocalDate.now(), performanceDate);
 	}
@@ -219,7 +234,7 @@ public class PerformanceManagementService {
 		Performance performance = performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-		if (!performance.getUserId().equals(userId)) {
+		if (performance.getUserId() != userId) {
 			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
 		}
 
@@ -238,6 +253,7 @@ public class PerformanceManagementService {
 			scheduleJobPort.cancel(schedule);
 		}
 
+		scheduleRepository.deleteByPerformanceId(performanceId);
 		castRepository.deleteByPerformanceId(performanceId);
 		staffRepository.deleteByPerformanceId(performanceId);
 		promotionRepository.deleteByPerformanceId(performanceId);

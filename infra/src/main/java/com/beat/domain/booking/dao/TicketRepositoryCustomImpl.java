@@ -90,7 +90,7 @@ public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
 	   ====================== */
 	private BooleanExpression eqPerformanceId(Long performanceId) {
 		if (performanceId == null) return null;
-		return schedule.performance.id.eq(performanceId);
+		return schedule.performanceId.eq(performanceId);
 	}
 
 	private BooleanExpression inScheduleNumbers(List<ScheduleNumber> scheduleNumbers) {

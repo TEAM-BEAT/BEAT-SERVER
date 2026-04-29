@@ -14,10 +14,10 @@ public record BookingCreatedEvent(
 	int currentSoldTicketCount,
 	int totalTicketCount
 ) {
-	public static BookingCreatedEvent of(Booking booking, Schedule schedule) {
+	public static BookingCreatedEvent of(Booking booking, Schedule schedule, String performanceTitle) {
 		return new BookingCreatedEvent(
 			booking.getCreatedAt(),
-			schedule.getPerformance().getPerformanceTitle(),
+			performanceTitle,
 			booking.getPurchaseTicketCount(),
 			booking.getBookerName(),
 			schedule.getScheduleNumber().getDisplayName(),

@@ -32,7 +32,7 @@ import com.beat.domain.cast.repository.CastRepository;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
-import com.beat.domain.performance.dao.PerformanceRepository;
+import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
@@ -180,7 +180,7 @@ public class PerformanceService implements PerformanceUseCase {
 		Performance performance = performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-		if (!performance.getUserId().equals(userId)) {
+		if (performance.getUserId() != userId) {
 			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
 		}
 

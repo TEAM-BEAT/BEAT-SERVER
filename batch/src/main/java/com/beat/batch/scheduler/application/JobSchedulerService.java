@@ -16,6 +16,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.beat.contracts.schedule.ScheduleJobPort;
+import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.domain.Schedule;
 
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 public class JobSchedulerService implements ScheduleJobPort {
 
 	private final JobSchedulerTransactionalService jobSchedulerTransactionalService;
+	private final PerformanceRepository performanceRepository;
 	private final TaskScheduler taskScheduler;
 
 	@Value("${beat.scheduler.owner:false}")
@@ -111,8 +114,11 @@ public class JobSchedulerService implements ScheduleJobPort {
 			.ifPresentOrElse(
 				lockedSchedule -> {
 					log.info("Lock acquired for Schedule ID: {}", lockedSchedule.getId());
+					Performance performance = performanceRepository.findById(lockedSchedule.getPerformanceId())
+						.orElseThrow(() -> new IllegalStateException(
+							"Performance not found for schedule " + lockedSchedule.getId()));
 					LocalDateTime performanceEndTime = lockedSchedule.getPerformanceDate()
-						.plusMinutes(lockedSchedule.getPerformance().getRunningTime());
+						.plusMinutes(performance.getRunningTime());
 
 					log.info("Scheduling task for Schedule ID: {} at {}", lockedSchedule.getId(), performanceEndTime);
 

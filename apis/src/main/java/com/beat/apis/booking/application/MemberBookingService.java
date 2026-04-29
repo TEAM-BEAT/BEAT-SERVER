@@ -12,6 +12,9 @@ import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
+import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.performance.exception.PerformanceErrorCode;
+import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
@@ -31,6 +34,7 @@ public class MemberBookingService {
 	private final BookingRepository bookingRepository;
 	private final MemberRepository memberRepository;
 	private final UserRepository userRepository;
+	private final PerformanceRepository performanceRepository;
 	private final ApplicationEventPublisher eventPublisher;
 
 	@Transactional(timeout = 200)
@@ -44,6 +48,9 @@ public class MemberBookingService {
 		}
 
 		updateSoldTicketCountAndIsBooking(schedule, memberBookingRequest.purchaseTicketCount());
+
+		Performance performance = performanceRepository.findById(schedule.getPerformanceId())
+			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
 		Member member = memberRepository.findById(memberId).orElseThrow(
 			() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
@@ -66,7 +73,7 @@ public class MemberBookingService {
 
 		log.info("Member Booking created: {}", booking);
 
-		eventPublisher.publishEvent(BookingCreatedEvent.of(booking, schedule));
+		eventPublisher.publishEvent(BookingCreatedEvent.of(booking, schedule, performance.getPerformanceTitle()));
 
 		return MemberBookingResponse.of(
 			booking.getId(),
@@ -77,8 +84,8 @@ public class MemberBookingService {
 			booking.getBookerName(),
 			booking.getBookerPhoneNumber(),
 			booking.getBookingStatus(),
-			schedule.getPerformance().getBankName(),
-			schedule.getPerformance().getAccountNumber(),
+			performance.getBankName(),
+			performance.getAccountNumber(),
 			memberBookingRequest.totalPaymentAmount(),
 			//  비회원 예매처럼 int totalPaymentAmount = ticketPrice * guestBookingRequest.purchaseTicketCount();로 계산해서 반영하기 + 요청한 총 가격 == 티켓 가격 * 수 같은지 검증하는 로직 추가하기
 			booking.getCreatedAt()

@@ -24,7 +24,7 @@ import com.beat.apis.support.AbstractIntegrationTest;
 import io.swagger.v3.oas.models.OpenAPI;
 import org.springdoc.core.models.GroupedOpenApi;
 
-import com.beat.domain.performance.dao.PerformanceRepository;
+import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.promotion.repository.PromotionRepository;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 

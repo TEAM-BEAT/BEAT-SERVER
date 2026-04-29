@@ -13,7 +13,6 @@ import com.beat.domain.booking.domain.BookingStatus;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 	@Query("SELECT b FROM Booking b " +
 		"JOIN b.schedule s " +
-		"JOIN s.performance p " +
 		"WHERE b.bookerName = :bookerName " +
 		"AND b.bookerPhoneNumber = :bookerPhoneNumber " +
 		"AND b.password = :password " +

@@ -29,7 +29,7 @@ import com.beat.domain.cast.repository.CastRepository;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
-import com.beat.domain.performance.dao.PerformanceRepository;
+import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
@@ -83,7 +83,7 @@ public class PerformanceModifyService {
 			throw new BadRequestException(PerformanceErrorCode.PRICE_UPDATE_NOT_ALLOWED);
 		}
 
-		updatePerformanceDetails(performance, request, isBookerExist);
+		performance = updatePerformanceDetails(performance, request, isBookerExist);
 
 		List<ScheduleModifyResponse> modifiedSchedules = processSchedules(request.scheduleModifyRequests(),
 			performance);
@@ -118,17 +118,17 @@ public class PerformanceModifyService {
 	}
 
 	private void validateOwnership(Long userId, Performance performance) {
-		if (!performance.getUserId().equals(userId)) {
+		if (performance.getUserId() != userId) {
 			log.error("User ID {} does not own performance ID {}", userId, performance.getId());
 			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
 		}
 	}
 
-	private void updatePerformanceDetails(Performance performance, PerformanceModifyRequest request,
+	private Performance updatePerformanceDetails(Performance performance, PerformanceModifyRequest request,
 		boolean isBookerExist) {
 		log.debug("Updating performance details for performanceId: {}", performance.getId());
 
-		performance.update(
+		performance = performance.update(
 			request.performanceTitle(),
 			request.genre(),
 			request.runningTime(),
@@ -152,15 +152,16 @@ public class PerformanceModifyService {
 		List<LocalDateTime> performanceDates = request.scheduleModifyRequests().stream()
 			.map(ScheduleModifyRequest::performanceDate)
 			.toList();
-		performance.updatePerformancePeriod(performanceDates);
+		performance = performance.updatePerformancePeriod(performanceDates);
 
 		if (!isBookerExist) {
 			log.debug("Updating ticket price to {}", request.ticketPrice());
-			performance.updateTicketPrice(request.ticketPrice());
+			performance = performance.updateTicketPrice(request.ticketPrice());
 		}
 
-		performanceRepository.save(performance);
+		performance = performanceRepository.save(performance);
 		log.debug("Performance details updated for performanceId: {}", performance.getId());
+		return performance;
 	}
 
 	private List<ScheduleModifyResponse> processSchedules(List<ScheduleModifyRequest> scheduleRequests,
@@ -196,7 +197,7 @@ public class PerformanceModifyService {
 			})
 			.collect(Collectors.toList());
 
-		performance.assignScheduleNumbers(schedules);
+		assignScheduleNumbers(schedules);
 
 		return schedules.stream()
 			.map(schedule -> ScheduleModifyResponse.of(
@@ -228,7 +229,7 @@ public class PerformanceModifyService {
 			0,
 			true,
 			ScheduleNumber.FIRST, // 임시로 1회차
-			performance
+			performance.getId()
 		);
 
 		Schedule savedSchedule = scheduleRepository.save(schedule);
@@ -246,7 +247,7 @@ public class PerformanceModifyService {
 				return new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
 			});
 
-		if (!schedule.getPerformance().equals(performance)) {
+		if (!Objects.equals(schedule.getPerformanceId(), performance.getId())) {
 			throw new ForbiddenException(ScheduleErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE);
 		}
 
@@ -560,6 +561,17 @@ public class PerformanceModifyService {
 			performanceImageRepository.delete(performanceImage);
 			log.debug("Deleted performanceImage: {}", performanceImageId);
 		});
+	}
+
+	private void assignScheduleNumbers(List<Schedule> schedules) {
+		List<ScheduleNumber> scheduleNumbers = List.of(ScheduleNumber.values());
+		if (schedules.size() > scheduleNumbers.size()) {
+			throw new BadRequestException(PerformanceErrorCode.MAX_SCHEDULE_LIMIT_EXCEEDED);
+		}
+		schedules.sort(java.util.Comparator.comparing(Schedule::getPerformanceDate));
+		for (int i = 0; i < schedules.size(); i++) {
+			schedules.get(i).setScheduleNumber(scheduleNumbers.get(i));
+		}
 	}
 
 	private PerformanceModifyResponse completeModifyResponse(

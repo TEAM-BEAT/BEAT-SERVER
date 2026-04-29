@@ -9,6 +9,9 @@ import com.beat.apis.booking.application.dto.GuestBookingResponse;
 import com.beat.apis.booking.application.dto.event.BookingCreatedEvent;
 import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
+import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.performance.exception.PerformanceErrorCode;
+import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.dao.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
@@ -28,6 +31,7 @@ public class GuestBookingService {
 	private final ScheduleRepository scheduleRepository;
 	private final BookingRepository bookingRepository;
 	private final UserRepository userRepository;
+	private final PerformanceRepository performanceRepository;
 	private final ApplicationEventPublisher eventPublisher;
 
 	@Transactional
@@ -53,7 +57,9 @@ public class GuestBookingService {
 			return savedUser.getId();
 		});
 
-		int ticketPrice = schedule.getPerformance().getTicketPrice();
+		Performance performance = performanceRepository.findById(schedule.getPerformanceId())
+			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+		int ticketPrice = performance.getTicketPrice();
 		int totalPaymentAmount = ticketPrice * guestBookingRequest.purchaseTicketCount();
 		scheduleRepository.save(schedule);
 
@@ -74,7 +80,7 @@ public class GuestBookingService {
 
 		log.info("Guest Booking created: {}", booking);
 
-		eventPublisher.publishEvent(BookingCreatedEvent.of(booking, schedule));
+		eventPublisher.publishEvent(BookingCreatedEvent.of(booking, schedule, performance.getPerformanceTitle()));
 
 		return GuestBookingResponse.of(
 			booking.getId(),
@@ -85,8 +91,8 @@ public class GuestBookingService {
 			booking.getBookerName(),
 			booking.getBookerPhoneNumber(),
 			booking.getBookingStatus(),
-			schedule.getPerformance().getBankName(),
-			schedule.getPerformance().getAccountNumber(),
+			performance.getBankName(),
+			performance.getAccountNumber(),
 			totalPaymentAmount,
 			booking.getCreatedAt()
 		);
