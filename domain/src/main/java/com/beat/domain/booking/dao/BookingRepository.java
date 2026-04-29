@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,7 +13,6 @@ import com.beat.domain.booking.domain.BookingStatus;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 	@Query("SELECT b FROM Booking b " +
-		"JOIN b.schedule s " +
 		"WHERE b.bookerName = :bookerName " +
 		"AND b.bookerPhoneNumber = :bookerPhoneNumber " +
 		"AND b.password = :password " +
@@ -33,9 +33,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
 	List<Booking> findByUserId(Long userId);
 
-	@Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.schedule.id IN :scheduleIds AND b.bookingStatus NOT IN :excludedStatuses")
+	@Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.scheduleId IN :scheduleIds AND b.bookingStatus NOT IN :excludedStatuses")
 	boolean existsActiveBookingByScheduleIds(
 		@Param("scheduleIds") List<Long> scheduleIds,
 		@Param("excludedStatuses") List<BookingStatus> excludedStatuses
+	);
+
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("DELETE FROM Booking b WHERE b.scheduleId IN :scheduleIds AND b.bookingStatus IN :inactiveStatuses")
+	void deleteInactiveBookingsByScheduleIds(
+		@Param("scheduleIds") List<Long> scheduleIds,
+		@Param("inactiveStatuses") List<BookingStatus> inactiveStatuses
 	);
 }

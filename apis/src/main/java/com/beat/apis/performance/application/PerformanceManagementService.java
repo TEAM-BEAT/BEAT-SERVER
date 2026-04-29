@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceImageRepository;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.promotion.repository.PromotionRepository;
-import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.staff.domain.Staff;
@@ -94,8 +95,6 @@ public class PerformanceManagementService {
 				return Schedule.create(
 					scheduleRequest.performanceDate(),
 					scheduleRequest.totalTicketCount(),
-					0,
-					true,
 					scheduleRequest.scheduleNumber(),
 					savedPerformanceId
 				);
@@ -103,7 +102,7 @@ public class PerformanceManagementService {
 			.collect(Collectors.toList());
 
 		assignScheduleNumbers(schedules);
-		scheduleRepository.saveAll(schedules);
+		schedules = scheduleRepository.saveAll(schedules);
 
 		schedules.forEach(scheduleJobPort::registerOrRefresh);
 
@@ -216,7 +215,7 @@ public class PerformanceManagementService {
 		}
 		schedules.sort(comparing(Schedule::getPerformanceDate));
 		for (int i = 0; i < schedules.size(); i++) {
-			schedules.get(i).setScheduleNumber(scheduleNumbers.get(i));
+			schedules.set(i, schedules.get(i).updateScheduleNumber(scheduleNumbers.get(i)));
 		}
 	}
 
@@ -234,17 +233,21 @@ public class PerformanceManagementService {
 		Performance performance = performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-		if (performance.getUserId() != userId) {
+		if (!Objects.equals(performance.getUserId(), userId)) {
 			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
 		}
 
 		List<Long> scheduleIds = scheduleRepository.findIdsByPerformanceId(performanceId);
 
-		List<BookingStatus> statusesToExclude = List.of(BookingStatus.BOOKING_CANCELLED, BookingStatus.BOOKING_DELETED);
-		boolean isBookerExist = bookingRepository.existsActiveBookingByScheduleIds(scheduleIds, statusesToExclude);
+		List<BookingStatus> inactiveStatuses = List.of(BookingStatus.BOOKING_CANCELLED, BookingStatus.BOOKING_DELETED);
+		if (!scheduleIds.isEmpty()) {
+			boolean isBookerExist = bookingRepository.existsActiveBookingByScheduleIds(scheduleIds, inactiveStatuses);
 
-		if (isBookerExist) {
-			throw new ForbiddenException(PerformanceErrorCode.PERFORMANCE_DELETE_FAILED);
+			if (isBookerExist) {
+				throw new ForbiddenException(PerformanceErrorCode.PERFORMANCE_DELETE_FAILED);
+			}
+
+			bookingRepository.deleteInactiveBookingsByScheduleIds(scheduleIds, inactiveStatuses);
 		}
 
 		// 모든 스케줄에 대해 등록된 TaskScheduler 작업을 취소

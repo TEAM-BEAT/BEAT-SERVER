@@ -35,7 +35,7 @@ import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.exception.PerformanceImageErrorCode;
 import com.beat.domain.performance.repository.PerformanceImageRepository;
-import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
@@ -118,7 +118,7 @@ public class PerformanceModifyService {
 	}
 
 	private void validateOwnership(Long userId, Performance performance) {
-		if (performance.getUserId() != userId) {
+		if (!Objects.equals(performance.getUserId(), userId)) {
 			log.error("User ID {} does not own performance ID {}", userId, performance.getId());
 			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
 		}
@@ -181,23 +181,18 @@ public class PerformanceModifyService {
 
 		List<Schedule> schedules = scheduleRequests.stream()
 			.map(request -> {
-				Schedule schedule;
 				if (request.scheduleId() == null) {
-					schedule = addSchedule(request, performance);
-				} else {
-					schedule = updateSchedule(request, performance);
+					return addSchedule(request, performance);
 				}
-
-				// isBooking이 true인 경우만 스케줄러에 등록
-				if (schedule.isBooking()) {
-					scheduleJobPort.registerOrRefresh(schedule);
-				}
-
-				return schedule;
+				return updateSchedule(request, performance);
 			})
 			.collect(Collectors.toList());
 
 		assignScheduleNumbers(schedules);
+		schedules = scheduleRepository.saveAll(schedules);
+		schedules.stream()
+			.filter(Schedule::isBooking)
+			.forEach(scheduleJobPort::registerOrRefresh);
 
 		return schedules.stream()
 			.map(schedule -> ScheduleModifyResponse.of(
@@ -226,8 +221,6 @@ public class PerformanceModifyService {
 		Schedule schedule = Schedule.create(
 			request.performanceDate(),
 			request.totalTicketCount(),
-			0,
-			true,
 			ScheduleNumber.FIRST, // 임시로 1회차
 			performance.getId()
 		);
@@ -275,21 +268,18 @@ public class PerformanceModifyService {
 
 			// 매진 상태로 변경 (soldTicketCount와 totalTicketCount가 동일하고, 기존 isBooking이 true인 경우)
 			if (request.totalTicketCount() == schedule.getSoldTicketCount() && schedule.isBooking()) {
-				schedule.updateIsBooking(false);  // 매진 처리 (isBooking = false)
-			}
-
-			// 매진이 풀리는 경우 (totalTicketCount 증가, 기존 isBooking이 false인 경우)
-			else if (request.totalTicketCount() > schedule.getTotalTicketCount() && !schedule.isBooking()) {
-				schedule.updateIsBooking(true);  // 매진 풀림 처리 (isBooking = true)
+				schedule = schedule.updateIsBooking(false);
+			} else if (request.totalTicketCount() > schedule.getTotalTicketCount() && !schedule.isBooking()) {
+				schedule = schedule.updateIsBooking(true);
 			}
 		}
 
 		scheduleJobPort.cancel(schedule);
 
-		schedule.update(
+		schedule = schedule.update(
 			request.performanceDate(),
 			request.totalTicketCount(),
-			schedule.getScheduleNumber()  // 기존 scheduleNumber 유지
+			schedule.getScheduleNumber()
 		);
 		return scheduleRepository.save(schedule);
 	}
@@ -299,6 +289,13 @@ public class PerformanceModifyService {
 			log.debug("No schedules to delete");
 			return;
 		}
+
+		List<BookingStatus> inactiveStatuses = List.of(BookingStatus.BOOKING_CANCELLED, BookingStatus.BOOKING_DELETED);
+		boolean hasActiveBookings = bookingRepository.existsActiveBookingByScheduleIds(scheduleIds, inactiveStatuses);
+		if (hasActiveBookings) {
+			throw new ForbiddenException(PerformanceErrorCode.PERFORMANCE_DELETE_FAILED);
+		}
+		bookingRepository.deleteInactiveBookingsByScheduleIds(scheduleIds, inactiveStatuses);
 
 		scheduleIds.forEach(scheduleId -> {
 			Schedule schedule = scheduleRepository.findById(scheduleId)
@@ -570,7 +567,7 @@ public class PerformanceModifyService {
 		}
 		schedules.sort(java.util.Comparator.comparing(Schedule::getPerformanceDate));
 		for (int i = 0; i < schedules.size(); i++) {
-			schedules.get(i).setScheduleNumber(scheduleNumbers.get(i));
+			schedules.set(i, schedules.get(i).updateScheduleNumber(scheduleNumbers.get(i)));
 		}
 	}
 

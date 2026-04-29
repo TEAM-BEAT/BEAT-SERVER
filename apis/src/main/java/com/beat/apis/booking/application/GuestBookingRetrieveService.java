@@ -9,6 +9,8 @@ import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.domain.Schedule;
+import com.beat.domain.schedule.exception.ScheduleErrorCode;
+import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.NotFoundException;
 
@@ -28,6 +30,7 @@ public class GuestBookingRetrieveService {
 
 	private final BookingRepository bookingRepository;
 	private final PerformanceRepository performanceRepository;
+	private final ScheduleRepository scheduleRepository;
 
 	public List<GuestBookingRetrieveResponse> findGuestBookings(
 		GuestBookingRetrieveRequest guestBookingRetrieveRequest) {
@@ -73,7 +76,8 @@ public class GuestBookingRetrieveService {
 	}
 
 	private GuestBookingRetrieveResponse toBookingResponse(Booking booking) {
-		Schedule schedule = booking.getSchedule();
+		Schedule schedule = scheduleRepository.findById(booking.getScheduleId())
+			.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
 		Performance performance = performanceRepository.findById(schedule.getPerformanceId())
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 		int totalPaymentAmount = booking.getPurchaseTicketCount() * performance.getTicketPrice();

@@ -10,8 +10,9 @@ import com.beat.domain.booking.dao.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.exception.BookingErrorCode;
-import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
+import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -46,9 +47,9 @@ public class BookingCancelService {
 		booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
 		bookingRepository.save(booking);
 
-		Schedule schedule = booking.getSchedule();
-		schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
-		scheduleRepository.save(schedule);
+		Schedule schedule = scheduleRepository.findById(booking.getScheduleId())
+			.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
+		scheduleRepository.save(schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount()));
 
 		return BookingCancelResponse.of(
 			booking.getId(),

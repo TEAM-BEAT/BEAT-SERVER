@@ -14,7 +14,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 import static com.beat.domain.booking.domain.QBooking.booking;
-import static com.beat.domain.schedule.domain.QSchedule.schedule;
+import static com.beat.infra.persistence.schedule.entity.QScheduleJpaEntity.scheduleJpaEntity;
 
 @Repository
 @RequiredArgsConstructor
@@ -33,7 +33,7 @@ public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
 	) {
 		return queryFactory
 			.selectFrom(booking)
-			.join(booking.schedule, schedule).fetchJoin()
+			.join(scheduleJpaEntity).on(scheduleJpaEntity.id.eq(booking.scheduleId))
 			.where(
 				eqPerformanceId(performanceId),
 				booking.bookingStatus.ne(BookingStatus.BOOKING_DELETED),
@@ -65,7 +65,7 @@ public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
 	) {
 		return queryFactory
 			.selectFrom(booking)
-			.join(booking.schedule, schedule).fetchJoin()
+			.join(scheduleJpaEntity).on(scheduleJpaEntity.id.eq(booking.scheduleId))
 			.where(
 				eqPerformanceId(performanceId),
 				booking.bookingStatus.ne(BookingStatus.BOOKING_DELETED),
@@ -90,17 +90,17 @@ public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
 	   ====================== */
 	private BooleanExpression eqPerformanceId(Long performanceId) {
 		if (performanceId == null) return null;
-		return schedule.performanceId.eq(performanceId);
+		return scheduleJpaEntity.performanceId.eq(performanceId);
 	}
 
 	private BooleanExpression inScheduleNumbers(List<ScheduleNumber> scheduleNumbers) {
 		if (scheduleNumbers == null || scheduleNumbers.isEmpty()) return null;
-		return schedule.scheduleNumber.in(scheduleNumbers);
+		return scheduleJpaEntity.scheduleNumber.in(scheduleNumbers);
 	}
 
 	private BooleanExpression inScheduleNumbersByString(List<String> scheduleNumbers) {
 		if (scheduleNumbers == null || scheduleNumbers.isEmpty()) return null;
-		return schedule.scheduleNumber.stringValue().in(scheduleNumbers);
+		return scheduleJpaEntity.scheduleNumber.stringValue().in(scheduleNumbers);
 	}
 
 	private BooleanExpression inBookingStatuses(List<BookingStatus> bookingStatuses) {

@@ -26,7 +26,7 @@ import org.springdoc.core.models.GroupedOpenApi;
 
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.promotion.repository.PromotionRepository;
-import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.repository.ScheduleRepository;
 
 @Tag("integration")
 class ApisModuleContextBootTest extends AbstractIntegrationTest {

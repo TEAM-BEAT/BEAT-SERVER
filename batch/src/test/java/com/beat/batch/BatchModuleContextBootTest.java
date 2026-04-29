@@ -15,7 +15,7 @@ import com.beat.batch.scheduler.application.JobSchedulerService;
 import com.beat.batch.support.AbstractBatchIntegrationTest;
 import com.beat.contracts.schedule.ScheduleJobPort;
 import com.beat.domain.promotion.repository.PromotionRepository;
-import com.beat.domain.schedule.dao.ScheduleRepository;
+import com.beat.domain.schedule.repository.ScheduleRepository;
 
 class BatchModuleContextBootTest extends AbstractBatchIntegrationTest {
 

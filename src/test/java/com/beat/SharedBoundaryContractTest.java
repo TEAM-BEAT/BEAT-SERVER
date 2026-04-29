@@ -157,8 +157,7 @@ class SharedBoundaryContractTest {
 	@Test
 	void infraDomainPackageResidueIsLimitedToKnownDeferredQueryImplementations() throws Exception {
 		Set<String> allowedResidue = Set.of(
-			"infra/src/main/java/com/beat/domain/booking/dao/TicketRepositoryCustomImpl.java",
-			"infra/src/main/java/com/beat/domain/schedule/dao/ScheduleRepositoryCustomImpl.java"
+			"infra/src/main/java/com/beat/domain/booking/dao/TicketRepositoryCustomImpl.java"
 		);
 
 		Set<String> actualResidue = sourceFiles(Path.of("infra/src/main")).stream()
@@ -185,7 +184,11 @@ class SharedBoundaryContractTest {
 			performanceJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/performance/mapper/PerformancePersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.java"
+			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.java",
+			scheduleJpaEntitySourcePath().toString().replace('\\', '/'),
+			"infra/src/main/java/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.java",
+			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.java"
 		);
 		Set<String> allowedInfraPersistenceFiles = Set.of(
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
@@ -217,7 +220,14 @@ class SharedBoundaryContractTest {
 			performanceJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/performance/mapper/PerformancePersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.java"
+			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.java",
+			scheduleJpaEntitySourcePath().toString().replace('\\', '/'),
+			"infra/src/main/java/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.java",
+			"infra/src/main/java/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.java",
+			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.java",
+			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/query/ScheduleQueryRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/query/ScheduleQueryRepositoryImpl.java"
 		);
 
 		Set<String> actualInfraPersistenceFiles = sourceFiles(
@@ -244,15 +254,88 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
+	void performanceOwnershipChecksUseLongValueEquality() throws Exception {
+		List<Path> serviceSources = List.of(
+			Path.of("apis/src/main/java/com/beat/apis/performance/application/PerformanceManagementService.java"),
+			Path.of("apis/src/main/java/com/beat/apis/performance/application/PerformanceModifyService.java"),
+			Path.of("apis/src/main/java/com/beat/apis/performance/application/PerformanceService.java")
+		);
+
+		List<String> violations = serviceSources.stream()
+			.filter(path -> contains(path, "performance.getUserId() != userId"))
+			.map(Path::toString)
+			.toList();
+
+		assertTrue(violations.isEmpty(),
+			"Performance ownership checks must compare boxed Long values with Objects.equals:\n"
+				+ String.join("\n", violations));
+	}
+
+	@Test
+	void scheduleMigrationPersistsImmutableCopiesAndHandlesDetachedBookingRows() throws Exception {
+		String performanceManagement = Files.readString(
+			Path.of("apis/src/main/java/com/beat/apis/performance/application/PerformanceManagementService.java"));
+		String performanceModify = Files.readString(
+			Path.of("apis/src/main/java/com/beat/apis/performance/application/PerformanceModifyService.java"));
+		String bookingRepository = Files.readString(
+			Path.of("domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java"));
+		String ticketService = Files.readString(
+			Path.of("apis/src/main/java/com/beat/apis/booking/application/TicketService.java"));
+
+		assertTrue(performanceManagement.contains("schedules = scheduleRepository.saveAll(schedules);"));
+		assertTrue(performanceModify.contains("schedules = scheduleRepository.saveAll(schedules);"));
+		assertTrue(performanceManagement.contains("bookingRepository.deleteInactiveBookingsByScheduleIds("));
+		assertTrue(performanceModify.contains("bookingRepository.deleteInactiveBookingsByScheduleIds("));
+		assertTrue(performanceModify.contains("bookingRepository.existsActiveBookingByScheduleIds(scheduleIds"));
+		assertTrue(bookingRepository.contains("@Modifying(clearAutomatically = true, flushAutomatically = true)"));
+		assertTrue(bookingRepository.contains("DELETE FROM Booking b WHERE b.scheduleId IN :scheduleIds"));
+		assertTrue(ticketService.contains("findScheduleForBooking(scheduleMap, booking)"));
+		assertTrue(ticketService.contains("throw new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND)"));
+	}
+
+	@Test
+	void manualScheduleQueryDslTypeMatchesScheduleJpaEntityFields() throws Exception {
+		String scheduleJpaEntity = Files.readString(scheduleJpaEntitySourcePath());
+		String qScheduleJpaEntity = Files.readString(
+			Path.of("infra/src/main/java/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.java"));
+		String ticketRepositoryCustom = Files.readString(
+			Path.of("infra/src/main/java/com/beat/domain/booking/dao/TicketRepositoryCustomImpl.java"));
+
+		assertTrue(scheduleJpaEntity.matches("(?s).*\\bvar\\s+id\\s*:\\s*Long\\?\\s*=\\s*id\\s+protected set.*"));
+		assertTrue(scheduleJpaEntity.matches(
+			"(?s).*\\bvar\\s+performanceDate\\s*:\\s*LocalDateTime\\s*=\\s*performanceDate\\s+protected set.*"));
+		assertTrue(scheduleJpaEntity.matches(
+			"(?s).*\\bvar\\s+totalTicketCount\\s*:\\s*Int\\s*=\\s*totalTicketCount\\s+protected set.*"));
+		assertTrue(scheduleJpaEntity.matches(
+			"(?s).*\\bvar\\s+soldTicketCount\\s*:\\s*Int\\s*=\\s*soldTicketCount\\s+protected set.*"));
+		assertTrue(scheduleJpaEntity.matches(
+			"(?s).*\\bvar\\s+isBooking\\s*:\\s*Boolean\\s*=\\s*isBooking\\s+protected set.*"));
+		assertTrue(scheduleJpaEntity.matches(
+			"(?s).*\\bvar\\s+scheduleNumber\\s*:\\s*ScheduleNumber\\s*=\\s*scheduleNumber\\s+protected set.*"));
+		assertTrue(scheduleJpaEntity.matches(
+			"(?s).*\\bvar\\s+performanceId\\s*:\\s*Long\\s*=\\s*performanceId\\s+protected set.*"));
+
+		assertTrue(qScheduleJpaEntity.contains("createNumber(\"id\", Long.class)"));
+		assertTrue(qScheduleJpaEntity.contains(
+			"createDateTime(\"performanceDate\", java.time.LocalDateTime.class)"));
+		assertTrue(qScheduleJpaEntity.contains("createNumber(\"totalTicketCount\", Integer.class)"));
+		assertTrue(qScheduleJpaEntity.contains("createNumber(\"soldTicketCount\", Integer.class)"));
+		assertTrue(qScheduleJpaEntity.contains("createBoolean(\"isBooking\")"));
+		assertTrue(qScheduleJpaEntity.contains("createEnum(\"scheduleNumber\", ScheduleNumber.class)"));
+		assertTrue(qScheduleJpaEntity.contains("createNumber(\"performanceId\", Long.class)"));
+		assertTrue(ticketRepositoryCustom.contains(
+			"import static com.beat.infra.persistence.schedule.entity.QScheduleJpaEntity.scheduleJpaEntity;"));
+		assertFalse(qScheduleJpaEntity.contains("com.beat.domain.schedule.domain.QSchedule"));
+		assertFalse(ticketRepositoryCustom.contains("com.beat.domain.schedule.domain.QSchedule"));
+	}
+
+	@Test
 	void domainPersistenceConcernSourcesRemainExplicitTransitionalAllowlist() throws Exception {
 		Set<String> allowedPersistenceConcernSources = Set.of(
 			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java",
 			"domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java",
 			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepository.java",
-			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
-			"domain/src/main/java/com/beat/domain/schedule/dao/ScheduleRepository.java",
-			"domain/src/main/java/com/beat/domain/schedule/dao/dto/MinPerformanceDateDto.java",
-			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java"
+			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java"
 		);
 		List<String> forbiddenPersistencePatterns = List.of(
 			"jakarta.persistence.",
@@ -330,8 +413,7 @@ class SharedBoundaryContractTest {
 	@Test
 	void domainCustomRepositoryContractsRemainExplicitIssue380TransitionalAllowlist() throws Exception {
 		Set<String> allowedCustomRepositoryContracts = Set.of(
-			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepositoryCustom.java",
-			"domain/src/main/java/com/beat/domain/schedule/dao/ScheduleRepositoryCustom.java"
+			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepositoryCustom.java"
 		);
 
 		Set<String> actualCustomRepositoryContracts = sourceFiles(Path.of("domain/src/main")).stream()
@@ -347,13 +429,11 @@ class SharedBoundaryContractTest {
 	void domainJpaEntityAndRepositoryInventoryMatchesIssue380Baseline() throws Exception {
 		Set<String> allowedJpaModelSources = Set.of(
 			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java",
-			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
-			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java"
+			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java"
 		);
 		Set<String> allowedJpaRepositorySources = Set.of(
 			"domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java",
-			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepository.java",
-			"domain/src/main/java/com/beat/domain/schedule/dao/ScheduleRepository.java"
+			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepository.java"
 		);
 
 		Set<String> actualJpaModelSources = sourceFiles(Path.of("domain/src/main")).stream()
@@ -465,8 +545,7 @@ class SharedBoundaryContractTest {
 	@Test
 	void domainJpaAnnotationsAndAuditingStayLimitedToIssue380Baseline() throws Exception {
 		Set<String> allowedEntitySources = Set.of(
-			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java",
-			"domain/src/main/java/com/beat/domain/schedule/domain/Schedule.java"
+			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java"
 		);
 		Set<String> allowedMappedSuperclassSources = Set.of(
 			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java"
@@ -497,9 +576,7 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void queryDslAndJpaBootstrapRemainExplicitIssue380TransitionalSurfaces() throws Exception {
-		Set<String> allowedQueryProjectionSources = Set.of(
-			"domain/src/main/java/com/beat/domain/schedule/dao/dto/MinPerformanceDateDto.java"
-		);
+		Set<String> allowedQueryProjectionSources = Set.of();
 		Set<String> actualQueryProjectionSources = sourceFiles(Path.of("domain/src/main")).stream()
 			.filter(path -> contains(path, "@QueryProjection") || contains(path, "com.querydsl."))
 			.map(path -> path.toString().replace('\\', '/'))
@@ -686,6 +763,14 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.java",
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.kt",
 			"PerformanceJpaEntity"
+		);
+	}
+
+	private Path scheduleJpaEntitySourcePath() {
+		return singleJpaEntitySourcePath(
+			"infra/src/main/java/com/beat/infra/persistence/schedule/entity/ScheduleJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/entity/ScheduleJpaEntity.kt",
+			"ScheduleJpaEntity"
 		);
 	}
 
