@@ -1,7 +1,7 @@
 package com.beat.domain.booking.domain
 
 enum class BookingStatus(
-    val displayname: String,
+    val displayName: String,
 ) {
     CHECKING_PAYMENT("입금확인중"),
     BOOKING_CONFIRMED("예매 확정"),
