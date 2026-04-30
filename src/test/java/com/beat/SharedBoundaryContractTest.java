@@ -1,5 +1,6 @@
 package com.beat;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -924,6 +925,44 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/schedule/entity/ScheduleJpaEntity.java",
 			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/entity/ScheduleJpaEntity.kt",
 			"ScheduleJpaEntity"
+		);
+	}
+
+	@Test
+	void domainTypedIdsStayInternalWhileJavaBoundariesRemainScalar() throws Exception {
+		String bookingDomain = Files.readString(
+			Path.of("domain/src/main/kotlin/com/beat/domain/booking/domain/Booking.kt"));
+		String memberDomain = Files.readString(
+			Path.of("domain/src/main/kotlin/com/beat/domain/member/domain/Member.kt"));
+		String performanceDomain = Files.readString(
+			Path.of("domain/src/main/kotlin/com/beat/domain/performance/domain/Performance.kt"));
+
+		assertAll(
+			() -> assertTrue(bookingDomain.contains("private val bookingId: Id?")),
+			() -> assertTrue(bookingDomain.contains("private val linkedScheduleId: Schedule.Id")),
+			() -> assertTrue(bookingDomain.contains("private val linkedUserId: Users.Id")),
+			() -> assertTrue(bookingDomain.contains("fun getId(): Long? = bookingId?.value")),
+			() -> assertTrue(bookingDomain.contains("fun getScheduleId(): Long = linkedScheduleId.value")),
+			() -> assertTrue(bookingDomain.contains("fun getUserId(): Long = linkedUserId.value")),
+			() -> assertTrue(bookingDomain.contains("Schedule.Id.from(scheduleId)")),
+			() -> assertTrue(bookingDomain.contains("Users.Id.from(userId)")),
+			() -> assertFalse(bookingDomain.contains("private val bookingId: Long?")),
+			() -> assertFalse(bookingDomain.contains("private val scheduleId: Long")),
+			() -> assertFalse(bookingDomain.contains("private val userId: Long"))
+		);
+
+		assertAll(
+			() -> assertTrue(memberDomain.contains("private val linkedUserId: Users.Id")),
+			() -> assertTrue(memberDomain.contains("fun getUserId(): Long = linkedUserId.value")),
+			() -> assertTrue(memberDomain.contains("linkedUserId = Users.Id.from(userId)")),
+			() -> assertFalse(memberDomain.contains("val userId: Long"))
+		);
+
+		assertAll(
+			() -> assertTrue(performanceDomain.contains("private val linkedUserId: Users.Id")),
+			() -> assertTrue(performanceDomain.contains("fun getUserId(): Long = linkedUserId.value")),
+			() -> assertTrue(performanceDomain.contains("linkedUserId = Users.Id.from(userId)")),
+			() -> assertFalse(performanceDomain.contains("val userId: Long,"))
 		);
 	}
 

@@ -2,9 +2,9 @@ package com.beat.domain.performance.domain
 
 import com.beat.domain.performance.exception.PerformanceErrorCode
 import com.beat.global.common.exception.BadRequestException
+import com.beat.domain.user.domain.Users
 import com.beat.global.common.exception.ForbiddenException
 import java.time.LocalDateTime
-import kotlin.ConsistentCopyVisibility
 
 @ConsistentCopyVisibility
 data class Performance private constructor(
@@ -28,9 +28,11 @@ data class Performance private constructor(
     val performancePeriod: String,
     val ticketPrice: Int,
     val totalScheduleCount: Int,
-    val userId: Long,
+    private val linkedUserId: Users.Id,
 ) {
     fun getId(): Long? = performanceId?.value
+
+    fun getUserId(): Long = linkedUserId.value
 
     fun update(
         performanceTitle: String,
@@ -51,29 +53,34 @@ data class Performance private constructor(
         performanceContact: String,
         performancePeriod: String,
         totalScheduleCount: Int,
-    ): Performance = copy(
-        performanceTitle = performanceTitle,
-        genre = genre,
-        runningTime = runningTime,
-        performanceDescription = performanceDescription,
-        performanceAttentionNote = performanceAttentionNote,
-        bankName = bankName,
-        accountNumber = accountNumber,
-        accountHolder = accountHolder,
-        posterImage = posterImage,
-        performanceTeamName = performanceTeamName,
-        performanceVenue = performanceVenue,
-        roadAddressName = roadAddressName,
-        placeDetailAddress = placeDetailAddress,
-        latitude = latitude,
-        longitude = longitude,
-        performanceContact = performanceContact,
-        performancePeriod = performancePeriod,
-        totalScheduleCount = totalScheduleCount,
-    )
+    ): Performance {
+        validateRunningTime(runningTime)
+        validateTotalScheduleCount(totalScheduleCount)
+
+        return copy(
+            performanceTitle = performanceTitle,
+            genre = genre,
+            runningTime = runningTime,
+            performanceDescription = performanceDescription,
+            performanceAttentionNote = performanceAttentionNote,
+            bankName = bankName,
+            accountNumber = accountNumber,
+            accountHolder = accountHolder,
+            posterImage = posterImage,
+            performanceTeamName = performanceTeamName,
+            performanceVenue = performanceVenue,
+            roadAddressName = roadAddressName,
+            placeDetailAddress = placeDetailAddress,
+            latitude = latitude,
+            longitude = longitude,
+            performanceContact = performanceContact,
+            performancePeriod = performancePeriod,
+            totalScheduleCount = totalScheduleCount,
+        )
+    }
 
     fun updateTicketPrice(newTicketPrice: Int): Performance {
-        if (newTicketPrice < 0) throw BadRequestException(PerformanceErrorCode.NEGATIVE_TICKET_PRICE)
+        validateTicketPrice(newTicketPrice)
         return copy(ticketPrice = newTicketPrice)
     }
 
@@ -85,7 +92,7 @@ data class Performance private constructor(
     }
 
     fun validatePerformanceOwnership(userId: Long) {
-        if (this.userId != userId) throw ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER)
+        if (linkedUserId.value != userId) throw ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER)
     }
 
     private fun formatPerformancePeriod(startDate: LocalDateTime, endDate: LocalDateTime): String {
@@ -128,29 +135,35 @@ data class Performance private constructor(
             ticketPrice: Int,
             totalScheduleCount: Int,
             userId: Long,
-        ): Performance = Performance(
-            performanceId = null,
-            performanceTitle = performanceTitle,
-            genre = genre,
-            runningTime = runningTime,
-            performanceDescription = performanceDescription,
-            performanceAttentionNote = performanceAttentionNote,
-            bankName = bankName,
-            accountNumber = accountNumber,
-            accountHolder = accountHolder,
-            posterImage = posterImage,
-            performanceTeamName = performanceTeamName,
-            performanceVenue = performanceVenue,
-            roadAddressName = roadAddressName,
-            placeDetailAddress = placeDetailAddress,
-            latitude = latitude,
-            longitude = longitude,
-            performanceContact = performanceContact,
-            performancePeriod = performancePeriod,
-            ticketPrice = ticketPrice,
-            totalScheduleCount = totalScheduleCount,
-            userId = userId,
-        )
+        ): Performance {
+            validateRunningTime(runningTime)
+            validateTicketPrice(ticketPrice)
+            validateTotalScheduleCount(totalScheduleCount)
+
+            return Performance(
+                performanceId = null,
+                performanceTitle = performanceTitle,
+                genre = genre,
+                runningTime = runningTime,
+                performanceDescription = performanceDescription,
+                performanceAttentionNote = performanceAttentionNote,
+                bankName = bankName,
+                accountNumber = accountNumber,
+                accountHolder = accountHolder,
+                posterImage = posterImage,
+                performanceTeamName = performanceTeamName,
+                performanceVenue = performanceVenue,
+                roadAddressName = roadAddressName,
+                placeDetailAddress = placeDetailAddress,
+                latitude = latitude,
+                longitude = longitude,
+                performanceContact = performanceContact,
+                performancePeriod = performancePeriod,
+                ticketPrice = ticketPrice,
+                totalScheduleCount = totalScheduleCount,
+                linkedUserId = Users.Id.from(userId),
+            )
+        }
 
         @JvmStatic
         fun rehydrate(
@@ -196,7 +209,25 @@ data class Performance private constructor(
             performancePeriod = performancePeriod,
             ticketPrice = ticketPrice,
             totalScheduleCount = totalScheduleCount,
-            userId = userId,
+            linkedUserId = Users.Id.from(userId),
         )
+
+        private fun validateTicketPrice(ticketPrice: Int) {
+            if (ticketPrice < 0) {
+                throw BadRequestException(PerformanceErrorCode.NEGATIVE_TICKET_PRICE)
+            }
+        }
+
+        private fun validateRunningTime(runningTime: Int) {
+            if (runningTime <= 0) {
+                throw BadRequestException(PerformanceErrorCode.INVALID_DATA_FORMAT)
+            }
+        }
+
+        private fun validateTotalScheduleCount(totalScheduleCount: Int) {
+            if (totalScheduleCount < 0) {
+                throw BadRequestException(PerformanceErrorCode.INVALID_DATA_FORMAT)
+            }
+        }
     }
 }

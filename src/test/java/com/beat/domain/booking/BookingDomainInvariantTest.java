@@ -11,10 +11,31 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 
 import com.beat.domain.booking.domain.Booking;
+import com.beat.domain.booking.exception.BookingErrorCode;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.performance.domain.BankName;
+import com.beat.global.common.exception.BadRequestException;
 
 class BookingDomainInvariantTest {
+
+	@Test
+	void createRejectsNonPositivePurchaseTicketCount() {
+		BadRequestException exception = assertThrows(BadRequestException.class, () -> Booking.create(
+			0,
+			"booker",
+			"010-1234-5678",
+			BookingStatus.CHECKING_PAYMENT,
+			"990101",
+			"1234",
+			null,
+			null,
+			null,
+			2L,
+			3L
+		));
+
+		assertEquals(BookingErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+	}
 
 	@Test
 	void createRejectsNullScheduleId() {
