@@ -2,11 +2,15 @@ package com.beat.domain.schedule.service
 
 import com.beat.domain.schedule.domain.Schedule
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
 class ScheduleDomainService {
     fun calculateDueDate(today: LocalDate, schedule: Schedule): Int =
-        ChronoUnit.DAYS.between(today, schedule.getPerformanceDate().toLocalDate()).toInt()
+        calculateDueDate(today, schedule.getPerformanceDate())
+
+    fun calculateDueDate(today: LocalDate, performanceDate: LocalDateTime): Int =
+        ChronoUnit.DAYS.between(today, performanceDate.toLocalDate()).toInt()
 
     fun getMinDueDate(today: LocalDate, schedules: List<Schedule>): Int {
         val dueDates = schedules.map { calculateDueDate(today, it) }

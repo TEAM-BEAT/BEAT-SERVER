@@ -11,6 +11,7 @@ import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
+import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.NotFoundException;
 
@@ -19,8 +20,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +34,7 @@ public class GuestBookingRetrieveService {
 	private final BookingRepository bookingRepository;
 	private final PerformanceRepository performanceRepository;
 	private final ScheduleRepository scheduleRepository;
+	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 
 	public List<GuestBookingRetrieveResponse> findGuestBookings(
 		GuestBookingRetrieveRequest guestBookingRetrieveRequest) {
@@ -52,9 +52,10 @@ public class GuestBookingRetrieveService {
 
 		Map<Long, Schedule> scheduleMap = findSchedulesByBookingScheduleIds(bookings);
 		Map<Long, Performance> performanceMap = findPerformancesBySchedules(scheduleMap.values());
+		LocalDate today = LocalDate.now();
 
 		return bookings.stream()
-			.map(booking -> toBookingResponse(booking, scheduleMap, performanceMap))
+			.map(booking -> toBookingResponse(today, booking, scheduleMap, performanceMap))
 			.toList();
 	}
 
@@ -102,7 +103,7 @@ public class GuestBookingRetrieveService {
 			.collect(Collectors.toMap(Performance::getId, Function.identity()));
 	}
 
-	private GuestBookingRetrieveResponse toBookingResponse(Booking booking, Map<Long, Schedule> scheduleMap,
+	private GuestBookingRetrieveResponse toBookingResponse(LocalDate today, Booking booking, Map<Long, Schedule> scheduleMap,
 		Map<Long, Performance> performanceMap) {
 		Schedule schedule = findScheduleForBooking(scheduleMap, booking);
 		Performance performance = findPerformanceForSchedule(performanceMap, schedule);
@@ -122,7 +123,7 @@ public class GuestBookingRetrieveService {
 			performance.getBankName(),
 			performance.getAccountNumber(),
 			performance.getAccountHolder(),
-			calculateDueDate(schedule.getPerformanceDate()),
+			scheduleDomainService.calculateDueDate(today, schedule),
 			booking.getBookingStatus(),
 			booking.getCreatedAt(),
 			performance.getPosterImage(),
@@ -146,7 +147,4 @@ public class GuestBookingRetrieveService {
 		return performance;
 	}
 
-	private int calculateDueDate(LocalDateTime performanceDate) {
-		return (int)ChronoUnit.DAYS.between(LocalDate.now(), performanceDate.toLocalDate());
-	}
 }

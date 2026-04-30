@@ -35,14 +35,14 @@ domain/
     domain/       # Java enum / value type / legacy non-Kotlin domain surface
     repository/   # technology-neutral repository interface
     exception/
-    port/
   src/main/kotlin/com/beat/domain/<context>/
     domain/       # Kotlin pure domain model
+    service/      # Kotlin pure domain service
 ```
 
 설명:
 - 현재 도메인 모듈은 최종 순수 도메인 형태가 아니라 migration landing zone이다.
-- `dao/` package는 더 이상 존재하지 않아야 하며, 새 repository port는 `repository/` 아래에 둔다.
+- `dao/` package와 application use-case `port/` package는 더 이상 존재하지 않아야 하며, 저장소 계약은 `repository/` 아래에 둔다.
 - `Promotion`, `Cast`/`Staff`, `Users`, `Member`, `Performance`/`PerformanceImage`, `Schedule`, `Booking`은 pure domain model과 infra persistence model로 분리되었다.
 - JPA entity / persistence model / Spring Data adapter / query 구현체는 `infra`로 이동했고, `domain`에는 repository interface만 남는다. `BaseTimeEntity` auditing baseline도 `infra.persistence.common`으로 이동했다.
 - `Role`은 현재 `ROLE_USER`, `ROLE_MEMBER`, `ROLE_ADMIN` 문자열만 소유하며, Spring Security authority adapter 책임은 domain 밖에 둔다.

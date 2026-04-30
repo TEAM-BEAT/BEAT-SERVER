@@ -30,6 +30,15 @@ class ScheduleDomainServiceTest {
 	}
 
 	@Test
+	void calculateDueDateReturnsZeroForSameDaySchedule() {
+		Schedule schedule = scheduleOn(today);
+
+		int dueDate = scheduleDomainService.calculateDueDate(today, schedule);
+
+		assertEquals(0, dueDate);
+	}
+
+	@Test
 	void calculateDueDateCanReturnNegativeValueForPastSchedule() {
 		Schedule schedule = scheduleOn(today.minusDays(2));
 
@@ -49,6 +58,19 @@ class ScheduleDomainServiceTest {
 		int minDueDate = scheduleDomainService.getMinDueDate(today, schedules);
 
 		assertEquals(2, minDueDate);
+	}
+
+	@Test
+	void getMinDueDatePrefersSameDayScheduleOverFutureSchedule() {
+		List<Schedule> schedules = List.of(
+			scheduleOn(today.plusDays(1)),
+			scheduleOn(today),
+			scheduleOn(today.plusDays(2))
+		);
+
+		int minDueDate = scheduleDomainService.getMinDueDate(today, schedules);
+
+		assertEquals(0, minDueDate);
 	}
 
 	@Test

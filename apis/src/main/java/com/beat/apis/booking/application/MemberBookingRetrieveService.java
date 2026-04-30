@@ -1,8 +1,6 @@
 package com.beat.apis.booking.application;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +21,7 @@ import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
+import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.exception.UserErrorCode;
 import com.beat.domain.user.repository.UserRepository;
@@ -39,6 +38,7 @@ public class MemberBookingRetrieveService {
 	private final UserRepository userRepository;
 	private final PerformanceRepository performanceRepository;
 	private final ScheduleRepository scheduleRepository;
+	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 
 	public List<MemberBookingRetrieveResponse> findMemberBookings(Long memberId) {
 		Member member = memberRepository.findById(memberId).orElseThrow(
@@ -51,9 +51,10 @@ public class MemberBookingRetrieveService {
 		List<Booking> bookings = bookingRepository.findByUserId(user.getId());
 		Map<Long, Schedule> scheduleMap = findSchedulesByBookingScheduleIds(bookings);
 		Map<Long, Performance> performanceMap = findPerformancesBySchedules(scheduleMap.values());
+		LocalDate today = LocalDate.now();
 
 		return bookings.stream()
-			.map(booking -> toMemberBookingResponse(booking, scheduleMap, performanceMap))
+			.map(booking -> toMemberBookingResponse(today, booking, scheduleMap, performanceMap))
 			.collect(Collectors.toList());
 	}
 
@@ -77,7 +78,7 @@ public class MemberBookingRetrieveService {
 			.collect(Collectors.toMap(Performance::getId, Function.identity()));
 	}
 
-	private MemberBookingRetrieveResponse toMemberBookingResponse(Booking booking, Map<Long, Schedule> scheduleMap,
+	private MemberBookingRetrieveResponse toMemberBookingResponse(LocalDate today, Booking booking, Map<Long, Schedule> scheduleMap,
 		Map<Long, Performance> performanceMap) {
 		Schedule schedule = findScheduleForBooking(scheduleMap, booking);
 		Performance performance = findPerformanceForSchedule(performanceMap, schedule);
@@ -98,7 +99,7 @@ public class MemberBookingRetrieveService {
 			performance.getBankName(),
 			performance.getAccountNumber(),
 			performance.getAccountHolder(),
-			calculateDueDate(schedule.getPerformanceDate()),
+			scheduleDomainService.calculateDueDate(today, schedule),
 			booking.getBookingStatus(),
 			booking.getCreatedAt(),
 			performance.getPosterImage(),
@@ -122,7 +123,4 @@ public class MemberBookingRetrieveService {
 		return performance;
 	}
 
-	private int calculateDueDate(LocalDateTime performanceDate) {
-		return (int)ChronoUnit.DAYS.between(LocalDate.now(), performanceDate.toLocalDate());
-	}
 }

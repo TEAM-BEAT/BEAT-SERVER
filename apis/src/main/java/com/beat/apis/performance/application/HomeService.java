@@ -2,7 +2,6 @@ package com.beat.apis.performance.application;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -22,6 +21,7 @@ import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.schedule.service.ScheduleDomainService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -31,6 +31,7 @@ public class HomeService {
 
 	private final ScheduleService scheduleService;
 	private final PromotionService promotionService;
+	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 
 	private final PerformanceRepository performanceRepository;
 
@@ -70,9 +71,10 @@ public class HomeService {
 	private List<HomePerformanceDetail> getSortedPerformanceDetails(List<Performance> performances) {
 		List<Long> performanceIds = extractPerformanceIds(performances);
 		Map<Long, LocalDateTime> minPerformanceDateMap = retrieveMinPerformanceDateMap(performanceIds);
+		LocalDate today = LocalDate.now();
 
 		return performances.stream()
-			.map(performance -> createHomePerformanceDetail(performance, minPerformanceDateMap))
+			.map(performance -> createHomePerformanceDetail(today, performance, minPerformanceDateMap))
 			.sorted(Comparator.comparing((HomePerformanceDetail detail) -> detail.dueDate() < 0)
 				.thenComparingInt(detail -> Math.abs(detail.dueDate())))
 			.toList();
@@ -90,15 +92,15 @@ public class HomeService {
 		return minPerformanceDateResponse.performanceDateMap();
 	}
 
-	private HomePerformanceDetail createHomePerformanceDetail(Performance performance,
+	private HomePerformanceDetail createHomePerformanceDetail(LocalDate today, Performance performance,
 		Map<Long, LocalDateTime> minPerformanceDateMap) {
-		return HomePerformanceDetail.of(performance, calculateDueDate(minPerformanceDateMap.get(performance.getId())));
+		return HomePerformanceDetail.of(performance, calculateDueDate(today, minPerformanceDateMap.get(performance.getId())));
 	}
 
-	private int calculateDueDate(LocalDateTime baseDateTime) {
+	private int calculateDueDate(LocalDate today, LocalDateTime baseDateTime) {
 		if (baseDateTime == null) {
 			return Integer.MAX_VALUE;
 		}
-		return (int)ChronoUnit.DAYS.between(LocalDate.now(), baseDateTime.toLocalDate());
+		return scheduleDomainService.calculateDueDate(today, baseDateTime);
 	}
 }

@@ -184,6 +184,28 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
+	void infraBaseTimeEntityOwnsAuditingMappedSuperclassContract() throws Exception {
+		String baseTimeEntity = Files.readString(
+			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt"));
+		String memberEntity = Files.readString(
+			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/member/entity/MemberJpaEntity.kt"));
+		String performanceEntity = Files.readString(
+			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.kt"));
+
+		assertTrue(baseTimeEntity.contains("package com.beat.infra.persistence.common"));
+		assertTrue(baseTimeEntity.contains("@MappedSuperclass"));
+		assertTrue(baseTimeEntity.contains("@EntityListeners(AuditingEntityListener::class)"));
+		assertTrue(baseTimeEntity.contains("@field:CreatedDate"));
+		assertTrue(baseTimeEntity.contains("@field:Column(updatable = false)"));
+		assertTrue(baseTimeEntity.contains("@field:LastModifiedDate"));
+		assertTrue(baseTimeEntity.contains("var createdAt: LocalDateTime? = null"));
+		assertTrue(baseTimeEntity.contains("var updatedAt: LocalDateTime? = null"));
+		assertTrue(baseTimeEntity.contains("protected set"));
+		assertTrue(memberEntity.contains("import com.beat.infra.persistence.common.BaseTimeEntity"));
+		assertTrue(performanceEntity.contains("import com.beat.infra.persistence.common.BaseTimeEntity"));
+	}
+
+	@Test
 	void infraPersistenceBootstrapUsesSingleMarkerAndNoDomainSpecificConfig() throws Exception {
 		Set<String> requiredInfraPersistenceFiles = new HashSet<>(Set.of(
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",

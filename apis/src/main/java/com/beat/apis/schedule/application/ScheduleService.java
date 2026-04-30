@@ -11,8 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.beat.apis.schedule.application.dto.request.TicketAvailabilityRequest;
 import com.beat.apis.schedule.application.dto.response.MinPerformanceDateResponse;
 import com.beat.apis.schedule.application.dto.response.TicketAvailabilityResponse;
-import com.beat.contracts.schedule.readmodel.MinPerformanceDate;
 import com.beat.contracts.schedule.ScheduleReadPort;
+import com.beat.contracts.schedule.readmodel.MinPerformanceDate;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
@@ -66,7 +66,8 @@ public class ScheduleService {
 		Map<Long, LocalDateTime> performanceDateMap = minPerformanceDates.stream()
 			.collect(Collectors.toMap(
 				MinPerformanceDate::performanceId,
-				MinPerformanceDate::performanceDate
+				MinPerformanceDate::performanceDate,
+				(existing, ignored) -> existing
 			));
 
 		return MinPerformanceDateResponse.from(performanceDateMap);

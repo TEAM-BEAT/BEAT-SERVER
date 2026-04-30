@@ -15,8 +15,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.beat.apis.schedule.application.dto.response.MinPerformanceDateResponse;
-import com.beat.contracts.schedule.readmodel.MinPerformanceDate;
 import com.beat.contracts.schedule.ScheduleReadPort;
+import com.beat.contracts.schedule.readmodel.MinPerformanceDate;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,5 +53,21 @@ class ScheduleServiceTest {
 			response.performanceDateMap()
 		);
 		verify(scheduleReadPort).findMinPerformanceDateByPerformanceIds(performanceIds);
+	}
+
+	@Test
+	void retrieveMinPerformanceDateKeepsFirstValueWhenReadPortReturnsDuplicatePerformanceId() {
+		List<Long> performanceIds = List.of(1L);
+		LocalDateTime firstPerformanceDate = LocalDateTime.of(2026, 5, 1, 19, 30);
+		LocalDateTime duplicatePerformanceDate = LocalDateTime.of(2026, 5, 2, 20, 0);
+		when(scheduleReadPort.findMinPerformanceDateByPerformanceIds(performanceIds))
+			.thenReturn(List.of(
+				new MinPerformanceDate(1L, firstPerformanceDate),
+				new MinPerformanceDate(1L, duplicatePerformanceDate)
+			));
+
+		MinPerformanceDateResponse response = scheduleService.retrieveMinPerformanceDateByPerformanceIds(performanceIds);
+
+		assertEquals(Map.of(1L, firstPerformanceDate), response.performanceDateMap());
 	}
 }
