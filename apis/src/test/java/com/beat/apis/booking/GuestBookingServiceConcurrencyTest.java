@@ -35,7 +35,7 @@ import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
-import com.beat.domain.schedule.exception.ScheduleErrorCode;
+import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.BadRequestException;
@@ -162,7 +162,7 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 			assertNotNull(response);
 			return true;
 		} catch (BadRequestException e) {
-			if (e.getBaseErrorCode() == ScheduleErrorCode.INSUFFICIENT_TICKETS) {
+			if (e.getBaseErrorCode() == ScheduleApplicationErrorCode.INSUFFICIENT_TICKETS) {
 				return false;
 			}
 			throw e;

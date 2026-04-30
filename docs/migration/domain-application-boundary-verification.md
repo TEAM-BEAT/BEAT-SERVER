@@ -40,25 +40,25 @@ Commit 3 may move lookup `*_NOT_FOUND` and `NO_*_FOUND` constants to application
 
 | Code | Status | Message | Review note |
 | --- | ---: | --- | --- |
-| `BookingErrorCode.NO_BOOKING_FOUND` | 404 | 입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요. | Booking lookup flow |
+| `BookingApplicationErrorCode.NO_BOOKING_FOUND` | 404 | 입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요. | Booking lookup flow |
 | `TicketApplicationErrorCode.NO_TICKETS_FOUND` | 404 | 입력하신 정보와 일치하는 예매자 목록이 없습니다. | Booking/ticket lookup flow |
-| `BookingErrorCode.NO_PERFORMANCE_FOUND` | 404 | 공연을 찾을 수 없습니다. | Currently unused; preserve if moved or delete only with explicit cleanup approval |
-| `BookingErrorCode.NO_SCHEDULE_FOUND` | 404 | 회차를 찾을 수 없습니다. | Currently unused; do not confuse with `ScheduleErrorCode.NO_SCHEDULE_FOUND` |
-| `CastErrorCode.CAST_NOT_FOUND` | 404 | 등장인물이 존재하지 않습니다. | Performance modification lookup flow |
-| `MemberErrorCode.MEMBER_NOT_FOUND` | 404 | 회원이 없습니다 | API/admin member lookup flow |
-| `PerformanceErrorCode.PERFORMANCE_NOT_FOUND` | 404 | 해당 공연 정보를 찾을 수 없습니다. | API/admin performance lookup flow |
-| `PerformanceErrorCode.SCHEDULE_LIST_NOT_FOUND` | 404 | 스케쥴 리스트에 스케쥴이 없습니다. | Hybrid hazard: current domain throw is wrapped in `BadRequestException` |
-| `PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_FOUND` | 404 | 해당 공연 상세이미지를 찾을 수 없습니다. | Performance image lookup flow |
-| `PromotionErrorCode.PROMOTION_NOT_FOUND` | 404 | 해당 홍보 정보를 찾을 수 없습니다. | Admin promotion lookup flow |
-| `ScheduleErrorCode.NO_SCHEDULE_FOUND` | 404 | 해당 회차를 찾을 수 없습니다. | API schedule lookup flow |
-| `StaffErrorCode.STAFF_NOT_FOUND` | 404 | 스태프가 존재하지 않습니다. | Performance modification lookup flow |
-| `UserErrorCode.USER_NOT_FOUND` | 404 | 유저가 없습니다 | API user lookup flow |
+| `BookingApplicationErrorCode.NO_PERFORMANCE_FOUND` | 404 | 공연을 찾을 수 없습니다. | Currently unused; preserve if moved or delete only with explicit cleanup approval |
+| `BookingApplicationErrorCode.NO_SCHEDULE_FOUND` | 404 | 회차를 찾을 수 없습니다. | Currently unused; do not confuse with `ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND` |
+| `CastApplicationErrorCode.CAST_NOT_FOUND` | 404 | 등장인물이 존재하지 않습니다. | Performance modification lookup flow |
+| `MemberApplicationErrorCode.MEMBER_NOT_FOUND` | 404 | 회원이 없습니다 | API/admin member lookup flow |
+| `PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND` | 404 | 해당 공연 정보를 찾을 수 없습니다. | API/admin performance lookup flow |
+| `PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND` | 404 | 스케쥴 리스트에 스케쥴이 없습니다. | Application services guard empty schedule lists before calling domain period formatting |
+| `PerformanceImageApplicationErrorCode.PERFORMANCE_IMAGE_NOT_FOUND` | 404 | 해당 공연 상세이미지를 찾을 수 없습니다. | Performance image lookup flow |
+| `AdminApplicationErrorCode.PROMOTION_NOT_FOUND` | 404 | 해당 홍보 정보를 찾을 수 없습니다. | Admin promotion lookup flow |
+| `ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND` | 404 | 해당 회차를 찾을 수 없습니다. | API schedule lookup flow |
+| `StaffApplicationErrorCode.STAFF_NOT_FOUND` | 404 | 스태프가 존재하지 않습니다. | Performance modification lookup flow |
+| `UserApplicationErrorCode.USER_NOT_FOUND` | 404 | 유저가 없습니다 | API user lookup flow |
 
 ## Boundary review checks
 
 - Controller response wiring should remain `SuccessResponse.of/from(code, ...)`; moving packages only is safe when the same enum constants still implement `BaseSuccessCode`.
 - `GlobalExceptionHandler` and `AdminGlobalExceptionHandler` should keep exception-type handlers unchanged. Package moves must not change the `BadRequestException`, `NotFoundException`, `ForbiddenException`, or `ConflictException` hierarchy.
-- `PerformanceErrorCode.SCHEDULE_LIST_NOT_FOUND` is special: the current domain path throws `BadRequestException` with a code whose own status is `404`. If the code moves to an application package, add an application guard before calling `Performance.updatePerformancePeriod(...)` or replace the domain throw with a domain-neutral invariant while preserving the API response behavior intentionally.
+- `PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND` is special: the current domain path throws `BadRequestException` with a code whose own status is `404`. Application services now guard empty schedule lists before calling `Performance.updatePerformancePeriod(...)`; the domain method keeps a domain-neutral non-empty precondition.
 - After commit 2, no `*SuccessCode.java` or `*SuccessCode.kt` file should remain under `domain/src/main`; new response code enums should be Kotlin files under `apis/src/main/kotlin/.../api/response`, and controller imports should point at those packages.
 - After commit 3, lookup not-found constants should no longer be imported from domain by executable application lookup flows; domain-owned invariant codes must remain available to domain models.
 

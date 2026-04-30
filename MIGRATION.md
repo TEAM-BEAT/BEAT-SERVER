@@ -406,17 +406,18 @@ Boundary rules:
 
 ## #421 domain/application ErrorCode split baseline
 
-#421 Commit 1은 **inventory와 문서 기준만 고정**한다. 이 단계에서는 ErrorCode package 이동, import 변경, exception hierarchy 변경, handler 동작 변경을 하지 않는다.
+#421은 domain/application ErrorCode와 response SuccessCode의 소유권을 분리한다. 예외 클래스 hierarchy와 `BaseErrorCode`/`BaseSuccessCode` 공통 contract는 그대로 유지하고, enum의 위치와 책임만 정리한다.
 
-상세 inventory는 [`docs/migration/domain-application-errorcode-inventory.md`](docs/migration/domain-application-errorcode-inventory.md)를 기준으로 한다. review checklist는 [`docs/migration/domain-application-errorcode-review-checklist.md`](docs/migration/domain-application-errorcode-review-checklist.md)에 둔다. Commit 2/3 status/message snapshot과 검증 절차는 [`docs/migration/domain-application-boundary-verification.md`](docs/migration/domain-application-boundary-verification.md)에 둔다.
+상세 inventory는 [`docs/migration/domain-application-errorcode-inventory.md`](docs/migration/domain-application-errorcode-inventory.md)를 기준으로 한다. review checklist는 [`docs/migration/domain-application-errorcode-review-checklist.md`](docs/migration/domain-application-errorcode-review-checklist.md)에 둔다. status/message snapshot과 검증 절차는 [`docs/migration/domain-application-boundary-verification.md`](docs/migration/domain-application-boundary-verification.md)에 둔다.
 
 현재 기준:
 
-- `domain/src/main/java/com/beat/domain/<context>/exception/*ErrorCode.java`는 context별 domain/package surface에 모여 있다.
-- `domain/src/main/java/com/beat/domain/<context>/exception/*SuccessCode.java`는 현재 domain에 있지만 API response message 성격이므로 후속 커밋에서 실행 모듈 response boundary로 이동한다.
+- `domain/src/main`에는 순수 domain invariant ErrorCode만 남긴다. 현재 allowlist는 `BookingErrorCode`, `PerformanceErrorCode`, `ScheduleErrorCode`이다.
+- `domain/src/main`에는 `*SuccessCode`를 두지 않는다. API response 성공 문구는 실행 모듈 `api/response` 경계가 소유한다.
+- repository lookup, request/use-case input validation, actor/owner/belongs-to validation, external adapter failure translation은 실행 모듈 `application/exception/*ApplicationErrorCode`가 소유한다.
+- `KakaoSocialLoginAdapter` 같은 infra adapter는 domain/application ErrorCode를 직접 import하지 않고, port-level failure(`SocialLoginFailure`)를 던진다. API application service가 이를 기존 response code로 번역한다.
 - `module-contracts/src/main/java/com/beat/contracts/auth/TokenErrorCode.java`는 auth/token cross-module contract로 남아 있다.
 - `global-utils/src/main/java/com/beat/global/common/exception/base/BaseErrorCode.java`와 공통 exception/response type은 shared kernel로 유지한다.
-- 실행 모듈(`apis`, `admin`, `batch`, `gateway`)은 현재 domain/context ErrorCode를 application service, facade, handler 흐름에서 함께 사용한다.
 
 분리 판단 기준:
 
@@ -462,7 +463,7 @@ root verification task:
 | #382 | `apis`, `admin`, `batch` 내부 CQRS/package rule 정리 |
 | #383 | async boundary와 coroutine 도입 범위 확정 |
 | #384 | README/CI migration gate baseline 정리 |
-| #421 | domain/application ErrorCode split inventory and docs baseline |
+| #421 | domain/application ErrorCode and SuccessCode ownership split |
 
 이 문서는 package 이동, query 기술 교체, gateway scan 축소, domain repository interface와 infra persistence implementation 분리, coroutine 도입을 승인하는 문서가 아닙니다. 그런 작업은 위 후속 이슈에서 다룹니다.
 

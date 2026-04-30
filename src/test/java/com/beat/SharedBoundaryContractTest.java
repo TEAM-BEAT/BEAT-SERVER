@@ -529,6 +529,52 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
+	void domainErrorCodesStayOnPureInvariantAllowlist() throws Exception {
+		Set<String> expectedDomainErrorCodes = Set.of(
+			"domain/src/main/java/com/beat/domain/booking/exception/BookingErrorCode.java",
+			"domain/src/main/java/com/beat/domain/performance/exception/PerformanceErrorCode.java",
+			"domain/src/main/java/com/beat/domain/schedule/exception/ScheduleErrorCode.java"
+		);
+		Set<String> actualDomainErrorCodes = sourceFiles(Path.of("domain/src/main")).stream()
+			.filter(path -> path.getFileName().toString().matches(".*ErrorCode\\.(java|kt)"))
+			.map(path -> path.toString().replace('\\', '/'))
+			.collect(Collectors.toSet());
+
+		assertEquals(expectedDomainErrorCodes, actualDomainErrorCodes,
+			"Domain may only own pure invariant ErrorCode enums");
+		assertSourceContains(
+			Path.of("domain/src/main/java/com/beat/domain/booking/exception/BookingErrorCode.java"),
+			"INVALID_DATA_FORMAT(400, \"잘못된 데이터 형식입니다.\")");
+		assertSourceContains(
+			Path.of("domain/src/main/java/com/beat/domain/performance/exception/PerformanceErrorCode.java"),
+			"NEGATIVE_TICKET_PRICE(400, \"티켓 가격은 음수일 수 없습니다.\")");
+		assertFalse(contains(
+			Path.of("domain/src/main/java/com/beat/domain/performance/exception/PerformanceErrorCode.java"),
+			"NOT_PERFORMANCE_OWNER"));
+	}
+
+	@Test
+	void executableAndInfraSourcesDoNotImportDomainErrorCodes() throws Exception {
+		Pattern domainErrorCodeImport = Pattern.compile(
+			"^import com\\.beat\\.domain\\.[a-z0-9]+\\.exception\\.[A-Za-z0-9]+ErrorCode;",
+			Pattern.MULTILINE
+		);
+		List<String> violations = sourceFiles(
+			Path.of("apis/src/main"),
+			Path.of("admin/src/main"),
+			Path.of("batch/src/main"),
+			Path.of("infra/src/main")
+		).stream()
+			.filter(path -> matches(path, domainErrorCodeImport))
+			.map(path -> path.toString().replace('\\', '/'))
+			.toList();
+
+		assertTrue(violations.isEmpty(),
+			"Executable/infra sources must use application or adapter failure codes, not domain ErrorCode imports:\n"
+				+ String.join("\n", violations));
+	}
+
+	@Test
 	void domainLegacyDaoPackagesDoNotReappearAfterRepositoryPortMigration() throws Exception {
 		List<String> legacyDaoPackageSources = sourceFiles(Path.of("domain/src/main")).stream()
 			.map(path -> path.toString().replace('\\', '/'))

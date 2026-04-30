@@ -60,20 +60,20 @@ Issue #421 commit 1 baseline. This file is an inventory only: no Java/Kotlin sou
 | `DELETED_TICKET_RETRIEVE_NOT_ALLOWED` | 400 | 삭제된 예매자를 조회할 수 없습니다. | application use-case | prod 2 (apis:2); test 0 | Moved to ticket application boundary with value unchanged. |
 | `NO_TICKETS_FOUND` | 404 | 입력하신 정보와 일치하는 예매자 목록이 없습니다. | application flow | prod 0; test 1 | Ticket lookup/search response language; owned by ticket application boundary. |
 
-### `CastErrorCode`
+### `CastApplicationErrorCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/cast/exception/CastErrorCode.java`
-- Current package: `com.beat.domain.cast.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/performance/application/exception/CastApplicationErrorCode.kt`
+- Current package: `com.beat.apis.performance.application.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
 | `CAST_NOT_BELONG_TO_PERFORMANCE` | 403 | 해당 등장인물은 해당 공연에 속해 있지 않습니다. | application use-case | prod 1 (apis:1); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 | `CAST_NOT_FOUND` | 404 | 등장인물이 존재하지 않습니다. | application use-case | prod 2 (apis:2); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 
-### `MemberErrorCode`
+### `MemberApplicationErrorCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/member/exception/MemberErrorCode.java`
-- Current package: `com.beat.domain.member.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/member/application/exception/MemberApplicationErrorCode.kt`
+- Current package: `com.beat.apis.member.application.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
@@ -97,25 +97,25 @@ Issue #421 commit 1 baseline. This file is an inventory only: no Java/Kotlin sou
 | `SCHEDULE_MODIFICATION_NOT_ALLOWED_FOR_ENDED_SCHEDULE` | 400 | 종료된 회차를 수정할 수 없습니다. | application use-case | prod 1 (apis:1); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 | `INVALID_TICKET_COUNT` | 400 | 판매된 티켓 수보다 적은 수로 판매할 티켓 매수를 수정할 수 없습니다. | application use-case | prod 1 (apis:1); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 | `PERFORMANCE_DELETE_FAILED` | 403 | 예매자가 1명 이상 있을 경우, 공연을 삭제할 수 없습니다. | application use-case | prod 2 (apis:2); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
-| `NOT_PERFORMANCE_OWNER` | 403 | 해당 공연의 메이커가 아닙니다. | hybrid domain + application | prod 4 (apis:3, domain:1); test 0 | Selected #421 decision treats actor/owner validation as application responsibility. Later commit must remove the domain call-site before moving this code. |
+| `NOT_PERFORMANCE_OWNER` | 403 | 해당 공연의 메이커가 아닙니다. | application actor validation | prod application only | Moved to `PerformanceApplicationErrorCode`; domain exposes `isOwnedBy` boolean only. |
 | `PERFORMANCE_NOT_FOUND` | 404 | 해당 공연 정보를 찾을 수 없습니다. | application use-case | prod 12 (admin:1, apis:11); test 1 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
-| `SCHEDULE_LIST_NOT_FOUND` | 404 | 스케쥴 리스트에 스케쥴이 없습니다. | hybrid domain + application | prod 1 (domain:1); test 0 | Current throw site is domain, but selected #421 decision treats API-visible empty schedule list as application lookup/flow language. Later commit must move/check the empty-list guard at the application boundary or replace the domain throw with a domain-neutral invariant. |
+| `SCHEDULE_LIST_NOT_FOUND` | 404 | 스케쥴 리스트에 스케쥴이 없습니다. | application flow | prod application only | Application services guard empty schedule lists before calling domain period formatting. |
 | `INTERNAL_SERVER_ERROR` | 500 | 서버 내부 오류입니다. | unused / reserved | none | No non-declaration references found; confirm before moving or deleting. |
 
-### `PerformanceImageErrorCode`
+### `PerformanceImageApplicationErrorCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/performanceimage/exception/PerformanceImageErrorCode.java`
-- Current package: `com.beat.domain.performanceimage.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/performance/application/exception/PerformanceImageApplicationErrorCode.kt`
+- Current package: `com.beat.apis.performance.application.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
 | `PERFORMANCE_IMAGE_NOT_BELONG_TO_PERFORMANCE` | 403 | 해당 싱세이미지는 해당 공연에 속해 있지 않습니다. | application use-case | prod 1 (apis:1); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 | `PERFORMANCE_IMAGE_NOT_FOUND` | 404 | 해당 공연 상세이미지를 찾을 수 없습니다. | application use-case | prod 2 (apis:2); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 
-### `PromotionErrorCode`
+### `AdminApplicationErrorCode` promotion lookup slice
 
-- Current file: `domain/src/main/java/com/beat/domain/promotion/exception/PromotionErrorCode.java`
-- Current package: `com.beat.domain.promotion.exception`
+- Current file: `admin/src/main/kotlin/com/beat/admin/application/exception/AdminApplicationErrorCode.kt`
+- Current package: `com.beat.admin.application.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
@@ -128,26 +128,26 @@ Issue #421 commit 1 baseline. This file is an inventory only: no Java/Kotlin sou
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
-| `INVALID_DATA_FORMAT` | 400 | 잘못된 데이터 형식입니다. | hybrid domain + application | prod 3 (apis:1, domain:2); test 7 | Used by domain invariant and executable use case; split needs a compatibility/alias plan before moving. |
+| `INVALID_DATA_FORMAT` | 400 | 잘못된 데이터 형식입니다. | domain invariant + application input alias | domain keeps invariant; apis uses `ScheduleApplicationErrorCode.INVALID_DATA_FORMAT` for request validation | Split completed with value unchanged at both boundaries. |
 | `SCHEDULE_NOT_BELONG_TO_PERFORMANCE` | 403 | 해당 스케줄은 해당 공연에 속해 있지 않습니다. | application use-case | prod 1 (apis:1); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 | `NO_SCHEDULE_FOUND` | 404 | 해당 회차를 찾을 수 없습니다. | application use-case | prod 11 (apis:11); test 2 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
-| `INSUFFICIENT_TICKETS` | 409 | 요청한 티켓 수량이 잔여 티켓 수를 초과했습니다. 다른 수량을 선택해 주세요. | hybrid domain + application | prod 4 (apis:3, domain:1); test 2 | Used by domain invariant and executable use case; split needs a compatibility/alias plan before moving. |
+| `INSUFFICIENT_TICKETS` | 409 | 요청한 티켓 수량이 잔여 티켓 수를 초과했습니다. 다른 수량을 선택해 주세요. | domain invariant + application availability alias | domain keeps inventory invariant; apis uses `ScheduleApplicationErrorCode.INSUFFICIENT_TICKETS` for query/precheck response | Split completed with value unchanged at both boundaries. |
 | `EXCESS_TICKET_DELETE` | 409 | 예매된 티켓 수 이상을 삭제할 수 없습니다. | domain invariant | prod 1 (domain:1); test 1 | Thrown from domain model; should stay domain-owned or move with domain exception abstraction only. |
 
-### `StaffErrorCode`
+### `StaffApplicationErrorCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/staff/exception/StaffErrorCode.java`
-- Current package: `com.beat.domain.staff.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/performance/application/exception/StaffApplicationErrorCode.kt`
+- Current package: `com.beat.apis.performance.application.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
 | `STAFF_NOT_BELONG_TO_PERFORMANCE` | 403 | 해당 스태프는 해당 공연에 속해있지 않습니다. | application use-case | prod 1 (apis:1); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 | `STAFF_NOT_FOUND` | 404 | 스태프가 존재하지 않습니다. | application use-case | prod 2 (apis:2); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 
-### `UserErrorCode`
+### `UserApplicationErrorCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/user/exception/UserErrorCode.java`
-- Current package: `com.beat.domain.user.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/user/application/exception/UserApplicationErrorCode.kt`
+- Current package: `com.beat.apis.user.application.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
@@ -160,7 +160,7 @@ Issue #421 commit 1 baseline. This file is an inventory only: no Java/Kotlin sou
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
-| `AUTHENTICATION_CODE_EXPIRED` | 401 | 인가코드가 만료되었습니다 | shared contract / adapter auth | prod 10 (infra:10); test 0 | Auth-related code already lives outside domain; keep out of domain/application split unless contract is redesigned. |
+| `AUTHENTICATION_CODE_EXPIRED` | 401 | 인가코드가 만료되었습니다 | application external-failure translation | prod 1 (apis:1); test 2 | Kakao adapter throws port-level authentication failure; application service preserves the existing API error message. |
 | `REFRESH_TOKEN_NOT_FOUND` | 404 | 리프레쉬 토큰이 존재하지 않습니다 | shared contract / adapter auth | prod 2 (gateway:2); test 2 | Auth-related code already lives outside domain; keep out of domain/application split unless contract is redesigned. |
 | `INVALID_REFRESH_TOKEN_ERROR` | 400 | 잘못된 리프레쉬 토큰입니다 | shared contract / application auth | prod 3 (apis:3); test 2 | Auth application flow consumes contract-level code; not a domain-owned candidate. |
 | `REFRESH_TOKEN_MEMBER_ID_MISMATCH_ERROR` | 400 | 리프레쉬 토큰의 사용자 정보가 일치하지 않습니다 | shared contract / application auth | prod 1 (apis:1); test 0 | Auth application flow consumes contract-level code; not a domain-owned candidate. |
@@ -176,17 +176,17 @@ All current domain `*SuccessCode` constants are response-boundary messages. They
 
 ### `BookingSuccessCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/booking/exception/BookingSuccessCode.java`
-- Current package: `com.beat.domain.booking.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/booking/api/response/BookingSuccessCode.kt`
+- Current package: `com.beat.apis.booking.api.response`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
-| `MEMBER_BOOKING_RETRIEVE_SUCCESS` | 200 | 회원 예매 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Move to `apis/booking` response boundary with value unchanged. |
-| `GUEST_BOOKING_RETRIEVE_SUCCESS` | 200 | 비회원 예매 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Move to `apis/booking` response boundary with value unchanged. |
-| `BOOKING_REFUND_SUCCESS` | 200 | 예매자의 환불요청이 성공했습니다. | success response | apis controller response | Move to `apis/booking` response boundary with value unchanged. |
-| `BOOKING_CANCEL_SUCCESS` | 200 | 예매자의 취소요청이 성공했습니다. | success response | apis controller response | Move to `apis/booking` response boundary with value unchanged. |
-| `MEMBER_BOOKING_SUCCESS` | 201 | 회원 예매가 성공적으로 완료되었습니다 | success response | apis controller response | Move to `apis/booking` response boundary with value unchanged. |
-| `GUEST_BOOKING_SUCCESS` | 201 | 비회원 예매가 성공적으로 완료되었습니다 | success response | apis controller response | Move to `apis/booking` response boundary with value unchanged. |
+| `MEMBER_BOOKING_RETRIEVE_SUCCESS` | 200 | 회원 예매 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Moved to `apis/booking` response boundary with value unchanged. |
+| `GUEST_BOOKING_RETRIEVE_SUCCESS` | 200 | 비회원 예매 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Moved to `apis/booking` response boundary with value unchanged. |
+| `BOOKING_REFUND_SUCCESS` | 200 | 예매자의 환불요청이 성공했습니다. | success response | apis controller response | Moved to `apis/booking` response boundary with value unchanged. |
+| `BOOKING_CANCEL_SUCCESS` | 200 | 예매자의 취소요청이 성공했습니다. | success response | apis controller response | Moved to `apis/booking` response boundary with value unchanged. |
+| `MEMBER_BOOKING_SUCCESS` | 201 | 회원 예매가 성공적으로 완료되었습니다 | success response | apis controller response | Moved to `apis/booking` response boundary with value unchanged. |
+| `GUEST_BOOKING_SUCCESS` | 201 | 비회원 예매가 성공적으로 완료되었습니다 | success response | apis controller response | Moved to `apis/booking` response boundary with value unchanged. |
 
 ### `TicketSuccessCode`
 
@@ -203,46 +203,46 @@ All current domain `*SuccessCode` constants are response-boundary messages. They
 
 ### `MemberSuccessCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/member/exception/MemberSuccessCode.java`
-- Current package: `com.beat.domain.member.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/member/api/response/MemberSuccessCode.kt`
+- Current package: `com.beat.apis.member.api.response`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
-| `SIGN_UP_SUCCESS` | 200 | 로그인 성공 | success response | apis controller response | Move to `apis/member` response boundary with value unchanged. |
-| `ISSUE_ACCESS_TOKEN_SUCCESS` | 200 | 엑세스토큰 발급 성공 | success response | currently reserved/legacy response | Move or remove only after confirming consumer compatibility. |
-| `ISSUE_ACCESS_TOKEN_USING_REFRESH_TOKEN` | 200 | 리프레쉬 토큰으로 액세스 토큰 재발급 성공 | success response | apis controller response | Move to `apis/member` response boundary with value unchanged. |
-| `SIGN_OUT_SUCCESS` | 200 | 로그아웃 성공 | success response | apis controller response | Move to `apis/member` response boundary with value unchanged. |
-| `USER_DELETE_SUCCESS` | 200 | 회원 탈퇴 성공 | success response | currently reserved/legacy response | Move or remove only after confirming consumer compatibility. |
+| `SIGN_UP_SUCCESS` | 200 | 로그인 성공 | success response | apis controller response | Moved to `apis/member` response boundary with value unchanged. |
+| `ISSUE_ACCESS_TOKEN_SUCCESS` | 200 | 엑세스토큰 발급 성공 | success response | currently reserved/legacy response | Moved to `apis/member` response boundary with value unchanged. |
+| `ISSUE_ACCESS_TOKEN_USING_REFRESH_TOKEN` | 200 | 리프레쉬 토큰으로 액세스 토큰 재발급 성공 | success response | apis controller response | Moved to `apis/member` response boundary with value unchanged. |
+| `SIGN_OUT_SUCCESS` | 200 | 로그아웃 성공 | success response | apis controller response | Moved to `apis/member` response boundary with value unchanged. |
+| `USER_DELETE_SUCCESS` | 200 | 회원 탈퇴 성공 | success response | currently reserved/legacy response | Moved to `apis/member` response boundary with value unchanged. |
 
 ### `PerformanceSuccessCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/performance/exception/PerformanceSuccessCode.java`
-- Current package: `com.beat.domain.performance.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/performance/api/response/PerformanceSuccessCode.kt`
+- Current package: `com.beat.apis.performance.api.response`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
-| `PERFORMANCE_UPDATE_SUCCESS` | 200 | 공연이 성공적으로 수정되었습니다. | success response | apis controller response | Move to `apis/performance` response boundary with value unchanged. |
-| `PERFORMANCE_RETRIEVE_SUCCESS` | 200 | 공연 상세 정보 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Move to `apis/performance` response boundary with value unchanged. |
-| `PERFORMANCE_MODIFY_PAGE_SUCCESS` | 200 | 공연 수정 페이지 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Move to `apis/performance` response boundary with value unchanged. |
-| `PERFORMANCE_DELETE_SUCCESS` | 200 | 공연이 성공적으로 삭제되었습니다. | success response | apis controller response | Move to `apis/performance` response boundary with value unchanged. |
-| `BOOKING_PERFORMANCE_RETRIEVE_SUCCESS` | 200 | 예매 관련 공연 정보 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Move to `apis/performance` response boundary with value unchanged. |
-| `HOME_PERFORMANCE_RETRIEVE_SUCCESS` | 200 | 홈 화면 공연 목록 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Move to `apis/performance` response boundary with value unchanged. |
-| `MAKER_PERFORMANCE_RETRIEVE_SUCCESS` | 200 | 회원이 등록한 공연 목록의 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Move to `apis/performance` response boundary with value unchanged. |
-| `PERFORMANCE_CREATE_SUCCESS` | 201 | 공연이 성공적으로 생성되었습니다. | success response | apis controller response | Move to `apis/performance` response boundary with value unchanged. |
+| `PERFORMANCE_UPDATE_SUCCESS` | 200 | 공연이 성공적으로 수정되었습니다. | success response | apis controller response | Moved to `apis/performance` response boundary with value unchanged. |
+| `PERFORMANCE_RETRIEVE_SUCCESS` | 200 | 공연 상세 정보 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Moved to `apis/performance` response boundary with value unchanged. |
+| `PERFORMANCE_MODIFY_PAGE_SUCCESS` | 200 | 공연 수정 페이지 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Moved to `apis/performance` response boundary with value unchanged. |
+| `PERFORMANCE_DELETE_SUCCESS` | 200 | 공연이 성공적으로 삭제되었습니다. | success response | apis controller response | Moved to `apis/performance` response boundary with value unchanged. |
+| `BOOKING_PERFORMANCE_RETRIEVE_SUCCESS` | 200 | 예매 관련 공연 정보 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Moved to `apis/performance` response boundary with value unchanged. |
+| `HOME_PERFORMANCE_RETRIEVE_SUCCESS` | 200 | 홈 화면 공연 목록 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Moved to `apis/performance` response boundary with value unchanged. |
+| `MAKER_PERFORMANCE_RETRIEVE_SUCCESS` | 200 | 회원이 등록한 공연 목록의 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Moved to `apis/performance` response boundary with value unchanged. |
+| `PERFORMANCE_CREATE_SUCCESS` | 201 | 공연이 성공적으로 생성되었습니다. | success response | apis controller response | Moved to `apis/performance` response boundary with value unchanged. |
 
 ### `ScheduleSuccessCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/schedule/exception/ScheduleSuccessCode.java`
-- Current package: `com.beat.domain.schedule.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/schedule/api/response/ScheduleSuccessCode.kt`
+- Current package: `com.beat.apis.schedule.api.response`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
-| `TICKET_AVAILABILITY_RETRIEVAL_SUCCESS` | 200 | 티켓 수량 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Move to `apis/schedule` response boundary with value unchanged. |
+| `TICKET_AVAILABILITY_RETRIEVAL_SUCCESS` | 200 | 티켓 수량 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Moved to `apis/schedule` response boundary with value unchanged. |
 
 ## Cross-cutting hazards to preserve
 
 - Do not move source or rewrite imports in the inventory commit; later commits should use this file as the source list for split candidates.
 - Duplicate generic codes/messages exist across `BookingErrorCode`, `PerformanceErrorCode`, and `ScheduleErrorCode` (`INVALID_DATA_FORMAT`, request/data missing/format variants). Split work should avoid changing client-visible messages unless explicitly planned.
-- `BookingErrorCode.NO_PERFORMANCE_FOUND` and `BookingErrorCode.NO_SCHEDULE_FOUND` are currently unused while `PerformanceErrorCode.PERFORMANCE_NOT_FOUND` and `ScheduleErrorCode.NO_SCHEDULE_FOUND` are actively used.
+- `BookingApplicationErrorCode.NO_PERFORMANCE_FOUND` and `BookingApplicationErrorCode.NO_SCHEDULE_FOUND` are preserved for booking-context compatibility, while active performance/schedule lookups use their context-local application codes.
 - `TokenErrorCode` is already outside `domain`; it still depends on `BaseErrorCode` from `global-utils`, so a future split should decide whether auth codes stay contract-level or become application/support-level.
 - Domain model Kotlin files currently throw `BadRequestException`, `ForbiddenException`, or `ConflictException` with domain ErrorCodes. If future work makes domain independent from `global-utils`, replace exception/error boundaries atomically with tests.
