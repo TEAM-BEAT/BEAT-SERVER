@@ -500,8 +500,7 @@ class SharedBoundaryContractTest {
 			"@ManyToOne",
 			"@JoinColumn",
 			"JpaRepository",
-			"Performance performance",
-			"com.beat.domain.performance.domain.Performance"
+			"Performance performance"
 		);
 
 		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/cast/dao/CastRepository.java")));
@@ -520,8 +519,8 @@ class SharedBoundaryContractTest {
 		assertTrue(violations.isEmpty(),
 			"Cast/Staff/Users domain contracts must stay persistence-technology neutral:\n" + String.join("\n",
 				violations));
-		assertTrue(Files.readString(castDomain).contains("linkedPerformanceId: PerformanceId"));
-		assertTrue(Files.readString(staffDomain).contains("linkedPerformanceId: PerformanceId"));
+		assertTrue(Files.readString(castDomain).contains("linkedPerformanceId: Performance.Id"));
+		assertTrue(Files.readString(staffDomain).contains("linkedPerformanceId: Performance.Id"));
 		assertTrue(Files.readString(usersDomain).contains("class Users private constructor"));
 	}
 
@@ -599,21 +598,17 @@ class SharedBoundaryContractTest {
 		assertFalse(promotionDomainSource.contains("com.beat.domain.performance.domain.Performance;"));
 		assertTrue(promotionDomainSource.contains("data class Promotion private constructor"));
 		assertTrue(promotionDomainSource.contains("@ConsistentCopyVisibility"));
-		String performanceIdSource = Files.readString(
-			Path.of("domain/src/main/kotlin/com/beat/domain/performance/domain/PerformanceId.kt"));
+		assertFalse(Files.exists(Path.of("domain/src/main/kotlin/com/beat/domain/performance/domain/PerformanceId.kt")));
 
 		assertTrue(promotionDomainSource.contains("@JvmInline"));
 		assertTrue(promotionDomainSource.contains("value class Id private constructor"));
 		assertFalse(promotionDomainSource.contains("value class PerformanceId"));
-		assertTrue(promotionDomainSource.contains("import com.beat.domain.performance.domain.PerformanceId"));
-		assertTrue(promotionDomainSource.contains("private val linkedPerformanceId: PerformanceId?"));
-		assertTrue(performanceIdSource.contains("value class PerformanceId private constructor"));
+		assertTrue(promotionDomainSource.contains("import com.beat.domain.performance.domain.Performance"));
+		assertTrue(promotionDomainSource.contains("private val linkedPerformanceId: Performance.Id?"));
 		assertTrue(promotionDomainSource.contains("fun from(value: Long): Id"));
 		assertTrue(promotionDomainSource.contains("fun fromNullable(value: Long?): Id?"));
-		assertTrue(performanceIdSource.contains("fun from(value: Long): PerformanceId"));
-		assertTrue(performanceIdSource.contains("fun fromNullable(value: Long?): PerformanceId?"));
 		assertTrue(promotionDomainSource.contains("Id.fromNullable(id)"));
-		assertTrue(promotionDomainSource.contains("PerformanceId.fromNullable(performanceId)"));
+		assertTrue(promotionDomainSource.contains("Performance.Id.fromNullable(performanceId)"));
 		assertTrue(promotionDomainSource.contains("fun getId(): Long?"));
 		assertTrue(promotionDomainSource.contains("fun getPerformanceId(): Long?"));
 		assertTrue(promotionDomainSource.contains("fun updatePromotionDetails("));

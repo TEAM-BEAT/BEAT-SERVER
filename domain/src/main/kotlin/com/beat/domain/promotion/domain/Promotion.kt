@@ -1,13 +1,12 @@
 package com.beat.domain.promotion.domain
 
-import com.beat.domain.performance.domain.PerformanceId
-import kotlin.ConsistentCopyVisibility
+import com.beat.domain.performance.domain.Performance
 
 @ConsistentCopyVisibility
 data class Promotion private constructor(
     private val promotionId: Id?,
     val promotionPhoto: String,
-    private val linkedPerformanceId: PerformanceId?,
+    private val linkedPerformanceId: Performance.Id?,
     val redirectUrl: String,
     val isExternal: Boolean,
     val carouselNumber: CarouselNumber,
@@ -27,7 +26,7 @@ data class Promotion private constructor(
         promotionPhoto = newImageUrl,
         isExternal = isExternal,
         redirectUrl = redirectUrl,
-        linkedPerformanceId = PerformanceId.fromNullable(performanceId),
+        linkedPerformanceId = Performance.Id.fromNullable(performanceId),
     )
 
     fun updateCarouselNumber(carouselNumber: CarouselNumber): Promotion = copy(carouselNumber = carouselNumber)
@@ -54,7 +53,7 @@ data class Promotion private constructor(
         ): Promotion = Promotion(
             promotionId = null,
             promotionPhoto = promotionPhoto,
-            linkedPerformanceId = PerformanceId.fromNullable(performanceId),
+            linkedPerformanceId = Performance.Id.fromNullable(performanceId),
             redirectUrl = redirectUrl,
             isExternal = isExternal,
             carouselNumber = carouselNumber,
@@ -71,7 +70,7 @@ data class Promotion private constructor(
         ): Promotion = Promotion(
             promotionId = Id.fromNullable(id),
             promotionPhoto = promotionPhoto,
-            linkedPerformanceId = PerformanceId.fromNullable(performanceId),
+            linkedPerformanceId = Performance.Id.fromNullable(performanceId),
             redirectUrl = redirectUrl,
             isExternal = isExternal,
             carouselNumber = carouselNumber,
