@@ -33,6 +33,7 @@ import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -61,7 +62,7 @@ public class TicketService {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
 		Performance performance = findPerformance(performanceId);
-		performance.validatePerformanceOwnership(user.getId());
+		validatePerformanceOwnership(performance, user.getId());
 
 		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 		int totalPerformanceTicketCount = calculateTotalTicketCount(schedules);
@@ -85,7 +86,7 @@ public class TicketService {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
 		Performance performance = findPerformance(performanceId);
-		performance.validatePerformanceOwnership(user.getId());
+		validatePerformanceOwnership(performance, user.getId());
 
 		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 		int totalPerformanceTicketCount = calculateTotalTicketCount(schedules);
@@ -186,7 +187,7 @@ public class TicketService {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
 		Performance performance = findPerformance(request.performanceId());
-		performance.validatePerformanceOwnership(user.getId());
+		validatePerformanceOwnership(performance, user.getId());
 
 		for (TicketUpdateDetail detail : request.bookingList()) {
 			Booking booking = bookingRepository.findById(detail.bookingId())
@@ -218,7 +219,7 @@ public class TicketService {
 		Member member = findMember(memberId);
 		Users user = findUser(member);
 		Performance performance = findPerformance(ticketRefundRequest.performanceId());
-		performance.validatePerformanceOwnership(user.getId());
+		validatePerformanceOwnership(performance, user.getId());
 
 		for (TicketRefundRequest.Booking bookingRequest : ticketRefundRequest.bookingList()) {
 			Long bookingId = bookingRequest.bookingId();
@@ -243,7 +244,7 @@ public class TicketService {
 		Member member = findMember(memberId);
 		Long userId = findUser(member).getId();
 		Performance performance = findPerformance(ticketDeleteRequest.performanceId());
-		performance.validatePerformanceOwnership(userId);
+		validatePerformanceOwnership(performance, userId);
 
 		for (TicketDeleteRequest.Booking bookingRequest : ticketDeleteRequest.bookingList()) {
 			Long bookingId = bookingRequest.bookingId();
@@ -277,6 +278,12 @@ public class TicketService {
 		return performanceRepository.findById(performanceId).orElseThrow(
 			() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND)
 		);
+	}
+
+	private void validatePerformanceOwnership(Performance performance, Long userId) {
+		if (!performance.isOwnedBy(userId)) {
+			throw new ForbiddenException(PerformanceApplicationErrorCode.NOT_PERFORMANCE_OWNER);
+		}
 	}
 
 	private int calculateTotalTicketCount(List<Schedule> schedules) {

@@ -1,13 +1,10 @@
 package com.beat.infra.auth.social.kakao;
 
-import com.beat.contracts.auth.TokenErrorCode;
 import com.beat.contracts.auth.social.SocialLoginCommand;
+import com.beat.contracts.auth.social.SocialLoginFailure;
 import com.beat.contracts.auth.social.SocialLoginPort;
 import com.beat.contracts.auth.social.SocialMemberInfo;
 import com.beat.domain.member.domain.SocialType;
-import com.beat.domain.member.exception.MemberErrorCode;
-import com.beat.global.common.exception.BadRequestException;
-import com.beat.global.common.exception.UnauthorizedException;
 import com.beat.infra.auth.social.kakao.client.KakaoApiClient;
 import com.beat.infra.auth.social.kakao.client.KakaoAuthApiClient;
 import com.beat.infra.auth.social.kakao.response.KakaoAccessTokenResponse;
@@ -37,21 +34,21 @@ public class KakaoSocialLoginAdapter implements SocialLoginPort {
 	@Override
 	public SocialMemberInfo login(SocialLoginCommand command) {
 		if (command.socialType() != SocialType.KAKAO) {
-			throw new BadRequestException(MemberErrorCode.SOCIAL_TYPE_BAD_REQUEST);
+			throw SocialLoginFailure.unsupportedSocialType();
 		}
 
 		String accessToken;
 		try {
 			accessToken = getOAuth2Authentication(command.authorizationCode());
 		} catch (FeignException exception) {
-			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+			throw SocialLoginFailure.authenticationFailed(exception);
 		}
 
 		try {
 			return mapToSocialMemberInfo(command.socialType(), getUserInfo(accessToken));
 		} catch (FeignException exception) {
 			log.error("Failed to fetch Kakao user info with access token", exception);
-			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+			throw SocialLoginFailure.authenticationFailed(exception);
 		}
 	}
 
@@ -64,7 +61,7 @@ public class KakaoSocialLoginAdapter implements SocialLoginPort {
 		);
 		if (response == null) {
 			log.error("Kakao OAuth token response is null.");
-			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+			throw SocialLoginFailure.authenticationFailed(null);
 		}
 
 		log.info("Received OAuth2 authentication response: tokenType={}, hasAccessToken={}, hasRefreshToken={}",
@@ -75,14 +72,14 @@ public class KakaoSocialLoginAdapter implements SocialLoginPort {
 		String accessToken = response.accessToken();
 		if (accessToken == null || accessToken.isBlank()) {
 			log.error("Kakao OAuth token response does not contain access token. response={}", response);
-			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+			throw SocialLoginFailure.authenticationFailed(null);
 		}
 		return accessToken;
 	}
 
 	private KakaoUserResponse getUserInfo(String accessToken) {
 		if (accessToken == null || accessToken.isBlank()) {
-			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+			throw SocialLoginFailure.authenticationFailed(null);
 		}
 
 		KakaoUserResponse kakaoUserResponse = kakaoApiClient.getUserInformation("Bearer " + accessToken);
@@ -97,26 +94,26 @@ public class KakaoSocialLoginAdapter implements SocialLoginPort {
 
 	private SocialMemberInfo mapToSocialMemberInfo(SocialType socialType, KakaoUserResponse kakaoUserResponse) {
 		if (kakaoUserResponse == null) {
-			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+			throw SocialLoginFailure.authenticationFailed(null);
 		}
 		if (kakaoUserResponse.id() == null) {
 			log.error("Kakao user response does not contain id.");
-			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+			throw SocialLoginFailure.authenticationFailed(null);
 		}
 		if (kakaoUserResponse.kakaoAccount() == null) {
 			log.error("Kakao user response does not contain kakao_account. id={}", kakaoUserResponse.id());
-			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+			throw SocialLoginFailure.authenticationFailed(null);
 		}
 		if (kakaoUserResponse.kakaoAccount().profile() == null) {
 			log.error("Kakao user response does not contain profile. id={}", kakaoUserResponse.id());
-			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+			throw SocialLoginFailure.authenticationFailed(null);
 		}
 
 		String nickname = kakaoUserResponse.kakaoAccount().profile().nickname();
 		String email = kakaoUserResponse.kakaoAccount().email();
 		if (nickname == null || nickname.isBlank()) {
 			log.error("Kakao user response does not contain nickname. id={}", kakaoUserResponse.id());
-			throw new UnauthorizedException(TokenErrorCode.AUTHENTICATION_CODE_EXPIRED);
+			throw SocialLoginFailure.authenticationFailed(null);
 		}
 
 		return new SocialMemberInfo(

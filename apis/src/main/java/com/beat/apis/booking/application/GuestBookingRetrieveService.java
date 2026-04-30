@@ -4,7 +4,6 @@ import com.beat.apis.booking.application.dto.GuestBookingRetrieveRequest;
 import com.beat.apis.booking.application.dto.GuestBookingRetrieveResponse;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
-import com.beat.domain.booking.exception.BookingErrorCode;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.domain.Schedule;
@@ -63,24 +62,24 @@ public class GuestBookingRetrieveService {
 	private void validateRequest(GuestBookingRetrieveRequest guestBookingRetrieveRequest) {
 		if (guestBookingRetrieveRequest.bookerName() == null || guestBookingRetrieveRequest.bookerPhoneNumber() == null
 			|| guestBookingRetrieveRequest.password() == null || guestBookingRetrieveRequest.birthDate() == null) {
-			throw new BadRequestException(BookingErrorCode.REQUIRED_DATA_MISSING);
+			throw new BadRequestException(BookingApplicationErrorCode.REQUIRED_DATA_MISSING);
 		}
 
 		if (!Pattern.matches("^[a-zA-Z가-힣]+$", guestBookingRetrieveRequest.bookerName())) { // 예매자 이름은 알파벳, 한글 형식
-			throw new BadRequestException(BookingErrorCode.INVALID_REQUEST_FORMAT);
+			throw new BadRequestException(BookingApplicationErrorCode.INVALID_REQUEST_FORMAT);
 		}
 
 		if (!Pattern.matches("^\\d{3}-\\d{4}-\\d{4}$",
 			guestBookingRetrieveRequest.bookerPhoneNumber())) { // 전화번호는 010-1234-5678 형식
-			throw new BadRequestException(BookingErrorCode.INVALID_REQUEST_FORMAT);
+			throw new BadRequestException(BookingApplicationErrorCode.INVALID_REQUEST_FORMAT);
 		}
 
 		if (!Pattern.matches("^\\d{4}$", guestBookingRetrieveRequest.password())) { // 비밀번호는 4자리 숫자 형식
-			throw new BadRequestException(BookingErrorCode.INVALID_REQUEST_FORMAT);
+			throw new BadRequestException(BookingApplicationErrorCode.INVALID_REQUEST_FORMAT);
 		}
 
 		if (!Pattern.matches("^\\d{6}$", guestBookingRetrieveRequest.birthDate())) { // 생년월일은 6자리 숫자 형식
-			throw new BadRequestException(BookingErrorCode.INVALID_REQUEST_FORMAT);
+			throw new BadRequestException(BookingApplicationErrorCode.INVALID_REQUEST_FORMAT);
 		}
 	}
 

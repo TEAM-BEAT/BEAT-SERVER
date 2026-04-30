@@ -30,7 +30,6 @@ import com.beat.domain.cast.repository.CastRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performanceimage.domain.PerformanceImage;
 import com.beat.domain.performanceimage.repository.PerformanceImageRepository;
@@ -182,7 +181,7 @@ public class PerformanceService {
 			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
 
 		if (!Objects.equals(performance.getUserId(), userId)) {
-			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
+			throw new ForbiddenException(PerformanceApplicationErrorCode.NOT_PERFORMANCE_OWNER);
 		}
 
 		List<Long> scheduleIds = scheduleRepository.findIdsByPerformanceId(performanceId);

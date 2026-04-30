@@ -14,7 +14,6 @@ import com.beat.apis.schedule.application.dto.response.TicketAvailabilityRespons
 import com.beat.contracts.schedule.ScheduleReadPort;
 import com.beat.contracts.schedule.readmodel.MinPerformanceDateReadModel;
 import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.global.common.exception.BadRequestException;
@@ -45,7 +44,7 @@ public class ScheduleService {
 			ticketAvailabilityRequest.purchaseTicketCount());
 
 		if (!isAvailable) {
-			throw new ConflictException(ScheduleErrorCode.INSUFFICIENT_TICKETS);
+			throw new ConflictException(ScheduleApplicationErrorCode.INSUFFICIENT_TICKETS);
 		}
 
 		return TicketAvailabilityResponse.of(
@@ -76,7 +75,7 @@ public class ScheduleService {
 
 	private void validateRequest(Long scheduleId, TicketAvailabilityRequest ticketAvailabilityRequest) {
 		if (ticketAvailabilityRequest.purchaseTicketCount() <= 0 || scheduleId <= 0) {
-			throw new BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT);
+			throw new BadRequestException(ScheduleApplicationErrorCode.INVALID_DATA_FORMAT);
 		}
 	}
 }

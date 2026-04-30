@@ -13,7 +13,6 @@ import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.BadRequestException;
@@ -42,7 +41,7 @@ public class GuestBookingService {
 
 		int availableTicketCount = schedule.getTotalTicketCount() - schedule.getSoldTicketCount();
 		if (availableTicketCount < guestBookingRequest.purchaseTicketCount()) {
-			throw new BadRequestException(ScheduleErrorCode.INSUFFICIENT_TICKETS);
+			throw new BadRequestException(ScheduleApplicationErrorCode.INSUFFICIENT_TICKETS);
 		}
 
 		schedule = updateSoldTicketCountAndIsBooking(schedule, guestBookingRequest.purchaseTicketCount());
