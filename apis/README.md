@@ -162,10 +162,11 @@ com.beat.apis.<context>/
 
 ### Directional rules
 
-- `Facade`는 API 시나리오 조합과 최종 응답 반환을 맡는다.
+- `Facade`는 API 시나리오 조합과 최종 응답 반환을 맡는다. 단, raw Domain model을 받거나 반환하지 않는다.
 - CQRS는 `application/service`에서 먼저 적용하고 `service/command`, `service/query`로 나눈다.
-- DTO는 command/query로 나누지 않고 `dto/request`, `dto/response` 중심으로 유지한다.
-- query service는 user-facing 조회/응답 조립을 맡는다. 아직 단순 조회라면 domain repository contract를 사용할 수 있지만, 화면 조회가 복잡해지면 domain repository를 억지로 키우지 않고 infra `repository.query` 또는 실행 모듈 read-model 경계를 따로 둔다. 이때 infra persistence mapper를 직접 사용하지 않는다.
+- DTO는 command/query로 나누지 않고 `dto/request`, `dto/response` 중심으로 유지한다. Facade 조합용 내부 결과가 필요할 때만 `dto/result`를 추가한다.
+- command service는 상태 변경 유스케이스와 transaction 경계다. domain repository contract로 Domain model을 조회/변경/저장하고, 필요한 순수 정책은 DomainService/Entity/VO에 위임한다.
+- query service는 user-facing 조회/응답 조립을 맡는다. 단순 domain 조회는 domain repository contract를 사용할 수 있지만, 화면/검색/정렬/통계/read-model 조회가 되면 domain repository를 키우지 않고 module-contracts read port + infra query adapter 또는 실행 모듈 내부 read-model 경계로 분리한다. infra adapter가 필요하면 실행 모듈 타입을 infra가 import하지 않고 module-contracts read contract를 먼저 둔다. 이때 infra persistence mapper를 직접 사용하지 않는다.
 - `adapter`, `port` 패키지는 BEAT 기본 가이드로 강제하지 않는다.
 - executable-lane owner file은 계속 `com.beat.apis.*` 아래에 둔다.
 
@@ -175,16 +176,68 @@ com.beat.apis.<context>/
 BEAT의 사용자 API lane은 확장성과 리팩터링 안정성을 위해 아래 호출 방향을 표준으로 둔다.
 
 ```text
-Controller -> Facade -> ApplicationService(command/query) -> DomainService/Entity/RepositoryPort
+Controller -> Facade -> ApplicationService(command/query) -> DomainService/Entity/RepositoryPort/ReadPort
 ```
 
-- Controller는 HTTP adapter이며 `Facade`만 호출한다. Repository, DomainService, ApplicationService를 직접 호출하지 않는다.
-- `Facade`는 API 시나리오의 공식 진입점이다. 여러 command/query application service를 조합하고 최종 response를 반환하지만, transaction을 열거나 repository/domain service를 직접 호출하지 않는다.
-- `ApplicationService`는 유스케이스 실행자이자 transaction 경계다. repository 조회/저장, lock, event, external/module-contract port 호출, DomainService/Entity 호출 순서를 책임진다.
-- command service는 상태 변경 흐름을 맡고, query service는 user-facing 조회/응답 조립을 맡는다.
-- ApplicationService는 도메인 판단을 직접 if/계산으로 반복 구현하지 않는다. 주요 도메인 판단은 `domain.<context>.service`의 역할별 DomainService 또는 Entity/VO method에 위임한다.
+- Controller는 HTTP adapter이며 `Facade`만 호출한다. Repository, DomainService, command/query service를 직접 호출하지 않는다.
+- `Facade`는 API 시나리오의 공식 진입점이다. 여러 command/query service output을 조합하고 최종 response를 반환하지만, transaction을 열거나 repository/domain service를 직접 호출하지 않는다.
+- `Facade`는 raw Domain model을 절대 받거나 반환하지 않는다. Facade 입력/출력은 request primitive, ResponseDTO, CommandResult/QueryResult 같은 실행 모듈 내부 전달 모델로 제한한다.
+- `ApplicationService`는 command service와 query service를 의미한다. 이 계층만 유스케이스 내부에서 Domain model을 조회/변경/정책 판단에 사용할 수 있고, Domain model은 이 계층 밖으로 반환하지 않는다.
+- command service는 상태 변경 흐름과 transaction 경계를 맡는다. repository 조회/저장, lock, event, external/module-contract command port 호출, DomainService/Entity 호출 순서를 책임진다.
+- query service는 조회 흐름과 user-facing 응답 조립을 맡는다. 단일 조회 응답은 query service가 ResponseDTO로 닫고, 여러 query/command 결과를 묶는 경우에만 Facade가 최종 ResponseDTO를 합성한다.
+- ApplicationService는 도메인 판단을 직접 if/계산으로 반복 구현하지 않는다. 주요 도메인 판단은 `domain.<context>.service`의 DomainService 또는 Entity/VO method에 위임한다.
 - DomainService는 `apis`가 아니라 `domain` 모듈에 둔다. `apis`에는 `application/port/in` 같은 use-case port 패키지를 기본으로 만들지 않는다.
-- 복잡한 화면 조회/read-model은 domain repository를 키우지 않고 `module-contracts` read port + infra query adapter 또는 실행 모듈 query service 경계로 분리한다.
+- 복잡한 화면 조회/read-model은 domain repository를 키우지 않고 `module-contracts` read port + infra query adapter 또는 infra adapter가 필요 없는 실행 모듈 query service 내부 read-model 경계로 분리한다.
+
+
+### CQRS query/read-model rule
+
+BEAT의 CQRS는 저장소/DB를 처음부터 물리적으로 둘로 나누는 것이 아니라, 실행 모듈의 ApplicationService를 command와 query로 분리하는 것부터 시작한다.
+
+```text
+Controller -> Facade -> command service  -> Domain Repository -> Domain model
+Controller -> Facade -> query service    -> ReadPort/ReadModel or simple Domain Repository -> ResponseDTO
+```
+
+- command service는 Domain model 중심이다. Domain repository는 command와 aggregate lifecycle에 필요한 저장/수정/단순 조회 언어만 유지한다.
+- query service는 ResponseDTO를 조립하지만 Domain model을 Facade로 반환하지 않는다.
+- 단순 조회는 domain repository contract를 임시로 사용할 수 있다. 예: `findById`, `findAllByPerformanceId`, `exists...`처럼 Domain model이 실제로 필요한 조회.
+- 화면/검색/목록/정렬/통계/N+1 회피/fetch 전용/projection 조회는 read-model로 분리한다.
+- read-model은 save 대상이 아니며 Domain model도 API ResponseDTO도 아니다. query 결과를 담는 내부 조회 shape다.
+- infra query adapter가 구현하고 실행 모듈 query service가 주입받아야 하는 조회 계약은 `module-contracts`의 `*ReadPort`, `*ReadResult`, `*SearchCondition`으로 둔다.
+- 특정 API query service 내부에서만 쓰는 조립 결과는 `apis.<context>.application.dto.result` 또는 query service private row/result로 둔다.
+- query service는 JPA Entity, QueryDSL Q type, EntityManager, infra persistence mapper를 직접 사용하지 않는다.
+
+### Response and domain exposure rule
+
+- 단일 command/query 유스케이스의 ResponseDTO는 command/query service가 만든다.
+- 여러 command/query service output을 조합하는 API scenario에서만 Facade가 최종 ResponseDTO를 만든다.
+- Controller와 Facade에는 raw Domain model을 절대 올리지 않는다.
+- ResponseDTO, RequestDTO, CommandResult, QueryResult는 Domain model을 필드로 담지 않는다.
+- 실행 모듈 간 DTO/ApplicationService/Facade를 공유하지 않는다. 공유가 필요하면 `module-contracts`에 최소 계약을 새로 정의한다.
+
+
+### ResponseDTO vs Result selection rule
+
+BEAT의 기본값은 command/query service가 실행 모듈 전용 ResponseDTO를 반환하는 것이다. Result는 기본 계층이 아니라 Facade 조합이 필요한 순간에만 추가한다.
+
+- service 하나가 endpoint 응답을 완성할 수 있으면 command/query service가 ResponseDTO를 반환한다.
+- Facade가 받은 값을 그대로 반환하면 ResponseDTO가 맞다.
+- Facade가 여러 command/query service output을 다시 섞고 재가공해 하나의 API response를 만들어야 하면 각 service는 CommandResult/QueryResult를 반환하고 Facade가 최종 ResponseDTO를 만든다.
+- Result는 최종 client contract가 아니라 Facade 조합용 application output이다.
+- Result도 raw Domain model, JPA Entity, infra projection row를 필드로 담지 않는다. primitive/JDK type, contract-local value, 실행 모듈 내부 value만 사용한다.
+- 같은 service output을 여러 response shape로 재사용해야 하거나 API response 변경으로부터 application output을 보호하고 싶을 때 Result를 둔다.
+- 단일 API response와 1:1인 단순 유스케이스에 Result를 만들지 않는다.
+
+```text
+단일 유스케이스:
+Controller -> Facade -> QueryService -> ResponseDTO
+
+복합 API scenario:
+Controller -> Facade -> QueryService A -> QueryResult A
+                     -> QueryService B -> QueryResult B
+                     -> Final ResponseDTO
+```
 
 ## Follow-up after this issue
 

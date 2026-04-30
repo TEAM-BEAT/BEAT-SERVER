@@ -145,7 +145,7 @@ com.beat.infra.persistence.<context>.repository.query   # read 최적화/query p
 - JPA entity / persistence model은 `infra.persistence.<context>.entity`가 소유한다.
 - Spring Data JPA adapter는 `infra.persistence.<context>.repository`에 두되, domain repository interface가 아니라 infra 내부 구현 세부사항으로 취급한다.
 - mapper를 도입한다면 `XxxPersistenceMapper`는 pure domain model과 infra persistence entity가 실제로 분리된 slice에서만 추가한다. 쉽게 말해 DB 저장용 객체와 도메인 객체 사이의 번역기다. repository 조회, lazy reference 획득, query projection 조립은 mapper 책임이 아니다.
-- query 전용 구현은 지금 기본값이 아니고, 조회 복잡도 증가나 jOOQ/Kotlin JDSL 도입이 필요할 때만 `repository.query`를 추가한다. 이때 화면/목록/통계용 read model은 persistence mapper를 재사용하지 않고 query 전용 row/DTO로 바로 만든다.
+- query 전용 구현은 지금 기본값이 아니고, 조회 복잡도 증가나 jOOQ/Kotlin JDSL 도입이 필요할 때만 `repository.query`를 추가한다. 이때 화면/목록/검색/정렬/통계용 read model은 persistence mapper를 재사용하지 않고 query 전용 row/DTO로 바로 만든다.
 
 
 ### Service boundary interaction
@@ -155,8 +155,20 @@ Facade/ApplicationService/DomainService 표준에서 `infra`는 서비스 계층
 - Facade와 ApplicationService는 실행 모듈(`apis`, `admin`, `batch`) 책임이다.
 - DomainService는 `domain` 책임이며 infra에서 구현하거나 Spring component로 등록하지 않는다. Schedule due-date 같은 domain-specific 계산/판단도 infra 책임으로 이동시키지 않는다.
 - `infra.persistence.<context>.repository`는 domain repository port 구현체와 Spring Data adapter를 소유한다.
-- `infra.persistence.<context>.repository.query`는 `module-contracts` read/query port 또는 실행 모듈 read-model 경계를 구현한다.
+- `infra.persistence.<context>.repository.query`는 `module-contracts` read/query port를 구현한다. 실행 모듈 내부 read-model이 infra 구현을 필요로 하면 먼저 `module-contracts` 계약으로 승격한다.
+- infra query adapter는 JPA/JPQL/QueryDSL/JDSL, fetch join, 검색/필터/정렬, projection 생성을 소유하지만 API ResponseDTO를 반환하지 않는다.
 - infra mapper는 persistence entity와 domain model 사이의 변환만 담당한다. Application response 조립, DomainService 정책 실행, query projection 조립 책임을 갖지 않는다.
+
+
+### Query/read-model adapter rule
+
+- command repository adapter는 persistence entity를 pure Domain model로 변환해 domain repository port를 구현한다.
+- query adapter는 조회 전용 row/read model을 만든다. read-only 화면/검색/목록/통계 조회를 위해 Domain model을 억지로 복원하지 않는다.
+- read model은 JPA Entity도 Domain model도 API ResponseDTO도 아니다. infra query 구현과 실행 모듈 query service 사이의 조회 결과 shape다.
+- 실행 모듈이 주입받아야 하는 query 계약은 `module-contracts`의 `*ReadPort`, `*ReadResult`, `*SearchCondition`을 구현한다.
+- infra는 실행 모듈 내부 `dto/result`나 ResponseDTO를 구현/반환하지 않는다.
+- 실행 모듈 전용 response 조립은 infra가 아니라 해당 실행 모듈 query service 책임이다.
+- `apis`, `admin`, `batch`의 DTO/ApplicationService/Facade를 import하지 않는다.
 
 ## 최종 목표
 

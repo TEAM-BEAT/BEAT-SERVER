@@ -66,11 +66,11 @@ com.beat.domain.<context>/
 
 설명:
 - `domain/`에는 aggregate, domain entity, enum 같은 핵심 도메인 모델을 둔다. 여기서 entity는 JPA entity가 아니라 도메인 모델을 의미한다.
-- `service/`에는 cross-aggregate 규칙 중심의 domain service를 둔다.
+- `service/`에는 Entity/VO 하나에 자연스럽게 넣기 어려운 순수 domain service를 둔다.
 - `repository/`에는 **interface only** 저장소 계약만 둔다.
 - `vo/`에는 진짜 값 객체만 둔다.
 - 애플리케이션 문맥의 전달 모델이나 응답 모델은 각 실행 모듈에서 소유한다.
-- persistence mapper, JPA projection, read-model mapping은 domain 책임이 아니다. domain repository는 도메인 객체가 필요한 저장/수정/단순 조회 언어만 유지한다. 화면/목록/통계용 조회 최적화 projection은 실행 모듈 DTO 또는 infra query/read-model 경계에서 다룬다.
+- persistence mapper, JPA projection, read-model mapping은 domain 책임이 아니다. domain repository는 도메인 객체가 필요한 저장/수정/단순 조회 언어만 유지한다. 화면/목록/검색/정렬/통계용 조회 최적화 projection은 실행 모듈 query service, `module-contracts` read port, infra query/read-model 경계에서 다룬다.
 
 
 ### Domain decision/service standard
@@ -79,20 +79,38 @@ com.beat.domain.<context>/
 
 - Entity/VO는 자기 자신의 invariant와 상태 변경 primitive를 소유한다.
     - 예: 상태 전이, 수량 증감, 값 검증, 소유권 검증처럼 한 aggregate 안에서 끝나는 규칙
-- `service/`는 역할별 순수 도메인 정책/전략을 소유한다.
+- `service/`는 Entity/VO 하나에 자연스럽게 넣기 어려운 순수 도메인 정책/전략을 소유한다.
 - `Policy` suffix는 기본 규칙으로 쓰지 않는다. 정책 의미는 `*DomainService` 이름과 메서드명으로 표현한다.
-    - 예: `BookingCancellationDomainService`, `BookingRefundDomainService`, `TicketInventoryDomainService`, `PerformanceModificationDomainService`, `ScheduleDueDateDomainService`
+- 첫 도입은 context 단위의 cohesive service 하나로 시작한다. 예: `ScheduleDomainService`, `BookingDomainService`, `PerformanceDomainService`.
+- 정책이 커지고 변경 이유가 갈라질 때만 역할별 DomainService로 분리한다. 예: `BookingRefundDomainService`, `BookingCancellationDomainService`, `PerformanceModificationDomainService`.
 - `*DomainService`는 주요 도메인 정책의 표준 이름이지만, 단순 CRUD wrapper나 repository delegation이 아니다.
 - DomainService는 repository, transaction, Spring annotation, DTO, external/module-contract port, JPA/QueryDSL type을 알지 않는다.
-- DomainService는 이미 조회된 Entity/VO/primitive를 받아 판단하거나 새 domain result를 반환한다. 조회/저장 순서와 transaction은 실행 모듈 ApplicationService 책임이다.
+- DomainService는 이미 조회된 Entity/VO/primitive를 받아 판단하거나 domain primitive/value/result를 반환한다. 조회/저장 순서와 transaction은 실행 모듈 command/query service 책임이다.
 - 구현체 분리는 실제 정책 variation이 있을 때만 둔다. variation이 없으면 concrete `*DomainService` class 하나로 시작하고, 역할이 갈라질 때 interface/strategy로 확장한다.
+
+
+### Domain model exposure rule
+
+- RepositoryPort는 pure Domain model을 반환하고 저장한다.
+- command/query service는 유스케이스 내부에서 Domain model을 조회, 변경, 정책 판단에 사용할 수 있다.
+- Domain model은 command/query service 밖으로 반환하지 않는다.
+- Facade, Controller, Job/Runner, RequestDTO, ResponseDTO, CommandResult, QueryResult는 Domain model을 필드나 반환 타입으로 담지 않는다.
+- 신규 `module-contracts` 타입도 Domain model을 필드나 반환 타입으로 담지 않는다. 현재 `ScheduleJobPort`와 social auth contract의 domain-coupled 타입은 transitional exception이며 새 계약의 선례로 쓰지 않는다.
+- 실행 모듈 간 Domain model을 직접 전달하는 방식으로 application service를 공유하지 않는다. 공유가 필요하면 `module-contracts`의 최소 read/command contract를 정의한다.
+
+### Domain repository vs read-model rule
+
+- domain repository는 aggregate lifecycle과 command에 필요한 저장/수정/단순 조회 언어만 소유한다.
+- `Page`, `Pageable`, `Sort`, QueryDSL/JDSL projection, API ResponseDTO, 화면/검색/목록/정렬/통계 요구가 필요해지면 domain repository가 아니라 read-model/query adapter 후보로 본다.
+- ReadModel은 Domain model이 아니며 save 대상도 아니다. 조회 결과를 빠르게 만들기 위한 query 전용 shape다.
+- infra query adapter가 구현하고 실행 모듈 query service가 주입받는 read contract는 `module-contracts`가 소유한다.
 
 ## 최종 목표
 
 - Domain 규칙은 우선 Entity/Value Object에 둔다.
-- 주요 도메인 정책은 역할별 `*DomainService`로 명명해 ApplicationService의 절차 코드와 분리한다.
-- `Domain Service`는 CRUD wrapper가 아니라 cross-aggregate 또는 역할별 순수 정책 중심으로 정리하며, class 이름은 기본적으로 `*DomainService` suffix를 사용한다.
-- Schedule due-date처럼 domain language가 들어간 계산/판단은 `ScheduleDueDateDomainService` 또는 Schedule Entity/VO method에 둔다. `global-utils`에는 business-neutral date/time helper만 허용하고, BEAT/Schedule 정책 이름을 가진 계산은 두지 않는다.
+- 주요 도메인 정책은 `*DomainService`로 명명해 ApplicationService의 절차 코드와 분리한다.
+- `Domain Service`는 CRUD wrapper가 아니라 순수 정책 중심으로 정리하며, class 이름은 기본적으로 `*DomainService` suffix를 사용한다. 처음부터 과하게 쪼개지 않고 context 단위 cohesive service로 시작한 뒤 변경 이유가 갈라질 때 분리한다.
+- Schedule due-date처럼 domain language가 들어간 계산/판단은 `ScheduleDomainService` 또는 Schedule Entity/VO method에 둔다. `global-utils`에는 business-neutral date/time helper만 허용하고, BEAT/Schedule 정책 이름을 가진 계산은 두지 않는다.
 - Repository 시그니처는 도메인 중립적인 interface로 유지한다.
 - Spring Web/Data/JPA/QueryDSL 같은 구현 기술 의존성이 제거된다.
 - JPA entity, Spring Data repository adapter, query 구현체, repository implementation은 `infra`가 소유한다.
