@@ -169,6 +169,23 @@ com.beat.apis.<context>/
 - `adapter`, `port` 패키지는 BEAT 기본 가이드로 강제하지 않는다.
 - executable-lane owner file은 계속 `com.beat.apis.*` 아래에 둔다.
 
+
+### Layer boundary standard
+
+BEAT의 사용자 API lane은 확장성과 리팩터링 안정성을 위해 아래 호출 방향을 표준으로 둔다.
+
+```text
+Controller -> Facade -> ApplicationService(command/query) -> DomainService/Entity/RepositoryPort
+```
+
+- Controller는 HTTP adapter이며 `Facade`만 호출한다. Repository, DomainService, ApplicationService를 직접 호출하지 않는다.
+- `Facade`는 API 시나리오의 공식 진입점이다. 여러 command/query application service를 조합하고 최종 response를 반환하지만, transaction을 열거나 repository/domain service를 직접 호출하지 않는다.
+- `ApplicationService`는 유스케이스 실행자이자 transaction 경계다. repository 조회/저장, lock, event, external/module-contract port 호출, DomainService/Entity 호출 순서를 책임진다.
+- command service는 상태 변경 흐름을 맡고, query service는 user-facing 조회/응답 조립을 맡는다.
+- ApplicationService는 도메인 판단을 직접 if/계산으로 반복 구현하지 않는다. 주요 도메인 판단은 `domain.<context>.service`의 역할별 DomainService 또는 Entity/VO method에 위임한다.
+- DomainService는 `apis`가 아니라 `domain` 모듈에 둔다. `apis`에는 `application/port/in` 같은 use-case port 패키지를 기본으로 만들지 않는다.
+- 복잡한 화면 조회/read-model은 domain repository를 키우지 않고 `module-contracts` read port + infra query adapter 또는 실행 모듈 query service 경계로 분리한다.
+
 ## Follow-up after this issue
 
 1. `com.beat.apis.<context>` 내부 하위 계층(`controller`, `application/service`, `dto`)을 문맥별로 더 일관되게 정리

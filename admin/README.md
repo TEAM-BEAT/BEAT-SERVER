@@ -172,6 +172,22 @@ com.beat.admin.<context>/
 - `adapter`, `port` 패키지는 BEAT 기본 가이드로 강제하지 않는다.
 - Repository는 지금 즉시 command/query로 나누지 않는다. 조회 복잡도 증가나 jOOQ/Kotlin JDSL 도입 필요가 생기면 그때 infra `repository.query`에 query 전용 구현과 read projection을 분리한다. 이 read projection은 JPA entity와 domain model을 번역하는 mapper를 재사용하지 않는다.
 
+
+### Layer boundary standard
+
+BEAT의 관리자 lane도 사용자 API lane과 같은 계층 의미를 따른다.
+
+```text
+Controller -> Facade -> ApplicationService(command/query) -> DomainService/Entity/RepositoryPort
+```
+
+- Controller는 admin-facing HTTP adapter이며 `Facade`만 호출한다.
+- `Facade`는 관리자 API 시나리오의 공식 진입점이다. 여러 command/query application service를 조합하고 최종 response를 반환하지만, transaction/repository/domain service를 직접 소유하지 않는다.
+- `ApplicationService`는 관리자 유스케이스 실행자이자 transaction 경계다. repository 조회/저장, lock, event, external/module-contract port 호출, DomainService/Entity 호출 순서를 책임진다.
+- ApplicationService는 순수 도메인 정책을 직접 구현하지 않고 `domain.<context>.service`의 역할별 DomainService 또는 Entity/VO method에 위임한다.
+- 관리자 전용 presentation/authorization 흐름은 admin application/facade에 남기되, 순수 비즈니스 규칙은 domain service/entity로 올린다.
+- `application/port/in`은 BEAT 기본 가이드로 강제하지 않는다. Facade가 controller-facing 안정 경계이고, application service가 유스케이스 실행 경계다.
+
 ## Follow-up after this issue
 
 1. `com.beat.admin.<context>` 내부 하위 계층(`adapter`, `application`, `dto`, `port`) 정리를 문맥별로 계속 진행

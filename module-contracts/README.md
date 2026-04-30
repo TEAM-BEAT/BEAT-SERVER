@@ -105,6 +105,19 @@ com.beat.contracts/
 - 이 모듈은 기능별 계약만 담고, 더 깊은 계층화는 만들지 않는다.
 - 계약이 늘어나더라도 역할별 패키지 분리만 유지하고, 구현 계층을 끼워 넣지 않는다.
 
+
+### Application/query contract boundary
+
+Facade/ApplicationService/DomainService 표준에서 `module-contracts`는 실행 모듈과 infra 사이의 구현 없는 계약만 맡는다.
+
+- command/query application service 자체는 실행 모듈(`apis`, `admin`, `batch`)이 소유한다.
+- DomainService는 `domain`이 소유한다. `Policy` suffix는 기본 표준으로 쓰지 않는다.
+- `module-contracts`에는 실행 모듈이 필요하고 infra가 구현하는 port와 전달 모델만 둔다.
+    - external port: auth, sms, storage, notification 등
+    - read-model/query port: 복잡한 화면 조회, 검색, 통계처럼 domain repository에 넣기 어려운 조회 계약
+- 계약 타입은 Spring/JPA/QueryDSL/Redis/document 구현 세부사항을 포함하지 않는다.
+- 실행 모듈 전용 response DTO는 여기에 두지 않는다. read-model contract는 여러 실행 모듈 또는 infra 구현 경계에서 공유될 때만 둔다.
+
 ## 최종 목표
 
 - 실행 모듈이 서로의 구현 패키지를 참조하지 않고도 계약만으로 연결된다.

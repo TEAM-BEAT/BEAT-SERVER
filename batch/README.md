@@ -164,6 +164,22 @@ com.beat.batch.<context>/
 - `adapter`, `port` 패키지는 BEAT 기본 가이드로 강제하지 않는다.
 - Repository는 지금 즉시 분리하지 않고, 복잡한 조회 전용 구현이 필요할 때만 infra `repository.query` 레이어를 추가한다. 이 레이어는 batch 리포트/통계용 read projection을 소유하고 JPA entity와 domain model을 번역하는 mapper를 재사용하지 않는다.
 
+
+### Layer boundary standard
+
+BEAT의 batch lane은 HTTP Controller 대신 Job/Runner가 entrypoint인 점만 다르고, 내부 계층 의미는 실행 모듈 표준을 따른다.
+
+```text
+Job/Runner -> Facade -> ApplicationService(command/query) -> DomainService/Entity/RepositoryPort
+```
+
+- Job/Runner는 scheduler/launcher adapter이며 `Facade`만 호출한다.
+- `Facade`는 배치 실행 시나리오의 공식 진입점이다. 여러 command/query application service를 조합하지만, transaction/repository/domain service를 직접 소유하지 않는다.
+- `ApplicationService`는 배치 유스케이스 실행자이자 transaction 경계다. repository 조회/저장, lock, cleanup 대상 선정, DomainService/Entity 호출 순서를 책임진다.
+- batch 흐름은 대부분 command service로 시작한다. 리포트/통계/read-model이 필요할 때만 query service를 추가한다.
+- ApplicationService는 순수 도메인 정책을 직접 구현하지 않고 `domain.<context>.service`의 역할별 DomainService 또는 Entity/VO method에 위임한다.
+- 배치 리포트/통계 query는 domain repository를 키우지 않고 `module-contracts` read port + infra query adapter 또는 batch query service 경계로 분리한다.
+
 ## Follow-up after this issue
 
 1. `com.beat.batch.<context>` 내부 하위 계층(`job`, `application/service`, `dto`)을 문맥별로 정리
