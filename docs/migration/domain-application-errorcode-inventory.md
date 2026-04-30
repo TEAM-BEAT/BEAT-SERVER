@@ -1,13 +1,13 @@
 # Domain/Application ErrorCode Inventory
 
-Issue #421 commit 1 baseline. This file is an inventory only: no Java/Kotlin source movement, import changes, or ownership changes are performed in this commit.
+Issue #421 final inventory and status/message snapshot. Commit 1 captured the original baseline; later commits moved ownership while preserving the values recorded here.
 
 ## Scope and source of truth
 
-- Inventory source: `*ErrorCode` enums implementing `BaseErrorCode` and `*SuccessCode` enums implementing `BaseSuccessCode` under `domain/src/main/java/**/exception`, plus the existing auth contract `module-contracts/src/main/java/com/beat/contracts/auth/TokenErrorCode.java`.
+- Inventory source: `*ErrorCode` enums implementing `BaseErrorCode` and `*SuccessCode` enums implementing `BaseSuccessCode` under `domain/src/main/kotlin/**/exception`, plus the existing auth contract `module-contracts/src/main/java/com/beat/contracts/auth/TokenErrorCode.java`.
 - `BaseErrorCode` contract: `global-utils/src/main/java/com/beat/global/common/exception/base/BaseErrorCode.java` exposes `getStatus()` and `getMessage()`.
 - Usage scan command shape: `rg "<Enum>\.<CODE>" apis admin batch domain gateway infra module-contracts src`, excluding the enum declaration line.
-- Success-code enums are included because #421 moves API response success messages out of `domain`.
+- Success-code enums are included because #421 moved API response success messages out of `domain` and into executable response boundaries.
 
 ## Classification key
 
@@ -24,19 +24,19 @@ Issue #421 commit 1 baseline. This file is an inventory only: no Java/Kotlin sou
 
 ## Summary
 
-- Total ErrorCode constants inventoried: 48
-- Total SuccessCode constants inventoried: 25
-- ErrorCode HTTP status distribution: 400: 22, 401: 2, 403: 6, 404: 14, 409: 2, 500: 2
-- SuccessCode HTTP status distribution: 200: 22, 201: 3
-- ErrorCode classification distribution: application use-case: 24, domain invariant: 5, hybrid domain + application: 3, infra adapter use-case: 1, shared contract / adapter auth: 2, shared contract / application auth: 7, unused / reserved: 6
-- SuccessCode classification distribution: success response: 25
+- Original ErrorCode constants inventoried: 48
+- Original SuccessCode constants inventoried: 25
+- Original ErrorCode HTTP status distribution: 400: 22, 401: 2, 403: 6, 404: 14, 409: 2, 500: 2
+- Original SuccessCode HTTP status distribution: 200: 22, 201: 3
+- Original ErrorCode classification distribution: application use-case: 24, domain invariant: 5, hybrid domain + application: 3, infra adapter use-case: 1, shared contract / adapter auth: 2, shared contract / application auth: 7, unused / reserved: 6
+- Original SuccessCode classification distribution: success response: 25
 - Primary migration hazard: `BadRequestException`, `UnauthorizedException`, `ForbiddenException`, `NotFoundException`, and `ConflictException` handlers return the exception-type HTTP status, while the fallback `BeatException` handler returns `baseErrorCode.getStatus()`. Keep status/message behavior fixed when splitting ownership.
 
 ## Full inventory
 
 ### `BookingErrorCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/booking/exception/BookingErrorCode.java`
+- Current file: `domain/src/main/kotlin/com/beat/domain/booking/exception/BookingErrorCode.kt`
 - Current package: `com.beat.domain.booking.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
@@ -82,7 +82,7 @@ Issue #421 commit 1 baseline. This file is an inventory only: no Java/Kotlin sou
 
 ### `PerformanceErrorCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/performance/exception/PerformanceErrorCode.java`
+- Current file: `domain/src/main/kotlin/com/beat/domain/performance/exception/PerformanceErrorCode.kt`
 - Current package: `com.beat.domain.performance.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
@@ -123,7 +123,7 @@ Issue #421 commit 1 baseline. This file is an inventory only: no Java/Kotlin sou
 
 ### `ScheduleErrorCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/schedule/exception/ScheduleErrorCode.java`
+- Current file: `domain/src/main/kotlin/com/beat/domain/schedule/exception/ScheduleErrorCode.kt`
 - Current package: `com.beat.domain.schedule.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |

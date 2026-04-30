@@ -137,14 +137,11 @@ Kotlin/JDK standard library
 
 ```text
 domain/
-  src/main/java/com/beat/domain/<context>/
-    domain/       # Java enum / legacy Java domain surface
+  src/main/kotlin/com/beat/domain/<context>/
+    domain/       # Kotlin pure domain model, enum, identifier
+    service/      # Kotlin pure domain service
     repository/   # technology-neutral repository interface
     exception/    # 순수 domain rule ErrorCode
-
-  src/main/kotlin/com/beat/domain/<context>/
-    domain/       # Kotlin pure domain model
-    service/      # Kotlin pure domain service
     vo/           # value object, 필요할 때만 생성
 ```
 
@@ -178,7 +175,7 @@ domain/
 
 `SuccessCode`는 domain 소유가 아닙니다. 성공 응답 문구는 실행 모듈 response boundary가 소유합니다.
 
-#421은 위 기준에 따라 domain/application ErrorCode와 SuccessCode 소유권을 분리하는 follow-up입니다. 이동 전 inventory는 root `MIGRATION.md`와 `docs/migration/domain-application-errorcode-inventory.md`를 기준으로 합니다.
+#421 이후 `domain/src/main/java`는 퇴역했고, domain model / enum / repository / ErrorCode는 `domain/src/main/kotlin` 아래에서 관리합니다. 현재 domain ErrorCode allowlist는 `BookingErrorCode`, `PerformanceErrorCode`, `ScheduleErrorCode`입니다. 이동 이력과 status/message snapshot은 root `MIGRATION.md`와 `docs/migration/domain-application-errorcode-inventory.md`를 기준으로 합니다.
 
 ---
 

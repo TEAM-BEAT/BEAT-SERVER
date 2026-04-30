@@ -1,11 +1,11 @@
 # Domain/Application ErrorCode Review Checklist
 
-Scope: Issue #421 commit 1 review aid only. This document does not move code or change imports.
+Scope: Issue #421 final review aid. Use this checklist to prevent domain/application ErrorCode and SuccessCode ownership regressions after the split.
 
 
 ## Target split rule
 
-Use this rule when reviewing the inventory before any follow-up migration commit:
+Use this rule when reviewing any future ErrorCode / SuccessCode change:
 
 - Keep an error code in `domain` only when it is thrown by a pure domain model/service to enforce an invariant, state transition, or aggregate lifecycle rule that does not require request/auth/actor/external context.
 - Move or introduce an application-owned error code when the failure is created by use-case orchestration, request/query validation, authentication/session handling, actor/owner/permission checks, persistence lookup wording, external adapter translation, or response-flow policy.
@@ -14,7 +14,7 @@ Use this rule when reviewing the inventory before any follow-up migration commit
 
 ## Inventory review gates
 
-Before approving Worker-1's inventory, verify each row has:
+When reviewing future ErrorCode changes, verify each affected row has:
 
 - [ ] Current enum path and package.
 - [ ] Constant name, status, and message copied from source.
@@ -68,7 +68,7 @@ For a later implementation commit:
 Commands used to prepare this baseline:
 
 ```text
-python3 - list *ErrorCode.java files
+python3 - list *ErrorCode.kt files
 rg -n "enum .*ErrorCode|class .*ErrorCode|interface .*ErrorCode|ErrorCode|ErrorType|ErrorStatus" ...
 python3 - parse enum constants/status/message
 python3 - classify main-code throw-site layer counts
