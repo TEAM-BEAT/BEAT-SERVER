@@ -123,6 +123,36 @@ class BookingDomainInvariantTest {
 	}
 
 	@Test
+	void updateBookingStatusPreservesExistingCancellationDateForRepeatedTerminalStatuses() {
+		LocalDateTime createdAt = LocalDateTime.of(2026, 1, 1, 12, 0);
+		LocalDateTime cancellationDate = LocalDateTime.of(2026, 1, 2, 12, 0);
+		Booking booking = Booking.rehydrate(
+			10L,
+			1,
+			"booker",
+			"010-1234-5678",
+			BookingStatus.BOOKING_CANCELLED,
+			createdAt,
+			cancellationDate,
+			"990101",
+			"1234",
+			null,
+			null,
+			null,
+			2L,
+			3L
+		);
+
+		Booking updated = booking.updateBookingStatus(BookingStatus.BOOKING_DELETED);
+
+		assertAll(
+			() -> assertNotEquals(booking, updated),
+			() -> assertEquals(BookingStatus.BOOKING_DELETED, updated.getBookingStatus()),
+			() -> assertEquals(cancellationDate, updated.getCancellationDate())
+		);
+	}
+
+	@Test
 	void updateRefundInfoReturnsImmutableCopyWithRefundStatus() {
 		Booking booking = Booking.create(
 			1,

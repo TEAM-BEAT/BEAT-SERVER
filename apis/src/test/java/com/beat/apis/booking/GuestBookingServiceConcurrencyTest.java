@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -228,10 +229,10 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 		assertFalse(secondSchedule.isBooking());
 
 		long firstScheduleBookingCount = bookingRepository.findAll().stream()
-			.filter(booking -> booking.getScheduleId() == firstSchedule.getId())
+			.filter(booking -> Objects.equals(booking.getScheduleId(), firstSchedule.getId()))
 			.count();
 		long secondScheduleBookingCount = bookingRepository.findAll().stream()
-			.filter(booking -> booking.getScheduleId() == secondSchedule.getId())
+			.filter(booking -> Objects.equals(booking.getScheduleId(), secondSchedule.getId()))
 			.count();
 
 		assertEquals(5L, firstScheduleBookingCount);

@@ -51,7 +51,11 @@ data class Booking private constructor(
 
     fun updateBookingStatus(bookingStatus: BookingStatus): Booking = copy(
         bookingStatus = bookingStatus,
-        cancellationDate = if (bookingStatus.isTerminalCancellationStatus()) LocalDateTime.now() else cancellationDate,
+        cancellationDate = if (bookingStatus.isTerminalCancellationStatus()) {
+            cancellationDate ?: LocalDateTime.now()
+        } else {
+            cancellationDate
+        },
     )
 
     fun updateRefundInfo(bankName: BankName?, accountNumber: String?, accountHolder: String?): Booking = copy(
