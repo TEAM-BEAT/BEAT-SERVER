@@ -393,8 +393,27 @@ class SharedBoundaryContractTest {
 			.toList();
 
 		assertTrue(legacyDaoPackageSources.isEmpty(),
-			"Domain repository ports must live under repository/ or port/, not legacy dao/:\n"
+			"Domain repository ports must live under repository/, not legacy dao/:\n"
 				+ String.join("\n", legacyDaoPackageSources));
+	}
+
+	@Test
+	void domainApplicationUseCasePortPackagesDoNotReappear() throws Exception {
+		List<String> domainPortSources = sourceFiles(Path.of("domain/src/main")).stream()
+			.map(path -> path.toString().replace('\\', '/'))
+			.filter(path -> path.contains("/port/"))
+			.toList();
+		List<String> apisApplicationPortSources = sourceFiles(Path.of("apis/src/main")).stream()
+			.map(path -> path.toString().replace('\\', '/'))
+			.filter(path -> path.contains("/apis/application/port/"))
+			.toList();
+
+		assertTrue(domainPortSources.isEmpty(),
+			"Domain must not regain application use-case port packages:\n"
+				+ String.join("\n", domainPortSources));
+		assertTrue(apisApplicationPortSources.isEmpty(),
+			"Do not introduce apis/application/port/in as a replacement for deleted domain use-case ports:\n"
+				+ String.join("\n", apisApplicationPortSources));
 	}
 
 	@Test

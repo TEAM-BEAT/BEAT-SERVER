@@ -36,7 +36,6 @@ import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
-import com.beat.domain.performance.port.in.PerformanceUseCase;
 import com.beat.domain.performance.repository.PerformanceImageRepository;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
@@ -53,7 +52,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PerformanceService implements PerformanceUseCase {
+public class PerformanceService {
 	private final PerformanceRepository performanceRepository;
 	private final ScheduleRepository scheduleRepository;
 	private final CastRepository castRepository;
@@ -166,7 +165,6 @@ public class PerformanceService implements PerformanceUseCase {
 		return MakerPerformanceResponse.of(member.getUserId(), positiveDueDates);
 	}
 
-	@Override
 	@Transactional(readOnly = true)
 	public Performance findById(Long performanceId) {
 		return performanceRepository.findById(performanceId)

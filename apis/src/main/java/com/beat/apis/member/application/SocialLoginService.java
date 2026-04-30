@@ -9,7 +9,6 @@ import com.beat.contracts.auth.social.SocialLoginCommand;
 import com.beat.contracts.auth.social.SocialLoginPort;
 import com.beat.contracts.auth.social.SocialMemberInfo;
 import com.beat.domain.member.domain.Member;
-import com.beat.domain.member.port.in.MemberUseCase;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.exception.UserErrorCode;
 import com.beat.domain.user.repository.UserRepository;
@@ -26,7 +25,7 @@ public class SocialLoginService {
 	private final MemberRegistrationService memberRegistrationService;
 	private final AuthenticationService authenticationService;
 	private final SocialLoginPort socialLoginPort;
-	private final MemberUseCase memberUseCase;
+	private final MemberService memberService;
 	private final UserRepository userRepository;
 
 	/**
@@ -60,7 +59,7 @@ public class SocialLoginService {
 		Long memberId = findOrRegisterMember(socialMemberInfo);
 		log.info("Found or registered member with memberId: {}", memberId);
 
-		Member member = memberUseCase.findMemberByMemberId(memberId);
+		Member member = memberService.findMemberByMemberId(memberId);
 		Users user = userRepository.findById(member.getUserId())
 			.orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
 
@@ -77,11 +76,11 @@ public class SocialLoginService {
 	 * @return 등록된 회원 또는 기존 회원의 ID
 	 */
 	private Long findOrRegisterMember(final SocialMemberInfo socialMemberInfo) {
-		boolean memberExists = memberUseCase.checkMemberExistsBySocialIdAndSocialType(socialMemberInfo.socialId(),
+		boolean memberExists = memberService.checkMemberExistsBySocialIdAndSocialType(socialMemberInfo.socialId(),
 			socialMemberInfo.socialType());
 
 		if (memberExists) {
-			Member existingMember = memberUseCase.findMemberBySocialIdAndSocialType(socialMemberInfo.socialId(),
+			Member existingMember = memberService.findMemberBySocialIdAndSocialType(socialMemberInfo.socialId(),
 				socialMemberInfo.socialType());
 			Users user = userRepository.findById(existingMember.getUserId())
 				.orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));

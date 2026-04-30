@@ -8,7 +8,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import com.beat.contracts.notification.MemberNotification;
 import com.beat.contracts.notification.MemberNotificationPort;
 import com.beat.apis.member.application.dto.event.MemberRegisteredEvent;
-import com.beat.domain.member.port.in.MemberUseCase;
+import com.beat.apis.member.application.MemberService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class MemberRegisteredEventListener {
 
-	private final MemberUseCase memberUseCase;
+	private final MemberService memberService;
 	private final MemberNotificationPort memberNotificationPort;
 
 	@Async("taskExecutor")
@@ -32,6 +32,6 @@ public class MemberRegisteredEventListener {
 	}
 
 	private MemberNotification toNotification(MemberRegisteredEvent event) {
-		return new MemberNotification(event.nickname(), memberUseCase.countMembers());
+		return new MemberNotification(event.nickname(), memberService.countMembers());
 	}
 }
