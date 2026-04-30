@@ -1,12 +1,21 @@
 package com.beat.apis.schedule.application;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.beat.apis.schedule.application.dto.request.TicketAvailabilityRequest;
 import com.beat.apis.schedule.application.dto.response.MinPerformanceDateResponse;
 import com.beat.apis.schedule.application.dto.response.TicketAvailabilityResponse;
+import com.beat.contracts.schedule.readmodel.MinPerformanceDate;
+import com.beat.contracts.schedule.ScheduleReadPort;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
-import com.beat.domain.schedule.repository.dto.MinPerformanceDateDto;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.ConflictException;
@@ -14,19 +23,12 @@ import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 @Service
 @RequiredArgsConstructor
 public class ScheduleService {
 
 	private final ScheduleRepository scheduleRepository;
+	private final ScheduleReadPort scheduleReadPort;
 	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 
 	@Transactional(readOnly = true)
@@ -58,13 +60,13 @@ public class ScheduleService {
 
 	@Transactional(readOnly = true)
 	public MinPerformanceDateResponse retrieveMinPerformanceDateByPerformanceIds(List<Long> performanceIds) {
-		List<MinPerformanceDateDto> minPerformanceDateDtos
-			= scheduleRepository.findMinPerformanceDateByPerformanceIds(performanceIds);
+		List<MinPerformanceDate> minPerformanceDates
+			= scheduleReadPort.findMinPerformanceDateByPerformanceIds(performanceIds);
 
-		Map<Long, LocalDateTime> performanceDateMap = minPerformanceDateDtos.stream()
+		Map<Long, LocalDateTime> performanceDateMap = minPerformanceDates.stream()
 			.collect(Collectors.toMap(
-				MinPerformanceDateDto::getPerformanceId,
-				MinPerformanceDateDto::getPerformanceDate
+				MinPerformanceDate::performanceId,
+				MinPerformanceDate::performanceDate
 			));
 
 		return MinPerformanceDateResponse.from(performanceDateMap);

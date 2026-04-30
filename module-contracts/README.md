@@ -33,6 +33,8 @@
 ```text
 module-contracts/
   src/main/java/com/beat/contracts/
+    common/
+      ReadModel.java                       # read/query contract marker; Spring/JPA behavior 없음
     auth/
       JwtSubject.java
       JwtTokenPort.java
@@ -50,6 +52,9 @@ module-contracts/
       MemberNotificationPort.java
     schedule/
       ScheduleJobPort.java
+      ScheduleReadPort.java
+      readmodel/
+        MinPerformanceDate.java            # @ReadModel; Schedule 최소 공연 일자 query result
     sms/
       SmsMessage.java
       SmsPort.java
@@ -67,11 +72,14 @@ module-contracts/
 - #378 결정: Java source를 유지한다. cross Java/Kotlin consumer API 안정성이 언어 전환보다 우선이므로 Kotlin 변환은 하지 않는다.
 - `build.gradle.kts`에서 `domain`, `global-utils`를 `compileOnly`로만 참조한다. `SocialType`, `Schedule`, `BaseErrorCode` 같은 domain/global-utils-coupled contract type은 후속에서 contract-local value/ID로 줄일지 검토한다.
 - `SharedBoundaryContractTest`는 Spring/JPA/Redis stereotype이나 infra/executable/gateway 구현 참조가 들어오지 않도록 guard한다.
+- `ReadModel`은 module-contracts query result임을 드러내는 marker annotation이다. Spring/JPA가 인식하는 annotation이 아니며, save 대상/도메인 모델/API 응답 DTO가 아니라는 architectural label로만 사용한다.
 
 ## To-Be 패키지 구조
 
 ```text
 com.beat.contracts/
+  common/
+    ReadModel
   auth/
     JwtSubject
     JwtTokenPort
@@ -89,6 +97,9 @@ com.beat.contracts/
     MemberNotificationPort
   schedule/
     ScheduleJobPort
+    ScheduleReadPort
+    readmodel/
+      MinPerformanceDate
   sms/
     SmsMessage
     SmsPort
@@ -102,8 +113,9 @@ com.beat.contracts/
 설명:
 
 - To-Be 구조는 현재 구조와 거의 동일하게 유지한다.
-- 이 모듈은 기능별 계약만 담고, 더 깊은 계층화는 만들지 않는다.
-- 계약이 늘어나더라도 역할별 패키지 분리만 유지하고, 구현 계층을 끼워 넣지 않는다.
+- 이 모듈은 기능별 계약만 담고, 구현 계층을 끼워 넣지 않는다.
+- 계약이 늘어나더라도 역할별 패키지 분리를 기본으로 유지한다.
+- read-model query result는 예외적으로 `<context>/readmodel` 하위 패키지에 모아 port/command/external contract와 구분한다.
 
 
 ### Application/query contract boundary
@@ -132,6 +144,10 @@ ReadModel은 Domain model을 조회 화면에 억지로 맞추지 않기 위한 
 - API ResponseDTO와 1:1로 보이더라도 재사용하지 않는다. ResponseDTO는 `apis`, `admin`, `batch` 각 실행 모듈이 각자 소유한다.
 - 특정 실행 모듈 내부에서만 쓰고 infra 구현 계약이 필요 없는 조립 결과는 해당 실행 모듈 `application/dto/result` 또는 query service 내부 type에 둔다.
 - infra query implementation 내부에서만 쓰는 row/projection은 `infra.persistence.<context>.repository.query` 내부 type으로 둔다.
+- 실행 모듈과 infra 사이로 노출되는 read-model query result는 `@ReadModel`을 붙여 domain model/API ResponseDTO/JPA projection과 구분한다.
+  - 예: `@ReadModel MinPerformanceDate`
+  - `@ReadModel`은 `module-contracts`의 `com.beat.contracts.common`에 둔다. 이 marker가 domain/global-utils/infra에 있으면 read/query contract가 특정 계층에 불필요하게 묶이므로 금지한다.
+  - 이 marker는 Spring component나 JPA annotation이 아니므로 bean 등록, persistence mapping, serialization behavior를 바꾸지 않는다.
 
 ## 최종 목표
 

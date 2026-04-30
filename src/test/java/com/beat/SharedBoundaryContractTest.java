@@ -237,7 +237,6 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.java",
-			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/query/ScheduleQueryRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/query/ScheduleQueryRepositoryImpl.java"
 		));
 		allowedInfraPersistenceFiles.addAll(bookingInfraPersistenceSourcePathsIfPresent());
@@ -414,6 +413,18 @@ class SharedBoundaryContractTest {
 		assertTrue(apisApplicationPortSources.isEmpty(),
 			"Do not introduce apis/application/port/in as a replacement for deleted domain use-case ports:\n"
 				+ String.join("\n", apisApplicationPortSources));
+	}
+
+	@Test
+	void domainRepositoryDtoPackagesDoNotReappearAfterReadModelSplit() throws Exception {
+		List<String> domainRepositoryDtoSources = sourceFiles(Path.of("domain/src/main")).stream()
+			.map(path -> path.toString().replace('\\', '/'))
+			.filter(path -> path.contains("/repository/dto/"))
+			.toList();
+
+		assertTrue(domainRepositoryDtoSources.isEmpty(),
+			"Domain repositories must not own read-model DTO packages; use module-contracts read ports instead:\n"
+				+ String.join("\n", domainRepositoryDtoSources));
 	}
 
 	@Test
@@ -705,6 +716,23 @@ class SharedBoundaryContractTest {
 			.collect(Collectors.toSet());
 
 		assertEquals(allowedDomainImports, actualDomainImports);
+	}
+
+	@Test
+	void moduleContractsReadModelsAreExplicitlyMarked() throws Exception {
+		String readModelMarker = Files.readString(
+			Path.of("module-contracts/src/main/java/com/beat/contracts/common/ReadModel.java"));
+		String minPerformanceDate = Files.readString(
+			Path.of("module-contracts/src/main/java/com/beat/contracts/schedule/readmodel/MinPerformanceDate.java"));
+		String scheduleReadPort = Files.readString(
+			Path.of("module-contracts/src/main/java/com/beat/contracts/schedule/ScheduleReadPort.java"));
+
+		assertTrue(readModelMarker.contains("@Target(ElementType.TYPE)"));
+		assertTrue(readModelMarker.contains("@Retention(RetentionPolicy.RUNTIME)"));
+		assertTrue(readModelMarker.contains("public @interface ReadModel"));
+		assertTrue(minPerformanceDate.contains("import com.beat.contracts.common.ReadModel;"));
+		assertTrue(minPerformanceDate.contains("@ReadModel"));
+		assertTrue(scheduleReadPort.contains("List<MinPerformanceDate> findMinPerformanceDateByPerformanceIds"));
 	}
 
 	@Test

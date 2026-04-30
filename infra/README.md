@@ -78,8 +78,7 @@ infra/
         mapper/SchedulePersistenceMapper.java
         repository/ScheduleJpaRepository.java
         repository/ScheduleRepositoryImpl.java
-        repository/query/ScheduleQueryRepository.java
-        repository/query/ScheduleQueryRepositoryImpl.java
+        repository/query/ScheduleQueryRepositoryImpl.java   # implements module-contracts ScheduleReadPort
       staff/
         mapper/StaffPersistenceMapper.java
         repository/StaffJpaRepository.java
