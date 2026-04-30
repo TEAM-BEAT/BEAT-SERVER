@@ -1,22 +1,60 @@
-package com.beat.domain.booking.dao;
+package com.beat.infra.persistence.booking.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
+import com.beat.domain.booking.dao.TicketRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.infra.persistence.booking.entity.BookingJpaEntity;
+import com.beat.infra.persistence.booking.mapper.BookingPersistenceMapper;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
-import lombok.RequiredArgsConstructor;
 
 @Repository
-@RequiredArgsConstructor
-public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
+public class TicketRepositoryImpl implements TicketRepository {
 
+	private final BookingJpaRepository bookingJpaRepository;
+	private final BookingPersistenceMapper bookingPersistenceMapper;
 	private final EntityManager entityManager;
+
+	public TicketRepositoryImpl(BookingJpaRepository bookingJpaRepository,
+		BookingPersistenceMapper bookingPersistenceMapper,
+		EntityManager entityManager) {
+		this.bookingJpaRepository = bookingJpaRepository;
+		this.bookingPersistenceMapper = bookingPersistenceMapper;
+		this.entityManager = entityManager;
+	}
+
+	@Override
+	public Optional<Booking> findById(Long id) {
+		return bookingJpaRepository.findById(id).map(bookingPersistenceMapper::toDomain);
+	}
+
+	@Override
+	public Booking save(Booking booking) {
+		BookingJpaEntity savedEntity = bookingJpaRepository.save(bookingPersistenceMapper.toEntity(booking));
+		return bookingPersistenceMapper.toDomain(savedEntity);
+	}
+
+	@Override
+	public void deleteAll(Iterable<Booking> bookings) {
+		List<BookingJpaEntity> entities = toEntityList(bookings);
+		bookingJpaRepository.deleteAll(entities);
+	}
+
+	@Override
+	public List<Booking> findByBookingStatusAndCancellationDateBefore(BookingStatus bookingStatus,
+		LocalDateTime cancellationDate) {
+		return bookingJpaRepository.findByBookingStatusAndCancellationDateBefore(bookingStatus, cancellationDate).stream()
+			.map(bookingPersistenceMapper::toDomain)
+			.toList();
+	}
 
 	/**
 	 * performanceId, scheduleNumbers, bookingStatuses 조건 필터
@@ -33,18 +71,14 @@ public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
 		appendBookingStatusCondition(jpql, bookingStatuses);
 		jpql.append(orderByBookingStatusAndCreatedAt());
 
-		TypedQuery<Booking> query = entityManager.createQuery(jpql.toString(), Booking.class);
+		TypedQuery<BookingJpaEntity> query = entityManager.createQuery(jpql.toString(), BookingJpaEntity.class);
 		bindCommonParameters(query);
 		bindPerformanceParameter(query, performanceId);
 		bindScheduleNumberParameter(query, scheduleNumbers);
 		bindBookingStatusParameter(query, bookingStatuses);
-		return query.getResultList();
+		return toDomainList(query.getResultList());
 	}
 
-	/**
-	 * MySQL ngram full text 검색용 쿼리
-	 * - match(booking.bookerName, :searchWord) > 0
-	 */
 	@Override
 	public List<Booking> searchBookingsByPerformanceIdAndSearchWordAndSchedulesNumbersAndBookingStatuses(
 		Long performanceId,
@@ -66,13 +100,13 @@ public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
 		jpql.append("  AND function('match', b.bookerName, :searchWord) > 0\n");
 		jpql.append(orderByBookingStatusAndCreatedAt());
 
-		TypedQuery<Booking> query = entityManager.createQuery(jpql.toString(), Booking.class);
+		TypedQuery<BookingJpaEntity> query = entityManager.createQuery(jpql.toString(), BookingJpaEntity.class);
 		bindCommonParameters(query);
 		bindPerformanceParameter(query, performanceId);
 		bindScheduleNumberParameter(query, scheduleNumbers);
 		bindBookingStatusParameter(query, bookingStatuses);
 		query.setParameter("searchWord", searchWord);
-		return query.getResultList();
+		return toDomainList(query.getResultList());
 	}
 
 	private StringBuilder baseBookingScheduleJpql() {
@@ -116,7 +150,7 @@ public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
 			""";
 	}
 
-	private void bindCommonParameters(TypedQuery<Booking> query) {
+	private void bindCommonParameters(TypedQuery<BookingJpaEntity> query) {
 		query.setParameter("deletedStatus", BookingStatus.BOOKING_DELETED);
 		query.setParameter("refundRequestedStatus", BookingStatus.REFUND_REQUESTED);
 		query.setParameter("checkingPaymentStatus", BookingStatus.CHECKING_PAYMENT);
@@ -124,19 +158,19 @@ public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
 		query.setParameter("bookingCancelledStatus", BookingStatus.BOOKING_CANCELLED);
 	}
 
-	private void bindPerformanceParameter(TypedQuery<Booking> query, Long performanceId) {
+	private void bindPerformanceParameter(TypedQuery<BookingJpaEntity> query, Long performanceId) {
 		if (performanceId != null) {
 			query.setParameter("performanceId", performanceId);
 		}
 	}
 
-	private void bindScheduleNumberParameter(TypedQuery<Booking> query, List<ScheduleNumber> scheduleNumbers) {
+	private void bindScheduleNumberParameter(TypedQuery<BookingJpaEntity> query, List<ScheduleNumber> scheduleNumbers) {
 		if (scheduleNumbers != null && !scheduleNumbers.isEmpty()) {
 			query.setParameter("scheduleNumbers", scheduleNumbers);
 		}
 	}
 
-	private void bindBookingStatusParameter(TypedQuery<Booking> query, List<BookingStatus> bookingStatuses) {
+	private void bindBookingStatusParameter(TypedQuery<BookingJpaEntity> query, List<BookingStatus> bookingStatuses) {
 		if (bookingStatuses != null && !bookingStatuses.isEmpty()) {
 			query.setParameter("bookingStatuses", bookingStatuses);
 		}
@@ -157,6 +191,18 @@ public class TicketRepositoryCustomImpl implements TicketRepositoryCustom {
 		}
 		return bookingStatuses.stream()
 			.map(BookingStatus::valueOf)
+			.toList();
+	}
+
+	private List<Booking> toDomainList(List<BookingJpaEntity> entities) {
+		return entities.stream()
+			.map(bookingPersistenceMapper::toDomain)
+			.toList();
+	}
+
+	private List<BookingJpaEntity> toEntityList(Iterable<Booking> bookings) {
+		return org.springframework.data.util.Streamable.of(bookings).stream()
+			.map(bookingPersistenceMapper::toEntity)
 			.toList();
 	}
 }

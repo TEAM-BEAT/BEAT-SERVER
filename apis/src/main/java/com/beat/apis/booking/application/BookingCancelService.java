@@ -29,8 +29,8 @@ public class BookingCancelService {
 		Booking booking = bookingRepository.findById(request.bookingId())
 			.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
-		booking.updateRefundInfo(request.bankName(), request.accountNumber(), request.accountHolder());
-		bookingRepository.save(booking);
+		booking = booking.updateRefundInfo(request.bankName(), request.accountNumber(), request.accountHolder());
+		booking = bookingRepository.save(booking);
 
 		return BookingRefundResponse.of(
 			booking.getId(),
@@ -46,8 +46,8 @@ public class BookingCancelService {
 		Booking booking = bookingRepository.findById(request.bookingId())
 			.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
-		booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
-		bookingRepository.save(booking);
+		booking = booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
+		booking = bookingRepository.save(booking);
 
 		Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
 			.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));

@@ -228,10 +228,10 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 		assertFalse(secondSchedule.isBooking());
 
 		long firstScheduleBookingCount = bookingRepository.findAll().stream()
-			.filter(booking -> booking.getScheduleId().equals(firstSchedule.getId()))
+			.filter(booking -> booking.getScheduleId() == firstSchedule.getId())
 			.count();
 		long secondScheduleBookingCount = bookingRepository.findAll().stream()
-			.filter(booking -> booking.getScheduleId().equals(secondSchedule.getId()))
+			.filter(booking -> booking.getScheduleId() == secondSchedule.getId())
 			.count();
 
 		assertEquals(5L, firstScheduleBookingCount);

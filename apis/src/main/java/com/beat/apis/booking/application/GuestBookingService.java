@@ -76,7 +76,7 @@ public class GuestBookingService {
 			schedule.getId(),
 			userId
 		);
-		bookingRepository.save(booking);
+		booking = bookingRepository.save(booking);
 
 		log.info("Guest Booking created: {}", booking);
 

@@ -68,7 +68,7 @@ public class MemberBookingService {
 			schedule.getId(),
 			member.getUserId()
 		);
-		bookingRepository.save(booking);
+		booking = bookingRepository.save(booking);
 		schedule = scheduleRepository.save(schedule);
 
 		log.info("Member Booking created: {}", booking);

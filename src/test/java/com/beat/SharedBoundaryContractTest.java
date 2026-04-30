@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -156,9 +157,7 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void infraDomainPackageResidueIsLimitedToKnownDeferredQueryImplementations() throws Exception {
-		Set<String> allowedResidue = Set.of(
-			"infra/src/main/java/com/beat/domain/booking/dao/TicketRepositoryCustomImpl.java"
-		);
+		Set<String> allowedResidue = Set.of();
 
 		Set<String> actualResidue = sourceFiles(Path.of("infra/src/main")).stream()
 			.filter(path -> contains(path, "package com.beat.domain."))
@@ -170,9 +169,14 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void infraPersistenceBootstrapUsesSingleMarkerAndNoDomainSpecificConfig() throws Exception {
-		Set<String> requiredInfraPersistenceFiles = Set.of(
+		Set<String> requiredInfraPersistenceFiles = new HashSet<>(Set.of(
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceMarker.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
+			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
+			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java",
+			"infra/src/main/java/com/beat/infra/persistence/booking/repository/TicketRepositoryImpl.java",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java",
@@ -189,10 +193,16 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.java"
-		);
-		Set<String> allowedInfraPersistenceFiles = Set.of(
+		));
+		requiredInfraPersistenceFiles.addAll(bookingInfraPersistenceSourcePathsIfPresent());
+		Set<String> allowedInfraPersistenceFiles = new HashSet<>(Set.of(
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceMarker.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
+			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
+			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java",
+			"infra/src/main/java/com/beat/infra/persistence/booking/repository/TicketRepositoryImpl.java",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java",
@@ -227,7 +237,8 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/query/ScheduleQueryRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/query/ScheduleQueryRepositoryImpl.java"
-		);
+		));
+		allowedInfraPersistenceFiles.addAll(bookingInfraPersistenceSourcePathsIfPresent());
 
 		Set<String> actualInfraPersistenceFiles = sourceFiles(
 			Path.of("infra/src/main/java/com/beat/infra/persistence"),
@@ -281,6 +292,10 @@ class SharedBoundaryContractTest {
 			Path.of("apis/src/main/java/com/beat/apis/performance/application/PerformanceModifyService.java"));
 		String bookingRepository = Files.readString(
 			Path.of("domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java"));
+		String bookingJpaRepository = Files.readString(
+			Path.of("infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java"));
+		String bookingRepositoryImpl = Files.readString(
+			Path.of("infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java"));
 		String ticketService = Files.readString(
 			Path.of("apis/src/main/java/com/beat/apis/booking/application/TicketService.java"));
 		String bookingCancelService = Files.readString(
@@ -298,9 +313,15 @@ class SharedBoundaryContractTest {
 		assertTrue(performanceModify.contains("bookingRepository.existsActiveBookingByScheduleIds(scheduleIds"));
 		assertTrue(performanceManagement.contains("deletedInactiveBookingCount"));
 		assertTrue(performanceModify.contains("deletedInactiveBookingCount"));
-		assertTrue(bookingRepository.contains("@Modifying(clearAutomatically = true, flushAutomatically = true)"));
-		assertTrue(bookingRepository.contains("DELETE FROM Booking b WHERE b.scheduleId IN :scheduleIds"));
+		assertFalse(bookingRepository.contains("org.springframework.data"));
+		assertFalse(bookingRepository.contains("@Query"));
 		assertTrue(bookingRepository.contains("int deleteInactiveBookingsByScheduleIds("));
+		assertFalse(bookingRepository.contains("@Modifying"));
+		assertFalse(bookingRepository.contains("DELETE FROM Booking b WHERE b.scheduleId IN :scheduleIds"));
+		assertTrue(bookingJpaRepository.contains("@Modifying(clearAutomatically = true, flushAutomatically = true)"));
+		assertTrue(bookingJpaRepository.contains("DELETE FROM Booking b WHERE b.scheduleId IN :scheduleIds"));
+		assertTrue(bookingJpaRepository.contains("int deleteInactiveBookingsByScheduleIds("));
+		assertTrue(bookingRepositoryImpl.contains("scheduleIds == null || scheduleIds.isEmpty()"));
 		assertTrue(ticketService.contains("findScheduleForBooking(scheduleMap, booking)"));
 		assertTrue(ticketService.contains("throw new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND)"));
 		assertTrue(ticketService.contains("scheduleRepository.lockById(booking.getScheduleId())"));
@@ -319,23 +340,20 @@ class SharedBoundaryContractTest {
 	@Test
 	void ticketRepositoryCustomAvoidsManualScheduleQueryDslType() throws Exception {
 		String ticketRepositoryCustom = Files.readString(
-			Path.of("infra/src/main/java/com/beat/domain/booking/dao/TicketRepositoryCustomImpl.java"));
+			Path.of("infra/src/main/java/com/beat/infra/persistence/booking/repository/TicketRepositoryImpl.java"));
 
 		assertFalse(Files.exists(
 			Path.of("infra/src/main/java/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.java")));
 		assertFalse(ticketRepositoryCustom.contains("QScheduleJpaEntity"));
 		assertFalse(ticketRepositoryCustom.contains("com.querydsl"));
-		assertTrue(ticketRepositoryCustom.contains("TypedQuery<Booking>"));
+		assertTrue(ticketRepositoryCustom.contains("TypedQuery<BookingJpaEntity>"));
 		assertTrue(ticketRepositoryCustom.contains("FROM Booking b, Schedule s"));
 	}
 
 	@Test
 	void domainPersistenceConcernSourcesRemainExplicitTransitionalAllowlist() throws Exception {
 		Set<String> allowedPersistenceConcernSources = Set.of(
-			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java",
-			"domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java",
-			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepository.java",
-			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java"
+			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java"
 		);
 		List<String> forbiddenPersistencePatterns = List.of(
 			"jakarta.persistence.",
@@ -412,9 +430,7 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void domainCustomRepositoryContractsRemainExplicitIssue380TransitionalAllowlist() throws Exception {
-		Set<String> allowedCustomRepositoryContracts = Set.of(
-			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepositoryCustom.java"
-		);
+		Set<String> allowedCustomRepositoryContracts = Set.of();
 
 		Set<String> actualCustomRepositoryContracts = sourceFiles(Path.of("domain/src/main")).stream()
 			.filter(path -> path.getFileName().toString().endsWith("RepositoryCustom.java"))
@@ -428,13 +444,9 @@ class SharedBoundaryContractTest {
 	@Test
 	void domainJpaEntityAndRepositoryInventoryMatchesIssue380Baseline() throws Exception {
 		Set<String> allowedJpaModelSources = Set.of(
-			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java",
-			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java"
+			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java"
 		);
-		Set<String> allowedJpaRepositorySources = Set.of(
-			"domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java",
-			"domain/src/main/java/com/beat/domain/booking/dao/TicketRepository.java"
-		);
+		Set<String> allowedJpaRepositorySources = Set.of();
 
 		Set<String> actualJpaModelSources = sourceFiles(Path.of("domain/src/main")).stream()
 			.filter(path -> hasAnnotation(path, "Entity") || hasAnnotation(path, "MappedSuperclass"))
@@ -544,9 +556,7 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void domainJpaAnnotationsAndAuditingStayLimitedToIssue380Baseline() throws Exception {
-		Set<String> allowedEntitySources = Set.of(
-			"domain/src/main/java/com/beat/domain/booking/domain/Booking.java"
-		);
+		Set<String> allowedEntitySources = Set.of();
 		Set<String> allowedMappedSuperclassSources = Set.of(
 			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java"
 		);
@@ -721,6 +731,31 @@ class SharedBoundaryContractTest {
 				"Found forbidden global-utils references:\n" + String.join("\n", violations)
 			);
 		}
+	}
+
+
+	private Set<String> bookingInfraPersistenceSourcePathsIfPresent() {
+		Path bookingPersistenceRoot = Path.of("infra/src/main/java/com/beat/infra/persistence/booking");
+		Path bookingPersistenceKotlinRoot = Path.of("infra/src/main/kotlin/com/beat/infra/persistence/booking");
+		if (!Files.exists(bookingPersistenceRoot) && !Files.exists(bookingPersistenceKotlinRoot)) {
+			return Set.of();
+		}
+
+		return Set.of(
+			bookingJpaEntitySourcePath().toString().replace('\\', '/'),
+			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
+			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java",
+			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java",
+			"infra/src/main/java/com/beat/infra/persistence/booking/repository/TicketRepositoryImpl.java"
+		);
+	}
+
+	private Path bookingJpaEntitySourcePath() {
+		return singleJpaEntitySourcePath(
+			"infra/src/main/java/com/beat/infra/persistence/booking/entity/BookingJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
+			"BookingJpaEntity"
+		);
 	}
 
 	private Path promotionJpaEntitySourcePath() {
