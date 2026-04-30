@@ -1,6 +1,6 @@
 package com.beat.infra.persistence.member.entity
 
-import com.beat.domain.BaseTimeEntity
+import com.beat.infra.persistence.common.BaseTimeEntity
 import com.beat.domain.member.domain.SocialType
 import jakarta.persistence.*
 import java.time.LocalDateTime

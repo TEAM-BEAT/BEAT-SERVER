@@ -102,7 +102,7 @@ infra/
       user/entity/UsersJpaEntity.kt
 
 current transitional sources:
-  domain/src/main/java/com/beat/domain/BaseTimeEntity.java   # auditing mapped superclass; target owner is infra.persistence.common
+  infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt   # auditing mapped superclass
   src/main/java/com/beat/global/common/config/**
 ```
 
@@ -115,8 +115,8 @@ current transitional sources:
 - future shared caching은 dormant `RedisCacheConfig` + `InfraBaseConfigGroup.REDIS_CACHE`에서 시작하고, 현재 실행 모듈은 아직 이를 import하지 않는다. 활성화 전에는 cache name, TTL, serializer, namespace, invalidation policy, owner module, runtime opt-in이 먼저 정해져야 한다.
 - #378 기준 `RedisCacheConfig`는 삭제하지도 활성화하지도 않는 infra-owned dormant extension point다. gateway refresh-token Redis storage와 shared cache bootstrap은 별도 경계다.
 - Kotlin JPA entity 작성 규칙은 root [`MIGRATION.md`](../MIGRATION.md)의 canonical guide를 따른다. `PromotionJpaEntity.kt`는 최초 검증 reference slice이고, 이후 Cast/Staff/Users/Member/Performance/PerformanceImage/Schedule/Booking entity도 같은 infra-owned persistence model 규약을 따른다.
-- Promotion, Cast, Staff, Users, Member, Performance, PerformanceImage, Schedule, Booking의 domain JPA entity / mapper / repository adapter / implementation은 `infra.persistence.<context>`로 이동했다.
-- 남은 persistence follow-up은 `domain.BaseTimeEntity`를 `infra.persistence.common` 계열로 이동하는 것과, 복잡한 화면/목록/통계 조회를 `repository.query` read-model 경계로 더 명확히 분리하는 것이다.
+- Promotion, Cast, Staff, Users, Member, Performance, PerformanceImage, Schedule, Booking의 domain JPA entity / mapper / repository adapter / implementation과 공통 auditing base는 `infra.persistence.<context>` / `infra.persistence.common`으로 이동했다.
+- 남은 persistence follow-up은 복잡한 화면/목록/통계 조회를 `repository.query` read-model 경계로 더 명확히 분리하는 것이다.
 - 즉 `infra`는 persistence 구현 책임의 landing zone이며, 앞으로는 domain에 persistence concern을 새로 추가하지 않는 방향으로 유지한다.
 
 ## #378 known deferred package exceptions

@@ -171,6 +171,7 @@ class SharedBoundaryContractTest {
 	void infraPersistenceBootstrapUsesSingleMarkerAndNoDomainSpecificConfig() throws Exception {
 		Set<String> requiredInfraPersistenceFiles = new HashSet<>(Set.of(
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt",
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceMarker.java",
 			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
 			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
@@ -197,6 +198,7 @@ class SharedBoundaryContractTest {
 		requiredInfraPersistenceFiles.addAll(bookingInfraPersistenceSourcePathsIfPresent());
 		Set<String> allowedInfraPersistenceFiles = new HashSet<>(Set.of(
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt",
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceMarker.java",
 			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
 			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
@@ -353,13 +355,12 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
-	void domainPersistenceConcernSourcesRemainExplicitTransitionalAllowlist() throws Exception {
-		Set<String> allowedPersistenceConcernSources = Set.of(
-			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java"
-		);
+	void domainPersistenceConcernSourcesRemainAbsentAfterInfraMove() throws Exception {
+		Set<String> allowedPersistenceConcernSources = Set.of();
 		List<String> forbiddenPersistencePatterns = List.of(
 			"jakarta.persistence.",
 			"org.hibernate.annotations.",
+			"org.springframework.data.",
 			"org.springframework.data.domain.",
 			"org.springframework.data.jpa.repository.",
 			"org.springframework.data.repository.",
@@ -381,7 +382,32 @@ class SharedBoundaryContractTest {
 			.collect(Collectors.toSet());
 
 		assertEquals(allowedPersistenceConcernSources, actualPersistenceConcernSources,
-			"New domain persistence/JPA/Spring Data/QueryDSL leakage must either move to infra or be explicitly reviewed");
+			"Domain must not regain persistence/JPA/Spring Data/QueryDSL leakage after BaseTimeEntity moved to infra");
+	}
+
+	@Test
+	void domainLegacyDaoPackagesDoNotReappearAfterRepositoryPortMigration() throws Exception {
+		List<String> legacyDaoPackageSources = sourceFiles(Path.of("domain/src/main")).stream()
+			.map(path -> path.toString().replace('\\', '/'))
+			.filter(path -> path.contains("/dao/"))
+			.toList();
+
+		assertTrue(legacyDaoPackageSources.isEmpty(),
+			"Domain repository ports must live under repository/ or port/, not legacy dao/:\n"
+				+ String.join("\n", legacyDaoPackageSources));
+	}
+
+	@Test
+	void infraSourceDoesNotDeclareDomainPackages() throws Exception {
+		List<String> infraDomainPackageResidues = sourceFiles(Path.of("infra/src/main")).stream()
+			.flatMap(path -> readLines(path).stream()
+				.filter(line -> line.startsWith("package com.beat.domain"))
+				.map(line -> path.toString().replace('\\', '/') + ": " + line))
+			.toList();
+
+		assertTrue(infraDomainPackageResidues.isEmpty(),
+			"Infra sources must not declare legacy com.beat.domain.* packages:\n"
+				+ String.join("\n", infraDomainPackageResidues));
 	}
 
 	@Test
@@ -445,9 +471,7 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void domainJpaEntityAndRepositoryInventoryMatchesIssue380Baseline() throws Exception {
-		Set<String> allowedJpaModelSources = Set.of(
-			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java"
-		);
+		Set<String> allowedJpaModelSources = Set.of();
 		Set<String> allowedJpaRepositorySources = Set.of();
 
 		Set<String> actualJpaModelSources = sourceFiles(Path.of("domain/src/main")).stream()
@@ -557,11 +581,9 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
-	void domainJpaAnnotationsAndAuditingStayLimitedToIssue380Baseline() throws Exception {
+	void domainJpaAnnotationsAndAuditingStayAbsentAfterInfraMove() throws Exception {
 		Set<String> allowedEntitySources = Set.of();
-		Set<String> allowedMappedSuperclassSources = Set.of(
-			"domain/src/main/java/com/beat/domain/BaseTimeEntity.java"
-		);
+		Set<String> allowedMappedSuperclassSources = Set.of();
 
 		Set<String> actualEntitySources = sourceFiles(Path.of("domain/src/main")).stream()
 			.filter(path -> hasAnnotation(path, "Entity"))
@@ -583,11 +605,11 @@ class SharedBoundaryContractTest {
 			"Adding a domain JPA entity must be treated as persistence leakage unless issue #380 allowlist is updated");
 		assertEquals(allowedMappedSuperclassSources, actualMappedSuperclassSources);
 		assertEquals(allowedMappedSuperclassSources, actualAuditingSources,
-			"Domain JPA auditing must stay isolated to BaseTimeEntity during the issue #380 transition");
+			"Domain JPA auditing must not reappear after BaseTimeEntity moved to infra");
 	}
 
 	@Test
-	void queryDslAndJpaBootstrapRemainExplicitIssue380TransitionalSurfaces() throws Exception {
+	void domainBuildDoesNotRegainJpaOrQueryDslBootstrap() throws Exception {
 		Set<String> allowedQueryProjectionSources = Set.of();
 		Set<String> actualQueryProjectionSources = sourceFiles(Path.of("domain/src/main")).stream()
 			.filter(path -> contains(path, "@QueryProjection") || contains(path, "com.querydsl."))
@@ -597,16 +619,19 @@ class SharedBoundaryContractTest {
 		String jpaConfig = Files.readString(Path.of("infra/src/main/java/com/beat/infra/config/JpaConfig.java"));
 
 		assertEquals(allowedQueryProjectionSources, actualQueryProjectionSources);
-		assertTrue(domainBuild.contains("val queryDslSrcDir = layout.buildDirectory.dir(\"generated/querydsl\")"));
-		assertTrue(domainBuild.contains("compileOnly(libs.spring.boot.starter.data.jpa)"));
-		assertTrue(domainBuild.contains("compileOnly(libs.querydsl.jpa.jakarta)"));
-		assertTrue(domainBuild.contains("annotationProcessor(libs.querydsl.apt.jakarta)"));
-		assertTrue(domainBuild.contains("annotationProcessor(libs.jakarta.persistence.api)"));
+		assertTrue(domainBuild.contains("id(\"beat.library\")"));
+		assertFalse(domainBuild.contains("beat.spring-library"));
+		assertFalse(domainBuild.contains("queryDslSrcDir"));
+		assertFalse(domainBuild.contains("generated/querydsl"));
+		assertFalse(domainBuild.contains("spring.boot.starter.data.jpa"));
+		assertFalse(domainBuild.contains("querydsl"));
+		assertFalse(domainBuild.contains("jakarta.annotation"));
+		assertFalse(domainBuild.contains("jakarta.persistence"));
+		assertTrue(domainBuild.contains("compileOnly(libs.lombok)"));
 		assertTrue(jpaConfig.contains("@EnableJpaAuditing"));
-		assertTrue(jpaConfig.contains("@EntityScan(basePackages = \"com.beat.domain\", "
-			+ "basePackageClasses = InfraPersistenceMarker.class)"));
-		assertTrue(jpaConfig.contains("@EnableJpaRepositories(basePackages = \"com.beat.domain\", "
-			+ "basePackageClasses = InfraPersistenceMarker.class)"));
+		assertTrue(jpaConfig.contains("@EntityScan(basePackageClasses = InfraPersistenceMarker.class)"));
+		assertTrue(jpaConfig.contains("@EnableJpaRepositories(basePackageClasses = InfraPersistenceMarker.class)"));
+		assertFalse(jpaConfig.contains("basePackages = \"com.beat.domain\""));
 		assertTrue(jpaConfig.contains("@Import(InfraPersistenceConfig.class)"));
 		assertFalse(jpaConfig.contains("PromotionRepositoryImpl"));
 		assertFalse(jpaConfig.contains("@ComponentScan"));

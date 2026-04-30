@@ -12,8 +12,8 @@ import com.beat.infra.persistence.InfraPersistenceMarker;
 
 @Configuration(proxyBeanMethods = false)
 @EnableJpaAuditing
-@EntityScan(basePackages = "com.beat.domain", basePackageClasses = InfraPersistenceMarker.class)
-@EnableJpaRepositories(basePackages = "com.beat.domain", basePackageClasses = InfraPersistenceMarker.class)
+@EntityScan(basePackageClasses = InfraPersistenceMarker.class)
+@EnableJpaRepositories(basePackageClasses = InfraPersistenceMarker.class)
 @Import(InfraPersistenceConfig.class)
 public class JpaConfig implements InfraBaseConfig {
 }

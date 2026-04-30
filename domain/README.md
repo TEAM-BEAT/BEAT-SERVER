@@ -1,12 +1,12 @@
 # domain module
 
-> 이 문서는 `domain` 모듈의 현재 상태, 목표 계약, 그리고 #384에서 수행하지 않는 후속 작업을 구분한다. `domain`은 도메인 모델과 repository interface의 중심이며, #419 이후 남은 persistence concern은 `BaseTimeEntity` auditing baseline 하나로 축소되어 있다.
+> 이 문서는 `domain` 모듈의 현재 상태, 목표 계약, 그리고 #384에서 수행하지 않는 후속 작업을 구분한다. `domain`은 도메인 모델과 repository interface의 중심이며, #420 Commit 3 이후 `domain/src/main`에는 persistence concern을 허용하지 않는다.
 
 ## Migration status
 
 | Current | Target | Deferred-to-issue |
 | --- | --- | --- |
-| `domain/src/main`에는 JPA entity와 Spring Data repository adapter가 남아 있지 않다. `BookingRepository`, `TicketRepository`를 포함한 저장소 계약은 `repository/` 아래 technology-neutral interface로 정리되었다. 단, `BaseTimeEntity` auditing mapped superclass는 아직 #380 transitional baseline으로 남아 있다. `Role.java`는 `ROLE_*` 문자열만 소유하고 `GrantedAuthority` / `SimpleGrantedAuthority` bridge는 없다. | `domain`에는 도메인 모델, 값 객체, 도메인 서비스, repository interface만 남긴다. JPA entity / persistence model, Spring Data adapter, QueryDSL/Kotlin JDSL 구현체, repository 구현체는 `infra`가 소유한다. | `BaseTimeEntity` infra 이동 -> #380 follow-up. infra query/read-model 경계 -> #381. Security authority conversion은 domain 밖에 둔다. |
+| `domain/src/main`에는 JPA entity, auditing mapped superclass, Spring Data repository adapter, QueryDSL APT surface가 남아 있지 않다. `BookingRepository`, `TicketRepository`를 포함한 저장소 계약은 `repository/` 아래 technology-neutral interface로 정리되었다. `Role.java`는 `ROLE_*` 문자열만 소유하고 `GrantedAuthority` / `SimpleGrantedAuthority` bridge는 없다. | `domain`에는 도메인 모델, 값 객체, 도메인 서비스, repository interface만 남긴다. JPA entity / persistence model, Spring Data adapter, QueryDSL/Kotlin JDSL 구현체, repository 구현체는 `infra`가 소유한다. | infra query/read-model 경계 -> #381. Security authority conversion은 domain 밖에 둔다. |
 
 ## 역할
 
@@ -44,12 +44,12 @@ domain/
 - 현재 도메인 모듈은 최종 순수 도메인 형태가 아니라 migration landing zone이다.
 - `dao/` package는 더 이상 존재하지 않아야 하며, 새 repository port는 `repository/` 아래에 둔다.
 - `Promotion`, `Cast`/`Staff`, `Users`, `Member`, `Performance`/`PerformanceImage`, `Schedule`, `Booking`은 pure domain model과 infra persistence model로 분리되었다.
-- JPA entity / persistence model / Spring Data adapter / query 구현체는 `infra`로 이동했고, `domain`에는 repository interface만 남는다. 다만 `BaseTimeEntity` auditing baseline은 아직 #380 follow-up으로 infra 이동 대상이다.
+- JPA entity / persistence model / Spring Data adapter / query 구현체는 `infra`로 이동했고, `domain`에는 repository interface만 남는다. `BaseTimeEntity` auditing baseline도 `infra.persistence.common`으로 이동했다.
 - `Role`은 현재 `ROLE_USER`, `ROLE_MEMBER`, `ROLE_ADMIN` 문자열만 소유하며, Spring Security authority adapter 책임은 domain 밖에 둔다.
 
 ## #380 domain / persistence transition note
 
-`domain`의 transitional persistence concern은 #419 이후 `BaseTimeEntity` auditing baseline만 남아 있다. 상세 inventory와 단계별 분리 전략은 root [`MIGRATION.md`](../MIGRATION.md)의 `#380 domain / persistence separation baseline` 섹션을 기준으로 한다. Booking slice까지 immutable Kotlin domain model, `domain.<context>.repository` contract, infra JPA entity, Spring Data adapter, mapper, implementation 패턴으로 분리되어 있다.
+`domain`의 transitional persistence concern allowlist는 비어 있다. 상세 inventory와 단계별 분리 전략은 root [`MIGRATION.md`](../MIGRATION.md)의 `#380 domain / persistence separation baseline` 섹션을 기준으로 한다. Booking slice까지 immutable Kotlin domain model, `domain.<context>.repository` contract, infra JPA entity, Spring Data adapter, mapper, implementation 패턴으로 분리되어 있고, `BaseTimeEntity`도 infra로 이동했다.
 
 이 README는 `domain` 모듈의 역할과 목표 경계만 설명하고, migration 진행 중인 transitional allowlist/guard 상세는 `MIGRATION.md`와 `SharedBoundaryContractTest`에서 관리한다.
 
@@ -118,6 +118,6 @@ com.beat.domain.<context>/
 
 ## #378 deferred persistence/query boundary
 
-Issue #378에서는 `domain` 안에 남아 있던 JPA entity / Spring Data repository concern을 이동하지 않았다. #419 이후 이 concern은 slice별로 infra로 이동되었고, 남은 follow-up은 `BaseTimeEntity` infra 이동과 infra query implementation boundary / QueryDSL-Kotlin JDSL scan 결정이다.
+Issue #378에서는 `domain` 안에 남아 있던 JPA entity / Spring Data repository concern을 이동하지 않았다. #420 Commit 3 이후 이 concern은 infra로 이동되었고, 남은 follow-up은 infra query implementation boundary / QueryDSL-Kotlin JDSL scan 결정이다.
 
-현재 `domain`은 최종 순수 domain 모듈이 아니라 migration landing zone이며, 이 문서는 To-Be를 현재 완료 상태처럼 표현하지 않기 위해 current/deferred 상태를 명시한다.
+현재 `domain`은 persistence concern이 없는 순수 domain 모듈을 향해 수렴했고, 남은 migration debt는 use-case port, read-model DTO, Lombok 제거처럼 persistence 외 경계 정리 중심이다.
