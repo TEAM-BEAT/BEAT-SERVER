@@ -1,4 +1,4 @@
-package com.beat.domain.booking.dao;
+package com.beat.domain.booking.repository;
 
 import java.util.List;
 import java.util.Optional;

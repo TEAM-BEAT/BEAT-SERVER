@@ -7,7 +7,7 @@ import com.beat.apis.booking.application.dto.BookingCancelRequest;
 import com.beat.apis.booking.application.dto.BookingCancelResponse;
 import com.beat.apis.booking.application.dto.BookingRefundRequest;
 import com.beat.apis.booking.application.dto.BookingRefundResponse;
-import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.exception.BookingErrorCode;

@@ -2,7 +2,7 @@ package com.beat.apis.booking.application;
 
 import com.beat.apis.booking.application.dto.GuestBookingRetrieveRequest;
 import com.beat.apis.booking.application.dto.GuestBookingRetrieveResponse;
-import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.exception.BookingErrorCode;
 import com.beat.domain.performance.domain.Performance;

@@ -6,7 +6,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.beat.domain.booking.dao.TicketRepository;
+import com.beat.domain.booking.repository.TicketRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.schedule.domain.ScheduleNumber;

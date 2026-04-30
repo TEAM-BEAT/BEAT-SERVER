@@ -20,7 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.beat.apis.booking.application.dto.GuestBookingRetrieveRequest;
 import com.beat.apis.booking.application.dto.GuestBookingRetrieveResponse;
 import com.beat.apis.booking.application.dto.MemberBookingRetrieveResponse;
-import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.member.domain.Member;

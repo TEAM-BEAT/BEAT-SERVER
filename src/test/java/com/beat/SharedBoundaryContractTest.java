@@ -291,7 +291,7 @@ class SharedBoundaryContractTest {
 		String performanceModify = Files.readString(
 			Path.of("apis/src/main/java/com/beat/apis/performance/application/PerformanceModifyService.java"));
 		String bookingRepository = Files.readString(
-			Path.of("domain/src/main/java/com/beat/domain/booking/dao/BookingRepository.java"));
+			Path.of("domain/src/main/java/com/beat/domain/booking/repository/BookingRepository.java"));
 		String bookingJpaRepository = Files.readString(
 			Path.of("infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java"));
 		String bookingRepositoryImpl = Files.readString(
@@ -313,6 +313,8 @@ class SharedBoundaryContractTest {
 		assertTrue(performanceModify.contains("bookingRepository.existsActiveBookingByScheduleIds(scheduleIds"));
 		assertTrue(performanceManagement.contains("deletedInactiveBookingCount"));
 		assertTrue(performanceModify.contains("deletedInactiveBookingCount"));
+		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/booking/dao")),
+			"Booking domain repository ports must live under domain.booking.repository, not legacy dao");
 		assertFalse(bookingRepository.contains("org.springframework.data"));
 		assertFalse(bookingRepository.contains("@Query"));
 		assertTrue(bookingRepository.contains("int deleteInactiveBookingsByScheduleIds("));

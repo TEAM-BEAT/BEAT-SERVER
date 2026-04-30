@@ -26,7 +26,7 @@ import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDe
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailScheduleResponse;
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailStaffResponse;
 import com.beat.apis.schedule.application.ScheduleService;
-import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.repository.CastRepository;

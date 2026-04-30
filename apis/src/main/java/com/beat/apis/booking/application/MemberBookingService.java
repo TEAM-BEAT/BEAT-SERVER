@@ -7,7 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.beat.apis.booking.application.dto.MemberBookingRequest;
 import com.beat.apis.booking.application.dto.MemberBookingResponse;
 import com.beat.apis.booking.application.dto.event.BookingCreatedEvent;
-import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;

@@ -18,7 +18,7 @@ import com.beat.apis.booking.application.dto.TicketUpdateDetail;
 import com.beat.apis.booking.application.dto.TicketUpdateRequest;
 import com.beat.contracts.sms.SmsMessage;
 import com.beat.contracts.sms.SmsPort;
-import com.beat.domain.booking.dao.TicketRepository;
+import com.beat.domain.booking.repository.TicketRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.exception.BookingErrorCode;

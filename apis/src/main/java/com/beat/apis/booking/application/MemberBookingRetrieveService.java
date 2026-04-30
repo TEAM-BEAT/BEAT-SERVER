@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.beat.apis.booking.application.dto.MemberBookingRetrieveResponse;
-import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;

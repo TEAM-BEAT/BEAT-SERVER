@@ -1,4 +1,4 @@
-package com.beat.domain.booking.dao;
+package com.beat.domain.booking.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
