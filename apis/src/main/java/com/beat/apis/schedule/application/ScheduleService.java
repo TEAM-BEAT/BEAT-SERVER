@@ -3,10 +3,11 @@ package com.beat.apis.schedule.application;
 import com.beat.apis.schedule.application.dto.request.TicketAvailabilityRequest;
 import com.beat.apis.schedule.application.dto.response.MinPerformanceDateResponse;
 import com.beat.apis.schedule.application.dto.response.TicketAvailabilityResponse;
-import com.beat.domain.schedule.repository.ScheduleRepository;
-import com.beat.domain.schedule.repository.dto.MinPerformanceDateDto;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
+import com.beat.domain.schedule.repository.ScheduleRepository;
+import com.beat.domain.schedule.repository.dto.MinPerformanceDateDto;
+import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.ConflictException;
 import com.beat.global.common.exception.NotFoundException;
@@ -16,12 +17,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalInt;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +27,7 @@ import java.util.stream.Collectors;
 public class ScheduleService {
 
 	private final ScheduleRepository scheduleRepository;
+	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 
 	@Transactional(readOnly = true)
 	public TicketAvailabilityResponse findTicketAvailability(Long scheduleId,
@@ -38,8 +37,9 @@ public class ScheduleService {
 		Schedule schedule = scheduleRepository.findById(scheduleId)
 			.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
 
-		int availableTicketCount = getAvailableTicketCount(schedule);
-		boolean isAvailable = availableTicketCount >= ticketAvailabilityRequest.purchaseTicketCount();
+		int availableTicketCount = scheduleDomainService.getAvailableTicketCount(schedule);
+		boolean isAvailable = scheduleDomainService.canPurchase(schedule,
+			ticketAvailabilityRequest.purchaseTicketCount());
 
 		if (!isAvailable) {
 			throw new ConflictException(ScheduleErrorCode.INSUFFICIENT_TICKETS);
@@ -54,31 +54,6 @@ public class ScheduleService {
 			ticketAvailabilityRequest.purchaseTicketCount(),
 			isAvailable
 		);
-	}
-
-	public int getAvailableTicketCount(Schedule schedule) {
-		return schedule.getTotalTicketCount() - schedule.getSoldTicketCount();
-	}
-
-	public int calculateDueDate(Schedule schedule) {
-		int dueDate = (int)ChronoUnit.DAYS.between(LocalDate.now(), schedule.getPerformanceDate().toLocalDate());
-		return dueDate;
-	}
-
-	public int getMinDueDate(List<Schedule> schedules) {
-		OptionalInt minPositiveDueDate = schedules.stream()
-			.mapToInt(this::calculateDueDate)
-			.filter(dueDate -> dueDate >= 0)
-			.min();
-
-		if (minPositiveDueDate.isPresent()) {
-			return minPositiveDueDate.getAsInt();
-		} else {
-			return schedules.stream()
-				.mapToInt(this::calculateDueDate)
-				.min()
-				.orElse(Integer.MAX_VALUE);
-		}
 	}
 
 	@Transactional(readOnly = true)

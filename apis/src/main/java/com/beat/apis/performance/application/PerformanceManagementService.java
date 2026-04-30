@@ -4,7 +4,6 @@ import static java.util.Comparator.comparing;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -33,6 +32,7 @@ import com.beat.domain.performance.repository.PerformanceImageRepository;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.promotion.repository.PromotionRepository;
 import com.beat.domain.schedule.repository.ScheduleRepository;
+import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.staff.domain.Staff;
@@ -58,6 +58,7 @@ public class PerformanceManagementService {
 	private final PerformanceImageRepository performanceImageRepository;
 	private final PromotionRepository promotionRepository;
 	private final ScheduleJobPort scheduleJobPort;
+	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 
 	@Transactional
 	public PerformanceResponse createPerformance(Long memberId, PerformanceRequest request) {
@@ -146,12 +147,13 @@ public class PerformanceManagementService {
 
 	private PerformanceResponse mapToPerformanceResponse(Performance performance, List<Schedule> schedules,
 		List<Cast> casts, List<Staff> staffs, List<PerformanceImage> performanceImages) {
+		LocalDate today = LocalDate.now();
 		List<ScheduleResponse> scheduleResponses = schedules.stream()
 			.map(schedule -> ScheduleResponse.of(
 				schedule.getId(),
 				schedule.getPerformanceDate(),
 				schedule.getTotalTicketCount(),
-				calculateDueDate(schedule.getPerformanceDate().toLocalDate()),
+				scheduleDomainService.calculateDueDate(today, schedule),
 				schedule.getScheduleNumber()
 			))
 			.toList();
@@ -219,10 +221,6 @@ public class PerformanceManagementService {
 		for (int i = 0; i < schedules.size(); i++) {
 			schedules.set(i, schedules.get(i).updateScheduleNumber(scheduleNumbers.get(i)));
 		}
-	}
-
-	private int calculateDueDate(LocalDate performanceDate) {
-		return (int)ChronoUnit.DAYS.between(LocalDate.now(), performanceDate);
 	}
 
 	@Transactional

@@ -2,7 +2,6 @@ package com.beat.apis.performance.application;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -39,6 +38,7 @@ import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
+import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.staff.exception.StaffErrorCode;
 import com.beat.domain.staff.repository.StaffRepository;
@@ -62,6 +62,7 @@ public class PerformanceModifyService {
 	private final BookingRepository bookingRepository;
 	private final PerformanceImageRepository performanceImageRepository;
 	private final ScheduleJobPort scheduleJobPort;
+	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 
 	@Transactional
 	public PerformanceModifyResponse modifyPerformance(Long memberId, PerformanceModifyRequest request) {
@@ -194,12 +195,14 @@ public class PerformanceModifyService {
 			.filter(Schedule::isBooking)
 			.forEach(scheduleJobPort::registerOrRefresh);
 
+		LocalDate today = LocalDate.now();
+
 		return schedules.stream()
 			.map(schedule -> ScheduleModifyResponse.of(
 				schedule.getId(),
 				schedule.getPerformanceDate(),
 				schedule.getTotalTicketCount(),
-				calculateDueDate(schedule.getPerformanceDate()),
+				scheduleDomainService.calculateDueDate(today, schedule),
 				schedule.getScheduleNumber()
 			))
 			.toList();
@@ -484,9 +487,6 @@ public class PerformanceModifyService {
 		});
 	}
 
-	private int calculateDueDate(LocalDateTime performanceDate) {
-		return (int)ChronoUnit.DAYS.between(LocalDate.now(), performanceDate.toLocalDate());
-	}
 
 	private List<PerformanceImageModifyResponse> processPerformanceImages(
 		List<PerformanceImageModifyRequest> performanceImageRequests, Performance performance) {
