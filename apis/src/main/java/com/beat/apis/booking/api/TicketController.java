@@ -19,7 +19,7 @@ import com.beat.apis.booking.application.dto.TicketRetrieveResponse;
 import com.beat.apis.booking.application.dto.TicketUpdateRequest;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.exception.TicketErrorCode;
-import com.beat.domain.booking.exception.TicketSuccessCode;
+import com.beat.apis.booking.api.response.TicketSuccessCode;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;

@@ -4,7 +4,7 @@ import com.beat.apis.performance.application.HomeService;
 import com.beat.apis.performance.application.dto.home.HomeFindRequest;
 import com.beat.apis.performance.application.dto.home.HomeFindAllResponse;
 import com.beat.domain.performance.domain.Genre;
-import com.beat.domain.performance.exception.PerformanceSuccessCode;
+import com.beat.apis.performance.api.response.PerformanceSuccessCode;
 import com.beat.global.common.dto.SuccessResponse;
 
 import lombok.RequiredArgsConstructor;

@@ -22,7 +22,7 @@ import com.beat.apis.performance.application.dto.modify.PerformanceModifyDetailR
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyRequest;
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyResponse;
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailResponse;
-import com.beat.domain.performance.exception.PerformanceSuccessCode;
+import com.beat.apis.performance.api.response.PerformanceSuccessCode;
 import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 
