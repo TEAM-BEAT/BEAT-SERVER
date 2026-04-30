@@ -5,8 +5,8 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.beat.domain.performance.domain.PerformanceImage;
-import com.beat.domain.performance.repository.PerformanceImageRepository;
+import com.beat.domain.performanceimage.domain.PerformanceImage;
+import com.beat.domain.performanceimage.repository.PerformanceImageRepository;
 import com.beat.infra.persistence.performanceimage.entity.PerformanceImageJpaEntity;
 import com.beat.infra.persistence.performanceimage.mapper.PerformanceImagePersistenceMapper;
 

@@ -2,7 +2,7 @@ package com.beat.infra.persistence.performanceimage.mapper;
 
 import org.springframework.stereotype.Component;
 
-import com.beat.domain.performance.domain.PerformanceImage;
+import com.beat.domain.performanceimage.domain.PerformanceImage;
 import com.beat.infra.persistence.performanceimage.entity.PerformanceImageJpaEntity;
 
 @Component

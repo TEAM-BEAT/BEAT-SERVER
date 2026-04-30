@@ -20,24 +20,24 @@ import com.beat.apis.performance.application.dto.modify.schedule.ScheduleModifyR
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyRequest;
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyResponse;
 import com.beat.contracts.schedule.ScheduleJobPort;
-import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.exception.CastErrorCode;
 import com.beat.domain.cast.repository.CastRepository;
-import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
-import com.beat.domain.performance.repository.PerformanceRepository;
+import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
-import com.beat.domain.performance.exception.PerformanceImageErrorCode;
-import com.beat.domain.performance.repository.PerformanceImageRepository;
-import com.beat.domain.schedule.repository.ScheduleRepository;
+import com.beat.domain.performance.repository.PerformanceRepository;
+import com.beat.domain.performanceimage.domain.PerformanceImage;
+import com.beat.domain.performanceimage.exception.PerformanceImageErrorCode;
+import com.beat.domain.performanceimage.repository.PerformanceImageRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
+import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.staff.exception.StaffErrorCode;
@@ -486,7 +486,6 @@ public class PerformanceModifyService {
 			log.debug("Deleted staff with staffId: {}", staffId);
 		});
 	}
-
 
 	private List<PerformanceImageModifyResponse> processPerformanceImages(
 		List<PerformanceImageModifyRequest> performanceImageRequests, Performance performance) {

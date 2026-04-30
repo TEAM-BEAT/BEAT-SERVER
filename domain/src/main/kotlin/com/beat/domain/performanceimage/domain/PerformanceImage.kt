@@ -1,12 +1,12 @@
-package com.beat.domain.performance.domain
+package com.beat.domain.performanceimage.domain
 
-import kotlin.ConsistentCopyVisibility
+import com.beat.domain.performance.domain.Performance
 
 @ConsistentCopyVisibility
 data class PerformanceImage private constructor(
     private val imageId: Id?,
     val performanceImageUrl: String,
-    private val linkedPerformanceId: PerformanceId,
+    private val linkedPerformanceId: Performance.Id,
 ) {
     fun getId(): Long? = imageId?.value
 
@@ -32,14 +32,14 @@ data class PerformanceImage private constructor(
         fun create(performanceImageUrl: String, performanceId: Long): PerformanceImage = PerformanceImage(
             imageId = null,
             performanceImageUrl = performanceImageUrl,
-            linkedPerformanceId = PerformanceId.from(performanceId)
+            linkedPerformanceId = Performance.Id.from(performanceId)
         )
 
         @JvmStatic
         fun rehydrate(id: Long?, performanceImageUrl: String, performanceId: Long): PerformanceImage = PerformanceImage(
             imageId = Id.fromNullable(id),
             performanceImageUrl = performanceImageUrl,
-            linkedPerformanceId = PerformanceId.from(performanceId)
+            linkedPerformanceId = Performance.Id.from(performanceId)
         )
     }
 }

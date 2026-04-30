@@ -1,4 +1,4 @@
-package com.beat.domain.performance.exception;
+package com.beat.domain.performanceimage.exception;
 
 import com.beat.global.common.exception.base.BaseErrorCode;
 
