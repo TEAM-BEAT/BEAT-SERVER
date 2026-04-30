@@ -51,7 +51,7 @@ data class Booking private constructor(
 
     fun updateBookingStatus(bookingStatus: BookingStatus): Booking = copy(
         bookingStatus = bookingStatus,
-        cancellationDate = if (bookingStatus.isTerminalCancellationStatus()) {
+        cancellationDate = if (isTerminalCancellationStatus(bookingStatus)) {
             cancellationDate ?: LocalDateTime.now()
         } else {
             cancellationDate
@@ -138,8 +138,8 @@ data class Booking private constructor(
                 userId = userId,
             )
         }
+
+        private fun isTerminalCancellationStatus(bookingStatus: BookingStatus): Boolean =
+            bookingStatus == BookingStatus.BOOKING_CANCELLED || bookingStatus == BookingStatus.BOOKING_DELETED
     }
 }
-
-private fun BookingStatus.isTerminalCancellationStatus(): Boolean =
-    this == BookingStatus.BOOKING_CANCELLED || this == BookingStatus.BOOKING_DELETED

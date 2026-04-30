@@ -125,11 +125,11 @@ data class Schedule private constructor(
                 linkedPerformanceId = PerformanceId.from(performanceId)
             )
         }
-    }
-}
 
-private fun validateTicketCounts(totalTicketCount: Int, soldTicketCount: Int) {
-    if (totalTicketCount < 0 || soldTicketCount < 0 || soldTicketCount > totalTicketCount) {
-        throw BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT)
+        private fun validateTicketCounts(totalTicketCount: Int, soldTicketCount: Int) {
+            if (totalTicketCount < 0 || soldTicketCount < 0 || soldTicketCount > totalTicketCount) {
+                throw BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT)
+            }
+        }
     }
 }
