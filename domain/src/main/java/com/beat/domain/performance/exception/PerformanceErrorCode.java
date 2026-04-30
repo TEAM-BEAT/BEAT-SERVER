@@ -2,11 +2,6 @@ package com.beat.domain.performance.exception;
 
 import com.beat.global.common.exception.base.BaseErrorCode;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum PerformanceErrorCode implements BaseErrorCode {
 	/*
 	400 BadRequest
@@ -40,4 +35,17 @@ public enum PerformanceErrorCode implements BaseErrorCode {
 
 	private final int status;
 	private final String message;
+
+	PerformanceErrorCode(int status, String message) {
+		this.status = status;
+		this.message = message;
+	}
+
+	public int getStatus() {
+		return status;
+	}
+
+	public String getMessage() {
+		return message;
+	}
 }

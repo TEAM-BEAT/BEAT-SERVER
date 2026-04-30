@@ -1,10 +1,5 @@
 package com.beat.domain.performance.domain;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum BankName {
 	NH_NONGHYUP("NH농협"),
 	KAKAOBANK("카카오뱅크"),
@@ -24,4 +19,12 @@ public enum BankName {
 	NONE("");
 
 	private final String displayName;
+
+	BankName(String displayName) {
+		this.displayName = displayName;
+	}
+
+	public String getDisplayName() {
+		return displayName;
+	}
 }

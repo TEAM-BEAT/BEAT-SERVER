@@ -2,11 +2,6 @@ package com.beat.domain.booking.exception;
 
 import com.beat.global.common.exception.base.BaseErrorCode;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum BookingErrorCode implements BaseErrorCode {
 	/*
 	400 BadRequest
@@ -25,4 +20,17 @@ public enum BookingErrorCode implements BaseErrorCode {
 
 	private final int status;
 	private final String message;
+
+	BookingErrorCode(int status, String message) {
+		this.status = status;
+		this.message = message;
+	}
+
+	public int getStatus() {
+		return status;
+	}
+
+	public String getMessage() {
+		return message;
+	}
 }

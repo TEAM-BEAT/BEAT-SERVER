@@ -63,6 +63,22 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
+	void domainModuleRemainsLombokFreeAfterEnumMigration() throws Exception {
+		String domainBuild = Files.readString(Path.of("domain/build.gradle.kts"));
+		List<String> lombokSources = sourceFiles(Path.of("domain/src/main")).stream()
+			.filter(path -> contains(path, "lombok.") || contains(path, "@Getter")
+				|| contains(path, "@RequiredArgsConstructor") || contains(path, "@AllArgsConstructor"))
+			.map(path -> path.toString().replace('\\', '/'))
+			.toList();
+
+		assertFalse(domainBuild.contains("lombok"),
+			"Domain must stay pure api(project(\":global-utils\")) without Lombok build dependencies");
+		assertTrue(lombokSources.isEmpty(),
+			"Domain source must use explicit constructors/getters instead of Lombok:\n"
+				+ String.join("\n", lombokSources));
+	}
+
+	@Test
 	void globalUtilsBuildFileMustRemainStandalone() throws Exception {
 		String buildFile = Files.readString(Path.of("global-utils/build.gradle.kts"));
 
@@ -657,7 +673,7 @@ class SharedBoundaryContractTest {
 		assertFalse(domainBuild.contains("querydsl"));
 		assertFalse(domainBuild.contains("jakarta.annotation"));
 		assertFalse(domainBuild.contains("jakarta.persistence"));
-		assertTrue(domainBuild.contains("compileOnly(libs.lombok)"));
+		assertFalse(domainBuild.contains("lombok"));
 		assertTrue(jpaConfig.contains("@EnableJpaAuditing"));
 		assertTrue(jpaConfig.contains("@EntityScan(basePackageClasses = InfraPersistenceMarker.class)"));
 		assertTrue(jpaConfig.contains("@EnableJpaRepositories(basePackageClasses = InfraPersistenceMarker.class)"));

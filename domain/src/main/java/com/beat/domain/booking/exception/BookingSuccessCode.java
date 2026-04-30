@@ -2,11 +2,6 @@ package com.beat.domain.booking.exception;
 
 import com.beat.global.common.exception.base.BaseSuccessCode;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum BookingSuccessCode implements BaseSuccessCode {
 	/*
 	200 Ok
@@ -24,4 +19,17 @@ public enum BookingSuccessCode implements BaseSuccessCode {
 
 	private final int status;
 	private final String message;
+
+	BookingSuccessCode(int status, String message) {
+		this.status = status;
+		this.message = message;
+	}
+
+	public int getStatus() {
+		return status;
+	}
+
+	public String getMessage() {
+		return message;
+	}
 }

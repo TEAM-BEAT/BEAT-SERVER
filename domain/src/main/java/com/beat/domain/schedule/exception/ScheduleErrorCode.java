@@ -2,11 +2,6 @@ package com.beat.domain.schedule.exception;
 
 import com.beat.global.common.exception.base.BaseErrorCode;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum ScheduleErrorCode implements BaseErrorCode {
 	/*
 	400 BadRequest
@@ -31,4 +26,17 @@ public enum ScheduleErrorCode implements BaseErrorCode {
 
 	private final int status;
 	private final String message;
+
+	ScheduleErrorCode(int status, String message) {
+		this.status = status;
+		this.message = message;
+	}
+
+	public int getStatus() {
+		return status;
+	}
+
+	public String getMessage() {
+		return message;
+	}
 }

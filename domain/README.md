@@ -120,4 +120,4 @@ com.beat.domain.<context>/
 
 Issue #378에서는 `domain` 안에 남아 있던 JPA entity / Spring Data repository concern을 이동하지 않았다. #420 Commit 3 이후 이 concern은 infra로 이동되었고, 남은 follow-up은 infra query implementation boundary / QueryDSL-Kotlin JDSL scan 결정이다.
 
-현재 `domain`은 persistence concern이 없는 순수 domain 모듈을 향해 수렴했고, 남은 migration debt는 use-case port, read-model DTO, Lombok 제거처럼 persistence 외 경계 정리 중심이다.
+현재 `domain`은 persistence concern과 Lombok 의존이 없는 순수 domain 모듈로 수렴했고, 남은 migration debt는 TicketRepository command/query 책임 분리처럼 persistence 외 경계 정리 중심이다.

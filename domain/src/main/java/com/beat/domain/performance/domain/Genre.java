@@ -1,10 +1,5 @@
 package com.beat.domain.performance.domain;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum Genre {
 	BAND("밴드"),
 	PLAY("연극/뮤지컬"),
@@ -12,4 +7,12 @@ public enum Genre {
 	ETC("기타");
 
 	private final String displayName;
+
+	Genre(String displayName) {
+		this.displayName = displayName;
+	}
+
+	public String getDisplayName() {
+		return displayName;
+	}
 }

@@ -2,11 +2,6 @@ package com.beat.domain.performance.exception;
 
 import com.beat.global.common.exception.base.BaseSuccessCode;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum PerformanceSuccessCode implements BaseSuccessCode {
 	/*
 	200 Ok
@@ -26,4 +21,17 @@ public enum PerformanceSuccessCode implements BaseSuccessCode {
 
 	private final int status;
 	private final String message;
+
+	PerformanceSuccessCode(int status, String message) {
+		this.status = status;
+		this.message = message;
+	}
+
+	public int getStatus() {
+		return status;
+	}
+
+	public String getMessage() {
+		return message;
+	}
 }

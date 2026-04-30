@@ -2,11 +2,6 @@ package com.beat.domain.member.exception;
 
 import com.beat.global.common.exception.base.BaseSuccessCode;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum MemberSuccessCode implements BaseSuccessCode {
 	/*
 	200 Ok
@@ -19,4 +14,17 @@ public enum MemberSuccessCode implements BaseSuccessCode {
 
 	private final int status;
 	private final String message;
+
+	MemberSuccessCode(int status, String message) {
+		this.status = status;
+		this.message = message;
+	}
+
+	public int getStatus() {
+		return status;
+	}
+
+	public String getMessage() {
+		return message;
+	}
 }
