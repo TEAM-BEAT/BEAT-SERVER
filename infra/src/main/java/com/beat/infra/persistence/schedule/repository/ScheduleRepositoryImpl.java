@@ -1,5 +1,6 @@
 package com.beat.infra.persistence.schedule.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,6 +43,13 @@ public class ScheduleRepositoryImpl implements ScheduleRepository {
 	@Override
 	public List<Schedule> findAllByPerformanceId(Long performanceId) {
 		return scheduleJpaRepository.findAllByPerformanceId(performanceId).stream()
+			.map(schedulePersistenceMapper::toDomain)
+			.toList();
+	}
+
+	@Override
+	public List<Schedule> findAllById(Collection<Long> ids) {
+		return scheduleJpaRepository.findAllById(ids).stream()
 			.map(schedulePersistenceMapper::toDomain)
 			.toList();
 	}

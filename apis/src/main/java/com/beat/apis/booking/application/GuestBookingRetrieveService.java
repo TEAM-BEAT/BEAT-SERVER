@@ -21,8 +21,12 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -46,8 +50,11 @@ public class GuestBookingRetrieveService {
 			throw new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND);
 		}
 
+		Map<Long, Schedule> scheduleMap = findSchedulesByBookingScheduleIds(bookings);
+		Map<Long, Performance> performanceMap = findPerformancesBySchedules(scheduleMap.values());
+
 		return bookings.stream()
-			.map(this::toBookingResponse)
+			.map(booking -> toBookingResponse(booking, scheduleMap, performanceMap))
 			.toList();
 	}
 
@@ -75,11 +82,30 @@ public class GuestBookingRetrieveService {
 		}
 	}
 
-	private GuestBookingRetrieveResponse toBookingResponse(Booking booking) {
-		Schedule schedule = scheduleRepository.findById(booking.getScheduleId())
-			.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
-		Performance performance = performanceRepository.findById(schedule.getPerformanceId())
-			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+	private Map<Long, Schedule> findSchedulesByBookingScheduleIds(List<Booking> bookings) {
+		List<Long> scheduleIds = bookings.stream()
+			.map(Booking::getScheduleId)
+			.distinct()
+			.toList();
+
+		return scheduleRepository.findAllById(scheduleIds).stream()
+			.collect(Collectors.toMap(Schedule::getId, Function.identity()));
+	}
+
+	private Map<Long, Performance> findPerformancesBySchedules(Collection<Schedule> schedules) {
+		List<Long> performanceIds = schedules.stream()
+			.map(Schedule::getPerformanceId)
+			.distinct()
+			.toList();
+
+		return performanceRepository.findAllById(performanceIds).stream()
+			.collect(Collectors.toMap(Performance::getId, Function.identity()));
+	}
+
+	private GuestBookingRetrieveResponse toBookingResponse(Booking booking, Map<Long, Schedule> scheduleMap,
+		Map<Long, Performance> performanceMap) {
+		Schedule schedule = findScheduleForBooking(scheduleMap, booking);
+		Performance performance = findPerformanceForSchedule(performanceMap, schedule);
 		int totalPaymentAmount = booking.getPurchaseTicketCount() * performance.getTicketPrice();
 
 		return GuestBookingRetrieveResponse.of(
@@ -102,6 +128,22 @@ public class GuestBookingRetrieveService {
 			performance.getPosterImage(),
 			totalPaymentAmount
 		);
+	}
+
+	private Schedule findScheduleForBooking(Map<Long, Schedule> scheduleMap, Booking booking) {
+		Schedule schedule = scheduleMap.get(booking.getScheduleId());
+		if (schedule == null) {
+			throw new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
+		}
+		return schedule;
+	}
+
+	private Performance findPerformanceForSchedule(Map<Long, Performance> performanceMap, Schedule schedule) {
+		Performance performance = performanceMap.get(schedule.getPerformanceId());
+		if (performance == null) {
+			throw new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND);
+		}
+		return performance;
 	}
 
 	private int calculateDueDate(LocalDateTime performanceDate) {

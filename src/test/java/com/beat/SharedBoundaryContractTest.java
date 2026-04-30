@@ -260,8 +260,11 @@ class SharedBoundaryContractTest {
 			Path.of("apis/src/main/java/com/beat/apis/performance/application/PerformanceService.java")
 		);
 
+		Pattern boxedLongIdentityComparison = Pattern.compile(
+			"performance\\.getUserId\\(\\)\\s*!=\\s*userId|userId\\s*!=\\s*performance\\.getUserId\\(\\)"
+		);
 		List<String> violations = serviceSources.stream()
-			.filter(path -> contains(path, "performance.getUserId() != userId"))
+			.filter(path -> matches(path, boxedLongIdentityComparison))
 			.map(Path::toString)
 			.toList();
 
@@ -282,6 +285,10 @@ class SharedBoundaryContractTest {
 			Path.of("apis/src/main/java/com/beat/apis/booking/application/TicketService.java"));
 		String bookingCancelService = Files.readString(
 			Path.of("apis/src/main/java/com/beat/apis/booking/application/BookingCancelService.java"));
+		String guestBookingRetrieveService = Files.readString(
+			Path.of("apis/src/main/java/com/beat/apis/booking/application/GuestBookingRetrieveService.java"));
+		String memberBookingRetrieveService = Files.readString(
+			Path.of("apis/src/main/java/com/beat/apis/booking/application/MemberBookingRetrieveService.java"));
 
 		assertTrue(performanceManagement.contains("schedules = scheduleRepository.saveAll(schedules);"));
 		assertTrue(performanceModify.contains("schedules = scheduleRepository.saveAll(schedules);"));
@@ -289,13 +296,24 @@ class SharedBoundaryContractTest {
 		assertTrue(performanceManagement.contains("bookingRepository.deleteInactiveBookingsByScheduleIds("));
 		assertTrue(performanceModify.contains("bookingRepository.deleteInactiveBookingsByScheduleIds("));
 		assertTrue(performanceModify.contains("bookingRepository.existsActiveBookingByScheduleIds(scheduleIds"));
+		assertTrue(performanceManagement.contains("deletedInactiveBookingCount"));
+		assertTrue(performanceModify.contains("deletedInactiveBookingCount"));
 		assertTrue(bookingRepository.contains("@Modifying(clearAutomatically = true, flushAutomatically = true)"));
 		assertTrue(bookingRepository.contains("DELETE FROM Booking b WHERE b.scheduleId IN :scheduleIds"));
+		assertTrue(bookingRepository.contains("int deleteInactiveBookingsByScheduleIds("));
 		assertTrue(ticketService.contains("findScheduleForBooking(scheduleMap, booking)"));
 		assertTrue(ticketService.contains("throw new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND)"));
 		assertTrue(ticketService.contains("scheduleRepository.lockById(booking.getScheduleId())"));
 		assertTrue(bookingCancelService.contains("@Transactional"));
 		assertTrue(bookingCancelService.contains("scheduleRepository.lockById(booking.getScheduleId())"));
+		assertTrue(guestBookingRetrieveService.contains("scheduleRepository.findAllById(scheduleIds)"));
+		assertTrue(guestBookingRetrieveService.contains("performanceRepository.findAllById(performanceIds)"));
+		assertFalse(guestBookingRetrieveService.contains("scheduleRepository.findById(booking.getScheduleId())"));
+		assertFalse(guestBookingRetrieveService.contains("performanceRepository.findById(schedule.getPerformanceId())"));
+		assertTrue(memberBookingRetrieveService.contains("scheduleRepository.findAllById(scheduleIds)"));
+		assertTrue(memberBookingRetrieveService.contains("performanceRepository.findAllById(performanceIds)"));
+		assertFalse(memberBookingRetrieveService.contains("scheduleRepository.findById(booking.getScheduleId())"));
+		assertFalse(memberBookingRetrieveService.contains("performanceRepository.findById(schedule.getPerformanceId())"));
 	}
 
 	@Test
@@ -840,6 +858,14 @@ class SharedBoundaryContractTest {
 				"(?s).*\\bvar\\s+carouselNumber\\s*:\\s*CarouselNumber\\s*=\\s*carouselNumber\\s+protected set.*"));
 		} else {
 			assertTrue(source.contains("private Long performanceId;"));
+		}
+	}
+
+	private boolean matches(Path path, Pattern pattern) {
+		try {
+			return pattern.matcher(Files.readString(path)).find();
+		} catch (IOException exception) {
+			throw new IllegalStateException("Failed to read " + path, exception);
 		}
 	}
 

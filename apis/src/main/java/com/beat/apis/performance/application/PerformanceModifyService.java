@@ -298,7 +298,9 @@ public class PerformanceModifyService {
 		if (hasActiveBookings) {
 			throw new ForbiddenException(PerformanceErrorCode.PERFORMANCE_DELETE_FAILED);
 		}
-		bookingRepository.deleteInactiveBookingsByScheduleIds(scheduleIds, inactiveStatuses);
+		int deletedInactiveBookingCount = bookingRepository.deleteInactiveBookingsByScheduleIds(scheduleIds,
+			inactiveStatuses);
+		log.debug("Deleted {} inactive bookings for scheduleIds={}", deletedInactiveBookingCount, scheduleIds);
 
 		scheduleIds.forEach(scheduleId -> {
 			Schedule schedule = scheduleRepository.findById(scheduleId)

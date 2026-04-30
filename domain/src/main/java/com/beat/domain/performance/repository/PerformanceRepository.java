@@ -1,5 +1,6 @@
 package com.beat.domain.performance.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,6 +11,8 @@ public interface PerformanceRepository {
 	Optional<Performance> findById(Long id);
 
 	List<Performance> findAll();
+
+	List<Performance> findAllById(Collection<Long> ids);
 
 	Performance save(Performance performance);
 

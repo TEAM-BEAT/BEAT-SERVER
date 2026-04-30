@@ -41,7 +41,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("DELETE FROM Booking b WHERE b.scheduleId IN :scheduleIds AND b.bookingStatus IN :inactiveStatuses")
-	void deleteInactiveBookingsByScheduleIds(
+	int deleteInactiveBookingsByScheduleIds(
 		@Param("scheduleIds") List<Long> scheduleIds,
 		@Param("inactiveStatuses") List<BookingStatus> inactiveStatuses
 	);

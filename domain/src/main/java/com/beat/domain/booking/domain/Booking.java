@@ -86,6 +86,10 @@ public class Booking {
 	public static Booking create(int purchaseTicketCount, String bookerName, String bookerPhoneNumber,
 		BookingStatus bookingStatus, String birthDate, String password,
 		BankName bankName, String accountNumber, String accountHolder, Long scheduleId, Long userId) {
+		if (scheduleId == null) {
+			throw new IllegalArgumentException("scheduleId must not be null");
+		}
+
 		return Booking.builder()
 			.purchaseTicketCount(purchaseTicketCount)
 			.bookerName(bookerName)
