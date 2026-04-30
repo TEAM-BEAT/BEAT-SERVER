@@ -18,7 +18,7 @@ import com.beat.apis.booking.application.dto.TicketUpdateDetail;
 import com.beat.apis.booking.application.dto.TicketUpdateRequest;
 import com.beat.contracts.sms.SmsMessage;
 import com.beat.contracts.sms.SmsPort;
-import com.beat.domain.booking.dao.TicketRepository;
+import com.beat.domain.booking.repository.TicketRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.exception.BookingErrorCode;
@@ -188,8 +188,8 @@ public class TicketService {
 
 			if (booking.getBookingStatus() == BookingStatus.CHECKING_PAYMENT
 				&& detail.bookingStatus() == BookingStatus.BOOKING_CONFIRMED) {
-				booking.updateBookingStatus(BookingStatus.BOOKING_CONFIRMED);
-				ticketRepository.save(booking);
+				booking = booking.updateBookingStatus(BookingStatus.BOOKING_CONFIRMED);
+				booking = ticketRepository.save(booking);
 
 				String message = String.format("[BEAT] %s님 %s 예매 확정되었습니다.", detail.bookerName(),
 					request.performanceTitle());
@@ -214,8 +214,8 @@ public class TicketService {
 			Booking booking = ticketRepository.findById(bookingId)
 				.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
-			booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
-			ticketRepository.save(booking);
+			booking = booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
+			booking = ticketRepository.save(booking);
 
 			Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
 				.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
@@ -239,8 +239,8 @@ public class TicketService {
 			Booking booking = ticketRepository.findById(bookingId)
 				.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
-			booking.updateBookingStatus(BookingStatus.BOOKING_DELETED);
-			ticketRepository.save(booking);
+			booking = booking.updateBookingStatus(BookingStatus.BOOKING_DELETED);
+			booking = ticketRepository.save(booking);
 
 			Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
 				.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));

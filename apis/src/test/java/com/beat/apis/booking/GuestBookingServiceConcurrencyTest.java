@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -25,7 +26,7 @@ import com.beat.apis.booking.application.GuestBookingService;
 import com.beat.apis.booking.application.dto.GuestBookingRequest;
 import com.beat.apis.booking.application.dto.GuestBookingResponse;
 import com.beat.apis.support.AbstractIntegrationTest;
-import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.BankName;
@@ -228,10 +229,10 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 		assertFalse(secondSchedule.isBooking());
 
 		long firstScheduleBookingCount = bookingRepository.findAll().stream()
-			.filter(booking -> booking.getScheduleId().equals(firstSchedule.getId()))
+			.filter(booking -> Objects.equals(booking.getScheduleId(), firstSchedule.getId()))
 			.count();
 		long secondScheduleBookingCount = bookingRepository.findAll().stream()
-			.filter(booking -> booking.getScheduleId().equals(secondSchedule.getId()))
+			.filter(booking -> Objects.equals(booking.getScheduleId(), secondSchedule.getId()))
 			.count();
 
 		assertEquals(5L, firstScheduleBookingCount);

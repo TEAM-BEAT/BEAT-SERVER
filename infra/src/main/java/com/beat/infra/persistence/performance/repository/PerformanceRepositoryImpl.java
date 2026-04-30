@@ -1,5 +1,6 @@
 package com.beat.infra.persistence.performance.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -32,6 +33,13 @@ public class PerformanceRepositoryImpl implements PerformanceRepository {
 	@Override
 	public List<Performance> findAll() {
 		return performanceJpaRepository.findAll().stream()
+			.map(performancePersistenceMapper::toDomain)
+			.collect(Collectors.toList());
+	}
+
+	@Override
+	public List<Performance> findAllById(Collection<Long> ids) {
+		return performanceJpaRepository.findAllById(ids).stream()
 			.map(performancePersistenceMapper::toDomain)
 			.collect(Collectors.toList());
 	}

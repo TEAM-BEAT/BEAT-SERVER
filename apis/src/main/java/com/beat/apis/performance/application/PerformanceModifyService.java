@@ -21,7 +21,7 @@ import com.beat.apis.performance.application.dto.modify.schedule.ScheduleModifyR
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyRequest;
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyResponse;
 import com.beat.contracts.schedule.ScheduleJobPort;
-import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.exception.CastErrorCode;
@@ -298,7 +298,9 @@ public class PerformanceModifyService {
 		if (hasActiveBookings) {
 			throw new ForbiddenException(PerformanceErrorCode.PERFORMANCE_DELETE_FAILED);
 		}
-		bookingRepository.deleteInactiveBookingsByScheduleIds(scheduleIds, inactiveStatuses);
+		int deletedInactiveBookingCount = bookingRepository.deleteInactiveBookingsByScheduleIds(scheduleIds,
+			inactiveStatuses);
+		log.debug("Deleted {} inactive bookings for scheduleIds={}", deletedInactiveBookingCount, scheduleIds);
 
 		scheduleIds.forEach(scheduleId -> {
 			Schedule schedule = scheduleRepository.findById(scheduleId)

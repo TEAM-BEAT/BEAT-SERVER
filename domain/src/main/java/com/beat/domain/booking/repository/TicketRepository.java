@@ -1,12 +1,25 @@
-package com.beat.domain.booking.dao;
+package com.beat.domain.booking.repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 
-import java.util.List;
+public interface TicketRepository {
 
-public interface TicketRepositoryCustom {
+	Optional<Booking> findById(Long id);
+
+	Booking save(Booking booking);
+
+	void deleteAll(Iterable<Booking> bookings);
+
+	List<Booking> findByBookingStatusAndCancellationDateBefore(
+		BookingStatus bookingStatus,
+		LocalDateTime cancellationDate
+	);
 
 	List<Booking> findBookingsByPerformanceIdAndScheduleNumbersAndBookingStatuses(
 		Long performanceId,

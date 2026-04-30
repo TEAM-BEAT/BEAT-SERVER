@@ -19,7 +19,7 @@ import com.beat.apis.performance.application.dto.create.PerformanceResponse;
 import com.beat.apis.performance.application.dto.create.ScheduleResponse;
 import com.beat.apis.performance.application.dto.create.StaffResponse;
 import com.beat.contracts.schedule.ScheduleJobPort;
-import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.repository.CastRepository;
@@ -42,7 +42,9 @@ import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PerformanceManagementService {
@@ -247,7 +249,9 @@ public class PerformanceManagementService {
 				throw new ForbiddenException(PerformanceErrorCode.PERFORMANCE_DELETE_FAILED);
 			}
 
-			bookingRepository.deleteInactiveBookingsByScheduleIds(scheduleIds, inactiveStatuses);
+			int deletedInactiveBookingCount = bookingRepository.deleteInactiveBookingsByScheduleIds(scheduleIds,
+				inactiveStatuses);
+			log.debug("Deleted {} inactive bookings for performanceId={}", deletedInactiveBookingCount, performanceId);
 		}
 
 		// 모든 스케줄에 대해 등록된 TaskScheduler 작업을 취소

@@ -7,7 +7,7 @@ import com.beat.apis.booking.application.dto.BookingCancelRequest;
 import com.beat.apis.booking.application.dto.BookingCancelResponse;
 import com.beat.apis.booking.application.dto.BookingRefundRequest;
 import com.beat.apis.booking.application.dto.BookingRefundResponse;
-import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.exception.BookingErrorCode;
@@ -29,8 +29,8 @@ public class BookingCancelService {
 		Booking booking = bookingRepository.findById(request.bookingId())
 			.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
-		booking.updateRefundInfo(request.bankName(), request.accountNumber(), request.accountHolder());
-		bookingRepository.save(booking);
+		booking = booking.updateRefundInfo(request.bankName(), request.accountNumber(), request.accountHolder());
+		booking = bookingRepository.save(booking);
 
 		return BookingRefundResponse.of(
 			booking.getId(),
@@ -46,8 +46,8 @@ public class BookingCancelService {
 		Booking booking = bookingRepository.findById(request.bookingId())
 			.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
-		booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
-		bookingRepository.save(booking);
+		booking = booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
+		booking = bookingRepository.save(booking);
 
 		Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
 			.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));

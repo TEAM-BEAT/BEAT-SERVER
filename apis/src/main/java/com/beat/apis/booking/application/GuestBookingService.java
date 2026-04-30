@@ -7,7 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.beat.apis.booking.application.dto.GuestBookingRequest;
 import com.beat.apis.booking.application.dto.GuestBookingResponse;
 import com.beat.apis.booking.application.dto.event.BookingCreatedEvent;
-import com.beat.domain.booking.dao.BookingRepository;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
@@ -76,7 +76,7 @@ public class GuestBookingService {
 			schedule.getId(),
 			userId
 		);
-		bookingRepository.save(booking);
+		booking = bookingRepository.save(booking);
 
 		log.info("Guest Booking created: {}", booking);
 
