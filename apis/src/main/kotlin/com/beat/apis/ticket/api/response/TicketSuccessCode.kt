@@ -1,4 +1,4 @@
-package com.beat.apis.booking.api.response
+package com.beat.apis.ticket.api.response
 
 import com.beat.global.common.exception.base.BaseSuccessCode
 

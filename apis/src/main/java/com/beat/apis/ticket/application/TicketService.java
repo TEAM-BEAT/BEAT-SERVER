@@ -1,4 +1,4 @@
-package com.beat.apis.booking.application;
+package com.beat.apis.ticket.application;
 
 import java.util.Arrays;
 import java.util.List;
@@ -9,12 +9,12 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.apis.booking.application.dto.TicketDeleteRequest;
-import com.beat.apis.booking.application.dto.TicketDetail;
-import com.beat.apis.booking.application.dto.TicketRefundRequest;
-import com.beat.apis.booking.application.dto.TicketRetrieveResponse;
-import com.beat.apis.booking.application.dto.TicketUpdateDetail;
-import com.beat.apis.booking.application.dto.TicketUpdateRequest;
+import com.beat.apis.ticket.application.dto.TicketDeleteRequest;
+import com.beat.apis.ticket.application.dto.TicketDetail;
+import com.beat.apis.ticket.application.dto.TicketRefundRequest;
+import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
+import com.beat.apis.ticket.application.dto.TicketUpdateDetail;
+import com.beat.apis.ticket.application.dto.TicketUpdateRequest;
 import com.beat.contracts.booking.MakerTicketReadPort;
 import com.beat.contracts.booking.readmodel.MakerTicketListItemReadModel;
 import com.beat.contracts.sms.SmsMessage;
@@ -22,7 +22,7 @@ import com.beat.contracts.sms.SmsPort;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.booking.exception.TicketErrorCode;
+import com.beat.apis.ticket.application.exception.TicketApplicationErrorCode;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.performance.repository.PerformanceRepository;
@@ -194,7 +194,7 @@ public class TicketService {
 
 			if (booking.getBookingStatus() == BookingStatus.BOOKING_CONFIRMED
 				&& detail.bookingStatus() != BookingStatus.BOOKING_CONFIRMED) {
-				throw new BadRequestException(TicketErrorCode.PAYMENT_COMPLETED_TICKET_UPDATE_NOT_ALLOWED);
+				throw new BadRequestException(TicketApplicationErrorCode.PAYMENT_COMPLETED_TICKET_UPDATE_NOT_ALLOWED);
 			}
 
 			if (booking.getBookingStatus() == BookingStatus.CHECKING_PAYMENT

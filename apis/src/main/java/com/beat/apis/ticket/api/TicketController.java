@@ -1,4 +1,4 @@
-package com.beat.apis.booking.api;
+package com.beat.apis.ticket.api;
 
 import java.util.List;
 
@@ -12,14 +12,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.beat.apis.booking.application.TicketService;
-import com.beat.apis.booking.application.dto.TicketDeleteRequest;
-import com.beat.apis.booking.application.dto.TicketRefundRequest;
-import com.beat.apis.booking.application.dto.TicketRetrieveResponse;
-import com.beat.apis.booking.application.dto.TicketUpdateRequest;
+import com.beat.apis.ticket.application.TicketService;
+import com.beat.apis.ticket.application.dto.TicketDeleteRequest;
+import com.beat.apis.ticket.application.dto.TicketRefundRequest;
+import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
+import com.beat.apis.ticket.application.dto.TicketUpdateRequest;
 import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.booking.exception.TicketErrorCode;
-import com.beat.apis.booking.api.response.TicketSuccessCode;
+import com.beat.apis.ticket.application.exception.TicketApplicationErrorCode;
+import com.beat.apis.ticket.api.response.TicketSuccessCode;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
@@ -42,7 +42,7 @@ public class TicketController implements TicketApi {
 		@RequestParam(required = false) List<ScheduleNumber> scheduleNumbers,
 		@RequestParam(required = false) List<BookingStatus> bookingStatuses) {
 		if (bookingStatuses != null && bookingStatuses.contains(BookingStatus.BOOKING_DELETED)) {
-			throw new BadRequestException(TicketErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
+			throw new BadRequestException(TicketApplicationErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
 		}
 		TicketRetrieveResponse response = ticketService.findAllTicketsByConditions(memberId, performanceId,
 			scheduleNumbers, bookingStatuses);
@@ -58,10 +58,10 @@ public class TicketController implements TicketApi {
 		@RequestParam(required = false) List<ScheduleNumber> scheduleNumbers,
 		@RequestParam(required = false) List<BookingStatus> bookingStatuses) {
 		if (searchWord.length() < 2) {
-			throw new BadRequestException(TicketErrorCode.SEARCH_WORD_TOO_SHORT);
+			throw new BadRequestException(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT);
 		}
 		if (bookingStatuses != null && bookingStatuses.contains(BookingStatus.BOOKING_DELETED)) {
-			throw new BadRequestException(TicketErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
+			throw new BadRequestException(TicketApplicationErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
 		}
 
 		TicketRetrieveResponse response = ticketService.searchAllTicketsByConditions(memberId, performanceId,

@@ -1,4 +1,4 @@
-package com.beat.apis.booking.api;
+package com.beat.apis.ticket.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -17,10 +17,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
-import com.beat.apis.booking.application.TicketService;
-import com.beat.apis.booking.application.dto.TicketRetrieveResponse;
+import com.beat.apis.ticket.application.TicketService;
+import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
 import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.booking.exception.TicketErrorCode;
+import com.beat.apis.ticket.application.exception.TicketApplicationErrorCode;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.global.common.dto.SuccessResponse;
 import com.beat.global.common.exception.BadRequestException;
@@ -50,7 +50,7 @@ class TicketControllerTest {
 			)
 		);
 
-		assertEquals(TicketErrorCode.SEARCH_WORD_TOO_SHORT, exception.getBaseErrorCode());
+		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getBaseErrorCode());
 		verify(ticketService, never()).searchAllTicketsByConditions(anyLong(), anyLong(), any(), any(), any());
 	}
 
@@ -60,7 +60,7 @@ class TicketControllerTest {
 			ticketController.searchTickets(1L, 100L, "a", null, null)
 		);
 
-		assertEquals(TicketErrorCode.SEARCH_WORD_TOO_SHORT, exception.getBaseErrorCode());
+		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getBaseErrorCode());
 		verify(ticketService, never()).searchAllTicketsByConditions(anyLong(), anyLong(), any(), any(), any());
 	}
 

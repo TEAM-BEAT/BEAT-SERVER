@@ -45,20 +45,20 @@ Issue #421 commit 1 baseline. This file is an inventory only: no Java/Kotlin sou
 | `INVALID_DATA_FORMAT` | 400 | 잘못된 데이터 형식입니다. | domain invariant | prod 1 (domain:1); test 1 | Thrown from domain model; should stay domain-owned or move with domain exception abstraction only. |
 | `INVALID_REQUEST_FORMAT` | 400 | 잘못된 요청 형식입니다. | application use-case | prod 4 (apis:4); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 | `NO_BOOKING_FOUND` | 404 | 입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요. | application use-case | prod 7 (apis:7); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
-| `NO_TICKETS_FOUND` | 404 | 입력하신 정보와 일치하는 예매자 목록이 없습니다. | unused / reserved | none | No non-declaration references found; confirm before moving or deleting. |
 | `NO_PERFORMANCE_FOUND` | 404 | 공연을 찾을 수 없습니다. | unused / reserved | none | No non-declaration references found; confirm before moving or deleting. |
 | `NO_SCHEDULE_FOUND` | 404 | 회차를 찾을 수 없습니다. | unused / reserved | none | No non-declaration references found; confirm before moving or deleting. |
 
-### `TicketErrorCode`
+### `TicketApplicationErrorCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/booking/exception/TicketErrorCode.java`
-- Current package: `com.beat.domain.booking.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/ticket/application/exception/TicketApplicationErrorCode.kt`
+- Current package: `com.beat.apis.ticket.application.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
-| `PAYMENT_COMPLETED_TICKET_UPDATE_NOT_ALLOWED` | 400 | 이미 결제가 완료된 티켓의 상태는 변경할 수 없습니다. | application use-case | prod 1 (apis:1); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
-| `SEARCH_WORD_TOO_SHORT` | 400 | 검색어는 최소 2글자 이상이어야 합니다. | application use-case | prod 1 (apis:1); test 2 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
-| `DELETED_TICKET_RETRIEVE_NOT_ALLOWED` | 400 | 삭제된 예매자를 조회할 수 없습니다. | application use-case | prod 2 (apis:2); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
+| `PAYMENT_COMPLETED_TICKET_UPDATE_NOT_ALLOWED` | 400 | 이미 결제가 완료된 티켓의 상태는 변경할 수 없습니다. | application use-case | prod 1 (apis:1); test 0 | Moved to ticket application boundary with value unchanged. |
+| `SEARCH_WORD_TOO_SHORT` | 400 | 검색어는 최소 2글자 이상이어야 합니다. | application use-case | prod 1 (apis:1); test 2 | Moved to ticket application boundary with value unchanged. |
+| `DELETED_TICKET_RETRIEVE_NOT_ALLOWED` | 400 | 삭제된 예매자를 조회할 수 없습니다. | application use-case | prod 2 (apis:2); test 0 | Moved to ticket application boundary with value unchanged. |
+| `NO_TICKETS_FOUND` | 404 | 입력하신 정보와 일치하는 예매자 목록이 없습니다. | application flow | prod 0; test 1 | Ticket lookup/search response language; owned by ticket application boundary. |
 
 ### `CastErrorCode`
 
@@ -190,16 +190,16 @@ All current domain `*SuccessCode` constants are response-boundary messages. They
 
 ### `TicketSuccessCode`
 
-- Current file: `domain/src/main/java/com/beat/domain/booking/exception/TicketSuccessCode.java`
-- Current package: `com.beat.domain.booking.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/ticket/api/response/TicketSuccessCode.kt`
+- Current package: `com.beat.apis.ticket.api.response`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
-| `TICKET_RETRIEVE_SUCCESS` | 200 | 예매자 목록 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Move to `apis/booking` response boundary with value unchanged. |
-| `TICKET_UPDATE_SUCCESS` | 200 | 예매자 입금여부 수정이 성공적으로 완료되었습니다. | success response | apis controller response | Move to `apis/booking` response boundary with value unchanged. |
-| `TICKET_REFUND_SUCCESS` | 200 | 예매 환불처리 요청이 성공했습니다. | success response | apis controller response | Move to `apis/booking` response boundary with value unchanged. |
-| `TICKET_DELETE_SUCCESS` | 200 | 예매자 삭제 요청이 성공했습니다. | success response | apis controller response | Move to `apis/booking` response boundary with value unchanged. |
-| `TICKET_SEARCH_SUCCESS` | 200 | 예매자 검색 결과 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Move to `apis/booking` response boundary with value unchanged. |
+| `TICKET_RETRIEVE_SUCCESS` | 200 | 예매자 목록 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Moved to `apis/ticket` response boundary with value unchanged. |
+| `TICKET_UPDATE_SUCCESS` | 200 | 예매자 입금여부 수정이 성공적으로 완료되었습니다. | success response | apis controller response | Moved to `apis/ticket` response boundary with value unchanged. |
+| `TICKET_REFUND_SUCCESS` | 200 | 예매 환불처리 요청이 성공했습니다. | success response | apis controller response | Moved to `apis/ticket` response boundary with value unchanged. |
+| `TICKET_DELETE_SUCCESS` | 200 | 예매자 삭제 요청이 성공했습니다. | success response | apis controller response | Moved to `apis/ticket` response boundary with value unchanged. |
+| `TICKET_SEARCH_SUCCESS` | 200 | 예매자 검색 결과 조회가 성공적으로 완료되었습니다. | success response | apis controller response | Moved to `apis/ticket` response boundary with value unchanged. |
 
 ### `MemberSuccessCode`
 

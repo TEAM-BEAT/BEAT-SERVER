@@ -1,8 +1,9 @@
 package com.beat.apis.boundary
 
 import com.beat.apis.booking.api.response.BookingSuccessCode
-import com.beat.apis.booking.api.response.TicketSuccessCode
+import com.beat.apis.ticket.api.response.TicketSuccessCode
 import com.beat.apis.booking.application.exception.BookingApplicationErrorCode
+import com.beat.apis.ticket.application.exception.TicketApplicationErrorCode
 import com.beat.apis.external.s3.exception.FileSuccessCode
 import com.beat.apis.member.api.response.MemberSuccessCode
 import com.beat.apis.member.application.exception.MemberApplicationErrorCode
@@ -60,7 +61,7 @@ class DomainApplicationCodeBoundarySnapshotTest {
     fun lookupNotFoundErrorCodeStatusAndMessagesStayStableAcrossApplicationBoundaryMove() {
         val snapshots = listOf(
             error(BookingApplicationErrorCode.NO_BOOKING_FOUND, 404, "입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요."),
-            error(BookingApplicationErrorCode.NO_TICKETS_FOUND, 404, "입력하신 정보와 일치하는 예매자 목록이 없습니다."),
+            error(TicketApplicationErrorCode.NO_TICKETS_FOUND, 404, "입력하신 정보와 일치하는 예매자 목록이 없습니다."),
             error(BookingApplicationErrorCode.NO_PERFORMANCE_FOUND, 404, "공연을 찾을 수 없습니다."),
             error(BookingApplicationErrorCode.NO_SCHEDULE_FOUND, 404, "회차를 찾을 수 없습니다."),
             error(CastApplicationErrorCode.CAST_NOT_FOUND, 404, "등장인물이 존재하지 않습니다."),

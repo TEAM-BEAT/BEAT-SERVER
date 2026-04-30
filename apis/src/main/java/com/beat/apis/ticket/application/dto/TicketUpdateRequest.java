@@ -1,4 +1,4 @@
-package com.beat.apis.booking.application.dto;
+package com.beat.apis.ticket.application.dto;
 
 import java.time.LocalDateTime;
 import java.util.List;

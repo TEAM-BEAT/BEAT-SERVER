@@ -14,11 +14,11 @@ These `BaseSuccessCode` values are API response messages. Package names may chan
 | `BookingSuccessCode.BOOKING_CANCEL_SUCCESS` | 200 | 예매자의 취소요청이 성공했습니다. | `apis/booking/api/response` |
 | `BookingSuccessCode.MEMBER_BOOKING_SUCCESS` | 201 | 회원 예매가 성공적으로 완료되었습니다 | `apis/booking/api/response` |
 | `BookingSuccessCode.GUEST_BOOKING_SUCCESS` | 201 | 비회원 예매가 성공적으로 완료되었습니다 | `apis/booking/api/response` |
-| `TicketSuccessCode.TICKET_RETRIEVE_SUCCESS` | 200 | 예매자 목록 조회가 성공적으로 완료되었습니다. | `apis/booking/api/response` |
-| `TicketSuccessCode.TICKET_UPDATE_SUCCESS` | 200 | 예매자 입금여부 수정이 성공적으로 완료되었습니다. | `apis/booking/api/response` |
-| `TicketSuccessCode.TICKET_REFUND_SUCCESS` | 200 | 예매 환불처리 요청이 성공했습니다. | `apis/booking/api/response` |
-| `TicketSuccessCode.TICKET_DELETE_SUCCESS` | 200 | 예매자 삭제 요청이 성공했습니다. | `apis/booking/api/response` |
-| `TicketSuccessCode.TICKET_SEARCH_SUCCESS` | 200 | 예매자 검색 결과 조회가 성공적으로 완료되었습니다. | `apis/booking/api/response` |
+| `TicketSuccessCode.TICKET_RETRIEVE_SUCCESS` | 200 | 예매자 목록 조회가 성공적으로 완료되었습니다. | `apis/ticket/api/response` |
+| `TicketSuccessCode.TICKET_UPDATE_SUCCESS` | 200 | 예매자 입금여부 수정이 성공적으로 완료되었습니다. | `apis/ticket/api/response` |
+| `TicketSuccessCode.TICKET_REFUND_SUCCESS` | 200 | 예매 환불처리 요청이 성공했습니다. | `apis/ticket/api/response` |
+| `TicketSuccessCode.TICKET_DELETE_SUCCESS` | 200 | 예매자 삭제 요청이 성공했습니다. | `apis/ticket/api/response` |
+| `TicketSuccessCode.TICKET_SEARCH_SUCCESS` | 200 | 예매자 검색 결과 조회가 성공적으로 완료되었습니다. | `apis/ticket/api/response` |
 | `MemberSuccessCode.SIGN_UP_SUCCESS` | 200 | 로그인 성공 | `apis/member/api/response` |
 | `MemberSuccessCode.ISSUE_ACCESS_TOKEN_SUCCESS` | 200 | 엑세스토큰 발급 성공 | `apis/member/api/response` |
 | `MemberSuccessCode.ISSUE_ACCESS_TOKEN_USING_REFRESH_TOKEN` | 200 | 리프레쉬 토큰으로 액세스 토큰 재발급 성공 | `apis/member/api/response` |
@@ -41,7 +41,7 @@ Commit 3 may move lookup `*_NOT_FOUND` and `NO_*_FOUND` constants to application
 | Code | Status | Message | Review note |
 | --- | ---: | --- | --- |
 | `BookingErrorCode.NO_BOOKING_FOUND` | 404 | 입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요. | Booking lookup flow |
-| `BookingErrorCode.NO_TICKETS_FOUND` | 404 | 입력하신 정보와 일치하는 예매자 목록이 없습니다. | Booking/ticket lookup flow |
+| `TicketApplicationErrorCode.NO_TICKETS_FOUND` | 404 | 입력하신 정보와 일치하는 예매자 목록이 없습니다. | Booking/ticket lookup flow |
 | `BookingErrorCode.NO_PERFORMANCE_FOUND` | 404 | 공연을 찾을 수 없습니다. | Currently unused; preserve if moved or delete only with explicit cleanup approval |
 | `BookingErrorCode.NO_SCHEDULE_FOUND` | 404 | 회차를 찾을 수 없습니다. | Currently unused; do not confuse with `ScheduleErrorCode.NO_SCHEDULE_FOUND` |
 | `CastErrorCode.CAST_NOT_FOUND` | 404 | 등장인물이 존재하지 않습니다. | Performance modification lookup flow |

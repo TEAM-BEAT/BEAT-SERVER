@@ -1,4 +1,4 @@
-package com.beat.apis.booking.api;
+package com.beat.apis.ticket.api;
 
 import java.util.List;
 
@@ -7,10 +7,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.beat.apis.booking.application.dto.TicketDeleteRequest;
-import com.beat.apis.booking.application.dto.TicketRefundRequest;
-import com.beat.apis.booking.application.dto.TicketRetrieveResponse;
-import com.beat.apis.booking.application.dto.TicketUpdateRequest;
+import com.beat.apis.ticket.application.dto.TicketDeleteRequest;
+import com.beat.apis.ticket.application.dto.TicketRefundRequest;
+import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
+import com.beat.apis.ticket.application.dto.TicketUpdateRequest;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.gateway.annotation.CurrentMember;

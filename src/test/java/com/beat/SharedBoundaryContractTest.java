@@ -337,7 +337,7 @@ class SharedBoundaryContractTest {
 		String bookingRepositoryImpl = Files.readString(
 			Path.of("infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java"));
 		String ticketService = Files.readString(
-			Path.of("apis/src/main/java/com/beat/apis/booking/application/TicketService.java"));
+			Path.of("apis/src/main/java/com/beat/apis/ticket/application/TicketService.java"));
 		String bookingCancelService = Files.readString(
 			Path.of("apis/src/main/java/com/beat/apis/booking/application/BookingCancelService.java"));
 		String guestBookingRetrieveService = Files.readString(
@@ -443,7 +443,7 @@ class SharedBoundaryContractTest {
 				Path.of("apis/src/main/kotlin/com/beat/apis/booking/api/response/BookingSuccessCode.kt"),
 				"GUEST_BOOKING_SUCCESS(201, \"비회원 예매가 성공적으로 완료되었습니다\")"),
 			() -> assertSourceContains(
-				Path.of("apis/src/main/kotlin/com/beat/apis/booking/api/response/TicketSuccessCode.kt"),
+				Path.of("apis/src/main/kotlin/com/beat/apis/ticket/api/response/TicketSuccessCode.kt"),
 				"TICKET_SEARCH_SUCCESS(200, \"예매자 검색 결과 조회가 성공적으로 완료되었습니다.\")"),
 			() -> assertSourceContains(
 				Path.of("apis/src/main/kotlin/com/beat/apis/member/api/response/MemberSuccessCode.kt"),
@@ -484,7 +484,7 @@ class SharedBoundaryContractTest {
 				Path.of("apis/src/main/kotlin/com/beat/apis/booking/application/exception/BookingApplicationErrorCode.kt"),
 				"NO_BOOKING_FOUND(404, \"입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.\")"),
 			() -> assertSourceContains(
-				Path.of("apis/src/main/kotlin/com/beat/apis/booking/application/exception/BookingApplicationErrorCode.kt"),
+				Path.of("apis/src/main/kotlin/com/beat/apis/ticket/application/exception/TicketApplicationErrorCode.kt"),
 				"NO_TICKETS_FOUND(404, \"입력하신 정보와 일치하는 예매자 목록이 없습니다.\")"),
 			() -> assertSourceContains(
 				Path.of("apis/src/main/kotlin/com/beat/apis/booking/application/exception/BookingApplicationErrorCode.kt"),
