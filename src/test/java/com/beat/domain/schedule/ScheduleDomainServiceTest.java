@@ -119,6 +119,14 @@ class ScheduleDomainServiceTest {
 		assertFalse(canPurchase);
 	}
 
+	@Test
+	void canPurchaseReturnsFalseWhenRequestIsNotPositive() {
+		Schedule schedule = scheduleWithTicketCounts(10, 3);
+
+		assertFalse(scheduleDomainService.canPurchase(schedule, 0));
+		assertFalse(scheduleDomainService.canPurchase(schedule, -1));
+	}
+
 	private Schedule scheduleOn(LocalDate performanceDate) {
 		return Schedule.rehydrate(
 			1L,

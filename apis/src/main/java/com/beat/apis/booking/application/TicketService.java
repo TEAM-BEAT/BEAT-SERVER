@@ -114,10 +114,8 @@ public class TicketService {
 				.toList();
 		}
 
-		log.info("performanceId: {}", performanceId);
-		log.info("searchWord: {}", searchWord);
-		log.info("selectedScheduleNumbers: {}", selectedScheduleNumbers);
-		log.info("selectedBookingStatuses: {}", selectedBookingStatuses);
+		log.info("Searching maker tickets: performanceId={}, scheduleFilterCount={}, statusFilterCount={}",
+			performanceId, selectedScheduleNumbers.size(), selectedBookingStatuses.size());
 		List<MakerTicketListItemReadModel> tickets = makerTicketReadPort.searchTickets(
 			performanceId,
 			searchWord,
@@ -125,7 +123,7 @@ public class TicketService {
 			selectedBookingStatuses
 		);
 
-		log.info("searchTickets result: {}", tickets);
+		log.info("searchTickets result count: {}", tickets.size());
 
 		return findTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
 			schedules, tickets);
@@ -163,7 +161,7 @@ public class TicketService {
 				);
 			})
 			.collect(Collectors.toList());
-		log.info("Converted TicketDetail list: {}", bookingList);
+		log.info("Converted TicketDetail count: {}", bookingList.size());
 
 		return TicketRetrieveResponse.of(
 			performance.getPerformanceTitle(),

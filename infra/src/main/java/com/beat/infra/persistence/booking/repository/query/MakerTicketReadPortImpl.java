@@ -176,7 +176,7 @@ public class MakerTicketReadPortImpl implements MakerTicketReadPort {
 	}
 
 	private String toBankName(BankName bankName) {
-		return bankName == null ? BankName.NONE.getDisplayName() : bankName.name();
+		return bankName == null ? BankName.NONE.getDisplayName() : bankName.getDisplayName();
 	}
 
 	private String nullToEmpty(String value) {

@@ -23,5 +23,5 @@ class ScheduleDomainService {
         schedule.getTotalTicketCount() - schedule.getSoldTicketCount()
 
     fun canPurchase(schedule: Schedule, purchaseTicketCount: Int): Boolean =
-        getAvailableTicketCount(schedule) >= purchaseTicketCount
+        purchaseTicketCount > 0 && getAvailableTicketCount(schedule) >= purchaseTicketCount
 }
