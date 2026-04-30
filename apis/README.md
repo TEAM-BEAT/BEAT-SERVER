@@ -204,7 +204,7 @@ Controller -> Facade -> query service    -> ReadPort/ReadModel or simple Domain 
 - 단순 조회는 domain repository contract를 임시로 사용할 수 있다. 예: `findById`, `findAllByPerformanceId`, `exists...`처럼 Domain model이 실제로 필요한 조회.
 - 화면/검색/목록/정렬/통계/N+1 회피/fetch 전용/projection 조회는 read-model로 분리한다.
 - read-model은 save 대상이 아니며 Domain model도 API ResponseDTO도 아니다. query 결과를 담는 내부 조회 shape다.
-- infra query adapter가 구현하고 실행 모듈 query service가 주입받아야 하는 조회 계약은 `module-contracts`의 `*ReadPort`, `*ReadResult`, `*SearchCondition`으로 둔다.
+- infra query adapter가 구현하고 실행 모듈 query service가 주입받아야 하는 조회 계약은 `module-contracts`의 `*ReadPort`, `*ReadModel`로 둔다. 검색 조건이 단순하면 port 메서드 파라미터로 직접 전달하고, 조건이 많아져 의미가 분명해질 때만 `*SearchCondition`을 추가한다.
 - 특정 API query service 내부에서만 쓰는 조립 결과는 `apis.<context>.application.dto.result` 또는 query service private row/result로 둔다.
 - query service는 JPA Entity, QueryDSL Q type, EntityManager, infra persistence mapper를 직접 사용하지 않는다.
 

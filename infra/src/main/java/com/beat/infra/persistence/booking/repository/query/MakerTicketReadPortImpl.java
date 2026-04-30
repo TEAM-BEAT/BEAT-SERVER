@@ -1,70 +1,34 @@
-package com.beat.infra.persistence.booking.repository;
+package com.beat.infra.persistence.booking.repository.query;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.beat.domain.booking.repository.TicketRepository;
-import com.beat.domain.booking.domain.Booking;
+import com.beat.contracts.booking.MakerTicketReadPort;
+import com.beat.contracts.booking.readmodel.MakerTicketListItemReadModel;
 import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.infra.persistence.booking.entity.BookingJpaEntity;
-import com.beat.infra.persistence.booking.mapper.BookingPersistenceMapper;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 
 @Repository
-public class TicketRepositoryImpl implements TicketRepository {
+public class MakerTicketReadPortImpl implements MakerTicketReadPort {
 
-	private final BookingJpaRepository bookingJpaRepository;
-	private final BookingPersistenceMapper bookingPersistenceMapper;
 	private final EntityManager entityManager;
 
-	public TicketRepositoryImpl(BookingJpaRepository bookingJpaRepository,
-		BookingPersistenceMapper bookingPersistenceMapper,
-		EntityManager entityManager) {
-		this.bookingJpaRepository = bookingJpaRepository;
-		this.bookingPersistenceMapper = bookingPersistenceMapper;
+	public MakerTicketReadPortImpl(EntityManager entityManager) {
 		this.entityManager = entityManager;
 	}
 
 	@Override
-	public Optional<Booking> findById(Long id) {
-		return bookingJpaRepository.findById(id).map(bookingPersistenceMapper::toDomain);
-	}
+	public List<MakerTicketListItemReadModel> findTickets(Long performanceId, List<String> scheduleNumberNames,
+		List<String> bookingStatusNames) {
+		List<ScheduleNumber> scheduleNumbers = toScheduleNumbers(scheduleNumberNames);
+		List<BookingStatus> bookingStatuses = toBookingStatuses(bookingStatusNames);
 
-	@Override
-	public Booking save(Booking booking) {
-		BookingJpaEntity savedEntity = bookingJpaRepository.save(bookingPersistenceMapper.toEntity(booking));
-		return bookingPersistenceMapper.toDomain(savedEntity);
-	}
-
-	@Override
-	public void deleteAll(Iterable<Booking> bookings) {
-		List<BookingJpaEntity> entities = toEntityList(bookings);
-		bookingJpaRepository.deleteAll(entities);
-	}
-
-	@Override
-	public List<Booking> findByBookingStatusAndCancellationDateBefore(BookingStatus bookingStatus,
-		LocalDateTime cancellationDate) {
-		return bookingJpaRepository.findByBookingStatusAndCancellationDateBefore(bookingStatus, cancellationDate).stream()
-			.map(bookingPersistenceMapper::toDomain)
-			.toList();
-	}
-
-	/**
-	 * performanceId, scheduleNumbers, bookingStatuses 조건 필터
-	 */
-	@Override
-	public List<Booking> findBookingsByPerformanceIdAndScheduleNumbersAndBookingStatuses(
-		Long performanceId,
-		List<ScheduleNumber> scheduleNumbers,
-		List<BookingStatus> bookingStatuses
-	) {
 		StringBuilder jpql = baseBookingScheduleJpql();
 		appendPerformanceCondition(jpql, performanceId);
 		appendScheduleNumberCondition(jpql, scheduleNumbers);
@@ -76,22 +40,18 @@ public class TicketRepositoryImpl implements TicketRepository {
 		bindPerformanceParameter(query, performanceId);
 		bindScheduleNumberParameter(query, scheduleNumbers);
 		bindBookingStatusParameter(query, bookingStatuses);
-		return toDomainList(query.getResultList());
+		return toReadModels(query.getResultList());
 	}
 
 	@Override
-	public List<Booking> searchBookingsByPerformanceIdAndSearchWordAndSchedulesNumbersAndBookingStatuses(
-		Long performanceId,
-		String searchWord,
-		List<String> selectedScheduleNumbers,
-		List<String> selectedBookingStatuses
-	) {
+	public List<MakerTicketListItemReadModel> searchTickets(Long performanceId, String searchWord,
+		List<String> scheduleNumberNames, List<String> bookingStatusNames) {
 		if (searchWord == null || searchWord.isBlank()) {
 			return List.of();
 		}
 
-		List<ScheduleNumber> scheduleNumbers = toScheduleNumbers(selectedScheduleNumbers);
-		List<BookingStatus> bookingStatuses = toBookingStatuses(selectedBookingStatuses);
+		List<ScheduleNumber> scheduleNumbers = toScheduleNumbers(scheduleNumberNames);
+		List<BookingStatus> bookingStatuses = toBookingStatuses(bookingStatusNames);
 
 		StringBuilder jpql = baseBookingScheduleJpql();
 		appendPerformanceCondition(jpql, performanceId);
@@ -106,7 +66,7 @@ public class TicketRepositoryImpl implements TicketRepository {
 		bindScheduleNumberParameter(query, scheduleNumbers);
 		bindBookingStatusParameter(query, bookingStatuses);
 		query.setParameter("searchWord", searchWord);
-		return toDomainList(query.getResultList());
+		return toReadModels(query.getResultList());
 	}
 
 	private StringBuilder baseBookingScheduleJpql() {
@@ -194,15 +154,32 @@ public class TicketRepositoryImpl implements TicketRepository {
 			.toList();
 	}
 
-	private List<Booking> toDomainList(List<BookingJpaEntity> entities) {
+	private List<MakerTicketListItemReadModel> toReadModels(List<BookingJpaEntity> entities) {
 		return entities.stream()
-			.map(bookingPersistenceMapper::toDomain)
+			.map(this::toReadModel)
 			.toList();
 	}
 
-	private List<BookingJpaEntity> toEntityList(Iterable<Booking> bookings) {
-		return org.springframework.data.util.Streamable.of(bookings).stream()
-			.map(bookingPersistenceMapper::toEntity)
-			.toList();
+	private MakerTicketListItemReadModel toReadModel(BookingJpaEntity entity) {
+		return new MakerTicketListItemReadModel(
+			entity.getId(),
+			entity.getBookerName(),
+			entity.getBookerPhoneNumber(),
+			entity.getScheduleId(),
+			entity.getPurchaseTicketCount(),
+			entity.getCreatedAt(),
+			entity.getBookingStatus().name(),
+			toBankName(entity.getBankName()),
+			nullToEmpty(entity.getAccountNumber()),
+			nullToEmpty(entity.getAccountHolder())
+		);
+	}
+
+	private String toBankName(BankName bankName) {
+		return bankName == null ? BankName.NONE.getDisplayName() : bankName.name();
+	}
+
+	private String nullToEmpty(String value) {
+		return value == null ? "" : value;
 	}
 }

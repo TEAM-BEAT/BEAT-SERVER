@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Repository;
 
 import com.beat.contracts.schedule.ScheduleReadPort;
-import com.beat.contracts.schedule.readmodel.MinPerformanceDate;
+import com.beat.contracts.schedule.readmodel.MinPerformanceDateReadModel;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -19,13 +19,13 @@ public class ScheduleQueryRepositoryImpl implements ScheduleReadPort {
 	private final EntityManager entityManager;
 
 	@Override
-	public List<MinPerformanceDate> findMinPerformanceDateByPerformanceIds(List<Long> performanceIds) {
+	public List<MinPerformanceDateReadModel> findMinPerformanceDateByPerformanceIds(List<Long> performanceIds) {
 		if (performanceIds == null || performanceIds.isEmpty()) {
 			return List.of();
 		}
 
 		String jpql = """
-			SELECT new com.beat.contracts.schedule.readmodel.MinPerformanceDate(
+			SELECT new com.beat.contracts.schedule.readmodel.MinPerformanceDateReadModel(
 				s.performanceId,
 				CASE
 					WHEN MIN(CASE WHEN s.performanceDate >= :now THEN s.performanceDate ELSE NULL END) IS NOT NULL
@@ -38,9 +38,9 @@ public class ScheduleQueryRepositoryImpl implements ScheduleReadPort {
 			GROUP BY s.performanceId
 			""";
 
-		TypedQuery<MinPerformanceDate> query = entityManager.createQuery(
+		TypedQuery<MinPerformanceDateReadModel> query = entityManager.createQuery(
 			jpql,
-			MinPerformanceDate.class
+			MinPerformanceDateReadModel.class
 		);
 		query.setParameter("now", LocalDateTime.now());
 		query.setParameter("performanceIds", performanceIds);

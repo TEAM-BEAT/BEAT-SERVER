@@ -215,7 +215,7 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java",
-			"infra/src/main/java/com/beat/infra/persistence/booking/repository/TicketRepositoryImpl.java",
+			"infra/src/main/java/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.java",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java",
@@ -242,7 +242,7 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java",
-			"infra/src/main/java/com/beat/infra/persistence/booking/repository/TicketRepositoryImpl.java",
+			"infra/src/main/java/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.java",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java",
@@ -354,6 +354,7 @@ class SharedBoundaryContractTest {
 		assertTrue(performanceModify.contains("deletedInactiveBookingCount"));
 		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/booking/dao")),
 			"Booking domain repository ports must live under domain.booking.repository, not legacy dao");
+		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/booking/repository/TicketRepository.java")));
 		assertFalse(bookingRepository.contains("org.springframework.data"));
 		assertFalse(bookingRepository.contains("@Query"));
 		assertTrue(bookingRepository.contains("int deleteInactiveBookingsByScheduleIds("));
@@ -363,7 +364,7 @@ class SharedBoundaryContractTest {
 		assertTrue(bookingJpaRepository.contains("DELETE FROM Booking b WHERE b.scheduleId IN :scheduleIds"));
 		assertTrue(bookingJpaRepository.contains("int deleteInactiveBookingsByScheduleIds("));
 		assertTrue(bookingRepositoryImpl.contains("scheduleIds == null || scheduleIds.isEmpty()"));
-		assertTrue(ticketService.contains("findScheduleForBooking(scheduleMap, booking)"));
+		assertTrue(ticketService.contains("findScheduleForTicket(scheduleMap, ticket)"));
 		assertTrue(ticketService.contains("throw new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND)"));
 		assertTrue(ticketService.contains("scheduleRepository.lockById(booking.getScheduleId())"));
 		assertTrue(bookingCancelService.contains("@Transactional"));
@@ -379,16 +380,16 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
-	void ticketRepositoryCustomAvoidsManualScheduleQueryDslType() throws Exception {
-		String ticketRepositoryCustom = Files.readString(
-			Path.of("infra/src/main/java/com/beat/infra/persistence/booking/repository/TicketRepositoryImpl.java"));
+	void makerTicketReadAdapterAvoidsManualScheduleQueryDslType() throws Exception {
+		String makerTicketReadAdapter = Files.readString(
+			Path.of("infra/src/main/java/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.java"));
 
 		assertFalse(Files.exists(
 			Path.of("infra/src/main/java/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.java")));
-		assertFalse(ticketRepositoryCustom.contains("QScheduleJpaEntity"));
-		assertFalse(ticketRepositoryCustom.contains("com.querydsl"));
-		assertTrue(ticketRepositoryCustom.contains("TypedQuery<BookingJpaEntity>"));
-		assertTrue(ticketRepositoryCustom.contains("FROM Booking b, Schedule s"));
+		assertFalse(makerTicketReadAdapter.contains("QScheduleJpaEntity"));
+		assertFalse(makerTicketReadAdapter.contains("com.querydsl"));
+		assertTrue(makerTicketReadAdapter.contains("TypedQuery<BookingJpaEntity>"));
+		assertTrue(makerTicketReadAdapter.contains("FROM Booking b, Schedule s"));
 	}
 
 	@Test
@@ -761,16 +762,26 @@ class SharedBoundaryContractTest {
 		String readModelMarker = Files.readString(
 			Path.of("module-contracts/src/main/java/com/beat/contracts/common/ReadModel.java"));
 		String minPerformanceDate = Files.readString(
-			Path.of("module-contracts/src/main/java/com/beat/contracts/schedule/readmodel/MinPerformanceDate.java"));
+			Path.of("module-contracts/src/main/java/com/beat/contracts/schedule/readmodel/MinPerformanceDateReadModel.java"));
+		String makerTicketListItemReadModel = Files.readString(
+			Path.of("module-contracts/src/main/java/com/beat/contracts/booking/readmodel/MakerTicketListItemReadModel.java"));
 		String scheduleReadPort = Files.readString(
 			Path.of("module-contracts/src/main/java/com/beat/contracts/schedule/ScheduleReadPort.java"));
+		String makerTicketReadPort = Files.readString(
+			Path.of("module-contracts/src/main/java/com/beat/contracts/booking/MakerTicketReadPort.java"));
 
 		assertTrue(readModelMarker.contains("@Target(ElementType.TYPE)"));
 		assertTrue(readModelMarker.contains("@Retention(RetentionPolicy.RUNTIME)"));
 		assertTrue(readModelMarker.contains("public @interface ReadModel"));
 		assertTrue(minPerformanceDate.contains("import com.beat.contracts.common.ReadModel;"));
 		assertTrue(minPerformanceDate.contains("@ReadModel"));
-		assertTrue(scheduleReadPort.contains("List<MinPerformanceDate> findMinPerformanceDateByPerformanceIds"));
+		assertTrue(makerTicketListItemReadModel.contains("import com.beat.contracts.common.ReadModel;"));
+		assertTrue(makerTicketListItemReadModel.contains("@ReadModel"));
+		assertTrue(scheduleReadPort.contains("List<MinPerformanceDateReadModel> findMinPerformanceDateByPerformanceIds"));
+		assertTrue(makerTicketReadPort.contains("List<MakerTicketListItemReadModel> findTickets(Long performanceId"));
+		assertTrue(makerTicketReadPort.contains("List<MakerTicketListItemReadModel> searchTickets(Long performanceId"));
+		assertFalse(Files.exists(Path.of(
+			"module-contracts/src/main/java/com/beat/contracts/booking/MakerTicketSearchCondition.java")));
 	}
 
 	@Test
@@ -858,7 +869,7 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java",
-			"infra/src/main/java/com/beat/infra/persistence/booking/repository/TicketRepositoryImpl.java"
+			"infra/src/main/java/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.java"
 		);
 	}
 

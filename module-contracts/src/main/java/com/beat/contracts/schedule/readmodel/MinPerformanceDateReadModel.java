@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import com.beat.contracts.common.ReadModel;
 
 @ReadModel
-public record MinPerformanceDate(
+public record MinPerformanceDateReadModel(
 	Long performanceId,
 	LocalDateTime performanceDate
 ) {

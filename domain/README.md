@@ -6,7 +6,7 @@
 
 | Current | Target | Deferred-to-issue |
 | --- | --- | --- |
-| `domain/src/main`에는 JPA entity, auditing mapped superclass, Spring Data repository adapter, QueryDSL APT surface가 남아 있지 않다. `BookingRepository`, `TicketRepository`를 포함한 저장소 계약은 `repository/` 아래 technology-neutral interface로 정리되었다. `Role.java`는 `ROLE_*` 문자열만 소유하고 `GrantedAuthority` / `SimpleGrantedAuthority` bridge는 없다. | `domain`에는 도메인 모델, 값 객체, 도메인 서비스, repository interface만 남긴다. JPA entity / persistence model, Spring Data adapter, QueryDSL/Kotlin JDSL 구현체, repository 구현체는 `infra`가 소유한다. | infra query/read-model 경계 -> #381. Security authority conversion은 domain 밖에 둔다. |
+| `domain/src/main`에는 JPA entity, auditing mapped superclass, Spring Data repository adapter, QueryDSL APT surface가 남아 있지 않다. `BookingRepository` 등 저장소 계약은 `repository/` 아래 technology-neutral interface로 정리되었다. `Role.java`는 `ROLE_*` 문자열만 소유하고 `GrantedAuthority` / `SimpleGrantedAuthority` bridge는 없다. | `domain`에는 도메인 모델, 값 객체, 도메인 서비스, repository interface만 남긴다. JPA entity / persistence model, Spring Data adapter, QueryDSL/Kotlin JDSL 구현체, repository 구현체는 `infra`가 소유한다. | infra query/read-model 경계 -> #381. Security authority conversion은 domain 밖에 둔다. |
 
 ## 역할
 
@@ -120,4 +120,4 @@ com.beat.domain.<context>/
 
 Issue #378에서는 `domain` 안에 남아 있던 JPA entity / Spring Data repository concern을 이동하지 않았다. #420 Commit 3 이후 이 concern은 infra로 이동되었고, 남은 follow-up은 infra query implementation boundary / QueryDSL-Kotlin JDSL scan 결정이다.
 
-현재 `domain`은 persistence concern과 Lombok 의존이 없는 순수 domain 모듈로 수렴했고, 남은 migration debt는 TicketRepository command/query 책임 분리처럼 persistence 외 경계 정리 중심이다.
+현재 `domain`은 persistence concern과 Lombok 의존이 없는 순수 domain 모듈로 수렴했고, `TicketRepository` command/query 혼재도 제거되어 Booking command port는 `BookingRepository`, maker ticket 조회는 `module-contracts` read port로 분리되었다.

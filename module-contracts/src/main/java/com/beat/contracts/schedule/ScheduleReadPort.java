@@ -2,9 +2,9 @@ package com.beat.contracts.schedule;
 
 import java.util.List;
 
-import com.beat.contracts.schedule.readmodel.MinPerformanceDate;
+import com.beat.contracts.schedule.readmodel.MinPerformanceDateReadModel;
 
 public interface ScheduleReadPort {
 
-	List<MinPerformanceDate> findMinPerformanceDateByPerformanceIds(List<Long> performanceIds);
+	List<MinPerformanceDateReadModel> findMinPerformanceDateByPerformanceIds(List<Long> performanceIds);
 }

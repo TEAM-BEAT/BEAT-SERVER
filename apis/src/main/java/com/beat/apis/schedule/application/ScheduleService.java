@@ -12,7 +12,7 @@ import com.beat.apis.schedule.application.dto.request.TicketAvailabilityRequest;
 import com.beat.apis.schedule.application.dto.response.MinPerformanceDateResponse;
 import com.beat.apis.schedule.application.dto.response.TicketAvailabilityResponse;
 import com.beat.contracts.schedule.ScheduleReadPort;
-import com.beat.contracts.schedule.readmodel.MinPerformanceDate;
+import com.beat.contracts.schedule.readmodel.MinPerformanceDateReadModel;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
@@ -60,13 +60,13 @@ public class ScheduleService {
 
 	@Transactional(readOnly = true)
 	public MinPerformanceDateResponse retrieveMinPerformanceDateByPerformanceIds(List<Long> performanceIds) {
-		List<MinPerformanceDate> minPerformanceDates
+		List<MinPerformanceDateReadModel> minPerformanceDates
 			= scheduleReadPort.findMinPerformanceDateByPerformanceIds(performanceIds);
 
 		Map<Long, LocalDateTime> performanceDateMap = minPerformanceDates.stream()
 			.collect(Collectors.toMap(
-				MinPerformanceDate::performanceId,
-				MinPerformanceDate::performanceDate,
+				MinPerformanceDateReadModel::performanceId,
+				MinPerformanceDateReadModel::performanceDate,
 				(existing, ignored) -> existing
 			));
 

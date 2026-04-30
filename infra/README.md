@@ -53,7 +53,7 @@ infra/
         mapper/BookingPersistenceMapper.java
         repository/BookingJpaRepository.java
         repository/BookingRepositoryImpl.java
-        repository/TicketRepositoryImpl.java   # maker ticket search/query port implementation
+        repository/query/MakerTicketReadPortImpl.java   # maker ticket search/query port implementation
       cast/
         mapper/CastPersistenceMapper.java
         repository/CastJpaRepository.java
@@ -164,7 +164,7 @@ Facade/ApplicationService/DomainService 표준에서 `infra`는 서비스 계층
 - command repository adapter는 persistence entity를 pure Domain model로 변환해 domain repository port를 구현한다.
 - query adapter는 조회 전용 row/read model을 만든다. read-only 화면/검색/목록/통계 조회를 위해 Domain model을 억지로 복원하지 않는다.
 - read model은 JPA Entity도 Domain model도 API ResponseDTO도 아니다. infra query 구현과 실행 모듈 query service 사이의 조회 결과 shape다.
-- 실행 모듈이 주입받아야 하는 query 계약은 `module-contracts`의 `*ReadPort`, `*ReadResult`, `*SearchCondition`을 구현한다.
+- 실행 모듈이 주입받아야 하는 query 계약은 `module-contracts`의 `*ReadPort`, `*ReadModel`을 구현한다. 검색 조건이 단순하면 port 메서드 파라미터를 직접 사용하고, 조건이 많아져 의미가 분명해진 경우에만 `*SearchCondition`을 별도 contract로 추가한다.
 - infra는 실행 모듈 내부 `dto/result`나 ResponseDTO를 구현/반환하지 않는다.
 - 실행 모듈 전용 response 조립은 infra가 아니라 해당 실행 모듈 query service 책임이다.
 - `apis`, `admin`, `batch`의 DTO/ApplicationService/Facade를 import하지 않는다.
