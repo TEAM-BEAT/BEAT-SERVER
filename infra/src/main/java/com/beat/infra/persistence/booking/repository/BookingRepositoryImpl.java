@@ -1,5 +1,6 @@
 package com.beat.infra.persistence.booking.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,6 +38,22 @@ public class BookingRepositoryImpl implements BookingRepository {
 	@Override
 	public List<Booking> findAll() {
 		return bookingJpaRepository.findAll().stream()
+			.map(bookingPersistenceMapper::toDomain)
+			.toList();
+	}
+
+	@Override
+	public void deleteAll(Iterable<Booking> bookings) {
+		List<BookingJpaEntity> entities = org.springframework.data.util.Streamable.of(bookings).stream()
+			.map(bookingPersistenceMapper::toEntity)
+			.toList();
+		bookingJpaRepository.deleteAll(entities);
+	}
+
+	@Override
+	public List<Booking> findByBookingStatusAndCancellationDateBefore(BookingStatus bookingStatus,
+		LocalDateTime cancellationDate) {
+		return bookingJpaRepository.findByBookingStatusAndCancellationDateBefore(bookingStatus, cancellationDate).stream()
 			.map(bookingPersistenceMapper::toDomain)
 			.toList();
 	}

@@ -3,7 +3,6 @@ package com.beat.apis.booking.application;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
@@ -16,9 +15,11 @@ import com.beat.apis.booking.application.dto.TicketRefundRequest;
 import com.beat.apis.booking.application.dto.TicketRetrieveResponse;
 import com.beat.apis.booking.application.dto.TicketUpdateDetail;
 import com.beat.apis.booking.application.dto.TicketUpdateRequest;
+import com.beat.contracts.booking.MakerTicketReadPort;
+import com.beat.contracts.booking.readmodel.MakerTicketListItemReadModel;
 import com.beat.contracts.sms.SmsMessage;
 import com.beat.contracts.sms.SmsPort;
-import com.beat.domain.booking.repository.TicketRepository;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.exception.BookingErrorCode;
@@ -27,7 +28,6 @@ import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
-import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
@@ -48,7 +48,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TicketService {
 
-	private final TicketRepository ticketRepository;
+	private final BookingRepository bookingRepository;
+	private final MakerTicketReadPort makerTicketReadPort;
 	private final PerformanceRepository performanceRepository;
 	private final MemberRepository memberRepository;
 	private final UserRepository userRepository;
@@ -69,11 +70,14 @@ public class TicketService {
 		log.info("performanceId: {}", performanceId);
 		log.info("scheduleNumbers: {}", scheduleNumbers);
 		log.info("bookingStatuses: {}", bookingStatuses);
-		List<Booking> bookings = ticketRepository.findBookingsByPerformanceIdAndScheduleNumbersAndBookingStatuses(
-			performanceId, scheduleNumbers, bookingStatuses);
+		List<MakerTicketListItemReadModel> tickets = makerTicketReadPort.findTickets(
+			performanceId,
+			toNames(scheduleNumbers),
+			toNames(bookingStatuses)
+		);
 
 		return findTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
-			schedules, bookings);
+			schedules, tickets);
 	}
 
 	public TicketRetrieveResponse searchAllTicketsByConditions(Long memberId, Long performanceId, String searchWord,
@@ -92,10 +96,10 @@ public class TicketService {
 			.toList();
 
 		List<String> selectedBookingStatuses = Arrays.asList(
+			BookingStatus.REFUND_REQUESTED.name(),
 			BookingStatus.CHECKING_PAYMENT.name(),
 			BookingStatus.BOOKING_CONFIRMED.name(),
-			BookingStatus.BOOKING_CANCELLED.name(),
-			BookingStatus.REFUND_REQUESTED.name()
+			BookingStatus.BOOKING_CANCELLED.name()
 		);
 
 		if (scheduleNumbers != null && !scheduleNumbers.isEmpty()) {
@@ -110,47 +114,54 @@ public class TicketService {
 				.toList();
 		}
 
-		log.info("performanceId: {}", performanceId);
-		log.info("searchWord: {}", searchWord);
-		log.info("selectedScheduleNumbers: {}", selectedScheduleNumbers);
-		log.info("selectedBookingStatuses: {}", selectedBookingStatuses);
-		List<Booking> bookings = ticketRepository.searchBookingsByPerformanceIdAndSearchWordAndSchedulesNumbersAndBookingStatuses(
+		log.info("Searching maker tickets: performanceId={}, scheduleFilterCount={}, statusFilterCount={}",
+			performanceId, selectedScheduleNumbers.size(), selectedBookingStatuses.size());
+		List<MakerTicketListItemReadModel> tickets = makerTicketReadPort.searchTickets(
 			performanceId,
 			searchWord,
 			selectedScheduleNumbers,
 			selectedBookingStatuses
 		);
 
-		log.info("searchTickets result: {}", bookings);
+		log.info("searchTickets result count: {}", tickets.size());
 
 		return findTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
-			schedules, bookings);
+			schedules, tickets);
+	}
+
+	private <E extends Enum<E>> List<String> toNames(List<E> values) {
+		if (values == null || values.isEmpty()) {
+			return List.of();
+		}
+		return values.stream()
+			.map(Enum::name)
+			.toList();
 	}
 
 	@NotNull
 	private TicketRetrieveResponse findTicketRetrieveResponse(Performance performance, int totalPerformanceTicketCount,
-		int totalPerformanceSoldTicketCount, List<Schedule> schedules, List<Booking> bookings) {
+		int totalPerformanceSoldTicketCount, List<Schedule> schedules, List<MakerTicketListItemReadModel> tickets) {
 		Map<Long, Schedule> scheduleMap = schedules.stream()
 			.collect(Collectors.toMap(s -> s.getId(), s -> s));
-		List<TicketDetail> bookingList = bookings.stream()
-			.map(booking -> {
-				Schedule schedule = findScheduleForBooking(scheduleMap, booking);
+		List<TicketDetail> bookingList = tickets.stream()
+			.map(ticket -> {
+				Schedule schedule = findScheduleForTicket(scheduleMap, ticket);
 				return TicketDetail.of(
-					booking.getId(),
-					booking.getBookerName(),
-					booking.getBookerPhoneNumber(),
-					booking.getScheduleId(),
-					booking.getPurchaseTicketCount(),
-					booking.getCreatedAt(),
-					booking.getBookingStatus(),
+					ticket.bookingId(),
+					ticket.bookerName(),
+					ticket.bookerPhoneNumber(),
+					ticket.scheduleId(),
+					ticket.purchaseTicketCount(),
+					ticket.createdAt(),
+					BookingStatus.valueOf(ticket.bookingStatus()),
 					schedule.getScheduleNumber().name(),
-					Optional.ofNullable(booking.getBankName()).map(BankName::name).orElse(BankName.NONE.getDisplayName()),
-					booking.getAccountNumber(),
-					booking.getAccountHolder()
+					ticket.bankName(),
+					ticket.accountNumber(),
+					ticket.accountHolder()
 				);
 			})
 			.collect(Collectors.toList());
-		log.info("Converted TicketDetail list: {}", bookingList);
+		log.info("Converted TicketDetail count: {}", bookingList.size());
 
 		return TicketRetrieveResponse.of(
 			performance.getPerformanceTitle(),
@@ -162,8 +173,8 @@ public class TicketService {
 		);
 	}
 
-	private Schedule findScheduleForBooking(Map<Long, Schedule> scheduleMap, Booking booking) {
-		Schedule schedule = scheduleMap.get(booking.getScheduleId());
+	private Schedule findScheduleForTicket(Map<Long, Schedule> scheduleMap, MakerTicketListItemReadModel ticket) {
+		Schedule schedule = scheduleMap.get(ticket.scheduleId());
 		if (schedule == null) {
 			throw new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
 		}
@@ -178,7 +189,7 @@ public class TicketService {
 		performance.validatePerformanceOwnership(user.getId());
 
 		for (TicketUpdateDetail detail : request.bookingList()) {
-			Booking booking = ticketRepository.findById(detail.bookingId())
+			Booking booking = bookingRepository.findById(detail.bookingId())
 				.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
 			if (booking.getBookingStatus() == BookingStatus.BOOKING_CONFIRMED
@@ -189,7 +200,7 @@ public class TicketService {
 			if (booking.getBookingStatus() == BookingStatus.CHECKING_PAYMENT
 				&& detail.bookingStatus() == BookingStatus.BOOKING_CONFIRMED) {
 				booking = booking.updateBookingStatus(BookingStatus.BOOKING_CONFIRMED);
-				booking = ticketRepository.save(booking);
+				booking = bookingRepository.save(booking);
 
 				String message = String.format("[BEAT] %s님 %s 예매 확정되었습니다.", detail.bookerName(),
 					request.performanceTitle());
@@ -211,11 +222,11 @@ public class TicketService {
 
 		for (TicketRefundRequest.Booking bookingRequest : ticketRefundRequest.bookingList()) {
 			Long bookingId = bookingRequest.bookingId();
-			Booking booking = ticketRepository.findById(bookingId)
+			Booking booking = bookingRepository.findById(bookingId)
 				.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
 			booking = booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
-			booking = ticketRepository.save(booking);
+			booking = bookingRepository.save(booking);
 
 			Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
 				.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
@@ -236,11 +247,11 @@ public class TicketService {
 
 		for (TicketDeleteRequest.Booking bookingRequest : ticketDeleteRequest.bookingList()) {
 			Long bookingId = bookingRequest.bookingId();
-			Booking booking = ticketRepository.findById(bookingId)
+			Booking booking = bookingRepository.findById(bookingId)
 				.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
 
 			booking = booking.updateBookingStatus(BookingStatus.BOOKING_DELETED);
-			booking = ticketRepository.save(booking);
+			booking = bookingRepository.save(booking);
 
 			Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
 				.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));

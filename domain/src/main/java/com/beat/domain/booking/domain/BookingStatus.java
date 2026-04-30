@@ -1,10 +1,5 @@
 package com.beat.domain.booking.domain;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum BookingStatus {
 	CHECKING_PAYMENT("입금확인중"),
 	BOOKING_CONFIRMED("예매 확정"),
@@ -13,4 +8,12 @@ public enum BookingStatus {
 	BOOKING_DELETED("예매 삭제");
 
 	private final String displayname;
+
+	BookingStatus(String displayname) {
+		this.displayname = displayname;
+	}
+
+	public String getDisplayname() {
+		return displayname;
+	}
 }

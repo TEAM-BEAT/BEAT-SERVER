@@ -1,8 +1,6 @@
 package com.beat.apis.performance.application;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -25,22 +23,21 @@ import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDe
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailResponse;
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailScheduleResponse;
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailStaffResponse;
-import com.beat.apis.schedule.application.ScheduleService;
-import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.repository.CastRepository;
-import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.exception.MemberErrorCode;
-import com.beat.domain.performance.repository.PerformanceRepository;
+import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.domain.PerformanceImage;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
-import com.beat.domain.performance.port.in.PerformanceUseCase;
-import com.beat.domain.performance.repository.PerformanceImageRepository;
-import com.beat.domain.schedule.repository.ScheduleRepository;
+import com.beat.domain.performance.repository.PerformanceRepository;
+import com.beat.domain.performanceimage.domain.PerformanceImage;
+import com.beat.domain.performanceimage.repository.PerformanceImageRepository;
 import com.beat.domain.schedule.domain.Schedule;
+import com.beat.domain.schedule.repository.ScheduleRepository;
+import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.staff.repository.StaffRepository;
 import com.beat.domain.user.exception.UserErrorCode;
@@ -54,12 +51,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PerformanceService implements PerformanceUseCase {
+public class PerformanceService {
 	private final PerformanceRepository performanceRepository;
 	private final ScheduleRepository scheduleRepository;
 	private final CastRepository castRepository;
 	private final StaffRepository staffRepository;
-	private final ScheduleService scheduleService;
+	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 	private final MemberRepository memberRepository;
 	private final UserRepository userRepository;
 	private final BookingRepository bookingRepository;
@@ -70,16 +67,17 @@ public class PerformanceService implements PerformanceUseCase {
 		Performance performance = performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
-		List<PerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findAllByPerformanceId(performanceId)
-			.stream()
+		LocalDate today = LocalDate.now();
+		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
+		List<PerformanceDetailScheduleResponse> scheduleList = schedules.stream()
 			.map(schedule -> {
-				int dueDate = scheduleService.calculateDueDate(schedule);
+				int dueDate = scheduleDomainService.calculateDueDate(today, schedule);
 				return PerformanceDetailScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
 					schedule.getScheduleNumber().name(), dueDate, schedule.isBooking());
 			})
 			.toList();
 
-		int minDueDate = scheduleService.getMinDueDate(scheduleRepository.findAllByPerformanceId(performanceId));
+		int minDueDate = scheduleDomainService.getMinDueDate(today, schedules);
 
 		List<PerformanceDetailCastResponse> castList = castRepository.findAllByPerformanceId(performanceId)
 			.stream()
@@ -114,11 +112,12 @@ public class PerformanceService implements PerformanceUseCase {
 		Performance performance = performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
 
+		LocalDate today = LocalDate.now();
 		List<BookingPerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findAllByPerformanceId(
 			performanceId).stream().map(schedule -> {
-			int dueDate = scheduleService.calculateDueDate(schedule);
+			int dueDate = scheduleDomainService.calculateDueDate(today, schedule);
 			return BookingPerformanceDetailScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
-				schedule.getScheduleNumber().name(), scheduleService.getAvailableTicketCount(schedule),
+				schedule.getScheduleNumber().name(), scheduleDomainService.getAvailableTicketCount(schedule),
 				schedule.isBooking(), dueDate);
 		}).toList();
 
@@ -139,10 +138,11 @@ public class PerformanceService implements PerformanceUseCase {
 			.orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
 
 		List<Performance> performances = performanceRepository.findByUserId(member.getUserId());
+		LocalDate today = LocalDate.now();
 
 		List<MakerPerformanceDetailResponse> performanceDetails = performances.stream().map(performance -> {
 			List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performance.getId());
-			int minDueDate = scheduleService.getMinDueDate(schedules);
+			int minDueDate = scheduleDomainService.getMinDueDate(today, schedules);
 
 			return MakerPerformanceDetailResponse.of(performance.getId(), performance.getGenre().name(),
 				performance.getPerformanceTitle(), performance.getPosterImage(), performance.getPerformancePeriod(),
@@ -164,7 +164,6 @@ public class PerformanceService implements PerformanceUseCase {
 		return MakerPerformanceResponse.of(member.getUserId(), positiveDueDates);
 	}
 
-	@Override
 	@Transactional(readOnly = true)
 	public Performance findById(Long performanceId) {
 		return performanceRepository.findById(performanceId)
@@ -201,9 +200,11 @@ public class PerformanceService implements PerformanceUseCase {
 	private PerformanceModifyDetailResponse mapToPerformanceEditResponse(Performance performance,
 		List<Schedule> schedules, List<Cast> casts, List<Staff> staffs, List<PerformanceImage> performanceImages,
 		boolean isBookerExist) {
+		LocalDate today = LocalDate.now();
 		List<ScheduleResponse> scheduleResponses = schedules.stream()
 			.map(schedule -> ScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
-				schedule.getTotalTicketCount(), calculateDueDate(schedule.getPerformanceDate()),
+				schedule.getTotalTicketCount(),
+				scheduleDomainService.calculateDueDate(today, schedule),
 				schedule.getScheduleNumber()))
 			.toList();
 
@@ -233,7 +234,4 @@ public class PerformanceService implements PerformanceUseCase {
 			performanceImageResponses);
 	}
 
-	private int calculateDueDate(LocalDateTime performanceDate) {
-		return (int)ChronoUnit.DAYS.between(LocalDate.now(), performanceDate.toLocalDate());
-	}
 }

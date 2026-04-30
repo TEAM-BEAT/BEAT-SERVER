@@ -1,11 +1,10 @@
 package com.beat.domain.schedule.domain
 
-import com.beat.domain.performance.domain.PerformanceId
+import com.beat.domain.performance.domain.Performance
 import com.beat.domain.schedule.exception.ScheduleErrorCode
 import com.beat.global.common.exception.BadRequestException
 import com.beat.global.common.exception.ConflictException
 import java.time.LocalDateTime
-import kotlin.ConsistentCopyVisibility
 
 @ConsistentCopyVisibility
 data class Schedule private constructor(
@@ -15,7 +14,7 @@ data class Schedule private constructor(
     private val soldTicketCount: Int,
     private val isBooking: Boolean,
     private val scheduleNumber: ScheduleNumber,
-    private val linkedPerformanceId: PerformanceId,
+    private val linkedPerformanceId: Performance.Id,
 ) {
     fun getId(): Long? = scheduleId?.value
 
@@ -99,7 +98,7 @@ data class Schedule private constructor(
                 soldTicketCount = 0,
                 isBooking = true,
                 scheduleNumber = scheduleNumber,
-                linkedPerformanceId = PerformanceId.from(performanceId)
+                linkedPerformanceId = Performance.Id.from(performanceId)
             )
         }
 
@@ -122,14 +121,14 @@ data class Schedule private constructor(
                 soldTicketCount = soldTicketCount,
                 isBooking = isBooking,
                 scheduleNumber = scheduleNumber,
-                linkedPerformanceId = PerformanceId.from(performanceId)
+                linkedPerformanceId = Performance.Id.from(performanceId)
             )
         }
-    }
-}
 
-private fun validateTicketCounts(totalTicketCount: Int, soldTicketCount: Int) {
-    if (totalTicketCount < 0 || soldTicketCount < 0 || soldTicketCount > totalTicketCount) {
-        throw BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT)
+        private fun validateTicketCounts(totalTicketCount: Int, soldTicketCount: Int) {
+            if (totalTicketCount < 0 || soldTicketCount < 0 || soldTicketCount > totalTicketCount) {
+                throw BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT)
+            }
+        }
     }
 }

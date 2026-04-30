@@ -1,5 +1,6 @@
 package com.beat.domain.member.domain
 
+import com.beat.domain.user.domain.Users
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility
@@ -8,17 +9,22 @@ data class Member private constructor(
     val nickname: String,
     val email: String?,
     val deletedAt: LocalDateTime?,
-    val userId: Long,
+    private val linkedUserId: Users.Id,
     val socialId: Long,
     val socialType: SocialType,
 ) {
     fun getId(): Long? = memberId?.value
 
+    fun getUserId(): Long = linkedUserId.value
+
     @JvmInline
     value class Id private constructor(val value: Long) {
         companion object {
-            @JvmStatic fun from(value: Long): Id = Id(value)
-            @JvmStatic fun fromNullable(value: Long?): Id? = value?.let(::from)
+            @JvmStatic
+            fun from(value: Long): Id = Id(value)
+
+            @JvmStatic
+            fun fromNullable(value: Long?): Id? = value?.let(::from)
         }
     }
 
@@ -35,7 +41,7 @@ data class Member private constructor(
             nickname = nickname,
             email = email,
             deletedAt = null,
-            userId = userId,
+            linkedUserId = Users.Id.from(userId),
             socialId = socialId,
             socialType = socialType,
         )
@@ -54,7 +60,7 @@ data class Member private constructor(
             nickname = nickname,
             email = email,
             deletedAt = deletedAt,
-            userId = userId,
+            linkedUserId = Users.Id.from(userId),
             socialId = socialId,
             socialType = socialType,
         )

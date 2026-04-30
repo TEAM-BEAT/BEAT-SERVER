@@ -1,6 +1,6 @@
 package com.beat.infra.persistence.performance.entity
 
-import com.beat.domain.BaseTimeEntity
+import com.beat.infra.persistence.common.BaseTimeEntity
 import com.beat.domain.performance.domain.BankName
 import com.beat.domain.performance.domain.Genre
 import jakarta.persistence.*

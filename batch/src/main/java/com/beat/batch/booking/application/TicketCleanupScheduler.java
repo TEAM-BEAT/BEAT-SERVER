@@ -8,7 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.domain.booking.repository.TicketRepository;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
 
@@ -23,7 +23,7 @@ public class TicketCleanupScheduler {
 	@Value("${beat.scheduler.owner:false}")
 	private boolean schedulerOwner;
 
-	private final TicketRepository ticketRepository;
+	private final BookingRepository bookingRepository;
 
 	@Scheduled(cron = "0 0 4 * * ?")
 	@Transactional
@@ -33,8 +33,8 @@ public class TicketCleanupScheduler {
 		}
 
 		LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
-		List<Booking> oldCancelledBookings = ticketRepository.findByBookingStatusAndCancellationDateBefore(
+		List<Booking> oldCancelledBookings = bookingRepository.findByBookingStatusAndCancellationDateBefore(
 			BookingStatus.BOOKING_CANCELLED, oneYearAgo);
-		ticketRepository.deleteAll(oldCancelledBookings);
+		bookingRepository.deleteAll(oldCancelledBookings);
 	}
 }

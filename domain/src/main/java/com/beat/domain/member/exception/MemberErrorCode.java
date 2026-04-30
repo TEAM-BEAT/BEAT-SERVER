@@ -2,11 +2,6 @@ package com.beat.domain.member.exception;
 
 import com.beat.global.common.exception.base.BaseErrorCode;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum MemberErrorCode implements BaseErrorCode {
 	/*
 	400 BadRequest
@@ -20,4 +15,17 @@ public enum MemberErrorCode implements BaseErrorCode {
 
 	private final int status;
 	private final String message;
+
+	MemberErrorCode(int status, String message) {
+		this.status = status;
+		this.message = message;
+	}
+
+	public int getStatus() {
+		return status;
+	}
+
+	public String getMessage() {
+		return message;
+	}
 }

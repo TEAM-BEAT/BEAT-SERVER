@@ -1,5 +1,6 @@
 package com.beat.domain.booking.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,6 +14,13 @@ public interface BookingRepository {
 	Optional<Booking> findById(Long id);
 
 	List<Booking> findAll();
+
+	void deleteAll(Iterable<Booking> bookings);
+
+	List<Booking> findByBookingStatusAndCancellationDateBefore(
+		BookingStatus bookingStatus,
+		LocalDateTime cancellationDate
+	);
 
 	Optional<List<Booking>> findByBookerNameAndBookerPhoneNumberAndPasswordAndBirthDate(
 		String bookerName,

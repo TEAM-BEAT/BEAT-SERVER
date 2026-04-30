@@ -1,7 +1,6 @@
 package com.beat.domain.staff.domain
 
-import com.beat.domain.performance.domain.PerformanceId
-import kotlin.ConsistentCopyVisibility
+import com.beat.domain.performance.domain.Performance
 
 @ConsistentCopyVisibility
 data class Staff private constructor(
@@ -9,7 +8,7 @@ data class Staff private constructor(
     val staffName: String,
     val staffRole: String,
     val staffPhoto: String,
-    private val linkedPerformanceId: PerformanceId,
+    private val linkedPerformanceId: Performance.Id,
 ) {
     fun getId(): Long? = staffId?.value
 
@@ -39,16 +38,17 @@ data class Staff private constructor(
             staffName = staffName,
             staffRole = staffRole,
             staffPhoto = staffPhoto,
-            linkedPerformanceId = PerformanceId.from(performanceId)
+            linkedPerformanceId = Performance.Id.from(performanceId)
         )
 
         @JvmStatic
-        fun rehydrate(id: Long?, staffName: String, staffRole: String, staffPhoto: String, performanceId: Long): Staff = Staff(
-            staffId = Id.fromNullable(id),
-            staffName = staffName,
-            staffRole = staffRole,
-            staffPhoto = staffPhoto,
-            linkedPerformanceId = PerformanceId.from(performanceId)
-        )
+        fun rehydrate(id: Long?, staffName: String, staffRole: String, staffPhoto: String, performanceId: Long): Staff =
+            Staff(
+                staffId = Id.fromNullable(id),
+                staffName = staffName,
+                staffRole = staffRole,
+                staffPhoto = staffPhoto,
+                linkedPerformanceId = Performance.Id.from(performanceId)
+            )
     }
 }

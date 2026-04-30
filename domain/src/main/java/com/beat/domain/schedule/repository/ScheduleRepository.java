@@ -1,7 +1,6 @@
 package com.beat.domain.schedule.repository;
 
 import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.schedule.repository.dto.MinPerformanceDateDto;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -29,5 +28,4 @@ public interface ScheduleRepository {
 
     List<Schedule> findPendingSchedules();
 
-    List<MinPerformanceDateDto> findMinPerformanceDateByPerformanceIds(List<Long> performanceIds);
 }

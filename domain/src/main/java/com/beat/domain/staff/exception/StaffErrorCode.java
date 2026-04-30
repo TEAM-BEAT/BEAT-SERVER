@@ -2,11 +2,6 @@ package com.beat.domain.staff.exception;
 
 import com.beat.global.common.exception.base.BaseErrorCode;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum StaffErrorCode implements BaseErrorCode {
 	/*
 	403 Forbidden
@@ -20,4 +15,17 @@ public enum StaffErrorCode implements BaseErrorCode {
 
 	private final int status;
 	private final String message;
+
+	StaffErrorCode(int status, String message) {
+		this.status = status;
+		this.message = message;
+	}
+
+	public int getStatus() {
+		return status;
+	}
+
+	public String getMessage() {
+		return message;
+	}
 }

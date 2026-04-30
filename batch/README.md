@@ -155,14 +155,73 @@ com.beat.batch.<context>/
 
 ## 서비스 / CQRS 규칙
 
-- `Facade`는 하나로 유지하고 배치 실행 시나리오 조합을 맡는다.
+- `Facade`는 batch context/job scenario의 진입점이며 실행 시나리오 조합을 맡는다. 현재 단일/소수 Facade는 transitional shape이고, context별 package 정리 시 필요한 Facade로 분리할 수 있다. 단, raw Domain model을 받거나 반환하지 않는다.
 - 실제 잡 실행은 대부분 command 성격이므로 `application/service/command`를 기본으로 둔다.
 - 배치 조회/리포트/통계가 필요할 때만 `application/service/query`를 추가한다.
-- DTO는 command/query로 나누지 않고 `application/dto` 아래에서 관리한다.
-- command job/service는 domain repository contract와 infra 구현을 통해 저장/수정 흐름을 수행한다. 아직 단순 조회라면 domain repository contract를 사용할 수 있지만, 배치 리포트/통계 조회가 필요해질 때는 infra persistence mapper를 직접 재사용하지 않고 query 전용 read model/projection을 둔다.
+- DTO는 command/query로 나누지 않고 `application/dto` 아래에서 관리한다. Facade 조합용 내부 결과가 필요할 때만 `application/dto/result`를 추가한다.
+- command job/service는 domain repository contract와 infra 구현을 통해 저장/수정 흐름과 transaction을 수행한다. 단순 조회는 domain repository contract를 사용할 수 있지만, 배치 리포트/통계 조회가 필요해질 때는 infra persistence mapper를 직접 재사용하지 않고 query 전용 read model/projection을 둔다. infra adapter가 필요하면 실행 모듈 타입을 infra가 import하지 않고 module-contracts read contract를 먼저 둔다.
 - 배치 애플리케이션 문맥의 에러 코드와 예외는 `application/exception`에 둔다.
 - `adapter`, `port` 패키지는 BEAT 기본 가이드로 강제하지 않는다.
 - Repository는 지금 즉시 분리하지 않고, 복잡한 조회 전용 구현이 필요할 때만 infra `repository.query` 레이어를 추가한다. 이 레이어는 batch 리포트/통계용 read projection을 소유하고 JPA entity와 domain model을 번역하는 mapper를 재사용하지 않는다.
+
+
+### Layer boundary standard
+
+BEAT의 batch lane은 HTTP Controller 대신 Job/Runner가 entrypoint인 점만 다르고, 내부 계층 의미는 실행 모듈 표준을 따른다.
+
+```text
+Job/Runner -> Facade -> ApplicationService(command/query) -> DomainService/Entity/RepositoryPort/ReadPort
+```
+
+- Job/Runner는 scheduler/launcher adapter이며 `Facade`만 호출한다.
+- `Facade`는 배치 실행 시나리오의 공식 진입점이다. 여러 command/query service output을 조합하지만, transaction/repository/domain service를 직접 소유하지 않는다.
+- `Facade`는 raw Domain model을 절대 받거나 반환하지 않는다. Facade 입력/출력은 primitive, 실행 결과 DTO, CommandResult/QueryResult 같은 batch 내부 전달 모델로 제한한다.
+- `ApplicationService`는 command service와 query service를 의미한다. 이 계층만 유스케이스 내부에서 Domain model을 조회/변경/정책 판단에 사용할 수 있고, Domain model은 이 계층 밖으로 반환하지 않는다.
+- batch 흐름은 대부분 command service로 시작한다. 리포트/통계/read-model이 필요할 때만 query service를 추가한다.
+- ApplicationService는 순수 도메인 정책을 직접 구현하지 않고 `domain.<context>.service`의 DomainService 또는 Entity/VO method에 위임한다.
+- 배치 리포트/통계 query는 domain repository를 키우지 않고 `module-contracts` read port + infra query adapter 또는 infra adapter가 필요 없는 batch query service 내부 read-model 경계로 분리한다.
+
+
+### CQRS query/read-model rule
+
+- BEAT의 batch CQRS는 잡 실행 흐름을 command service로, 리포트/통계/조회 흐름을 query service로 분리하는 것부터 시작한다.
+- command service는 Domain model 중심으로 cleanup, 상태 변경, 저장/삭제 흐름을 수행한다.
+- query service는 배치 리포트/통계/read-model 조립을 맡지만 Domain model을 Facade나 Job/Runner로 반환하지 않는다.
+- 단순 조회는 domain repository contract를 사용할 수 있다. 다만 리포트/통계/목록/projection 조회가 되면 domain repository를 키우지 않고 read-model로 분리한다.
+- infra query adapter가 구현하고 batch query service가 주입받아야 하는 조회 계약은 `module-contracts`의 read port/result/condition으로 둔다.
+- batch 내부에서만 쓰는 조립 결과는 `batch.<context>.application.dto.result` 또는 query service 내부 result로 둔다.
+- query service는 JPA Entity, QueryDSL Q type, EntityManager, infra persistence mapper를 직접 사용하지 않는다.
+
+### Response and domain exposure rule
+
+- 배치 command/query service는 필요한 실행 결과 DTO 또는 result를 반환한다.
+- 여러 command/query service output을 조합하는 배치 scenario에서만 Facade가 최종 실행 결과를 만든다.
+- Job/Runner와 Facade에는 raw Domain model을 절대 올리지 않는다.
+- DTO, CommandResult, QueryResult는 Domain model을 필드로 담지 않는다.
+- `apis`, `admin`, `batch` 간 DTO/ApplicationService/Facade를 공유하지 않는다. 공유가 필요하면 `module-contracts`에 최소 계약을 새로 정의한다.
+
+
+### ResponseDTO vs Result selection rule
+
+Batch는 HTTP ResponseDTO보다 실행 결과 DTO/result가 중심이다. 그래도 선택 기준은 동일하다. 기본값은 command/query service가 필요한 실행 결과를 완성해 반환하는 것이고, Result는 Facade 조합이 필요한 순간에만 추가한다.
+
+- service 하나가 job 실행 결과를 완성할 수 있으면 command/query service가 실행 결과 DTO 또는 void를 반환한다.
+- Facade가 받은 값을 그대로 반환하거나 Job/Runner가 결과를 쓰지 않으면 별도 Result를 만들지 않는다.
+- Facade가 여러 command/query service output을 다시 섞고 재가공해 하나의 batch execution result를 만들어야 하면 각 service는 CommandResult/QueryResult를 반환하고 Facade가 최종 실행 결과를 만든다.
+- Result는 Facade 조합용 application output이다.
+- Result도 raw Domain model, JPA Entity, infra projection row를 필드로 담지 않는다. primitive/JDK type, contract-local value, batch 내부 value만 사용한다.
+- 배치 리포트/통계 결과를 여러 job/facade에서 재사용해야 하거나 외부 알림/로그/파일 출력 shape와 내부 결과를 분리하고 싶을 때 Result를 둔다.
+- 단일 job command와 1:1인 단순 cleanup 흐름에 Result를 만들지 않는다.
+
+```text
+단일 batch command:
+Job/Runner -> Facade -> CommandService -> void or ExecutionDTO
+
+복합 batch scenario:
+Job/Runner -> Facade -> CommandService A -> CommandResult A
+                    -> QueryService B   -> QueryResult B
+                    -> Final ExecutionDTO
+```
 
 ## Follow-up after this issue
 

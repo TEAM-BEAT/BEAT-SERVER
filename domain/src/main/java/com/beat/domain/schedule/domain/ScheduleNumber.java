@@ -1,10 +1,5 @@
 package com.beat.domain.schedule.domain;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum ScheduleNumber {
 	FIRST("1회차"),
 	SECOND("2회차"),
@@ -18,4 +13,12 @@ public enum ScheduleNumber {
 	TENTH("10회차");
 
 	private final String displayName;
+
+	ScheduleNumber(String displayName) {
+		this.displayName = displayName;
+	}
+
+	public String getDisplayName() {
+		return displayName;
+	}
 }

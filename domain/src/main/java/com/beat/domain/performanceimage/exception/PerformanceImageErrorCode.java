@@ -1,12 +1,7 @@
-package com.beat.domain.performance.exception;
+package com.beat.domain.performanceimage.exception;
 
 import com.beat.global.common.exception.base.BaseErrorCode;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-@Getter
-@AllArgsConstructor
 public enum PerformanceImageErrorCode implements BaseErrorCode {
 	/*
 	403 Forbidden
@@ -20,4 +15,17 @@ public enum PerformanceImageErrorCode implements BaseErrorCode {
 
 	private final int status;
 	private final String message;
+
+	PerformanceImageErrorCode(int status, String message) {
+		this.status = status;
+		this.message = message;
+	}
+
+	public int getStatus() {
+		return status;
+	}
+
+	public String getMessage() {
+		return message;
+	}
 }

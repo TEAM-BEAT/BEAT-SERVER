@@ -1,7 +1,6 @@
 package com.beat.domain.cast.domain
 
-import com.beat.domain.performance.domain.PerformanceId
-import kotlin.ConsistentCopyVisibility
+import com.beat.domain.performance.domain.Performance
 
 @ConsistentCopyVisibility
 data class Cast private constructor(
@@ -9,7 +8,7 @@ data class Cast private constructor(
     val castName: String,
     val castRole: String,
     val castPhoto: String,
-    private val linkedPerformanceId: PerformanceId,
+    private val linkedPerformanceId: Performance.Id,
 ) {
     fun getId(): Long? = castId?.value
 
@@ -39,16 +38,17 @@ data class Cast private constructor(
             castName = castName,
             castRole = castRole,
             castPhoto = castPhoto,
-            linkedPerformanceId = PerformanceId.from(performanceId)
+            linkedPerformanceId = Performance.Id.from(performanceId)
         )
 
         @JvmStatic
-        fun rehydrate(id: Long?, castName: String, castRole: String, castPhoto: String, performanceId: Long): Cast = Cast(
-            castId = Id.fromNullable(id),
-            castName = castName,
-            castRole = castRole,
-            castPhoto = castPhoto,
-            linkedPerformanceId = PerformanceId.from(performanceId)
-        )
+        fun rehydrate(id: Long?, castName: String, castRole: String, castPhoto: String, performanceId: Long): Cast =
+            Cast(
+                castId = Id.fromNullable(id),
+                castName = castName,
+                castRole = castRole,
+                castPhoto = castPhoto,
+                linkedPerformanceId = Performance.Id.from(performanceId)
+            )
     }
 }

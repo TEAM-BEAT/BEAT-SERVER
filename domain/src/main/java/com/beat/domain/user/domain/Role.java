@@ -1,10 +1,5 @@
 package com.beat.domain.user.domain;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@RequiredArgsConstructor
-@Getter
 public enum Role {
 
 	USER("ROLE_USER"),
@@ -12,6 +7,10 @@ public enum Role {
 	ADMIN("ROLE_ADMIN");
 
 	private final String roleName;
+
+	Role(String roleName) {
+		this.roleName = roleName;
+	}
 
 	/**
 	 * 역할 이름을 반환하는 메서드.

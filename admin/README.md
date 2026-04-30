@@ -161,16 +161,76 @@ com.beat.admin.<context>/
 
 ## 서비스 / CQRS 규칙
 
-- `Facade`는 하나로 유지하고 관리자 시나리오 조합을 맡는다.
+- `Facade`는 관리자 context/API scenario의 진입점이며 시나리오 조합을 맡는다. 현재 단일 `AdminFacade`는 transitional shape이고, context별 package 정리 시 필요한 Facade로 분리할 수 있다. 단, raw Domain model을 받거나 반환하지 않는다.
 - CQRS는 `application/service`에서 먼저 적용하고 `service/command`, `service/query`로 나눈다.
-- DTO는 command/query로 나누지 않고 `dto/request`, `dto/response`만 유지한다.
-- command service는 domain repository contract를 통해 저장/수정 흐름을 수행하고, query service는 admin-facing 조회/응답 조립을 맡는다. 아직 단순 조회라면 domain repository contract를 사용할 수 있지만, 복잡한 목록/통계 조회는 별도 query/read-model로 분리한다. query service가 infra persistence mapper를 직접 사용하지 않는다.
+- DTO는 command/query로 나누지 않고 `dto/request`, `dto/response`만 유지한다. Facade 조합용 내부 결과가 필요할 때만 `dto/result`를 추가한다.
+- command service는 domain repository contract를 통해 저장/수정 흐름과 transaction을 수행하고, query service는 admin-facing 조회/응답 조립을 맡는다. 단순 조회는 domain repository contract를 사용할 수 있지만, 복잡한 목록/검색/정렬/통계 조회는 별도 query/read-model로 분리한다. infra adapter가 필요하면 실행 모듈 타입을 infra가 import하지 않고 module-contracts read contract를 먼저 둔다. query service가 infra persistence mapper를 직접 사용하지 않는다.
 - 관리자 애플리케이션 문맥의 에러 코드와 예외는 `application/exception`에 둔다.
 - 관리자 전용 정책이라도 순수 비즈니스 규칙이면 `domain`으로 올린다.
 - `admin -> gateway`는 최종적으로 허용하되, **공통 인증/보안 경계 진입점** 으로만 제한한다.
 - 즉 `GatewayModuleConfig` 또는 `jwt.contract` 같은 공개 표면만 사용하고, `gateway.security.*`, `gateway.filter.*`, `gateway.config.*`를 직접 참조하지 않는다.
 - `adapter`, `port` 패키지는 BEAT 기본 가이드로 강제하지 않는다.
 - Repository는 지금 즉시 command/query로 나누지 않는다. 조회 복잡도 증가나 jOOQ/Kotlin JDSL 도입 필요가 생기면 그때 infra `repository.query`에 query 전용 구현과 read projection을 분리한다. 이 read projection은 JPA entity와 domain model을 번역하는 mapper를 재사용하지 않는다.
+
+
+### Layer boundary standard
+
+BEAT의 관리자 lane도 사용자 API lane과 같은 계층 의미를 따른다.
+
+```text
+Controller -> Facade -> ApplicationService(command/query) -> DomainService/Entity/RepositoryPort/ReadPort
+```
+
+- Controller는 admin-facing HTTP adapter이며 `Facade`만 호출한다.
+- `Facade`는 관리자 API 시나리오의 공식 진입점이다. 여러 command/query service output을 조합하고 최종 response를 반환하지만, transaction/repository/domain service를 직접 소유하지 않는다.
+- `Facade`는 raw Domain model을 절대 받거나 반환하지 않는다. Facade 입력/출력은 request primitive, ResponseDTO, CommandResult/QueryResult 같은 admin 내부 전달 모델로 제한한다.
+- `ApplicationService`는 command service와 query service를 의미한다. 이 계층만 유스케이스 내부에서 Domain model을 조회/변경/정책 판단에 사용할 수 있고, Domain model은 이 계층 밖으로 반환하지 않는다.
+- command service는 상태 변경 흐름과 transaction 경계를 맡는다. query service는 admin-facing 조회 흐름과 응답 조립을 맡는다.
+- ApplicationService는 순수 도메인 정책을 직접 구현하지 않고 `domain.<context>.service`의 DomainService 또는 Entity/VO method에 위임한다.
+- 관리자 전용 presentation/authorization 흐름은 admin application/facade에 남기되, 순수 비즈니스 규칙은 domain service/entity로 올린다.
+- `application/port/in`은 BEAT 기본 가이드로 강제하지 않는다. Facade가 controller-facing 안정 경계이고, application service가 유스케이스 실행 경계다.
+
+
+### CQRS query/read-model rule
+
+- BEAT의 CQRS는 저장소/DB를 처음부터 물리적으로 둘로 나누는 것이 아니라, admin ApplicationService를 command와 query로 분리하는 것부터 시작한다.
+- command service는 Domain model 중심으로 저장/수정 흐름을 수행한다.
+- query service는 admin-facing 조회와 ResponseDTO 조립을 맡지만 Domain model을 Facade로 반환하지 않는다.
+- 단순 조회는 domain repository contract를 사용할 수 있다. 다만 관리자 목록/검색/정렬/통계/projection 조회가 되면 domain repository를 키우지 않고 read-model로 분리한다.
+- infra query adapter가 구현하고 admin query service가 주입받아야 하는 조회 계약은 `module-contracts`의 read port/result/condition으로 둔다.
+- admin 내부에서만 쓰는 조립 결과는 `admin.application.dto.result` 또는 query service 내부 result로 둔다.
+- query service는 JPA Entity, QueryDSL Q type, EntityManager, infra persistence mapper를 직접 사용하지 않는다.
+
+### Response and domain exposure rule
+
+- 단일 command/query 유스케이스의 ResponseDTO는 command/query service가 만든다.
+- 여러 command/query service output을 조합하는 관리자 scenario에서만 Facade가 최종 ResponseDTO를 만든다.
+- Controller와 Facade에는 raw Domain model을 절대 올리지 않는다.
+- ResponseDTO, RequestDTO, CommandResult, QueryResult는 Domain model을 필드로 담지 않는다.
+- `apis`, `admin`, `batch` 간 DTO/ApplicationService/Facade를 공유하지 않는다. 공유가 필요하면 `module-contracts`에 최소 계약을 새로 정의한다.
+
+
+### ResponseDTO vs Result selection rule
+
+BEAT의 기본값은 command/query service가 admin 전용 ResponseDTO를 반환하는 것이다. Result는 기본 계층이 아니라 Facade 조합이 필요한 순간에만 추가한다.
+
+- service 하나가 관리자 endpoint 응답을 완성할 수 있으면 command/query service가 ResponseDTO를 반환한다.
+- Facade가 받은 값을 그대로 반환하면 ResponseDTO가 맞다.
+- Facade가 여러 command/query service output을 다시 섞고 재가공해 하나의 admin response를 만들어야 하면 각 service는 CommandResult/QueryResult를 반환하고 Facade가 최종 ResponseDTO를 만든다.
+- Result는 최종 client contract가 아니라 Facade 조합용 application output이다.
+- Result도 raw Domain model, JPA Entity, infra projection row를 필드로 담지 않는다. primitive/JDK type, contract-local value, admin 내부 value만 사용한다.
+- 같은 service output을 여러 response shape로 재사용해야 하거나 admin response 변경으로부터 application output을 보호하고 싶을 때 Result를 둔다.
+- 단일 admin response와 1:1인 단순 유스케이스에 Result를 만들지 않는다.
+
+```text
+단일 유스케이스:
+Controller -> Facade -> QueryService -> ResponseDTO
+
+복합 관리자 scenario:
+Controller -> Facade -> QueryService A -> QueryResult A
+                     -> CommandService B -> CommandResult B
+                     -> Final ResponseDTO
+```
 
 ## Follow-up after this issue
 

@@ -1,10 +1,5 @@
 package com.beat.domain.promotion.domain;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Getter
-@RequiredArgsConstructor
 public enum CarouselNumber {
 	ONE(1),
 	TWO(2),
@@ -15,4 +10,12 @@ public enum CarouselNumber {
 	SEVEN(7);
 
 	private final int number;
+
+	CarouselNumber(int number) {
+		this.number = number;
+	}
+
+	public int getNumber() {
+		return number;
+	}
 }

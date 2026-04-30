@@ -1,12 +1,15 @@
 package com.beat.domain.booking.domain
 
+import com.beat.domain.booking.exception.BookingErrorCode
 import com.beat.domain.performance.domain.BankName
+import com.beat.domain.schedule.domain.Schedule
+import com.beat.domain.user.domain.Users
+import com.beat.global.common.exception.BadRequestException
 import java.time.LocalDateTime
-import kotlin.ConsistentCopyVisibility
 
 @ConsistentCopyVisibility
 data class Booking private constructor(
-    private val bookingId: Long?,
+    private val bookingId: Id?,
     private val purchaseTicketCount: Int,
     private val bookerName: String,
     private val bookerPhoneNumber: String,
@@ -18,10 +21,10 @@ data class Booking private constructor(
     private val bankName: BankName?,
     private val accountNumber: String?,
     private val accountHolder: String?,
-    private val scheduleId: Long,
-    private val userId: Long,
+    private val linkedScheduleId: Schedule.Id,
+    private val linkedUserId: Users.Id,
 ) {
-    fun getId(): Long? = bookingId
+    fun getId(): Long? = bookingId?.value
 
     fun getPurchaseTicketCount(): Int = purchaseTicketCount
 
@@ -45,13 +48,13 @@ data class Booking private constructor(
 
     fun getAccountHolder(): String? = accountHolder
 
-    fun getScheduleId(): Long = scheduleId
+    fun getScheduleId(): Long = linkedScheduleId.value
 
-    fun getUserId(): Long = userId
+    fun getUserId(): Long = linkedUserId.value
 
     fun updateBookingStatus(bookingStatus: BookingStatus): Booking = copy(
         bookingStatus = bookingStatus,
-        cancellationDate = if (bookingStatus.isTerminalCancellationStatus()) {
+        cancellationDate = if (isTerminalCancellationStatus(bookingStatus)) {
             cancellationDate ?: LocalDateTime.now()
         } else {
             cancellationDate
@@ -64,6 +67,17 @@ data class Booking private constructor(
         accountHolder = accountHolder,
         bookingStatus = BookingStatus.REFUND_REQUESTED,
     )
+
+    @JvmInline
+    value class Id private constructor(val value: Long) {
+        companion object {
+            @JvmStatic
+            fun from(value: Long): Id = Id(value)
+
+            @JvmStatic
+            fun fromNullable(value: Long?): Id? = value?.let(::from)
+        }
+    }
 
     companion object {
         @JvmStatic
@@ -80,6 +94,7 @@ data class Booking private constructor(
             scheduleId: Long?,
             userId: Long?,
         ): Booking {
+            validatePurchaseTicketCount(purchaseTicketCount)
             requireNotNull(scheduleId) { "scheduleId must not be null" }
             requireNotNull(userId) { "userId must not be null" }
 
@@ -96,8 +111,8 @@ data class Booking private constructor(
                 bankName = bankName,
                 accountNumber = accountNumber,
                 accountHolder = accountHolder,
-                scheduleId = scheduleId,
-                userId = userId,
+                linkedScheduleId = Schedule.Id.from(scheduleId),
+                linkedUserId = Users.Id.from(userId),
             )
         }
 
@@ -122,7 +137,7 @@ data class Booking private constructor(
             requireNotNull(userId) { "userId must not be null" }
 
             return Booking(
-                bookingId = id,
+                bookingId = Id.fromNullable(id),
                 purchaseTicketCount = purchaseTicketCount,
                 bookerName = bookerName,
                 bookerPhoneNumber = bookerPhoneNumber,
@@ -134,12 +149,18 @@ data class Booking private constructor(
                 bankName = bankName,
                 accountNumber = accountNumber,
                 accountHolder = accountHolder,
-                scheduleId = scheduleId,
-                userId = userId,
+                linkedScheduleId = Schedule.Id.from(scheduleId),
+                linkedUserId = Users.Id.from(userId),
             )
         }
+
+        private fun validatePurchaseTicketCount(purchaseTicketCount: Int) {
+            if (purchaseTicketCount <= 0) {
+                throw BadRequestException(BookingErrorCode.INVALID_DATA_FORMAT)
+            }
+        }
+
+        private fun isTerminalCancellationStatus(bookingStatus: BookingStatus): Boolean =
+            bookingStatus == BookingStatus.BOOKING_CANCELLED || bookingStatus == BookingStatus.BOOKING_DELETED
     }
 }
-
-private fun BookingStatus.isTerminalCancellationStatus(): Boolean =
-    this == BookingStatus.BOOKING_CANCELLED || this == BookingStatus.BOOKING_DELETED

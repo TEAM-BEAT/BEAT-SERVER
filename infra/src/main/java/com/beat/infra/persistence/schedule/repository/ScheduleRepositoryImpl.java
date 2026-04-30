@@ -8,24 +8,19 @@ import org.springframework.stereotype.Repository;
 
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.repository.ScheduleRepository;
-import com.beat.domain.schedule.repository.dto.MinPerformanceDateDto;
 import com.beat.infra.persistence.schedule.entity.ScheduleJpaEntity;
 import com.beat.infra.persistence.schedule.mapper.SchedulePersistenceMapper;
-import com.beat.infra.persistence.schedule.repository.query.ScheduleQueryRepository;
 
 @Repository
 public class ScheduleRepositoryImpl implements ScheduleRepository {
 
 	private final ScheduleJpaRepository scheduleJpaRepository;
 	private final SchedulePersistenceMapper schedulePersistenceMapper;
-	private final ScheduleQueryRepository scheduleQueryRepository;
 
 	public ScheduleRepositoryImpl(ScheduleJpaRepository scheduleJpaRepository,
-		SchedulePersistenceMapper schedulePersistenceMapper,
-		ScheduleQueryRepository scheduleQueryRepository) {
+		SchedulePersistenceMapper schedulePersistenceMapper) {
 		this.scheduleJpaRepository = scheduleJpaRepository;
 		this.schedulePersistenceMapper = schedulePersistenceMapper;
-		this.scheduleQueryRepository = scheduleQueryRepository;
 	}
 
 	@Override
@@ -100,8 +95,4 @@ public class ScheduleRepositoryImpl implements ScheduleRepository {
 			.toList();
 	}
 
-	@Override
-	public List<MinPerformanceDateDto> findMinPerformanceDateByPerformanceIds(List<Long> performanceIds) {
-		return scheduleQueryRepository.findMinPerformanceDateByPerformanceIds(performanceIds);
-	}
 }

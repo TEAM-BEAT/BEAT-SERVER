@@ -49,17 +49,59 @@ infra/
     persistence/
       InfraPersistenceConfig.java              # infra.persistence narrow component scan
       InfraPersistenceMarker.java              # entity/repository/component scan root
-      promotion/mapper/PromotionPersistenceMapper.java
-      promotion/repository/PromotionJpaRepository.java
-      promotion/repository/PromotionRepositoryImpl.java
+      booking/
+        mapper/BookingPersistenceMapper.java
+        repository/BookingJpaRepository.java
+        repository/BookingRepositoryImpl.java
+        repository/query/MakerTicketReadPortImpl.java   # maker ticket search/query port implementation
+      cast/
+        mapper/CastPersistenceMapper.java
+        repository/CastJpaRepository.java
+        repository/CastRepositoryImpl.java
+      member/
+        mapper/MemberPersistenceMapper.java
+        repository/MemberJpaRepository.java
+        repository/MemberRepositoryImpl.java
+      performance/
+        mapper/PerformancePersistenceMapper.java
+        repository/PerformanceJpaRepository.java
+        repository/PerformanceRepositoryImpl.java
+      performanceimage/
+        mapper/PerformanceImagePersistenceMapper.java
+        repository/PerformanceImageJpaRepository.java
+        repository/PerformanceImageRepositoryImpl.java
+      promotion/
+        mapper/PromotionPersistenceMapper.java
+        repository/PromotionJpaRepository.java
+        repository/PromotionRepositoryImpl.java
+      schedule/
+        mapper/SchedulePersistenceMapper.java
+        repository/ScheduleJpaRepository.java
+        repository/ScheduleRepositoryImpl.java
+        repository/query/ScheduleQueryRepositoryImpl.java   # implements module-contracts ScheduleReadPort
+      staff/
+        mapper/StaffPersistenceMapper.java
+        repository/StaffJpaRepository.java
+        repository/StaffRepositoryImpl.java
+      user/
+        mapper/UsersPersistenceMapper.java
+        repository/UsersJpaRepository.java
+        repository/UsersRepositoryImpl.java
   src/main/kotlin/com/beat/infra/
     InfraModuleConfig.kt
     persistence/
+      booking/entity/BookingJpaEntity.kt
+      cast/entity/CastJpaEntity.kt
+      member/entity/MemberJpaEntity.kt
+      performance/entity/PerformanceJpaEntity.kt
+      performanceimage/entity/PerformanceImageJpaEntity.kt
       promotion/entity/PromotionJpaEntity.kt   # Kotlin JPA reference slice; canonical authoring rules live in ../MIGRATION.md
+      schedule/entity/ScheduleJpaEntity.kt
+      staff/entity/StaffJpaEntity.kt
+      user/entity/UsersJpaEntity.kt
 
 current transitional sources:
-  domain/src/main/java/com/beat/domain/**/dao/       # Spring Data repository concern that should move behind infra boundary
-  domain/src/main/java/com/beat/domain/**/domain/    # JPA entity / persistence concern that should be split from domain model
+  infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt   # auditing mapped superclass
   src/main/java/com/beat/global/common/config/**
 ```
 
@@ -71,9 +113,10 @@ current transitional sources:
 - Redis runtime wiring은 Spring Boot auto-configuration과 gateway-owned config가 담당하고, infra는 더 이상 gateway-specific Redis bean을 소유하지 않는다.
 - future shared caching은 dormant `RedisCacheConfig` + `InfraBaseConfigGroup.REDIS_CACHE`에서 시작하고, 현재 실행 모듈은 아직 이를 import하지 않는다. 활성화 전에는 cache name, TTL, serializer, namespace, invalidation policy, owner module, runtime opt-in이 먼저 정해져야 한다.
 - #378 기준 `RedisCacheConfig`는 삭제하지도 활성화하지도 않는 infra-owned dormant extension point다. gateway refresh-token Redis storage와 shared cache bootstrap은 별도 경계다.
-- Kotlin JPA entity 작성 규칙은 root [`MIGRATION.md`](../MIGRATION.md)의 canonical guide를 따른다. `PromotionJpaEntity.kt`는 현재 검증된 reference slice이고, rule 본문을 이 README에 중복 복제하지 않는다.
-- 일부 공통 config와 Promotion JPA entity / mapper / repository adapter / implementation은 `infra`로 이동했지만, JPA entity / Spring Data repository adapter / query 구현 상당수는 아직 `domain` 쪽 transitional package에 남아 있다.
-- 즉 `infra`도 아직 최종형이 아니라 **persistence 구현 책임을 받아오는 이관 진행 중인 landing zone**이다.
+- Kotlin JPA entity 작성 규칙은 root [`MIGRATION.md`](../MIGRATION.md)의 canonical guide를 따른다. `PromotionJpaEntity.kt`는 최초 검증 reference slice이고, 이후 Cast/Staff/Users/Member/Performance/PerformanceImage/Schedule/Booking entity도 같은 infra-owned persistence model 규약을 따른다.
+- Promotion, Cast, Staff, Users, Member, Performance, PerformanceImage, Schedule, Booking의 domain JPA entity / mapper / repository adapter / implementation과 공통 auditing base는 `infra.persistence.<context>` / `infra.persistence.common`으로 이동했다.
+- 남은 persistence follow-up은 복잡한 화면/목록/통계 조회를 `repository.query` read-model 경계로 더 명확히 분리하는 것이다.
+- 즉 `infra`는 persistence 구현 책임의 landing zone이며, 앞으로는 domain에 persistence concern을 새로 추가하지 않는 방향으로 유지한다.
 
 ## #378 known deferred package exceptions
 
@@ -101,7 +144,30 @@ com.beat.infra.persistence.<context>.repository.query   # read 최적화/query p
 - JPA entity / persistence model은 `infra.persistence.<context>.entity`가 소유한다.
 - Spring Data JPA adapter는 `infra.persistence.<context>.repository`에 두되, domain repository interface가 아니라 infra 내부 구현 세부사항으로 취급한다.
 - mapper를 도입한다면 `XxxPersistenceMapper`는 pure domain model과 infra persistence entity가 실제로 분리된 slice에서만 추가한다. 쉽게 말해 DB 저장용 객체와 도메인 객체 사이의 번역기다. repository 조회, lazy reference 획득, query projection 조립은 mapper 책임이 아니다.
-- query 전용 구현은 지금 기본값이 아니고, 조회 복잡도 증가나 jOOQ/Kotlin JDSL 도입이 필요할 때만 `repository.query`를 추가한다. 이때 화면/목록/통계용 read model은 persistence mapper를 재사용하지 않고 query 전용 row/DTO로 바로 만든다.
+- query 전용 구현은 지금 기본값이 아니고, 조회 복잡도 증가나 jOOQ/Kotlin JDSL 도입이 필요할 때만 `repository.query`를 추가한다. 이때 화면/목록/검색/정렬/통계용 read model은 persistence mapper를 재사용하지 않고 query 전용 row/DTO로 바로 만든다.
+
+
+### Service boundary interaction
+
+Facade/ApplicationService/DomainService 표준에서 `infra`는 서비스 계층을 소유하지 않고 구현 adapter만 소유한다.
+
+- Facade와 ApplicationService는 실행 모듈(`apis`, `admin`, `batch`) 책임이다.
+- DomainService는 `domain` 책임이며 infra에서 구현하거나 Spring component로 등록하지 않는다. Schedule due-date 같은 domain-specific 계산/판단도 infra 책임으로 이동시키지 않는다.
+- `infra.persistence.<context>.repository`는 domain repository port 구현체와 Spring Data adapter를 소유한다.
+- `infra.persistence.<context>.repository.query`는 `module-contracts` read/query port를 구현한다. 실행 모듈 내부 read-model이 infra 구현을 필요로 하면 먼저 `module-contracts` 계약으로 승격한다.
+- infra query adapter는 JPA/JPQL/QueryDSL/JDSL, fetch join, 검색/필터/정렬, projection 생성을 소유하지만 API ResponseDTO를 반환하지 않는다.
+- infra mapper는 persistence entity와 domain model 사이의 변환만 담당한다. Application response 조립, DomainService 정책 실행, query projection 조립 책임을 갖지 않는다.
+
+
+### Query/read-model adapter rule
+
+- command repository adapter는 persistence entity를 pure Domain model로 변환해 domain repository port를 구현한다.
+- query adapter는 조회 전용 row/read model을 만든다. read-only 화면/검색/목록/통계 조회를 위해 Domain model을 억지로 복원하지 않는다.
+- read model은 JPA Entity도 Domain model도 API ResponseDTO도 아니다. infra query 구현과 실행 모듈 query service 사이의 조회 결과 shape다.
+- 실행 모듈이 주입받아야 하는 query 계약은 `module-contracts`의 `*ReadPort`, `*ReadModel`을 구현한다. 검색 조건이 단순하면 port 메서드 파라미터를 직접 사용하고, 조건이 많아져 의미가 분명해진 경우에만 `*SearchCondition`을 별도 contract로 추가한다.
+- infra는 실행 모듈 내부 `dto/result`나 ResponseDTO를 구현/반환하지 않는다.
+- 실행 모듈 전용 response 조립은 infra가 아니라 해당 실행 모듈 query service 책임이다.
+- `apis`, `admin`, `batch`의 DTO/ApplicationService/Facade를 import하지 않는다.
 
 ## 최종 목표
 

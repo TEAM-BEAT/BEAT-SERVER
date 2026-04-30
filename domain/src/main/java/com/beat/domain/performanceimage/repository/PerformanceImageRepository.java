@@ -1,9 +1,9 @@
-package com.beat.domain.performance.repository;
+package com.beat.domain.performanceimage.repository;
 
 import java.util.List;
 import java.util.Optional;
 
-import com.beat.domain.performance.domain.PerformanceImage;
+import com.beat.domain.performanceimage.domain.PerformanceImage;
 
 public interface PerformanceImageRepository {
 
