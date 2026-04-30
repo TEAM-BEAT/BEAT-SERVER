@@ -22,11 +22,6 @@ public enum PerformanceErrorCode implements BaseErrorCode {
 	PERFORMANCE_DELETE_FAILED(403, "예매자가 1명 이상 있을 경우, 공연을 삭제할 수 없습니다."),
 	NOT_PERFORMANCE_OWNER(403, "해당 공연의 메이커가 아닙니다."),
 
-	/*
-	404 NotFound
-	*/
-	PERFORMANCE_NOT_FOUND(404, "해당 공연 정보를 찾을 수 없습니다."),
-	SCHEDULE_LIST_NOT_FOUND(404, "스케쥴 리스트에 스케쥴이 없습니다."),
 
 	/*
 	500 InternalServerError

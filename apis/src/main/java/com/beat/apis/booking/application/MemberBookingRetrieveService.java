@@ -13,21 +13,21 @@ import com.beat.apis.booking.application.dto.MemberBookingRetrieveResponse;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.member.domain.Member;
-import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.exception.UserErrorCode;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
+import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
+import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
+import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
+import com.beat.apis.user.application.exception.UserApplicationErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -42,10 +42,10 @@ public class MemberBookingRetrieveService {
 
 	public List<MemberBookingRetrieveResponse> findMemberBookings(Long memberId) {
 		Member member = memberRepository.findById(memberId).orElseThrow(
-			() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+			() -> new NotFoundException(MemberApplicationErrorCode.MEMBER_NOT_FOUND));
 
 		Users user = userRepository.findById(member.getUserId()).orElseThrow(
-			() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND)
+			() -> new NotFoundException(UserApplicationErrorCode.USER_NOT_FOUND)
 		);
 
 		List<Booking> bookings = bookingRepository.findByUserId(user.getId());
@@ -110,7 +110,7 @@ public class MemberBookingRetrieveService {
 	private Schedule findScheduleForBooking(Map<Long, Schedule> scheduleMap, Booking booking) {
 		Schedule schedule = scheduleMap.get(booking.getScheduleId());
 		if (schedule == null) {
-			throw new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
+			throw new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND);
 		}
 		return schedule;
 	}
@@ -118,7 +118,7 @@ public class MemberBookingRetrieveService {
 	private Performance findPerformanceForSchedule(Map<Long, Performance> performanceMap, Schedule schedule) {
 		Performance performance = performanceMap.get(schedule.getPerformanceId());
 		if (performance == null) {
-			throw new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND);
+			throw new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND);
 		}
 		return performance;
 	}

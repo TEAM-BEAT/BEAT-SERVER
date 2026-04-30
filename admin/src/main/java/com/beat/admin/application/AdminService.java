@@ -11,13 +11,12 @@ import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionGen
 import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
 import com.beat.admin.port.in.AdminUseCase;
 import com.beat.domain.performance.repository.PerformanceRepository;
-import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.promotion.domain.Promotion;
-import com.beat.domain.promotion.exception.PromotionErrorCode;
 import com.beat.domain.promotion.repository.PromotionRepository;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
+import com.beat.admin.application.exception.AdminApplicationErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -83,7 +82,7 @@ public class AdminService implements AdminUseCase {
 
 	private Promotion findPromotionById(Long promotionId) {
 		return promotionRepository.findById(promotionId)
-			.orElseThrow(() -> new NotFoundException(PromotionErrorCode.PROMOTION_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(AdminApplicationErrorCode.PROMOTION_NOT_FOUND));
 	}
 
 	private Long validatePerformanceId(Long performanceId) {
@@ -91,7 +90,7 @@ public class AdminService implements AdminUseCase {
 			return null;
 		}
 		performanceRepository.findById(performanceId)
-			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(AdminApplicationErrorCode.PERFORMANCE_NOT_FOUND));
 		return performanceId;
 	}
 

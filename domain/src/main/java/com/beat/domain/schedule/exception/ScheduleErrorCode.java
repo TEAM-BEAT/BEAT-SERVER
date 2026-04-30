@@ -13,10 +13,6 @@ public enum ScheduleErrorCode implements BaseErrorCode {
 	*/
 	SCHEDULE_NOT_BELONG_TO_PERFORMANCE(403, "해당 스케줄은 해당 공연에 속해 있지 않습니다."),
 
-	/*
-	404 NotFound
-	*/
-	NO_SCHEDULE_FOUND(404, "해당 회차를 찾을 수 없습니다."),
 
 	/*
 	409 Conflict

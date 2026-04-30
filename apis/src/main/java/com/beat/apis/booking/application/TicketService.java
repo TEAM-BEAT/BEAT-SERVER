@@ -22,26 +22,26 @@ import com.beat.contracts.sms.SmsPort;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.booking.exception.BookingErrorCode;
 import com.beat.domain.booking.exception.TicketErrorCode;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.member.domain.Member;
-import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
-import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.exception.UserErrorCode;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.beat.apis.booking.application.exception.BookingApplicationErrorCode;
+import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
+import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
+import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
+import com.beat.apis.user.application.exception.UserApplicationErrorCode;
 
 @Slf4j
 @Service
@@ -176,7 +176,7 @@ public class TicketService {
 	private Schedule findScheduleForTicket(Map<Long, Schedule> scheduleMap, MakerTicketListItemReadModel ticket) {
 		Schedule schedule = scheduleMap.get(ticket.scheduleId());
 		if (schedule == null) {
-			throw new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
+			throw new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND);
 		}
 		return schedule;
 	}
@@ -190,7 +190,7 @@ public class TicketService {
 
 		for (TicketUpdateDetail detail : request.bookingList()) {
 			Booking booking = bookingRepository.findById(detail.bookingId())
-				.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
+				.orElseThrow(() -> new NotFoundException(BookingApplicationErrorCode.NO_BOOKING_FOUND));
 
 			if (booking.getBookingStatus() == BookingStatus.BOOKING_CONFIRMED
 				&& detail.bookingStatus() != BookingStatus.BOOKING_CONFIRMED) {
@@ -223,13 +223,13 @@ public class TicketService {
 		for (TicketRefundRequest.Booking bookingRequest : ticketRefundRequest.bookingList()) {
 			Long bookingId = bookingRequest.bookingId();
 			Booking booking = bookingRepository.findById(bookingId)
-				.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
+				.orElseThrow(() -> new NotFoundException(BookingApplicationErrorCode.NO_BOOKING_FOUND));
 
 			booking = booking.updateBookingStatus(BookingStatus.BOOKING_CANCELLED);
 			booking = bookingRepository.save(booking);
 
 			Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
-				.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
+				.orElseThrow(() -> new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND));
 			Schedule updated = schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
 			if (!updated.isBooking()) {
 				updated = updated.updateIsBooking(true);
@@ -248,13 +248,13 @@ public class TicketService {
 		for (TicketDeleteRequest.Booking bookingRequest : ticketDeleteRequest.bookingList()) {
 			Long bookingId = bookingRequest.bookingId();
 			Booking booking = bookingRepository.findById(bookingId)
-				.orElseThrow(() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
+				.orElseThrow(() -> new NotFoundException(BookingApplicationErrorCode.NO_BOOKING_FOUND));
 
 			booking = booking.updateBookingStatus(BookingStatus.BOOKING_DELETED);
 			booking = bookingRepository.save(booking);
 
 			Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
-				.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
+				.orElseThrow(() -> new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND));
 			Schedule updated = schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
 			if (!updated.isBooking()) {
 				updated = updated.updateIsBooking(true);
@@ -265,17 +265,17 @@ public class TicketService {
 
 	private Member findMember(Long memberId) {
 		return memberRepository.findById(memberId)
-			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(MemberApplicationErrorCode.MEMBER_NOT_FOUND));
 	}
 
 	private Users findUser(Member member) {
 		return userRepository.findById(member.getUserId()).orElseThrow(
-			() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+			() -> new NotFoundException(UserApplicationErrorCode.USER_NOT_FOUND));
 	}
 
 	private Performance findPerformance(Long performanceId) {
 		return performanceRepository.findById(performanceId).orElseThrow(
-			() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND)
+			() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND)
 		);
 	}
 

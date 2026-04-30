@@ -408,7 +408,7 @@ Boundary rules:
 
 #421 Commit 1은 **inventory와 문서 기준만 고정**한다. 이 단계에서는 ErrorCode package 이동, import 변경, exception hierarchy 변경, handler 동작 변경을 하지 않는다.
 
-상세 inventory는 [`docs/migration/domain-application-errorcode-inventory.md`](docs/migration/domain-application-errorcode-inventory.md)를 기준으로 한다. review checklist는 [`docs/migration/domain-application-errorcode-review-checklist.md`](docs/migration/domain-application-errorcode-review-checklist.md)에 둔다.
+상세 inventory는 [`docs/migration/domain-application-errorcode-inventory.md`](docs/migration/domain-application-errorcode-inventory.md)를 기준으로 한다. review checklist는 [`docs/migration/domain-application-errorcode-review-checklist.md`](docs/migration/domain-application-errorcode-review-checklist.md)에 둔다. Commit 2/3 status/message snapshot과 검증 절차는 [`docs/migration/domain-application-boundary-verification.md`](docs/migration/domain-application-boundary-verification.md)에 둔다.
 
 현재 기준:
 

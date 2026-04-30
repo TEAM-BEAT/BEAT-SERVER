@@ -10,7 +10,6 @@ import com.beat.apis.booking.application.dto.event.BookingCreatedEvent;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
@@ -22,6 +21,8 @@ import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
+import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 
 @Slf4j
 @Service
@@ -37,7 +38,7 @@ public class GuestBookingService {
 	@Transactional
 	public GuestBookingResponse createGuestBooking(GuestBookingRequest guestBookingRequest) {
 		Schedule schedule = scheduleRepository.lockById(guestBookingRequest.scheduleId())
-			.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
+			.orElseThrow(() -> new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND));
 
 		int availableTicketCount = schedule.getTotalTicketCount() - schedule.getSoldTicketCount();
 		if (availableTicketCount < guestBookingRequest.purchaseTicketCount()) {
@@ -58,7 +59,7 @@ public class GuestBookingService {
 		});
 
 		Performance performance = performanceRepository.findById(schedule.getPerformanceId())
-			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
 		int ticketPrice = performance.getTicketPrice();
 		int totalPaymentAmount = ticketPrice * guestBookingRequest.purchaseTicketCount();
 		schedule = scheduleRepository.save(schedule);

@@ -10,12 +10,12 @@ import com.beat.contracts.auth.social.SocialLoginPort;
 import com.beat.contracts.auth.social.SocialMemberInfo;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.exception.UserErrorCode;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.beat.apis.user.application.exception.UserApplicationErrorCode;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -61,7 +61,7 @@ public class SocialLoginService {
 
 		Member member = memberService.findMemberByMemberId(memberId);
 		Users user = userRepository.findById(member.getUserId())
-			.orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(UserApplicationErrorCode.USER_NOT_FOUND));
 
 		log.info("User role before generating token: {}", user.getRole());
 
@@ -83,7 +83,7 @@ public class SocialLoginService {
 			Member existingMember = memberService.findMemberBySocialIdAndSocialType(socialMemberInfo.socialId(),
 				socialMemberInfo.socialType());
 			Users user = userRepository.findById(existingMember.getUserId())
-				.orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+				.orElseThrow(() -> new NotFoundException(UserApplicationErrorCode.USER_NOT_FOUND));
 			log.info("Existing member role: {}", user.getRole());
 			return existingMember.getId();
 		}

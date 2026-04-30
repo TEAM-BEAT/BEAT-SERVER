@@ -26,7 +26,6 @@ import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.exception.CastErrorCode;
 import com.beat.domain.cast.repository.CastRepository;
 import com.beat.domain.member.domain.Member;
-import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
@@ -48,6 +47,12 @@ import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
+import com.beat.apis.performance.application.exception.CastApplicationErrorCode;
+import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
+import com.beat.apis.performance.application.exception.PerformanceImageApplicationErrorCode;
+import com.beat.apis.performance.application.exception.StaffApplicationErrorCode;
+import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 
 @Slf4j
 @Service
@@ -105,7 +110,7 @@ public class PerformanceModifyService {
 		return memberRepository.findById(memberId)
 			.orElseThrow(() -> {
 				log.error("Member not found: memberId: {}", memberId);
-				return new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND);
+				return new NotFoundException(MemberApplicationErrorCode.MEMBER_NOT_FOUND);
 			});
 	}
 
@@ -114,7 +119,7 @@ public class PerformanceModifyService {
 		return performanceRepository.findById(performanceId)
 			.orElseThrow(() -> {
 				log.error("Performance not found: performanceId: {}", performanceId);
-				return new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND);
+				return new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND);
 			});
 	}
 
@@ -153,6 +158,9 @@ public class PerformanceModifyService {
 		List<LocalDateTime> performanceDates = request.scheduleModifyRequests().stream()
 			.map(ScheduleModifyRequest::performanceDate)
 			.toList();
+		if (performanceDates.isEmpty()) {
+			throw new BadRequestException(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND);
+		}
 		performance = performance.updatePerformancePeriod(performanceDates);
 
 		if (!isBookerExist) {
@@ -240,7 +248,7 @@ public class PerformanceModifyService {
 		Schedule schedule = scheduleRepository.lockById(request.scheduleId())
 			.orElseThrow(() -> {
 				log.error("Schedule not found: scheduleId: {}", request.scheduleId());
-				return new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
+				return new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND);
 			});
 
 		if (!Objects.equals(schedule.getPerformanceId(), performance.getId())) {
@@ -309,7 +317,7 @@ public class PerformanceModifyService {
 			Schedule schedule = scheduleRepository.findById(scheduleId)
 				.orElseThrow(() -> {
 					log.error("Schedule not found: scheduleId: {}", scheduleId);
-					return new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
+					return new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND);
 				});
 
 			scheduleJobPort.cancel(schedule);
@@ -365,7 +373,7 @@ public class PerformanceModifyService {
 		Cast cast = castRepository.findById(request.castId())
 			.orElseThrow(() -> {
 				log.error("Cast not found: castId: {}", request.castId());
-				return new NotFoundException(CastErrorCode.CAST_NOT_FOUND);
+				return new NotFoundException(CastApplicationErrorCode.CAST_NOT_FOUND);
 			});
 
 		if (!Objects.equals(cast.getPerformanceId(), performance.getId())) {
@@ -396,7 +404,7 @@ public class PerformanceModifyService {
 			Cast cast = castRepository.findById(castId)
 				.orElseThrow(() -> {
 					log.error("Cast not found: castId: {}", castId);
-					return new NotFoundException(CastErrorCode.CAST_NOT_FOUND);
+					return new NotFoundException(CastApplicationErrorCode.CAST_NOT_FOUND);
 				});
 			castRepository.delete(cast);
 			log.debug("Deleted cast with castId: {}", castId);
@@ -449,7 +457,7 @@ public class PerformanceModifyService {
 		Staff staff = staffRepository.findById(request.staffId())
 			.orElseThrow(() -> {
 				log.error("Staff not found: staffId: {}", request.staffId());
-				return new NotFoundException(StaffErrorCode.STAFF_NOT_FOUND);
+				return new NotFoundException(StaffApplicationErrorCode.STAFF_NOT_FOUND);
 			});
 
 		if (!Objects.equals(staff.getPerformanceId(), performance.getId())) {
@@ -480,7 +488,7 @@ public class PerformanceModifyService {
 			Staff staff = staffRepository.findById(staffId)
 				.orElseThrow(() -> {
 					log.error("Staff not found: staffId: {}", staffId);
-					return new NotFoundException(StaffErrorCode.STAFF_NOT_FOUND);
+					return new NotFoundException(StaffApplicationErrorCode.STAFF_NOT_FOUND);
 				});
 			staffRepository.delete(staff);
 			log.debug("Deleted staff with staffId: {}", staffId);
@@ -532,7 +540,7 @@ public class PerformanceModifyService {
 		PerformanceImage performanceImage = performanceImageRepository.findById(request.performanceImageId())
 			.orElseThrow(() -> {
 				log.error("PerformanceImage not found: performanceId: {}", request.performanceImageId());
-				return new NotFoundException(PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_FOUND);
+				return new NotFoundException(PerformanceImageApplicationErrorCode.PERFORMANCE_IMAGE_NOT_FOUND);
 			});
 
 		if (!Objects.equals(performanceImage.getPerformanceId(), performance.getId())) {
@@ -557,7 +565,7 @@ public class PerformanceModifyService {
 			PerformanceImage performanceImage = performanceImageRepository.findById(performanceImageId)
 				.orElseThrow(() -> {
 					log.error("PerformanceImage not found: performanceImageId: {}", performanceImageId);
-					return new NotFoundException(PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_FOUND);
+					return new NotFoundException(PerformanceImageApplicationErrorCode.PERFORMANCE_IMAGE_NOT_FOUND);
 				});
 			performanceImageRepository.delete(performanceImage);
 			log.debug("Deleted performanceImage: {}", performanceImageId);
@@ -614,4 +622,3 @@ public class PerformanceModifyService {
 		return response;
 	}
 }
-

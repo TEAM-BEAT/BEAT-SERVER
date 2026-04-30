@@ -22,6 +22,7 @@ import com.beat.global.common.exception.ConflictException;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
+import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -37,7 +38,7 @@ public class ScheduleService {
 		validateRequest(scheduleId, ticketAvailabilityRequest);
 
 		Schedule schedule = scheduleRepository.findById(scheduleId)
-			.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
+			.orElseThrow(() -> new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND));
 
 		int availableTicketCount = scheduleDomainService.getAvailableTicketCount(schedule);
 		boolean isAvailable = scheduleDomainService.canPurchase(schedule,

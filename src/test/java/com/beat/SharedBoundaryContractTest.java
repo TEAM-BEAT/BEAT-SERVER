@@ -366,7 +366,7 @@ class SharedBoundaryContractTest {
 		assertTrue(bookingJpaRepository.contains("int deleteInactiveBookingsByScheduleIds("));
 		assertTrue(bookingRepositoryImpl.contains("scheduleIds == null || scheduleIds.isEmpty()"));
 		assertTrue(ticketService.contains("findScheduleForTicket(scheduleMap, ticket)"));
-		assertTrue(ticketService.contains("throw new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND)"));
+		assertTrue(ticketService.contains("throw new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND)"));
 		assertTrue(ticketService.contains("scheduleRepository.lockById(booking.getScheduleId())"));
 		assertTrue(bookingCancelService.contains("@Transactional"));
 		assertTrue(bookingCancelService.contains("scheduleRepository.lockById(booking.getScheduleId())"));
@@ -422,6 +422,110 @@ class SharedBoundaryContractTest {
 
 		assertEquals(allowedPersistenceConcernSources, actualPersistenceConcernSources,
 			"Domain must not regain persistence/JPA/Spring Data/QueryDSL leakage after BaseTimeEntity moved to infra");
+	}
+
+	@Test
+	void domainNoLongerOwnsResponseSuccessCodes() throws Exception {
+		List<String> domainSuccessCodes = sourceFiles(Path.of("domain/src/main")).stream()
+			.filter(path -> path.getFileName().toString().matches(".*SuccessCode\\.(java|kt)"))
+			.map(path -> path.toString().replace('\\', '/'))
+			.toList();
+
+		assertTrue(domainSuccessCodes.isEmpty(),
+			"SuccessCode is an executable response concern and must not live in domain:\n"
+				+ String.join("\n", domainSuccessCodes));
+
+		assertAll(
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/booking/api/response/BookingSuccessCode.kt"),
+				"MEMBER_BOOKING_RETRIEVE_SUCCESS(200, \"회원 예매 조회가 성공적으로 완료되었습니다.\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/booking/api/response/BookingSuccessCode.kt"),
+				"GUEST_BOOKING_SUCCESS(201, \"비회원 예매가 성공적으로 완료되었습니다\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/booking/api/response/TicketSuccessCode.kt"),
+				"TICKET_SEARCH_SUCCESS(200, \"예매자 검색 결과 조회가 성공적으로 완료되었습니다.\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/member/api/response/MemberSuccessCode.kt"),
+				"ISSUE_ACCESS_TOKEN_SUCCESS(200, \"엑세스토큰 발급 성공\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/performance/api/response/PerformanceSuccessCode.kt"),
+				"PERFORMANCE_CREATE_SUCCESS(201, \"공연이 성공적으로 생성되었습니다.\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/schedule/api/response/ScheduleSuccessCode.kt"),
+				"TICKET_AVAILABILITY_RETRIEVAL_SUCCESS(200, \"티켓 수량 조회가 성공적으로 완료되었습니다.\")")
+		);
+	}
+
+	@Test
+	void repositoryLookupNotFoundCodesMoveToApplicationBoundaryWithStableContract() throws Exception {
+		Pattern lookupNotFoundCodePattern = Pattern.compile(
+			"\\b(NO_[A-Z0-9_]+_FOUND|[A-Z0-9_]+_NOT_FOUND|SCHEDULE_LIST_NOT_FOUND)\\b"
+		);
+		List<String> domainLookupCodes = sourceFiles(Path.of("domain/src/main")).stream()
+			.filter(path -> matches(path, lookupNotFoundCodePattern))
+			.map(path -> path.toString().replace('\\', '/'))
+			.toList();
+
+		assertTrue(domainLookupCodes.isEmpty(),
+			"Repository lookup NotFound codes are application flow concerns:\n"
+				+ String.join("\n", domainLookupCodes));
+		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/promotion/exception/PromotionErrorCode.java")));
+		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/user/exception/UserErrorCode.java")));
+		assertSourceContains(
+			Path.of("apis/src/main/java/com/beat/apis/performance/application/PerformanceManagementService.java"),
+			"throw new BadRequestException(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND)");
+		assertSourceContains(
+			Path.of("apis/src/main/java/com/beat/apis/performance/application/PerformanceModifyService.java"),
+			"throw new BadRequestException(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND)");
+
+		assertAll(
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/booking/application/exception/BookingApplicationErrorCode.kt"),
+				"NO_BOOKING_FOUND(404, \"입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/booking/application/exception/BookingApplicationErrorCode.kt"),
+				"NO_TICKETS_FOUND(404, \"입력하신 정보와 일치하는 예매자 목록이 없습니다.\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/booking/application/exception/BookingApplicationErrorCode.kt"),
+				"NO_PERFORMANCE_FOUND(404, \"공연을 찾을 수 없습니다.\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/booking/application/exception/BookingApplicationErrorCode.kt"),
+				"NO_SCHEDULE_FOUND(404, \"회차를 찾을 수 없습니다.\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/member/application/exception/MemberApplicationErrorCode.kt"),
+				"MEMBER_NOT_FOUND(404, \"회원이 없습니다\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/exception/PerformanceApplicationErrorCode.kt"),
+				"PERFORMANCE_NOT_FOUND(404, \"해당 공연 정보를 찾을 수 없습니다.\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/exception/PerformanceApplicationErrorCode.kt"),
+				"SCHEDULE_LIST_NOT_FOUND(404, \"스케쥴 리스트에 스케쥴이 없습니다.\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/exception/CastApplicationErrorCode.kt"),
+				"CAST_NOT_FOUND(404, \"등장인물이 존재하지 않습니다.\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/exception/StaffApplicationErrorCode.kt"),
+				"STAFF_NOT_FOUND(404, \"스태프가 존재하지 않습니다.\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/exception/PerformanceImageApplicationErrorCode.kt"),
+				"PERFORMANCE_IMAGE_NOT_FOUND(404, \"해당 공연 상세이미지를 찾을 수 없습니다.\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/schedule/application/exception/ScheduleApplicationErrorCode.kt"),
+				"NO_SCHEDULE_FOUND(404, \"해당 회차를 찾을 수 없습니다.\")"),
+			() -> assertSourceContains(
+				Path.of("apis/src/main/kotlin/com/beat/apis/user/application/exception/UserApplicationErrorCode.kt"),
+				"USER_NOT_FOUND(404, \"유저가 없습니다\")"),
+			() -> assertSourceContains(
+				Path.of("admin/src/main/kotlin/com/beat/admin/application/exception/AdminApplicationErrorCode.kt"),
+				"MEMBER_NOT_FOUND(404, \"회원이 없습니다\")"),
+			() -> assertSourceContains(
+				Path.of("admin/src/main/kotlin/com/beat/admin/application/exception/AdminApplicationErrorCode.kt"),
+				"PERFORMANCE_NOT_FOUND(404, \"해당 공연 정보를 찾을 수 없습니다.\")"),
+			() -> assertSourceContains(
+				Path.of("admin/src/main/kotlin/com/beat/admin/application/exception/AdminApplicationErrorCode.kt"),
+				"PROMOTION_NOT_FOUND(404, \"해당 홍보 정보를 찾을 수 없습니다.\")")
+		);
 	}
 
 	@Test
@@ -1051,6 +1155,11 @@ class SharedBoundaryContractTest {
 		} else {
 			assertTrue(source.contains("private Long performanceId;"));
 		}
+	}
+
+	private void assertSourceContains(Path path, String expected) throws IOException {
+		assertTrue(Files.readString(path).contains(expected),
+			path + " must preserve expected code contract: " + expected);
 	}
 
 	private boolean matches(Path path, Pattern pattern) {

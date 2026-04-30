@@ -85,7 +85,7 @@ data class Performance private constructor(
     }
 
     fun updatePerformancePeriod(performanceDates: List<LocalDateTime>): Performance {
-        if (performanceDates.isEmpty()) throw BadRequestException(PerformanceErrorCode.SCHEDULE_LIST_NOT_FOUND)
+        if (performanceDates.isEmpty()) throw BadRequestException(PerformanceErrorCode.INVALID_DATA_FORMAT)
         val startDate = performanceDates.min()
         val endDate = performanceDates.max()
         return copy(performancePeriod = formatPerformancePeriod(startDate, endDate))

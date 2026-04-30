@@ -29,16 +29,16 @@ import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
-import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.user.domain.Role;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.NotFoundException;
+import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
+import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class BookingRetrieveServiceBatchLookupTest {
@@ -171,7 +171,7 @@ class BookingRetrieveServiceBatchLookupTest {
 			)
 		);
 
-		assertEquals(ScheduleErrorCode.NO_SCHEDULE_FOUND, exception.getBaseErrorCode());
+		assertEquals(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND, exception.getBaseErrorCode());
 		verify(scheduleRepository).findAllById(List.of(10L));
 		verify(performanceRepository).findAllById(List.of());
 		verify(scheduleRepository, never()).findById(anyLong());
@@ -195,7 +195,7 @@ class BookingRetrieveServiceBatchLookupTest {
 			)
 		);
 
-		assertEquals(PerformanceErrorCode.PERFORMANCE_NOT_FOUND, exception.getBaseErrorCode());
+		assertEquals(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND, exception.getBaseErrorCode());
 		verify(scheduleRepository).findAllById(List.of(10L));
 		verify(performanceRepository).findAllById(List.of(100L));
 		verify(scheduleRepository, never()).findById(anyLong());
