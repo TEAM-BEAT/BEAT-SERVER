@@ -1,6 +1,7 @@
 package com.beat.apis.booking.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,13 +29,16 @@ import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.user.domain.Role;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
+import com.beat.global.common.exception.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 class BookingRetrieveServiceBatchLookupTest {
@@ -113,7 +117,7 @@ class BookingRetrieveServiceBatchLookupTest {
 		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
 		when(userRepository.findById(7L)).thenReturn(Optional.of(user));
 		when(bookingRepository.findByUserId(7L)).thenReturn(List.of(firstBooking, secondBooking));
-		when(scheduleRepository.findAllById(List.of(10L, 11L))).thenReturn(List.of(firstSchedule, secondSchedule));
+		when(scheduleRepository.findAllById(List.of(10L, 11L))).thenReturn(List.of(secondSchedule, firstSchedule));
 		when(performanceRepository.findAllById(List.of(100L))).thenReturn(List.of(performance));
 
 		List<MemberBookingRetrieveResponse> responses = memberBookingRetrieveService.findMemberBookings(1L);
@@ -126,6 +130,73 @@ class BookingRetrieveServiceBatchLookupTest {
 		assertEquals(ScheduleNumber.SECOND, responses.get(1).scheduleNumber());
 		assertEquals(60_000, responses.get(1).totalPaymentAmount());
 		verify(scheduleRepository).findAllById(List.of(10L, 11L));
+		verify(performanceRepository).findAllById(List.of(100L));
+		verify(scheduleRepository, never()).findById(anyLong());
+		verify(performanceRepository, never()).findById(anyLong());
+	}
+
+	@Test
+	void memberRetrieveReturnsEmptyResponseWithoutPerBookingLookupWhenBookingsAreEmpty() {
+		Member member = Member.rehydrate(1L, "member", "member@example.com", null, 7L, 123L, SocialType.KAKAO);
+		Users user = Users.rehydrate(7L, Role.USER);
+
+		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+		when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+		when(bookingRepository.findByUserId(7L)).thenReturn(List.of());
+		when(scheduleRepository.findAllById(List.of())).thenReturn(List.of());
+		when(performanceRepository.findAllById(List.of())).thenReturn(List.of());
+
+		List<MemberBookingRetrieveResponse> responses = memberBookingRetrieveService.findMemberBookings(1L);
+
+		assertEquals(List.of(), responses);
+		verify(scheduleRepository).findAllById(List.of());
+		verify(performanceRepository).findAllById(List.of());
+		verify(scheduleRepository, never()).findById(anyLong());
+		verify(performanceRepository, never()).findById(anyLong());
+	}
+
+	@Test
+	void guestRetrieveThrowsSameScheduleNotFoundWhenBatchResultMissesBookingSchedule() {
+		Booking booking = booking(2, 10L, 1L);
+
+		when(bookingRepository.findByBookerNameAndBookerPhoneNumberAndPasswordAndBirthDate(
+			"홍길동", "010-1234-5678", "1234", "990101"
+		)).thenReturn(Optional.of(List.of(booking)));
+		when(scheduleRepository.findAllById(List.of(10L))).thenReturn(List.of());
+		when(performanceRepository.findAllById(List.of())).thenReturn(List.of());
+
+		NotFoundException exception = assertThrows(NotFoundException.class, () ->
+			guestBookingRetrieveService.findGuestBookings(
+				new GuestBookingRetrieveRequest("홍길동", "990101", "010-1234-5678", "1234")
+			)
+		);
+
+		assertEquals(ScheduleErrorCode.NO_SCHEDULE_FOUND, exception.getBaseErrorCode());
+		verify(scheduleRepository).findAllById(List.of(10L));
+		verify(performanceRepository).findAllById(List.of());
+		verify(scheduleRepository, never()).findById(anyLong());
+		verify(performanceRepository, never()).findById(anyLong());
+	}
+
+	@Test
+	void guestRetrieveThrowsSamePerformanceNotFoundWhenBatchResultMissesSchedulePerformance() {
+		Booking booking = booking(2, 10L, 1L);
+		Schedule schedule = schedule(10L, 100L, ScheduleNumber.FIRST);
+
+		when(bookingRepository.findByBookerNameAndBookerPhoneNumberAndPasswordAndBirthDate(
+			"홍길동", "010-1234-5678", "1234", "990101"
+		)).thenReturn(Optional.of(List.of(booking)));
+		when(scheduleRepository.findAllById(List.of(10L))).thenReturn(List.of(schedule));
+		when(performanceRepository.findAllById(List.of(100L))).thenReturn(List.of());
+
+		NotFoundException exception = assertThrows(NotFoundException.class, () ->
+			guestBookingRetrieveService.findGuestBookings(
+				new GuestBookingRetrieveRequest("홍길동", "990101", "010-1234-5678", "1234")
+			)
+		);
+
+		assertEquals(PerformanceErrorCode.PERFORMANCE_NOT_FOUND, exception.getBaseErrorCode());
+		verify(scheduleRepository).findAllById(List.of(10L));
 		verify(performanceRepository).findAllById(List.of(100L));
 		verify(scheduleRepository, never()).findById(anyLong());
 		verify(performanceRepository, never()).findById(anyLong());
