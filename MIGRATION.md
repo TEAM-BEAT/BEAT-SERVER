@@ -403,6 +403,38 @@ Boundary rules:
   `com.beat.infra.persistence.booking.*` type을 직접 import하지 않습니다.
 - DB schema, API response shape, ticket 검색/정렬 의미, 예매/취소/환불/삭제 동작은 변경하지 않습니다.
 
+
+## #421 domain/application ErrorCode split baseline
+
+#421 Commit 1은 **inventory와 문서 기준만 고정**한다. 이 단계에서는 ErrorCode package 이동, import 변경, exception hierarchy 변경, handler 동작 변경을 하지 않는다.
+
+상세 inventory는 [`docs/migration/domain-application-errorcode-inventory.md`](docs/migration/domain-application-errorcode-inventory.md)를 기준으로 한다. review checklist는 [`docs/migration/domain-application-errorcode-review-checklist.md`](docs/migration/domain-application-errorcode-review-checklist.md)에 둔다.
+
+현재 기준:
+
+- `domain/src/main/java/com/beat/domain/<context>/exception/*ErrorCode.java`는 context별 domain/package surface에 모여 있다.
+- `domain/src/main/java/com/beat/domain/<context>/exception/*SuccessCode.java`는 현재 domain에 있지만 API response message 성격이므로 후속 커밋에서 실행 모듈 response boundary로 이동한다.
+- `module-contracts/src/main/java/com/beat/contracts/auth/TokenErrorCode.java`는 auth/token cross-module contract로 남아 있다.
+- `global-utils/src/main/java/com/beat/global/common/exception/base/BaseErrorCode.java`와 공통 exception/response type은 shared kernel로 유지한다.
+- 실행 모듈(`apis`, `admin`, `batch`, `gateway`)은 현재 domain/context ErrorCode를 application service, facade, handler 흐름에서 함께 사용한다.
+
+분리 판단 기준:
+
+| 분류 | 남길 위치 | 판단 기준 |
+| --- | --- | --- |
+| Domain ErrorCode | `domain/<context>/exception` | aggregate/value object/domain service가 자체 invariant나 lifecycle rule을 표현할 때 사용한다. HTTP 요청 모양, 인증 주체, 화면 조회 조립, 외부 adapter 실패를 전제로 하지 않는다. |
+| Application ErrorCode | 실행 모듈 또는 후속 application-contract 위치 | use-case orchestration, ownership/authorization decision, request resource lookup, DTO/application result 조립, external adapter interaction처럼 실행 흐름이 있어야 의미가 생기는 실패를 표현한다. |
+| SuccessCode | 실행 모듈 response boundary | API/admin/batch 응답 메시지이며 domain model은 성공 응답 문구를 알지 않는다. |
+| Shared contract ErrorCode | `module-contracts` 또는 `global-utils` | 여러 실행 모듈이 같은 contract로 소비해야 하고 특정 domain aggregate에 귀속되지 않는다. |
+
+후속 이동 guardrail:
+
+1. inventory 문서에서 code별 현재 status/message/classification을 먼저 고정한다.
+2. 하나의 context 또는 use-case 단위로만 이동하며, handler 응답 status/message가 유지되는지 테스트로 확인한다.
+3. `domain`은 `apis`, `admin`, `batch`, `gateway` package를 import하지 않는다.
+4. `BaseErrorCode`, `BeatException`, `ErrorResponse`의 공통 contract 변경은 #421의 기본 작업이 아니며 별도 이슈/테스트가 필요하다.
+5. 단순히 service에서 사용된다는 이유만으로 domain code를 application code로 옮기지 않는다. domain model이나 domain repository port가 같은 실패를 직접 표현해야 하면 domain 소유로 남긴다.
+
 ## root project 계약
 
 root project는 실행 모듈이 아니라 조정/검증 모듈입니다.
@@ -430,6 +462,7 @@ root verification task:
 | #382 | `apis`, `admin`, `batch` 내부 CQRS/package rule 정리 |
 | #383 | async boundary와 coroutine 도입 범위 확정 |
 | #384 | README/CI migration gate baseline 정리 |
+| #421 | domain/application ErrorCode split inventory and docs baseline |
 
 이 문서는 package 이동, query 기술 교체, gateway scan 축소, domain repository interface와 infra persistence implementation 분리, coroutine 도입을 승인하는 문서가 아닙니다. 그런 작업은 위 후속 이슈에서 다룹니다.
 

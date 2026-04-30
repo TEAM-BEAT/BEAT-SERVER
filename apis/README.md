@@ -188,6 +188,9 @@ Controller -> Facade -> ApplicationService(command/query) -> DomainService/Entit
 - ApplicationService는 도메인 판단을 직접 if/계산으로 반복 구현하지 않는다. 주요 도메인 판단은 `domain.<context>.service`의 DomainService 또는 Entity/VO method에 위임한다.
 - DomainService는 `apis`가 아니라 `domain` 모듈에 둔다. `apis`에는 `application/port/in` 같은 use-case port 패키지를 기본으로 만들지 않는다.
 - 복잡한 화면 조회/read-model은 domain repository를 키우지 않고 `module-contracts` read port + infra query adapter 또는 infra adapter가 필요 없는 실행 모듈 query service 내부 read-model 경계로 분리한다.
+- application/use-case 실패 사유는 `application/exception/<Context>ApplicationErrorCode`가 소유한다. repository lookup 실패, request/use-case input validation, actor/owner/permission 검증, external adapter 실패 번역은 domain ErrorCode로 표현하지 않는다.
+- Controller response 성공 문구는 `api/response/<Context>SuccessCode`가 소유한다. `SuccessCode`를 domain에 새로 추가하지 않는다.
+- `infra` adapter가 던진 adapter-local failure는 application service에서 API-facing ErrorCode로 번역한다. `infra`가 `apis` ErrorCode를 import하게 만들지 않는다.
 
 
 ### CQRS query/read-model rule

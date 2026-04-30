@@ -165,7 +165,8 @@ com.beat.admin.<context>/
 - CQRS는 `application/service`에서 먼저 적용하고 `service/command`, `service/query`로 나눈다.
 - DTO는 command/query로 나누지 않고 `dto/request`, `dto/response`만 유지한다. Facade 조합용 내부 결과가 필요할 때만 `dto/result`를 추가한다.
 - command service는 domain repository contract를 통해 저장/수정 흐름과 transaction을 수행하고, query service는 admin-facing 조회/응답 조립을 맡는다. 단순 조회는 domain repository contract를 사용할 수 있지만, 복잡한 목록/검색/정렬/통계 조회는 별도 query/read-model로 분리한다. infra adapter가 필요하면 실행 모듈 타입을 infra가 import하지 않고 module-contracts read contract를 먼저 둔다. query service가 infra persistence mapper를 직접 사용하지 않는다.
-- 관리자 애플리케이션 문맥의 에러 코드와 예외는 `application/exception`에 둔다.
+- 관리자 애플리케이션 문맥의 에러 코드는 `application/exception`에 둔다. repository lookup 실패, actor/permission 검증, admin use-case flow 실패를 domain ErrorCode로 표현하지 않는다.
+- 관리자 response 성공 문구가 필요해질 때는 adapter/response boundary가 소유한다. `SuccessCode`를 domain에 새로 추가하지 않는다.
 - 관리자 전용 정책이라도 순수 비즈니스 규칙이면 `domain`으로 올린다.
 - `admin -> gateway`는 최종적으로 허용하되, **공통 인증/보안 경계 진입점** 으로만 제한한다.
 - 즉 `GatewayModuleConfig` 또는 `jwt.contract` 같은 공개 표면만 사용하고, `gateway.security.*`, `gateway.filter.*`, `gateway.config.*`를 직접 참조하지 않는다.
