@@ -29,7 +29,7 @@ class PromotionBoundaryTest {
 		String adminService = Files.readString(
 			Path.of("admin/src/main/java/com/beat/admin/application/AdminService.java"));
 		String batchSchedulerService = Files.readString(
-			Path.of("batch/src/main/java/com/beat/batch/promotion/application/PromotionSchedulerService.java"));
+			Path.of("batch/src/main/java/com/beat/batch/promotion/application/PromotionMaintenanceService.java"));
 
 		assertTrue(apiPromotionService.contains("import com.beat.domain.promotion.repository.PromotionRepository;"));
 		assertTrue(adminService.contains("import com.beat.domain.promotion.repository.PromotionRepository;"));

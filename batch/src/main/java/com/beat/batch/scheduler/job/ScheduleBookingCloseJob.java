@@ -22,7 +22,7 @@ public class ScheduleBookingCloseJob {
 	private boolean schedulerOwner;
 
 	@EventListener(ApplicationReadyEvent.class)
-	public void onApplicationReady(ApplicationReadyEvent event) {
+	public void onApplicationReady() {
 		if (!schedulerOwner) {
 			log.info("Skipping schedule rehydration because this runtime is not the scheduler owner.");
 			return;

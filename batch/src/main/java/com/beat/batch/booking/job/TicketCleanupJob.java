@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.beat.batch.booking.application.TicketCleanupScheduler;
+import com.beat.batch.booking.application.TicketCleanupService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TicketCleanupJob {
 
-	private final TicketCleanupScheduler ticketCleanupScheduler;
+	private final TicketCleanupService ticketCleanupService;
 
 	@Value("${beat.scheduler.owner:false}")
 	private boolean schedulerOwner;
@@ -23,6 +23,6 @@ public class TicketCleanupJob {
 			return;
 		}
 
-		ticketCleanupScheduler.deleteOldCancelledBookings();
+		ticketCleanupService.deleteOldCancelledBookings();
 	}
 }

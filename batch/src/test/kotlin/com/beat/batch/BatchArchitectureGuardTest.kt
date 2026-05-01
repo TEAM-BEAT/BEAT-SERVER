@@ -37,7 +37,9 @@ class BatchArchitectureGuardTest {
             "com.beat.admin.",
             "com.beat.global.common.scheduler.application.",
             "com.beat.domain.booking.application.TicketCleanupScheduler",
+            "com.beat.domain.booking.application.TicketCleanupService",
             "com.beat.domain.promotion.application.PromotionSchedulerService",
+            "com.beat.domain.promotion.application.PromotionMaintenanceService",
         )
 
         assertTrue(
@@ -61,10 +63,9 @@ class BatchArchitectureGuardTest {
 
 
     @Test
-    fun `batch application services must not own scheduled entrypoints`() {
-        val violations = findForbiddenReferencesUnder(
+    fun `batch scheduled entrypoints must live in job packages`() {
+        val violations = findForbiddenReferencesOutsideJobPackages(
             Path.of("src/main/java/com/beat/batch"),
-            "application",
             "@Scheduled",
             "org.springframework.scheduling.annotation.Scheduled",
             "ApplicationReadyEvent",
@@ -73,7 +74,7 @@ class BatchArchitectureGuardTest {
 
         assertTrue(
             violations.isEmpty(),
-            "Found scheduled entrypoints in batch application services:\n${violations.joinToString("\n")}",
+            "Found scheduled entrypoints outside batch job packages:\n${violations.joinToString("\n")}",
         )
     }
 
@@ -96,9 +97,8 @@ class BatchArchitectureGuardTest {
         }
     }
 
-    private fun findForbiddenReferencesUnder(
+    private fun findForbiddenReferencesOutsideJobPackages(
         root: Path,
-        requiredPathSegment: String,
         vararg forbiddenReferences: String,
     ): List<String> {
         val paths = Files.walk(root)
@@ -107,7 +107,7 @@ class BatchArchitectureGuardTest {
             paths
                 .filter(Files::isRegularFile)
                 .filter { path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt") }
-                .filter { path -> path.toString().split(path.fileSystem.separator).contains(requiredPathSegment) }
+                .filter { path -> !path.toString().split(path.fileSystem.separator).contains("job") }
                 .toList()
                 .flatMap { path ->
                     val source = Files.readString(path)

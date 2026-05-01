@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PromotionSchedulerService {
+public class PromotionMaintenanceService {
 
 	private final PromotionRepository promotionRepository;
 	private final ScheduleRepository scheduleRepository;

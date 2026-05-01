@@ -1,7 +1,9 @@
 package com.beat.batch.scheduler.application;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.any;
@@ -14,12 +16,14 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -58,10 +62,11 @@ class JobSchedulerServiceTest {
 		Schedule lockedSchedule = mock(Schedule.class);
 		Performance performance = buildPerformance();
 		ScheduledFuture<Object> scheduledFuture = mock(ScheduledFuture.class);
+		LocalDateTime performanceDate = LocalDateTime.now().plusDays(1);
 
 		when(schedule.getId()).thenReturn(SCHEDULE_ID);
 		when(lockedSchedule.getId()).thenReturn(SCHEDULE_ID);
-		when(lockedSchedule.getPerformanceDate()).thenReturn(LocalDateTime.now().plusDays(1));
+		when(lockedSchedule.getPerformanceDate()).thenReturn(performanceDate);
 		when(lockedSchedule.getPerformanceId()).thenReturn(PERFORMANCE_ID);
 		when(performanceRepository.findById(PERFORMANCE_ID)).thenReturn(Optional.of(performance));
 		when(transactionalService.lockSchedule(SCHEDULE_ID)).thenReturn(Optional.of(lockedSchedule));
@@ -69,8 +74,11 @@ class JobSchedulerServiceTest {
 
 		jobSchedulerService.registerOrRefresh(new ScheduleBookingCloseJobTarget(schedule.getId()));
 
+		ArgumentCaptor<Instant> scheduledAtCaptor = ArgumentCaptor.forClass(Instant.class);
 		verify(transactionalService).lockSchedule(SCHEDULE_ID);
-		verify(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
+		verify(taskScheduler).schedule(any(Runnable.class), scheduledAtCaptor.capture());
+		assertEquals(performanceDate.plusMinutes(120).atZone(ZoneId.systemDefault()).toInstant(),
+			scheduledAtCaptor.getValue());
 		assertSame(scheduledFuture, getScheduledTasks(jobSchedulerService).get(SCHEDULE_ID));
 	}
 
@@ -139,6 +147,28 @@ class JobSchedulerServiceTest {
 
 		verify(transactionalService).lockSchedule(SCHEDULE_ID);
 		verifyNoInteractions(performanceRepository, taskScheduler);
+		assertTrue(getScheduledTasks(jobSchedulerService).isEmpty());
+	}
+
+	@Test
+	void registerOrRefreshDoesNotStoreTaskWhenPerformanceIsMissing() {
+		JobSchedulerTransactionalService transactionalService = mock(JobSchedulerTransactionalService.class);
+		PerformanceRepository performanceRepository = mock(PerformanceRepository.class);
+		TaskScheduler taskScheduler = mock(TaskScheduler.class);
+		JobSchedulerService jobSchedulerService = new JobSchedulerService(transactionalService, performanceRepository,
+			taskScheduler);
+
+		ReflectionTestUtils.setField(jobSchedulerService, "schedulerOwner", true);
+		Schedule lockedSchedule = mock(Schedule.class);
+		when(lockedSchedule.getId()).thenReturn(SCHEDULE_ID);
+		when(lockedSchedule.getPerformanceId()).thenReturn(PERFORMANCE_ID);
+		when(transactionalService.lockSchedule(SCHEDULE_ID)).thenReturn(Optional.of(lockedSchedule));
+		when(performanceRepository.findById(PERFORMANCE_ID)).thenReturn(Optional.empty());
+
+		assertThrows(IllegalStateException.class,
+			() -> jobSchedulerService.registerOrRefresh(new ScheduleBookingCloseJobTarget(SCHEDULE_ID)));
+
+		verifyNoInteractions(taskScheduler);
 		assertTrue(getScheduledTasks(jobSchedulerService).isEmpty());
 	}
 
