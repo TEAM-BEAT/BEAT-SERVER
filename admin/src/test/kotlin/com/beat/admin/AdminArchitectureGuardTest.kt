@@ -72,7 +72,6 @@ class AdminArchitectureGuardTest {
         )
     }
 
-
     @Test
     fun `admin facade must not own transaction repository or raw domain model dependencies`() {
         val source = Files.readString(Path.of("src/main/java/com/beat/admin/facade/AdminFacade.java"))
@@ -90,6 +89,21 @@ class AdminArchitectureGuardTest {
     }
 
     @Test
+    fun `admin does not keep transitional adapter or controller packages`() {
+        val forbiddenPackages = listOf(
+            Path.of("src/main/java/com/beat/admin/adapter"),
+            Path.of("src/main/java/com/beat/admin/controller"),
+        )
+
+        val violations = forbiddenPackages.filter(Files::exists)
+
+        assertTrue(
+            violations.isEmpty(),
+            "admin transitional HTTP package should not remain after api package normalization: ${violations.joinToString(", ")}"
+        )
+    }
+
+    @Test
     fun `admin application services do not return raw domain models`() {
         val violations = findMethodSignatureViolations(
             Path.of("src/main/java/com/beat/admin/application"),
@@ -101,7 +115,6 @@ class AdminArchitectureGuardTest {
             "Found raw domain model return types in admin application service signatures:\n${violations.joinToString("\n")}"
         )
     }
-
 
     private fun findMethodSignatureViolations(root: Path, forbiddenReturnTypes: List<String>): List<String> {
         val paths = Files.walk(root)

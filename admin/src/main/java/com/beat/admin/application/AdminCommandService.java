@@ -14,7 +14,6 @@ import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionGen
 import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
 import com.beat.admin.application.dto.request.PromotionHandleRequest;
 import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
-import com.beat.admin.application.dto.result.AdminPromotionResult;
 import com.beat.admin.application.exception.AdminApplicationErrorCode;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.repository.PerformanceRepository;
@@ -47,12 +46,9 @@ public class AdminCommandService {
 		List<Long> deletePromotionIds = extractDeletePromotionIds(allExistingPromotions, requestPromotionIds);
 		List<Promotion> changedPromotions = processPromotions(modifyRequests, generateRequests, deletePromotionIds);
 
-		List<AdminPromotionResult> sortedPromotions = changedPromotions.stream()
-			.sorted(AdminPromotionResultMapper.BY_CAROUSEL_NUMBER)
-			.map(AdminPromotionResultMapper::toResult)
-			.toList();
-
-		return CarouselHandleAllResponse.from(sortedPromotions);
+		return CarouselHandleAllResponse.from(
+			AdminPromotionResults.fromSortedByCarouselNumber(changedPromotions)
+		);
 	}
 
 	private void categorizePromotionRequestsByPromotionId(CarouselHandleRequest request,

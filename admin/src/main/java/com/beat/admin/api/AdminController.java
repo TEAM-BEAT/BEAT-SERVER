@@ -1,4 +1,4 @@
-package com.beat.admin.adapter.in.api;
+package com.beat.admin.api;
 
 import com.beat.admin.application.dto.response.CarouselFindAllResponse;
 import com.beat.admin.application.dto.request.CarouselHandleRequest;

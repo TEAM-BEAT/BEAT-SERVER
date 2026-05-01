@@ -9,12 +9,10 @@ import com.beat.admin.application.dto.response.BannerPresignedUrlFindResponse;
 import com.beat.admin.application.dto.response.CarouselFindAllResponse;
 import com.beat.admin.application.dto.response.CarouselPresignedUrlFindAllResponse;
 import com.beat.admin.application.dto.response.UserFindAllResponse;
-import com.beat.admin.application.dto.result.AdminPromotionResult;
 import com.beat.admin.application.dto.result.AdminUserResult;
 import com.beat.admin.application.exception.AdminApplicationErrorCode;
 import com.beat.contracts.storage.FileStoragePort;
 import com.beat.domain.member.repository.MemberRepository;
-import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
@@ -55,11 +53,9 @@ public class AdminQueryService {
 
 	public CarouselFindAllResponse findAllPromotionsSortedByCarouselNumber(Long memberId) {
 		validateMemberExists(memberId);
-		List<AdminPromotionResult> promotions = promotionRepository.findAll().stream()
-			.sorted(AdminPromotionResultMapper.BY_CAROUSEL_NUMBER)
-			.map(this::toPromotionResult)
-			.toList();
-		return CarouselFindAllResponse.from(promotions);
+		return CarouselFindAllResponse.from(
+			AdminPromotionResults.fromSortedByCarouselNumber(promotionRepository.findAll())
+		);
 	}
 
 	private AdminUserResult toUserResult(Users user) {
@@ -67,10 +63,6 @@ public class AdminQueryService {
 			user.getId(),
 			user.getRole().getRoleName()
 		);
-	}
-
-	private AdminPromotionResult toPromotionResult(Promotion promotion) {
-		return AdminPromotionResultMapper.toResult(promotion);
 	}
 
 	private void validateMemberExists(Long memberId) {
