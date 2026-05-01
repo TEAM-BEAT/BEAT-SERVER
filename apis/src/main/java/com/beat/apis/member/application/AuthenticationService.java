@@ -70,6 +70,7 @@ public class AuthenticationService {
 		validateRefreshToken(refreshToken);
 
 		Long memberId = jwtTokenPort.getMemberId(refreshToken);
+		validateMemberId(memberId);
 		verifyMemberIdWithStoredToken(refreshToken, memberId);
 
 		Role role = mapRole(jwtTokenPort.getRoleName(refreshToken));
@@ -120,6 +121,13 @@ public class AuthenticationService {
 		if (!memberId.equals(storedMemberId)) {
 			log.error("MemberId mismatch: token does not match the stored refresh token");
 			throw new BadRequestException(TokenErrorCode.REFRESH_TOKEN_MEMBER_ID_MISMATCH_ERROR);
+		}
+	}
+
+	private void validateMemberId(Long memberId) {
+		if (memberId == null) {
+			log.error("Refresh token memberId claim is missing");
+			throw new BadRequestException(TokenErrorCode.INVALID_REFRESH_TOKEN_ERROR);
 		}
 	}
 

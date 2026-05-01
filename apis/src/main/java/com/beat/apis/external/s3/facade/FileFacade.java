@@ -19,17 +19,10 @@ public class FileFacade {
 		return PerformanceMakerPresignedUrlFindAllResponse.from(
 			fileService.issueAllPresignedUrlsForPerformanceMaker(
 				posterImage,
-				nullToEmpty(castImages),
-				nullToEmpty(staffImages),
-				nullToEmpty(performanceImages)
+				castImages,
+				staffImages,
+				performanceImages
 			)
 		);
-	}
-
-	private List<String> nullToEmpty(List<String> values) {
-		if (values == null) {
-			return List.of();
-		}
-		return values;
 	}
 }

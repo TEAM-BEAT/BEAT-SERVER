@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -31,11 +30,11 @@ class FileFacadeTest {
 	}
 
 	@Test
-	void issueAllPresignedUrlsNormalizesNullableListsBeforeDelegatingToApplicationService() {
+	void issueAllPresignedUrlsDelegatesNullableListsToApplicationService() {
 		PerformancePresignedUrls presignedUrls = new PerformancePresignedUrls(
 			Map.of("poster", Map.of("poster.png", "https://example.com/poster.png"))
 		);
-		when(fileService.issueAllPresignedUrlsForPerformanceMaker("poster.png", List.of(), List.of(), List.of()))
+		when(fileService.issueAllPresignedUrlsForPerformanceMaker("poster.png", null, null, null))
 			.thenReturn(presignedUrls);
 
 		PerformanceMakerPresignedUrlFindAllResponse response = fileFacade.issueAllPresignedUrlsForPerformanceMaker(
@@ -46,6 +45,6 @@ class FileFacadeTest {
 		);
 
 		assertEquals(presignedUrls.performanceMakerPresignedUrls(), response.performanceMakerPresignedUrls());
-		verify(fileService).issueAllPresignedUrlsForPerformanceMaker("poster.png", List.of(), List.of(), List.of());
+		verify(fileService).issueAllPresignedUrlsForPerformanceMaker("poster.png", null, null, null);
 	}
 }

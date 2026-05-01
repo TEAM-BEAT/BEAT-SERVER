@@ -19,9 +19,16 @@ public class FileService {
 		List<String> castImages, List<String> staffImages, List<String> performanceImages) {
 		return fileStoragePort.issueAllPresignedUrlsForPerformanceMaker(
 			posterImage,
-			castImages,
-			staffImages,
-			performanceImages
+			nullToEmpty(castImages),
+			nullToEmpty(staffImages),
+			nullToEmpty(performanceImages)
 		);
+	}
+
+	private List<String> nullToEmpty(List<String> values) {
+		if (values == null) {
+			return List.of();
+		}
+		return values;
 	}
 }

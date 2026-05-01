@@ -2,6 +2,7 @@ package com.beat.apis.member;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,11 +12,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.beat.apis.member.application.AuthenticationService;
 import com.beat.contracts.auth.JwtTokenPort;
 import com.beat.contracts.auth.RefreshTokenPort;
 import com.beat.contracts.auth.TokenErrorCode;
 import com.beat.contracts.auth.TokenValidationResult;
-import com.beat.apis.member.application.AuthenticationService;
 import com.beat.global.common.exception.BadRequestException;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,6 +51,22 @@ class AuthenticationServiceTest {
 
 		assertEquals(TokenErrorCode.INVALID_REFRESH_TOKEN_ERROR, exception.getBaseErrorCode());
 		verify(jwtTokenPort).getRoleName(refreshToken);
+	}
+
+	@Test
+	void generateAccessTokenFromRefreshTokenShouldRejectMissingMemberIdClaim() {
+		String refreshToken = "refresh-token";
+
+		when(jwtTokenPort.validateToken(refreshToken)).thenReturn(TokenValidationResult.VALID);
+		when(jwtTokenPort.getMemberId(refreshToken)).thenReturn(null);
+
+		BadRequestException exception = assertThrows(
+			BadRequestException.class,
+			() -> authenticationService.generateAccessTokenFromRefreshToken(refreshToken)
+		);
+
+		assertEquals(TokenErrorCode.INVALID_REFRESH_TOKEN_ERROR, exception.getBaseErrorCode());
+		verify(refreshTokenPort, never()).findMemberIdByRefreshToken(refreshToken);
 	}
 
 	@Test
