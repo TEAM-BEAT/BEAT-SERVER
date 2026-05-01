@@ -9,16 +9,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.domain.promotion.domain.CarouselNumber;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
-import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
+import com.beat.domain.schedule.repository.ScheduleRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,21 +24,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PromotionSchedulerService {
+public class PromotionMaintenanceService {
 
 	private final PromotionRepository promotionRepository;
 	private final ScheduleRepository scheduleRepository;
 
-	@Value("${beat.scheduler.owner:false}")
-	private boolean schedulerOwner;
-
-	@Scheduled(cron = "1 0 0 * * ?")
 	@Transactional
 	public void checkAndDeleteInvalidPromotions() {
-		if (!schedulerOwner) {
-			return;
-		}
-
 		List<Long> promotionIdsToDelete = promotionRepository.findAll().stream()
 			.filter(this::isInvalidPromotion)
 			.map(Promotion::getId)

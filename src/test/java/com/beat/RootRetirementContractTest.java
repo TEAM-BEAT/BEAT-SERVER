@@ -25,7 +25,11 @@ class RootRetirementContractTest {
 			Files.exists(Path.of(
 				"src/main/java/com/beat/global/common/scheduler/application/JobSchedulerTransactionalService.java")));
 		assertFalse(
+			Files.exists(Path.of("src/main/java/com/beat/domain/booking/application/TicketCleanupService.java")));
+		assertFalse(
 			Files.exists(Path.of("src/main/java/com/beat/domain/booking/application/TicketCleanupScheduler.java")));
+		assertFalse(Files.exists(
+			Path.of("src/main/java/com/beat/domain/promotion/application/PromotionMaintenanceService.java")));
 		assertFalse(Files.exists(
 			Path.of("src/main/java/com/beat/domain/promotion/application/PromotionSchedulerService.java")));
 	}
@@ -81,21 +85,21 @@ class RootRetirementContractTest {
 			"batch/src/main/java/com/beat/batch/scheduler/application/JobSchedulerService.java");
 		Path schedulerTransactionalService = Path.of(
 			"batch/src/main/java/com/beat/batch/scheduler/application/JobSchedulerTransactionalService.java");
-		Path ticketCleanupScheduler = Path.of(
-			"batch/src/main/java/com/beat/batch/booking/application/TicketCleanupScheduler.java");
-		Path promotionSchedulerService = Path.of(
-			"batch/src/main/java/com/beat/batch/promotion/application/PromotionSchedulerService.java");
+		Path ticketCleanupService = Path.of(
+			"batch/src/main/java/com/beat/batch/booking/application/TicketCleanupService.java");
+		Path promotionMaintenanceService = Path.of(
+			"batch/src/main/java/com/beat/batch/promotion/application/PromotionMaintenanceService.java");
 
 		assertTrue(Files.exists(schedulerService));
 		assertTrue(Files.exists(schedulerTransactionalService));
-		assertTrue(Files.exists(ticketCleanupScheduler));
-		assertTrue(Files.exists(promotionSchedulerService));
+		assertTrue(Files.exists(ticketCleanupService));
+		assertTrue(Files.exists(promotionMaintenanceService));
 		assertTrue(Files.readString(schedulerService).startsWith("package com.beat.batch.scheduler.application;"));
 		assertTrue(Files.readString(schedulerTransactionalService)
 			.startsWith("package com.beat.batch.scheduler.application;"));
-		assertTrue(Files.readString(ticketCleanupScheduler).startsWith("package com.beat.batch.booking.application;"));
+		assertTrue(Files.readString(ticketCleanupService).startsWith("package com.beat.batch.booking.application;"));
 		assertTrue(
-			Files.readString(promotionSchedulerService).startsWith("package com.beat.batch.promotion.application;"));
+			Files.readString(promotionMaintenanceService).startsWith("package com.beat.batch.promotion.application;"));
 	}
 
 	@Test

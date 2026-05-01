@@ -40,7 +40,6 @@ infra/
     config/
       AsyncConfig.java                      # AsyncConfigurer, @Import(TaskExecutorConfig)
       TaskExecutorConfig.java               # beatApplicationTaskExecutor 빈 생성
-      TaskSchedulerConfig.java              # taskScheduler 빈 생성
       JpaConfig.java
       MysqlCustomDialect.java
       QueryDslConfig.java
@@ -109,7 +108,7 @@ current transitional sources:
 - `InfraBaseConfigImportSelector`가 `@EnableInfraBaseConfig`의 enum 값을 읽어 해당 `@Configuration` 클래스를 선택적으로 import한다.
 - `InfraPersistenceConfig`는 `JpaConfig`가 runtime safety net으로 import하고, JPA를 쓰는 실행 모듈 `InfraConfig.kt`가 IDE static-analysis breadcrumb로 한 번 더 import한다. 두 경로 모두 의도된 중복이며, `@EnableInfraBaseConfig` meta-annotation에 persistence를 직접 넣지는 않는다.
 - `AsyncConfig`는 `@Import(TaskExecutorConfig.class)`로 executor 빈만 전이 로드하고, infra는 security-aware wrapper를 직접 소유하지 않는다.
-- scheduler bean은 `TaskSchedulerConfig` + `InfraBaseConfigGroup.SCHEDULER`로 분리되어 batch에서만 명시적으로 가져간다.
+- scheduler bean은 infra custom config가 아니라 Spring Boot `TaskSchedulingAutoConfiguration`이 소유한다. 실행 모듈 중 `batch`만 `@EnableScheduling`을 켜며, pool/thread 설정은 `spring.task.scheduling.*` property로 조정한다.
 - Redis runtime wiring은 Spring Boot auto-configuration과 gateway-owned config가 담당하고, infra는 더 이상 gateway-specific Redis bean을 소유하지 않는다.
 - future shared caching은 dormant `RedisCacheConfig` + `InfraBaseConfigGroup.REDIS_CACHE`에서 시작하고, 현재 실행 모듈은 아직 이를 import하지 않는다. 활성화 전에는 cache name, TTL, serializer, namespace, invalidation policy, owner module, runtime opt-in이 먼저 정해져야 한다.
 - #378 기준 `RedisCacheConfig`는 삭제하지도 활성화하지도 않는 infra-owned dormant extension point다. gateway refresh-token Redis storage와 shared cache bootstrap은 별도 경계다.

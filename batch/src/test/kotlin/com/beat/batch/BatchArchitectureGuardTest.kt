@@ -37,7 +37,9 @@ class BatchArchitectureGuardTest {
             "com.beat.admin.",
             "com.beat.global.common.scheduler.application.",
             "com.beat.domain.booking.application.TicketCleanupScheduler",
+            "com.beat.domain.booking.application.TicketCleanupService",
             "com.beat.domain.promotion.application.PromotionSchedulerService",
+            "com.beat.domain.promotion.application.PromotionMaintenanceService",
         )
 
         assertTrue(
@@ -59,6 +61,39 @@ class BatchArchitectureGuardTest {
         )
     }
 
+
+    @Test
+    fun `batch scheduled entrypoints must live in job packages`() {
+        val violations = findForbiddenReferencesOutsideJobPackages(
+            Path.of("src/main"),
+            "@Scheduled",
+            "org.springframework.scheduling.annotation.Scheduled",
+            "ApplicationReadyEvent",
+            "org.springframework.context.event.EventListener",
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found scheduled entrypoints outside batch job packages:\n${violations.joinToString("\n")}",
+        )
+    }
+
+    @Test
+    fun `batch job entrypoints must depend on facade boundary only`() {
+        val violations = findForbiddenReferencesInsideJobPackages(
+            Path.of("src/main"),
+            ".application.",
+            "com.beat.domain.",
+            "com.beat.infra.",
+            "com.beat.contracts.",
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found job entrypoint references that skip the facade boundary:\n${violations.joinToString("\n")}",
+        )
+    }
+
     private fun findForbiddenReferences(vararg forbiddenReferences: String): List<String> {
         val paths = Files.walk(Path.of("src/main"))
 
@@ -77,4 +112,51 @@ class BatchArchitectureGuardTest {
             paths.close()
         }
     }
+
+    private fun findForbiddenReferencesOutsideJobPackages(
+        root: Path,
+        vararg forbiddenReferences: String,
+    ): List<String> {
+        val paths = Files.walk(root)
+
+        return try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt") }
+                .filter { path -> !path.toString().split(path.fileSystem.separator).contains("job") }
+                .toList()
+                .flatMap { path ->
+                    val source = Files.readString(path)
+                    forbiddenReferences
+                        .filter(source::contains)
+                        .map { pattern -> "$path: $pattern" }
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
+    private fun findForbiddenReferencesInsideJobPackages(
+        root: Path,
+        vararg forbiddenReferences: String,
+    ): List<String> {
+        val paths = Files.walk(root)
+
+        return try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt") }
+                .filter { path -> path.toString().split(path.fileSystem.separator).contains("job") }
+                .toList()
+                .flatMap { path ->
+                    val source = Files.readString(path)
+                    forbiddenReferences
+                        .filter(source::contains)
+                        .map { pattern -> "$path: $pattern" }
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
 }
