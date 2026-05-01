@@ -11,9 +11,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.beat.apis.performance.application.PerformanceManagementService;
-import com.beat.apis.performance.application.PerformanceModifyService;
-import com.beat.apis.performance.application.PerformanceService;
 import com.beat.apis.performance.application.dto.bookingPerformanceDetail.BookingPerformanceDetailResponse;
 import com.beat.apis.performance.application.dto.create.PerformanceRequest;
 import com.beat.apis.performance.application.dto.create.PerformanceResponse;
@@ -23,6 +20,7 @@ import com.beat.apis.performance.application.dto.modify.PerformanceModifyRequest
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyResponse;
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailResponse;
 import com.beat.apis.performance.api.response.PerformanceSuccessCode;
+import com.beat.apis.performance.facade.PerformanceFacade;
 import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 
@@ -34,16 +32,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PerformanceController implements PerformanceApi {
 
-	private final PerformanceService performanceService;
-	private final PerformanceManagementService performanceManagementService;
-	private final PerformanceModifyService performanceModifyService;
+	private final PerformanceFacade performanceFacade;
 
 	@Override
 	@PostMapping
 	public ResponseEntity<SuccessResponse<PerformanceResponse>> createPerformance(
 		@CurrentMember Long memberId,
 		@Valid @RequestBody PerformanceRequest performanceRequest) {
-		PerformanceResponse response = performanceManagementService.createPerformance(memberId, performanceRequest);
+		PerformanceResponse response = performanceFacade.createPerformance(memberId, performanceRequest);
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.body(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_CREATE_SUCCESS, response));
 	}
@@ -53,7 +49,7 @@ public class PerformanceController implements PerformanceApi {
 	public ResponseEntity<SuccessResponse<PerformanceModifyResponse>> updatePerformance(
 		@CurrentMember Long memberId,
 		@Valid @RequestBody PerformanceModifyRequest performanceModifyRequest) {
-		PerformanceModifyResponse response = performanceModifyService.modifyPerformance(memberId,
+		PerformanceModifyResponse response = performanceFacade.modifyPerformance(memberId,
 			performanceModifyRequest);
 		return ResponseEntity.status(HttpStatus.OK)
 			.body(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_UPDATE_SUCCESS, response));
@@ -64,7 +60,7 @@ public class PerformanceController implements PerformanceApi {
 	public ResponseEntity<SuccessResponse<PerformanceModifyDetailResponse>> getPerformanceForEdit(
 		@CurrentMember Long memberId,
 		@PathVariable Long performanceId) {
-		PerformanceModifyDetailResponse response = performanceService.getPerformanceEdit(memberId, performanceId);
+		PerformanceModifyDetailResponse response = performanceFacade.getPerformanceEdit(memberId, performanceId);
 		return ResponseEntity.ok(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_MODIFY_PAGE_SUCCESS, response));
 	}
 
@@ -72,7 +68,7 @@ public class PerformanceController implements PerformanceApi {
 	@GetMapping("/detail/{performanceId}")
 	public ResponseEntity<SuccessResponse<PerformanceDetailResponse>> getPerformanceDetail(
 		@PathVariable Long performanceId) {
-		PerformanceDetailResponse performanceDetail = performanceService.getPerformanceDetail(performanceId);
+		PerformanceDetailResponse performanceDetail = performanceFacade.getPerformanceDetail(performanceId);
 		return ResponseEntity.ok(
 			SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_RETRIEVE_SUCCESS, performanceDetail));
 	}
@@ -81,7 +77,7 @@ public class PerformanceController implements PerformanceApi {
 	@GetMapping("/booking/{performanceId}")
 	public ResponseEntity<SuccessResponse<BookingPerformanceDetailResponse>> getBookingPerformanceDetail(
 		@PathVariable Long performanceId) {
-		BookingPerformanceDetailResponse bookingPerformanceDetail = performanceService.getBookingPerformanceDetail(
+		BookingPerformanceDetailResponse bookingPerformanceDetail = performanceFacade.getBookingPerformanceDetail(
 			performanceId);
 		return ResponseEntity.ok(
 			SuccessResponse.of(PerformanceSuccessCode.BOOKING_PERFORMANCE_RETRIEVE_SUCCESS, bookingPerformanceDetail));
@@ -90,7 +86,7 @@ public class PerformanceController implements PerformanceApi {
 	@Override
 	@GetMapping("/user")
 	public ResponseEntity<SuccessResponse<MakerPerformanceResponse>> getUserPerformances(@CurrentMember Long memberId) {
-		MakerPerformanceResponse response = performanceService.getMemberPerformances(memberId);
+		MakerPerformanceResponse response = performanceFacade.getMemberPerformances(memberId);
 		return ResponseEntity.ok(
 			SuccessResponse.of(PerformanceSuccessCode.MAKER_PERFORMANCE_RETRIEVE_SUCCESS, response));
 	}
@@ -100,7 +96,7 @@ public class PerformanceController implements PerformanceApi {
 	public ResponseEntity<SuccessResponse<Void>> deletePerformance(
 		@CurrentMember Long memberId,
 		@PathVariable Long performanceId) {
-		performanceManagementService.deletePerformance(memberId, performanceId);
+		performanceFacade.deletePerformance(memberId, performanceId);
 		return ResponseEntity.ok(SuccessResponse.from(PerformanceSuccessCode.PERFORMANCE_DELETE_SUCCESS));
 	}
 }

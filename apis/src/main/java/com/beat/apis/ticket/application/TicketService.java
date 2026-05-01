@@ -59,6 +59,8 @@ public class TicketService {
 
 	public TicketRetrieveResponse findAllTicketsByConditions(Long memberId, Long performanceId,
 		List<ScheduleNumber> scheduleNumbers, List<BookingStatus> bookingStatuses) {
+		validateDeletedTicketsAreNotRequested(bookingStatuses);
+
 		Member member = findMember(memberId);
 		Users user = findUser(member);
 		Performance performance = findPerformance(performanceId);
@@ -83,6 +85,9 @@ public class TicketService {
 
 	public TicketRetrieveResponse searchAllTicketsByConditions(Long memberId, Long performanceId, String searchWord,
 		List<ScheduleNumber> scheduleNumbers, List<BookingStatus> bookingStatuses) {
+		validateSearchWord(searchWord);
+		validateDeletedTicketsAreNotRequested(bookingStatuses);
+
 		Member member = findMember(memberId);
 		Users user = findUser(member);
 		Performance performance = findPerformance(performanceId);
@@ -128,6 +133,18 @@ public class TicketService {
 
 		return findTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
 			schedules, tickets);
+	}
+
+	private void validateSearchWord(String searchWord) {
+		if (searchWord == null || searchWord.length() < 2) {
+			throw new BadRequestException(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT);
+		}
+	}
+
+	private void validateDeletedTicketsAreNotRequested(List<BookingStatus> bookingStatuses) {
+		if (bookingStatuses != null && bookingStatuses.contains(BookingStatus.BOOKING_DELETED)) {
+			throw new BadRequestException(TicketApplicationErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
+		}
 	}
 
 	private <E extends Enum<E>> List<String> toNames(List<E> values) {

@@ -1,10 +1,9 @@
 package com.beat.apis.ticket.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,64 +16,36 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
-import com.beat.apis.ticket.application.TicketService;
+import com.beat.apis.ticket.api.response.TicketSuccessCode;
 import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
-import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.apis.ticket.application.exception.TicketApplicationErrorCode;
-import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.apis.ticket.facade.TicketFacade;
 import com.beat.global.common.dto.SuccessResponse;
-import com.beat.global.common.exception.BadRequestException;
 
 @ExtendWith(MockitoExtension.class)
 class TicketControllerTest {
 
 	@Mock
-	private TicketService ticketService;
+	private TicketFacade ticketFacade;
 
 	private TicketController ticketController;
 
 	@BeforeEach
 	void setUp() {
-		ticketController = new TicketController(ticketService);
+		ticketController = new TicketController(ticketFacade);
 	}
 
 	@Test
-	void searchTicketsRejectsBlankSearchWord() {
-		BadRequestException exception = assertThrows(BadRequestException.class, () ->
-			ticketController.searchTickets(
-				1L,
-				100L,
-				"",
-				List.of(ScheduleNumber.FIRST),
-				List.of(BookingStatus.CHECKING_PAYMENT)
-			)
+	void searchTicketsDelegatesToFacade() {
+		TicketRetrieveResponse expected = TicketRetrieveResponse.of(
+			"title",
+			"team",
+			1,
+			2,
+			3,
+			List.of()
 		);
-
-		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getBaseErrorCode());
-		verify(ticketService, never()).searchAllTicketsByConditions(anyLong(), anyLong(), any(), any(), any());
-	}
-
-	@Test
-	void searchTicketsRejectsSingleCharacterSearchWord() {
-		BadRequestException exception = assertThrows(BadRequestException.class, () ->
-			ticketController.searchTickets(1L, 100L, "a", null, null)
-		);
-
-		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getBaseErrorCode());
-		verify(ticketService, never()).searchAllTicketsByConditions(anyLong(), anyLong(), any(), any(), any());
-	}
-
-	@Test
-	void searchTicketsDelegatesForValidSearchWord() {
-		when(ticketService.searchAllTicketsByConditions(anyLong(), anyLong(), any(), any(), any()))
-			.thenReturn(TicketRetrieveResponse.of(
-				"title",
-				"team",
-				1,
-				2,
-				3,
-				List.of()
-			));
+		when(ticketFacade.searchTickets(anyLong(), anyLong(), any(), any(), any()))
+			.thenReturn(expected);
 
 		ResponseEntity<SuccessResponse<TicketRetrieveResponse>> response = ticketController.searchTickets(
 			1L,
@@ -85,6 +56,10 @@ class TicketControllerTest {
 		);
 
 		assertEquals(200, response.getStatusCode().value());
-		verify(ticketService).searchAllTicketsByConditions(1L, 100L, "ab", null, null);
+		assertEquals("no-cache", response.getHeaders().getCacheControl());
+		assertEquals(TicketSuccessCode.TICKET_SEARCH_SUCCESS.getStatus(), response.getBody().status());
+		assertEquals(TicketSuccessCode.TICKET_SEARCH_SUCCESS.getMessage(), response.getBody().message());
+		assertSame(expected, response.getBody().data());
+		verify(ticketFacade).searchTickets(1L, 100L, "ab", null, null);
 	}
 }
