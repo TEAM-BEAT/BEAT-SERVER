@@ -612,7 +612,7 @@ infra.persistence.<context>.repository.query  # read/query adapter
 
 ## 15. Module-contracts boundary
 
-#426 이후 `module-contracts/src/main`은 domain type을 직접 import하지 않습니다. 실행 모듈 간 공유 contract는 다음 원칙을 따릅니다.
+Issue `#426` 이후 `module-contracts/src/main`은 domain type을 직접 import하지 않습니다. 실행 모듈 간 공유 contract는 다음 원칙을 따릅니다.
 
 - Domain model, domain enum/value object, JPA entity, API ResponseDTO를 필드나 반환 타입으로 담지 않습니다.
 - 필요한 값은 contract-local enum/value/read model로 끊고, domain type과의 변환은 실행 모듈 application boundary에서 수행합니다.

@@ -481,11 +481,11 @@ root verification task:
 
 ## #426 module-contracts domain type coupling removal
 
-#426은 `module-contracts`에 남아 있던 historical domain import를 제거한다. 공유 contract는 실행 모듈 간 경계이므로 domain model/domain enum을 그대로 재노출하지 않는다.
+Issue `#426`은 `module-contracts`에 남아 있던 historical domain import를 제거한다. 공유 contract는 실행 모듈 간 경계이므로 domain model/domain enum을 그대로 재노출하지 않는다.
 
 | 이전 coupling | 현재 contract-local type | 변환 위치 |
 | --- | --- | --- |
-| `SocialLoginRequest` / `SocialMemberInfo`가 domain `SocialType`을 노출하지 않음 | `contracts.auth.social.SocialLoginRequest` + `SocialLoginType`; `SocialMemberInfo`는 provider profile 값만 보유 | `apis.member.application.SocialLoginService` private mapper |
+| `SocialLoginRequest` / `SocialMemberInfo`가 domain `SocialType`을 직접 노출 | `contracts.auth.social.SocialLoginRequest` + `SocialLoginType`; `SocialMemberInfo`는 provider profile 값만 보유 | `apis.member.application.SocialLoginService` private mapper |
 | `ScheduleBookingCloseJobPort` -> `domain.schedule.domain.Schedule` | `contracts.schedule.ScheduleBookingCloseJobTarget` | `apis.performance.application` / `batch.scheduler.application` mapper method |
 
 검증 기준:
