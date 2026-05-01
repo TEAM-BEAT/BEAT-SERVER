@@ -18,7 +18,7 @@ class PromotionBoundaryTest {
 		assertFalse(service.contains("com.beat.admin.application.dto"));
 		assertFalse(service.contains("PromotionUseCase"));
 		assertTrue(service.startsWith("package com.beat.apis.promotion.application;"));
-		assertFalse(Files.exists(Path.of("domain/src/main/java/com/beat/domain/promotion/port/in")));
+		assertFalse(Files.exists(Path.of("domain/src/main/kotlin/com/beat/domain/promotion/port/in")));
 		assertFalse(Files.exists(Path.of("apis/src/main/java/com/beat/apis/promotion/application/port/in")));
 	}
 

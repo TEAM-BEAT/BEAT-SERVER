@@ -3,7 +3,6 @@ package com.beat.domain.performance.domain
 import com.beat.domain.performance.exception.PerformanceErrorCode
 import com.beat.global.common.exception.BadRequestException
 import com.beat.domain.user.domain.Users
-import com.beat.global.common.exception.ForbiddenException
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility
@@ -85,15 +84,13 @@ data class Performance private constructor(
     }
 
     fun updatePerformancePeriod(performanceDates: List<LocalDateTime>): Performance {
-        if (performanceDates.isEmpty()) throw BadRequestException(PerformanceErrorCode.SCHEDULE_LIST_NOT_FOUND)
+        require(performanceDates.isNotEmpty()) { "performanceDates must not be empty" }
         val startDate = performanceDates.min()
         val endDate = performanceDates.max()
         return copy(performancePeriod = formatPerformancePeriod(startDate, endDate))
     }
 
-    fun validatePerformanceOwnership(userId: Long) {
-        if (linkedUserId.value != userId) throw ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER)
-    }
+    fun isOwnedBy(userId: Long): Boolean = linkedUserId.value == userId
 
     private fun formatPerformancePeriod(startDate: LocalDateTime, endDate: LocalDateTime): String {
         val start = startDate.toLocalDate().toString().replace("-", ".")

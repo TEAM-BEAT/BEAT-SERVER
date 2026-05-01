@@ -17,7 +17,7 @@ import com.beat.apis.member.application.dto.request.MemberLoginRequest;
 import com.beat.apis.member.application.dto.response.AccessTokenGenerateResponse;
 import com.beat.apis.member.application.dto.response.LoginSuccessResponse;
 import com.beat.apis.member.application.dto.response.MemberLoginResponse;
-import com.beat.domain.member.exception.MemberSuccessCode;
+import com.beat.apis.member.api.response.MemberSuccessCode;
 import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 

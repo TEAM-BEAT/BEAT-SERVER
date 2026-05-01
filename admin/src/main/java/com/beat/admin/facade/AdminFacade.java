@@ -21,13 +21,13 @@ import com.beat.admin.application.dto.response.UserFindAllResponse;
 import com.beat.admin.port.in.AdminUseCase;
 import com.beat.contracts.storage.FileStoragePort;
 import com.beat.domain.member.repository.MemberRepository;
-import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
+import com.beat.admin.application.exception.AdminApplicationErrorCode;
 
 @Service
 @Transactional
@@ -110,6 +110,6 @@ public class AdminFacade {
 
 	private void validateMemberExists(Long memberId) {
 		memberRepository.findById(memberId)
-			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(AdminApplicationErrorCode.MEMBER_NOT_FOUND));
 	}
 }

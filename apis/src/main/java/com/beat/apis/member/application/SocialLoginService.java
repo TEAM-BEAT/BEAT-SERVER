@@ -6,16 +6,20 @@ import org.springframework.transaction.annotation.Transactional;
 import com.beat.apis.member.application.dto.request.MemberLoginRequest;
 import com.beat.apis.member.application.dto.response.LoginSuccessResponse;
 import com.beat.contracts.auth.social.SocialLoginCommand;
+import com.beat.contracts.auth.social.SocialLoginFailure;
 import com.beat.contracts.auth.social.SocialLoginPort;
 import com.beat.contracts.auth.social.SocialMemberInfo;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.exception.UserErrorCode;
 import com.beat.domain.user.repository.UserRepository;
+import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.common.exception.UnauthorizedException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
+import com.beat.apis.user.application.exception.UserApplicationErrorCode;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -41,8 +45,12 @@ public class SocialLoginService {
 	public LoginSuccessResponse handleSocialLogin(final String authorizationCode,
 		final MemberLoginRequest loginRequest) {
 		SocialLoginCommand command = new SocialLoginCommand(authorizationCode, loginRequest.socialType());
-		SocialMemberInfo socialMemberInfo = socialLoginPort.login(command);
-		return generateLoginResponseFromMemberInfo(socialMemberInfo);
+		try {
+			SocialMemberInfo socialMemberInfo = socialLoginPort.login(command);
+			return generateLoginResponseFromMemberInfo(socialMemberInfo);
+		} catch (SocialLoginFailure failure) {
+			throw translateSocialLoginFailure(failure);
+		}
 	}
 
 	/**
@@ -52,6 +60,15 @@ public class SocialLoginService {
 	 * @param socialMemberInfo 소셜 서비스에서 가져온 사용자 정보
 	 * @return 로그인 성공 응답(LoginSuccessResponse)
 	 */
+	private RuntimeException translateSocialLoginFailure(SocialLoginFailure failure) {
+		return switch (failure.getReason()) {
+			case UNSUPPORTED_SOCIAL_TYPE ->
+				new BadRequestException(MemberApplicationErrorCode.SOCIAL_TYPE_BAD_REQUEST);
+			case AUTHENTICATION_FAILED ->
+				new UnauthorizedException(MemberApplicationErrorCode.AUTHENTICATION_CODE_EXPIRED);
+		};
+	}
+
 	private LoginSuccessResponse generateLoginResponseFromMemberInfo(final SocialMemberInfo socialMemberInfo) {
 		log.info("Attempting to find or register member for socialId: {}, socialType: {}",
 			socialMemberInfo.socialId(), socialMemberInfo.socialType());
@@ -61,7 +78,7 @@ public class SocialLoginService {
 
 		Member member = memberService.findMemberByMemberId(memberId);
 		Users user = userRepository.findById(member.getUserId())
-			.orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(UserApplicationErrorCode.USER_NOT_FOUND));
 
 		log.info("User role before generating token: {}", user.getRole());
 
@@ -83,7 +100,7 @@ public class SocialLoginService {
 			Member existingMember = memberService.findMemberBySocialIdAndSocialType(socialMemberInfo.socialId(),
 				socialMemberInfo.socialType());
 			Users user = userRepository.findById(existingMember.getUserId())
-				.orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+				.orElseThrow(() -> new NotFoundException(UserApplicationErrorCode.USER_NOT_FOUND));
 			log.info("Existing member role: {}", user.getRole());
 			return existingMember.getId();
 		}

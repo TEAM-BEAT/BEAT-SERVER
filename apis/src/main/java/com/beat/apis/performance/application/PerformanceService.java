@@ -28,10 +28,8 @@ import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.repository.CastRepository;
 import com.beat.domain.member.domain.Member;
-import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performanceimage.domain.PerformanceImage;
 import com.beat.domain.performanceimage.repository.PerformanceImageRepository;
@@ -40,13 +38,15 @@ import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.staff.repository.StaffRepository;
-import com.beat.domain.user.exception.UserErrorCode;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.ForbiddenException;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
+import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
+import com.beat.apis.user.application.exception.UserApplicationErrorCode;
 
 @Slf4j
 @Service
@@ -65,7 +65,7 @@ public class PerformanceService {
 	@Transactional(readOnly = true)
 	public PerformanceDetailResponse getPerformanceDetail(Long performanceId) {
 		Performance performance = performanceRepository.findById(performanceId)
-			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
 
 		LocalDate today = LocalDate.now();
 		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
@@ -110,7 +110,7 @@ public class PerformanceService {
 	@Transactional(readOnly = true)
 	public BookingPerformanceDetailResponse getBookingPerformanceDetail(Long performanceId) {
 		Performance performance = performanceRepository.findById(performanceId)
-			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
 
 		LocalDate today = LocalDate.now();
 		List<BookingPerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findAllByPerformanceId(
@@ -132,10 +132,10 @@ public class PerformanceService {
 	@Transactional(readOnly = true)
 	public MakerPerformanceResponse getMemberPerformances(Long memberId) {
 		Member member = memberRepository.findById(memberId)
-			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(MemberApplicationErrorCode.MEMBER_NOT_FOUND));
 
 		userRepository.findById(member.getUserId())
-			.orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(UserApplicationErrorCode.USER_NOT_FOUND));
 
 		List<Performance> performances = performanceRepository.findByUserId(member.getUserId());
 		LocalDate today = LocalDate.now();
@@ -167,21 +167,21 @@ public class PerformanceService {
 	@Transactional(readOnly = true)
 	public Performance findById(Long performanceId) {
 		return performanceRepository.findById(performanceId)
-			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
 	}
 
 	@Transactional
 	public PerformanceModifyDetailResponse getPerformanceEdit(Long memberId, Long performanceId) {
 		Member member = memberRepository.findById(memberId)
-			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(MemberApplicationErrorCode.MEMBER_NOT_FOUND));
 
 		Long userId = member.getUserId();
 
 		Performance performance = performanceRepository.findById(performanceId)
-			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
 
 		if (!Objects.equals(performance.getUserId(), userId)) {
-			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
+			throw new ForbiddenException(PerformanceApplicationErrorCode.NOT_PERFORMANCE_OWNER);
 		}
 
 		List<Long> scheduleIds = scheduleRepository.findIdsByPerformanceId(performanceId);

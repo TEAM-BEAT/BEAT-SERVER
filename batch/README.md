@@ -160,7 +160,8 @@ com.beat.batch.<context>/
 - 배치 조회/리포트/통계가 필요할 때만 `application/service/query`를 추가한다.
 - DTO는 command/query로 나누지 않고 `application/dto` 아래에서 관리한다. Facade 조합용 내부 결과가 필요할 때만 `application/dto/result`를 추가한다.
 - command job/service는 domain repository contract와 infra 구현을 통해 저장/수정 흐름과 transaction을 수행한다. 단순 조회는 domain repository contract를 사용할 수 있지만, 배치 리포트/통계 조회가 필요해질 때는 infra persistence mapper를 직접 재사용하지 않고 query 전용 read model/projection을 둔다. infra adapter가 필요하면 실행 모듈 타입을 infra가 import하지 않고 module-contracts read contract를 먼저 둔다.
-- 배치 애플리케이션 문맥의 에러 코드와 예외는 `application/exception`에 둔다.
+- 배치 애플리케이션 문맥의 에러 코드는 `application/exception`에 둔다. repository lookup 실패, batch flow 실패, 외부 adapter 실패 번역을 domain ErrorCode로 표현하지 않는다.
+- batch는 HTTP response success code가 기본적으로 필요하지 않다. 배치 결과 메시지가 필요해질 때는 batch-local result/response boundary가 소유하고 domain에는 `SuccessCode`를 추가하지 않는다.
 - `adapter`, `port` 패키지는 BEAT 기본 가이드로 강제하지 않는다.
 - Repository는 지금 즉시 분리하지 않고, 복잡한 조회 전용 구현이 필요할 때만 infra `repository.query` 레이어를 추가한다. 이 레이어는 batch 리포트/통계용 read projection을 소유하고 JPA entity와 domain model을 번역하는 mapper를 재사용하지 않는다.
 

@@ -23,24 +23,18 @@ import com.beat.contracts.schedule.ScheduleJobPort;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.cast.domain.Cast;
-import com.beat.domain.cast.exception.CastErrorCode;
 import com.beat.domain.cast.repository.CastRepository;
 import com.beat.domain.member.domain.Member;
-import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performanceimage.domain.PerformanceImage;
-import com.beat.domain.performanceimage.exception.PerformanceImageErrorCode;
 import com.beat.domain.performanceimage.repository.PerformanceImageRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
-import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.domain.staff.domain.Staff;
-import com.beat.domain.staff.exception.StaffErrorCode;
 import com.beat.domain.staff.repository.StaffRepository;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.ForbiddenException;
@@ -48,6 +42,12 @@ import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
+import com.beat.apis.performance.application.exception.CastApplicationErrorCode;
+import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
+import com.beat.apis.performance.application.exception.PerformanceImageApplicationErrorCode;
+import com.beat.apis.performance.application.exception.StaffApplicationErrorCode;
+import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 
 @Slf4j
 @Service
@@ -81,7 +81,7 @@ public class PerformanceModifyService {
 
 		if (isBookerExist && request.ticketPrice() != performance.getTicketPrice()) {
 			log.error("Ticket price update failed due to existing bookings for performanceId: {}", performance.getId());
-			throw new BadRequestException(PerformanceErrorCode.PRICE_UPDATE_NOT_ALLOWED);
+			throw new BadRequestException(PerformanceApplicationErrorCode.PRICE_UPDATE_NOT_ALLOWED);
 		}
 
 		performance = updatePerformanceDetails(performance, request, isBookerExist);
@@ -105,7 +105,7 @@ public class PerformanceModifyService {
 		return memberRepository.findById(memberId)
 			.orElseThrow(() -> {
 				log.error("Member not found: memberId: {}", memberId);
-				return new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND);
+				return new NotFoundException(MemberApplicationErrorCode.MEMBER_NOT_FOUND);
 			});
 	}
 
@@ -114,14 +114,14 @@ public class PerformanceModifyService {
 		return performanceRepository.findById(performanceId)
 			.orElseThrow(() -> {
 				log.error("Performance not found: performanceId: {}", performanceId);
-				return new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND);
+				return new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND);
 			});
 	}
 
 	private void validateOwnership(Long userId, Performance performance) {
 		if (!Objects.equals(performance.getUserId(), userId)) {
 			log.error("User ID {} does not own performance ID {}", userId, performance.getId());
-			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
+			throw new ForbiddenException(PerformanceApplicationErrorCode.NOT_PERFORMANCE_OWNER);
 		}
 	}
 
@@ -153,6 +153,9 @@ public class PerformanceModifyService {
 		List<LocalDateTime> performanceDates = request.scheduleModifyRequests().stream()
 			.map(ScheduleModifyRequest::performanceDate)
 			.toList();
+		if (performanceDates.isEmpty()) {
+			throw new BadRequestException(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND);
+		}
 		performance = performance.updatePerformancePeriod(performanceDates);
 
 		if (!isBookerExist) {
@@ -212,13 +215,13 @@ public class PerformanceModifyService {
 		log.debug("Adding schedules for performanceId: {}", performance.getId());
 
 		if (request.performanceDate().isBefore(LocalDateTime.now())) {
-			throw new BadRequestException(PerformanceErrorCode.PAST_SCHEDULE_NOT_ALLOWED);
+			throw new BadRequestException(PerformanceApplicationErrorCode.PAST_SCHEDULE_NOT_ALLOWED);
 		}
 
 		long existingSchedulesCount = scheduleRepository.countByPerformanceId(performance.getId());
 
 		if ((existingSchedulesCount + 1) > 10) {
-			throw new BadRequestException(PerformanceErrorCode.MAX_SCHEDULE_LIMIT_EXCEEDED);
+			throw new BadRequestException(PerformanceApplicationErrorCode.MAX_SCHEDULE_LIMIT_EXCEEDED);
 		}
 
 		Schedule schedule = Schedule.create(
@@ -240,18 +243,18 @@ public class PerformanceModifyService {
 		Schedule schedule = scheduleRepository.lockById(request.scheduleId())
 			.orElseThrow(() -> {
 				log.error("Schedule not found: scheduleId: {}", request.scheduleId());
-				return new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
+				return new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND);
 			});
 
 		if (!Objects.equals(schedule.getPerformanceId(), performance.getId())) {
-			throw new ForbiddenException(ScheduleErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE);
+			throw new ForbiddenException(ScheduleApplicationErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE);
 		}
 
 		// 종료된 스케줄(기존 스케쥴 날짜가 과거인 경우)은 날짜 변경 불가
 		if (schedule.getPerformanceDate().isBefore(LocalDateTime.now())) {
 			if (!schedule.getPerformanceDate().isEqual(request.performanceDate())) {
 				throw new BadRequestException(
-					PerformanceErrorCode.SCHEDULE_MODIFICATION_NOT_ALLOWED_FOR_ENDED_SCHEDULE);
+					PerformanceApplicationErrorCode.SCHEDULE_MODIFICATION_NOT_ALLOWED_FOR_ENDED_SCHEDULE);
 			}
 			// 날짜 변경이 없으면 그대로 반환
 			return schedule;
@@ -259,14 +262,14 @@ public class PerformanceModifyService {
 
 		// 종료되지 않은 스케줄을 과거 날짜로 수정 시 에러 발생
 		if (request.performanceDate().isBefore(LocalDateTime.now())) {
-			throw new BadRequestException(PerformanceErrorCode.PAST_SCHEDULE_NOT_ALLOWED);
+			throw new BadRequestException(PerformanceApplicationErrorCode.PAST_SCHEDULE_NOT_ALLOWED);
 		}
 
 		// 티켓 수 관련 검증
 		if (request.totalTicketCount() != schedule.getTotalTicketCount()) {
 			// 판매된 티켓 수보다 적은 totalTicketCount로 변경하려는 경우 예외 처리
 			if (request.totalTicketCount() < schedule.getSoldTicketCount()) {
-				throw new BadRequestException(PerformanceErrorCode.INVALID_TICKET_COUNT);
+				throw new BadRequestException(PerformanceApplicationErrorCode.INVALID_TICKET_COUNT);
 			}
 
 			boolean wasSoldOut = schedule.getSoldTicketCount() == schedule.getTotalTicketCount();
@@ -299,7 +302,7 @@ public class PerformanceModifyService {
 		List<BookingStatus> inactiveStatuses = List.of(BookingStatus.BOOKING_CANCELLED, BookingStatus.BOOKING_DELETED);
 		boolean hasActiveBookings = bookingRepository.existsActiveBookingByScheduleIds(scheduleIds, inactiveStatuses);
 		if (hasActiveBookings) {
-			throw new ForbiddenException(PerformanceErrorCode.PERFORMANCE_DELETE_FAILED);
+			throw new ForbiddenException(PerformanceApplicationErrorCode.PERFORMANCE_DELETE_FAILED);
 		}
 		int deletedInactiveBookingCount = bookingRepository.deleteInactiveBookingsByScheduleIds(scheduleIds,
 			inactiveStatuses);
@@ -309,7 +312,7 @@ public class PerformanceModifyService {
 			Schedule schedule = scheduleRepository.findById(scheduleId)
 				.orElseThrow(() -> {
 					log.error("Schedule not found: scheduleId: {}", scheduleId);
-					return new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
+					return new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND);
 				});
 
 			scheduleJobPort.cancel(schedule);
@@ -365,11 +368,11 @@ public class PerformanceModifyService {
 		Cast cast = castRepository.findById(request.castId())
 			.orElseThrow(() -> {
 				log.error("Cast not found: castId: {}", request.castId());
-				return new NotFoundException(CastErrorCode.CAST_NOT_FOUND);
+				return new NotFoundException(CastApplicationErrorCode.CAST_NOT_FOUND);
 			});
 
 		if (!Objects.equals(cast.getPerformanceId(), performance.getId())) {
-			throw new ForbiddenException(CastErrorCode.CAST_NOT_BELONG_TO_PERFORMANCE);
+			throw new ForbiddenException(CastApplicationErrorCode.CAST_NOT_BELONG_TO_PERFORMANCE);
 		}
 
 		cast = castRepository.save(cast.update(
@@ -396,7 +399,7 @@ public class PerformanceModifyService {
 			Cast cast = castRepository.findById(castId)
 				.orElseThrow(() -> {
 					log.error("Cast not found: castId: {}", castId);
-					return new NotFoundException(CastErrorCode.CAST_NOT_FOUND);
+					return new NotFoundException(CastApplicationErrorCode.CAST_NOT_FOUND);
 				});
 			castRepository.delete(cast);
 			log.debug("Deleted cast with castId: {}", castId);
@@ -449,11 +452,11 @@ public class PerformanceModifyService {
 		Staff staff = staffRepository.findById(request.staffId())
 			.orElseThrow(() -> {
 				log.error("Staff not found: staffId: {}", request.staffId());
-				return new NotFoundException(StaffErrorCode.STAFF_NOT_FOUND);
+				return new NotFoundException(StaffApplicationErrorCode.STAFF_NOT_FOUND);
 			});
 
 		if (!Objects.equals(staff.getPerformanceId(), performance.getId())) {
-			throw new ForbiddenException(StaffErrorCode.STAFF_NOT_BELONG_TO_PERFORMANCE);
+			throw new ForbiddenException(StaffApplicationErrorCode.STAFF_NOT_BELONG_TO_PERFORMANCE);
 		}
 
 		staff = staffRepository.save(staff.update(
@@ -480,7 +483,7 @@ public class PerformanceModifyService {
 			Staff staff = staffRepository.findById(staffId)
 				.orElseThrow(() -> {
 					log.error("Staff not found: staffId: {}", staffId);
-					return new NotFoundException(StaffErrorCode.STAFF_NOT_FOUND);
+					return new NotFoundException(StaffApplicationErrorCode.STAFF_NOT_FOUND);
 				});
 			staffRepository.delete(staff);
 			log.debug("Deleted staff with staffId: {}", staffId);
@@ -532,11 +535,11 @@ public class PerformanceModifyService {
 		PerformanceImage performanceImage = performanceImageRepository.findById(request.performanceImageId())
 			.orElseThrow(() -> {
 				log.error("PerformanceImage not found: performanceId: {}", request.performanceImageId());
-				return new NotFoundException(PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_FOUND);
+				return new NotFoundException(PerformanceImageApplicationErrorCode.PERFORMANCE_IMAGE_NOT_FOUND);
 			});
 
 		if (!Objects.equals(performanceImage.getPerformanceId(), performance.getId())) {
-			throw new ForbiddenException(PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_BELONG_TO_PERFORMANCE);
+			throw new ForbiddenException(PerformanceImageApplicationErrorCode.PERFORMANCE_IMAGE_NOT_BELONG_TO_PERFORMANCE);
 		}
 
 		performanceImage = performanceImageRepository.save(performanceImage.update(request.performanceImage()));
@@ -557,7 +560,7 @@ public class PerformanceModifyService {
 			PerformanceImage performanceImage = performanceImageRepository.findById(performanceImageId)
 				.orElseThrow(() -> {
 					log.error("PerformanceImage not found: performanceImageId: {}", performanceImageId);
-					return new NotFoundException(PerformanceImageErrorCode.PERFORMANCE_IMAGE_NOT_FOUND);
+					return new NotFoundException(PerformanceImageApplicationErrorCode.PERFORMANCE_IMAGE_NOT_FOUND);
 				});
 			performanceImageRepository.delete(performanceImage);
 			log.debug("Deleted performanceImage: {}", performanceImageId);
@@ -567,7 +570,7 @@ public class PerformanceModifyService {
 	private void assignScheduleNumbers(List<Schedule> schedules) {
 		List<ScheduleNumber> scheduleNumbers = List.of(ScheduleNumber.values());
 		if (schedules.size() > scheduleNumbers.size()) {
-			throw new BadRequestException(PerformanceErrorCode.MAX_SCHEDULE_LIMIT_EXCEEDED);
+			throw new BadRequestException(PerformanceApplicationErrorCode.MAX_SCHEDULE_LIMIT_EXCEEDED);
 		}
 		schedules.sort(java.util.Comparator.comparing(Schedule::getPerformanceDate));
 		for (int i = 0; i < schedules.size(); i++) {
@@ -614,4 +617,3 @@ public class PerformanceModifyService {
 		return response;
 	}
 }
-

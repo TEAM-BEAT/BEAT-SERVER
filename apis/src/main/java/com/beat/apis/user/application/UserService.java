@@ -6,11 +6,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.exception.UserErrorCode;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
+import com.beat.apis.user.application.exception.UserApplicationErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +25,6 @@ public class UserService {
 	@Transactional(readOnly = true)
 	public Users findUserByUserId(final Long userId) {
 		return userRepository.findById(userId)
-			.orElseThrow(() -> new NotFoundException(UserErrorCode.USER_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(UserApplicationErrorCode.USER_NOT_FOUND));
 	}
 }

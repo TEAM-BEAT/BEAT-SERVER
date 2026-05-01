@@ -23,10 +23,8 @@ import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.repository.CastRepository;
 import com.beat.domain.member.domain.Member;
-import com.beat.domain.member.exception.MemberErrorCode;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performanceimage.domain.PerformanceImage;
 import com.beat.domain.performanceimage.repository.PerformanceImageRepository;
@@ -43,6 +41,8 @@ import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
+import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
 
 @Slf4j
 @Service
@@ -63,7 +63,7 @@ public class PerformanceManagementService {
 	@Transactional
 	public PerformanceResponse createPerformance(Long memberId, PerformanceRequest request) {
 		Member member = memberRepository.findById(memberId)
-			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(MemberApplicationErrorCode.MEMBER_NOT_FOUND));
 
 		Performance performance = Performance.create(
 			request.performanceTitle(),
@@ -93,7 +93,7 @@ public class PerformanceManagementService {
 		List<Schedule> schedules = request.scheduleList().stream()
 			.map(scheduleRequest -> {
 				if (scheduleRequest.performanceDate().isBefore(LocalDateTime.now())) {
-					throw new BadRequestException(PerformanceErrorCode.PAST_SCHEDULE_NOT_ALLOWED);
+					throw new BadRequestException(PerformanceApplicationErrorCode.PAST_SCHEDULE_NOT_ALLOWED);
 				}
 				return Schedule.create(
 					scheduleRequest.performanceDate(),
@@ -112,6 +112,9 @@ public class PerformanceManagementService {
 		List<LocalDateTime> performanceDates = schedules.stream()
 			.map(Schedule::getPerformanceDate)
 			.toList();
+		if (performanceDates.isEmpty()) {
+			throw new BadRequestException(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND);
+		}
 		savedPerformance = savedPerformance.updatePerformancePeriod(performanceDates);
 		savedPerformance = performanceRepository.save(savedPerformance);
 
@@ -215,7 +218,7 @@ public class PerformanceManagementService {
 	private void assignScheduleNumbers(List<Schedule> schedules) {
 		List<ScheduleNumber> scheduleNumbers = List.of(ScheduleNumber.values());
 		if (schedules.size() > scheduleNumbers.size()) {
-			throw new BadRequestException(PerformanceErrorCode.MAX_SCHEDULE_LIMIT_EXCEEDED);
+			throw new BadRequestException(PerformanceApplicationErrorCode.MAX_SCHEDULE_LIMIT_EXCEEDED);
 		}
 		schedules.sort(comparing(Schedule::getPerformanceDate));
 		for (int i = 0; i < schedules.size(); i++) {
@@ -226,15 +229,15 @@ public class PerformanceManagementService {
 	@Transactional
 	public void deletePerformance(Long memberId, Long performanceId) {
 		Member member = memberRepository.findById(memberId)
-			.orElseThrow(() -> new NotFoundException(MemberErrorCode.MEMBER_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(MemberApplicationErrorCode.MEMBER_NOT_FOUND));
 
 		Long userId = member.getUserId();
 
 		Performance performance = performanceRepository.findById(performanceId)
-			.orElseThrow(() -> new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND));
+			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
 
 		if (!Objects.equals(performance.getUserId(), userId)) {
-			throw new ForbiddenException(PerformanceErrorCode.NOT_PERFORMANCE_OWNER);
+			throw new ForbiddenException(PerformanceApplicationErrorCode.NOT_PERFORMANCE_OWNER);
 		}
 
 		List<Long> scheduleIds = scheduleRepository.findIdsByPerformanceId(performanceId);
@@ -244,7 +247,7 @@ public class PerformanceManagementService {
 			boolean isBookerExist = bookingRepository.existsActiveBookingByScheduleIds(scheduleIds, inactiveStatuses);
 
 			if (isBookerExist) {
-				throw new ForbiddenException(PerformanceErrorCode.PERFORMANCE_DELETE_FAILED);
+				throw new ForbiddenException(PerformanceApplicationErrorCode.PERFORMANCE_DELETE_FAILED);
 			}
 
 			int deletedInactiveBookingCount = bookingRepository.deleteInactiveBookingsByScheduleIds(scheduleIds,

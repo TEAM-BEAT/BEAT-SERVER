@@ -27,7 +27,7 @@ import com.beat.apis.booking.application.dto.GuestBookingRetrieveResponse;
 import com.beat.apis.booking.application.dto.MemberBookingRequest;
 import com.beat.apis.booking.application.dto.MemberBookingResponse;
 import com.beat.apis.booking.application.dto.MemberBookingRetrieveResponse;
-import com.beat.domain.booking.exception.BookingSuccessCode;
+import com.beat.apis.booking.api.response.BookingSuccessCode;
 import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 

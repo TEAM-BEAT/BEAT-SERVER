@@ -14,7 +14,6 @@ import com.beat.apis.schedule.application.dto.response.TicketAvailabilityRespons
 import com.beat.contracts.schedule.ScheduleReadPort;
 import com.beat.contracts.schedule.readmodel.MinPerformanceDateReadModel;
 import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.global.common.exception.BadRequestException;
@@ -22,6 +21,7 @@ import com.beat.global.common.exception.ConflictException;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
+import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -37,14 +37,14 @@ public class ScheduleService {
 		validateRequest(scheduleId, ticketAvailabilityRequest);
 
 		Schedule schedule = scheduleRepository.findById(scheduleId)
-			.orElseThrow(() -> new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND));
+			.orElseThrow(() -> new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND));
 
 		int availableTicketCount = scheduleDomainService.getAvailableTicketCount(schedule);
 		boolean isAvailable = scheduleDomainService.canPurchase(schedule,
 			ticketAvailabilityRequest.purchaseTicketCount());
 
 		if (!isAvailable) {
-			throw new ConflictException(ScheduleErrorCode.INSUFFICIENT_TICKETS);
+			throw new ConflictException(ScheduleApplicationErrorCode.INSUFFICIENT_TICKETS);
 		}
 
 		return TicketAvailabilityResponse.of(
@@ -75,7 +75,7 @@ public class ScheduleService {
 
 	private void validateRequest(Long scheduleId, TicketAvailabilityRequest ticketAvailabilityRequest) {
 		if (ticketAvailabilityRequest.purchaseTicketCount() <= 0 || scheduleId <= 0) {
-			throw new BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT);
+			throw new BadRequestException(ScheduleApplicationErrorCode.INVALID_DATA_FORMAT);
 		}
 	}
 }

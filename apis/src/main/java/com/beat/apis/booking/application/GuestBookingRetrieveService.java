@@ -4,12 +4,9 @@ import com.beat.apis.booking.application.dto.GuestBookingRetrieveRequest;
 import com.beat.apis.booking.application.dto.GuestBookingRetrieveResponse;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
-import com.beat.domain.booking.exception.BookingErrorCode;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.exception.PerformanceErrorCode;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.global.common.exception.BadRequestException;
@@ -26,6 +23,9 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import com.beat.apis.booking.application.exception.BookingApplicationErrorCode;
+import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
+import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -44,10 +44,10 @@ public class GuestBookingRetrieveService {
 		List<Booking> bookings = bookingRepository.findByBookerNameAndBookerPhoneNumberAndPasswordAndBirthDate(
 			guestBookingRetrieveRequest.bookerName(), guestBookingRetrieveRequest.bookerPhoneNumber(),
 			guestBookingRetrieveRequest.password(), guestBookingRetrieveRequest.birthDate()).orElseThrow(
-			() -> new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND));
+			() -> new NotFoundException(BookingApplicationErrorCode.NO_BOOKING_FOUND));
 
 		if (bookings.isEmpty()) {
-			throw new NotFoundException(BookingErrorCode.NO_BOOKING_FOUND);
+			throw new NotFoundException(BookingApplicationErrorCode.NO_BOOKING_FOUND);
 		}
 
 		Map<Long, Schedule> scheduleMap = findSchedulesByBookingScheduleIds(bookings);
@@ -62,24 +62,24 @@ public class GuestBookingRetrieveService {
 	private void validateRequest(GuestBookingRetrieveRequest guestBookingRetrieveRequest) {
 		if (guestBookingRetrieveRequest.bookerName() == null || guestBookingRetrieveRequest.bookerPhoneNumber() == null
 			|| guestBookingRetrieveRequest.password() == null || guestBookingRetrieveRequest.birthDate() == null) {
-			throw new BadRequestException(BookingErrorCode.REQUIRED_DATA_MISSING);
+			throw new BadRequestException(BookingApplicationErrorCode.REQUIRED_DATA_MISSING);
 		}
 
 		if (!Pattern.matches("^[a-zA-Z가-힣]+$", guestBookingRetrieveRequest.bookerName())) { // 예매자 이름은 알파벳, 한글 형식
-			throw new BadRequestException(BookingErrorCode.INVALID_REQUEST_FORMAT);
+			throw new BadRequestException(BookingApplicationErrorCode.INVALID_REQUEST_FORMAT);
 		}
 
 		if (!Pattern.matches("^\\d{3}-\\d{4}-\\d{4}$",
 			guestBookingRetrieveRequest.bookerPhoneNumber())) { // 전화번호는 010-1234-5678 형식
-			throw new BadRequestException(BookingErrorCode.INVALID_REQUEST_FORMAT);
+			throw new BadRequestException(BookingApplicationErrorCode.INVALID_REQUEST_FORMAT);
 		}
 
 		if (!Pattern.matches("^\\d{4}$", guestBookingRetrieveRequest.password())) { // 비밀번호는 4자리 숫자 형식
-			throw new BadRequestException(BookingErrorCode.INVALID_REQUEST_FORMAT);
+			throw new BadRequestException(BookingApplicationErrorCode.INVALID_REQUEST_FORMAT);
 		}
 
 		if (!Pattern.matches("^\\d{6}$", guestBookingRetrieveRequest.birthDate())) { // 생년월일은 6자리 숫자 형식
-			throw new BadRequestException(BookingErrorCode.INVALID_REQUEST_FORMAT);
+			throw new BadRequestException(BookingApplicationErrorCode.INVALID_REQUEST_FORMAT);
 		}
 	}
 
@@ -134,7 +134,7 @@ public class GuestBookingRetrieveService {
 	private Schedule findScheduleForBooking(Map<Long, Schedule> scheduleMap, Booking booking) {
 		Schedule schedule = scheduleMap.get(booking.getScheduleId());
 		if (schedule == null) {
-			throw new NotFoundException(ScheduleErrorCode.NO_SCHEDULE_FOUND);
+			throw new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND);
 		}
 		return schedule;
 	}
@@ -142,7 +142,7 @@ public class GuestBookingRetrieveService {
 	private Performance findPerformanceForSchedule(Map<Long, Performance> performanceMap, Schedule schedule) {
 		Performance performance = performanceMap.get(schedule.getPerformanceId());
 		if (performance == null) {
-			throw new NotFoundException(PerformanceErrorCode.PERFORMANCE_NOT_FOUND);
+			throw new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND);
 		}
 		return performance;
 	}
