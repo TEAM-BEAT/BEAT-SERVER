@@ -9,10 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
@@ -39,18 +36,6 @@ public class JobSchedulerService implements ScheduleBookingCloseJobPort {
 	// 스케줄 ID와 관련된 작업을 관리하기 위한 ConcurrentHashMap 선언
 	private final Map<Long, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
 
-	@EventListener(ApplicationReadyEvent.class)
-	public void onApplicationReady() {
-		if (!schedulerOwner) {
-			log.info("Skipping schedule rehydration because this runtime is not the scheduler owner.");
-			return;
-		}
-
-		log.info("onApplicationReady() method triggered.");
-		reconcilePendingSchedules();
-	}
-
-	@Scheduled(fixedDelayString = "${beat.scheduler.reconcile-interval-ms:60000}")
 	public void reconcilePendingSchedules() {
 		if (!schedulerOwner) {
 			return;

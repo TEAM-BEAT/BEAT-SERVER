@@ -59,6 +59,24 @@ class BatchArchitectureGuardTest {
         )
     }
 
+
+    @Test
+    fun `batch application services must not own scheduled entrypoints`() {
+        val violations = findForbiddenReferencesUnder(
+            Path.of("src/main/java/com/beat/batch"),
+            "application",
+            "@Scheduled",
+            "org.springframework.scheduling.annotation.Scheduled",
+            "ApplicationReadyEvent",
+            "org.springframework.context.event.EventListener",
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found scheduled entrypoints in batch application services:\n${violations.joinToString("\n")}",
+        )
+    }
+
     private fun findForbiddenReferences(vararg forbiddenReferences: String): List<String> {
         val paths = Files.walk(Path.of("src/main"))
 
@@ -77,4 +95,29 @@ class BatchArchitectureGuardTest {
             paths.close()
         }
     }
+
+    private fun findForbiddenReferencesUnder(
+        root: Path,
+        requiredPathSegment: String,
+        vararg forbiddenReferences: String,
+    ): List<String> {
+        val paths = Files.walk(root)
+
+        return try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt") }
+                .filter { path -> path.toString().split(path.fileSystem.separator).contains(requiredPathSegment) }
+                .toList()
+                .flatMap { path ->
+                    val source = Files.readString(path)
+                    forbiddenReferences
+                        .filter(source::contains)
+                        .map { pattern -> "$path: $pattern" }
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
 }

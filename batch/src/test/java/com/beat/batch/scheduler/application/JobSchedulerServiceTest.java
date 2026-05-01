@@ -95,6 +95,54 @@ class JobSchedulerServiceTest {
 	}
 
 	@Test
+	void registerOrRefreshReplacesCompletedExistingTask() {
+		JobSchedulerTransactionalService transactionalService = mock(JobSchedulerTransactionalService.class);
+		PerformanceRepository performanceRepository = mock(PerformanceRepository.class);
+		TaskScheduler taskScheduler = mock(TaskScheduler.class);
+		JobSchedulerService jobSchedulerService = new JobSchedulerService(transactionalService, performanceRepository,
+			taskScheduler);
+
+		ReflectionTestUtils.setField(jobSchedulerService, "schedulerOwner", true);
+		Schedule lockedSchedule = mock(Schedule.class);
+		Performance performance = buildPerformance();
+		ScheduledFuture<?> completedTask = mock(ScheduledFuture.class);
+		ScheduledFuture<Object> refreshedTask = mock(ScheduledFuture.class);
+
+		when(completedTask.isDone()).thenReturn(true);
+		getScheduledTasks(jobSchedulerService).put(SCHEDULE_ID, completedTask);
+		when(lockedSchedule.getId()).thenReturn(SCHEDULE_ID);
+		when(lockedSchedule.getPerformanceDate()).thenReturn(LocalDateTime.now().plusDays(1));
+		when(lockedSchedule.getPerformanceId()).thenReturn(PERFORMANCE_ID);
+		when(performanceRepository.findById(PERFORMANCE_ID)).thenReturn(Optional.of(performance));
+		when(transactionalService.lockSchedule(SCHEDULE_ID)).thenReturn(Optional.of(lockedSchedule));
+		doReturn(refreshedTask).when(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
+
+		jobSchedulerService.registerOrRefresh(new ScheduleBookingCloseJobTarget(SCHEDULE_ID));
+
+		verify(transactionalService).lockSchedule(SCHEDULE_ID);
+		verify(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
+		assertSame(refreshedTask, getScheduledTasks(jobSchedulerService).get(SCHEDULE_ID));
+	}
+
+	@Test
+	void registerOrRefreshDoesNotScheduleWhenLockIsMissing() {
+		JobSchedulerTransactionalService transactionalService = mock(JobSchedulerTransactionalService.class);
+		PerformanceRepository performanceRepository = mock(PerformanceRepository.class);
+		TaskScheduler taskScheduler = mock(TaskScheduler.class);
+		JobSchedulerService jobSchedulerService = new JobSchedulerService(transactionalService, performanceRepository,
+			taskScheduler);
+
+		ReflectionTestUtils.setField(jobSchedulerService, "schedulerOwner", true);
+		when(transactionalService.lockSchedule(SCHEDULE_ID)).thenReturn(Optional.empty());
+
+		jobSchedulerService.registerOrRefresh(new ScheduleBookingCloseJobTarget(SCHEDULE_ID));
+
+		verify(transactionalService).lockSchedule(SCHEDULE_ID);
+		verifyNoInteractions(performanceRepository, taskScheduler);
+		assertTrue(getScheduledTasks(jobSchedulerService).isEmpty());
+	}
+
+	@Test
 	void reconcileKeepsExistingScheduledTaskForPendingSchedule() {
 		JobSchedulerTransactionalService transactionalService = mock(JobSchedulerTransactionalService.class);
 		PerformanceRepository performanceRepository = mock(PerformanceRepository.class);
@@ -143,23 +191,7 @@ class JobSchedulerServiceTest {
 	}
 
 	@Test
-	void onApplicationReadyReconcilesPendingSchedulesWhenOwnerEnabled() {
-		JobSchedulerTransactionalService transactionalService = mock(JobSchedulerTransactionalService.class);
-		PerformanceRepository performanceRepository = mock(PerformanceRepository.class);
-		TaskScheduler taskScheduler = mock(TaskScheduler.class);
-		JobSchedulerService jobSchedulerService = new JobSchedulerService(transactionalService, performanceRepository,
-			taskScheduler);
-
-		ReflectionTestUtils.setField(jobSchedulerService, "schedulerOwner", true);
-		when(transactionalService.findPendingSchedules()).thenReturn(List.of());
-
-		jobSchedulerService.onApplicationReady();
-
-		verify(transactionalService).findPendingSchedules();
-	}
-
-	@Test
-	void onApplicationReadySkipsReconcileWhenOwnerDisabled() {
+	void reconcileDoesNothingWhenRuntimeIsNotSchedulerOwner() {
 		JobSchedulerTransactionalService transactionalService = mock(JobSchedulerTransactionalService.class);
 		PerformanceRepository performanceRepository = mock(PerformanceRepository.class);
 		TaskScheduler taskScheduler = mock(TaskScheduler.class);
@@ -168,9 +200,63 @@ class JobSchedulerServiceTest {
 
 		ReflectionTestUtils.setField(jobSchedulerService, "schedulerOwner", false);
 
-		jobSchedulerService.onApplicationReady();
+		jobSchedulerService.reconcilePendingSchedules();
 
 		verifyNoInteractions(transactionalService, taskScheduler);
+	}
+
+	@Test
+	void cancelRemovesScheduledTaskWhenRuntimeOwnsScheduler() {
+		JobSchedulerTransactionalService transactionalService = mock(JobSchedulerTransactionalService.class);
+		PerformanceRepository performanceRepository = mock(PerformanceRepository.class);
+		TaskScheduler taskScheduler = mock(TaskScheduler.class);
+		JobSchedulerService jobSchedulerService = new JobSchedulerService(transactionalService, performanceRepository,
+			taskScheduler);
+
+		ReflectionTestUtils.setField(jobSchedulerService, "schedulerOwner", true);
+		ScheduledFuture<?> scheduledTask = mock(ScheduledFuture.class);
+		when(scheduledTask.isDone()).thenReturn(false);
+		getScheduledTasks(jobSchedulerService).put(SCHEDULE_ID, scheduledTask);
+
+		jobSchedulerService.cancel(new ScheduleBookingCloseJobTarget(SCHEDULE_ID));
+
+		verify(scheduledTask).cancel(true);
+		assertTrue(getScheduledTasks(jobSchedulerService).isEmpty());
+	}
+
+	@Test
+	void cancelDoesNothingWhenRuntimeIsNotSchedulerOwner() {
+		JobSchedulerTransactionalService transactionalService = mock(JobSchedulerTransactionalService.class);
+		PerformanceRepository performanceRepository = mock(PerformanceRepository.class);
+		TaskScheduler taskScheduler = mock(TaskScheduler.class);
+		JobSchedulerService jobSchedulerService = new JobSchedulerService(transactionalService, performanceRepository,
+			taskScheduler);
+
+		ReflectionTestUtils.setField(jobSchedulerService, "schedulerOwner", false);
+		ScheduledFuture<?> scheduledTask = mock(ScheduledFuture.class);
+		getScheduledTasks(jobSchedulerService).put(SCHEDULE_ID, scheduledTask);
+
+		jobSchedulerService.cancel(new ScheduleBookingCloseJobTarget(SCHEDULE_ID));
+
+		verifyNoInteractions(scheduledTask);
+		assertSame(scheduledTask, getScheduledTasks(jobSchedulerService).get(SCHEDULE_ID));
+	}
+
+	@Test
+	void updateIsBookingFalseClosesBookingAndRemovesCompletedTask() {
+		JobSchedulerTransactionalService transactionalService = mock(JobSchedulerTransactionalService.class);
+		PerformanceRepository performanceRepository = mock(PerformanceRepository.class);
+		TaskScheduler taskScheduler = mock(TaskScheduler.class);
+		JobSchedulerService jobSchedulerService = new JobSchedulerService(transactionalService, performanceRepository,
+			taskScheduler);
+
+		ScheduledFuture<?> scheduledTask = mock(ScheduledFuture.class);
+		getScheduledTasks(jobSchedulerService).put(SCHEDULE_ID, scheduledTask);
+
+		jobSchedulerService.updateIsBookingFalse(SCHEDULE_ID);
+
+		verify(transactionalService).closeBooking(SCHEDULE_ID);
+		assertTrue(getScheduledTasks(jobSchedulerService).isEmpty());
 	}
 
 	@SuppressWarnings("unchecked")
