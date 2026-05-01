@@ -1,6 +1,5 @@
 package com.beat.apis.member.api;
 
-import com.beat.contracts.auth.RefreshTokenPort;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -11,13 +10,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.beat.apis.member.application.AuthenticationService;
-import com.beat.apis.member.application.SocialLoginService;
 import com.beat.apis.member.application.dto.request.MemberLoginRequest;
 import com.beat.apis.member.application.dto.response.AccessTokenGenerateResponse;
 import com.beat.apis.member.application.dto.response.LoginSuccessResponse;
 import com.beat.apis.member.application.dto.response.MemberLoginResponse;
 import com.beat.apis.member.api.response.MemberSuccessCode;
+import com.beat.apis.member.facade.MemberFacade;
 import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 
@@ -28,9 +26,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class MemberController implements MemberApi {
-	private final RefreshTokenPort refreshTokenPort;
-	private final AuthenticationService authenticationService;
-	private final SocialLoginService socialLoginService;
+	private final MemberFacade memberFacade;
 
 	private static final int COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
 	private static final String REFRESH_TOKEN = "refreshToken";
@@ -42,7 +38,7 @@ public class MemberController implements MemberApi {
 		@RequestBody final MemberLoginRequest loginRequest,
 		HttpServletResponse httpServletResponse
 	) {
-		LoginSuccessResponse loginSuccessResponse = socialLoginService.handleSocialLogin(authorizationCode,
+		LoginSuccessResponse loginSuccessResponse = memberFacade.handleSocialLogin(authorizationCode,
 			loginRequest);
 
 		ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN, loginSuccessResponse.refreshToken())
@@ -67,7 +63,7 @@ public class MemberController implements MemberApi {
 	public ResponseEntity<SuccessResponse<AccessTokenGenerateResponse>> issueAccessTokenUsingRefreshToken(
 		@CookieValue(value = REFRESH_TOKEN) final String refreshToken
 	) {
-		AccessTokenGenerateResponse response = authenticationService.generateAccessTokenFromRefreshToken(refreshToken);
+		AccessTokenGenerateResponse response = memberFacade.generateAccessTokenFromRefreshToken(refreshToken);
 		return ResponseEntity.ok()
 			.body(SuccessResponse.of(MemberSuccessCode.ISSUE_ACCESS_TOKEN_USING_REFRESH_TOKEN, response));
 	}
@@ -77,7 +73,7 @@ public class MemberController implements MemberApi {
 	public ResponseEntity<SuccessResponse<Void>> signOut(
 		@CurrentMember final Long memberId
 	) {
-		refreshTokenPort.deleteRefreshToken(memberId);
+		memberFacade.signOut(memberId);
 		return ResponseEntity.ok()
 			.body(SuccessResponse.from(MemberSuccessCode.SIGN_OUT_SUCCESS));
 	}

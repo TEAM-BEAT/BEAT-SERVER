@@ -8,10 +8,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.beat.apis.schedule.application.ScheduleService;
-import com.beat.apis.schedule.application.dto.request.TicketAvailabilityRequest;
 import com.beat.apis.schedule.application.dto.response.TicketAvailabilityResponse;
 import com.beat.apis.schedule.api.response.ScheduleSuccessCode;
+import com.beat.apis.schedule.facade.ScheduleFacade;
 import com.beat.global.common.dto.SuccessResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -21,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ScheduleController implements ScheduleApi {
 
-	private final ScheduleService scheduleService;
+	private final ScheduleFacade scheduleFacade;
 
 	@Override
 	@GetMapping("/{scheduleId}/availability")
@@ -29,9 +28,7 @@ public class ScheduleController implements ScheduleApi {
 		@PathVariable Long scheduleId,
 		@RequestParam int purchaseTicketCount) {
 
-		TicketAvailabilityRequest ticketAvailabilityRequest = TicketAvailabilityRequest.of(purchaseTicketCount);
-		TicketAvailabilityResponse response = scheduleService.findTicketAvailability(scheduleId,
-			ticketAvailabilityRequest);
+		TicketAvailabilityResponse response = scheduleFacade.findTicketAvailability(scheduleId, purchaseTicketCount);
 
 		return ResponseEntity.status(HttpStatus.OK)
 			.body(SuccessResponse.of(ScheduleSuccessCode.TICKET_AVAILABILITY_RETRIEVAL_SUCCESS, response));

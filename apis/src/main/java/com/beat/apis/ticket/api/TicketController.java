@@ -12,18 +12,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.beat.apis.ticket.application.TicketService;
 import com.beat.apis.ticket.application.dto.TicketDeleteRequest;
 import com.beat.apis.ticket.application.dto.TicketRefundRequest;
 import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
 import com.beat.apis.ticket.application.dto.TicketUpdateRequest;
 import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.apis.ticket.application.exception.TicketApplicationErrorCode;
 import com.beat.apis.ticket.api.response.TicketSuccessCode;
+import com.beat.apis.ticket.facade.TicketFacade;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
-import com.beat.global.common.exception.BadRequestException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,7 +30,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TicketController implements TicketApi {
 
-	private final TicketService ticketService;
+	private final TicketFacade ticketFacade;
 
 	@Override
 	@GetMapping("/{performanceId}")
@@ -41,10 +39,7 @@ public class TicketController implements TicketApi {
 		@PathVariable Long performanceId,
 		@RequestParam(required = false) List<ScheduleNumber> scheduleNumbers,
 		@RequestParam(required = false) List<BookingStatus> bookingStatuses) {
-		if (bookingStatuses != null && bookingStatuses.contains(BookingStatus.BOOKING_DELETED)) {
-			throw new BadRequestException(TicketApplicationErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
-		}
-		TicketRetrieveResponse response = ticketService.findAllTicketsByConditions(memberId, performanceId,
+		TicketRetrieveResponse response = ticketFacade.findTickets(memberId, performanceId,
 			scheduleNumbers, bookingStatuses);
 		return ResponseEntity.ok(SuccessResponse.of(TicketSuccessCode.TICKET_RETRIEVE_SUCCESS, response));
 	}
@@ -57,14 +52,7 @@ public class TicketController implements TicketApi {
 		@RequestParam String searchWord,
 		@RequestParam(required = false) List<ScheduleNumber> scheduleNumbers,
 		@RequestParam(required = false) List<BookingStatus> bookingStatuses) {
-		if (searchWord.length() < 2) {
-			throw new BadRequestException(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT);
-		}
-		if (bookingStatuses != null && bookingStatuses.contains(BookingStatus.BOOKING_DELETED)) {
-			throw new BadRequestException(TicketApplicationErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
-		}
-
-		TicketRetrieveResponse response = ticketService.searchAllTicketsByConditions(memberId, performanceId,
+		TicketRetrieveResponse response = ticketFacade.searchTickets(memberId, performanceId,
 			searchWord, scheduleNumbers, bookingStatuses);
 		return ResponseEntity.ok()
 			.cacheControl(CacheControl.noCache())
@@ -76,7 +64,7 @@ public class TicketController implements TicketApi {
 	public ResponseEntity<SuccessResponse<Void>> updateTickets(
 		@CurrentMember Long memberId,
 		@RequestBody TicketUpdateRequest ticketUpdateRequest) {
-		ticketService.updateTickets(memberId, ticketUpdateRequest);
+		ticketFacade.updateTickets(memberId, ticketUpdateRequest);
 		return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_UPDATE_SUCCESS));
 	}
 
@@ -85,7 +73,7 @@ public class TicketController implements TicketApi {
 	public ResponseEntity<SuccessResponse<Void>> refundTickets(
 		@CurrentMember Long memberId,
 		@RequestBody TicketRefundRequest ticketRefundRequest) {
-		ticketService.refundTicketsByBookingIds(memberId, ticketRefundRequest);
+		ticketFacade.refundTickets(memberId, ticketRefundRequest);
 		return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_REFUND_SUCCESS));
 	}
 
@@ -94,7 +82,7 @@ public class TicketController implements TicketApi {
 	public ResponseEntity<SuccessResponse<Void>> deleteTickets(
 		@CurrentMember Long memberId,
 		@RequestBody TicketDeleteRequest ticketDeleteRequest) {
-		ticketService.deleteTicketsByBookingIds(memberId, ticketDeleteRequest);
+		ticketFacade.deleteTickets(memberId, ticketDeleteRequest);
 		return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_DELETE_SUCCESS));
 	}
 

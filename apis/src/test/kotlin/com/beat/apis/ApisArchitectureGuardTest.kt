@@ -77,6 +77,42 @@ class ApisArchitectureGuardTest {
         )
     }
 
+    @Test
+    fun `apis controllers must enter use cases through facades`() {
+        val forbiddenControllerImportPatterns = listOf(
+            Regex("""import com\.beat\.apis\.[^.]+\.application\.[A-Za-z0-9]+Service;"""),
+            Regex("""import com\.beat\.contracts\..*Port;"""),
+        )
+
+        val paths = Files.walk(Path.of("src/main/java/com/beat/apis"))
+        val violations = try {
+            paths
+                .filter { Files.isRegularFile(it) }
+                .filter { it.toString().endsWith("Controller.java") }
+                .toList()
+                .flatMap { path ->
+                    Files.readAllLines(path)
+                        .asSequence()
+                        .filter { it.trimStart().startsWith("import ") }
+                        .flatMap { line ->
+                            forbiddenControllerImportPatterns
+                                .filter { pattern -> pattern.containsMatchIn(line) }
+                                .map { "${path}: $line" }
+                        }
+                        .toList()
+                }
+        } finally {
+            paths.close()
+        }
+
+        assertTrue(
+            violations.isEmpty(),
+            "Controllers must depend on facade entrypoints instead of application services or ports:\n${
+                violations.joinToString("\n")
+            }"
+        )
+    }
+
     private fun findForbiddenImports(vararg forbiddenReferences: String): List<String> {
         val paths = Files.walk(Path.of("src/main"))
 
