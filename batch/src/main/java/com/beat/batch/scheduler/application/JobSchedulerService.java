@@ -15,7 +15,8 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.beat.contracts.schedule.ScheduleJobPort;
+import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
+import com.beat.contracts.schedule.ScheduleBookingCloseJobTarget;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.domain.Schedule;
@@ -26,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class JobSchedulerService implements ScheduleJobPort {
+public class JobSchedulerService implements ScheduleBookingCloseJobPort {
 
 	private final JobSchedulerTransactionalService jobSchedulerTransactionalService;
 	private final PerformanceRepository performanceRepository;
@@ -60,7 +61,7 @@ public class JobSchedulerService implements ScheduleJobPort {
 
 		schedules.forEach(schedule -> {
 			pendingScheduleIds.add(schedule.getId());
-			registerOrRefresh(schedule);
+			registerOrRefresh(toScheduleBookingCloseJobTarget(schedule));
 		});
 
 		new ArrayList<>(scheduledTasks.keySet()).stream()
@@ -69,22 +70,22 @@ public class JobSchedulerService implements ScheduleJobPort {
 	}
 
 	@Override
-	public void registerOrRefresh(Schedule schedule) {
+	public void registerOrRefresh(ScheduleBookingCloseJobTarget target) {
 		if (!schedulerOwner) {
 			log.info("Ignoring schedule registration because this runtime is not the scheduler owner.");
 			return;
 		}
 
-		ScheduledFuture<?> existingTask = scheduledTasks.get(schedule.getId());
+		ScheduledFuture<?> existingTask = scheduledTasks.get(target.scheduleId());
 		if (existingTask != null) {
 			if (!existingTask.isDone() && !existingTask.isCancelled()) {
-				log.debug("Schedule ID {} is already scheduled. Skipping duplicate registration.", schedule.getId());
+				log.debug("Schedule ID {} is already scheduled. Skipping duplicate registration.", target.scheduleId());
 				return;
 			}
-			scheduledTasks.remove(schedule.getId());
+			scheduledTasks.remove(target.scheduleId());
 		}
 
-		schedulePendingTask(schedule);
+		schedulePendingTask(target);
 	}
 
 	// 스케줄 종료 시 isBooking을 false로 업데이트
@@ -99,18 +100,18 @@ public class JobSchedulerService implements ScheduleJobPort {
 	}
 
 	@Override
-	public void cancel(Schedule schedule) {
+	public void cancel(ScheduleBookingCloseJobTarget target) {
 		if (!schedulerOwner) {
 			log.info("Ignoring schedule cancellation because this runtime is not the scheduler owner.");
 			return;
 		}
 
-		cancelScheduledTaskById(schedule.getId());
+		cancelScheduledTaskById(target.scheduleId());
 	}
 
-	private void schedulePendingTask(Schedule schedule) {
+	private void schedulePendingTask(ScheduleBookingCloseJobTarget target) {
 		// 여기서 데이터베이스 X-Lock을 걸어 중복 실행 방지
-		jobSchedulerTransactionalService.lockSchedule(schedule.getId())
+		jobSchedulerTransactionalService.lockSchedule(target.scheduleId())
 			.ifPresentOrElse(
 				lockedSchedule -> {
 					log.info("Lock acquired for Schedule ID: {}", lockedSchedule.getId());
@@ -131,8 +132,12 @@ public class JobSchedulerService implements ScheduleJobPort {
 					log.debug("Task added for Schedule ID: {}", lockedSchedule.getId());
 					logScheduledTasks();
 				},
-				() -> log.warn("Failed to acquire lock for Schedule ID: {}", schedule.getId())
+				() -> log.warn("Failed to acquire lock for Schedule ID: {}", target.scheduleId())
 			);
+	}
+
+	private ScheduleBookingCloseJobTarget toScheduleBookingCloseJobTarget(Schedule schedule) {
+		return new ScheduleBookingCloseJobTarget(schedule.getId());
 	}
 
 	private void cancelScheduledTaskById(Long scheduleId) {

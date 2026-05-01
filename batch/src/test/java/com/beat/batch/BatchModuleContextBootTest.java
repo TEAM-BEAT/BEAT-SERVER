@@ -13,7 +13,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.beat.batch.scheduler.application.JobSchedulerService;
 import com.beat.batch.support.AbstractBatchIntegrationTest;
-import com.beat.contracts.schedule.ScheduleJobPort;
+import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
 import com.beat.domain.promotion.repository.PromotionRepository;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 
@@ -26,7 +26,7 @@ class BatchModuleContextBootTest extends AbstractBatchIntegrationTest {
 	private Environment environment;
 
 	@Autowired
-	private ScheduleJobPort scheduleJobPort;
+	private ScheduleBookingCloseJobPort scheduleBookingCloseJobPort;
 
 	@Autowired
 	private JobSchedulerService jobSchedulerService;
@@ -36,10 +36,10 @@ class BatchModuleContextBootTest extends AbstractBatchIntegrationTest {
 		assertEquals("false", environment.getProperty("beat.scheduler.owner"));
 		assertEquals(true, applicationContext.containsBean("taskScheduler"));
 		assertEquals(1, applicationContext.getBeansOfType(JobSchedulerService.class).size());
-		assertEquals(1, applicationContext.getBeansOfType(ScheduleJobPort.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(ScheduleBookingCloseJobPort.class).size());
 		assertEquals(1, applicationContext.getBeansOfType(TaskScheduler.class).size());
-		assertNotNull(scheduleJobPort);
-		assertSame(jobSchedulerService, scheduleJobPort);
+		assertNotNull(scheduleBookingCloseJobPort);
+		assertSame(jobSchedulerService, scheduleBookingCloseJobPort);
 		assertEquals(false, ReflectionTestUtils.getField(jobSchedulerService, "schedulerOwner"));
 		assertEquals(1, applicationContext.getBeansOfType(PromotionRepository.class).size());
 		assertEquals(1, applicationContext.getBeansOfType(ScheduleRepository.class).size());

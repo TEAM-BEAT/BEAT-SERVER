@@ -96,12 +96,11 @@ class ApisApplicationTest {
     }
 
     @Test
-    fun `apis keeps schedule job port bridge as module local non owner contract`() {
-        val source = Files.readString(Path.of("src/main/kotlin/com/beat/apis/config/ApisScheduleJobPortConfig.kt"))
+    fun `apis keeps schedule booking close job port bridge as module local no op contract`() {
+        val source = Files.readString(Path.of("src/main/kotlin/com/beat/apis/config/NoOpScheduleBookingCloseJobConfig.kt"))
 
-        assertTrue(source.contains("@ConditionalOnProperty(name = [\"beat.scheduler.owner\"], havingValue = \"false\", matchIfMissing = true)"))
-        assertTrue(source.contains("@ConditionalOnMissingBean(ScheduleJobPort::class)"))
-        assertTrue(source.contains("fun scheduleJobPort(): ScheduleJobPort = NonOwnerScheduleJobPort"))
+        assertTrue(source.contains("@ConditionalOnMissingBean(ScheduleBookingCloseJobPort::class)"))
+        assertTrue(source.contains("fun scheduleBookingCloseJobPort(): ScheduleBookingCloseJobPort = NoOpScheduleBookingCloseJobPort"))
         assertFalse(source.contains("JobSchedulerService"))
     }
 

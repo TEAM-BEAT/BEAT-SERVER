@@ -19,7 +19,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import com.beat.admin.port.in.AdminUseCase;
 import com.beat.admin.support.AbstractAdminIntegrationTest;
-import com.beat.contracts.schedule.ScheduleJobPort;
+import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
 import com.beat.contracts.storage.FileStoragePort;
 
 import io.swagger.v3.oas.models.OpenAPI;
@@ -53,7 +53,7 @@ class AdminModuleContextBootTest extends AbstractAdminIntegrationTest {
 		assertEquals(1, applicationContext.getBeansOfType(OpenAPI.class).size());
 		assertTrue(applicationContext.containsBean("adminApi"));
 		assertFalse(applicationContext.containsBean("jobSchedulerService"));
-		assertTrue(applicationContext.getBeansOfType(ScheduleJobPort.class).isEmpty());
+		assertTrue(applicationContext.getBeansOfType(ScheduleBookingCloseJobPort.class).isEmpty());
 		assertTrue(applicationContext.getBeansOfType(TaskScheduler.class).isEmpty());
 		assertEquals(1, applicationContext.getBeansOfType(PerformanceRepository.class).size());
 		assertEquals(1, applicationContext.getBeansOfType(PromotionRepository.class).size());

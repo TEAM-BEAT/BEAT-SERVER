@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyRequest;
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyResponse;
 import com.beat.apis.performance.application.dto.modify.cast.CastModifyRequest;
@@ -19,7 +20,13 @@ import com.beat.apis.performance.application.dto.modify.schedule.ScheduleModifyR
 import com.beat.apis.performance.application.dto.modify.schedule.ScheduleModifyResponse;
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyRequest;
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyResponse;
-import com.beat.contracts.schedule.ScheduleJobPort;
+import com.beat.apis.performance.application.exception.CastApplicationErrorCode;
+import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
+import com.beat.apis.performance.application.exception.PerformanceImageApplicationErrorCode;
+import com.beat.apis.performance.application.exception.StaffApplicationErrorCode;
+import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
+import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
+import com.beat.contracts.schedule.ScheduleBookingCloseJobTarget;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.cast.domain.Cast;
@@ -42,12 +49,6 @@ import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
-import com.beat.apis.performance.application.exception.CastApplicationErrorCode;
-import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
-import com.beat.apis.performance.application.exception.PerformanceImageApplicationErrorCode;
-import com.beat.apis.performance.application.exception.StaffApplicationErrorCode;
-import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 
 @Slf4j
 @Service
@@ -61,7 +62,7 @@ public class PerformanceModifyService {
 	private final StaffRepository staffRepository;
 	private final BookingRepository bookingRepository;
 	private final PerformanceImageRepository performanceImageRepository;
-	private final ScheduleJobPort scheduleJobPort;
+	private final ScheduleBookingCloseJobPort scheduleBookingCloseJobPort;
 	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 
 	@Transactional
@@ -98,6 +99,10 @@ public class PerformanceModifyService {
 
 		log.info("Successfully completed updatePerformance for performanceId: {}", request.performanceId());
 		return response;
+	}
+
+	private ScheduleBookingCloseJobTarget toScheduleBookingCloseJobTarget(Schedule schedule) {
+		return new ScheduleBookingCloseJobTarget(schedule.getId());
 	}
 
 	private Member validateMember(Long memberId) {
@@ -196,7 +201,8 @@ public class PerformanceModifyService {
 		schedules = scheduleRepository.saveAll(schedules);
 		schedules.stream()
 			.filter(Schedule::isBooking)
-			.forEach(scheduleJobPort::registerOrRefresh);
+			.map(this::toScheduleBookingCloseJobTarget)
+			.forEach(scheduleBookingCloseJobPort::registerOrRefresh);
 
 		LocalDate today = LocalDate.now();
 
@@ -283,7 +289,7 @@ public class PerformanceModifyService {
 			}
 		}
 
-		scheduleJobPort.cancel(schedule);
+		scheduleBookingCloseJobPort.cancel(toScheduleBookingCloseJobTarget(schedule));
 
 		schedule = schedule.update(
 			request.performanceDate(),
@@ -315,7 +321,7 @@ public class PerformanceModifyService {
 					return new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND);
 				});
 
-			scheduleJobPort.cancel(schedule);
+			scheduleBookingCloseJobPort.cancel(toScheduleBookingCloseJobTarget(schedule));
 
 			scheduleRepository.delete(schedule);
 			log.debug("Deleted schedule with scheduleId: {}", scheduleId);
@@ -539,7 +545,8 @@ public class PerformanceModifyService {
 			});
 
 		if (!Objects.equals(performanceImage.getPerformanceId(), performance.getId())) {
-			throw new ForbiddenException(PerformanceImageApplicationErrorCode.PERFORMANCE_IMAGE_NOT_BELONG_TO_PERFORMANCE);
+			throw new ForbiddenException(
+				PerformanceImageApplicationErrorCode.PERFORMANCE_IMAGE_NOT_BELONG_TO_PERFORMANCE);
 		}
 
 		performanceImage = performanceImageRepository.save(performanceImage.update(request.performanceImage()));

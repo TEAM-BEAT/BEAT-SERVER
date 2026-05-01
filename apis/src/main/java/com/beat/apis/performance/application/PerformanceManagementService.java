@@ -11,13 +11,16 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
 import com.beat.apis.performance.application.dto.create.CastResponse;
 import com.beat.apis.performance.application.dto.create.PerformanceImageResponse;
 import com.beat.apis.performance.application.dto.create.PerformanceRequest;
 import com.beat.apis.performance.application.dto.create.PerformanceResponse;
 import com.beat.apis.performance.application.dto.create.ScheduleResponse;
 import com.beat.apis.performance.application.dto.create.StaffResponse;
-import com.beat.contracts.schedule.ScheduleJobPort;
+import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
+import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
+import com.beat.contracts.schedule.ScheduleBookingCloseJobTarget;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.cast.domain.Cast;
@@ -41,8 +44,6 @@ import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
-import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
 
 @Slf4j
 @Service
@@ -57,7 +58,7 @@ public class PerformanceManagementService {
 	private final MemberRepository memberRepository;
 	private final PerformanceImageRepository performanceImageRepository;
 	private final PromotionRepository promotionRepository;
-	private final ScheduleJobPort scheduleJobPort;
+	private final ScheduleBookingCloseJobPort scheduleBookingCloseJobPort;
 	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 
 	@Transactional
@@ -107,7 +108,9 @@ public class PerformanceManagementService {
 		assignScheduleNumbers(schedules);
 		schedules = scheduleRepository.saveAll(schedules);
 
-		schedules.forEach(scheduleJobPort::registerOrRefresh);
+		schedules.stream()
+			.map(this::toScheduleBookingCloseJobTarget)
+			.forEach(scheduleBookingCloseJobPort::registerOrRefresh);
 
 		List<LocalDateTime> performanceDates = schedules.stream()
 			.map(Schedule::getPerformanceDate)
@@ -146,6 +149,10 @@ public class PerformanceManagementService {
 		);
 
 		return mapToPerformanceResponse(savedPerformance, schedules, casts, staffs, performanceImageList);
+	}
+
+	private ScheduleBookingCloseJobTarget toScheduleBookingCloseJobTarget(Schedule schedule) {
+		return new ScheduleBookingCloseJobTarget(schedule.getId());
 	}
 
 	private PerformanceResponse mapToPerformanceResponse(Performance performance, List<Schedule> schedules,
@@ -258,7 +265,7 @@ public class PerformanceManagementService {
 		// 모든 스케줄에 대해 등록된 TaskScheduler 작업을 취소
 		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
 		for (Schedule schedule : schedules) {
-			scheduleJobPort.cancel(schedule);
+			scheduleBookingCloseJobPort.cancel(toScheduleBookingCloseJobTarget(schedule));
 		}
 
 		scheduleRepository.deleteByPerformanceId(performanceId);
