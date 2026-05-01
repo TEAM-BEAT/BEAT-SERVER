@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Import
         InfraBaseConfigGroup.JPA,
         InfraBaseConfigGroup.QUERY_DSL,
         InfraBaseConfigGroup.ASYNC,
-        InfraBaseConfigGroup.SCHEDULER,
     ]
 )
 // IDE static-analysis breadcrumb; runtime persistence import is still owned by JpaConfig.

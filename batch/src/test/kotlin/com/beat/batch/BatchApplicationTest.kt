@@ -46,7 +46,7 @@ class BatchApplicationTest {
         assertFalse(source.contains("GatewayModuleConfig"))
         assertFalse(source.contains("@EnableFeignClients"))
         assertFalse(source.contains("FeignAutoConfiguration"))
-        assertTrue(source.contains("TaskSchedulingAutoConfiguration::class"))
+        assertFalse(source.contains("TaskSchedulingAutoConfiguration::class"))
         assertFalse(source.contains("\"com.beat.domain\""))
         assertFalse(source.contains("\"com.beat.global\""))
     }
@@ -73,13 +73,13 @@ class BatchApplicationTest {
     }
 
     @Test
-    fun `batch infra config keeps async executor and scheduler imports explicit`() {
+    fun `batch infra config keeps explicit base bootstrap groups`() {
         val configSource = Files.readString(Path.of("src/main/kotlin/com/beat/batch/config/InfraConfig.kt"))
 
         assertTrue(configSource.contains("InfraBaseConfigGroup.JPA"))
         assertTrue(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
         assertTrue(configSource.contains("InfraBaseConfigGroup.ASYNC"))
-        assertTrue(configSource.contains("InfraBaseConfigGroup.SCHEDULER"))
+        assertFalse(configSource.contains("InfraBaseConfigGroup.SCHEDULER"))
     }
 
     @Test
@@ -95,6 +95,12 @@ class BatchApplicationTest {
         assertTrue(config.contains("- persistence"))
         assertTrue(config.contains("- observability"))
         assertTrue(config.contains("- thread-pool"))
+        val threadPoolConfig = Files.readString(Path.of("../infra/src/main/resources/application-thread-pool.yml"))
+        assertTrue(threadPoolConfig.contains("spring:"))
+        assertTrue(threadPoolConfig.contains("task:"))
+        assertTrue(threadPoolConfig.contains("scheduling:"))
+        assertTrue(threadPoolConfig.contains("thread-name-prefix: executor-scheduler-"))
+        assertTrue(threadPoolConfig.contains("size: 2"))
         assertFalse(config.contains("- jwt"))
         assertFalse(config.contains("- redis"))
         assertFalse(config.contains("- external"))
