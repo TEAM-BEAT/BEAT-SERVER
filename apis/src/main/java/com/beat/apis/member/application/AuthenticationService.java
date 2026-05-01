@@ -123,6 +123,11 @@ public class AuthenticationService {
 		}
 	}
 
+	@Transactional
+	public void signOut(Long memberId) {
+		refreshTokenPort.deleteRefreshToken(memberId);
+	}
+
 	private Role mapRole(String roleName) {
 		if (roleName == null || roleName.isBlank()) {
 			log.error("Refresh token role claim is missing");

@@ -51,6 +51,16 @@ class TicketFacadeTest {
 	}
 
 	@Test
+	void searchTicketsRejectsNullSearchWord() {
+		BadRequestException exception = assertThrows(BadRequestException.class, () ->
+			ticketFacade.searchTickets(1L, 100L, null, null, null)
+		);
+
+		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getBaseErrorCode());
+		verify(ticketService, never()).searchAllTicketsByConditions(anyLong(), anyLong(), any(), any(), any());
+	}
+
+	@Test
 	void searchTicketsRejectsSingleCharacterSearchWord() {
 		BadRequestException exception = assertThrows(BadRequestException.class, () ->
 			ticketFacade.searchTickets(1L, 100L, "a", null, null)

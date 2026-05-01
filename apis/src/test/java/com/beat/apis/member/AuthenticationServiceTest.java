@@ -53,6 +53,13 @@ class AuthenticationServiceTest {
 	}
 
 	@Test
+	void signOutDeletesRefreshTokenThroughApplicationService() {
+		authenticationService.signOut(1L);
+
+		verify(refreshTokenPort).deleteRefreshToken(1L);
+	}
+
+	@Test
 	void generateAccessTokenFromRefreshTokenShouldRejectMissingRoleClaim() {
 		String refreshToken = "refresh-token";
 

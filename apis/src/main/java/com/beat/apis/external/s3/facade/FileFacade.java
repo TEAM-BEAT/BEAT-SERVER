@@ -5,19 +5,19 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.beat.apis.external.s3.api.dto.PerformanceMakerPresignedUrlFindAllResponse;
-import com.beat.contracts.storage.FileStoragePort;
+import com.beat.apis.external.s3.application.FileService;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class FileFacade {
-	private final FileStoragePort fileStoragePort;
+	private final FileService fileService;
 
 	public PerformanceMakerPresignedUrlFindAllResponse issueAllPresignedUrlsForPerformanceMaker(String posterImage,
 		List<String> castImages, List<String> staffImages, List<String> performanceImages) {
 		return PerformanceMakerPresignedUrlFindAllResponse.from(
-			fileStoragePort.issueAllPresignedUrlsForPerformanceMaker(
+			fileService.issueAllPresignedUrlsForPerformanceMaker(
 				posterImage,
 				nullToEmpty(castImages),
 				nullToEmpty(staffImages),

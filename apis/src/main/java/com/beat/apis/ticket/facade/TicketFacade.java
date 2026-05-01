@@ -48,7 +48,7 @@ public class TicketFacade {
 	}
 
 	private void validateSearchWord(String searchWord) {
-		if (searchWord.length() < 2) {
+		if (searchWord == null || searchWord.length() < 2) {
 			throw new BadRequestException(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT);
 		}
 	}

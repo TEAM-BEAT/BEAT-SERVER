@@ -80,22 +80,62 @@ class ApisArchitectureGuardTest {
     @Test
     fun `apis controllers must enter use cases through facades`() {
         val forbiddenControllerImportPatterns = listOf(
-            Regex("""import com\.beat\.apis\.[^.]+\.application\.[A-Za-z0-9]+Service;"""),
-            Regex("""import com\.beat\.contracts\..*Port;"""),
+            Regex("""^\s*import\s+com\.beat\.apis(?:\.[^.]+)+\.application(?:\.[^.]+)*\.[A-Za-z0-9_]+Service;?\s*$"""),
+            Regex("""^\s*import\s+com\.beat\.contracts\..*Port;?\s*$"""),
         )
 
-        val paths = Files.walk(Path.of("src/main/java/com/beat/apis"))
-        val violations = try {
+        val violations = findImportViolations(
+            pathPredicate = { path ->
+                path.fileName.toString().matches(Regex(""".*Controller\.(java|kt)"""))
+            },
+            forbiddenImportPatterns = forbiddenControllerImportPatterns,
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Controllers must depend on facade entrypoints instead of application services or ports:\n${
+                violations.joinToString("\n")
+            }"
+        )
+    }
+
+    @Test
+    fun `apis facades must delegate port access to application services`() {
+        val violations = findImportViolations(
+            pathPredicate = { path ->
+                path.fileName.toString().matches(Regex(""".*Facade\.(java|kt)"""))
+            },
+            forbiddenImportPatterns = listOf(
+                Regex("""^\s*import\s+com\.beat\.contracts\..*Port;?\s*$"""),
+            ),
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Facades must call application services instead of module-contract ports directly:\n${
+                violations.joinToString("\n")
+            }"
+        )
+    }
+
+    private fun findImportViolations(
+        pathPredicate: (Path) -> Boolean,
+        forbiddenImportPatterns: List<Regex>,
+    ): List<String> {
+        val paths = Files.walk(Path.of("src/main"))
+
+        return try {
             paths
                 .filter { Files.isRegularFile(it) }
-                .filter { it.toString().endsWith("Controller.java") }
+                .filter { it.toString().endsWith(".java") || it.toString().endsWith(".kt") }
+                .filter(pathPredicate)
                 .toList()
                 .flatMap { path ->
                     Files.readAllLines(path)
                         .asSequence()
                         .filter { it.trimStart().startsWith("import ") }
                         .flatMap { line ->
-                            forbiddenControllerImportPatterns
+                            forbiddenImportPatterns
                                 .filter { pattern -> pattern.containsMatchIn(line) }
                                 .map { "${path}: $line" }
                         }
@@ -104,13 +144,6 @@ class ApisArchitectureGuardTest {
         } finally {
             paths.close()
         }
-
-        assertTrue(
-            violations.isEmpty(),
-            "Controllers must depend on facade entrypoints instead of application services or ports:\n${
-                violations.joinToString("\n")
-            }"
-        )
     }
 
     private fun findForbiddenImports(vararg forbiddenReferences: String): List<String> {
