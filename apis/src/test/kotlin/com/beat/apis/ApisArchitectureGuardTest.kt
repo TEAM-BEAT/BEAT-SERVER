@@ -79,16 +79,14 @@ class ApisArchitectureGuardTest {
 
     @Test
     fun `apis controllers must enter use cases through facades`() {
-        val forbiddenControllerImportPatterns = listOf(
-            Regex("""^\s*import\s+com\.beat\.apis(?:\.[^.]+)+\.application(?:\.[^.]+)*\.[A-Za-z0-9_]+Service;?\s*$"""),
-            Regex("""^\s*import\s+com\.beat\.contracts\..*Port;?\s*$"""),
-        )
-
-        val violations = findImportViolations(
+        val violations = findSourceViolations(
             pathPredicate = { path ->
                 path.fileName.toString().matches(Regex(""".*Controller\.(java|kt)"""))
             },
-            forbiddenImportPatterns = forbiddenControllerImportPatterns,
+            forbiddenReferencePatterns = listOf(
+                Regex("""com\.beat\.apis(?:\.[A-Za-z0-9_]+)+\.application(?:\.[A-Za-z0-9_]+)*\.[A-Za-z0-9_]+Service"""),
+                Regex("""com\.beat\.contracts\.(?:[A-Za-z0-9_]+\.)*[A-Za-z0-9_]+Port"""),
+            ),
         )
 
         assertTrue(
@@ -101,12 +99,12 @@ class ApisArchitectureGuardTest {
 
     @Test
     fun `apis facades must delegate port access to application services`() {
-        val violations = findImportViolations(
+        val violations = findSourceViolations(
             pathPredicate = { path ->
                 path.fileName.toString().matches(Regex(""".*Facade\.(java|kt)"""))
             },
-            forbiddenImportPatterns = listOf(
-                Regex("""^\s*import\s+com\.beat\.contracts\..*Port;?\s*$"""),
+            forbiddenReferencePatterns = listOf(
+                Regex("""com\.beat\.contracts\.(?:[A-Za-z0-9_]+\.)*[A-Za-z0-9_]+Port"""),
             ),
         )
 
@@ -118,9 +116,9 @@ class ApisArchitectureGuardTest {
         )
     }
 
-    private fun findImportViolations(
+    private fun findSourceViolations(
         pathPredicate: (Path) -> Boolean,
-        forbiddenImportPatterns: List<Regex>,
+        forbiddenReferencePatterns: List<Regex>,
     ): List<String> {
         val paths = Files.walk(Path.of("src/main"))
 
@@ -131,15 +129,10 @@ class ApisArchitectureGuardTest {
                 .filter(pathPredicate)
                 .toList()
                 .flatMap { path ->
-                    Files.readAllLines(path)
-                        .asSequence()
-                        .filter { it.trimStart().startsWith("import ") }
-                        .flatMap { line ->
-                            forbiddenImportPatterns
-                                .filter { pattern -> pattern.containsMatchIn(line) }
-                                .map { "${path}: $line" }
-                        }
-                        .toList()
+                    val source = Files.readString(path)
+                    forbiddenReferencePatterns
+                        .filter { pattern -> pattern.containsMatchIn(source) }
+                        .map { pattern -> "${path}: ${pattern.pattern}" }
                 }
         } finally {
             paths.close()
@@ -190,6 +183,7 @@ class ApisArchitectureGuardTest {
     }
 
     private fun findFilesMatching(vararg forbiddenReferences: String): List<String> {
+        val packagePatterns = forbiddenReferences.map { reference -> Regex("""(?m)^\s*${Regex.escape(reference)}""") }
         val paths = Files.walk(Path.of("src/main"))
 
         return try {
@@ -199,9 +193,9 @@ class ApisArchitectureGuardTest {
                 .toList()
                 .flatMap { path ->
                     val source = Files.readString(path)
-                    forbiddenReferences
-                        .filter(source::startsWith)
-                        .map { pattern -> "${path}: $pattern" }
+                    packagePatterns
+                        .filter { pattern -> pattern.containsMatchIn(source) }
+                        .map { pattern -> "${path}: ${pattern.pattern}" }
                 }
         } finally {
             paths.close()

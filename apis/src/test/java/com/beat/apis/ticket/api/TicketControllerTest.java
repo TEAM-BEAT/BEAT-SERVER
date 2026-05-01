@@ -1,6 +1,7 @@
 package com.beat.apis.ticket.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
@@ -15,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
+import com.beat.apis.ticket.api.response.TicketSuccessCode;
 import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
 import com.beat.apis.ticket.facade.TicketFacade;
 import com.beat.global.common.dto.SuccessResponse;
@@ -34,15 +36,16 @@ class TicketControllerTest {
 
 	@Test
 	void searchTicketsDelegatesToFacade() {
+		TicketRetrieveResponse expected = TicketRetrieveResponse.of(
+			"title",
+			"team",
+			1,
+			2,
+			3,
+			List.of()
+		);
 		when(ticketFacade.searchTickets(anyLong(), anyLong(), any(), any(), any()))
-			.thenReturn(TicketRetrieveResponse.of(
-				"title",
-				"team",
-				1,
-				2,
-				3,
-				List.of()
-			));
+			.thenReturn(expected);
 
 		ResponseEntity<SuccessResponse<TicketRetrieveResponse>> response = ticketController.searchTickets(
 			1L,
@@ -53,6 +56,10 @@ class TicketControllerTest {
 		);
 
 		assertEquals(200, response.getStatusCode().value());
+		assertEquals("no-cache", response.getHeaders().getCacheControl());
+		assertEquals(TicketSuccessCode.TICKET_SEARCH_SUCCESS.getStatus(), response.getBody().status());
+		assertEquals(TicketSuccessCode.TICKET_SEARCH_SUCCESS.getMessage(), response.getBody().message());
+		assertSame(expected, response.getBody().data());
 		verify(ticketFacade).searchTickets(1L, 100L, "ab", null, null);
 	}
 }

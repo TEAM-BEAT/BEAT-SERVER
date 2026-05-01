@@ -1,11 +1,7 @@
 package com.beat.apis.ticket.facade;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 
@@ -16,10 +12,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.beat.apis.ticket.application.TicketService;
-import com.beat.apis.ticket.application.exception.TicketApplicationErrorCode;
+import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.schedule.domain.ScheduleNumber;
-import com.beat.global.common.exception.BadRequestException;
 
 @ExtendWith(MockitoExtension.class)
 class TicketFacadeTest {
@@ -35,48 +30,34 @@ class TicketFacadeTest {
 	}
 
 	@Test
-	void searchTicketsRejectsBlankSearchWord() {
-		BadRequestException exception = assertThrows(BadRequestException.class, () ->
-			ticketFacade.searchTickets(
-				1L,
-				100L,
-				"",
-				List.of(ScheduleNumber.FIRST),
-				List.of(BookingStatus.CHECKING_PAYMENT)
-			)
-		);
+	void findTicketsDelegatesToService() {
+		Long memberId = 1L;
+		Long performanceId = 100L;
+		List<ScheduleNumber> scheduleNumbers = List.of(ScheduleNumber.FIRST);
+		List<BookingStatus> bookingStatuses = List.of(BookingStatus.CHECKING_PAYMENT);
+		TicketRetrieveResponse expected = TicketRetrieveResponse.of("title", "team", 1, 100, 10, List.of());
+		when(ticketService.findAllTicketsByConditions(memberId, performanceId, scheduleNumbers, bookingStatuses))
+			.thenReturn(expected);
 
-		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getBaseErrorCode());
-		verify(ticketService, never()).searchAllTicketsByConditions(anyLong(), anyLong(), any(), any(), any());
+		ticketFacade.findTickets(memberId, performanceId, scheduleNumbers, bookingStatuses);
+
+		verify(ticketService).findAllTicketsByConditions(memberId, performanceId, scheduleNumbers, bookingStatuses);
 	}
 
 	@Test
-	void searchTicketsRejectsNullSearchWord() {
-		BadRequestException exception = assertThrows(BadRequestException.class, () ->
-			ticketFacade.searchTickets(1L, 100L, null, null, null)
-		);
+	void searchTicketsDelegatesToService() {
+		Long memberId = 1L;
+		Long performanceId = 100L;
+		String searchWord = "홍길동";
+		List<ScheduleNumber> scheduleNumbers = List.of(ScheduleNumber.FIRST);
+		List<BookingStatus> bookingStatuses = List.of(BookingStatus.CHECKING_PAYMENT);
+		TicketRetrieveResponse expected = TicketRetrieveResponse.of("title", "team", 1, 100, 10, List.of());
+		when(ticketService.searchAllTicketsByConditions(memberId, performanceId, searchWord, scheduleNumbers,
+			bookingStatuses)).thenReturn(expected);
 
-		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getBaseErrorCode());
-		verify(ticketService, never()).searchAllTicketsByConditions(anyLong(), anyLong(), any(), any(), any());
-	}
+		ticketFacade.searchTickets(memberId, performanceId, searchWord, scheduleNumbers, bookingStatuses);
 
-	@Test
-	void searchTicketsRejectsSingleCharacterSearchWord() {
-		BadRequestException exception = assertThrows(BadRequestException.class, () ->
-			ticketFacade.searchTickets(1L, 100L, "a", null, null)
-		);
-
-		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getBaseErrorCode());
-		verify(ticketService, never()).searchAllTicketsByConditions(anyLong(), anyLong(), any(), any(), any());
-	}
-
-	@Test
-	void searchTicketsRejectsDeletedBookingStatus() {
-		BadRequestException exception = assertThrows(BadRequestException.class, () ->
-			ticketFacade.searchTickets(1L, 100L, "ab", null, List.of(BookingStatus.BOOKING_DELETED))
-		);
-
-		assertEquals(TicketApplicationErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED, exception.getBaseErrorCode());
-		verify(ticketService, never()).searchAllTicketsByConditions(anyLong(), anyLong(), any(), any(), any());
+		verify(ticketService).searchAllTicketsByConditions(memberId, performanceId, searchWord, scheduleNumbers,
+			bookingStatuses);
 	}
 }
