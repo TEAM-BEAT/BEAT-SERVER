@@ -2,5 +2,5 @@ package com.beat.contracts.auth.social;
 
 public interface SocialLoginPort {
 
-	SocialMemberInfo login(SocialLoginCommand command);
+	SocialMemberInfo login(SocialLoginRequest request);
 }

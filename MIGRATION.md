@@ -476,8 +476,23 @@ root verification task:
 - `observability` AOP source package는 `com.beat.observability.aop`가 소유한다. `ObservabilityModuleConfig`는 기존 activation semantics를 보존하기 위해 아직 component-scan/import를 넓히지 않는다.
 - `infra`의 `RedisCacheConfig` / `InfraBaseConfigGroup.REDIS_CACHE`는 infra-owned dormant shared cache extension point로 유지하고, 실행 모듈은 아직 opt-in하지 않는다.
 - `infra` 안의 `com.beat.domain.*` package residue는 두 QueryDSL custom repository implementation만 known deferred exception으로 허용하며 #380/#381에서 처리한다.
-- `module-contracts`는 Java source를 유지하고 implementation-free contract module로 guard한다.
+- `module-contracts`는 implementation-free contract module로 guard한다. #426 이후 `domain` 직접 의존은 제거했고, social auth는 `SocialLoginRequest`/`SocialLoginType`, schedule booking close job은 `ScheduleBookingCloseJobTarget` contract-local type으로 domain enum/model 노출을 끊었다.
 - `global-utils`는 `com.beat.global.common.*` package를 즉시 rename하지 않고 framework/layer-neutral shared-kernel guard를 우선한다.
+
+## #426 module-contracts domain type coupling removal
+
+Issue `#426`은 `module-contracts`에 남아 있던 historical domain import를 제거한다. 공유 contract는 실행 모듈 간 경계이므로 domain model/domain enum을 그대로 재노출하지 않는다.
+
+| 이전 coupling | 현재 contract-local type | 변환 위치 |
+| --- | --- | --- |
+| `SocialLoginRequest` / `SocialMemberInfo`가 domain `SocialType`을 직접 노출 | `contracts.auth.social.SocialLoginRequest` + `SocialLoginType`; `SocialMemberInfo`는 provider profile 값만 보유 | `apis.member.application.SocialLoginService` private mapper |
+| `ScheduleBookingCloseJobPort` -> `domain.schedule.domain.Schedule` | `contracts.schedule.ScheduleBookingCloseJobTarget` | `apis.performance.application` / `batch.scheduler.application` mapper method |
+
+검증 기준:
+
+- `module-contracts/src/main`에는 `com.beat.domain.*` import/reference가 없어야 한다.
+- `module-contracts/build.gradle.kts`는 `project(":domain")` 의존을 갖지 않는다.
+- infra adapter는 contract-local type만 받아 구현하고, domain/application type 변환은 실행 모듈 application boundary에서 수행한다.
 
 ## CI와 로컬 검증 기준
 

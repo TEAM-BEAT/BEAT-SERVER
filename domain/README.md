@@ -610,12 +610,13 @@ infra.persistence.<context>.repository.query  # read/query adapter
 
 ---
 
-## 15. Transitional exceptions
+## 15. Module-contracts boundary
 
-신규 코드는 이 예외를 선례로 삼지 않습니다.
+Issue `#426` 이후 `module-contracts/src/main`은 domain type을 직접 import하지 않습니다. 실행 모듈 간 공유 contract는 다음 원칙을 따릅니다.
 
-- 일부 `module-contracts` contract는 historical 이유로 domain-coupled type을 가질 수 있습니다.
-- 새 contract는 domain model을 필드/반환 타입으로 담지 않습니다.
+- Domain model, domain enum/value object, JPA entity, API ResponseDTO를 필드나 반환 타입으로 담지 않습니다.
+- 필요한 값은 contract-local enum/value/read model로 끊고, domain type과의 변환은 실행 모듈 application boundary에서 수행합니다.
+- 예: social auth contract는 `SocialLoginType`, schedule job contract는 `ScheduleBookingCloseJobTarget`을 사용합니다.
 - 추가 query/read-model 최적화, Kotlin JDSL 전환, contract-local DTO 분리는 별도 후속 이슈에서 다룹니다.
 
 ---

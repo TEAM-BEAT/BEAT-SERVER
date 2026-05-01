@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.beat.contracts.schedule.ScheduleBookingCloseJobTarget;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.repository.PerformanceRepository;
@@ -66,7 +67,7 @@ class JobSchedulerServiceTest {
 		when(transactionalService.lockSchedule(SCHEDULE_ID)).thenReturn(Optional.of(lockedSchedule));
 		doReturn(scheduledFuture).when(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
 
-		jobSchedulerService.registerOrRefresh(schedule);
+		jobSchedulerService.registerOrRefresh(new ScheduleBookingCloseJobTarget(schedule.getId()));
 
 		verify(transactionalService).lockSchedule(SCHEDULE_ID);
 		verify(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
@@ -86,7 +87,7 @@ class JobSchedulerServiceTest {
 		Schedule schedule = mock(Schedule.class);
 		when(schedule.getId()).thenReturn(SCHEDULE_ID);
 
-		jobSchedulerService.registerOrRefresh(schedule);
+		jobSchedulerService.registerOrRefresh(new ScheduleBookingCloseJobTarget(schedule.getId()));
 
 		verifyNoInteractions(transactionalService);
 		verifyNoInteractions(taskScheduler);

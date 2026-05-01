@@ -890,7 +890,8 @@ class SharedBoundaryContractTest {
 			"com.beat.admin.",
 			"com.beat.batch.",
 			"com.beat.infra.",
-			"com.beat.gateway."
+			"com.beat.gateway.",
+			"com.beat.domain."
 		);
 
 		List<String> violations = sourceFiles(Path.of("module-contracts/src/main")).stream()
@@ -899,7 +900,7 @@ class SharedBoundaryContractTest {
 				.map(pattern -> path + ": " + pattern))
 			.toList();
 
-		assertTrue(buildFile.contains("compileOnly(project(\":domain\"))"));
+		assertFalse(buildFile.contains("project(\":domain\")"));
 		assertTrue(buildFile.contains("compileOnly(project(\":global-utils\"))"));
 		assertFalse(buildFile.contains("implementation(project(\":domain\"))"));
 		assertFalse(buildFile.contains("implementation(project(\":global-utils\"))"));
@@ -910,20 +911,18 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
-	void moduleContractsDomainTypeCouplingIsExplicitAndBounded() throws Exception {
-		Set<String> allowedDomainImports = Set.of(
-			"module-contracts/src/main/java/com/beat/contracts/auth/social/SocialLoginCommand.java: import com.beat.domain.member.domain.SocialType;",
-			"module-contracts/src/main/java/com/beat/contracts/auth/social/SocialMemberInfo.java: import com.beat.domain.member.domain.SocialType;",
-			"module-contracts/src/main/java/com/beat/contracts/schedule/ScheduleJobPort.java: import com.beat.domain.schedule.domain.Schedule;"
-		);
-
-		Set<String> actualDomainImports = sourceFiles(Path.of("module-contracts/src/main")).stream()
+	void moduleContractsDoNotImportDomainTypes() throws Exception {
+		Set<String> actualDomainReferences = sourceFiles(Path.of("module-contracts/src/main")).stream()
 			.flatMap(path -> readLines(path).stream()
-				.filter(line -> line.startsWith("import com.beat.domain."))
+				.filter(line -> line.contains("com.beat.domain."))
 				.map(line -> path.toString().replace('\\', '/') + ": " + line))
 			.collect(Collectors.toSet());
 
-		assertEquals(allowedDomainImports, actualDomainImports);
+		assertTrue(
+			actualDomainReferences.isEmpty(),
+			"module-contracts must not expose domain types across module boundaries:\n"
+				+ String.join("\n", actualDomainReferences)
+		);
 	}
 
 	@Test

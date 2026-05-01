@@ -1,19 +1,21 @@
 package com.beat.infra.auth.social.kakao;
 
-import com.beat.contracts.auth.social.SocialLoginCommand;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 import com.beat.contracts.auth.social.SocialLoginFailure;
 import com.beat.contracts.auth.social.SocialLoginPort;
+import com.beat.contracts.auth.social.SocialLoginRequest;
+import com.beat.contracts.auth.social.SocialLoginType;
 import com.beat.contracts.auth.social.SocialMemberInfo;
-import com.beat.domain.member.domain.SocialType;
 import com.beat.infra.auth.social.kakao.client.KakaoApiClient;
 import com.beat.infra.auth.social.kakao.client.KakaoAuthApiClient;
 import com.beat.infra.auth.social.kakao.response.KakaoAccessTokenResponse;
 import com.beat.infra.auth.social.kakao.response.KakaoUserResponse;
+
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -32,20 +34,20 @@ public class KakaoSocialLoginAdapter implements SocialLoginPort {
 	private final KakaoAuthApiClient kakaoAuthApiClient;
 
 	@Override
-	public SocialMemberInfo login(SocialLoginCommand command) {
-		if (command.socialType() != SocialType.KAKAO) {
+	public SocialMemberInfo login(SocialLoginRequest request) {
+		if (request.socialType() != SocialLoginType.KAKAO) {
 			throw SocialLoginFailure.unsupportedSocialType();
 		}
 
 		String accessToken;
 		try {
-			accessToken = getOAuth2Authentication(command.authorizationCode());
+			accessToken = getOAuth2Authentication(request.authorizationCode());
 		} catch (FeignException exception) {
 			throw SocialLoginFailure.authenticationFailed(exception);
 		}
 
 		try {
-			return mapToSocialMemberInfo(command.socialType(), getUserInfo(accessToken));
+			return mapToSocialMemberInfo(getUserInfo(accessToken));
 		} catch (FeignException exception) {
 			log.error("Failed to fetch Kakao user info with access token", exception);
 			throw SocialLoginFailure.authenticationFailed(exception);
@@ -92,7 +94,7 @@ public class KakaoSocialLoginAdapter implements SocialLoginPort {
 		return kakaoUserResponse;
 	}
 
-	private SocialMemberInfo mapToSocialMemberInfo(SocialType socialType, KakaoUserResponse kakaoUserResponse) {
+	private SocialMemberInfo mapToSocialMemberInfo(KakaoUserResponse kakaoUserResponse) {
 		if (kakaoUserResponse == null) {
 			throw SocialLoginFailure.authenticationFailed(null);
 		}
@@ -119,8 +121,7 @@ public class KakaoSocialLoginAdapter implements SocialLoginPort {
 		return new SocialMemberInfo(
 			kakaoUserResponse.id(),
 			nickname,
-			email,
-			socialType
+			email
 		);
 	}
 }
