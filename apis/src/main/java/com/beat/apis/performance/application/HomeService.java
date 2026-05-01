@@ -64,7 +64,14 @@ public class HomeService {
 		return promotionService.findAllPromotions()
 			.stream()
 			.sorted(Comparator.comparing(Promotion::getCarouselNumber, Comparator.comparingInt(Enum::ordinal)))
-			.map(HomePromotionDetail::from)
+			.map(promotion -> HomePromotionDetail.of(
+				promotion.getId(),
+				promotion.getPromotionPhoto(),
+				promotion.getPerformanceId(),
+				promotion.getRedirectUrl(),
+				promotion.isExternal(),
+				promotion.getCarouselNumber().name()
+			))
 			.toList();
 	}
 
@@ -94,7 +101,16 @@ public class HomeService {
 
 	private HomePerformanceDetail createHomePerformanceDetail(LocalDate today, Performance performance,
 		Map<Long, LocalDateTime> minPerformanceDateMap) {
-		return HomePerformanceDetail.of(performance, calculateDueDate(today, minPerformanceDateMap.get(performance.getId())));
+		return HomePerformanceDetail.of(
+			performance.getId(),
+			performance.getPerformanceTitle(),
+			performance.getPerformancePeriod(),
+			performance.getTicketPrice(),
+			calculateDueDate(today, minPerformanceDateMap.get(performance.getId())),
+			performance.getGenre().name(),
+			performance.getPosterImage(),
+			performance.getPerformanceVenue()
+		);
 	}
 
 	private int calculateDueDate(LocalDate today, LocalDateTime baseDateTime) {

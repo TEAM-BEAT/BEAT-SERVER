@@ -8,7 +8,7 @@ import java.nio.file.Path
 
 class ApisArchitectureGuardTest {
 
-    private val rootProjectDependencyPattern = Regex("""project\(\s*":\"\s*\)""")
+    private val rootProjectDependencyPattern = Regex("""project\(\s*":"\s*\)""")
 
     @Test
     fun `apis build file must not depend on root project`() {
@@ -61,6 +61,27 @@ class ApisArchitectureGuardTest {
         assertTrue(
             violations.isEmpty(),
             "Found forbidden apis source references:\n${violations.joinToString("\n")}"
+        )
+    }
+
+    @Test
+    fun `apis dto and event boundaries must not import raw domain models`() {
+        val violations = findForbiddenImportsInPaths(
+            listOf("/application/dto/"),
+            "com.beat.domain.booking.domain.Booking",
+            "com.beat.domain.cast.domain.Cast",
+            "com.beat.domain.member.domain.Member",
+            "com.beat.domain.performance.domain.Performance",
+            "com.beat.domain.performanceimage.domain.PerformanceImage",
+            "com.beat.domain.promotion.domain.Promotion",
+            "com.beat.domain.schedule.domain.Schedule",
+            "com.beat.domain.staff.domain.Staff",
+            "com.beat.domain.user.domain.Users",
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found raw domain model imports in apis DTO/event boundaries:\n${violations.joinToString("\n")}"
         )
     }
 
@@ -133,6 +154,31 @@ class ApisArchitectureGuardTest {
                     forbiddenReferencePatterns
                         .filter { pattern -> pattern.containsMatchIn(source) }
                         .map { pattern -> "${path}: ${pattern.pattern}" }
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
+    private fun findForbiddenImportsInPaths(pathSegments: List<String>, vararg forbiddenImports: String): List<String> {
+        val paths = Files.walk(Path.of("src/main"))
+
+        return try {
+            paths
+                .filter { Files.isRegularFile(it) }
+                .filter { it.toString().endsWith(".java") || it.toString().endsWith(".kt") }
+                .filter { path -> pathSegments.any { segment -> path.toString().replace('\\', '/').contains(segment) } }
+                .toList()
+                .flatMap { path ->
+                    Files.readAllLines(path)
+                        .asSequence()
+                        .filter { it.trimStart().startsWith("import ") }
+                        .flatMap { line ->
+                            forbiddenImports
+                                .filter { forbiddenImport -> line.trim() == "import $forbiddenImport;" }
+                                .map { forbiddenImport -> "${path}: $forbiddenImport" }
+                        }
+                        .toList()
                 }
         } finally {
             paths.close()

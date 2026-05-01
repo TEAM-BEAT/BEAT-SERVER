@@ -80,7 +80,15 @@ public class GuestBookingService {
 
 		log.info("Guest Booking created: {}", booking);
 
-		eventPublisher.publishEvent(BookingCreatedEvent.of(booking, schedule, performance.getPerformanceTitle()));
+		eventPublisher.publishEvent(BookingCreatedEvent.of(
+			booking.getCreatedAt(),
+			performance.getPerformanceTitle(),
+			booking.getPurchaseTicketCount(),
+			booking.getBookerName(),
+			schedule.getScheduleNumber().getDisplayName(),
+			schedule.getSoldTicketCount(),
+			schedule.getTotalTicketCount()
+		));
 
 		return GuestBookingResponse.of(
 			booking.getId(),
