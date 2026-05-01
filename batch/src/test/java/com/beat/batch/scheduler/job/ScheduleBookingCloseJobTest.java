@@ -12,7 +12,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 
-import com.beat.batch.scheduler.application.JobSchedulerService;
+import com.beat.batch.scheduler.facade.ScheduleBookingCloseFacade;
 
 class ScheduleBookingCloseJobTest {
 
@@ -36,45 +36,45 @@ class ScheduleBookingCloseJobTest {
 
 	@Test
 	void applicationReadyRehydratesSchedulesWhenRuntimeOwnsScheduler() {
-		JobSchedulerService jobSchedulerService = mock(JobSchedulerService.class);
-		ScheduleBookingCloseJob scheduleBookingCloseJob = new ScheduleBookingCloseJob(jobSchedulerService);
+		ScheduleBookingCloseFacade scheduleBookingCloseFacade = mock(ScheduleBookingCloseFacade.class);
+		ScheduleBookingCloseJob scheduleBookingCloseJob = new ScheduleBookingCloseJob(scheduleBookingCloseFacade);
 		ReflectionTestUtils.setField(scheduleBookingCloseJob, "schedulerOwner", true);
 
 		scheduleBookingCloseJob.onApplicationReady();
 
-		verify(jobSchedulerService).reconcilePendingSchedules();
+		verify(scheduleBookingCloseFacade).reconcilePendingSchedules();
 	}
 
 	@Test
 	void applicationReadySkipsRehydrationWhenRuntimeIsNotSchedulerOwner() {
-		JobSchedulerService jobSchedulerService = mock(JobSchedulerService.class);
-		ScheduleBookingCloseJob scheduleBookingCloseJob = new ScheduleBookingCloseJob(jobSchedulerService);
+		ScheduleBookingCloseFacade scheduleBookingCloseFacade = mock(ScheduleBookingCloseFacade.class);
+		ScheduleBookingCloseJob scheduleBookingCloseJob = new ScheduleBookingCloseJob(scheduleBookingCloseFacade);
 		ReflectionTestUtils.setField(scheduleBookingCloseJob, "schedulerOwner", false);
 
 		scheduleBookingCloseJob.onApplicationReady();
 
-		verifyNoInteractions(jobSchedulerService);
+		verifyNoInteractions(scheduleBookingCloseFacade);
 	}
 
 	@Test
 	void scheduledReconcileDelegatesWhenRuntimeOwnsScheduler() {
-		JobSchedulerService jobSchedulerService = mock(JobSchedulerService.class);
-		ScheduleBookingCloseJob scheduleBookingCloseJob = new ScheduleBookingCloseJob(jobSchedulerService);
+		ScheduleBookingCloseFacade scheduleBookingCloseFacade = mock(ScheduleBookingCloseFacade.class);
+		ScheduleBookingCloseJob scheduleBookingCloseJob = new ScheduleBookingCloseJob(scheduleBookingCloseFacade);
 		ReflectionTestUtils.setField(scheduleBookingCloseJob, "schedulerOwner", true);
 
 		scheduleBookingCloseJob.reconcilePendingSchedules();
 
-		verify(jobSchedulerService).reconcilePendingSchedules();
+		verify(scheduleBookingCloseFacade).reconcilePendingSchedules();
 	}
 
 	@Test
 	void scheduledReconcileSkipsWhenRuntimeIsNotSchedulerOwner() {
-		JobSchedulerService jobSchedulerService = mock(JobSchedulerService.class);
-		ScheduleBookingCloseJob scheduleBookingCloseJob = new ScheduleBookingCloseJob(jobSchedulerService);
+		ScheduleBookingCloseFacade scheduleBookingCloseFacade = mock(ScheduleBookingCloseFacade.class);
+		ScheduleBookingCloseJob scheduleBookingCloseJob = new ScheduleBookingCloseJob(scheduleBookingCloseFacade);
 		ReflectionTestUtils.setField(scheduleBookingCloseJob, "schedulerOwner", false);
 
 		scheduleBookingCloseJob.reconcilePendingSchedules();
 
-		verifyNoInteractions(jobSchedulerService);
+		verifyNoInteractions(scheduleBookingCloseFacade);
 	}
 }

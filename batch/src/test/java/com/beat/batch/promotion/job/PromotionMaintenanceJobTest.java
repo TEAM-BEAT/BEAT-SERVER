@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.beat.batch.promotion.application.PromotionMaintenanceService;
+import com.beat.batch.promotion.facade.PromotionMaintenanceFacade;
 
 class PromotionMaintenanceJobTest {
 
@@ -24,23 +24,23 @@ class PromotionMaintenanceJobTest {
 
 	@Test
 	void scheduledPromotionMaintenanceDelegatesWhenRuntimeOwnsScheduler() {
-		PromotionMaintenanceService promotionMaintenanceService = mock(PromotionMaintenanceService.class);
-		PromotionMaintenanceJob promotionMaintenanceJob = new PromotionMaintenanceJob(promotionMaintenanceService);
+		PromotionMaintenanceFacade promotionMaintenanceFacade = mock(PromotionMaintenanceFacade.class);
+		PromotionMaintenanceJob promotionMaintenanceJob = new PromotionMaintenanceJob(promotionMaintenanceFacade);
 		ReflectionTestUtils.setField(promotionMaintenanceJob, "schedulerOwner", true);
 
 		promotionMaintenanceJob.checkAndDeleteInvalidPromotions();
 
-		verify(promotionMaintenanceService).checkAndDeleteInvalidPromotions();
+		verify(promotionMaintenanceFacade).checkAndDeleteInvalidPromotions();
 	}
 
 	@Test
 	void scheduledPromotionMaintenanceSkipsWhenRuntimeIsNotSchedulerOwner() {
-		PromotionMaintenanceService promotionMaintenanceService = mock(PromotionMaintenanceService.class);
-		PromotionMaintenanceJob promotionMaintenanceJob = new PromotionMaintenanceJob(promotionMaintenanceService);
+		PromotionMaintenanceFacade promotionMaintenanceFacade = mock(PromotionMaintenanceFacade.class);
+		PromotionMaintenanceJob promotionMaintenanceJob = new PromotionMaintenanceJob(promotionMaintenanceFacade);
 		ReflectionTestUtils.setField(promotionMaintenanceJob, "schedulerOwner", false);
 
 		promotionMaintenanceJob.checkAndDeleteInvalidPromotions();
 
-		verifyNoInteractions(promotionMaintenanceService);
+		verifyNoInteractions(promotionMaintenanceFacade);
 	}
 }

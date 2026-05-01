@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.beat.batch.booking.application.TicketCleanupService;
+import com.beat.batch.booking.facade.TicketCleanupFacade;
 
 class TicketCleanupJobTest {
 
@@ -24,23 +24,23 @@ class TicketCleanupJobTest {
 
 	@Test
 	void scheduledCleanupDelegatesWhenRuntimeOwnsScheduler() {
-		TicketCleanupService ticketCleanupService = mock(TicketCleanupService.class);
-		TicketCleanupJob ticketCleanupJob = new TicketCleanupJob(ticketCleanupService);
+		TicketCleanupFacade ticketCleanupFacade = mock(TicketCleanupFacade.class);
+		TicketCleanupJob ticketCleanupJob = new TicketCleanupJob(ticketCleanupFacade);
 		ReflectionTestUtils.setField(ticketCleanupJob, "schedulerOwner", true);
 
 		ticketCleanupJob.deleteOldCancelledBookings();
 
-		verify(ticketCleanupService).deleteOldCancelledBookings();
+		verify(ticketCleanupFacade).deleteOldCancelledBookings();
 	}
 
 	@Test
 	void scheduledCleanupSkipsWhenRuntimeIsNotSchedulerOwner() {
-		TicketCleanupService ticketCleanupService = mock(TicketCleanupService.class);
-		TicketCleanupJob ticketCleanupJob = new TicketCleanupJob(ticketCleanupService);
+		TicketCleanupFacade ticketCleanupFacade = mock(TicketCleanupFacade.class);
+		TicketCleanupJob ticketCleanupJob = new TicketCleanupJob(ticketCleanupFacade);
 		ReflectionTestUtils.setField(ticketCleanupJob, "schedulerOwner", false);
 
 		ticketCleanupJob.deleteOldCancelledBookings();
 
-		verifyNoInteractions(ticketCleanupService);
+		verifyNoInteractions(ticketCleanupFacade);
 	}
 }

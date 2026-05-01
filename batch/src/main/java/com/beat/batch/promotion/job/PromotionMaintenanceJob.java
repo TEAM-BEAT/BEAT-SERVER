@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.beat.batch.promotion.application.PromotionMaintenanceService;
+import com.beat.batch.promotion.facade.PromotionMaintenanceFacade;
 
 import lombok.RequiredArgsConstructor;
 
@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PromotionMaintenanceJob {
 
-	private final PromotionMaintenanceService promotionMaintenanceService;
+	private final PromotionMaintenanceFacade promotionMaintenanceFacade;
 
 	@Value("${beat.scheduler.owner:false}")
 	private boolean schedulerOwner;
@@ -23,6 +23,6 @@ public class PromotionMaintenanceJob {
 			return;
 		}
 
-		promotionMaintenanceService.checkAndDeleteInvalidPromotions();
+		promotionMaintenanceFacade.checkAndDeleteInvalidPromotions();
 	}
 }

@@ -6,7 +6,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.beat.batch.scheduler.application.JobSchedulerService;
+import com.beat.batch.scheduler.facade.ScheduleBookingCloseFacade;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class ScheduleBookingCloseJob {
 
-	private final JobSchedulerService jobSchedulerService;
+	private final ScheduleBookingCloseFacade scheduleBookingCloseFacade;
 
 	@Value("${beat.scheduler.owner:false}")
 	private boolean schedulerOwner;
@@ -29,7 +29,7 @@ public class ScheduleBookingCloseJob {
 		}
 
 		log.info("onApplicationReady() method triggered.");
-		jobSchedulerService.reconcilePendingSchedules();
+		scheduleBookingCloseFacade.reconcilePendingSchedules();
 	}
 
 	@Scheduled(fixedDelayString = "${beat.scheduler.reconcile-interval-ms:60000}")
@@ -38,6 +38,6 @@ public class ScheduleBookingCloseJob {
 			return;
 		}
 
-		jobSchedulerService.reconcilePendingSchedules();
+		scheduleBookingCloseFacade.reconcilePendingSchedules();
 	}
 }
