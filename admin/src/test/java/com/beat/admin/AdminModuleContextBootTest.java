@@ -2,7 +2,6 @@ package com.beat.admin;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,7 +16,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.beat.admin.port.in.AdminUseCase;
+import com.beat.admin.application.AdminCommandService;
+import com.beat.admin.application.AdminQueryService;
+import com.beat.admin.facade.AdminFacade;
 import com.beat.admin.support.AbstractAdminIntegrationTest;
 import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
 import com.beat.contracts.storage.FileStoragePort;
@@ -48,15 +49,17 @@ class AdminModuleContextBootTest extends AbstractAdminIntegrationTest {
 
 	@Test
 	void contextLoads() {
-		assertEquals(1, applicationContext.getBeansOfType(AdminUseCase.class).size());
-		assertEquals(1, applicationContext.getBeansOfType(GroupedOpenApi.class).size());
-		assertEquals(1, applicationContext.getBeansOfType(OpenAPI.class).size());
+		assertTrue(applicationContext.getBeansOfType(GroupedOpenApi.class).size() == 1);
+		assertTrue(applicationContext.getBeansOfType(OpenAPI.class).size() == 1);
 		assertTrue(applicationContext.containsBean("adminApi"));
+		assertTrue(applicationContext.getBeansOfType(AdminFacade.class).size() == 1);
+		assertTrue(applicationContext.getBeansOfType(AdminQueryService.class).size() == 1);
+		assertTrue(applicationContext.getBeansOfType(AdminCommandService.class).size() == 1);
 		assertFalse(applicationContext.containsBean("jobSchedulerService"));
 		assertTrue(applicationContext.getBeansOfType(ScheduleBookingCloseJobPort.class).isEmpty());
 		assertTrue(applicationContext.getBeansOfType(TaskScheduler.class).isEmpty());
-		assertEquals(1, applicationContext.getBeansOfType(PerformanceRepository.class).size());
-		assertEquals(1, applicationContext.getBeansOfType(PromotionRepository.class).size());
+		assertTrue(applicationContext.getBeansOfType(PerformanceRepository.class).size() == 1);
+		assertTrue(applicationContext.getBeansOfType(PromotionRepository.class).size() == 1);
 	}
 
 	@Test

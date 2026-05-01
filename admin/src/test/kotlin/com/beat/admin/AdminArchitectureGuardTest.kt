@@ -72,6 +72,59 @@ class AdminArchitectureGuardTest {
         )
     }
 
+
+    @Test
+    fun `admin facade must not own transaction repository or raw domain model dependencies`() {
+        val source = Files.readString(Path.of("src/main/java/com/beat/admin/facade/AdminFacade.java"))
+
+        assertFalse(source.contains("@Transactional"))
+        assertFalse(source.contains("com.beat.domain."))
+        assertFalse(source.contains("Repository"))
+    }
+
+    @Test
+    fun `admin does not keep transitional port in package`() {
+        val portIn = Path.of("src/main/java/com/beat/admin/port/in")
+
+        assertFalse(Files.exists(portIn), "admin port/in package should not remain after facade-application cleanup")
+    }
+
+    @Test
+    fun `admin application services do not return raw domain models`() {
+        val violations = findMethodSignatureViolations(
+            Path.of("src/main/java/com/beat/admin/application"),
+            listOf("Promotion", "Users")
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found raw domain model return types in admin application service signatures:\n${violations.joinToString("\n")}"
+        )
+    }
+
+
+    private fun findMethodSignatureViolations(root: Path, forbiddenReturnTypes: List<String>): List<String> {
+        val paths = Files.walk(root)
+
+        return try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt") }
+                .toList()
+                .flatMap { path ->
+                    Files.readAllLines(path)
+                        .mapIndexedNotNull { index, line ->
+                            val trimmed = line.trimStart()
+                            forbiddenReturnTypes
+                                .firstOrNull { type -> trimmed.matches(Regex("""public\s+(?!record\b).*\b$type\b.*\(""")) }
+                                ?.let { type -> "$path:${index + 1}: $type" }
+                        }
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
     private fun findForbiddenImports(vararg forbiddenReferences: String): List<String> {
         val paths = Files.walk(Path.of("src/main"))
 

@@ -1,13 +1,13 @@
 package com.beat.admin.application.dto.response;
 
-import com.beat.domain.user.domain.Users;
-
 import java.util.List;
+
+import com.beat.admin.application.dto.result.AdminUserResult;
 
 public record UserFindAllResponse(
 	List<UserFindResponse> users
 ) {
-	public static UserFindAllResponse from(List<Users> users) {
+	public static UserFindAllResponse from(List<AdminUserResult> users) {
 		List<UserFindResponse> userFindResponses = users.stream()
 			.map(UserFindResponse::from)
 			.toList();
@@ -18,10 +18,10 @@ public record UserFindAllResponse(
 		Long id,
 		String role
 	) {
-		public static UserFindResponse from(Users user) {
+		public static UserFindResponse from(AdminUserResult user) {
 			return new UserFindResponse(
-				user.getId(),
-				user.getRole().getRoleName()
+				user.id(),
+				user.role()
 			);
 		}
 	}

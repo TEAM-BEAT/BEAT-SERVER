@@ -3,13 +3,13 @@ package com.beat.admin.application.dto.response;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.beat.domain.promotion.domain.Promotion;
+import com.beat.admin.application.dto.result.AdminPromotionResult;
 
 public record CarouselHandleAllResponse(
 	List<PromotionResponse> modifiedPromotions
 ) {
 
-	public static CarouselHandleAllResponse from(List<Promotion> promotions) {
+	public static CarouselHandleAllResponse from(List<AdminPromotionResult> promotions) {
 		List<PromotionResponse> modifiedPromotions = promotions.stream()
 			.map(PromotionResponse::from)
 			.collect(Collectors.toList());
@@ -23,13 +23,13 @@ public record CarouselHandleAllResponse(
 		String redirectUrl,
 		String carouselNumber
 	) {
-		public static PromotionResponse from(Promotion promotion) {
+		public static PromotionResponse from(AdminPromotionResult promotion) {
 			return new PromotionResponse(
-				promotion.getId(),
-				promotion.getPromotionPhoto(),
+				promotion.promotionId(),
+				promotion.newImageUrl(),
 				promotion.isExternal(),
-				promotion.getRedirectUrl(),
-				promotion.getCarouselNumber().name()
+				promotion.redirectUrl(),
+				promotion.carouselNumber().name()
 			);
 		}
 	}
