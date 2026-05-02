@@ -6,8 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,16 +20,15 @@ import com.beat.apis.member.application.SocialLoginService;
 import com.beat.apis.member.application.dto.request.MemberLoginRequest;
 import com.beat.apis.member.application.dto.response.LoginSuccessResponse;
 import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
+import com.beat.apis.member.application.result.MemberAuthenticationResult;
+import com.beat.apis.user.application.UserService;
+import com.beat.apis.user.application.result.UserAuthenticationResult;
 import com.beat.contracts.auth.social.SocialLoginFailure;
 import com.beat.contracts.auth.social.SocialLoginPort;
 import com.beat.contracts.auth.social.SocialLoginRequest;
 import com.beat.contracts.auth.social.SocialLoginType;
 import com.beat.contracts.auth.social.SocialMemberInfo;
-import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
-import com.beat.domain.user.domain.Role;
-import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.UnauthorizedException;
 
@@ -51,7 +48,7 @@ class SocialLoginServiceTest {
 	private MemberService memberService;
 
 	@Mock
-	private UserRepository userRepository;
+	private UserService userService;
 
 	private SocialLoginService socialLoginService;
 
@@ -62,7 +59,7 @@ class SocialLoginServiceTest {
 			authenticationService,
 			socialLoginPort,
 			memberService,
-			userRepository
+			userService
 		);
 	}
 
@@ -95,16 +92,16 @@ class SocialLoginServiceTest {
 	@Test
 	void handleSocialLoginKeepsRequestedSocialTypeAcrossContractBoundaryWhenRegisteringNewMember() {
 		SocialMemberInfo socialMemberInfo = new SocialMemberInfo(123L, "nickname", "email@test.com");
-		Member member = Member.rehydrate(1L, "nickname", "email@test.com", null, 2L, 123L, SocialType.KAKAO);
-		Users user = Users.rehydrate(2L, Role.MEMBER);
+		MemberAuthenticationResult member = MemberAuthenticationResult.of(1L, 2L);
+		UserAuthenticationResult user = UserAuthenticationResult.of(2L, "ROLE_MEMBER");
 		LoginSuccessResponse expectedResponse = LoginSuccessResponse.of("access", "refresh", "nickname", "ROLE_MEMBER");
 
 		when(socialLoginPort.login(any())).thenReturn(socialMemberInfo);
 		when(memberService.checkMemberExistsBySocialIdAndSocialType(123L, SocialType.KAKAO)).thenReturn(false);
 		when(memberRegistrationService.registerMemberWithUserInfo(socialMemberInfo, SocialType.KAKAO)).thenReturn(1L);
-		when(memberService.findMemberByMemberId(1L)).thenReturn(member);
-		when(userRepository.findById(2L)).thenReturn(Optional.of(user));
-		when(authenticationService.generateLoginSuccessResponse(1L, Role.MEMBER, socialMemberInfo))
+		when(memberService.findMemberAuthenticationResultByMemberId(1L)).thenReturn(member);
+		when(userService.findUserAuthenticationByUserId(2L)).thenReturn(user);
+		when(authenticationService.generateLoginSuccessResponse(1L, "ROLE_MEMBER", socialMemberInfo))
 			.thenReturn(expectedResponse);
 
 		LoginSuccessResponse actual = socialLoginService.handleSocialLogin(

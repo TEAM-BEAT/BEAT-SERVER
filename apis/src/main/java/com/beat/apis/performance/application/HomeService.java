@@ -15,12 +15,12 @@ import com.beat.apis.performance.application.dto.home.HomeFindRequest;
 import com.beat.apis.performance.application.dto.home.HomePerformanceDetail;
 import com.beat.apis.performance.application.dto.home.HomePromotionDetail;
 import com.beat.apis.promotion.application.PromotionService;
+import com.beat.apis.promotion.application.result.PromotionHomeResult;
 import com.beat.apis.schedule.application.ScheduleService;
 import com.beat.apis.schedule.application.dto.response.MinPerformanceDateResponse;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 
 import lombok.RequiredArgsConstructor;
@@ -61,16 +61,16 @@ public class HomeService {
 	}
 
 	private List<HomePromotionDetail> findAllPromotionsSortedByCarouselNumber() {
-		return promotionService.findAllPromotions()
+		return promotionService.findAllPromotionHomeResults()
 			.stream()
-			.sorted(Comparator.comparing(Promotion::getCarouselNumber, Comparator.comparingInt(Enum::ordinal)))
+			.sorted(Comparator.comparingInt(PromotionHomeResult::carouselNumberOrder))
 			.map(promotion -> HomePromotionDetail.of(
-				promotion.getId(),
-				promotion.getPromotionPhoto(),
-				promotion.getPerformanceId(),
-				promotion.getRedirectUrl(),
-				promotion.isExternal(),
-				promotion.getCarouselNumber().name()
+				promotion.promotionId(),
+				promotion.promotionPhoto(),
+				promotion.performanceId(),
+				promotion.redirectUrl(),
+				promotion.external(),
+				promotion.carouselNumber()
 			))
 			.toList();
 	}

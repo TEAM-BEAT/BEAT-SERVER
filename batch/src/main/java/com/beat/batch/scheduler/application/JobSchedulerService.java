@@ -16,7 +16,6 @@ import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
 import com.beat.contracts.schedule.ScheduleBookingCloseJobTarget;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.repository.PerformanceRepository;
-import com.beat.domain.schedule.domain.Schedule;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,13 +40,8 @@ public class JobSchedulerService implements ScheduleBookingCloseJobPort {
 			return;
 		}
 
-		List<Schedule> schedules = jobSchedulerTransactionalService.findPendingSchedules();
-		List<Long> pendingScheduleIds = new ArrayList<>();
-
-		schedules.forEach(schedule -> {
-			pendingScheduleIds.add(schedule.getId());
-			registerOrRefresh(toScheduleBookingCloseJobTarget(schedule));
-		});
+		List<Long> pendingScheduleIds = jobSchedulerTransactionalService.findPendingScheduleIds();
+		pendingScheduleIds.forEach(scheduleId -> registerOrRefresh(new ScheduleBookingCloseJobTarget(scheduleId)));
 
 		new ArrayList<>(scheduledTasks.keySet()).stream()
 			.filter(scheduleId -> !pendingScheduleIds.contains(scheduleId))
@@ -96,33 +90,30 @@ public class JobSchedulerService implements ScheduleBookingCloseJobPort {
 
 	private void schedulePendingTask(ScheduleBookingCloseJobTarget target) {
 		// 여기서 데이터베이스 X-Lock을 걸어 중복 실행 방지
-		jobSchedulerTransactionalService.lockSchedule(target.scheduleId())
+		jobSchedulerTransactionalService.lockScheduleBookingWindow(target.scheduleId())
 			.ifPresentOrElse(
 				lockedSchedule -> {
-					log.info("Lock acquired for Schedule ID: {}", lockedSchedule.getId());
-					Performance performance = performanceRepository.findById(lockedSchedule.getPerformanceId())
+					log.info("Lock acquired for Schedule ID: {}", lockedSchedule.scheduleId());
+					Performance performance = performanceRepository.findById(lockedSchedule.performanceId())
 						.orElseThrow(() -> new IllegalStateException(
-							"Performance not found for schedule " + lockedSchedule.getId()));
-					LocalDateTime performanceEndTime = lockedSchedule.getPerformanceDate()
+							"Performance not found for schedule " + lockedSchedule.scheduleId()));
+					LocalDateTime performanceEndTime = lockedSchedule.performanceDate()
 						.plusMinutes(performance.getRunningTime());
 
-					log.info("Scheduling task for Schedule ID: {} at {}", lockedSchedule.getId(), performanceEndTime);
+					log.info("Scheduling task for Schedule ID: {} at {}", lockedSchedule.scheduleId(),
+						performanceEndTime);
 
 					ScheduledFuture<?> scheduledTask = taskScheduler.schedule(
-						() -> updateIsBookingFalse(lockedSchedule.getId()),
+						() -> updateIsBookingFalse(lockedSchedule.scheduleId()),
 						performanceEndTime.atZone(ZoneId.systemDefault()).toInstant()
 					);
 
-					scheduledTasks.put(lockedSchedule.getId(), scheduledTask);
-					log.debug("Task added for Schedule ID: {}", lockedSchedule.getId());
+					scheduledTasks.put(lockedSchedule.scheduleId(), scheduledTask);
+					log.debug("Task added for Schedule ID: {}", lockedSchedule.scheduleId());
 					logScheduledTasks();
 				},
 				() -> log.warn("Failed to acquire lock for Schedule ID: {}", target.scheduleId())
 			);
-	}
-
-	private ScheduleBookingCloseJobTarget toScheduleBookingCloseJobTarget(Schedule schedule) {
-		return new ScheduleBookingCloseJobTarget(schedule.getId());
 	}
 
 	private void cancelScheduledTaskById(Long scheduleId) {

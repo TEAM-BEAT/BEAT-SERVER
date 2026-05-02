@@ -137,6 +137,31 @@ class ApisArchitectureGuardTest {
         )
     }
 
+    @Test
+    fun `apis application services do not expose raw domain models through public methods`() {
+        val violations = findPublicMethodReturnTypeViolations(
+            Path.of("src/main"),
+            listOf(
+                "Booking",
+                "Cast",
+                "Member",
+                "Performance",
+                "PerformanceImage",
+                "Promotion",
+                "Schedule",
+                "Staff",
+                "Users",
+            ),
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found raw domain model return types in apis application service signatures:\n${
+                violations.joinToString("\n")
+            }"
+        )
+    }
+
     private fun findSourceViolations(
         pathPredicate: (Path) -> Boolean,
         forbiddenReferencePatterns: List<Regex>,
@@ -154,6 +179,35 @@ class ApisArchitectureGuardTest {
                     forbiddenReferencePatterns
                         .filter { pattern -> pattern.containsMatchIn(source) }
                         .map { pattern -> "${path}: ${pattern.pattern}" }
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
+    private fun findPublicMethodReturnTypeViolations(root: Path, forbiddenReturnTypes: List<String>): List<String> {
+        val paths = Files.walk(root)
+
+        return try {
+            paths
+                .filter { Files.isRegularFile(it) }
+                .filter { it.toString().endsWith(".java") || it.toString().endsWith(".kt") }
+                .filter { path ->
+                    val normalizedPath = path.toString().replace('\\', '/')
+                    normalizedPath.contains("/application/")
+                        && normalizedPath.endsWith("Service.${path.fileName.toString().substringAfterLast('.')}")
+                }
+                .toList()
+                .flatMap { path ->
+                    Files.readAllLines(path)
+                        .mapIndexedNotNull { index, line ->
+                            val trimmed = line.trimStart()
+                            forbiddenReturnTypes
+                                .firstOrNull { type ->
+                                    trimmed.matches(Regex("""public\s+(?!record\b).*\b$type\b.*\("""))
+                                }
+                                ?.let { type -> "$path:${index + 1}: $type" }
+                        }
                 }
         } finally {
             paths.close()

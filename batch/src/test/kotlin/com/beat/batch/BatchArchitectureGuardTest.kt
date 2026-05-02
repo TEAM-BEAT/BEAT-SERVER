@@ -94,6 +94,21 @@ class BatchArchitectureGuardTest {
         )
     }
 
+    @Test
+    fun `batch application services do not expose raw domain models through public methods`() {
+        val violations = findPublicMethodReturnTypeViolations(
+            Path.of("src/main"),
+            listOf("Booking", "Performance", "Promotion", "Schedule", "Users"),
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found raw domain model return types in batch application service signatures:\n${
+                violations.joinToString("\n")
+            }",
+        )
+    }
+
     private fun findForbiddenReferences(vararg forbiddenReferences: String): List<String> {
         val paths = Files.walk(Path.of("src/main"))
 
@@ -107,6 +122,35 @@ class BatchArchitectureGuardTest {
                     forbiddenReferences
                         .filter(source::contains)
                         .map { pattern -> "$path: $pattern" }
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
+    private fun findPublicMethodReturnTypeViolations(root: Path, forbiddenReturnTypes: List<String>): List<String> {
+        val paths = Files.walk(root)
+
+        return try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt") }
+                .filter { path ->
+                    val normalizedPath = path.toString().replace('\\', '/')
+                    normalizedPath.contains("/application/")
+                        && normalizedPath.endsWith("Service.${path.fileName.toString().substringAfterLast('.')}")
+                }
+                .toList()
+                .flatMap { path ->
+                    Files.readAllLines(path)
+                        .mapIndexedNotNull { index, line ->
+                            val trimmed = line.trimStart()
+                            forbiddenReturnTypes
+                                .firstOrNull { type ->
+                                    trimmed.matches(Regex("""public\s+(?!record\b).*\b$type\b.*\("""))
+                                }
+                                ?.let { type -> "$path:${index + 1}: $type" }
+                        }
                 }
         } finally {
             paths.close()

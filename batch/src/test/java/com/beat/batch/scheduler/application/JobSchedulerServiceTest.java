@@ -27,6 +27,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.beat.batch.scheduler.application.result.LockedScheduleBookingWindow;
 import com.beat.contracts.schedule.ScheduleBookingCloseJobTarget;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
@@ -69,13 +70,14 @@ class JobSchedulerServiceTest {
 		when(lockedSchedule.getPerformanceDate()).thenReturn(performanceDate);
 		when(lockedSchedule.getPerformanceId()).thenReturn(PERFORMANCE_ID);
 		when(performanceRepository.findById(PERFORMANCE_ID)).thenReturn(Optional.of(performance));
-		when(transactionalService.lockSchedule(SCHEDULE_ID)).thenReturn(Optional.of(lockedSchedule));
+		when(transactionalService.lockScheduleBookingWindow(SCHEDULE_ID))
+			.thenReturn(Optional.of(toBookingWindow(SCHEDULE_ID, PERFORMANCE_ID, performanceDate)));
 		doReturn(scheduledFuture).when(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
 
 		jobSchedulerService.registerOrRefresh(new ScheduleBookingCloseJobTarget(schedule.getId()));
 
 		ArgumentCaptor<Instant> scheduledAtCaptor = ArgumentCaptor.forClass(Instant.class);
-		verify(transactionalService).lockSchedule(SCHEDULE_ID);
+		verify(transactionalService).lockScheduleBookingWindow(SCHEDULE_ID);
 		verify(taskScheduler).schedule(any(Runnable.class), scheduledAtCaptor.capture());
 		assertEquals(performanceDate.plusMinutes(120).atZone(ZoneId.systemDefault()).toInstant(),
 			scheduledAtCaptor.getValue());
@@ -119,15 +121,17 @@ class JobSchedulerServiceTest {
 		when(completedTask.isDone()).thenReturn(true);
 		getScheduledTasks(jobSchedulerService).put(SCHEDULE_ID, completedTask);
 		when(lockedSchedule.getId()).thenReturn(SCHEDULE_ID);
-		when(lockedSchedule.getPerformanceDate()).thenReturn(LocalDateTime.now().plusDays(1));
+		LocalDateTime performanceDate = LocalDateTime.now().plusDays(1);
+		when(lockedSchedule.getPerformanceDate()).thenReturn(performanceDate);
 		when(lockedSchedule.getPerformanceId()).thenReturn(PERFORMANCE_ID);
 		when(performanceRepository.findById(PERFORMANCE_ID)).thenReturn(Optional.of(performance));
-		when(transactionalService.lockSchedule(SCHEDULE_ID)).thenReturn(Optional.of(lockedSchedule));
+		when(transactionalService.lockScheduleBookingWindow(SCHEDULE_ID))
+			.thenReturn(Optional.of(toBookingWindow(SCHEDULE_ID, PERFORMANCE_ID, performanceDate)));
 		doReturn(refreshedTask).when(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
 
 		jobSchedulerService.registerOrRefresh(new ScheduleBookingCloseJobTarget(SCHEDULE_ID));
 
-		verify(transactionalService).lockSchedule(SCHEDULE_ID);
+		verify(transactionalService).lockScheduleBookingWindow(SCHEDULE_ID);
 		verify(taskScheduler).schedule(any(Runnable.class), any(Instant.class));
 		assertSame(refreshedTask, getScheduledTasks(jobSchedulerService).get(SCHEDULE_ID));
 	}
@@ -141,11 +145,11 @@ class JobSchedulerServiceTest {
 			taskScheduler);
 
 		ReflectionTestUtils.setField(jobSchedulerService, "schedulerOwner", true);
-		when(transactionalService.lockSchedule(SCHEDULE_ID)).thenReturn(Optional.empty());
+		when(transactionalService.lockScheduleBookingWindow(SCHEDULE_ID)).thenReturn(Optional.empty());
 
 		jobSchedulerService.registerOrRefresh(new ScheduleBookingCloseJobTarget(SCHEDULE_ID));
 
-		verify(transactionalService).lockSchedule(SCHEDULE_ID);
+		verify(transactionalService).lockScheduleBookingWindow(SCHEDULE_ID);
 		verifyNoInteractions(performanceRepository, taskScheduler);
 		assertTrue(getScheduledTasks(jobSchedulerService).isEmpty());
 	}
@@ -159,10 +163,9 @@ class JobSchedulerServiceTest {
 			taskScheduler);
 
 		ReflectionTestUtils.setField(jobSchedulerService, "schedulerOwner", true);
-		Schedule lockedSchedule = mock(Schedule.class);
-		when(lockedSchedule.getId()).thenReturn(SCHEDULE_ID);
-		when(lockedSchedule.getPerformanceId()).thenReturn(PERFORMANCE_ID);
-		when(transactionalService.lockSchedule(SCHEDULE_ID)).thenReturn(Optional.of(lockedSchedule));
+		LocalDateTime performanceDate = LocalDateTime.now().plusDays(1);
+		when(transactionalService.lockScheduleBookingWindow(SCHEDULE_ID))
+			.thenReturn(Optional.of(toBookingWindow(SCHEDULE_ID, PERFORMANCE_ID, performanceDate)));
 		when(performanceRepository.findById(PERFORMANCE_ID)).thenReturn(Optional.empty());
 
 		assertThrows(IllegalStateException.class,
@@ -182,9 +185,7 @@ class JobSchedulerServiceTest {
 
 		ReflectionTestUtils.setField(jobSchedulerService, "schedulerOwner", true);
 
-		Schedule pendingSchedule = mock(Schedule.class);
-		when(pendingSchedule.getId()).thenReturn(SCHEDULE_ID);
-		when(transactionalService.findPendingSchedules()).thenReturn(List.of(pendingSchedule));
+		when(transactionalService.findPendingScheduleIds()).thenReturn(List.of(SCHEDULE_ID));
 
 		ScheduledFuture<?> existingTask = mock(ScheduledFuture.class);
 		when(existingTask.isDone()).thenReturn(false);
@@ -193,8 +194,8 @@ class JobSchedulerServiceTest {
 
 		jobSchedulerService.reconcilePendingSchedules();
 
-		verify(transactionalService).findPendingSchedules();
-		verify(transactionalService, never()).lockSchedule(anyLong());
+		verify(transactionalService).findPendingScheduleIds();
+		verify(transactionalService, never()).lockScheduleBookingWindow(anyLong());
 		verifyNoInteractions(taskScheduler);
 		assertSame(existingTask, getScheduledTasks(jobSchedulerService).get(SCHEDULE_ID));
 	}
@@ -208,7 +209,7 @@ class JobSchedulerServiceTest {
 			taskScheduler);
 
 		ReflectionTestUtils.setField(jobSchedulerService, "schedulerOwner", true);
-		when(transactionalService.findPendingSchedules()).thenReturn(List.of());
+		when(transactionalService.findPendingScheduleIds()).thenReturn(List.of());
 
 		ScheduledFuture<?> staleTask = mock(ScheduledFuture.class);
 		when(staleTask.isDone()).thenReturn(false);
@@ -287,6 +288,10 @@ class JobSchedulerServiceTest {
 
 		verify(transactionalService).closeBooking(SCHEDULE_ID);
 		assertTrue(getScheduledTasks(jobSchedulerService).isEmpty());
+	}
+
+	private LockedScheduleBookingWindow toBookingWindow(Long scheduleId, Long performanceId, LocalDateTime performanceDate) {
+		return LockedScheduleBookingWindow.of(scheduleId, performanceId, performanceDate);
 	}
 
 	@SuppressWarnings("unchecked")

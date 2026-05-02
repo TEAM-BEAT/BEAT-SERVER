@@ -332,6 +332,17 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
+	void rawDomainHelperCleanupDropsUnusedPublicLookupHelpers() throws Exception {
+		String userService = Files.readString(Path.of("apis/src/main/java/com/beat/apis/user/application/UserService.java"));
+		String performanceService = Files.readString(
+			Path.of("apis/src/main/java/com/beat/apis/performance/application/PerformanceService.java"));
+
+		assertFalse(userService.contains("findAllUsers("));
+		assertFalse(userService.contains("findUserByUserId("));
+		assertFalse(performanceService.contains("public Performance findById"));
+	}
+
+	@Test
 	void scheduleMigrationPersistsImmutableCopiesAndHandlesDetachedBookingRows() throws Exception {
 		String performanceManagement = Files.readString(
 			Path.of("apis/src/main/java/com/beat/apis/performance/application/PerformanceManagementService.java"));

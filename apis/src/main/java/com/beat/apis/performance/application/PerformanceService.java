@@ -164,12 +164,6 @@ public class PerformanceService {
 		return MakerPerformanceResponse.of(member.getUserId(), positiveDueDates);
 	}
 
-	@Transactional(readOnly = true)
-	public Performance findById(Long performanceId) {
-		return performanceRepository.findById(performanceId)
-			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
-	}
-
 	@Transactional
 	public PerformanceModifyDetailResponse getPerformanceEdit(Long memberId, Long performanceId) {
 		Member member = memberRepository.findById(memberId)

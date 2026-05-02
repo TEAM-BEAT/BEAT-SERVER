@@ -31,28 +31,28 @@ public class AuthenticationService {
 	 * 로그인 성공 응답 객체(LoginSuccessResponse)를 반환하는 메서드.
 	 *
 	 * @param memberId 회원의 고유 ID
-	 * @param role 사용자의 역할
+	 * @param roleName 사용자 역할명
 	 * @param socialMemberInfo 로그인 시 외부로부터 전달된 회원 정보
 	 * @return 로그인 성공 응답(LoginSuccessResponse)
 	 */
-	public LoginSuccessResponse generateLoginSuccessResponse(final Long memberId, final Role role,
+	public LoginSuccessResponse generateLoginSuccessResponse(final Long memberId, final String roleName,
 		final SocialMemberInfo socialMemberInfo) {
 		String nickname = socialMemberInfo.nickname();
 
 		log.info("Starting login success response generation for memberId: {}, nickname: {}, role: {}", memberId,
-			nickname, role.getRoleName());
+			nickname, roleName);
 
-		JwtSubject jwtSubject = createJwtSubject(memberId, role);
+		JwtSubject jwtSubject = createJwtSubject(memberId, roleName);
 		String refreshToken = issueAndSaveRefreshToken(memberId, jwtSubject);
 		String accessToken = jwtTokenPort.issueAccessToken(jwtSubject);
 
 		log.info("Login success for role: {}, hasAccessToken={}, hasRefreshToken={}",
-			role.getRoleName(),
+			roleName,
 			accessToken != null && !accessToken.isBlank(),
 			refreshToken != null && !refreshToken.isBlank()
 		);
 
-		return LoginSuccessResponse.of(accessToken, refreshToken, nickname, role.getRoleName());
+		return LoginSuccessResponse.of(accessToken, refreshToken, nickname, roleName);
 	}
 
 	/**
@@ -98,6 +98,10 @@ public class AuthenticationService {
 
 	private JwtSubject createJwtSubject(Long memberId, Role role) {
 		return new JwtSubject(memberId, role.getRoleName());
+	}
+
+	private JwtSubject createJwtSubject(Long memberId, String roleName) {
+		return new JwtSubject(memberId, roleName);
 	}
 
 	private void validateRefreshToken(String refreshToken) {
