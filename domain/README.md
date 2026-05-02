@@ -211,6 +211,8 @@ flowchart TB
 - Domain model은 ApplicationService 밖으로 반환하지 않습니다.
 - Facade, Controller, Job/Runner는 Domain model을 받거나 반환하지 않습니다.
 - RequestDTO, ResponseDTO, CommandResult, QueryResult는 Domain model을 필드로 담지 않습니다.
+- RequestDTO, ResponseDTO, CommandResult, QueryResult의 public factory method는 Domain model을 인자로 받지 않습니다.
+- Domain model에서 필요한 primitive/value를 추출하는 작업은 ApplicationService 내부에서 수행합니다.
 - 실행 모듈 간에 Domain model을 직접 전달하지 않습니다.
 
 즉, Domain model의 최대 범위는 ApplicationService 내부입니다.
@@ -221,6 +223,9 @@ RepositoryPort -> ApplicationService 내부 -> Domain method 호출
 
 금지:
 ApplicationService -> Facade -> Controller 로 Domain model 반환
+ResponseDTO.from(DomainModel)
+QueryResult.from(DomainModel)
+ApplicationResult.from(DomainModel)
 ```
 
 ---
@@ -254,6 +259,9 @@ flowchart LR
     Domain -. forbidden .-> QueryResult
     ReadModel -. raw exposure forbidden .-> Response
 ```
+
+Application result와 ResponseDTO는 domain model을 직접 변환하지 않습니다.
+Domain model에서 필요한 값 추출은 ApplicationService 내부 private method나 실행 모듈 내부 assembler에서 끝내고, result/response에는 primitive/value/result만 전달합니다.
 
 ### CommandService 반환
 
