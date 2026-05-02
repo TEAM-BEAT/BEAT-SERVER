@@ -1,6 +1,6 @@
 package com.beat.apis.performance.application.dto.home;
 
-import com.beat.domain.performance.domain.Genre;
+import com.beat.apis.performance.application.dto.GenreType;
 
-public record HomeFindRequest(Genre genre) {
+public record HomeFindRequest(GenreType genre) {
 }

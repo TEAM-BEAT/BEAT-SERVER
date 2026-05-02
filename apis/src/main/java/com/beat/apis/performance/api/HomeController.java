@@ -1,7 +1,7 @@
 package com.beat.apis.performance.api;
 
 import com.beat.apis.performance.application.dto.home.HomeFindAllResponse;
-import com.beat.domain.performance.domain.Genre;
+import com.beat.apis.performance.application.dto.GenreType;
 import com.beat.apis.performance.api.response.PerformanceSuccessCode;
 import com.beat.apis.performance.facade.HomeFacade;
 import com.beat.global.common.dto.SuccessResponse;
@@ -24,7 +24,7 @@ public class HomeController implements HomeApi {
 	@Override
 	@GetMapping
 	public ResponseEntity<SuccessResponse<HomeFindAllResponse>> getHomePerformanceList(
-		@RequestParam(required = false) Genre genre) {
+		@RequestParam(required = false) GenreType genre) {
 
 		HomeFindAllResponse homeFindAllResponse = homeFacade.findHomePerformanceList(genre);
 		return ResponseEntity.ok(

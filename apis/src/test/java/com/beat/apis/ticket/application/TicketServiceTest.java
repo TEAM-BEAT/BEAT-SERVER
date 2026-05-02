@@ -15,11 +15,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.beat.apis.ticket.application.exception.TicketApplicationErrorCode;
 import com.beat.contracts.booking.MakerTicketReadPort;
 import com.beat.contracts.sms.SmsPort;
-import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.apis.booking.application.dto.BookingStatusType;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.repository.PerformanceRepository;
-import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.BadRequestException;
@@ -80,8 +80,8 @@ class TicketServiceTest {
 				1L,
 				100L,
 				"",
-				List.of(ScheduleNumber.FIRST),
-				List.of(BookingStatus.CHECKING_PAYMENT)
+				List.of(ScheduleNumberType.FIRST),
+				List.of(BookingStatusType.CHECKING_PAYMENT)
 			)
 		);
 
@@ -107,7 +107,7 @@ class TicketServiceTest {
 				100L,
 				"ab",
 				null,
-				List.of(BookingStatus.BOOKING_DELETED)
+				List.of(BookingStatusType.BOOKING_DELETED)
 			)
 		);
 
@@ -122,7 +122,7 @@ class TicketServiceTest {
 				1L,
 				100L,
 				null,
-				List.of(BookingStatus.BOOKING_DELETED)
+				List.of(BookingStatusType.BOOKING_DELETED)
 			)
 		);
 

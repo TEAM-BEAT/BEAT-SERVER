@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.beat.apis.booking.application.GuestBookingService;
 import com.beat.apis.booking.application.dto.GuestBookingRequest;
 import com.beat.apis.booking.application.dto.GuestBookingResponse;
+import com.beat.apis.booking.application.dto.BookingStatusType;
 import com.beat.apis.support.AbstractIntegrationTest;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.BookingStatus;
@@ -35,6 +36,7 @@ import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
@@ -177,13 +179,13 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 		return GuestBookingRequest.of(
 			schedule.getId(),
 			purchaseTicketCount,
-			scheduleNumber,
+			ScheduleNumberType.valueOf(scheduleNumber.name()),
 			"서지우",
 			"010-2222-7196",
 			"1990-01-01",
 			generateRandomPassword(),
 			35000,
-			BookingStatus.CHECKING_PAYMENT
+			BookingStatusType.CHECKING_PAYMENT
 		);
 	}
 

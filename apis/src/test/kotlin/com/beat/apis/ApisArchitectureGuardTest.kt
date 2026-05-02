@@ -9,7 +9,19 @@ import java.nio.file.Path
 class ApisArchitectureGuardTest {
 
     private val rootProjectDependencyPattern = Regex("""project\(\s*":"\s*\)""")
-
+    private val apiClientBoundaryPathSegments = listOf(
+        "/api/",
+        "/facade/",
+        "/application/dto/",
+        "/application/result/",
+    )
+    private val domainEnumValueImports = arrayOf(
+        "com.beat.domain.booking.domain.BookingStatus",
+        "com.beat.domain.member.domain.SocialType",
+        "com.beat.domain.performance.domain.BankName",
+        "com.beat.domain.performance.domain.Genre",
+        "com.beat.domain.schedule.domain.ScheduleNumber",
+    )
     @Test
     fun `apis build file must not depend on root project`() {
         val buildFile = Files.readString(Path.of("build.gradle.kts"))
@@ -82,6 +94,21 @@ class ApisArchitectureGuardTest {
         assertTrue(
             violations.isEmpty(),
             "Found raw domain model imports in apis DTO/event boundaries:\n${violations.joinToString("\n")}"
+        )
+    }
+
+    @Test
+    fun `apis client boundaries must not add domain enum value imports`() {
+        val violations = findForbiddenImportsInPaths(
+            apiClientBoundaryPathSegments,
+            *domainEnumValueImports,
+        )
+        assertTrue(
+            violations.isEmpty(),
+            "Found domain enum imports in API client boundaries. Keep domain enum use inside application/domain "
+                + "mapping code and expose API-local contracts to clients:\n${
+                    violations.joinToString("\n")
+                }"
         )
     }
 

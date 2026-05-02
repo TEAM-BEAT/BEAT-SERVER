@@ -20,6 +20,7 @@ import com.beat.global.common.exception.UnauthorizedException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.beat.apis.common.application.ApiEnumMapper;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -44,7 +45,7 @@ public class SocialLoginService {
 	@Transactional
 	public LoginSuccessResponse handleSocialLogin(final String authorizationCode,
 		final MemberLoginRequest loginRequest) {
-		SocialType socialType = loginRequest.socialType();
+		SocialType socialType = ApiEnumMapper.toDomain(loginRequest.socialType(), SocialType.class);
 		SocialLoginRequest request = new SocialLoginRequest(authorizationCode, toContractSocialType(socialType));
 		try {
 			SocialMemberInfo socialMemberInfo = socialLoginPort.login(request);

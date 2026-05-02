@@ -16,10 +16,10 @@ import com.beat.apis.ticket.application.dto.TicketDeleteRequest;
 import com.beat.apis.ticket.application.dto.TicketRefundRequest;
 import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
 import com.beat.apis.ticket.application.dto.TicketUpdateRequest;
-import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.apis.booking.application.dto.BookingStatusType;
 import com.beat.apis.ticket.api.response.TicketSuccessCode;
 import com.beat.apis.ticket.facade.TicketFacade;
-import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 
@@ -37,8 +37,8 @@ public class TicketController implements TicketApi {
 	public ResponseEntity<SuccessResponse<TicketRetrieveResponse>> getTickets(
 		@CurrentMember Long memberId,
 		@PathVariable Long performanceId,
-		@RequestParam(required = false) List<ScheduleNumber> scheduleNumbers,
-		@RequestParam(required = false) List<BookingStatus> bookingStatuses) {
+		@RequestParam(required = false) List<ScheduleNumberType> scheduleNumbers,
+		@RequestParam(required = false) List<BookingStatusType> bookingStatuses) {
 		TicketRetrieveResponse response = ticketFacade.findTickets(memberId, performanceId,
 			scheduleNumbers, bookingStatuses);
 		return ResponseEntity.ok(SuccessResponse.of(TicketSuccessCode.TICKET_RETRIEVE_SUCCESS, response));
@@ -50,8 +50,8 @@ public class TicketController implements TicketApi {
 		@CurrentMember Long memberId,
 		@PathVariable Long performanceId,
 		@RequestParam String searchWord,
-		@RequestParam(required = false) List<ScheduleNumber> scheduleNumbers,
-		@RequestParam(required = false) List<BookingStatus> bookingStatuses) {
+		@RequestParam(required = false) List<ScheduleNumberType> scheduleNumbers,
+		@RequestParam(required = false) List<BookingStatusType> bookingStatuses) {
 		TicketRetrieveResponse response = ticketFacade.searchTickets(memberId, performanceId,
 			searchWord, scheduleNumbers, bookingStatuses);
 		return ResponseEntity.ok()

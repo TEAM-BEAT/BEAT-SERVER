@@ -3,8 +3,7 @@ package com.beat.apis.ticket.application.dto;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.performance.domain.BankName;
+import com.beat.apis.booking.application.dto.BookingStatusType;
 
 public record TicketDetail(
 	Long bookingId,
@@ -13,7 +12,7 @@ public record TicketDetail(
 	Long scheduleId,
 	int purchaseTicketCount,
 	LocalDateTime createdAt,
-	BookingStatus bookingStatus,
+	BookingStatusType bookingStatus,
 	String scheduleNumber,
 	String bankName,
 	String accountNumber,
@@ -26,7 +25,7 @@ public record TicketDetail(
 		Long scheduleId,
 		int purchaseTicketCount,
 		LocalDateTime createdAt,
-		BookingStatus bookingStatus,
+		BookingStatusType bookingStatus,
 		String scheduleNumber,
 		String bankName,
 		String accountNumber,
@@ -40,7 +39,7 @@ public record TicketDetail(
 			createdAt,
 			bookingStatus,
 			scheduleNumber,
-			Objects.requireNonNullElse(bankName, BankName.NONE.getDisplayName()),
+			Objects.requireNonNullElse(bankName, ""),
 			Objects.requireNonNullElse(accountNumber, ""),
 			Objects.requireNonNullElse(accountHolder, "")
 		);

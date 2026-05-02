@@ -12,11 +12,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
+import com.beat.apis.performance.application.dto.GenreType;
 import com.beat.apis.performance.application.dto.create.CastResponse;
 import com.beat.apis.performance.application.dto.create.PerformanceImageResponse;
 import com.beat.apis.performance.application.dto.create.PerformanceRequest;
 import com.beat.apis.performance.application.dto.create.PerformanceResponse;
 import com.beat.apis.performance.application.dto.create.ScheduleResponse;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.apis.performance.application.dto.create.StaffResponse;
 import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
 import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
@@ -44,6 +46,10 @@ import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.beat.apis.common.application.ApiEnumMapper;
+import com.beat.apis.performance.application.dto.BankNameType;
+import com.beat.domain.performance.domain.BankName;
+import com.beat.domain.performance.domain.Genre;
 
 @Slf4j
 @Service
@@ -68,11 +74,11 @@ public class PerformanceManagementService {
 
 		Performance performance = Performance.create(
 			request.performanceTitle(),
-			request.genre(),
+			ApiEnumMapper.toDomain(request.genre(), Genre.class),
 			request.runningTime(),
 			request.performanceDescription(),
 			request.performanceAttentionNote(),
-			request.bankName(),
+			ApiEnumMapper.toDomain(request.bankName(), BankName.class),
 			request.accountNumber(),
 			request.accountHolder(),
 			request.posterImage(),
@@ -99,7 +105,7 @@ public class PerformanceManagementService {
 				return Schedule.create(
 					scheduleRequest.performanceDate(),
 					scheduleRequest.totalTicketCount(),
-					scheduleRequest.scheduleNumber(),
+					ApiEnumMapper.toDomain(scheduleRequest.scheduleNumber(), ScheduleNumber.class),
 					savedPerformanceId
 				);
 			})
@@ -164,7 +170,7 @@ public class PerformanceManagementService {
 				schedule.getPerformanceDate(),
 				schedule.getTotalTicketCount(),
 				scheduleDomainService.calculateDueDate(today, schedule),
-				schedule.getScheduleNumber()
+				ApiEnumMapper.fromDomain(schedule.getScheduleNumber(), ScheduleNumberType.class)
 			))
 			.toList();
 
@@ -197,11 +203,11 @@ public class PerformanceManagementService {
 			performance.getUserId(),
 			performance.getId(),
 			performance.getPerformanceTitle(),
-			performance.getGenre(),
+			ApiEnumMapper.fromDomain(performance.getGenre(), GenreType.class),
 			performance.getRunningTime(),
 			performance.getPerformanceDescription(),
 			performance.getPerformanceAttentionNote(),
-			performance.getBankName(),
+			ApiEnumMapper.fromDomain(performance.getBankName(), BankNameType.class),
 			performance.getAccountNumber(),
 			performance.getAccountHolder(),
 			performance.getPosterImage(),

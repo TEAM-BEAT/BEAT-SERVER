@@ -18,6 +18,7 @@ import com.beat.apis.member.application.MemberRegistrationService;
 import com.beat.apis.member.application.MemberService;
 import com.beat.apis.member.application.SocialLoginService;
 import com.beat.apis.member.application.dto.request.MemberLoginRequest;
+import com.beat.apis.member.application.dto.request.SocialTypeRequest;
 import com.beat.apis.member.application.dto.response.LoginSuccessResponse;
 import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
 import com.beat.apis.member.application.result.MemberAuthenticationResult;
@@ -70,7 +71,7 @@ class SocialLoginServiceTest {
 
 		BadRequestException exception = assertThrows(
 			BadRequestException.class,
-			() -> socialLoginService.handleSocialLogin("code", new MemberLoginRequest(SocialType.KAKAO))
+			() -> socialLoginService.handleSocialLogin("code", new MemberLoginRequest(SocialTypeRequest.KAKAO))
 		);
 
 		assertEquals(MemberApplicationErrorCode.SOCIAL_TYPE_BAD_REQUEST, exception.getBaseErrorCode());
@@ -83,7 +84,7 @@ class SocialLoginServiceTest {
 
 		UnauthorizedException exception = assertThrows(
 			UnauthorizedException.class,
-			() -> socialLoginService.handleSocialLogin("code", new MemberLoginRequest(SocialType.KAKAO))
+			() -> socialLoginService.handleSocialLogin("code", new MemberLoginRequest(SocialTypeRequest.KAKAO))
 		);
 
 		assertEquals(MemberApplicationErrorCode.AUTHENTICATION_CODE_EXPIRED, exception.getBaseErrorCode());
@@ -106,7 +107,7 @@ class SocialLoginServiceTest {
 
 		LoginSuccessResponse actual = socialLoginService.handleSocialLogin(
 			"authorization-code",
-			new MemberLoginRequest(SocialType.KAKAO)
+			new MemberLoginRequest(SocialTypeRequest.KAKAO)
 		);
 
 		ArgumentCaptor<SocialLoginRequest> requestCaptor = ArgumentCaptor.forClass(SocialLoginRequest.class);

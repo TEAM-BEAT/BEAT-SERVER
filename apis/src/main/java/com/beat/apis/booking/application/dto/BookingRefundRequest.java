@@ -1,10 +1,10 @@
 package com.beat.apis.booking.application.dto;
 
-import com.beat.domain.performance.domain.BankName;
+import com.beat.apis.performance.application.dto.BankNameType;
 
 public record BookingRefundRequest(
 	long bookingId,
-	BankName bankName,
+	BankNameType bankName,
 	String accountNumber,
 	String accountHolder
 ) {

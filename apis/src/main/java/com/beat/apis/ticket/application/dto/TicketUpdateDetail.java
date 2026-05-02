@@ -1,6 +1,6 @@
 package com.beat.apis.ticket.application.dto;
 
-import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.apis.booking.application.dto.BookingStatusType;
 
 import java.time.LocalDateTime;
 
@@ -11,7 +11,7 @@ public record TicketUpdateDetail(
 	Long scheduleId,
 	int purchaseTicketCount,
 	LocalDateTime createdAt,
-	BookingStatus bookingStatus,
+	BookingStatusType bookingStatus,
 	String scheduleNumber
 ) {
 	public static TicketUpdateDetail of(
@@ -21,7 +21,7 @@ public record TicketUpdateDetail(
 		Long scheduleId,
 		int purchaseTicketCount,
 		LocalDateTime createdAt,
-		BookingStatus bookingStatus,
+		BookingStatusType bookingStatus,
 		String scheduleNumber) {
 		return new TicketUpdateDetail(bookingId, bookerName, bookerPhoneNumber, scheduleId, purchaseTicketCount,
 			createdAt, bookingStatus, scheduleNumber);

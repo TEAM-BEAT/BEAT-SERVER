@@ -9,8 +9,8 @@ import com.beat.apis.ticket.application.dto.TicketDeleteRequest;
 import com.beat.apis.ticket.application.dto.TicketRefundRequest;
 import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
 import com.beat.apis.ticket.application.dto.TicketUpdateRequest;
-import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.apis.booking.application.dto.BookingStatusType;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 
 import lombok.RequiredArgsConstructor;
 
@@ -19,13 +19,13 @@ import lombok.RequiredArgsConstructor;
 public class TicketFacade {
 	private final TicketService ticketService;
 
-	public TicketRetrieveResponse findTickets(Long memberId, Long performanceId, List<ScheduleNumber> scheduleNumbers,
-		List<BookingStatus> bookingStatuses) {
+	public TicketRetrieveResponse findTickets(Long memberId, Long performanceId, List<ScheduleNumberType> scheduleNumbers,
+		List<BookingStatusType> bookingStatuses) {
 		return ticketService.findAllTicketsByConditions(memberId, performanceId, scheduleNumbers, bookingStatuses);
 	}
 
 	public TicketRetrieveResponse searchTickets(Long memberId, Long performanceId, String searchWord,
-		List<ScheduleNumber> scheduleNumbers, List<BookingStatus> bookingStatuses) {
+		List<ScheduleNumberType> scheduleNumbers, List<BookingStatusType> bookingStatuses) {
 		return ticketService.searchAllTicketsByConditions(memberId, performanceId, searchWord, scheduleNumbers,
 			bookingStatuses);
 	}
@@ -41,4 +41,5 @@ public class TicketFacade {
 	public void deleteTickets(Long memberId, TicketDeleteRequest request) {
 		ticketService.deleteTicketsByBookingIds(memberId, request);
 	}
+
 }

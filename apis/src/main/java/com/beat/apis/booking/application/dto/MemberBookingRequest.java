@@ -1,15 +1,15 @@
 package com.beat.apis.booking.application.dto;
 
-import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.apis.booking.application.dto.BookingStatusType;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 
 public record MemberBookingRequest(
 	Long scheduleId,
-	ScheduleNumber scheduleNumber,
+	ScheduleNumberType scheduleNumber,
 	int purchaseTicketCount,
 	String bookerName,
 	String bookerPhoneNumber,
-	BookingStatus bookingStatus,
+	BookingStatusType bookingStatus,
 	int totalPaymentAmount
 ) {
 }

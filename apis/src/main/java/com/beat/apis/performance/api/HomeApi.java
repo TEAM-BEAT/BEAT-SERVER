@@ -4,7 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.beat.apis.performance.application.dto.home.HomeFindAllResponse;
-import com.beat.domain.performance.domain.Genre;
+import com.beat.apis.performance.application.dto.GenreType;
 import com.beat.global.common.dto.SuccessResponse;
 import com.beat.apis.swagger.annotation.DisableSwaggerSecurity;
 
@@ -27,5 +27,5 @@ public interface HomeApi {
 		}
 	)
 	ResponseEntity<SuccessResponse<HomeFindAllResponse>> getHomePerformanceList(
-		@RequestParam(required = false) Genre genre);
+		@RequestParam(required = false) GenreType genre);
 }

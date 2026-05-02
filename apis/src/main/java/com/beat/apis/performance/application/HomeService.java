@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.apis.performance.application.dto.home.HomeFindAllResponse;
+import com.beat.apis.performance.application.dto.GenreType;
 import com.beat.apis.performance.application.dto.home.HomeFindRequest;
 import com.beat.apis.performance.application.dto.home.HomePerformanceDetail;
 import com.beat.apis.performance.application.dto.home.HomePromotionDetail;
@@ -24,6 +25,7 @@ import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 
 import lombok.RequiredArgsConstructor;
+import com.beat.apis.common.application.ApiEnumMapper;
 
 @Service
 @RequiredArgsConstructor
@@ -51,10 +53,10 @@ public class HomeService {
 	}
 
 	private List<Performance> findPerformancesByGenre(HomeFindRequest homeFindRequest) {
-		Genre genre = homeFindRequest.genre();
+		GenreType genre = homeFindRequest.genre();
 
 		if (genre != null) {
-			return performanceRepository.findByGenre(genre);
+			return performanceRepository.findByGenre(ApiEnumMapper.toDomain(genre, Genre.class));
 		}
 
 		return performanceRepository.findAll();

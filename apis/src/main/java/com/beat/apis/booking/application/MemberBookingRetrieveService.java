@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.beat.apis.booking.application.dto.MemberBookingRetrieveResponse;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.member.domain.Member;
@@ -28,6 +29,9 @@ import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
 import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
 import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 import com.beat.apis.user.application.exception.UserApplicationErrorCode;
+import com.beat.apis.common.application.ApiEnumMapper;
+import com.beat.apis.booking.application.dto.BookingStatusType;
+import com.beat.apis.performance.application.dto.BankNameType;
 
 @Service
 @RequiredArgsConstructor
@@ -93,14 +97,14 @@ public class MemberBookingRetrieveService {
 			schedule.getPerformanceDate(),
 			performance.getPerformanceVenue(),
 			booking.getPurchaseTicketCount(),
-			schedule.getScheduleNumber(),
+			ApiEnumMapper.fromDomain(schedule.getScheduleNumber(), ScheduleNumberType.class),
 			booking.getBookerName(),
 			performance.getPerformanceContact(),
-			performance.getBankName(),
+			ApiEnumMapper.fromDomain(performance.getBankName(), BankNameType.class),
 			performance.getAccountNumber(),
 			performance.getAccountHolder(),
 			scheduleDomainService.calculateDueDate(today, schedule),
-			booking.getBookingStatus(),
+			ApiEnumMapper.fromDomain(booking.getBookingStatus(), BookingStatusType.class),
 			booking.getCreatedAt(),
 			performance.getPosterImage(),
 			totalPaymentAmount

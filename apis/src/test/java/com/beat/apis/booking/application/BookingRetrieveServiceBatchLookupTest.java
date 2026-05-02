@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.beat.apis.booking.application.dto.GuestBookingRetrieveRequest;
 import com.beat.apis.booking.application.dto.GuestBookingRetrieveResponse;
 import com.beat.apis.booking.application.dto.MemberBookingRetrieveResponse;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
@@ -124,10 +125,10 @@ class BookingRetrieveServiceBatchLookupTest {
 
 		assertEquals(2, responses.size());
 		assertEquals(10L, responses.get(0).scheduleId());
-		assertEquals(ScheduleNumber.FIRST, responses.get(0).scheduleNumber());
+		assertEquals(ScheduleNumberType.FIRST, responses.get(0).scheduleNumber());
 		assertEquals(20_000, responses.get(0).totalPaymentAmount());
 		assertEquals(11L, responses.get(1).scheduleId());
-		assertEquals(ScheduleNumber.SECOND, responses.get(1).scheduleNumber());
+		assertEquals(ScheduleNumberType.SECOND, responses.get(1).scheduleNumber());
 		assertEquals(60_000, responses.get(1).totalPaymentAmount());
 		verify(scheduleRepository).findAllById(List.of(10L, 11L));
 		verify(performanceRepository).findAllById(List.of(100L));

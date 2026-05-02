@@ -1,8 +1,8 @@
 package com.beat.apis.booking.application.dto;
 
-import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.performance.domain.BankName;
-import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.apis.booking.application.dto.BookingStatusType;
+import com.beat.apis.performance.application.dto.BankNameType;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 
 import java.time.LocalDateTime;
 
@@ -14,14 +14,14 @@ public record GuestBookingRetrieveResponse(
 	LocalDateTime performanceDate,
 	String performanceVenue,
 	int purchaseTicketCount,
-	ScheduleNumber scheduleNumber,
+	ScheduleNumberType scheduleNumber,
 	String bookerName,
 	String performanceContact,
-	BankName bankName,
+	BankNameType bankName,
 	String accountNumber,
 	String accountHolder,
 	int dueDate,
-	BookingStatus bookingStatus,
+	BookingStatusType bookingStatus,
 	LocalDateTime createdAt,
 	String posterImage,
 	int totalPaymentAmount
@@ -34,14 +34,14 @@ public record GuestBookingRetrieveResponse(
 		LocalDateTime performanceDate,
 		String performanceVenue,
 		int purchaseTicketCount,
-		ScheduleNumber scheduleNumber,
+		ScheduleNumberType scheduleNumber,
 		String bookerName,
 		String performanceContact,
-		BankName bankName,
+		BankNameType bankName,
 		String accountNumber,
 		String accountHolder,
 		int dueDate,
-		BookingStatus bookingStatus,
+		BookingStatusType bookingStatus,
 		LocalDateTime createdAt,
 		String posterImage,
 		int totalPaymentAmount

@@ -1,6 +1,6 @@
 package com.beat.apis.performance.application.dto.create;
 
-import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 
 import java.time.LocalDateTime;
 
@@ -9,14 +9,14 @@ public record ScheduleResponse(
 	LocalDateTime performanceDate,
 	int totalTicketCount,
 	int dueDate,
-	ScheduleNumber scheduleNumber
+	ScheduleNumberType scheduleNumber
 ) {
 	public static ScheduleResponse of(
 		Long scheduleId,
 		LocalDateTime performanceDate,
 		int totalTicketCount,
 		int dueDate,
-		ScheduleNumber scheduleNumber
+		ScheduleNumberType scheduleNumber
 	) {
 		return new ScheduleResponse(
 			scheduleId,

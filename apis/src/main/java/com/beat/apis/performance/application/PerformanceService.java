@@ -9,12 +9,14 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.beat.apis.performance.application.dto.GenreType;
 import com.beat.apis.performance.application.dto.bookingPerformanceDetail.BookingPerformanceDetailResponse;
 import com.beat.apis.performance.application.dto.bookingPerformanceDetail.BookingPerformanceDetailScheduleResponse;
 import com.beat.apis.performance.application.dto.create.CastResponse;
 import com.beat.apis.performance.application.dto.create.PerformanceImageResponse;
 import com.beat.apis.performance.application.dto.create.ScheduleResponse;
 import com.beat.apis.performance.application.dto.create.StaffResponse;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.apis.performance.application.dto.makerPerformance.MakerPerformanceDetailResponse;
 import com.beat.apis.performance.application.dto.makerPerformance.MakerPerformanceResponse;
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyDetailResponse;
@@ -47,6 +49,8 @@ import lombok.extern.slf4j.Slf4j;
 import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
 import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
 import com.beat.apis.user.application.exception.UserApplicationErrorCode;
+import com.beat.apis.common.application.ApiEnumMapper;
+import com.beat.apis.performance.application.dto.BankNameType;
 
 @Slf4j
 @Service
@@ -199,7 +203,7 @@ public class PerformanceService {
 			.map(schedule -> ScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
 				schedule.getTotalTicketCount(),
 				scheduleDomainService.calculateDueDate(today, schedule),
-				schedule.getScheduleNumber()))
+				ApiEnumMapper.fromDomain(schedule.getScheduleNumber(), ScheduleNumberType.class)))
 			.toList();
 
 		List<CastResponse> castResponses = casts.stream()
@@ -217,9 +221,9 @@ public class PerformanceService {
 			.toList();
 
 		return PerformanceModifyDetailResponse.of(performance.getUserId(), performance.getId(),
-			performance.getPerformanceTitle(), performance.getGenre(), performance.getRunningTime(),
+			performance.getPerformanceTitle(), ApiEnumMapper.fromDomain(performance.getGenre(), GenreType.class), performance.getRunningTime(),
 			performance.getPerformanceDescription(), performance.getPerformanceAttentionNote(),
-			performance.getBankName(), performance.getAccountNumber(), performance.getAccountHolder(),
+			ApiEnumMapper.fromDomain(performance.getBankName(), BankNameType.class), performance.getAccountNumber(), performance.getAccountHolder(),
 			performance.getPosterImage(), performance.getPerformanceTeamName(), performance.getPerformanceVenue(),
 			performance.getRoadAddressName(), performance.getPlaceDetailAddress(), performance.getLatitude(),
 			performance.getLongitude(),

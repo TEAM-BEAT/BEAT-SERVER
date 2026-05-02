@@ -11,8 +11,8 @@ import com.beat.apis.ticket.application.dto.TicketDeleteRequest;
 import com.beat.apis.ticket.application.dto.TicketRefundRequest;
 import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
 import com.beat.apis.ticket.application.dto.TicketUpdateRequest;
-import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.apis.booking.application.dto.BookingStatusType;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
@@ -54,8 +54,8 @@ public interface TicketApi {
 	ResponseEntity<SuccessResponse<TicketRetrieveResponse>> getTickets(
 		@CurrentMember Long memberId,
 		@PathVariable Long performanceId,
-		@RequestParam(required = false) List<ScheduleNumber> scheduleNumbers,
-		@RequestParam(required = false) List<BookingStatus> bookingStatuses
+		@RequestParam(required = false) List<ScheduleNumberType> scheduleNumbers,
+		@RequestParam(required = false) List<BookingStatusType> bookingStatuses
 	);
 
 	@Operation(summary = "예매자 목록 검색 API", description = "메이커가 자신의 공연에 대한 예매자 목록을 검색하는 GET API입니다.")
@@ -86,8 +86,8 @@ public interface TicketApi {
 		@CurrentMember Long memberId,
 		@PathVariable Long performanceId,
 		@RequestParam String searchWord,
-		@RequestParam(required = false) List<ScheduleNumber> scheduleNumbers,
-		@RequestParam(required = false) List<BookingStatus> bookingStatuses
+		@RequestParam(required = false) List<ScheduleNumberType> scheduleNumbers,
+		@RequestParam(required = false) List<BookingStatusType> bookingStatuses
 	);
 
 	@Operation(summary = "예매자 입금여부 수정 및 웹발신 API", description = "메이커가 자신의 공연에 대한 예매자의 입금여부 정보를 수정한 뒤 예매확정 웹발신을 보내는 PUT API입니다.")

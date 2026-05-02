@@ -17,6 +17,10 @@ import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import com.beat.apis.booking.application.exception.BookingApplicationErrorCode;
 import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
+import com.beat.apis.common.application.ApiEnumMapper;
+import com.beat.apis.booking.application.dto.BookingStatusType;
+import com.beat.apis.performance.application.dto.BankNameType;
+import com.beat.domain.performance.domain.BankName;
 
 @Service
 @RequiredArgsConstructor
@@ -29,13 +33,13 @@ public class BookingCancelService {
 		Booking booking = bookingRepository.findById(request.bookingId())
 			.orElseThrow(() -> new NotFoundException(BookingApplicationErrorCode.NO_BOOKING_FOUND));
 
-		booking = booking.updateRefundInfo(request.bankName(), request.accountNumber(), request.accountHolder());
+		booking = booking.updateRefundInfo(ApiEnumMapper.toDomain(request.bankName(), BankName.class), request.accountNumber(), request.accountHolder());
 		booking = bookingRepository.save(booking);
 
 		return BookingRefundResponse.of(
 			booking.getId(),
-			booking.getBookingStatus(),
-			booking.getBankName(),
+			ApiEnumMapper.fromDomain(booking.getBookingStatus(), BookingStatusType.class),
+			ApiEnumMapper.fromDomain(booking.getBankName(), BankNameType.class),
 			booking.getAccountNumber(),
 			booking.getAccountHolder()
 		);
@@ -55,7 +59,7 @@ public class BookingCancelService {
 
 		return BookingCancelResponse.of(
 			booking.getId(),
-			booking.getBookingStatus()
+			ApiEnumMapper.fromDomain(booking.getBookingStatus(), BookingStatusType.class)
 		);
 	}
 }

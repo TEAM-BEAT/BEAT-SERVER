@@ -43,6 +43,9 @@ import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
 import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
 import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 import com.beat.apis.user.application.exception.UserApplicationErrorCode;
+import com.beat.apis.common.application.ApiEnumMapper;
+import com.beat.apis.booking.application.dto.BookingStatusType;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 
 @Slf4j
 @Service
@@ -58,7 +61,7 @@ public class TicketService {
 	private final SmsPort smsPort;
 
 	public TicketRetrieveResponse findAllTicketsByConditions(Long memberId, Long performanceId,
-		List<ScheduleNumber> scheduleNumbers, List<BookingStatus> bookingStatuses) {
+		List<ScheduleNumberType> scheduleNumbers, List<BookingStatusType> bookingStatuses) {
 		validateDeletedTicketsAreNotRequested(bookingStatuses);
 
 		Member member = findMember(memberId);
@@ -84,7 +87,7 @@ public class TicketService {
 	}
 
 	public TicketRetrieveResponse searchAllTicketsByConditions(Long memberId, Long performanceId, String searchWord,
-		List<ScheduleNumber> scheduleNumbers, List<BookingStatus> bookingStatuses) {
+		List<ScheduleNumberType> scheduleNumbers, List<BookingStatusType> bookingStatuses) {
 		validateSearchWord(searchWord);
 		validateDeletedTicketsAreNotRequested(bookingStatuses);
 
@@ -141,8 +144,8 @@ public class TicketService {
 		}
 	}
 
-	private void validateDeletedTicketsAreNotRequested(List<BookingStatus> bookingStatuses) {
-		if (bookingStatuses != null && bookingStatuses.contains(BookingStatus.BOOKING_DELETED)) {
+	private void validateDeletedTicketsAreNotRequested(List<BookingStatusType> bookingStatuses) {
+		if (bookingStatuses != null && bookingStatuses.contains(BookingStatusType.BOOKING_DELETED)) {
 			throw new BadRequestException(TicketApplicationErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
 		}
 	}
@@ -171,7 +174,7 @@ public class TicketService {
 					ticket.scheduleId(),
 					ticket.purchaseTicketCount(),
 					ticket.createdAt(),
-					BookingStatus.valueOf(ticket.bookingStatus()),
+					ApiEnumMapper.fromDomain(BookingStatus.valueOf(ticket.bookingStatus()), BookingStatusType.class),
 					schedule.getScheduleNumber().name(),
 					ticket.bankName(),
 					ticket.accountNumber(),
@@ -211,12 +214,12 @@ public class TicketService {
 				.orElseThrow(() -> new NotFoundException(BookingApplicationErrorCode.NO_BOOKING_FOUND));
 
 			if (booking.getBookingStatus() == BookingStatus.BOOKING_CONFIRMED
-				&& detail.bookingStatus() != BookingStatus.BOOKING_CONFIRMED) {
+				&& ApiEnumMapper.toDomain(detail.bookingStatus(), BookingStatus.class) != BookingStatus.BOOKING_CONFIRMED) {
 				throw new BadRequestException(TicketApplicationErrorCode.PAYMENT_COMPLETED_TICKET_UPDATE_NOT_ALLOWED);
 			}
 
 			if (booking.getBookingStatus() == BookingStatus.CHECKING_PAYMENT
-				&& detail.bookingStatus() == BookingStatus.BOOKING_CONFIRMED) {
+				&& ApiEnumMapper.toDomain(detail.bookingStatus(), BookingStatus.class) == BookingStatus.BOOKING_CONFIRMED) {
 				booking = booking.updateBookingStatus(BookingStatus.BOOKING_CONFIRMED);
 				booking = bookingRepository.save(booking);
 
