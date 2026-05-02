@@ -10,14 +10,14 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import com.beat.admin.application.dto.request.AdminCarouselNumber;
-import com.beat.admin.application.dto.request.CarouselHandleRequest;
-import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
-import com.beat.admin.application.dto.response.CarouselFindAllResponse;
-import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
-import com.beat.admin.application.dto.response.UserFindAllResponse;
-import com.beat.admin.application.dto.result.AdminPromotionResults;
-import com.beat.admin.application.dto.result.AdminPromotionResults.AdminPromotionResult;
+import com.beat.admin.promotion.application.dto.request.AdminCarouselNumber;
+import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest;
+import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
+import com.beat.admin.promotion.application.dto.response.CarouselFindAllResponse;
+import com.beat.admin.promotion.application.dto.response.CarouselHandleAllResponse;
+import com.beat.admin.user.application.dto.response.UserFindAllResponse;
+import com.beat.admin.promotion.application.dto.result.AdminPromotionResults;
+import com.beat.admin.promotion.application.dto.result.AdminPromotionResults.AdminPromotionResult;
 import com.beat.domain.promotion.domain.CarouselNumber;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

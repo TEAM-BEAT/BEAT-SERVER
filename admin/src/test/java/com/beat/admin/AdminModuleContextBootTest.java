@@ -18,9 +18,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.beat.admin.application.service.command.AdminCommandService;
-import com.beat.admin.application.service.query.AdminQueryService;
-import com.beat.admin.facade.AdminFacade;
+import com.beat.admin.promotion.api.AdminPromotionController;
+import com.beat.admin.promotion.application.service.command.AdminPromotionCommandService;
+import com.beat.admin.promotion.application.service.query.AdminPromotionQueryService;
+import com.beat.admin.promotion.facade.AdminPromotionFacade;
+import com.beat.admin.user.api.AdminUserController;
+import com.beat.admin.user.application.service.query.AdminUserQueryService;
+import com.beat.admin.user.facade.AdminUserFacade;
 import com.beat.admin.support.AbstractAdminIntegrationTest;
 import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
 import com.beat.contracts.storage.FileStoragePort;
@@ -51,10 +55,13 @@ class AdminModuleContextBootTest extends AbstractAdminIntegrationTest {
 	void contextLoads() {
 		assertEquals(1, applicationContext.getBeansOfType(GroupedOpenApi.class).size());
 		assertEquals(1, applicationContext.getBeansOfType(OpenAPI.class).size());
-		assertTrue(applicationContext.containsBean("adminApi"));
-		assertEquals(1, applicationContext.getBeansOfType(AdminFacade.class).size());
-		assertEquals(1, applicationContext.getBeansOfType(AdminQueryService.class).size());
-		assertEquals(1, applicationContext.getBeansOfType(AdminCommandService.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(AdminUserController.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(AdminPromotionController.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(AdminUserFacade.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(AdminPromotionFacade.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(AdminUserQueryService.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(AdminPromotionQueryService.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(AdminPromotionCommandService.class).size());
 		assertFalse(applicationContext.containsBean("jobSchedulerService"));
 		assertTrue(applicationContext.getBeansOfType(ScheduleBookingCloseJobPort.class).isEmpty());
 		assertTrue(applicationContext.getBeansOfType(TaskScheduler.class).isEmpty());
