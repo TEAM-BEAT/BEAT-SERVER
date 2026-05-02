@@ -1,122 +1,190 @@
 # admin module
 
-`admin`은 BEAT의 **관리자/백오피스 HTTP executable module**입니다. 사용자 API와 다른 인증·인가 정책, Swagger/OpenAPI, 관리자 전용 request/response DTO, 운영성 유스케이스를 소유합니다.
+`admin`은 BEAT의 **관리자/백오피스 HTTP executable module**입니다.
+일반 사용자 API(`apis`)와 분리된 실행 모듈이며, 관리자 전용 인증·인가 정책, Swagger/OpenAPI, request/response DTO, 백오피스 유스케이스를 소유합니다.
 
-핵심 계약은 다음과 같습니다.
-
-```text
-Controller -> Facade -> ApplicationService(command/query) -> Domain / Port
-```
-
-`admin`은 root application에 기대지 않고 자체 classpath로 build/boot/test 되어야 합니다.
+> 핵심 원칙: `admin`은 관리자 HTTP 실행 경계입니다. Controller는 HTTP를, Facade는 scenario 진입을, ApplicationService는 use-case와 transaction을 소유합니다.
 
 ---
 
-## 1. 현재 완료 상태
+## 1. 한눈에 보는 위치
 
-| Area | Current contract |
+```mermaid
+flowchart TB
+    Client[Admin Client]
+    Admin[admin module<br/>HTTP executable]
+    Gateway[gateway<br/>auth annotation / security bootstrap]
+    Domain[domain<br/>pure domain model / repository contract]
+    Contracts[module-contracts<br/>shared port contract]
+    Infra[infra<br/>JPA / query / external adapter]
+    Observability[observability<br/>logging / monitoring bootstrap]
+    External[(DB / S3 / external systems)]
+
+    Client --> Admin
+    Admin --> Gateway
+    Admin --> Domain
+    Admin --> Contracts
+    Admin --> Infra
+    Admin --> Observability
+    Infra --> External
+
+    style Admin fill:#eef2ff,stroke:#4338ca,stroke-width:2px
+    style Domain fill:#e8fff1,stroke:#15803d,stroke-width:2px
+    style Infra fill:#fff7ed,stroke:#c2410c,stroke-width:2px
+```
+
+`admin`은 독립 실행 모듈입니다. root application이나 `apis`/`batch`의 application service를 우회해서 재사용하지 않습니다. 공유가 필요한 기능은 공개 bootstrap/config 또는 `module-contracts` port로 연결합니다.
+
+---
+
+## 2. 현재 모듈 계약
+
+| 영역 | 현재 계약 |
 | --- | --- |
-| Bootstrap | `AdminApplication`이 root bootstrap 없이 `GatewayModuleConfig`, `InfraConfig`, `ObservabilityModuleConfig`만 명시 import |
-| Package shape | context별 `api/facade/application` 구조 적용: `admin.user`, `admin.promotion` |
-| Layering | Controller는 Facade만 호출, Facade는 ApplicationService만 호출 |
-| CQRS | application service는 command/query로 분리 |
-| DTO boundary | request/response/result DTO는 domain type을 import하지 않음 |
-| SuccessCode | API response boundary인 `admin.api.response.AdminSuccessCode`가 소유 |
-| ErrorCode | admin use-case 실패는 `admin.application.exception.AdminApplicationErrorCode`가 소유 |
-| Persistence | admin은 domain repository contract를 주입받고, JPA entity/mapper/repository implementation을 직접 알지 않음 |
+| 실행 형태 | Spring Boot 관리자 HTTP executable module |
+| Bootstrap | `AdminApplication`이 `GatewayModuleConfig`, `InfraConfig`, `ObservabilityModuleConfig`만 명시 import |
+| Package | context 기준 `admin.user`, `admin.promotion` 분리 |
+| Layer | `Controller -> Facade -> ApplicationService(command/query)` |
+| DTO | admin 전용 request/response/result DTO 소유, domain/JPA type 직접 노출 금지 |
+| SuccessCode | `admin.api.response.AdminSuccessCode`가 response boundary에서 소유 |
+| ErrorCode | `admin.application.exception.AdminApplicationErrorCode`가 admin use-case 실패를 소유 |
+| Persistence | domain repository contract / module-contract port를 사용하고, infra 구현 타입은 직접 노출하지 않음 |
 | Scheduler | admin은 scheduler owner가 아니며 scheduling bridge를 소유하지 않음 |
 
 ---
 
-## 2. 역할
+## 3. 역할과 책임
 
-- 관리자/백오피스 HTTP API의 실행 진입점을 제공합니다.
-- 관리자용 보안 정책, CORS, converter, Swagger/OpenAPI 정책을 소유합니다.
-- 관리자 request/response DTO와 application flow를 소유합니다.
-- 사용자 API(`apis`) 서비스나 batch 서비스는 재사용하지 않습니다.
-- 공유가 필요한 외부 기능은 `module-contracts`의 공개 port를 통해 사용합니다.
+`admin`이 소유하는 것:
+
+- 관리자/백오피스 HTTP API entrypoint
+- 관리자 전용 security, CORS, converter, Swagger/OpenAPI 정책
+- 관리자 request/response DTO
+- 관리자 use-case orchestration
+- 관리자 application error/success response language
+- 관리자 JSON compatibility test와 architecture guard
+
+`admin`이 소유하지 않는 것:
+
+- 사용자 API scenario와 response DTO
+- batch job trigger/scheduler ownership
+- JPA entity, Spring Data repository implementation, QueryDSL/JDSL query implementation
+- domain invariant 자체
+- external adapter 구현 세부사항
 
 ---
 
-## 3. 허용 의존성
+## 4. 의존성 규칙
 
-- `module-contracts`
-- `domain`
-- `infra`
-- `global-utils`
-- `observability`
-- `gateway`의 공개 bootstrap/annotation 경계
+### 허용 의존성
 
-## 4. 금지 규칙
+```kotlin
+implementation(project(":module-contracts"))
+implementation(project(":gateway"))
+implementation(project(":domain"))
+implementation(project(":infra"))
+implementation(project(":global-utils"))
+implementation(project(":observability"))
+```
 
-- `project(":")` 직접 의존 금지
+### 금지 규칙
+
+- `project(":")` root application 직접 의존 금지
 - `apis`, `batch` 직접 의존 금지
-- `infra.external.*`, `infra.*.entity`, `infra.*.repository.impl`, `infra.*.repository.jpa` 직접 import 금지
-- `gateway.security.*`, `gateway.filter.*`, `gateway.config.*` 직접 import 금지
-- root legacy bootstrap lane import 금지
+- root bootstrap/import 금지
   - `com.beat.BeatApplication`
   - `com.beat.legacyroot.*`
   - root `SecurityConfig` / `WebConfig`
-- `adapter`, `controller`, `port/in` transitional package 재도입 금지
-- JPA Entity, QueryDSL Q type, Redis document를 admin API DTO로 직접 노출 금지
-- raw Domain model을 Controller/Facade/DTO/Result로 올리는 것 금지
+- infra 구현 세부 패키지 직접 import 금지
+  - `infra.*.entity`
+  - `infra.*.repository.impl`
+  - `infra.*.repository.jpa`
+  - `infra.external.*`
+- gateway internal 구현 직접 import 금지
+  - `gateway.security.*`
+  - `gateway.filter.*`
+  - `gateway.config.*`
+- transitional package 재도입 금지
+  - `adapter/`
+  - `controller/`
+  - `port/in/`
+  - root `admin/api/AdminController`
+  - root `admin/facade/AdminFacade`
+- API DTO에 Domain model, JPA entity, QueryDSL Q type, Redis document 직접 노출 금지
 
 ---
 
 ## 5. Bootstrap contract
 
-```text
-admin/
-  src/main/kotlin/com/beat/admin/
-    AdminApplication.kt
-    config/
-      InfraConfig.kt
+```mermaid
+flowchart LR
+    AdminApplication[AdminApplication]
+    GatewayModuleConfig[GatewayModuleConfig]
+    InfraConfig[Admin InfraConfig]
+    InfraBase[InfraBaseConfig<br/>JPA / QUERY_DSL / EXTERNAL_CLIENTS]
+    ObservabilityModuleConfig[ObservabilityModuleConfig]
 
-  src/main/java/com/beat/admin/
-    config/
-    handler/
-    swagger/
-    user/
-    promotion/
+    AdminApplication --> GatewayModuleConfig
+    AdminApplication --> InfraConfig
+    AdminApplication --> ObservabilityModuleConfig
+    InfraConfig --> InfraBase
 ```
 
-`AdminApplication`은 다음만 import합니다.
+현재 bootstrap:
 
 ```kotlin
+@SpringBootApplication(scanBasePackageClasses = [AdminApplication::class])
+@ConfigurationPropertiesScan(basePackages = ["com.beat.infra.config"])
 @Import(
     GatewayModuleConfig::class,
     InfraConfig::class,
     ObservabilityModuleConfig::class,
 )
+class AdminApplication
 ```
 
 규칙:
 
-- app-level broad `@ComponentScan`은 사용하지 않습니다.
-- `AdminSecurityConfig`가 관리자 route whitelist와 인증 정책을 소유합니다.
-- admin Swagger/OpenAPI는 non-prod에서만 노출합니다.
-- `GatewayModuleConfig`와 `gateway.annotation.CurrentMember`는 공개 경계로 허용합니다.
-- `InfraConfig`는 필요한 infra base config group만 명시합니다.
-- `beat.scheduler.owner=false`를 유지합니다.
+- broad `@ComponentScan`을 사용하지 않습니다.
+- `AdminApplication` 자신의 package 아래만 component scan합니다.
+- `GatewayModuleConfig`는 공개 gateway bootstrap 경계입니다.
+- `InfraConfig`는 admin이 필요한 infra group만 명시합니다.
+- `ObservabilityModuleConfig`는 관측성 공개 bootstrap 경계입니다.
+- `beat.scheduler.owner=false` 계약을 유지합니다.
 
 ---
 
-## 6. To-Be package structure
-
-현재 admin은 context별 구조를 사용합니다.
+## 6. 현재 패키지 구조
 
 ```text
-com.beat.admin.<context>/
-  api/
-  facade/
-  application/
-    service/
-      command/
-      query/
-    dto/
-      request/
-      response/
-      result/      # facade 조합용 내부 결과가 필요할 때만
+admin/
+  src/main/kotlin/com/beat/admin/
+    AdminApplication.kt
+    api/response/
+      AdminSuccessCode.kt
+    application/exception/
+      AdminApplicationErrorCode.kt
+    config/
+      InfraConfig.kt
+
+  src/main/java/com/beat/admin/
+    config/
+      AdminCorsConfig
+      AdminSecurityConfig
+      AdminWebConverterConfig
+      converter/StringToEnumCustomConverterFactory
+    handler/
+      AdminGlobalExceptionHandler
+    swagger/config/
+      AdminSwaggerConfig
+    user/
+      api/
+      facade/
+      application/
+    promotion/
+      api/
+      facade/
+      application/
 ```
 
 현재 context:
@@ -126,7 +194,11 @@ com.beat.admin.user
 com.beat.admin.promotion
 ```
 
-### user context
+---
+
+## 7. Context 구조
+
+### 7.1 user context
 
 ```text
 com.beat.admin.user/
@@ -140,7 +212,19 @@ com.beat.admin.user/
     dto/response/UserFindAllResponse
 ```
 
-### promotion context
+역할:
+
+- 관리자 유저 조회 API
+- 관리자 actor 존재 검증
+- user 목록 response 조립
+
+현재 endpoint:
+
+```text
+GET /api/admin/users
+```
+
+### 7.2 promotion context
 
 ```text
 com.beat.admin.promotion/
@@ -157,77 +241,187 @@ com.beat.admin.promotion/
     dto/result/AdminPromotionResults
 ```
 
-현재 presigned-url endpoint는 carousel/banner promotion asset 관리 흐름에 속하므로 `promotion` context가 소유합니다. 향후 관리자 전역 파일 관리 유스케이스가 커질 때만 별도 `admin.file` context를 검토합니다.
+역할:
+
+- 캐러셀/배너 presigned URL 발급
+- 캐러셀 promotion 조회
+- 캐러셀 promotion 생성/수정/삭제 orchestration
+
+현재 endpoints:
+
+```text
+GET /api/admin/carousels/presigned-url
+GET /api/admin/banner/presigned-url
+GET /api/admin/carousels
+PUT /api/admin/carousels
+```
+
+현재 presigned-url endpoint는 carousel/banner promotion asset 관리 흐름에 속하므로 `promotion` context가 소유합니다. 관리자 전역 파일 관리 유스케이스가 실제로 생길 때만 `admin.file` context를 새로 검토합니다.
 
 ---
 
-## 7. Layer boundary standard
+## 8. Layer boundary
 
-```text
-API Controller -> Facade -> ApplicationService(command/query) -> DomainService/Entity/RepositoryPort/ReadPort
+```mermaid
+sequenceDiagram
+    participant C as Controller
+    participant F as Facade
+    participant A as ApplicationService<br/>command/query
+    participant D as Domain model / DomainService
+    participant P as RepositoryPort / Module Port
+    participant I as Infra adapter
+
+    C->>F: request DTO / primitive
+    F->>A: use-case input
+    A->>P: load/save/query/external contract
+    P->>I: implemented by infra
+    I-->>P: domain model / primitive / adapter result
+    P-->>A: result
+    A->>D: invariant / policy / state primitive
+    D-->>A: domain result
+    A-->>F: response DTO or application result
+    F-->>C: response DTO
 ```
 
 ### Controller
 
-- admin-facing HTTP entrypoint입니다.
+- HTTP endpoint와 Swagger interface를 소유합니다.
 - Facade만 호출합니다.
 - ApplicationService, Repository, Domain model을 직접 호출하지 않습니다.
 - `SuccessResponse`와 `AdminSuccessCode`로 HTTP response를 조립합니다.
+- JSON field name과 기존 endpoint 호환성을 최우선으로 유지합니다.
 
 ### Facade
 
 - 관리자 API scenario의 공식 진입점입니다.
-- 여러 command/query service 결과를 조합할 수 있습니다.
+- Controller 입력을 use-case 호출 단위로 정규화합니다.
+- 여러 command/query service를 조합할 수 있습니다.
 - transaction, repository, domain service를 직접 소유하지 않습니다.
 - raw Domain model을 받거나 반환하지 않습니다.
 
 ### ApplicationService
 
 - command/query service를 의미합니다.
+- use-case와 transaction boundary를 소유합니다.
 - 이 계층만 유스케이스 내부에서 Domain model을 조회/변경/정책 판단에 사용할 수 있습니다.
 - Domain model은 이 계층 밖으로 반환하지 않습니다.
-- transaction boundary는 command/query service가 소유합니다.
 - 순수 domain rule은 Entity/VO/DomainService에 위임합니다.
+- repository lookup, actor validation, request/use-case validation은 admin application flow로 처리합니다.
 
 ---
 
-## 8. CQRS rule
+## 9. CQRS rule
 
-BEAT admin의 CQRS는 저장소나 DB를 물리적으로 분리하는 것이 아니라 application service를 command/query로 나누는 것부터 시작합니다.
+BEAT admin의 CQRS는 저장소나 DB를 물리적으로 분리한다는 뜻이 아닙니다.
+우선 application service를 **변경 use-case(command)** 와 **조회 use-case(query)** 로 분리합니다.
+
+```mermaid
+flowchart TB
+    Controller[Controller]
+    Facade[Facade]
+    Command[CommandService<br/>state change + transaction]
+    Query[QueryService<br/>read + response assembly]
+    DomainRepo[Domain RepositoryPort]
+    ReadPort[ReadPort / external port]
+
+    Controller --> Facade
+    Facade --> Command
+    Facade --> Query
+    Command --> DomainRepo
+    Query --> DomainRepo
+    Query --> ReadPort
+```
+
+규칙:
 
 - command service는 상태 변경 흐름과 transaction을 소유합니다.
 - query service는 admin-facing 조회와 response 조립을 소유합니다.
 - 단순 조회는 domain repository contract를 사용할 수 있습니다.
-- 목록/검색/정렬/통계/projection 조회가 커지면 domain repository를 키우지 않고 `module-contracts` read port/read model과 infra query adapter로 분리합니다.
+- 목록/검색/정렬/통계/projection 조회가 커지면 domain repository를 키우지 않고 `module-contracts` read port/read model과 infra query adapter를 검토합니다.
 - query service는 JPA Entity, QueryDSL Q type, EntityManager, infra persistence mapper를 직접 사용하지 않습니다.
 
 ---
 
-## 9. DTO / Result rule
+## 10. DTO / Result rule
 
-기본값은 command/query service가 admin 전용 ResponseDTO를 반환하는 것입니다.
+```mermaid
+flowchart LR
+    Domain[Domain model]
+    App[ApplicationService]
+    Result[Application Result<br/>optional internal DTO]
+    Response[Admin ResponseDTO]
+    Controller[Controller]
+
+    Domain --> App
+    App --> Response
+    App -. only when scenario composition needs it .-> Result
+    Result --> Response
+    Response --> Controller
+
+    Domain -. forbidden .-> Response
+    Domain -. forbidden .-> Result
+    Domain -. forbidden .-> Controller
+```
+
+기본값:
+
+```text
+Controller -> Facade -> QueryService -> ResponseDTO
+```
+
+복합 scenario에서만 optional Result를 둡니다.
+
+```text
+Controller -> Facade -> QueryService A -> QueryResult A
+                    -> CommandService B -> CommandResult B
+                    -> Final ResponseDTO
+```
+
+규칙:
 
 - RequestDTO, ResponseDTO, CommandResult, QueryResult는 Domain model을 필드로 담지 않습니다.
 - DTO/Result public factory method는 Domain model을 인자로 받지 않습니다.
 - Domain model에서 필요한 primitive/value 추출은 ApplicationService 내부 private method나 내부 assembler에서 끝냅니다.
 - Result는 기본 계층이 아닙니다. Facade 조합이 필요하거나 같은 service output을 여러 response shape로 재사용할 때만 둡니다.
 - Result도 raw Domain model, JPA Entity, infra projection row를 필드로 담지 않습니다.
+- DTO 이름은 API/관리자 응답 shape임이 드러나야 합니다. 도메인 이름만 단독으로 쓰지 않습니다.
+
+좋은 예:
 
 ```text
-단일 유스케이스:
-Controller -> Facade -> QueryService -> ResponseDTO
+UserFindAllResponse
+CarouselFindAllResponse
+CarouselHandleAllResponse
+AdminPromotionResults
+```
 
-복합 관리자 scenario:
-Controller -> Facade -> QueryService A -> QueryResult A
-                    -> CommandService B -> CommandResult B
-                    -> Final ResponseDTO
+피해야 할 예:
+
+```text
+Users
+Promotions
+PromotionResult  # context/용도 없이 너무 넓은 이름
 ```
 
 ---
 
-## 10. ErrorCode / SuccessCode ownership
+## 11. ErrorCode / SuccessCode ownership
+
+```mermaid
+flowchart LR
+    DomainError[domain ErrorCode<br/>pure invariant]
+    AdminError[AdminApplicationErrorCode<br/>admin use-case failure]
+    AdminSuccess[AdminSuccessCode<br/>admin response success]
+    Exception[global-utils exception classes]
+
+    DomainError --> Exception
+    AdminError --> Exception
+    AdminSuccess --> Response[SuccessResponse]
+```
 
 ### ErrorCode
+
+위치:
 
 ```text
 admin.application.exception.AdminApplicationErrorCode
@@ -244,6 +438,8 @@ Domain invariant 실패를 새로 만들 때는 domain ErrorCode를 검토합니
 
 ### SuccessCode
 
+위치:
+
 ```text
 admin.api.response.AdminSuccessCode
 ```
@@ -252,41 +448,94 @@ admin.api.response.AdminSuccessCode
 
 ---
 
-## 11. Guard rails
+## 12. API compatibility rule
 
-- `AdminApplicationTest`
-  - bootstrap import 집합 고정
-  - broad component scan 금지
-  - scheduler owner disabled 계약 고정
-  - security/swagger/config 정책 확인
-- `AdminArchitectureGuardTest`
-  - root dependency 재도입 금지
-  - root/gateway/infra forbidden import 금지
-  - transitional package/file 재도입 금지
-  - Facade forbidden dependency 검증
-  - DTO domain import 금지
-  - raw domain model public return 금지
-  - SuccessCode response boundary 위치 고정
-- `AdminModuleContextBootTest`
-  - module context boot smoke test
-  - context controller/facade/service bean 존재 확인
-  - scheduler owner/bridge 미소유 확인
-- `AdminDtoJsonContractTest`
-  - 기존 request enum 문자열 호환성 고정
-  - 기존 response JSON field name 유지 검증
+관리자 클라이언트 호환성은 migration 중 최우선 기준입니다.
+
+- endpoint path 변경 금지
+- HTTP method 변경 금지
+- request field name 변경 금지
+- response field name 변경 금지
+- enum JSON value 변경 금지
+- success/error status/message/code 의미 변경 금지
+- DTO package 변경은 Java 내부 구조 변경일 뿐, JSON 계약 변경이 아니어야 합니다.
+
+호환성은 `AdminDtoJsonContractTest`로 고정합니다.
 
 ---
 
-## 12. Kotlin migration readiness checklist
+## 13. Security / Swagger / Web config
 
-Kotlin migration 전에 아래를 유지해야 합니다.
+| 구성 | 책임 |
+| --- | --- |
+| `AdminSecurityConfig` | 관리자 route whitelist, 인증/인가 filter chain |
+| `AdminCorsConfig` | admin CORS 정책 |
+| `AdminWebConverterConfig` | admin request converter 등록 |
+| `StringToEnumCustomConverterFactory` | request enum 문자열 변환 |
+| `AdminSwaggerConfig` | admin Swagger/OpenAPI 노출 정책 |
+| `AdminGlobalExceptionHandler` | admin exception response handling |
+
+규칙:
+
+- gateway 내부 security 구현을 직접 import하지 않습니다.
+- admin route 정책은 admin config에서 관리합니다.
+- Swagger/OpenAPI는 admin 실행 모듈의 문서화 경계입니다.
+
+---
+
+## 14. Guard rails
+
+| Test | 고정하는 계약 |
+| --- | --- |
+| `AdminApplicationTest` | bootstrap import, broad component scan 금지, scheduler owner disabled |
+| `AdminArchitectureGuardTest` | root dependency 금지, forbidden import 금지, transitional package 금지, DTO/domain boundary, SuccessCode 위치 |
+| `AdminModuleContextBootTest` | context controller/facade/service bean boot smoke, scheduler bridge 미소유 |
+| `AdminDtoJsonContractTest` | request enum 문자열, response JSON field 호환성 |
+| `PromotionBoundaryTest` | promotion 경계에서 admin DTO coupling 재발 방지 |
+
+검증 권장 명령:
+
+```bash
+./gradlew :admin:compileJava :admin:compileKotlin :admin:test --no-daemon
+./gradlew check --no-daemon
+```
+
+---
+
+## 15. Kotlin migration readiness checklist
+
+Kotlin migration 전에 아래 조건을 유지합니다.
 
 - [x] root bootstrap 직접 의존 없음
 - [x] context별 package split 적용
 - [x] Controller -> Facade -> ApplicationService 구조 적용
 - [x] command/query service 분리
 - [x] DTO domain import 제거
-- [x] Domain model이 Facade/Controller 밖으로 노출되지 않음
-- [x] AdminSuccessCode가 API response boundary에 위치
+- [x] Domain model이 Facade/Controller/DTO/Result 밖으로 노출되지 않음
+- [x] `AdminSuccessCode`가 API response boundary에 위치
 - [x] architecture guard와 JSON compatibility test 존재
 - [x] admin compile/test 통과
+
+Kotlin migration 시 추가 규칙:
+
+- 기존 endpoint와 JSON 계약을 먼저 테스트로 고정합니다.
+- Java record DTO를 Kotlin data class로 옮길 때 Jackson field name과 enum value를 보존합니다.
+- Lombok 제거는 Kotlin 전환 파일 단위로 처리합니다.
+- migration 중 구조 변경과 언어 변경을 같은 커밋에 과하게 섞지 않습니다.
+
+---
+
+## 16. 새 admin 기능 추가 체크리스트
+
+새 admin use-case를 추가할 때 확인합니다.
+
+- [ ] 이 기능이 관리자 전용 HTTP use-case인가?
+- [ ] 기존 `user` / `promotion` context에 자연스럽게 속하는가, 아니면 새 context가 필요한가?
+- [ ] Controller는 Facade만 호출하는가?
+- [ ] Facade가 repository/transaction/domain service를 직접 소유하지 않는가?
+- [ ] ApplicationService가 command/query 역할에 맞게 배치되었는가?
+- [ ] DTO/Result가 domain/JPA/infra type을 필드나 public factory 인자로 받지 않는가?
+- [ ] JSON field name과 enum value 호환성을 테스트로 고정했는가?
+- [ ] ErrorCode는 admin application flow와 domain invariant 중 올바른 위치에 있는가?
+- [ ] SuccessCode는 `admin.api.response`에 있는가?
+- [ ] architecture guard를 우회하는 package/import를 만들지 않았는가?
