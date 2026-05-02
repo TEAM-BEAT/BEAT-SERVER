@@ -4,14 +4,14 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.beat.admin.application.AdminCommandService;
-import com.beat.admin.application.AdminQueryService;
 import com.beat.admin.application.dto.request.CarouselHandleRequest;
 import com.beat.admin.application.dto.response.BannerPresignedUrlFindResponse;
 import com.beat.admin.application.dto.response.CarouselFindAllResponse;
 import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
 import com.beat.admin.application.dto.response.CarouselPresignedUrlFindAllResponse;
 import com.beat.admin.application.dto.response.UserFindAllResponse;
+import com.beat.admin.application.service.command.AdminCommandService;
+import com.beat.admin.application.service.query.AdminQueryService;
 
 import lombok.RequiredArgsConstructor;
 

@@ -2,35 +2,47 @@ package com.beat.admin.application.dto.response;
 
 import java.util.List;
 
-import com.beat.admin.application.dto.result.AdminPromotionResult;
-import com.beat.domain.promotion.domain.CarouselNumber;
+import com.beat.admin.application.dto.result.AdminPromotionResults;
+import com.beat.admin.application.dto.result.AdminPromotionResults.AdminPromotionResult;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record CarouselFindAllResponse(
-	List<CarouselFindResponse> carousels
+	@JsonProperty("carousels")
+	List<CarouselFindResponse> carouselResponses
 ) {
-	public static CarouselFindAllResponse from(List<AdminPromotionResult> promotions) {
-		List<CarouselFindResponse> responses = promotions.stream()
+	private static CarouselFindAllResponse fromResponses(List<CarouselFindResponse> carouselResponses) {
+		return new CarouselFindAllResponse(carouselResponses);
+	}
+
+	public static CarouselFindAllResponse from(AdminPromotionResults promotionResults) {
+		List<CarouselFindResponse> carouselResponses = promotionResults.promotionResults().stream()
 			.map(CarouselFindResponse::from)
 			.toList();
-		return new CarouselFindAllResponse(responses);
+		return CarouselFindAllResponse.fromResponses(carouselResponses);
 	}
 
 	public record CarouselFindResponse(
 		Long promotionId,
-		CarouselNumber carouselNumber,
+		String carouselNumber,
 		String newImageUrl,
 		boolean isExternal,
 		String redirectUrl,
 		Long performanceId
 	) {
-		public static CarouselFindResponse from(AdminPromotionResult promotion) {
-			return new CarouselFindResponse(
-				promotion.promotionId(),
-				promotion.carouselNumber(),
-				promotion.newImageUrl(),
-				promotion.isExternal(),
-				promotion.redirectUrl(),
-				promotion.performanceId()
+		private static CarouselFindResponse of(Long promotionId, String carouselNumber, String newImageUrl,
+			boolean isExternal, String redirectUrl, Long performanceId) {
+			return new CarouselFindResponse(promotionId, carouselNumber, newImageUrl, isExternal, redirectUrl,
+				performanceId);
+		}
+
+		public static CarouselFindResponse from(AdminPromotionResult promotionResult) {
+			return CarouselFindResponse.of(
+				promotionResult.promotionId(),
+				promotionResult.carouselNumber(),
+				promotionResult.newImageUrl(),
+				promotionResult.isExternal(),
+				promotionResult.redirectUrl(),
+				promotionResult.performanceId()
 			);
 		}
 	}

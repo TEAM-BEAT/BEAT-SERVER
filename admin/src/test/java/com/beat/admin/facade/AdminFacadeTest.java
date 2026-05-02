@@ -7,9 +7,9 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import com.beat.admin.application.AdminCommandService;
-import com.beat.admin.application.AdminQueryService;
 import com.beat.admin.application.dto.request.CarouselHandleRequest;
+import com.beat.admin.application.service.command.AdminCommandService;
+import com.beat.admin.application.service.query.AdminQueryService;
 
 class AdminFacadeTest {
 

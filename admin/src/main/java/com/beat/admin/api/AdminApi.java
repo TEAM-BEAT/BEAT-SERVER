@@ -1,11 +1,17 @@
 package com.beat.admin.api;
 
-import com.beat.admin.application.dto.response.CarouselFindAllResponse;
-import com.beat.admin.application.dto.response.UserFindAllResponse;
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+
 import com.beat.admin.application.dto.request.CarouselHandleRequest;
 import com.beat.admin.application.dto.response.BannerPresignedUrlFindResponse;
+import com.beat.admin.application.dto.response.CarouselFindAllResponse;
 import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
 import com.beat.admin.application.dto.response.CarouselPresignedUrlFindAllResponse;
+import com.beat.admin.application.dto.response.UserFindAllResponse;
 import com.beat.gateway.annotation.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
@@ -16,12 +22,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-
-import java.util.List;
 
 @Tag(name = "Admin", description = "관리자 제어 API")
 public interface AdminApi {

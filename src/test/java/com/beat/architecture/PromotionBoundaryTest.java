@@ -27,9 +27,9 @@ class PromotionBoundaryTest {
 		String apiPromotionService = Files.readString(
 			Path.of("apis/src/main/java/com/beat/apis/promotion/application/PromotionService.java"));
 		String adminCommandService = Files.readString(
-			Path.of("admin/src/main/java/com/beat/admin/application/AdminCommandService.java"));
+			Path.of("admin/src/main/java/com/beat/admin/application/service/command/AdminCommandService.java"));
 		String adminQueryService = Files.readString(
-			Path.of("admin/src/main/java/com/beat/admin/application/AdminQueryService.java"));
+			Path.of("admin/src/main/java/com/beat/admin/application/service/query/AdminQueryService.java"));
 		String batchSchedulerService = Files.readString(
 			Path.of("batch/src/main/java/com/beat/batch/promotion/application/PromotionMaintenanceService.java"));
 

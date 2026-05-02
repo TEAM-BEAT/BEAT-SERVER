@@ -1,5 +1,6 @@
-package com.beat.admin.application;
+package com.beat.admin.application.service.query;
 
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -9,10 +10,12 @@ import com.beat.admin.application.dto.response.BannerPresignedUrlFindResponse;
 import com.beat.admin.application.dto.response.CarouselFindAllResponse;
 import com.beat.admin.application.dto.response.CarouselPresignedUrlFindAllResponse;
 import com.beat.admin.application.dto.response.UserFindAllResponse;
-import com.beat.admin.application.dto.result.AdminUserResult;
+import com.beat.admin.application.dto.result.AdminPromotionResults;
+import com.beat.admin.application.dto.result.AdminPromotionResults.AdminPromotionResult;
 import com.beat.admin.application.exception.AdminApplicationErrorCode;
 import com.beat.contracts.storage.FileStoragePort;
 import com.beat.domain.member.repository.MemberRepository;
+import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
@@ -25,6 +28,11 @@ import lombok.RequiredArgsConstructor;
 @Transactional(readOnly = true)
 public class AdminQueryService {
 
+	private static final Comparator<Promotion> BY_CAROUSEL_NUMBER = Comparator.comparing(
+		Promotion::getCarouselNumber,
+		Comparator.comparingInt(Enum::ordinal)
+	);
+
 	private final FileStoragePort fileStoragePort;
 	private final MemberRepository memberRepository;
 	private final UserRepository userRepository;
@@ -32,10 +40,10 @@ public class AdminQueryService {
 
 	public UserFindAllResponse findAllUsers(Long memberId) {
 		validateMemberExists(memberId);
-		List<AdminUserResult> users = userRepository.findAll().stream()
-			.map(this::toUserResult)
+		List<UserFindAllResponse.UserFindResponse> userResponses = userRepository.findAll().stream()
+			.map(this::toUserFindResponse)
 			.toList();
-		return UserFindAllResponse.from(users);
+		return UserFindAllResponse.from(userResponses);
 	}
 
 	public CarouselPresignedUrlFindAllResponse issueAllPresignedUrlsForCarousel(Long memberId,
@@ -54,12 +62,31 @@ public class AdminQueryService {
 	public CarouselFindAllResponse findAllPromotionsSortedByCarouselNumber(Long memberId) {
 		validateMemberExists(memberId);
 		return CarouselFindAllResponse.from(
-			AdminPromotionResults.fromSortedByCarouselNumber(promotionRepository.findAll())
+			toPromotionResults(promotionRepository.findAll())
 		);
 	}
 
-	private AdminUserResult toUserResult(Users user) {
-		return new AdminUserResult(
+	private AdminPromotionResults toPromotionResults(List<Promotion> domainPromotions) {
+		List<AdminPromotionResult> promotionResults = domainPromotions.stream()
+			.sorted(BY_CAROUSEL_NUMBER)
+			.map(this::toPromotionResult)
+			.toList();
+		return AdminPromotionResults.from(promotionResults);
+	}
+
+	private AdminPromotionResult toPromotionResult(Promotion domainPromotion) {
+		return AdminPromotionResult.of(
+			domainPromotion.getId(),
+			domainPromotion.getCarouselNumber().name(),
+			domainPromotion.getPromotionPhoto(),
+			domainPromotion.isExternal(),
+			domainPromotion.getRedirectUrl(),
+			domainPromotion.getPerformanceId()
+		);
+	}
+
+	private UserFindAllResponse.UserFindResponse toUserFindResponse(Users user) {
+		return UserFindAllResponse.UserFindResponse.of(
 			user.getId(),
 			user.getRole().getRoleName()
 		);

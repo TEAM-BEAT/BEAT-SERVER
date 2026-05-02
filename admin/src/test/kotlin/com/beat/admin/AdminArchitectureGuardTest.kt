@@ -104,6 +104,19 @@ class AdminArchitectureGuardTest {
     }
 
     @Test
+    fun `admin dto layer must not import domain types`() {
+        val violations = findForbiddenImportsUnder(
+            Path.of("src/main/java/com/beat/admin/application/dto"),
+            "com.beat.domain."
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found domain type imports in admin DTO layer:\n${violations.joinToString("\n")}"
+        )
+    }
+
+    @Test
     fun `admin application services do not return raw domain models`() {
         val violations = findMethodSignatureViolations(
             Path.of("src/main/java/com/beat/admin/application"),
@@ -132,6 +145,34 @@ class AdminArchitectureGuardTest {
                                 .firstOrNull { type -> trimmed.matches(Regex("""public\s+(?!record\b).*\b$type\b.*\(""")) }
                                 ?.let { type -> "$path:${index + 1}: $type" }
                         }
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
+    private fun findForbiddenImportsUnder(root: Path, vararg forbiddenReferences: String): List<String> {
+        if (!Files.exists(root)) {
+            return emptyList()
+        }
+
+        val paths = Files.walk(root)
+
+        return try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt") }
+                .toList()
+                .flatMap { path ->
+                    Files.readAllLines(path)
+                        .asSequence()
+                        .filter { it.trimStart().startsWith("import ") }
+                        .flatMap { line ->
+                            forbiddenReferences
+                                .filter(line::contains)
+                                .map { pattern -> "$path: $pattern" }
+                        }
+                        .toList()
                 }
         } finally {
             paths.close()

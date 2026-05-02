@@ -3,17 +3,24 @@ package com.beat.admin.application.dto.response;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.beat.admin.application.dto.result.AdminPromotionResult;
+import com.beat.admin.application.dto.result.AdminPromotionResults;
+import com.beat.admin.application.dto.result.AdminPromotionResults.AdminPromotionResult;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record CarouselHandleAllResponse(
-	List<PromotionResponse> modifiedPromotions
+	@JsonProperty("modifiedPromotions")
+	List<PromotionResponse> modifiedPromotionResponses
 ) {
 
-	public static CarouselHandleAllResponse from(List<AdminPromotionResult> promotions) {
-		List<PromotionResponse> modifiedPromotions = promotions.stream()
+	private static CarouselHandleAllResponse fromResponses(List<PromotionResponse> modifiedPromotionResponses) {
+		return new CarouselHandleAllResponse(modifiedPromotionResponses);
+	}
+
+	public static CarouselHandleAllResponse from(AdminPromotionResults promotionResults) {
+		List<PromotionResponse> modifiedPromotionResponses = promotionResults.promotionResults().stream()
 			.map(PromotionResponse::from)
 			.collect(Collectors.toList());
-		return new CarouselHandleAllResponse(modifiedPromotions);
+		return CarouselHandleAllResponse.fromResponses(modifiedPromotionResponses);
 	}
 
 	public record PromotionResponse(
@@ -23,13 +30,18 @@ public record CarouselHandleAllResponse(
 		String redirectUrl,
 		String carouselNumber
 	) {
-		public static PromotionResponse from(AdminPromotionResult promotion) {
-			return new PromotionResponse(
-				promotion.promotionId(),
-				promotion.newImageUrl(),
-				promotion.isExternal(),
-				promotion.redirectUrl(),
-				promotion.carouselNumber().name()
+		private static PromotionResponse of(Long promotionId, String newImageUrl, boolean isExternal,
+			String redirectUrl, String carouselNumber) {
+			return new PromotionResponse(promotionId, newImageUrl, isExternal, redirectUrl, carouselNumber);
+		}
+
+		public static PromotionResponse from(AdminPromotionResult promotionResult) {
+			return PromotionResponse.of(
+				promotionResult.promotionId(),
+				promotionResult.newImageUrl(),
+				promotionResult.isExternal(),
+				promotionResult.redirectUrl(),
+				promotionResult.carouselNumber()
 			);
 		}
 	}

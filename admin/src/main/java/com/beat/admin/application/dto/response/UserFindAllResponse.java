@@ -2,27 +2,22 @@ package com.beat.admin.application.dto.response;
 
 import java.util.List;
 
-import com.beat.admin.application.dto.result.AdminUserResult;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record UserFindAllResponse(
-	List<UserFindResponse> users
+	@JsonProperty("users")
+	List<UserFindResponse> userResponses
 ) {
-	public static UserFindAllResponse from(List<AdminUserResult> users) {
-		List<UserFindResponse> userFindResponses = users.stream()
-			.map(UserFindResponse::from)
-			.toList();
-		return new UserFindAllResponse(userFindResponses);
+	public static UserFindAllResponse from(List<UserFindResponse> userResponses) {
+		return new UserFindAllResponse(userResponses);
 	}
 
 	public record UserFindResponse(
 		Long id,
 		String role
 	) {
-		public static UserFindResponse from(AdminUserResult user) {
-			return new UserFindResponse(
-				user.id(),
-				user.role()
-			);
+		public static UserFindResponse of(Long id, String role) {
+			return new UserFindResponse(id, role);
 		}
 	}
 }

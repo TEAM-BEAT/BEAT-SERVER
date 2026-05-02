@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.TaskScheduler;
@@ -17,18 +18,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.beat.admin.application.AdminCommandService;
-import com.beat.admin.application.AdminQueryService;
+import com.beat.admin.application.service.command.AdminCommandService;
+import com.beat.admin.application.service.query.AdminQueryService;
 import com.beat.admin.facade.AdminFacade;
 import com.beat.admin.support.AbstractAdminIntegrationTest;
 import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
 import com.beat.contracts.storage.FileStoragePort;
-
-import io.swagger.v3.oas.models.OpenAPI;
-import org.springdoc.core.models.GroupedOpenApi;
-
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.promotion.repository.PromotionRepository;
+
+import io.swagger.v3.oas.models.OpenAPI;
 
 class AdminModuleContextBootTest extends AbstractAdminIntegrationTest {
 

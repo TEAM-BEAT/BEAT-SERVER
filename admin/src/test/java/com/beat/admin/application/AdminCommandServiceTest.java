@@ -19,12 +19,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.beat.admin.application.dto.request.AdminCarouselNumber;
 import com.beat.admin.application.dto.request.CarouselHandleRequest;
 import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
 import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
 import com.beat.admin.application.dto.request.PromotionHandleRequest;
 import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
 import com.beat.admin.application.exception.AdminApplicationErrorCode;
+import com.beat.admin.application.service.command.AdminCommandService;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
 import com.beat.domain.member.repository.MemberRepository;
@@ -91,9 +93,9 @@ class AdminCommandServiceTest {
 		});
 
 		CarouselHandleRequest request = new CarouselHandleRequest(List.of(
-			new PromotionModifyRequest(1L, CarouselNumber.THREE, "modified-image", true, "modified-url",
+			new PromotionModifyRequest(1L, AdminCarouselNumber.THREE, "modified-image", true, "modified-url",
 				PERFORMANCE_ID),
-			new PromotionGenerateRequest(CarouselNumber.ONE, "created-image", false, "created-url", null)
+			new PromotionGenerateRequest(AdminCarouselNumber.ONE, "created-image", false, "created-url", null)
 		));
 
 		CarouselHandleAllResponse response =
@@ -105,13 +107,13 @@ class AdminCommandServiceTest {
 		assertEquals(List.of(2L), deleteIdsCaptor.getValue());
 		verify(performanceRepository).findById(PERFORMANCE_ID);
 
-		assertEquals(2, response.modifiedPromotions().size());
-		assertEquals(3L, response.modifiedPromotions().get(0).promotionId());
-		assertEquals("created-image", response.modifiedPromotions().get(0).newImageUrl());
-		assertEquals("ONE", response.modifiedPromotions().get(0).carouselNumber());
-		assertEquals(1L, response.modifiedPromotions().get(1).promotionId());
-		assertEquals("modified-image", response.modifiedPromotions().get(1).newImageUrl());
-		assertEquals("THREE", response.modifiedPromotions().get(1).carouselNumber());
+		assertEquals(2, response.modifiedPromotionResponses().size());
+		assertEquals(3L, response.modifiedPromotionResponses().get(0).promotionId());
+		assertEquals("created-image", response.modifiedPromotionResponses().get(0).newImageUrl());
+		assertEquals("ONE", response.modifiedPromotionResponses().get(0).carouselNumber());
+		assertEquals(1L, response.modifiedPromotionResponses().get(1).promotionId());
+		assertEquals("modified-image", response.modifiedPromotionResponses().get(1).newImageUrl());
+		assertEquals("THREE", response.modifiedPromotionResponses().get(1).carouselNumber());
 	}
 
 	private static Promotion promotion(Long id, String imageUrl, Long performanceId, String redirectUrl,

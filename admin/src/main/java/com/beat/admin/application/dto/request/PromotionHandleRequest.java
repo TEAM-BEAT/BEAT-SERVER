@@ -1,8 +1,8 @@
 package com.beat.admin.application.dto.request;
 
-import static com.beat.admin.application.dto.request.CarouselHandleRequest.*;
+import static com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
+import static com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
 
-import com.beat.domain.promotion.domain.CarouselNumber;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
@@ -16,7 +16,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 })
 public sealed interface PromotionHandleRequest
 	permits PromotionModifyRequest, PromotionGenerateRequest {
-	CarouselNumber carouselNumber();
+	AdminCarouselNumber carouselNumber();
 
 	String newImageUrl();
 

@@ -18,6 +18,7 @@ import com.beat.admin.application.dto.response.BannerPresignedUrlFindResponse;
 import com.beat.admin.application.dto.response.CarouselFindAllResponse;
 import com.beat.admin.application.dto.response.CarouselPresignedUrlFindAllResponse;
 import com.beat.admin.application.dto.response.UserFindAllResponse;
+import com.beat.admin.application.service.query.AdminQueryService;
 import com.beat.contracts.storage.BannerPresignedUrl;
 import com.beat.contracts.storage.CarouselPresignedUrls;
 import com.beat.contracts.storage.FileStoragePort;
@@ -61,11 +62,11 @@ class AdminQueryServiceTest {
 
 		UserFindAllResponse response = adminQueryService.findAllUsers(MEMBER_ID);
 
-		assertEquals(2, response.users().size());
-		assertEquals(1L, response.users().get(0).id());
-		assertEquals("ROLE_USER", response.users().get(0).role());
-		assertEquals(2L, response.users().get(1).id());
-		assertEquals("ROLE_ADMIN", response.users().get(1).role());
+		assertEquals(2, response.userResponses().size());
+		assertEquals(1L, response.userResponses().get(0).id());
+		assertEquals("ROLE_USER", response.userResponses().get(0).role());
+		assertEquals(2L, response.userResponses().get(1).id());
+		assertEquals("ROLE_ADMIN", response.userResponses().get(1).role());
 	}
 
 	@Test
@@ -78,14 +79,14 @@ class AdminQueryServiceTest {
 
 		CarouselFindAllResponse response = adminQueryService.findAllPromotionsSortedByCarouselNumber(MEMBER_ID);
 
-		assertEquals(2, response.carousels().size());
-		assertEquals(1L, response.carousels().get(0).promotionId());
-		assertEquals(CarouselNumber.ONE, response.carousels().get(0).carouselNumber());
-		assertEquals("image-one", response.carousels().get(0).newImageUrl());
-		assertEquals(11L, response.carousels().get(0).performanceId());
-		assertEquals(2L, response.carousels().get(1).promotionId());
-		assertEquals(CarouselNumber.TWO, response.carousels().get(1).carouselNumber());
-		assertEquals("image-two", response.carousels().get(1).newImageUrl());
+		assertEquals(2, response.carouselResponses().size());
+		assertEquals(1L, response.carouselResponses().get(0).promotionId());
+		assertEquals("ONE", response.carouselResponses().get(0).carouselNumber());
+		assertEquals("image-one", response.carouselResponses().get(0).newImageUrl());
+		assertEquals(11L, response.carouselResponses().get(0).performanceId());
+		assertEquals(2L, response.carouselResponses().get(1).promotionId());
+		assertEquals("TWO", response.carouselResponses().get(1).carouselNumber());
+		assertEquals("image-two", response.carouselResponses().get(1).newImageUrl());
 	}
 
 	@Test

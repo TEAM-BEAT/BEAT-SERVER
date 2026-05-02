@@ -1,13 +1,17 @@
 package com.beat.admin.application.dto.response;
 
-import com.beat.contracts.storage.CarouselPresignedUrls;
 import java.util.Map;
+
+import com.beat.contracts.storage.CarouselPresignedUrls;
 
 public record CarouselPresignedUrlFindAllResponse(
 	Map<String, String> carouselPresignedUrls
 ) {
+	private static CarouselPresignedUrlFindAllResponse of(Map<String, String> carouselPresignedUrls) {
+		return new CarouselPresignedUrlFindAllResponse(carouselPresignedUrls);
+	}
 
 	public static CarouselPresignedUrlFindAllResponse from(CarouselPresignedUrls response) {
-		return new CarouselPresignedUrlFindAllResponse(response.carouselPresignedUrls());
+		return CarouselPresignedUrlFindAllResponse.of(response.carouselPresignedUrls());
 	}
 }
