@@ -1,8 +1,7 @@
-package com.beat.apis.performance.application;
+package com.beat.apis.home.application;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -10,22 +9,22 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.apis.performance.application.dto.home.HomeFindAllResponse;
+import com.beat.apis.common.application.ApiEnumMapper;
+import com.beat.apis.home.application.dto.HomeFindAllResponse;
+import com.beat.apis.home.application.dto.HomeFindRequest;
+import com.beat.apis.home.application.dto.HomePerformanceDetail;
+import com.beat.apis.home.application.dto.HomePromotionDetail;
 import com.beat.apis.performance.application.dto.GenreType;
-import com.beat.apis.performance.application.dto.home.HomeFindRequest;
-import com.beat.apis.performance.application.dto.home.HomePerformanceDetail;
-import com.beat.apis.performance.application.dto.home.HomePromotionDetail;
 import com.beat.apis.promotion.application.PromotionService;
 import com.beat.apis.promotion.application.result.PromotionHomeResult;
 import com.beat.apis.schedule.application.ScheduleService;
 import com.beat.apis.schedule.application.dto.response.MinPerformanceDateResponse;
-import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 
 import lombok.RequiredArgsConstructor;
-import com.beat.apis.common.application.ApiEnumMapper;
 
 @Service
 @RequiredArgsConstructor
@@ -44,7 +43,7 @@ public class HomeService {
 		List<HomePromotionDetail> promotionDetails = findAllPromotionsSortedByCarouselNumber();
 
 		if (performances.isEmpty()) {
-			return HomeFindAllResponse.of(promotionDetails, new ArrayList<>());
+			return HomeFindAllResponse.of(promotionDetails, List.of());
 		}
 
 		List<HomePerformanceDetail> sortedPerformances = getSortedPerformanceDetails(performances);

@@ -53,10 +53,12 @@ apis/
 
   src/main/java/com/beat/apis/
     booking/
+    home/
     member/
     performance/
     promotion/
     schedule/
+    ticket/
     user/
     external/
     swagger/

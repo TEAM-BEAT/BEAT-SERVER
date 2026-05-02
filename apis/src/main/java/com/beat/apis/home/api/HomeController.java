@@ -1,18 +1,18 @@
-package com.beat.apis.performance.api;
-
-import com.beat.apis.performance.application.dto.home.HomeFindAllResponse;
-import com.beat.apis.performance.application.dto.GenreType;
-import com.beat.apis.performance.api.response.PerformanceSuccessCode;
-import com.beat.apis.performance.facade.HomeFacade;
-import com.beat.global.common.dto.SuccessResponse;
-
-import lombok.RequiredArgsConstructor;
+package com.beat.apis.home.api;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.beat.apis.home.api.response.HomeSuccessCode;
+import com.beat.apis.home.application.dto.HomeFindAllResponse;
+import com.beat.apis.home.facade.HomeFacade;
+import com.beat.apis.performance.application.dto.GenreType;
+import com.beat.global.common.dto.SuccessResponse;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/main")
@@ -28,6 +28,6 @@ public class HomeController implements HomeApi {
 
 		HomeFindAllResponse homeFindAllResponse = homeFacade.findHomePerformanceList(genre);
 		return ResponseEntity.ok(
-			SuccessResponse.of(PerformanceSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS, homeFindAllResponse));
+			SuccessResponse.of(HomeSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS, homeFindAllResponse));
 	}
 }

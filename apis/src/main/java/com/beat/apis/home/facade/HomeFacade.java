@@ -1,10 +1,10 @@
-package com.beat.apis.performance.facade;
+package com.beat.apis.home.facade;
 
 import org.springframework.stereotype.Service;
 
-import com.beat.apis.performance.application.HomeService;
-import com.beat.apis.performance.application.dto.home.HomeFindAllResponse;
-import com.beat.apis.performance.application.dto.home.HomeFindRequest;
+import com.beat.apis.home.application.HomeService;
+import com.beat.apis.home.application.dto.HomeFindAllResponse;
+import com.beat.apis.home.application.dto.HomeFindRequest;
 import com.beat.apis.performance.application.dto.GenreType;
 
 import lombok.RequiredArgsConstructor;

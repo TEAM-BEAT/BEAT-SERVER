@@ -5,6 +5,7 @@ import com.beat.apis.ticket.api.response.TicketSuccessCode
 import com.beat.apis.booking.application.exception.BookingApplicationErrorCode
 import com.beat.apis.ticket.application.exception.TicketApplicationErrorCode
 import com.beat.apis.external.s3.exception.FileSuccessCode
+import com.beat.apis.home.api.response.HomeSuccessCode
 import com.beat.apis.member.api.response.MemberSuccessCode
 import com.beat.apis.member.application.exception.MemberApplicationErrorCode
 import com.beat.apis.performance.api.response.PerformanceSuccessCode
@@ -50,7 +51,7 @@ class DomainApplicationCodeBoundarySnapshotTest {
             success(PerformanceSuccessCode.PERFORMANCE_MODIFY_PAGE_SUCCESS, 200, "공연 수정 페이지 조회가 성공적으로 완료되었습니다."),
             success(PerformanceSuccessCode.PERFORMANCE_DELETE_SUCCESS, 200, "공연이 성공적으로 삭제되었습니다."),
             success(PerformanceSuccessCode.BOOKING_PERFORMANCE_RETRIEVE_SUCCESS, 200, "예매 관련 공연 정보 조회가 성공적으로 완료되었습니다."),
-            success(PerformanceSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS, 200, "홈 화면 공연 목록 조회가 성공적으로 완료되었습니다."),
+            success(HomeSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS, 200, "홈 화면 공연 목록 조회가 성공적으로 완료되었습니다."),
             success(PerformanceSuccessCode.MAKER_PERFORMANCE_RETRIEVE_SUCCESS, 200, "회원이 등록한 공연 목록의 조회가 성공적으로 완료되었습니다."),
             success(PerformanceSuccessCode.PERFORMANCE_CREATE_SUCCESS, 201, "공연이 성공적으로 생성되었습니다."),
             success(ScheduleSuccessCode.TICKET_AVAILABILITY_RETRIEVAL_SUCCESS, 200, "티켓 수량 조회가 성공적으로 완료되었습니다."),
