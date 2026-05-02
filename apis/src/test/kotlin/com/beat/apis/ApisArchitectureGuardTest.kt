@@ -174,8 +174,9 @@ class ApisArchitectureGuardTest {
                         .asSequence()
                         .filter { it.trimStart().startsWith("import ") }
                         .flatMap { line ->
+                            val normalizedImport = line.trim().removeSuffix(";")
                             forbiddenImports
-                                .filter { forbiddenImport -> line.trim() == "import $forbiddenImport;" }
+                                .filter { forbiddenImport -> normalizedImport == "import $forbiddenImport" }
                                 .map { forbiddenImport -> "${path}: $forbiddenImport" }
                         }
                         .toList()
