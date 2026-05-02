@@ -10,18 +10,19 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.beat.apis.booking.application.dto.BookingRefundRequest;
+import com.beat.apis.booking.application.dto.BookingStatusType;
 import com.beat.apis.booking.application.dto.GuestBookingRequest;
-import com.beat.apis.member.application.dto.request.MemberLoginRequest;
+import com.beat.apis.common.application.ApiEnumMapper;
 import com.beat.apis.home.application.dto.HomeFindAllResponse;
 import com.beat.apis.home.application.dto.HomeFindRequest;
+import com.beat.apis.home.application.dto.HomeGenreType;
 import com.beat.apis.home.application.dto.HomePerformanceDetail;
 import com.beat.apis.home.application.dto.HomePromotionDetail;
-import com.beat.apis.booking.application.dto.BookingStatusType;
+import com.beat.apis.member.application.dto.request.MemberLoginRequest;
 import com.beat.apis.member.application.dto.request.SocialTypeRequest;
 import com.beat.apis.performance.application.dto.BankNameType;
 import com.beat.apis.performance.application.dto.GenreType;
 import com.beat.apis.schedule.application.dto.ScheduleNumberType;
-import com.beat.apis.common.application.ApiEnumMapper;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.member.domain.SocialType;
 import com.beat.domain.performance.domain.BankName;
@@ -39,6 +40,7 @@ class ApisDtoJsonContractTest {
 		assertEquals(List.of("KAKAO"), enumNames(SocialTypeRequest.values()));
 
 		assertEquals(List.of("BAND", "PLAY", "DANCE", "ETC"), enumNames(GenreType.values()));
+		assertEquals(List.of("BAND", "PLAY", "DANCE", "ETC"), enumNames(HomeGenreType.values()));
 
 		assertEquals(List.of(
 			"FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH",
@@ -55,6 +57,7 @@ class ApisDtoJsonContractTest {
 
 		assertSameEnumNames(SocialTypeRequest.values(), SocialType.values());
 		assertSameEnumNames(GenreType.values(), Genre.values());
+		assertSameEnumNames(HomeGenreType.values(), Genre.values());
 		assertSameEnumNames(ScheduleNumberType.values(), ScheduleNumber.values());
 		assertSameEnumNames(BankNameType.values(), BankName.values());
 		assertSameEnumNames(BookingStatusType.values(), BookingStatus.values());
@@ -64,6 +67,7 @@ class ApisDtoJsonContractTest {
 	void apiEnumMapperConvertsByNameOnlyAtApplicationBoundary() {
 		assertEquals(SocialType.KAKAO, ApiEnumMapper.toDomain(SocialTypeRequest.KAKAO, SocialType.class));
 		assertEquals(Genre.BAND, ApiEnumMapper.toDomain(GenreType.BAND, Genre.class));
+		assertEquals(Genre.BAND, ApiEnumMapper.toDomain(HomeGenreType.BAND, Genre.class));
 		assertEquals(ScheduleNumber.FIRST, ApiEnumMapper.toDomain(ScheduleNumberType.FIRST, ScheduleNumber.class));
 		assertEquals(BankName.KAKAOBANK, ApiEnumMapper.toDomain(BankNameType.KAKAOBANK, BankName.class));
 		assertEquals(BookingStatus.CHECKING_PAYMENT,
@@ -71,6 +75,7 @@ class ApisDtoJsonContractTest {
 
 		assertEquals(SocialTypeRequest.KAKAO, ApiEnumMapper.fromDomain(SocialType.KAKAO, SocialTypeRequest.class));
 		assertEquals(GenreType.BAND, ApiEnumMapper.fromDomain(Genre.BAND, GenreType.class));
+		assertEquals(HomeGenreType.BAND, ApiEnumMapper.fromDomain(Genre.BAND, HomeGenreType.class));
 		assertEquals(ScheduleNumberType.FIRST, ApiEnumMapper.fromDomain(ScheduleNumber.FIRST, ScheduleNumberType.class));
 		assertEquals(BankNameType.KAKAOBANK, ApiEnumMapper.fromDomain(BankName.KAKAOBANK, BankNameType.class));
 		assertEquals(BookingStatusType.CHECKING_PAYMENT,
@@ -80,7 +85,7 @@ class ApisDtoJsonContractTest {
 	@Test
 	void domainEnumRequestJsonStringValuesStayCompatibleAcrossApiBoundaryMigration() throws Exception {
 		MemberLoginRequest memberLoginRequest = new MemberLoginRequest(SocialTypeRequest.KAKAO);
-		HomeFindRequest homeFindRequest = new HomeFindRequest(GenreType.BAND);
+		HomeFindRequest homeFindRequest = new HomeFindRequest(HomeGenreType.BAND);
 		BookingRefundRequest bookingRefundRequest = new BookingRefundRequest(1L, BankNameType.KAKAOBANK, "123", "holder");
 		GuestBookingRequest guestBookingRequest = GuestBookingRequest.of(
 			1L,
@@ -103,7 +108,7 @@ class ApisDtoJsonContractTest {
 
 		assertEquals(SocialTypeRequest.KAKAO,
 			objectMapper.readValue("{\"socialType\":\"KAKAO\"}", MemberLoginRequest.class).socialType());
-		assertEquals(GenreType.BAND, objectMapper.readValue("{\"genre\":\"BAND\"}", HomeFindRequest.class).genre());
+		assertEquals(HomeGenreType.BAND, objectMapper.readValue("{\"genre\":\"BAND\"}", HomeFindRequest.class).genre());
 		assertEquals(BankNameType.KAKAOBANK, objectMapper.readValue(
 			"{\"bookingId\":1,\"bankName\":\"KAKAOBANK\",\"accountNumber\":\"123\",\"accountHolder\":\"holder\"}",
 			BookingRefundRequest.class

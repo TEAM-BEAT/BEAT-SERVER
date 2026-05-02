@@ -12,9 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.beat.apis.common.application.ApiEnumMapper;
 import com.beat.apis.home.application.dto.HomeFindAllResponse;
 import com.beat.apis.home.application.dto.HomeFindRequest;
+import com.beat.apis.home.application.dto.HomeGenreType;
 import com.beat.apis.home.application.dto.HomePerformanceDetail;
 import com.beat.apis.home.application.dto.HomePromotionDetail;
-import com.beat.apis.performance.application.dto.GenreType;
 import com.beat.apis.promotion.application.PromotionService;
 import com.beat.apis.promotion.application.result.PromotionHomeResult;
 import com.beat.apis.schedule.application.ScheduleService;
@@ -52,7 +52,7 @@ public class HomeService {
 	}
 
 	private List<Performance> findPerformancesByGenre(HomeFindRequest homeFindRequest) {
-		GenreType genre = homeFindRequest.genre();
+		HomeGenreType genre = homeFindRequest.genre();
 
 		if (genre != null) {
 			return performanceRepository.findByGenre(ApiEnumMapper.toDomain(genre, Genre.class));

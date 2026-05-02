@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.beat.apis.home.api.response.HomeSuccessCode;
 import com.beat.apis.home.application.dto.HomeFindAllResponse;
 import com.beat.apis.home.facade.HomeFacade;
-import com.beat.apis.performance.application.dto.GenreType;
+import com.beat.apis.home.application.dto.HomeGenreType;
 import com.beat.global.common.dto.SuccessResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ public class HomeController implements HomeApi {
 	@Override
 	@GetMapping
 	public ResponseEntity<SuccessResponse<HomeFindAllResponse>> getHomePerformanceList(
-		@RequestParam(required = false) GenreType genre) {
+		@RequestParam(required = false) HomeGenreType genre) {
 
 		HomeFindAllResponse homeFindAllResponse = homeFacade.findHomePerformanceList(genre);
 		return ResponseEntity.ok(
