@@ -19,6 +19,7 @@ import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
+import com.beat.global.common.exception.BadRequestException;
 import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class AdminCommandService {
 		List<PromotionGenerateRequest> generateRequests = new ArrayList<>();
 		Set<Long> requestPromotionIds = new HashSet<>();
 
+		validateCarouselHandleRequest(request);
 		categorizePromotionRequestsByPromotionId(request, modifyRequests, generateRequests, requestPromotionIds);
 
 		List<Promotion> allExistingPromotions = promotionRepository.findAll();
@@ -51,6 +53,12 @@ public class AdminCommandService {
 		);
 	}
 
+	private void validateCarouselHandleRequest(CarouselHandleRequest request) {
+		if (request == null || request.carousels() == null) {
+			throw new BadRequestException(AdminApplicationErrorCode.INVALID_REQUEST_FORMAT);
+		}
+	}
+
 	private void categorizePromotionRequestsByPromotionId(CarouselHandleRequest request,
 		List<PromotionModifyRequest> modifyRequests, List<PromotionGenerateRequest> generateRequests,
 		Set<Long> requestPromotionIds) {
@@ -59,9 +67,15 @@ public class AdminCommandService {
 			if (promotionRequest instanceof PromotionModifyRequest modifyRequest) {
 				modifyRequests.add(modifyRequest);
 				requestPromotionIds.add(modifyRequest.promotionId());
-			} else if (promotionRequest instanceof PromotionGenerateRequest generateRequest) {
-				generateRequests.add(generateRequest);
+				continue;
 			}
+
+			if (promotionRequest instanceof PromotionGenerateRequest generateRequest) {
+				generateRequests.add(generateRequest);
+				continue;
+			}
+
+			throw new BadRequestException(AdminApplicationErrorCode.INVALID_REQUEST_FORMAT);
 		}
 	}
 

@@ -1,10 +1,14 @@
 package com.beat.admin.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,7 +22,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.beat.admin.application.dto.request.CarouselHandleRequest;
 import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
 import com.beat.admin.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
+import com.beat.admin.application.dto.request.PromotionHandleRequest;
 import com.beat.admin.application.dto.response.CarouselHandleAllResponse;
+import com.beat.admin.application.exception.AdminApplicationErrorCode;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
 import com.beat.domain.member.repository.MemberRepository;
@@ -29,6 +35,7 @@ import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.promotion.domain.CarouselNumber;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
+import com.beat.global.common.exception.BadRequestException;
 
 @ExtendWith(MockitoExtension.class)
 class AdminCommandServiceTest {
@@ -47,6 +54,23 @@ class AdminCommandServiceTest {
 
 	@InjectMocks
 	private AdminCommandService adminCommandService;
+
+	@Test
+	void processAllPromotionsRejectsInvalidCarouselItemBeforeMutation() {
+		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
+		CarouselHandleRequest request = new CarouselHandleRequest(
+			Collections.<PromotionHandleRequest>singletonList(null)
+		);
+
+		BadRequestException exception = assertThrows(BadRequestException.class,
+			() -> adminCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, request));
+
+		assertEquals(AdminApplicationErrorCode.INVALID_REQUEST_FORMAT, exception.getBaseErrorCode());
+		verify(promotionRepository, never()).findAll();
+		verify(promotionRepository, never()).deleteByPromotionIds(any());
+		verify(promotionRepository, never()).save(any());
+		verifyNoInteractions(performanceRepository);
+	}
 
 	@Test
 	void processAllPromotionsPreservesDeletionSaveAndSortedResponseBehavior() {

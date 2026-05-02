@@ -525,6 +525,9 @@ class SharedBoundaryContractTest {
 				"USER_NOT_FOUND(404, \"유저가 없습니다\")"),
 			() -> assertSourceContains(
 				Path.of("admin/src/main/kotlin/com/beat/admin/application/exception/AdminApplicationErrorCode.kt"),
+				"INVALID_REQUEST_FORMAT(400, \"잘못된 요청 형식입니다.\")"),
+			() -> assertSourceContains(
+				Path.of("admin/src/main/kotlin/com/beat/admin/application/exception/AdminApplicationErrorCode.kt"),
 				"MEMBER_NOT_FOUND(404, \"회원이 없습니다\")"),
 			() -> assertSourceContains(
 				Path.of("admin/src/main/kotlin/com/beat/admin/application/exception/AdminApplicationErrorCode.kt"),
