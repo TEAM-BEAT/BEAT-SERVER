@@ -303,8 +303,8 @@ sequenceDiagram
 
 - command/query service를 의미합니다.
 - use-case와 transaction boundary를 소유합니다.
-- 이 계층만 유스케이스 내부에서 Domain model을 조회/변경/정책 판단에 사용할 수 있습니다.
-- Domain model은 이 계층 밖으로 반환하지 않습니다.
+- 이 계층만 유스케이스 method 내부에서 Domain model을 조회/변경/정책 판단에 사용할 수 있습니다.
+- Domain model은 이 계층 밖으로 반환하지 않습니다. 다른 ApplicationService에 raw Domain model을 반환하는 public helper method를 새로 만들지 않습니다.
 - 순수 domain rule은 Entity/VO/DomainService에 위임합니다.
 - repository lookup, actor validation, request/use-case validation은 admin application flow로 처리합니다.
 
@@ -336,6 +336,7 @@ flowchart TB
 
 - command service는 상태 변경 흐름과 transaction을 소유합니다.
 - query service는 admin-facing 조회와 response 조립을 소유합니다.
+- command/query service 간 공유가 필요하면 raw Domain model이 아니라 primitive/value/result/read model을 반환합니다.
 - 단순 조회는 domain repository contract를 사용할 수 있습니다.
 - 목록/검색/정렬/통계/projection 조회가 커지면 domain repository를 키우지 않고 `module-contracts` read port/read model과 infra query adapter를 검토합니다.
 - query service는 JPA Entity, QueryDSL Q type, EntityManager, infra persistence mapper를 직접 사용하지 않습니다.
@@ -384,6 +385,7 @@ Controller -> Facade -> QueryService A -> QueryResult A
 - Domain model에서 필요한 primitive/value 추출은 ApplicationService 내부 private method나 내부 assembler에서 끝냅니다.
 - Result는 기본 계층이 아닙니다. Facade 조합이 필요하거나 같은 service output을 여러 response shape로 재사용할 때만 둡니다.
 - Result도 raw Domain model, JPA Entity, infra projection row를 필드로 담지 않습니다.
+- 다른 ApplicationService가 재사용해야 하는 출력이면 raw Domain model을 반환하지 말고 목적이 드러나는 Result 또는 ReadModel을 먼저 정의합니다.
 - DTO 이름은 API/관리자 응답 shape임이 드러나야 합니다. 도메인 이름만 단독으로 쓰지 않습니다.
 
 좋은 예:
