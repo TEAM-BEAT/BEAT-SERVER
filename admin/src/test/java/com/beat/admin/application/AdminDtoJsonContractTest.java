@@ -10,6 +10,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.beat.admin.common.application.converter.AdminCarouselNumberEnumConverter;
 import com.beat.admin.promotion.application.dto.request.AdminCarouselNumber;
 import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest;
 import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
@@ -36,6 +37,9 @@ class AdminDtoJsonContractTest {
 			.toList();
 
 		assertEquals(domainEnumNames, requestEnumNames);
+		assertEquals(CarouselNumber.ONE, AdminCarouselNumberEnumConverter.toDomain(AdminCarouselNumber.ONE));
+		assertEquals(AdminCarouselNumber.ONE, AdminCarouselNumberEnumConverter.toApi(CarouselNumber.ONE));
+		assertEquals("ONE", AdminCarouselNumberEnumConverter.toApiName(CarouselNumber.ONE));
 	}
 
 	@Test

@@ -1,5 +1,6 @@
 package com.beat.apis.member.application;
 
+import com.beat.apis.common.application.converter.SocialTypeEnumConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +21,6 @@ import com.beat.global.common.exception.UnauthorizedException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import com.beat.apis.common.application.ApiEnumMapper;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -45,7 +45,7 @@ public class SocialLoginService {
 	@Transactional
 	public LoginSuccessResponse handleSocialLogin(final String authorizationCode,
 		final MemberLoginRequest loginRequest) {
-		SocialType socialType = ApiEnumMapper.toDomain(loginRequest.socialType(), SocialType.class);
+		SocialType socialType = SocialTypeEnumConverter.toDomain(loginRequest.socialType());
 		SocialLoginRequest request = new SocialLoginRequest(authorizationCode, toContractSocialType(socialType));
 		try {
 			SocialMemberInfo socialMemberInfo = socialLoginPort.login(request);

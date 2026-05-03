@@ -62,7 +62,6 @@ class BookingPersistenceMapperTest {
 			1,
 			"new-booker",
 			"010-0000-0000",
-			BookingStatus.CHECKING_PAYMENT,
 			"000101",
 			"pw",
 			null,

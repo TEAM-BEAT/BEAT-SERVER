@@ -1,5 +1,8 @@
 package com.beat.apis.booking.application;
 
+import com.beat.apis.common.application.converter.BookingStatusEnumConverter;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -10,7 +13,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.beat.apis.booking.application.dto.MemberBookingRetrieveResponse;
-import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.member.domain.Member;
@@ -29,9 +31,6 @@ import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
 import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
 import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 import com.beat.apis.user.application.exception.UserApplicationErrorCode;
-import com.beat.apis.common.application.ApiEnumMapper;
-import com.beat.apis.booking.application.dto.BookingStatusType;
-import com.beat.apis.performance.application.dto.BankNameType;
 
 @Service
 @RequiredArgsConstructor
@@ -97,14 +96,14 @@ public class MemberBookingRetrieveService {
 			schedule.getPerformanceDate(),
 			performance.getPerformanceVenue(),
 			booking.getPurchaseTicketCount(),
-			ApiEnumMapper.fromDomain(schedule.getScheduleNumber(), ScheduleNumberType.class),
+			ScheduleNumberEnumConverter.toApi(schedule.getScheduleNumber()),
 			booking.getBookerName(),
 			performance.getPerformanceContact(),
-			ApiEnumMapper.fromDomain(performance.getBankName(), BankNameType.class),
+			BankNameEnumConverter.toApi(performance.getBankName()),
 			performance.getAccountNumber(),
 			performance.getAccountHolder(),
 			scheduleDomainService.calculateDueDate(today, schedule),
-			ApiEnumMapper.fromDomain(booking.getBookingStatus(), BookingStatusType.class),
+			BookingStatusEnumConverter.toApi(booking.getBookingStatus()),
 			booking.getCreatedAt(),
 			performance.getPosterImage(),
 			totalPaymentAmount

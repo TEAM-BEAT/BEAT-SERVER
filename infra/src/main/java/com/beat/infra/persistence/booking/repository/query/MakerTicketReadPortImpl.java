@@ -5,7 +5,9 @@ import java.util.List;
 import org.springframework.stereotype.Repository;
 
 import com.beat.contracts.booking.MakerTicketReadPort;
+import com.beat.contracts.booking.readmodel.MakerTicketBookingStatus;
 import com.beat.contracts.booking.readmodel.MakerTicketListItemReadModel;
+import com.beat.contracts.booking.readmodel.MakerTicketScheduleNumber;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.schedule.domain.ScheduleNumber;
@@ -24,8 +26,8 @@ public class MakerTicketReadPortImpl implements MakerTicketReadPort {
 	}
 
 	@Override
-	public List<MakerTicketListItemReadModel> findTickets(Long performanceId, List<String> scheduleNumberNames,
-		List<String> bookingStatusNames) {
+	public List<MakerTicketListItemReadModel> findTickets(Long performanceId,
+		List<MakerTicketScheduleNumber> scheduleNumberNames, List<MakerTicketBookingStatus> bookingStatusNames) {
 		List<ScheduleNumber> scheduleNumbers = toScheduleNumbers(scheduleNumberNames);
 		List<BookingStatus> bookingStatuses = toBookingStatuses(bookingStatusNames);
 
@@ -45,7 +47,7 @@ public class MakerTicketReadPortImpl implements MakerTicketReadPort {
 
 	@Override
 	public List<MakerTicketListItemReadModel> searchTickets(Long performanceId, String searchWord,
-		List<String> scheduleNumberNames, List<String> bookingStatusNames) {
+		List<MakerTicketScheduleNumber> scheduleNumberNames, List<MakerTicketBookingStatus> bookingStatusNames) {
 		if (searchWord == null || searchWord.isBlank()) {
 			return List.of();
 		}
@@ -136,22 +138,57 @@ public class MakerTicketReadPortImpl implements MakerTicketReadPort {
 		}
 	}
 
-	private List<ScheduleNumber> toScheduleNumbers(List<String> scheduleNumbers) {
+	private List<ScheduleNumber> toScheduleNumbers(List<MakerTicketScheduleNumber> scheduleNumbers) {
 		if (scheduleNumbers == null || scheduleNumbers.isEmpty()) {
 			return List.of();
 		}
 		return scheduleNumbers.stream()
-			.map(ScheduleNumber::valueOf)
+			.map(this::toScheduleNumber)
 			.toList();
 	}
 
-	private List<BookingStatus> toBookingStatuses(List<String> bookingStatuses) {
+	private List<BookingStatus> toBookingStatuses(List<MakerTicketBookingStatus> bookingStatuses) {
 		if (bookingStatuses == null || bookingStatuses.isEmpty()) {
 			return List.of();
 		}
 		return bookingStatuses.stream()
-			.map(BookingStatus::valueOf)
+			.map(this::toBookingStatus)
 			.toList();
+	}
+
+	private ScheduleNumber toScheduleNumber(MakerTicketScheduleNumber scheduleNumber) {
+		return switch (scheduleNumber) {
+			case FIRST -> ScheduleNumber.FIRST;
+			case SECOND -> ScheduleNumber.SECOND;
+			case THIRD -> ScheduleNumber.THIRD;
+			case FOURTH -> ScheduleNumber.FOURTH;
+			case FIFTH -> ScheduleNumber.FIFTH;
+			case SIXTH -> ScheduleNumber.SIXTH;
+			case SEVENTH -> ScheduleNumber.SEVENTH;
+			case EIGHTH -> ScheduleNumber.EIGHTH;
+			case NINTH -> ScheduleNumber.NINTH;
+			case TENTH -> ScheduleNumber.TENTH;
+		};
+	}
+
+	private BookingStatus toBookingStatus(MakerTicketBookingStatus bookingStatus) {
+		return switch (bookingStatus) {
+			case CHECKING_PAYMENT -> BookingStatus.CHECKING_PAYMENT;
+			case BOOKING_CONFIRMED -> BookingStatus.BOOKING_CONFIRMED;
+			case BOOKING_CANCELLED -> BookingStatus.BOOKING_CANCELLED;
+			case REFUND_REQUESTED -> BookingStatus.REFUND_REQUESTED;
+			case BOOKING_DELETED -> BookingStatus.BOOKING_DELETED;
+		};
+	}
+
+	private MakerTicketBookingStatus toMakerTicketBookingStatus(BookingStatus bookingStatus) {
+		return switch (bookingStatus) {
+			case CHECKING_PAYMENT -> MakerTicketBookingStatus.CHECKING_PAYMENT;
+			case BOOKING_CONFIRMED -> MakerTicketBookingStatus.BOOKING_CONFIRMED;
+			case BOOKING_CANCELLED -> MakerTicketBookingStatus.BOOKING_CANCELLED;
+			case REFUND_REQUESTED -> MakerTicketBookingStatus.REFUND_REQUESTED;
+			case BOOKING_DELETED -> MakerTicketBookingStatus.BOOKING_DELETED;
+		};
 	}
 
 	private List<MakerTicketListItemReadModel> toReadModels(List<BookingJpaEntity> entities) {
@@ -168,7 +205,7 @@ public class MakerTicketReadPortImpl implements MakerTicketReadPort {
 			entity.getScheduleId(),
 			entity.getPurchaseTicketCount(),
 			entity.getCreatedAt(),
-			entity.getBookingStatus().name(),
+			toMakerTicketBookingStatus(entity.getBookingStatus()),
 			toBankName(entity.getBankName()),
 			nullToEmpty(entity.getAccountNumber()),
 			nullToEmpty(entity.getAccountHolder())

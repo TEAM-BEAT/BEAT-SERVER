@@ -23,7 +23,6 @@ import com.beat.apis.booking.application.dto.MemberBookingRetrieveResponse;
 import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
-import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
 import com.beat.domain.member.repository.MemberRepository;
@@ -208,7 +207,6 @@ class BookingRetrieveServiceBatchLookupTest {
 			purchaseTicketCount,
 			"홍길동",
 			"010-1234-5678",
-			BookingStatus.CHECKING_PAYMENT,
 			"990101",
 			"1234",
 			BankName.NONE,

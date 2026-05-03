@@ -2,7 +2,6 @@ package com.beat.apis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
@@ -13,7 +12,14 @@ import org.junit.jupiter.api.Test;
 import com.beat.apis.booking.application.dto.BookingRefundRequest;
 import com.beat.apis.booking.application.dto.BookingStatusType;
 import com.beat.apis.booking.application.dto.GuestBookingRequest;
-import com.beat.apis.common.application.ApiEnumMapper;
+import com.beat.apis.booking.application.dto.GuestBookingResponse;
+import com.beat.apis.booking.application.dto.MemberBookingRequest;
+import com.beat.apis.booking.application.dto.MemberBookingResponse;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.BookingStatusEnumConverter;
+import com.beat.apis.common.application.converter.GenreEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
+import com.beat.apis.common.application.converter.SocialTypeEnumConverter;
 import com.beat.apis.home.application.dto.HomeFindAllResponse;
 import com.beat.apis.home.application.dto.HomeFindRequest;
 import com.beat.apis.home.application.dto.HomeGenreType;
@@ -24,6 +30,8 @@ import com.beat.apis.member.application.dto.request.SocialTypeRequest;
 import com.beat.apis.performance.application.dto.BankNameType;
 import com.beat.apis.performance.application.dto.GenreType;
 import com.beat.apis.schedule.application.dto.ScheduleNumberType;
+import com.beat.contracts.booking.readmodel.MakerTicketBookingStatus;
+import com.beat.contracts.booking.readmodel.MakerTicketScheduleNumber;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.member.domain.SocialType;
 import com.beat.domain.performance.domain.BankName;
@@ -65,34 +73,51 @@ class ApisDtoJsonContractTest {
 	}
 
 	@Test
-	void apiEnumMapperConvertsByNameOnlyAtApplicationBoundary() {
-		assertEquals(SocialType.KAKAO, ApiEnumMapper.toDomain(SocialTypeRequest.KAKAO, SocialType.class));
-		assertEquals(Genre.BAND, ApiEnumMapper.toDomain(GenreType.BAND, Genre.class));
-		assertEquals(Genre.BAND, ApiEnumMapper.toDomain(HomeGenreType.BAND, Genre.class));
-		assertEquals(ScheduleNumber.FIRST, ApiEnumMapper.toDomain(ScheduleNumberType.FIRST, ScheduleNumber.class));
-		assertEquals(BankName.KAKAOBANK, ApiEnumMapper.toDomain(BankNameType.KAKAOBANK, BankName.class));
+	void explicitEnumConvertersPreserveApplicationBoundaryMappings() {
+		assertEquals(SocialType.KAKAO, SocialTypeEnumConverter.toDomain(SocialTypeRequest.KAKAO));
+		assertEquals(Genre.BAND, GenreEnumConverter.toDomain(GenreType.BAND));
+		assertEquals(Genre.BAND, GenreEnumConverter.toDomain(HomeGenreType.BAND));
+		assertEquals(ScheduleNumber.FIRST, ScheduleNumberEnumConverter.toDomain(ScheduleNumberType.FIRST));
+		assertEquals(BankName.KAKAOBANK, BankNameEnumConverter.toDomain(BankNameType.KAKAOBANK));
 		assertEquals(BookingStatus.CHECKING_PAYMENT,
-			ApiEnumMapper.toDomain(BookingStatusType.CHECKING_PAYMENT, BookingStatus.class));
+			BookingStatusEnumConverter.toDomainForTicketUpdate(BookingStatusType.CHECKING_PAYMENT));
+		assertEquals(MakerTicketBookingStatus.CHECKING_PAYMENT,
+			BookingStatusEnumConverter.toMakerTicketStatus(BookingStatusType.CHECKING_PAYMENT));
+		assertEquals(MakerTicketScheduleNumber.FIRST,
+			ScheduleNumberEnumConverter.toMakerTicketScheduleNumber(ScheduleNumberType.FIRST));
+		assertEquals(MakerTicketScheduleNumber.FIRST,
+			ScheduleNumberEnumConverter.toMakerTicketScheduleNumber(ScheduleNumber.FIRST));
 
-		assertEquals(SocialTypeRequest.KAKAO, ApiEnumMapper.fromDomain(SocialType.KAKAO, SocialTypeRequest.class));
-		assertEquals(GenreType.BAND, ApiEnumMapper.fromDomain(Genre.BAND, GenreType.class));
-		assertEquals(HomeGenreType.BAND, ApiEnumMapper.fromDomain(Genre.BAND, HomeGenreType.class));
-		assertEquals(ScheduleNumberType.FIRST, ApiEnumMapper.fromDomain(ScheduleNumber.FIRST, ScheduleNumberType.class));
-		assertEquals(BankNameType.KAKAOBANK, ApiEnumMapper.fromDomain(BankName.KAKAOBANK, BankNameType.class));
+		assertEquals(GenreType.BAND, GenreEnumConverter.toPerformanceApi(Genre.BAND));
+		assertEquals(HomeGenreType.BAND, GenreEnumConverter.toHomeApi(Genre.BAND));
+		assertEquals(ScheduleNumberType.FIRST, ScheduleNumberEnumConverter.toApi(ScheduleNumber.FIRST));
+		assertEquals(BankNameType.KAKAOBANK, BankNameEnumConverter.toApi(BankName.KAKAOBANK));
 		assertEquals(BookingStatusType.CHECKING_PAYMENT,
-			ApiEnumMapper.fromDomain(BookingStatus.CHECKING_PAYMENT, BookingStatusType.class));
+			BookingStatusEnumConverter.toApi(BookingStatus.CHECKING_PAYMENT));
+		assertEquals(BookingStatusType.CHECKING_PAYMENT,
+			BookingStatusEnumConverter.toApi(MakerTicketBookingStatus.CHECKING_PAYMENT));
+		assertEquals("FIRST", ScheduleNumberEnumConverter.toApiName(ScheduleNumber.FIRST));
 	}
 
 	@Test
-	void apiEnumMapperFailureShouldExposeSourceAndTargetEnumTypes() {
-		IllegalArgumentException exception = assertThrows(
-			IllegalArgumentException.class,
-			() -> ApiEnumMapper.toDomain(ApiOnlyStatus.API_ONLY, DomainOnlyStatus.class)
-		);
+	void explicitEnumConvertersPreserveNullPassthrough() {
+		assertEquals(null, SocialTypeEnumConverter.toDomain(null));
+		assertEquals(null, GenreEnumConverter.toDomain((GenreType)null));
+		assertEquals(null, GenreEnumConverter.toDomain((HomeGenreType)null));
+		assertEquals(null, ScheduleNumberEnumConverter.toDomain(null));
+		assertEquals(null, BankNameEnumConverter.toDomain(null));
+		assertEquals(null, BookingStatusEnumConverter.toDomainForTicketUpdate(null));
+		assertEquals(null, BookingStatusEnumConverter.toMakerTicketStatus(null));
+		assertEquals(null, ScheduleNumberEnumConverter.toMakerTicketScheduleNumber((ScheduleNumberType)null));
+		assertEquals(null, ScheduleNumberEnumConverter.toMakerTicketScheduleNumber((ScheduleNumber)null));
 
-		assertTrue(exception.getMessage().contains("API_ONLY"));
-		assertTrue(exception.getMessage().contains(ApiOnlyStatus.class.getName()));
-		assertTrue(exception.getMessage().contains(DomainOnlyStatus.class.getName()));
+		assertEquals(null, GenreEnumConverter.toPerformanceApi(null));
+		assertEquals(null, GenreEnumConverter.toHomeApi(null));
+		assertEquals(null, ScheduleNumberEnumConverter.toApi(null));
+		assertEquals(null, BankNameEnumConverter.toApi(null));
+		assertEquals(null, BookingStatusEnumConverter.toApi((BookingStatus)null));
+		assertEquals(null, BookingStatusEnumConverter.toApi((MakerTicketBookingStatus)null));
+		assertEquals(null, ScheduleNumberEnumConverter.toApiName(null));
 	}
 
 	@Test
@@ -111,6 +136,15 @@ class ApisDtoJsonContractTest {
 			20000,
 			BookingStatusType.CHECKING_PAYMENT
 		);
+		MemberBookingRequest memberBookingRequest = new MemberBookingRequest(
+			1L,
+			ScheduleNumberType.FIRST,
+			2,
+			"booker",
+			"010-0000-0000",
+			BookingStatusType.CHECKING_PAYMENT,
+			20000
+		);
 
 		assertTextField(objectMapper.valueToTree(memberLoginRequest), "socialType", "KAKAO");
 		assertTextField(objectMapper.valueToTree(homeFindRequest), "genre", "BAND");
@@ -118,6 +152,9 @@ class ApisDtoJsonContractTest {
 		JsonNode guestBookingJson = objectMapper.valueToTree(guestBookingRequest);
 		assertTextField(guestBookingJson, "scheduleNumber", "FIRST");
 		assertTextField(guestBookingJson, "bookingStatus", "CHECKING_PAYMENT");
+		JsonNode memberBookingJson = objectMapper.valueToTree(memberBookingRequest);
+		assertTextField(memberBookingJson, "scheduleNumber", "FIRST");
+		assertTextField(memberBookingJson, "bookingStatus", "CHECKING_PAYMENT");
 
 		assertEquals(SocialTypeRequest.KAKAO,
 			objectMapper.readValue("{\"socialType\":\"KAKAO\"}", MemberLoginRequest.class).socialType());
@@ -134,6 +171,56 @@ class ApisDtoJsonContractTest {
 		);
 		assertEquals(ScheduleNumberType.FIRST, parsedGuestBookingRequest.scheduleNumber());
 		assertEquals(BookingStatusType.CHECKING_PAYMENT, parsedGuestBookingRequest.bookingStatus());
+		MemberBookingRequest parsedMemberBookingRequest = objectMapper.readValue(
+			"{\"scheduleId\":1,\"scheduleNumber\":\"FIRST\",\"purchaseTicketCount\":2,"
+				+ "\"bookerName\":\"booker\",\"bookerPhoneNumber\":\"010-0000-0000\","
+				+ "\"bookingStatus\":\"CHECKING_PAYMENT\",\"totalPaymentAmount\":20000}",
+			MemberBookingRequest.class
+		);
+		assertEquals(ScheduleNumberType.FIRST, parsedMemberBookingRequest.scheduleNumber());
+		assertEquals(BookingStatusType.CHECKING_PAYMENT, parsedMemberBookingRequest.bookingStatus());
+	}
+
+	@Test
+	void bookingResponseJsonStringValuesStayCompatibleAcrossApiBoundaryMigration() {
+		GuestBookingResponse guestBookingResponse = GuestBookingResponse.of(
+			10L,
+			1L,
+			30L,
+			2,
+			ScheduleNumberType.FIRST,
+			"booker",
+			"010-0000-0000",
+			BookingStatusType.CHECKING_PAYMENT,
+			BankNameType.KAKAOBANK,
+			"123",
+			20000,
+			null
+		);
+		MemberBookingResponse memberBookingResponse = MemberBookingResponse.of(
+			10L,
+			1L,
+			30L,
+			2,
+			ScheduleNumberType.FIRST,
+			"booker",
+			"010-0000-0000",
+			BookingStatusType.CHECKING_PAYMENT,
+			BankNameType.KAKAOBANK,
+			"123",
+			20000,
+			null
+		);
+
+		JsonNode guestJson = objectMapper.valueToTree(guestBookingResponse);
+		assertTextField(guestJson, "scheduleNumber", "FIRST");
+		assertTextField(guestJson, "bookingStatus", "CHECKING_PAYMENT");
+		assertTextField(guestJson, "bankName", "KAKAOBANK");
+
+		JsonNode memberJson = objectMapper.valueToTree(memberBookingResponse);
+		assertTextField(memberJson, "scheduleNumber", "FIRST");
+		assertTextField(memberJson, "bookingStatus", "CHECKING_PAYMENT");
+		assertTextField(memberJson, "bankName", "KAKAOBANK");
 	}
 
 	@Test
@@ -157,13 +244,6 @@ class ApisDtoJsonContractTest {
 		assertEquals("BAND", performance.get("genre").asText());
 	}
 
-	private enum ApiOnlyStatus {
-		API_ONLY
-	}
-
-	private enum DomainOnlyStatus {
-		DOMAIN_ONLY
-	}
 
 	private List<String> enumNames(Enum<?>[] values) {
 		return Arrays.stream(values).map(Enum::name).toList();

@@ -1,5 +1,6 @@
 package com.beat.apis.home.application;
 
+import com.beat.apis.common.application.converter.GenreEnumConverter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -9,7 +10,6 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.apis.common.application.ApiEnumMapper;
 import com.beat.apis.home.application.dto.HomeFindAllResponse;
 import com.beat.apis.home.application.dto.HomeFindRequest;
 import com.beat.apis.home.application.dto.HomeGenreType;
@@ -19,7 +19,6 @@ import com.beat.apis.promotion.application.PromotionService;
 import com.beat.apis.promotion.application.result.PromotionHomeResult;
 import com.beat.apis.schedule.application.ScheduleService;
 import com.beat.apis.schedule.application.dto.response.MinPerformanceDateResponse;
-import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.service.ScheduleDomainService;
@@ -55,7 +54,7 @@ public class HomeService {
 		HomeGenreType genre = homeFindRequest.genre();
 
 		if (genre != null) {
-			return performanceRepository.findByGenre(ApiEnumMapper.toDomain(genre, Genre.class));
+			return performanceRepository.findByGenre(GenreEnumConverter.toDomain(genre));
 		}
 
 		return performanceRepository.findAll();

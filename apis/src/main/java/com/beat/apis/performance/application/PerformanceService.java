@@ -1,5 +1,8 @@
 package com.beat.apis.performance.application;
 
+import com.beat.apis.common.application.converter.GenreEnumConverter;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -9,14 +12,12 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.apis.performance.application.dto.GenreType;
 import com.beat.apis.performance.application.dto.bookingPerformanceDetail.BookingPerformanceDetailResponse;
 import com.beat.apis.performance.application.dto.bookingPerformanceDetail.BookingPerformanceDetailScheduleResponse;
 import com.beat.apis.performance.application.dto.create.CastResponse;
 import com.beat.apis.performance.application.dto.create.PerformanceImageResponse;
 import com.beat.apis.performance.application.dto.create.ScheduleResponse;
 import com.beat.apis.performance.application.dto.create.StaffResponse;
-import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.apis.performance.application.dto.makerPerformance.MakerPerformanceDetailResponse;
 import com.beat.apis.performance.application.dto.makerPerformance.MakerPerformanceResponse;
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyDetailResponse;
@@ -49,8 +50,6 @@ import lombok.extern.slf4j.Slf4j;
 import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
 import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
 import com.beat.apis.user.application.exception.UserApplicationErrorCode;
-import com.beat.apis.common.application.ApiEnumMapper;
-import com.beat.apis.performance.application.dto.BankNameType;
 
 @Slf4j
 @Service
@@ -203,7 +202,7 @@ public class PerformanceService {
 			.map(schedule -> ScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
 				schedule.getTotalTicketCount(),
 				scheduleDomainService.calculateDueDate(today, schedule),
-				ApiEnumMapper.fromDomain(schedule.getScheduleNumber(), ScheduleNumberType.class)))
+				ScheduleNumberEnumConverter.toApi(schedule.getScheduleNumber())))
 			.toList();
 
 		List<CastResponse> castResponses = casts.stream()
@@ -221,9 +220,9 @@ public class PerformanceService {
 			.toList();
 
 		return PerformanceModifyDetailResponse.of(performance.getUserId(), performance.getId(),
-			performance.getPerformanceTitle(), ApiEnumMapper.fromDomain(performance.getGenre(), GenreType.class), performance.getRunningTime(),
+			performance.getPerformanceTitle(), GenreEnumConverter.toPerformanceApi(performance.getGenre()), performance.getRunningTime(),
 			performance.getPerformanceDescription(), performance.getPerformanceAttentionNote(),
-			ApiEnumMapper.fromDomain(performance.getBankName(), BankNameType.class), performance.getAccountNumber(), performance.getAccountHolder(),
+			BankNameEnumConverter.toApi(performance.getBankName()), performance.getAccountNumber(), performance.getAccountHolder(),
 			performance.getPosterImage(), performance.getPerformanceTeamName(), performance.getPerformanceVenue(),
 			performance.getRoadAddressName(), performance.getPlaceDetailAddress(), performance.getLatitude(),
 			performance.getLongitude(),

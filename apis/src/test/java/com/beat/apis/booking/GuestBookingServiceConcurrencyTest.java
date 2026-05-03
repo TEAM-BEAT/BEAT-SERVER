@@ -28,7 +28,6 @@ import com.beat.apis.booking.application.dto.GuestBookingResponse;
 import com.beat.apis.booking.application.dto.BookingStatusType;
 import com.beat.apis.support.AbstractIntegrationTest;
 import com.beat.domain.booking.repository.BookingRepository;
-import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;

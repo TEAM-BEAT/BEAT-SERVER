@@ -6,6 +6,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.beat.admin.common.application.converter.AdminCarouselNumberEnumConverter;
+
 import com.beat.admin.application.exception.AdminApplicationErrorCode;
 import com.beat.admin.promotion.application.dto.response.BannerPresignedUrlFindResponse;
 import com.beat.admin.promotion.application.dto.response.CarouselFindAllResponse;
@@ -65,7 +67,7 @@ public class AdminPromotionQueryService {
 	private AdminPromotionResult toPromotionResult(Promotion domainPromotion) {
 		return AdminPromotionResult.of(
 			domainPromotion.getId(),
-			domainPromotion.getCarouselNumber().name(),
+			AdminCarouselNumberEnumConverter.toApiName(domainPromotion.getCarouselNumber()),
 			domainPromotion.getPromotionPhoto(),
 			domainPromotion.isExternal(),
 			domainPromotion.getRedirectUrl(),

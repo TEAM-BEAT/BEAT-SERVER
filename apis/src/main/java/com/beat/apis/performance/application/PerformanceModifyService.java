@@ -1,5 +1,8 @@
 package com.beat.apis.performance.application;
 
+import com.beat.apis.common.application.converter.GenreEnumConverter;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -10,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
-import com.beat.apis.performance.application.dto.GenreType;
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyRequest;
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyResponse;
 import com.beat.apis.performance.application.dto.modify.cast.CastModifyRequest;
@@ -19,7 +21,6 @@ import com.beat.apis.performance.application.dto.modify.performanceImage.Perform
 import com.beat.apis.performance.application.dto.modify.performanceImage.PerformanceImageModifyResponse;
 import com.beat.apis.performance.application.dto.modify.schedule.ScheduleModifyRequest;
 import com.beat.apis.performance.application.dto.modify.schedule.ScheduleModifyResponse;
-import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyRequest;
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyResponse;
 import com.beat.apis.performance.application.exception.CastApplicationErrorCode;
@@ -51,10 +52,6 @@ import com.beat.global.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import com.beat.apis.common.application.ApiEnumMapper;
-import com.beat.apis.performance.application.dto.BankNameType;
-import com.beat.domain.performance.domain.BankName;
-import com.beat.domain.performance.domain.Genre;
 
 @Slf4j
 @Service
@@ -142,11 +139,11 @@ public class PerformanceModifyService {
 
 		performance = performance.update(
 			request.performanceTitle(),
-			ApiEnumMapper.toDomain(request.genre(), Genre.class),
+			GenreEnumConverter.toDomain(request.genre()),
 			request.runningTime(),
 			request.performanceDescription(),
 			request.performanceAttentionNote(),
-			ApiEnumMapper.toDomain(request.bankName(), BankName.class),
+			BankNameEnumConverter.toDomain(request.bankName()),
 			request.accountNumber(),
 			request.accountHolder(),
 			request.posterImage(),
@@ -218,7 +215,7 @@ public class PerformanceModifyService {
 				schedule.getPerformanceDate(),
 				schedule.getTotalTicketCount(),
 				scheduleDomainService.calculateDueDate(today, schedule),
-				ApiEnumMapper.fromDomain(schedule.getScheduleNumber(), ScheduleNumberType.class)
+				ScheduleNumberEnumConverter.toApi(schedule.getScheduleNumber())
 			))
 			.toList();
 	}
@@ -603,11 +600,11 @@ public class PerformanceModifyService {
 			performance.getUserId(),
 			performance.getId(),
 			performance.getPerformanceTitle(),
-			ApiEnumMapper.fromDomain(performance.getGenre(), GenreType.class),
+			GenreEnumConverter.toPerformanceApi(performance.getGenre()),
 			performance.getRunningTime(),
 			performance.getPerformanceDescription(),
 			performance.getPerformanceAttentionNote(),
-			ApiEnumMapper.fromDomain(performance.getBankName(), BankNameType.class),
+			BankNameEnumConverter.toApi(performance.getBankName()),
 			performance.getAccountNumber(),
 			performance.getAccountHolder(),
 			performance.getPosterImage(),

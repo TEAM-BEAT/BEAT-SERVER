@@ -1,5 +1,8 @@
 package com.beat.apis.booking.application;
 
+import com.beat.apis.common.application.converter.BookingStatusEnumConverter;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -7,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.beat.apis.booking.application.dto.GuestBookingRequest;
 import com.beat.apis.booking.application.dto.GuestBookingResponse;
 import com.beat.apis.booking.application.dto.event.BookingCreatedEvent;
-import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.performance.domain.Performance;
@@ -23,10 +25,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
 import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
-import com.beat.apis.common.application.ApiEnumMapper;
-import com.beat.apis.booking.application.dto.BookingStatusType;
-import com.beat.apis.performance.application.dto.BankNameType;
-import com.beat.domain.booking.domain.BookingStatus;
 
 @Slf4j
 @Service
@@ -72,7 +70,6 @@ public class GuestBookingService {
 			guestBookingRequest.purchaseTicketCount(),
 			guestBookingRequest.bookerName(),
 			guestBookingRequest.bookerPhoneNumber(),
-			BookingStatus.CHECKING_PAYMENT,
 			guestBookingRequest.birthDate(),
 			guestBookingRequest.password(),
 			null,
@@ -100,11 +97,11 @@ public class GuestBookingService {
 			schedule.getId(),
 			booking.getUserId(),
 			booking.getPurchaseTicketCount(),
-			ApiEnumMapper.fromDomain(schedule.getScheduleNumber(), ScheduleNumberType.class),
+			ScheduleNumberEnumConverter.toApi(schedule.getScheduleNumber()),
 			booking.getBookerName(),
 			booking.getBookerPhoneNumber(),
-			ApiEnumMapper.fromDomain(booking.getBookingStatus(), BookingStatusType.class),
-			ApiEnumMapper.fromDomain(performance.getBankName(), BankNameType.class),
+			BookingStatusEnumConverter.toApi(booking.getBookingStatus()),
+			BankNameEnumConverter.toApi(performance.getBankName()),
 			performance.getAccountNumber(),
 			totalPaymentAmount,
 			booking.getCreatedAt()
