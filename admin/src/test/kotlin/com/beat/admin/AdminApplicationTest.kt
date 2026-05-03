@@ -5,7 +5,6 @@ import com.beat.admin.config.GatewayConfig
 import com.beat.admin.config.InfraConfig
 import com.beat.gateway.EnableGatewayConfig
 import com.beat.gateway.GatewayConfigGroup
-import com.beat.gateway.GatewayModuleConfig
 import com.beat.observability.ObservabilityModuleConfig
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -42,27 +41,6 @@ class AdminApplicationTest {
         assertEquals(
             setOf(GatewayConfigGroup.SERVLET_SECURITY),
             enableGatewayConfig!!.value.toSet(),
-        )
-    }
-
-    @Test
-    fun `gateway module exposes selector based public bootstrap without broad gateway scan`() {
-        val componentScan = GatewayModuleConfig::class.java.getAnnotation(ComponentScan::class.java)
-        val broadGatewayScans = componentScan
-            ?.basePackages
-            ?.filter { it == "com.beat.gateway" || it == "com.beat.gateway.*" }
-            .orEmpty()
-        val gatewayModuleSourcePath = listOf(
-            Path.of("../gateway/src/main/kotlin/com/beat/gateway/GatewayModuleConfig.kt"),
-            Path.of("gateway/src/main/kotlin/com/beat/gateway/GatewayModuleConfig.kt"),
-        ).first(Files::exists)
-        val gatewayModuleSource = Files.readString(gatewayModuleSourcePath)
-
-        assertTrue(broadGatewayScans.isEmpty(), "GatewayModuleConfig must not broad-scan com.beat.gateway")
-        assertFalse(gatewayModuleSource.contains("basePackages = [\"com.beat.gateway\"]"))
-        assertTrue(
-            gatewayModuleSource.contains("@EnableGatewayConfig"),
-            "GatewayModuleConfig must delegate to gateway selector config groups",
         )
     }
 

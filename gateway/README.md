@@ -6,7 +6,7 @@
 
 | Current | Target | Deferred-to-issue |
 | --- | --- | --- |
-| Gateway module exposes `@EnableGatewayConfig`, `GatewayConfigGroup`, compatibility `GatewayModuleConfig`, and `gateway.security.servlet.CurrentMember` as the executable-facing public surface. JWT token ports live in `module-contracts`, while provider/store/filter/config implementations are under gateway internal packages and selected through the gateway import selector. | Stable public/internal surface where executable modules select only required gateway groups and depend only on gateway public config APIs, `CurrentMember`, and module-contracts auth ports. | Further JWT/security Kotlin conversion is separate from this package-boundary closeout. |
+| Gateway module exposes `@EnableGatewayConfig`, `GatewayConfigGroup`, and `gateway.security.servlet.CurrentMember` as the executable-facing public surface. JWT token ports live in `module-contracts`, while provider/store/filter/config implementations are under gateway internal packages and selected through the gateway import selector. | Stable public/internal surface where executable modules select only required gateway groups and depend only on gateway public config APIs, `CurrentMember`, and module-contracts auth ports. | Further JWT/security Kotlin conversion is separate from this package-boundary closeout. |
 
 ## 역할
 
@@ -30,8 +30,6 @@
 ```text
 gateway/
   src/main/kotlin/com/beat/gateway/
-    GatewayModuleConfig.kt                  # compatibility public bootstrap facade; selector-backed
-
   src/main/java/com/beat/gateway/
     EnableGatewayConfig.java                # public selector annotation
     GatewayConfigGroup.java                 # public opt-in config groups
@@ -61,7 +59,7 @@ gateway/
 ```
 
 설명:
-- 실행 모듈의 gateway 직접 import 허용 표면은 `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember`로 제한한다. `GatewayModuleConfig`는 호환용 all-in-one facade로 유지한다.
+- 실행 모듈의 gateway 직접 import 허용 표면은 `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember`로 제한한다.
 - JWT token 생성/refresh token 저장 계약은 `module-contracts`의 `JwtTokenPort` / `RefreshTokenPort`가 공개 contract로 담당한다.
 - `EnableGatewayConfig`는 broad `com.beat.gateway` component scan을 사용하지 않고 `GatewayConfigGroup`별 internal config를 selector로 import한다.
 - provider, resolver, filter, security handler, Redis store/config는 gateway 내부 구현 패키지로 둔다.
@@ -71,7 +69,6 @@ gateway/
 ```text
 com.beat.gateway.EnableGatewayConfig
 com.beat.gateway.GatewayConfigGroup
-com.beat.gateway.GatewayModuleConfig
 com.beat.gateway.security.servlet.CurrentMember
 com.beat.gateway.internal.config
 com.beat.gateway.jwt.internal
@@ -80,7 +77,7 @@ com.beat.gateway.security.internal.servlet
 ```
 
 설명:
-- public: `EnableGatewayConfig`, `GatewayConfigGroup`, compatibility `GatewayModuleConfig`, `security.servlet.CurrentMember`
+- public: `EnableGatewayConfig`, `GatewayConfigGroup`, `security.servlet.CurrentMember`
 - contract: JWT/refresh token port는 `module-contracts`의 `com.beat.contracts.auth.*`를 사용한다.
 - internal: config group, provider, impl, Redis store, servlet filter/resolver/handler
 
