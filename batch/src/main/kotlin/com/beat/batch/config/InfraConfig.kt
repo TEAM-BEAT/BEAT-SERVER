@@ -13,6 +13,8 @@ import org.springframework.context.annotation.Import
         InfraBaseConfigGroup.ASYNC,
     ]
 )
-// IDE static-analysis breadcrumb; runtime persistence import is still owned by JpaConfig.
+// @EnableInfraBaseConfig is backed by DeferredImportSelector, which IntelliJ Spring plugin
+// cannot statically trace. This explicit import is an IDE breadcrumb only — runtime
+// persistence bootstrap is owned by JpaConfig via @Import(InfraPersistenceConfig.class).
 @Import(InfraPersistenceConfig::class)
 class InfraConfig

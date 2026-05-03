@@ -5,6 +5,13 @@ import com.beat.infra.config.ExternalClientConfig;
 import com.beat.infra.config.JpaConfig;
 import com.beat.infra.config.RedisCacheConfig;
 
+/**
+ * Selectable top-level infra slices for {@link EnableInfraBaseConfig}.
+ *
+ * <p>Every config class registered here must implement {@link InfraBaseConfig}.
+ * Support configurations that are imported or scanned internally by these slices
+ * must not be added to this enum and must not implement {@link InfraBaseConfig}.
+ */
 public enum InfraBaseConfigGroup {
 
 	ASYNC(AsyncConfig.class),

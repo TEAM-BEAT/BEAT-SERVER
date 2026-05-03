@@ -112,6 +112,44 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
+	void infraBaseConfigMarkerIsLimitedToSelectableTopLevelGroups() throws Exception {
+		String infraBaseConfig = Files.readString(Path.of("infra/src/main/java/com/beat/infra/InfraBaseConfig.java"));
+		String infraConfigGroup = Files.readString(Path.of("infra/src/main/java/com/beat/infra/InfraBaseConfigGroup.java"));
+
+		List<String> topLevelConfigSources = List.of(
+			"infra/src/main/java/com/beat/infra/config/AsyncConfig.java",
+			"infra/src/main/java/com/beat/infra/config/ExternalClientConfig.java",
+			"infra/src/main/java/com/beat/infra/config/JpaConfig.java",
+			"infra/src/main/java/com/beat/infra/config/RedisCacheConfig.java"
+		);
+		List<String> supportConfigSources = List.of(
+			"infra/src/main/java/com/beat/infra/config/TaskExecutorConfig.java",
+			"infra/src/main/java/com/beat/infra/config/ThreadPoolProperties.java",
+			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
+			"infra/src/main/java/com/beat/infra/storage/s3/S3InfraConfig.java"
+		);
+
+		assertTrue(infraBaseConfig.contains("Marker for top-level infra bootstrap configurations"));
+		assertTrue(infraBaseConfig.contains("Support configurations"));
+		assertFalse(Files.exists(Path.of("infra/src/main/kotlin/com/beat/infra/InfraModuleConfig.kt")),
+			"InfraModuleConfig must not compete with @EnableInfraBaseConfig as a module-wide entrypoint");
+
+		for (String sourcePath : topLevelConfigSources) {
+			String source = Files.readString(Path.of(sourcePath));
+			String simpleName = Path.of(sourcePath).getFileName().toString().replace(".java", "");
+			assertTrue(infraConfigGroup.contains(simpleName + ".class"));
+			assertTrue(source.contains("InfraBaseConfig"), sourcePath);
+			assertTrue(Pattern.compile("class\\s+" + simpleName + "[^{]*implements[^{]*InfraBaseConfig").matcher(source).find(),
+				sourcePath);
+		}
+
+		for (String sourcePath : supportConfigSources) {
+			String source = Files.readString(Path.of(sourcePath));
+			assertFalse(source.contains("implements InfraBaseConfig"), sourcePath);
+		}
+	}
+
+	@Test
 	void infraKeepsDormantRedisCacheSkeletonForFutureSharedCaching() throws Exception {
 		String infraConfigGroup = Files.readString(
 			Path.of("infra/src/main/java/com/beat/infra/InfraBaseConfigGroup.java"));
@@ -1003,8 +1041,14 @@ class SharedBoundaryContractTest {
 			Path.of("infra/src/main/java/com/beat/infra/config/ExternalClientConfig.java"));
 
 		assertTrue(externalClientConfig.contains("@Configuration(proxyBeanMethods = false)"));
+		assertTrue(externalClientConfig.contains("@Import(S3InfraConfig.class)"));
+		assertTrue(externalClientConfig.contains("KakaoSocialLoginAdapter.class"));
 		assertTrue(externalClientConfig.contains("SlackBookingNotificationAdapter.class"));
 		assertTrue(externalClientConfig.contains("SlackMemberNotificationAdapter.class"));
+		assertTrue(externalClientConfig.contains("S3FileStorageAdapter.class"));
+		assertTrue(externalClientConfig.contains("CoolSmsAdapter.class"));
+		assertTrue(externalClientConfig.contains("excludeFilters"));
+		assertTrue(externalClientConfig.contains("classes = S3InfraConfig.class"));
 	}
 
 	@Test
@@ -1198,10 +1242,14 @@ class SharedBoundaryContractTest {
 			Path.of("admin/src/main"),
 			Path.of("batch/src/main")
 		);
+		// InfraPersistenceConfig is allowed as an IDE-only breadcrumb: @EnableInfraBaseConfig is backed by
+		// DeferredImportSelector, which IntelliJ Spring plugin cannot statically trace, so each module-level
+		// InfraConfig carries @Import(InfraPersistenceConfig::class) purely to give the IDE a resolvable path.
+		// It has no effect at runtime — persistence bootstrap is owned by JpaConfig.
 		List<String> violations = executableSources.stream()
 			.flatMap(path -> readLines(path).stream()
-				.filter(line -> line.startsWith("import com.beat.infra.persistence."))
-				.filter(line -> !line.equals("import com.beat.infra.persistence.InfraPersistenceConfig"))
+				.filter(line -> line.startsWith("import com.beat.infra.persistence.")
+					&& !line.contains("InfraPersistenceConfig"))
 				.map(line -> path.toString().replace('\\', '/') + ": " + line))
 			.toList();
 

@@ -38,11 +38,12 @@ infra/
     InfraBaseConfigGroup.java
     InfraBaseConfigImportSelector.java      # DeferredImportSelector — enum → class 매핑
     config/
-      AsyncConfig.java                      # AsyncConfigurer, @Import(TaskExecutorConfig)
-      TaskExecutorConfig.java               # beatApplicationTaskExecutor 빈 생성
-      JpaConfig.java
+      AsyncConfig.java                      # InfraBaseConfig group owner, @Import(TaskExecutorConfig)
+      ExternalClientConfig.java             # InfraBaseConfig group owner, @Import(S3InfraConfig)
+      JpaConfig.java                        # InfraBaseConfig group owner, @Import(InfraPersistenceConfig)
+      RedisCacheConfig.java                 # dormant InfraBaseConfig group owner; no executable opt-in yet
+      TaskExecutorConfig.java               # support config; beatApplicationTaskExecutor 빈 생성
       MysqlCustomDialect.java
-      RedisCacheConfig.java
       ThreadPoolProperties.java
     persistence/
       InfraPersistenceConfig.java              # infra.persistence narrow component scan
@@ -104,8 +105,10 @@ current transitional sources:
 
 설명:
 - `InfraBaseConfigImportSelector`가 `@EnableInfraBaseConfig`의 enum 값을 읽어 해당 `@Configuration` 클래스를 선택적으로 import한다.
+- `InfraBaseConfig`는 실행 모듈이 선택할 수 있는 top-level group config marker다. `AsyncConfig`, `ExternalClientConfig`, `JpaConfig`, dormant `RedisCacheConfig` 같은 enum target만 이 marker를 구현하고, `TaskExecutorConfig`, `S3InfraConfig`, `InfraPersistenceConfig` 같은 support config는 group owner가 `@Import`로 전이 로드한다.
 - `InfraPersistenceConfig`는 `JpaConfig`가 runtime safety net으로 import하고, JPA를 쓰는 실행 모듈 `InfraConfig.kt`가 IDE static-analysis breadcrumb로 한 번 더 import한다. 두 경로 모두 의도된 중복이며, `@EnableInfraBaseConfig` meta-annotation에 persistence를 직접 넣지는 않는다.
 - `AsyncConfig`는 `@Import(TaskExecutorConfig.class)`로 executor 빈만 전이 로드하고, infra는 security-aware wrapper를 직접 소유하지 않는다.
+- `ExternalClientConfig`는 external-client group owner이고 S3 support bootstrap은 `@Import(S3InfraConfig.class)`로만 포함한다. 실행 모듈은 S3 support config를 직접 import하지 않는다.
 - scheduler bean은 infra custom config가 아니라 Spring Boot `TaskSchedulingAutoConfiguration`이 소유한다. 실행 모듈 중 `batch`만 `@EnableScheduling`을 켜며, pool/thread 설정은 `spring.task.scheduling.*` property로 조정한다.
 - Redis runtime wiring은 Spring Boot auto-configuration과 gateway-owned config가 담당하고, infra는 더 이상 gateway-specific Redis bean을 소유하지 않는다.
 - future shared caching은 dormant `RedisCacheConfig` + `InfraBaseConfigGroup.REDIS_CACHE`에서 시작하고, 현재 실행 모듈은 아직 이를 import하지 않는다. 활성화 전에는 cache name, TTL, serializer, namespace, invalidation policy, owner module, runtime opt-in이 먼저 정해져야 한다.
@@ -169,8 +172,8 @@ Facade/ApplicationService/DomainService 표준에서 `infra`는 서비스 계층
 ## 최종 목표
 
 - `infra.external.*` 타입을 상위 실행 모듈이 직접 import하지 않는다.
-- `InfraModuleConfig`가 실제 기술 import를 모으는 진입점으로 성장한다.
-- JPA/QueryDSL/async 부트스트랩이 명시적으로 조립된다.
+- `@EnableInfraBaseConfig` + `InfraBaseConfigGroup`이 실행 모듈의 명시적 infra opt-in 진입점이다.
+- JPA/QueryDSL/async/external-client 부트스트랩은 top-level group config가 조립하고 support config는 marker를 구현하지 않는다.
 - JPA entity / Spring Data adapter / query 구현체 / domain repository 구현체는 infra 책임으로 모인다.
 - shared cache가 필요해질 때 `REDIS_CACHE` 그룹으로 확장한다.
 
