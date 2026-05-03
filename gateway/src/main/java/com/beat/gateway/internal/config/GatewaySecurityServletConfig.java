@@ -4,15 +4,20 @@ import com.beat.gateway.security.internal.servlet.CurrentMemberArgumentResolver;
 import com.beat.gateway.security.internal.servlet.CustomAccessDeniedHandler;
 import com.beat.gateway.security.internal.servlet.CustomJwtAuthenticationEntryPoint;
 import com.beat.gateway.security.internal.servlet.JwtAuthenticationFilter;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration(proxyBeanMethods = false)
 @Import({
-	CurrentMemberArgumentResolver.class,
 	CustomAccessDeniedHandler.class,
 	CustomJwtAuthenticationEntryPoint.class,
 	JwtAuthenticationFilter.class
 })
 public class GatewaySecurityServletConfig {
+
+	@Bean
+	public CurrentMemberArgumentResolver currentMemberArgumentResolver() {
+		return new CurrentMemberArgumentResolver();
+	}
 }
