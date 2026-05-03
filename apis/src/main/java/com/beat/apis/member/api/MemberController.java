@@ -16,7 +16,7 @@ import com.beat.apis.member.application.dto.response.LoginSuccessResponse;
 import com.beat.apis.member.application.dto.response.MemberLoginResponse;
 import com.beat.apis.member.api.response.MemberSuccessCode;
 import com.beat.apis.member.facade.MemberFacade;
-import com.beat.gateway.annotation.CurrentMember;
+import com.beat.gateway.security.servlet.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 
 import jakarta.servlet.http.HttpServletResponse;

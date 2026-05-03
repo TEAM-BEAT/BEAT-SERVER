@@ -1,9 +1,9 @@
-package com.beat.gateway.jwt;
+package com.beat.gateway.jwt.internal;
 
 import com.beat.contracts.auth.RefreshTokenPort;
 import com.beat.contracts.auth.TokenErrorCode;
-import com.beat.gateway.jwt.store.RefreshToken;
-import com.beat.gateway.jwt.store.RefreshTokenRepository;
+import com.beat.gateway.jwt.internal.store.RefreshToken;
+import com.beat.gateway.jwt.internal.store.RefreshTokenRepository;
 import com.beat.global.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

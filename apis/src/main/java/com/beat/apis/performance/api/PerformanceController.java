@@ -21,7 +21,7 @@ import com.beat.apis.performance.application.dto.modify.PerformanceModifyRespons
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailResponse;
 import com.beat.apis.performance.api.response.PerformanceSuccessCode;
 import com.beat.apis.performance.facade.PerformanceFacade;
-import com.beat.gateway.annotation.CurrentMember;
+import com.beat.gateway.security.servlet.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 
 import jakarta.validation.Valid;

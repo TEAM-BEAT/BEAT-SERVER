@@ -1,4 +1,4 @@
-package com.beat.gateway.security;
+package com.beat.gateway.security.internal.servlet;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

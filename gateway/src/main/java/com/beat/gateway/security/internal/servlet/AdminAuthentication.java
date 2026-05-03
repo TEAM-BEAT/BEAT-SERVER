@@ -1,4 +1,4 @@
-package com.beat.gateway.security;
+package com.beat.gateway.security.internal.servlet;
 
 import java.util.Collection;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

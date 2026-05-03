@@ -13,7 +13,7 @@ import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
 import com.beat.apis.ticket.application.dto.TicketUpdateRequest;
 import com.beat.apis.booking.application.dto.BookingStatusType;
 import com.beat.apis.schedule.application.dto.ScheduleNumberType;
-import com.beat.gateway.annotation.CurrentMember;
+import com.beat.gateway.security.servlet.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
 

@@ -2,6 +2,8 @@ package com.beat.apis
 
 import com.beat.apis.config.ApisSecurityConfig
 import com.beat.apis.config.InfraConfig
+import com.beat.gateway.EnableGatewayConfig
+import com.beat.gateway.GatewayConfigGroup
 import com.beat.gateway.GatewayModuleConfig
 import com.beat.observability.ObservabilityModuleConfig
 import org.junit.jupiter.api.Assertions.*
@@ -24,7 +26,6 @@ class ApisApplicationTest {
 
         assertEquals(
             setOf(
-                GatewayModuleConfig::class.java.name,
                 InfraConfig::class.java.name,
                 ObservabilityModuleConfig::class.java.name,
             ),
@@ -43,10 +44,35 @@ class ApisApplicationTest {
     }
 
     @Test
-    fun `gateway module imports auth bootstrap config`() {
+    fun `apis selects gateway servlet security with refresh token store`() {
+        val enableGatewayConfig = ApisApplication::class.java.getAnnotation(EnableGatewayConfig::class.java)
+
+        assertNotNull(enableGatewayConfig, "ApisApplication must declare @EnableGatewayConfig")
+        assertEquals(
+            setOf(GatewayConfigGroup.SERVLET_SECURITY, GatewayConfigGroup.REFRESH_TOKEN_STORE),
+            enableGatewayConfig!!.value.toSet(),
+        )
+    }
+
+    @Test
+    fun `gateway module exposes selector based public bootstrap without broad gateway scan`() {
         val componentScan = GatewayModuleConfig::class.java.getAnnotation(ComponentScan::class.java)
-        assertNotNull(componentScan)
-        assertTrue(componentScan.basePackages.contains("com.beat.gateway"))
+        val broadGatewayScans = componentScan
+            ?.basePackages
+            ?.filter { it == "com.beat.gateway" || it == "com.beat.gateway.*" }
+            .orEmpty()
+        val gatewayModuleSourcePath = listOf(
+            Path.of("../gateway/src/main/kotlin/com/beat/gateway/GatewayModuleConfig.kt"),
+            Path.of("gateway/src/main/kotlin/com/beat/gateway/GatewayModuleConfig.kt"),
+        ).first(Files::exists)
+        val gatewayModuleSource = Files.readString(gatewayModuleSourcePath)
+
+        assertTrue(broadGatewayScans.isEmpty(), "GatewayModuleConfig must not broad-scan com.beat.gateway")
+        assertFalse(gatewayModuleSource.contains("basePackages = [\"com.beat.gateway\"]"))
+        assertTrue(
+            gatewayModuleSource.contains("@EnableGatewayConfig"),
+            "GatewayModuleConfig must delegate to gateway selector config groups",
+        )
     }
 
     @Test

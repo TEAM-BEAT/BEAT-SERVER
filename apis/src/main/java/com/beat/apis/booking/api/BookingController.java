@@ -24,7 +24,7 @@ import com.beat.apis.booking.application.dto.MemberBookingResponse;
 import com.beat.apis.booking.application.dto.MemberBookingRetrieveResponse;
 import com.beat.apis.booking.api.response.BookingSuccessCode;
 import com.beat.apis.booking.facade.BookingFacade;
-import com.beat.gateway.annotation.CurrentMember;
+import com.beat.gateway.security.servlet.CurrentMember;
 import com.beat.global.common.dto.SuccessResponse;
 
 import lombok.RequiredArgsConstructor;

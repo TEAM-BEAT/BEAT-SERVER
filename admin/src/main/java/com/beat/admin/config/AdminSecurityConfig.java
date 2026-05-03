@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,10 +20,8 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import lombok.RequiredArgsConstructor;
 
 @Configuration(proxyBeanMethods = false)
-@RequiredArgsConstructor
 public class AdminSecurityConfig {
 
 	private static final String ROLE_ADMIN = "ROLE_ADMIN";
@@ -39,6 +38,18 @@ public class AdminSecurityConfig {
 
 	@Value("${management.endpoints.web.base-path}")
 	private String actuatorEndPoint;
+
+	public AdminSecurityConfig(
+		@Qualifier("gatewayJwtAuthenticationFilter") OncePerRequestFilter jwtAuthenticationFilter,
+		AuthenticationEntryPoint authenticationEntryPoint,
+		AccessDeniedHandler accessDeniedHandler,
+		Environment environment
+	) {
+		this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+		this.authenticationEntryPoint = authenticationEntryPoint;
+		this.accessDeniedHandler = accessDeniedHandler;
+		this.environment = environment;
+	}
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) {

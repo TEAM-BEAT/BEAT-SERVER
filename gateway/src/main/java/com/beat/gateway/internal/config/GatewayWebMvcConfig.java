@@ -1,6 +1,6 @@
-package com.beat.gateway.config;
+package com.beat.gateway.internal.config;
 
-import com.beat.gateway.security.CurrentMemberArgumentResolver;
+import com.beat.gateway.security.internal.servlet.CurrentMemberArgumentResolver;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;

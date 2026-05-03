@@ -1,4 +1,4 @@
-package com.beat.gateway.security;
+package com.beat.gateway.security.internal.servlet;
 
 import com.beat.contracts.auth.JwtTokenPort;
 import com.beat.contracts.auth.TokenValidationResult;
@@ -22,7 +22,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Slf4j
-@Component
+@Component("gatewayJwtAuthenticationFilter")
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 

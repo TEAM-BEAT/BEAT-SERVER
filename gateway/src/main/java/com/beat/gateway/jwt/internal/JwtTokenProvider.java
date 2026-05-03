@@ -1,4 +1,4 @@
-package com.beat.gateway.jwt;
+package com.beat.gateway.jwt.internal;
 
 import com.beat.contracts.auth.JwtSubject;
 import com.beat.contracts.auth.JwtTokenPort;

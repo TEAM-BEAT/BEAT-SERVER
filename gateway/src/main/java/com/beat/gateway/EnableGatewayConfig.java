@@ -1,15 +1,18 @@
-package com.beat.gateway.annotation;
+package com.beat.gateway;
 
-import io.swagger.v3.oas.annotations.Parameter;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.PARAMETER)
+import org.springframework.context.annotation.Import;
+
+@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Parameter(hidden = true)
-public @interface CurrentMember {
+@Import(GatewayConfigImportSelector.class)
+public @interface EnableGatewayConfig {
+
+	GatewayConfigGroup[] value();
 }

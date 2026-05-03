@@ -1,6 +1,6 @@
-package com.beat.gateway.security;
+package com.beat.gateway.security.internal.servlet;
 
-import com.beat.gateway.annotation.CurrentMember;
+import com.beat.gateway.security.servlet.CurrentMember;
 import org.springframework.core.MethodParameter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
