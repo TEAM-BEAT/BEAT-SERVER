@@ -1,6 +1,7 @@
 package com.beat.admin
 
 import com.beat.admin.config.AdminSecurityConfig
+import com.beat.admin.config.GatewayConfig
 import com.beat.admin.config.InfraConfig
 import com.beat.gateway.EnableGatewayConfig
 import com.beat.gateway.GatewayConfigGroup
@@ -25,6 +26,7 @@ class AdminApplicationTest {
 
         assertEquals(
             setOf(
+                GatewayConfig::class.java.name,
                 InfraConfig::class.java.name,
                 ObservabilityModuleConfig::class.java.name,
             ),
@@ -34,9 +36,9 @@ class AdminApplicationTest {
 
     @Test
     fun `admin selects gateway servlet security without refresh token store`() {
-        val enableGatewayConfig = AdminApplication::class.java.getAnnotation(EnableGatewayConfig::class.java)
+        val enableGatewayConfig = GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
 
-        assertNotNull(enableGatewayConfig, "AdminApplication must declare @EnableGatewayConfig")
+        assertNotNull(enableGatewayConfig, "admin GatewayConfig must declare @EnableGatewayConfig")
         assertEquals(
             setOf(GatewayConfigGroup.SERVLET_SECURITY),
             enableGatewayConfig!!.value.toSet(),
