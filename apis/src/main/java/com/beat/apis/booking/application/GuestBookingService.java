@@ -1,5 +1,8 @@
 package com.beat.apis.booking.application;
 
+import com.beat.apis.common.application.converter.BookingStatusEnumConverter;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,7 +70,6 @@ public class GuestBookingService {
 			guestBookingRequest.purchaseTicketCount(),
 			guestBookingRequest.bookerName(),
 			guestBookingRequest.bookerPhoneNumber(),
-			guestBookingRequest.bookingStatus(),
 			guestBookingRequest.birthDate(),
 			guestBookingRequest.password(),
 			null,
@@ -80,18 +82,26 @@ public class GuestBookingService {
 
 		log.info("Guest Booking created: {}", booking);
 
-		eventPublisher.publishEvent(BookingCreatedEvent.of(booking, schedule, performance.getPerformanceTitle()));
+		eventPublisher.publishEvent(BookingCreatedEvent.of(
+			booking.getCreatedAt(),
+			performance.getPerformanceTitle(),
+			booking.getPurchaseTicketCount(),
+			booking.getBookerName(),
+			schedule.getScheduleNumber().getDisplayName(),
+			schedule.getSoldTicketCount(),
+			schedule.getTotalTicketCount()
+		));
 
 		return GuestBookingResponse.of(
 			booking.getId(),
 			schedule.getId(),
 			booking.getUserId(),
 			booking.getPurchaseTicketCount(),
-			schedule.getScheduleNumber(),
+			ScheduleNumberEnumConverter.toApi(schedule.getScheduleNumber()),
 			booking.getBookerName(),
 			booking.getBookerPhoneNumber(),
-			booking.getBookingStatus(),
-			performance.getBankName(),
+			BookingStatusEnumConverter.toApi(booking.getBookingStatus()),
+			BankNameEnumConverter.toApi(performance.getBankName()),
 			performance.getAccountNumber(),
 			totalPaymentAmount,
 			booking.getCreatedAt()

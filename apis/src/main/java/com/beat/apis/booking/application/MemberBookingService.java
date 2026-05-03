@@ -1,5 +1,8 @@
 package com.beat.apis.booking.application;
 
+import com.beat.apis.common.application.converter.BookingStatusEnumConverter;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,7 +62,6 @@ public class MemberBookingService {
 			memberBookingRequest.purchaseTicketCount(),
 			memberBookingRequest.bookerName(),
 			memberBookingRequest.bookerPhoneNumber(),
-			memberBookingRequest.bookingStatus(),
 			null,
 			null,
 			null,
@@ -73,18 +75,26 @@ public class MemberBookingService {
 
 		log.info("Member Booking created: {}", booking);
 
-		eventPublisher.publishEvent(BookingCreatedEvent.of(booking, schedule, performance.getPerformanceTitle()));
+		eventPublisher.publishEvent(BookingCreatedEvent.of(
+			booking.getCreatedAt(),
+			performance.getPerformanceTitle(),
+			booking.getPurchaseTicketCount(),
+			booking.getBookerName(),
+			schedule.getScheduleNumber().getDisplayName(),
+			schedule.getSoldTicketCount(),
+			schedule.getTotalTicketCount()
+		));
 
 		return MemberBookingResponse.of(
 			booking.getId(),
 			schedule.getId(),
 			member.getId(),
 			booking.getPurchaseTicketCount(),
-			schedule.getScheduleNumber(),
+			ScheduleNumberEnumConverter.toApi(schedule.getScheduleNumber()),
 			booking.getBookerName(),
 			booking.getBookerPhoneNumber(),
-			booking.getBookingStatus(),
-			performance.getBankName(),
+			BookingStatusEnumConverter.toApi(booking.getBookingStatus()),
+			BankNameEnumConverter.toApi(performance.getBankName()),
 			performance.getAccountNumber(),
 			memberBookingRequest.totalPaymentAmount(),
 			booking.getCreatedAt()

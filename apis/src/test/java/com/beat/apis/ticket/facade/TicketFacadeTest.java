@@ -11,10 +11,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.apis.ticket.application.TicketService;
 import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
-import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.apis.booking.application.dto.BookingStatusType;
 
 @ExtendWith(MockitoExtension.class)
 class TicketFacadeTest {
@@ -33,8 +33,8 @@ class TicketFacadeTest {
 	void findTicketsDelegatesToService() {
 		Long memberId = 1L;
 		Long performanceId = 100L;
-		List<ScheduleNumber> scheduleNumbers = List.of(ScheduleNumber.FIRST);
-		List<BookingStatus> bookingStatuses = List.of(BookingStatus.CHECKING_PAYMENT);
+		List<ScheduleNumberType> scheduleNumbers = List.of(ScheduleNumberType.FIRST);
+		List<BookingStatusType> bookingStatuses = List.of(BookingStatusType.CHECKING_PAYMENT);
 		TicketRetrieveResponse expected = TicketRetrieveResponse.of("title", "team", 1, 100, 10, List.of());
 		when(ticketService.findAllTicketsByConditions(memberId, performanceId, scheduleNumbers, bookingStatuses))
 			.thenReturn(expected);
@@ -49,8 +49,8 @@ class TicketFacadeTest {
 		Long memberId = 1L;
 		Long performanceId = 100L;
 		String searchWord = "홍길동";
-		List<ScheduleNumber> scheduleNumbers = List.of(ScheduleNumber.FIRST);
-		List<BookingStatus> bookingStatuses = List.of(BookingStatus.CHECKING_PAYMENT);
+		List<ScheduleNumberType> scheduleNumbers = List.of(ScheduleNumberType.FIRST);
+		List<BookingStatusType> bookingStatuses = List.of(BookingStatusType.CHECKING_PAYMENT);
 		TicketRetrieveResponse expected = TicketRetrieveResponse.of("title", "team", 1, 100, 10, List.of());
 		when(ticketService.searchAllTicketsByConditions(memberId, performanceId, searchWord, scheduleNumbers,
 			bookingStatuses)).thenReturn(expected);

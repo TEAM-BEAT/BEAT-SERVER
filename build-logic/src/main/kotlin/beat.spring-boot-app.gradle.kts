@@ -11,6 +11,9 @@ plugins {
 
 val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
+extra["tomcat.version"] = libs.findVersion("tomcat-embed").get().requiredVersion
+extra["jackson-bom.version"] = libs.findVersion("jackson3").get().requiredVersion
+
 configurations.configureEach {
     exclude(group = "org.springframework.boot", module = "spring-boot-starter-logging")
 }
@@ -21,6 +24,27 @@ dependencies {
     compileOnly(libs.findLibrary("lombok").get())
     annotationProcessor(libs.findLibrary("lombok").get())
     testImplementation(libs.findLibrary("spring-boot-starter-test").get())
+
+    constraints {
+        implementation(libs.findLibrary("tomcat-embed-core").get()) {
+            because("Trivy reports fixed Tomcat runtime CVEs against the Spring Boot 4.0.5 managed 11.0.20 baseline")
+        }
+        implementation(libs.findLibrary("tomcat-embed-el").get()) {
+            because("Keep embedded Tomcat artifacts aligned after the CVE-driven core override")
+        }
+        implementation(libs.findLibrary("tomcat-embed-websocket").get()) {
+            because("Keep embedded Tomcat artifacts aligned after the CVE-driven core override")
+        }
+        implementation(libs.findLibrary("jackson3-core").get()) {
+            because("Trivy reports GHSA-2m67-wjpj-xhg9 against the Spring Boot 4.0.5 managed Jackson 3.1.0 baseline")
+        }
+        implementation(libs.findLibrary("jackson3-databind").get()) {
+            because("Keep Jackson 3 artifacts aligned after the CVE-driven core override")
+        }
+        implementation(libs.findLibrary("commons-fileupload").get()) {
+            because("Trivy reports CVE-2025-48976 against the OpenFeign form transitive 1.5 baseline")
+        }
+    }
 }
 
 tasks.withType<BootRun>().configureEach {

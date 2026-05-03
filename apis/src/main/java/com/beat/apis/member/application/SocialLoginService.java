@@ -1,23 +1,22 @@
 package com.beat.apis.member.application;
 
+import com.beat.apis.common.application.converter.SocialTypeEnumConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.apis.member.application.dto.request.MemberLoginRequest;
 import com.beat.apis.member.application.dto.response.LoginSuccessResponse;
 import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
-import com.beat.apis.user.application.exception.UserApplicationErrorCode;
+import com.beat.apis.member.application.result.MemberAuthenticationResult;
+import com.beat.apis.user.application.UserService;
+import com.beat.apis.user.application.result.UserAuthenticationResult;
 import com.beat.contracts.auth.social.SocialLoginFailure;
 import com.beat.contracts.auth.social.SocialLoginPort;
 import com.beat.contracts.auth.social.SocialLoginRequest;
 import com.beat.contracts.auth.social.SocialLoginType;
 import com.beat.contracts.auth.social.SocialMemberInfo;
-import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
-import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.BadRequestException;
-import com.beat.global.common.exception.NotFoundException;
 import com.beat.global.common.exception.UnauthorizedException;
 
 import lombok.RequiredArgsConstructor;
@@ -32,7 +31,7 @@ public class SocialLoginService {
 	private final AuthenticationService authenticationService;
 	private final SocialLoginPort socialLoginPort;
 	private final MemberService memberService;
-	private final UserRepository userRepository;
+	private final UserService userService;
 
 	/**
 	 * 소셜 로그인 또는 회원가입을 처리하는 메서드.
@@ -46,7 +45,7 @@ public class SocialLoginService {
 	@Transactional
 	public LoginSuccessResponse handleSocialLogin(final String authorizationCode,
 		final MemberLoginRequest loginRequest) {
-		SocialType socialType = loginRequest.socialType();
+		SocialType socialType = SocialTypeEnumConverter.toDomain(loginRequest.socialType());
 		SocialLoginRequest request = new SocialLoginRequest(authorizationCode, toContractSocialType(socialType));
 		try {
 			SocialMemberInfo socialMemberInfo = socialLoginPort.login(request);
@@ -80,13 +79,12 @@ public class SocialLoginService {
 		Long memberId = findOrRegisterMember(socialMemberInfo, socialType);
 		log.info("Found or registered member with memberId: {}", memberId);
 
-		Member member = memberService.findMemberByMemberId(memberId);
-		Users user = userRepository.findById(member.getUserId())
-			.orElseThrow(() -> new NotFoundException(UserApplicationErrorCode.USER_NOT_FOUND));
+		MemberAuthenticationResult member = memberService.findMemberAuthenticationResultByMemberId(memberId);
+		UserAuthenticationResult user = findUserAuthenticationResult(member.userId());
 
-		log.info("User role before generating token: {}", user.getRole());
+		log.info("User role before generating token: {}", user.roleName());
 
-		return authenticationService.generateLoginSuccessResponse(memberId, user.getRole(), socialMemberInfo);
+		return authenticationService.generateLoginSuccessResponse(memberId, user.roleName(), socialMemberInfo);
 	}
 
 	/**
@@ -104,17 +102,21 @@ public class SocialLoginService {
 		);
 
 		if (memberExists) {
-			Member existingMember = memberService.findMemberBySocialIdAndSocialType(
-				socialMemberInfo.socialId(),
-				socialType
-			);
-			Users user = userRepository.findById(existingMember.getUserId())
-				.orElseThrow(() -> new NotFoundException(UserApplicationErrorCode.USER_NOT_FOUND));
-			log.info("Existing member role: {}", user.getRole());
-			return existingMember.getId();
+			MemberAuthenticationResult existingMember =
+				memberService.findMemberAuthenticationResultBySocialIdAndSocialType(
+					socialMemberInfo.socialId(),
+					socialType
+				);
+			UserAuthenticationResult user = findUserAuthenticationResult(existingMember.userId());
+			log.info("Existing member role: {}", user.roleName());
+			return existingMember.memberId();
 		}
 
 		return memberRegistrationService.registerMemberWithUserInfo(socialMemberInfo, socialType);
+	}
+
+	private UserAuthenticationResult findUserAuthenticationResult(Long userId) {
+		return userService.findUserAuthenticationByUserId(userId);
 	}
 
 	private SocialLoginType toContractSocialType(SocialType socialType) {

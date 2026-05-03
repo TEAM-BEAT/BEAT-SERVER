@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Import
 @EnableInfraBaseConfig(
     value = [
         InfraBaseConfigGroup.JPA,
-        InfraBaseConfigGroup.QUERY_DSL,
         InfraBaseConfigGroup.ASYNC,
         InfraBaseConfigGroup.EXTERNAL_CLIENTS,
     ]

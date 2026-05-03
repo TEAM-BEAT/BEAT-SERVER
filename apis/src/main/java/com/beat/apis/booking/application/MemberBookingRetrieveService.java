@@ -1,5 +1,8 @@
 package com.beat.apis.booking.application;
 
+import com.beat.apis.common.application.converter.BookingStatusEnumConverter;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -93,14 +96,14 @@ public class MemberBookingRetrieveService {
 			schedule.getPerformanceDate(),
 			performance.getPerformanceVenue(),
 			booking.getPurchaseTicketCount(),
-			schedule.getScheduleNumber(),
+			ScheduleNumberEnumConverter.toApi(schedule.getScheduleNumber()),
 			booking.getBookerName(),
 			performance.getPerformanceContact(),
-			performance.getBankName(),
+			BankNameEnumConverter.toApi(performance.getBankName()),
 			performance.getAccountNumber(),
 			performance.getAccountHolder(),
 			scheduleDomainService.calculateDueDate(today, schedule),
-			booking.getBookingStatus(),
+			BookingStatusEnumConverter.toApi(booking.getBookingStatus()),
 			booking.getCreatedAt(),
 			performance.getPosterImage(),
 			totalPaymentAmount

@@ -94,6 +94,21 @@ class BatchArchitectureGuardTest {
         )
     }
 
+    @Test
+    fun `batch application services do not expose raw domain models through public methods`() {
+        val violations = findPublicMethodReturnTypeViolations(
+            Path.of("src/main"),
+            listOf("Booking", "Performance", "Promotion", "Schedule", "Users"),
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found raw domain model return types in batch application service signatures:\n${
+                violations.joinToString("\n")
+            }",
+        )
+    }
+
     private fun findForbiddenReferences(vararg forbiddenReferences: String): List<String> {
         val paths = Files.walk(Path.of("src/main"))
 
@@ -112,6 +127,46 @@ class BatchArchitectureGuardTest {
             paths.close()
         }
     }
+
+    private fun findPublicMethodReturnTypeViolations(root: Path, forbiddenReturnTypes: List<String>): List<String> {
+        val paths = Files.walk(root)
+
+        return try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt") }
+                .filter { path ->
+                    val normalizedPath = path.toString().replace('\\', '/')
+                    normalizedPath.contains("/application/")
+                        && normalizedPath.endsWith("Service.${path.fileName.toString().substringAfterLast('.')}")
+                }
+                .toList()
+                .flatMap { path ->
+                    val source = Files.readString(path)
+                    forbiddenReturnTypes.flatMap { type ->
+                        forbiddenReturnTypeMatches(source, type)
+                            .map { match -> "$path:${lineNumberAt(source, match.range.first)}: $type" }
+                    }
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
+    private fun forbiddenReturnTypeMatches(source: String, type: String): Sequence<MatchResult> {
+        val escapedType = Regex.escape(type)
+        val javaPublicMethod = Regex(
+            """(?m)^[ \t]*public\s+(?!record\b)(?:(?:static|final|synchronized|abstract|default|native)\s+)*[\w<>,.? \[\]\r\n\t]*\b$escapedType\b[\w<>,.? \[\]\r\n\t]*\s+\w+\s*\([^;{}]*\)\s*(?:throws\s+[^;{]+)?[;{]"""
+        )
+        val kotlinPublicFunction = Regex(
+            """(?m)^[ \t]*(?!private\b|protected\b|internal\b)(?:public\s+)?(?:suspend\s+)?fun\s+\w+\s*\([^)]*\)\s*:\s*[\w<>,.? \[\]\r\n\t]*\b$escapedType\b[\w<>,.? \[\]\r\n\t]*(?:\s|=|\{)"""
+        )
+
+        return javaPublicMethod.findAll(source) + kotlinPublicFunction.findAll(source)
+    }
+
+    private fun lineNumberAt(source: String, offset: Int): Int =
+        source.take(offset).count { it == '\n' } + 1
 
     private fun findForbiddenReferencesOutsideJobPackages(
         root: Path,

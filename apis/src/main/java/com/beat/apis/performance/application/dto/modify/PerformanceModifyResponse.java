@@ -6,18 +6,18 @@ import com.beat.apis.performance.application.dto.modify.cast.CastModifyResponse;
 import com.beat.apis.performance.application.dto.modify.performanceImage.PerformanceImageModifyResponse;
 import com.beat.apis.performance.application.dto.modify.schedule.ScheduleModifyResponse;
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyResponse;
-import com.beat.domain.performance.domain.BankName;
-import com.beat.domain.performance.domain.Genre;
+import com.beat.apis.performance.application.dto.BankNameType;
+import com.beat.apis.performance.application.dto.GenreType;
 
 public record PerformanceModifyResponse(
 	Long userId,
 	Long performanceId,
 	String performanceTitle,
-	Genre genre,
+	GenreType genre,
 	int runningTime,
 	String performanceDescription,
 	String performanceAttentionNote,
-	BankName bankName,
+	BankNameType bankName,
 	String accountNumber,
 	String accountHolder,
 	String posterImage,
@@ -40,11 +40,11 @@ public record PerformanceModifyResponse(
 		Long userId,
 		Long performanceId,
 		String performanceTitle,
-		Genre genre,
+		GenreType genre,
 		int runningTime,
 		String performanceDescription,
 		String performanceAttentionNote,
-		BankName bankName,
+		BankNameType bankName,
 		String accountNumber,
 		String accountHolder,
 		String posterImage,

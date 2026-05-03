@@ -1,5 +1,8 @@
 package com.beat.apis.performance.application;
 
+import com.beat.apis.common.application.converter.GenreEnumConverter;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import static java.util.Comparator.comparing;
 
 import java.time.LocalDate;
@@ -68,11 +71,11 @@ public class PerformanceManagementService {
 
 		Performance performance = Performance.create(
 			request.performanceTitle(),
-			request.genre(),
+			GenreEnumConverter.toDomain(request.genre()),
 			request.runningTime(),
 			request.performanceDescription(),
 			request.performanceAttentionNote(),
-			request.bankName(),
+			BankNameEnumConverter.toDomain(request.bankName()),
 			request.accountNumber(),
 			request.accountHolder(),
 			request.posterImage(),
@@ -99,7 +102,7 @@ public class PerformanceManagementService {
 				return Schedule.create(
 					scheduleRequest.performanceDate(),
 					scheduleRequest.totalTicketCount(),
-					scheduleRequest.scheduleNumber(),
+					ScheduleNumberEnumConverter.toDomain(scheduleRequest.scheduleNumber()),
 					savedPerformanceId
 				);
 			})
@@ -164,7 +167,7 @@ public class PerformanceManagementService {
 				schedule.getPerformanceDate(),
 				schedule.getTotalTicketCount(),
 				scheduleDomainService.calculateDueDate(today, schedule),
-				schedule.getScheduleNumber()
+				ScheduleNumberEnumConverter.toApi(schedule.getScheduleNumber())
 			))
 			.toList();
 
@@ -197,11 +200,11 @@ public class PerformanceManagementService {
 			performance.getUserId(),
 			performance.getId(),
 			performance.getPerformanceTitle(),
-			performance.getGenre(),
+			GenreEnumConverter.toPerformanceApi(performance.getGenre()),
 			performance.getRunningTime(),
 			performance.getPerformanceDescription(),
 			performance.getPerformanceAttentionNote(),
-			performance.getBankName(),
+			BankNameEnumConverter.toApi(performance.getBankName()),
 			performance.getAccountNumber(),
 			performance.getAccountHolder(),
 			performance.getPosterImage(),

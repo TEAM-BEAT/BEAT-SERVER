@@ -12,7 +12,7 @@ public record MakerTicketListItemReadModel(
 	Long scheduleId,
 	int purchaseTicketCount,
 	LocalDateTime createdAt,
-	String bookingStatus,
+	MakerTicketBookingStatus bookingStatus,
 	String bankName,
 	String accountNumber,
 	String accountHolder

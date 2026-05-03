@@ -42,7 +42,6 @@ infra/
       TaskExecutorConfig.java               # beatApplicationTaskExecutor 빈 생성
       JpaConfig.java
       MysqlCustomDialect.java
-      QueryDslConfig.java
       RedisCacheConfig.java
       ThreadPoolProperties.java
     persistence/

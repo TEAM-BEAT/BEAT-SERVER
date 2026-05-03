@@ -10,6 +10,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.beat.admin.common.application.converter.AdminCarouselNumberEnumConverter;
+
 import com.beat.admin.promotion.application.dto.request.AdminCarouselNumber;
 import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest;
 import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
@@ -71,7 +73,7 @@ public class AdminPromotionCommandService {
 	private AdminPromotionResult toPromotionResult(Promotion domainPromotion) {
 		return AdminPromotionResult.of(
 			domainPromotion.getId(),
-			domainPromotion.getCarouselNumber().name(),
+			AdminCarouselNumberEnumConverter.toApiName(domainPromotion.getCarouselNumber()),
 			domainPromotion.getPromotionPhoto(),
 			domainPromotion.isExternal(),
 			domainPromotion.getRedirectUrl(),
@@ -170,7 +172,7 @@ public class AdminPromotionCommandService {
 		if (carouselNumber == null) {
 			return null;
 		}
-		return CarouselNumber.valueOf(carouselNumber.name());
+		return AdminCarouselNumberEnumConverter.toDomain(carouselNumber);
 	}
 
 	private Promotion findPromotionById(Long promotionId) {

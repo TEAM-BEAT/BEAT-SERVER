@@ -494,6 +494,25 @@ Issue `#426`은 `module-contracts`에 남아 있던 historical domain import를 
 - `module-contracts/build.gradle.kts`는 `project(":domain")` 의존을 갖지 않는다.
 - infra adapter는 contract-local type만 받아 구현하고, domain/application type 변환은 실행 모듈 application boundary에서 수행한다.
 
+
+## #434 apis domain enum/value boundary removal
+
+Issue `#434`의 실행 경계 정리 후속으로 `apis` client boundary에서 domain enum/value type 직접 노출을 제거한다. raw domain aggregate뿐 아니라 API request/response/facade가 노출하는 enum도 API-local contract로 끊고, domain enum 변환은 application service 내부에서 수행한다.
+
+| 이전 coupling | 현재 API-local type | 변환 위치 |
+| --- | --- | --- |
+| `member.domain.SocialType` | `apis.member.application.dto.request.SocialTypeRequest` | `SocialLoginService` |
+| `performance.domain.Genre` | `apis.performance.application.dto.GenreType` | `HomeService`, `PerformanceManagementService`, `PerformanceModifyService` |
+| `schedule.domain.ScheduleNumber` | `apis.schedule.application.dto.ScheduleNumberType` | booking/performance/ticket application services |
+| `performance.domain.BankName` | `apis.performance.application.dto.BankNameType` | booking/performance application services |
+| `booking.domain.BookingStatus` | `apis.booking.application.dto.BookingStatusType` | booking/ticket application services |
+
+검증 기준:
+
+- API client boundary(`api`, `facade`, `application/dto`, `request`, `response`, `result`)에는 위 domain enum import가 없어야 한다.
+- API-local enum constant 이름은 기존 domain enum 이름과 같게 유지해 JSON string 요청/응답 호환성을 보존한다.
+- domain enum은 application service 내부의 domain factory/update/repository query 조립에서만 사용한다.
+
 ## CI와 로컬 검증 기준
 
 application PR gate는 [`.github/workflows/ci-pr.yml`](.github/workflows/ci-pr.yml)에 정의되어 있습니다.

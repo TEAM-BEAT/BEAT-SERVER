@@ -31,28 +31,30 @@ public class AuthenticationService {
 	 * 로그인 성공 응답 객체(LoginSuccessResponse)를 반환하는 메서드.
 	 *
 	 * @param memberId 회원의 고유 ID
-	 * @param role 사용자의 역할
+	 * @param roleName 사용자 역할명
 	 * @param socialMemberInfo 로그인 시 외부로부터 전달된 회원 정보
 	 * @return 로그인 성공 응답(LoginSuccessResponse)
 	 */
-	public LoginSuccessResponse generateLoginSuccessResponse(final Long memberId, final Role role,
+	public LoginSuccessResponse generateLoginSuccessResponse(final Long memberId, final String roleName,
 		final SocialMemberInfo socialMemberInfo) {
 		String nickname = socialMemberInfo.nickname();
+		Role role = mapRole(roleName);
+		String normalizedRoleName = role.getRoleName();
 
 		log.info("Starting login success response generation for memberId: {}, nickname: {}, role: {}", memberId,
-			nickname, role.getRoleName());
+			nickname, normalizedRoleName);
 
 		JwtSubject jwtSubject = createJwtSubject(memberId, role);
 		String refreshToken = issueAndSaveRefreshToken(memberId, jwtSubject);
 		String accessToken = jwtTokenPort.issueAccessToken(jwtSubject);
 
 		log.info("Login success for role: {}, hasAccessToken={}, hasRefreshToken={}",
-			role.getRoleName(),
+			normalizedRoleName,
 			accessToken != null && !accessToken.isBlank(),
 			refreshToken != null && !refreshToken.isBlank()
 		);
 
-		return LoginSuccessResponse.of(accessToken, refreshToken, nickname, role.getRoleName());
+		return LoginSuccessResponse.of(accessToken, refreshToken, nickname, normalizedRoleName);
 	}
 
 	/**

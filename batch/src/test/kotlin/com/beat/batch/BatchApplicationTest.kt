@@ -77,7 +77,7 @@ class BatchApplicationTest {
         val configSource = Files.readString(Path.of("src/main/kotlin/com/beat/batch/config/InfraConfig.kt"))
 
         assertTrue(configSource.contains("InfraBaseConfigGroup.JPA"))
-        assertTrue(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
+        assertFalse(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
         assertTrue(configSource.contains("InfraBaseConfigGroup.ASYNC"))
         assertFalse(configSource.contains("InfraBaseConfigGroup.SCHEDULER"))
     }

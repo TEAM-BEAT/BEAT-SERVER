@@ -1,6 +1,7 @@
 package com.beat.apis.ticket.application;
 
-import java.util.Arrays;
+import com.beat.apis.common.application.converter.BookingStatusEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,7 +17,9 @@ import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
 import com.beat.apis.ticket.application.dto.TicketUpdateDetail;
 import com.beat.apis.ticket.application.dto.TicketUpdateRequest;
 import com.beat.contracts.booking.MakerTicketReadPort;
+import com.beat.contracts.booking.readmodel.MakerTicketBookingStatus;
 import com.beat.contracts.booking.readmodel.MakerTicketListItemReadModel;
+import com.beat.contracts.booking.readmodel.MakerTicketScheduleNumber;
 import com.beat.contracts.sms.SmsMessage;
 import com.beat.contracts.sms.SmsPort;
 import com.beat.domain.booking.repository.BookingRepository;
@@ -29,7 +32,6 @@ import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.common.exception.BadRequestException;
@@ -43,6 +45,8 @@ import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
 import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
 import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 import com.beat.apis.user.application.exception.UserApplicationErrorCode;
+import com.beat.apis.booking.application.dto.BookingStatusType;
+import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 
 @Slf4j
 @Service
@@ -58,7 +62,7 @@ public class TicketService {
 	private final SmsPort smsPort;
 
 	public TicketRetrieveResponse findAllTicketsByConditions(Long memberId, Long performanceId,
-		List<ScheduleNumber> scheduleNumbers, List<BookingStatus> bookingStatuses) {
+		List<ScheduleNumberType> scheduleNumbers, List<BookingStatusType> bookingStatuses) {
 		validateDeletedTicketsAreNotRequested(bookingStatuses);
 
 		Member member = findMember(memberId);
@@ -75,8 +79,8 @@ public class TicketService {
 		log.info("bookingStatuses: {}", bookingStatuses);
 		List<MakerTicketListItemReadModel> tickets = makerTicketReadPort.findTickets(
 			performanceId,
-			toNames(scheduleNumbers),
-			toNames(bookingStatuses)
+			toMakerTicketScheduleNumbers(scheduleNumbers),
+			toMakerTicketBookingStatuses(bookingStatuses)
 		);
 
 		return findTicketRetrieveResponse(performance, totalPerformanceTicketCount, totalPerformanceSoldTicketCount,
@@ -84,7 +88,7 @@ public class TicketService {
 	}
 
 	public TicketRetrieveResponse searchAllTicketsByConditions(Long memberId, Long performanceId, String searchWord,
-		List<ScheduleNumber> scheduleNumbers, List<BookingStatus> bookingStatuses) {
+		List<ScheduleNumberType> scheduleNumbers, List<BookingStatusType> bookingStatuses) {
 		validateSearchWord(searchWord);
 		validateDeletedTicketsAreNotRequested(bookingStatuses);
 
@@ -97,27 +101,23 @@ public class TicketService {
 		int totalPerformanceTicketCount = calculateTotalTicketCount(schedules);
 		int totalPerformanceSoldTicketCount = calculateTotalSoldTicketCount(schedules);
 
-		List<String> selectedScheduleNumbers = schedules.stream()
-			.map(schedule -> schedule.getScheduleNumber().name())
+		List<MakerTicketScheduleNumber> selectedScheduleNumbers = schedules.stream()
+			.map(schedule -> ScheduleNumberEnumConverter.toMakerTicketScheduleNumber(schedule.getScheduleNumber()))
 			.toList();
 
-		List<String> selectedBookingStatuses = Arrays.asList(
-			BookingStatus.REFUND_REQUESTED.name(),
-			BookingStatus.CHECKING_PAYMENT.name(),
-			BookingStatus.BOOKING_CONFIRMED.name(),
-			BookingStatus.BOOKING_CANCELLED.name()
+		List<MakerTicketBookingStatus> selectedBookingStatuses = List.of(
+			MakerTicketBookingStatus.REFUND_REQUESTED,
+			MakerTicketBookingStatus.CHECKING_PAYMENT,
+			MakerTicketBookingStatus.BOOKING_CONFIRMED,
+			MakerTicketBookingStatus.BOOKING_CANCELLED
 		);
 
 		if (scheduleNumbers != null && !scheduleNumbers.isEmpty()) {
-			selectedScheduleNumbers = scheduleNumbers.stream()
-				.map(Enum::name)
-				.toList();
+			selectedScheduleNumbers = toMakerTicketScheduleNumbers(scheduleNumbers);
 		}
 
 		if (bookingStatuses != null && !bookingStatuses.isEmpty()) {
-			selectedBookingStatuses = bookingStatuses.stream()
-				.map(Enum::name)
-				.toList();
+			selectedBookingStatuses = toMakerTicketBookingStatuses(bookingStatuses);
 		}
 
 		log.info("Searching maker tickets: performanceId={}, scheduleFilterCount={}, statusFilterCount={}",
@@ -141,18 +141,27 @@ public class TicketService {
 		}
 	}
 
-	private void validateDeletedTicketsAreNotRequested(List<BookingStatus> bookingStatuses) {
-		if (bookingStatuses != null && bookingStatuses.contains(BookingStatus.BOOKING_DELETED)) {
+	private void validateDeletedTicketsAreNotRequested(List<BookingStatusType> bookingStatuses) {
+		if (bookingStatuses != null && bookingStatuses.contains(BookingStatusType.BOOKING_DELETED)) {
 			throw new BadRequestException(TicketApplicationErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED);
 		}
 	}
 
-	private <E extends Enum<E>> List<String> toNames(List<E> values) {
-		if (values == null || values.isEmpty()) {
+	private List<MakerTicketScheduleNumber> toMakerTicketScheduleNumbers(List<ScheduleNumberType> scheduleNumbers) {
+		if (scheduleNumbers == null || scheduleNumbers.isEmpty()) {
 			return List.of();
 		}
-		return values.stream()
-			.map(Enum::name)
+		return scheduleNumbers.stream()
+			.map(ScheduleNumberEnumConverter::toMakerTicketScheduleNumber)
+			.toList();
+	}
+
+	private List<MakerTicketBookingStatus> toMakerTicketBookingStatuses(List<BookingStatusType> bookingStatuses) {
+		if (bookingStatuses == null || bookingStatuses.isEmpty()) {
+			return List.of();
+		}
+		return bookingStatuses.stream()
+			.map(BookingStatusEnumConverter::toMakerTicketStatus)
 			.toList();
 	}
 
@@ -171,8 +180,8 @@ public class TicketService {
 					ticket.scheduleId(),
 					ticket.purchaseTicketCount(),
 					ticket.createdAt(),
-					BookingStatus.valueOf(ticket.bookingStatus()),
-					schedule.getScheduleNumber().name(),
+					BookingStatusEnumConverter.toApi(ticket.bookingStatus()),
+					ScheduleNumberEnumConverter.toApiName(schedule.getScheduleNumber()),
 					ticket.bankName(),
 					ticket.accountNumber(),
 					ticket.accountHolder()
@@ -209,14 +218,15 @@ public class TicketService {
 		for (TicketUpdateDetail detail : request.bookingList()) {
 			Booking booking = bookingRepository.findById(detail.bookingId())
 				.orElseThrow(() -> new NotFoundException(BookingApplicationErrorCode.NO_BOOKING_FOUND));
+			BookingStatus requestedBookingStatus = BookingStatusEnumConverter.toDomainForTicketUpdate(detail.bookingStatus());
 
 			if (booking.getBookingStatus() == BookingStatus.BOOKING_CONFIRMED
-				&& detail.bookingStatus() != BookingStatus.BOOKING_CONFIRMED) {
+				&& requestedBookingStatus != BookingStatus.BOOKING_CONFIRMED) {
 				throw new BadRequestException(TicketApplicationErrorCode.PAYMENT_COMPLETED_TICKET_UPDATE_NOT_ALLOWED);
 			}
 
 			if (booking.getBookingStatus() == BookingStatus.CHECKING_PAYMENT
-				&& detail.bookingStatus() == BookingStatus.BOOKING_CONFIRMED) {
+				&& requestedBookingStatus == BookingStatus.BOOKING_CONFIRMED) {
 				booking = booking.updateBookingStatus(BookingStatus.BOOKING_CONFIRMED);
 				booking = bookingRepository.save(booking);
 

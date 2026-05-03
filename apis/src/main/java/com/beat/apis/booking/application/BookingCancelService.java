@@ -1,5 +1,7 @@
 package com.beat.apis.booking.application;
 
+import com.beat.apis.common.application.converter.BookingStatusEnumConverter;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,13 +31,13 @@ public class BookingCancelService {
 		Booking booking = bookingRepository.findById(request.bookingId())
 			.orElseThrow(() -> new NotFoundException(BookingApplicationErrorCode.NO_BOOKING_FOUND));
 
-		booking = booking.updateRefundInfo(request.bankName(), request.accountNumber(), request.accountHolder());
+		booking = booking.updateRefundInfo(BankNameEnumConverter.toDomain(request.bankName()), request.accountNumber(), request.accountHolder());
 		booking = bookingRepository.save(booking);
 
 		return BookingRefundResponse.of(
 			booking.getId(),
-			booking.getBookingStatus(),
-			booking.getBankName(),
+			BookingStatusEnumConverter.toApi(booking.getBookingStatus()),
+			BankNameEnumConverter.toApi(booking.getBankName()),
 			booking.getAccountNumber(),
 			booking.getAccountHolder()
 		);
@@ -55,7 +57,7 @@ public class BookingCancelService {
 
 		return BookingCancelResponse.of(
 			booking.getId(),
-			booking.getBookingStatus()
+			BookingStatusEnumConverter.toApi(booking.getBookingStatus())
 		);
 	}
 }

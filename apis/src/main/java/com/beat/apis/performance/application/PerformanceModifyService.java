@@ -1,5 +1,8 @@
 package com.beat.apis.performance.application;
 
+import com.beat.apis.common.application.converter.GenreEnumConverter;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -136,11 +139,11 @@ public class PerformanceModifyService {
 
 		performance = performance.update(
 			request.performanceTitle(),
-			request.genre(),
+			GenreEnumConverter.toDomain(request.genre()),
 			request.runningTime(),
 			request.performanceDescription(),
 			request.performanceAttentionNote(),
-			request.bankName(),
+			BankNameEnumConverter.toDomain(request.bankName()),
 			request.accountNumber(),
 			request.accountHolder(),
 			request.posterImage(),
@@ -212,7 +215,7 @@ public class PerformanceModifyService {
 				schedule.getPerformanceDate(),
 				schedule.getTotalTicketCount(),
 				scheduleDomainService.calculateDueDate(today, schedule),
-				schedule.getScheduleNumber()
+				ScheduleNumberEnumConverter.toApi(schedule.getScheduleNumber())
 			))
 			.toList();
 	}
@@ -597,11 +600,11 @@ public class PerformanceModifyService {
 			performance.getUserId(),
 			performance.getId(),
 			performance.getPerformanceTitle(),
-			performance.getGenre(),
+			GenreEnumConverter.toPerformanceApi(performance.getGenre()),
 			performance.getRunningTime(),
 			performance.getPerformanceDescription(),
 			performance.getPerformanceAttentionNote(),
-			performance.getBankName(),
+			BankNameEnumConverter.toApi(performance.getBankName()),
 			performance.getAccountNumber(),
 			performance.getAccountHolder(),
 			performance.getPosterImage(),

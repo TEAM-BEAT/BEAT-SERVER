@@ -1,14 +1,14 @@
 package com.beat.apis.booking.application.dto;
 
-import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.apis.booking.application.dto.BookingStatusType;
 
 public record BookingCancelResponse(
 	long bookingId,
-	BookingStatus bookingStatus
+	BookingStatusType bookingStatus
 ) {
 	public static BookingCancelResponse of(
 		long bookingId,
-		BookingStatus bookingStatus) {
+		BookingStatusType bookingStatus) {
 		return new BookingCancelResponse(
 			bookingId,
 			bookingStatus);

@@ -1,5 +1,8 @@
 package com.beat.apis.performance.application;
 
+import com.beat.apis.common.application.converter.GenreEnumConverter;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -164,12 +167,6 @@ public class PerformanceService {
 		return MakerPerformanceResponse.of(member.getUserId(), positiveDueDates);
 	}
 
-	@Transactional(readOnly = true)
-	public Performance findById(Long performanceId) {
-		return performanceRepository.findById(performanceId)
-			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
-	}
-
 	@Transactional
 	public PerformanceModifyDetailResponse getPerformanceEdit(Long memberId, Long performanceId) {
 		Member member = memberRepository.findById(memberId)
@@ -205,7 +202,7 @@ public class PerformanceService {
 			.map(schedule -> ScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
 				schedule.getTotalTicketCount(),
 				scheduleDomainService.calculateDueDate(today, schedule),
-				schedule.getScheduleNumber()))
+				ScheduleNumberEnumConverter.toApi(schedule.getScheduleNumber())))
 			.toList();
 
 		List<CastResponse> castResponses = casts.stream()
@@ -223,9 +220,9 @@ public class PerformanceService {
 			.toList();
 
 		return PerformanceModifyDetailResponse.of(performance.getUserId(), performance.getId(),
-			performance.getPerformanceTitle(), performance.getGenre(), performance.getRunningTime(),
+			performance.getPerformanceTitle(), GenreEnumConverter.toPerformanceApi(performance.getGenre()), performance.getRunningTime(),
 			performance.getPerformanceDescription(), performance.getPerformanceAttentionNote(),
-			performance.getBankName(), performance.getAccountNumber(), performance.getAccountHolder(),
+			BankNameEnumConverter.toApi(performance.getBankName()), performance.getAccountNumber(), performance.getAccountHolder(),
 			performance.getPosterImage(), performance.getPerformanceTeamName(), performance.getPerformanceVenue(),
 			performance.getRoadAddressName(), performance.getPlaceDetailAddress(), performance.getLatitude(),
 			performance.getLongitude(),

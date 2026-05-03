@@ -1,8 +1,8 @@
-package com.beat.apis.performance.application;
+package com.beat.apis.home.application;
 
+import com.beat.apis.common.application.converter.GenreEnumConverter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -10,17 +10,17 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.apis.performance.application.dto.home.HomeFindAllResponse;
-import com.beat.apis.performance.application.dto.home.HomeFindRequest;
-import com.beat.apis.performance.application.dto.home.HomePerformanceDetail;
-import com.beat.apis.performance.application.dto.home.HomePromotionDetail;
+import com.beat.apis.home.application.dto.HomeFindAllResponse;
+import com.beat.apis.home.application.dto.HomeFindRequest;
+import com.beat.apis.home.application.dto.HomeGenreType;
+import com.beat.apis.home.application.dto.HomePerformanceDetail;
+import com.beat.apis.home.application.dto.HomePromotionDetail;
 import com.beat.apis.promotion.application.PromotionService;
+import com.beat.apis.promotion.application.result.PromotionHomeResult;
 import com.beat.apis.schedule.application.ScheduleService;
 import com.beat.apis.schedule.application.dto.response.MinPerformanceDateResponse;
-import com.beat.domain.performance.repository.PerformanceRepository;
-import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 
 import lombok.RequiredArgsConstructor;
@@ -42,7 +42,7 @@ public class HomeService {
 		List<HomePromotionDetail> promotionDetails = findAllPromotionsSortedByCarouselNumber();
 
 		if (performances.isEmpty()) {
-			return HomeFindAllResponse.of(promotionDetails, new ArrayList<>());
+			return HomeFindAllResponse.of(promotionDetails, List.of());
 		}
 
 		List<HomePerformanceDetail> sortedPerformances = getSortedPerformanceDetails(performances);
@@ -51,20 +51,27 @@ public class HomeService {
 	}
 
 	private List<Performance> findPerformancesByGenre(HomeFindRequest homeFindRequest) {
-		Genre genre = homeFindRequest.genre();
+		HomeGenreType genre = homeFindRequest.genre();
 
 		if (genre != null) {
-			return performanceRepository.findByGenre(genre);
+			return performanceRepository.findByGenre(GenreEnumConverter.toDomain(genre));
 		}
 
 		return performanceRepository.findAll();
 	}
 
 	private List<HomePromotionDetail> findAllPromotionsSortedByCarouselNumber() {
-		return promotionService.findAllPromotions()
+		return promotionService.findAllPromotionHomeResults()
 			.stream()
-			.sorted(Comparator.comparing(Promotion::getCarouselNumber, Comparator.comparingInt(Enum::ordinal)))
-			.map(HomePromotionDetail::from)
+			.sorted(Comparator.comparingInt(PromotionHomeResult::carouselNumberOrder))
+			.map(promotion -> HomePromotionDetail.of(
+				promotion.promotionId(),
+				promotion.promotionPhoto(),
+				promotion.performanceId(),
+				promotion.redirectUrl(),
+				promotion.external(),
+				promotion.carouselNumber()
+			))
 			.toList();
 	}
 
@@ -94,7 +101,16 @@ public class HomeService {
 
 	private HomePerformanceDetail createHomePerformanceDetail(LocalDate today, Performance performance,
 		Map<Long, LocalDateTime> minPerformanceDateMap) {
-		return HomePerformanceDetail.of(performance, calculateDueDate(today, minPerformanceDateMap.get(performance.getId())));
+		return HomePerformanceDetail.of(
+			performance.getId(),
+			performance.getPerformanceTitle(),
+			performance.getPerformancePeriod(),
+			performance.getTicketPrice(),
+			calculateDueDate(today, minPerformanceDateMap.get(performance.getId())),
+			performance.getGenre().name(),
+			performance.getPosterImage(),
+			performance.getPerformanceVenue()
+		);
 	}
 
 	private int calculateDueDate(LocalDate today, LocalDateTime baseDateTime) {
