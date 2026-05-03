@@ -49,7 +49,7 @@ apis/
     ApisApplication.kt
     config/
       NoOpScheduleBookingCloseJobConfig.kt  # module-local no-op ScheduleBookingCloseJobPort bridge
-      InfraConfig.kt                # @EnableInfraBaseConfig(JPA, QUERY_DSL, ASYNC, EXTERNAL_CLIENTS)
+      InfraConfig.kt                # @EnableInfraBaseConfig(JPA, ASYNC, EXTERNAL_CLIENTS)
 
   src/main/java/com/beat/apis/
     booking/

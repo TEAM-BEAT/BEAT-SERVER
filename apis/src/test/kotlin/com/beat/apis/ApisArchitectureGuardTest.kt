@@ -226,20 +226,31 @@ class ApisArchitectureGuardTest {
                 }
                 .toList()
                 .flatMap { path ->
-                    Files.readAllLines(path)
-                        .mapIndexedNotNull { index, line ->
-                            val trimmed = line.trimStart()
-                            forbiddenReturnTypes
-                                .firstOrNull { type ->
-                                    trimmed.matches(Regex("""public\s+(?!record\b).*\b$type\b.*\("""))
-                                }
-                                ?.let { type -> "$path:${index + 1}: $type" }
-                        }
+                    val source = Files.readString(path)
+                    forbiddenReturnTypes.flatMap { type ->
+                        forbiddenReturnTypeMatches(source, type)
+                            .map { match -> "$path:${lineNumberAt(source, match.range.first)}: $type" }
+                    }
                 }
         } finally {
             paths.close()
         }
     }
+
+    private fun forbiddenReturnTypeMatches(source: String, type: String): Sequence<MatchResult> {
+        val escapedType = Regex.escape(type)
+        val javaPublicMethod = Regex(
+            """(?m)^[ \t]*public\s+(?!record\b)(?:(?:static|final|synchronized|abstract|default|native)\s+)*[\w<>,.? \[\]\r\n\t]*\b$escapedType\b[\w<>,.? \[\]\r\n\t]*\s+\w+\s*\([^;{}]*\)\s*(?:throws\s+[^;{]+)?[;{]"""
+        )
+        val kotlinPublicFunction = Regex(
+            """(?m)^[ \t]*(?!private\b|protected\b|internal\b)(?:public\s+)?(?:suspend\s+)?fun\s+\w+\s*\([^)]*\)\s*:\s*[\w<>,.? \[\]\r\n\t]*\b$escapedType\b[\w<>,.? \[\]\r\n\t]*(?:\s|=|\{)"""
+        )
+
+        return javaPublicMethod.findAll(source) + kotlinPublicFunction.findAll(source)
+    }
+
+    private fun lineNumberAt(source: String, offset: Int): Int =
+        source.take(offset).count { it == '\n' } + 1
 
     private fun findForbiddenImportsInPaths(pathSegments: List<String>, vararg forbiddenImports: String): List<String> {
         val paths = Files.walk(Path.of("src/main"))
@@ -257,7 +268,7 @@ class ApisArchitectureGuardTest {
                         .flatMap { line ->
                             val normalizedImport = line.trim().removeSuffix(";")
                             forbiddenImports
-                                .filter { forbiddenImport -> normalizedImport == "import $forbiddenImport" }
+                                .filter { forbiddenImport -> matchesForbiddenImport(normalizedImport, forbiddenImport) }
                                 .map { forbiddenImport -> "${path}: $forbiddenImport" }
                         }
                         .toList()
@@ -265,6 +276,11 @@ class ApisArchitectureGuardTest {
         } finally {
             paths.close()
         }
+    }
+
+    private fun matchesForbiddenImport(normalizedImport: String, forbiddenImport: String): Boolean {
+        val importPattern = Regex("""^import\s+${Regex.escape(forbiddenImport)}(?:\s+as\s+\w+)?$""")
+        return importPattern.matches(normalizedImport)
     }
 
     private fun findForbiddenImports(vararg forbiddenReferences: String): List<String> {

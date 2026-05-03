@@ -39,7 +39,7 @@ batch/
   src/main/kotlin/com/beat/batch/
     BatchApplication.kt
     config/
-      InfraConfig.kt                 # @EnableInfraBaseConfig(JPA, QUERY_DSL, ASYNC)
+      InfraConfig.kt                 # @EnableInfraBaseConfig(JPA, ASYNC)
   src/main/java/com/beat/batch/
     scheduler/job/
     scheduler/application/

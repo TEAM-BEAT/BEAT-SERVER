@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +18,7 @@ import com.beat.contracts.auth.JwtTokenPort;
 import com.beat.contracts.auth.RefreshTokenPort;
 import com.beat.contracts.auth.TokenErrorCode;
 import com.beat.contracts.auth.TokenValidationResult;
+import com.beat.contracts.auth.social.SocialMemberInfo;
 import com.beat.global.common.exception.BadRequestException;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +35,19 @@ class AuthenticationServiceTest {
 	@BeforeEach
 	void setUp() {
 		authenticationService = new AuthenticationService(jwtTokenPort, refreshTokenPort);
+	}
+
+	@Test
+	void generateLoginSuccessResponseShouldRejectUnknownRoleNameBeforeIssuingToken() {
+		SocialMemberInfo socialMemberInfo = new SocialMemberInfo(123L, "nickname", "email@test.com");
+
+		BadRequestException exception = assertThrows(
+			BadRequestException.class,
+			() -> authenticationService.generateLoginSuccessResponse(1L, "ROLE_UNKNOWN", socialMemberInfo)
+		);
+
+		assertEquals(TokenErrorCode.INVALID_REFRESH_TOKEN_ERROR, exception.getBaseErrorCode());
+		verifyNoInteractions(jwtTokenPort, refreshTokenPort);
 	}
 
 	@Test

@@ -84,7 +84,7 @@ class AdminApplicationTest {
         val configSource = Files.readString(Path.of("src/main/kotlin/com/beat/admin/config/InfraConfig.kt"))
 
         assertTrue(configSource.contains("InfraBaseConfigGroup.JPA"))
-        assertTrue(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
+        assertFalse(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
         assertFalse(configSource.contains("InfraBaseConfigGroup.REDIS"))
         assertTrue(configSource.contains("InfraBaseConfigGroup.EXTERNAL_CLIENTS"))
         assertFalse(configSource.contains("InfraBaseConfigGroup.ASYNC"))

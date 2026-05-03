@@ -64,7 +64,7 @@ public class MemberBookingService {
 			memberBookingRequest.purchaseTicketCount(),
 			memberBookingRequest.bookerName(),
 			memberBookingRequest.bookerPhoneNumber(),
-			ApiEnumMapper.toDomain(memberBookingRequest.bookingStatus(), BookingStatus.class),
+			BookingStatus.CHECKING_PAYMENT,
 			null,
 			null,
 			null,

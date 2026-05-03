@@ -121,7 +121,7 @@ flowchart LR
     AdminApplication[AdminApplication]
     GatewayModuleConfig[GatewayModuleConfig]
     InfraConfig[Admin InfraConfig]
-    InfraBase[InfraBaseConfig<br/>JPA / QUERY_DSL / EXTERNAL_CLIENTS]
+    InfraBase[InfraBaseConfig<br/>JPA / EXTERNAL_CLIENTS]
     ObservabilityModuleConfig[ObservabilityModuleConfig]
 
     AdminApplication --> GatewayModuleConfig

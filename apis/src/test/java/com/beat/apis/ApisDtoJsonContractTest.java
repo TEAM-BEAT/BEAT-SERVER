@@ -2,6 +2,7 @@ package com.beat.apis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
@@ -83,6 +84,18 @@ class ApisDtoJsonContractTest {
 	}
 
 	@Test
+	void apiEnumMapperFailureShouldExposeSourceAndTargetEnumTypes() {
+		IllegalArgumentException exception = assertThrows(
+			IllegalArgumentException.class,
+			() -> ApiEnumMapper.toDomain(ApiOnlyStatus.API_ONLY, DomainOnlyStatus.class)
+		);
+
+		assertTrue(exception.getMessage().contains("API_ONLY"));
+		assertTrue(exception.getMessage().contains(ApiOnlyStatus.class.getName()));
+		assertTrue(exception.getMessage().contains(DomainOnlyStatus.class.getName()));
+	}
+
+	@Test
 	void domainEnumRequestJsonStringValuesStayCompatibleAcrossApiBoundaryMigration() throws Exception {
 		MemberLoginRequest memberLoginRequest = new MemberLoginRequest(SocialTypeRequest.KAKAO);
 		HomeFindRequest homeFindRequest = new HomeFindRequest(HomeGenreType.BAND);
@@ -142,6 +155,14 @@ class ApisDtoJsonContractTest {
 		assertFalse(performance.get("genre").isObject());
 		assertEquals("ONE", promotion.get("carouselNumber").asText());
 		assertEquals("BAND", performance.get("genre").asText());
+	}
+
+	private enum ApiOnlyStatus {
+		API_ONLY
+	}
+
+	private enum DomainOnlyStatus {
+		DOMAIN_ONLY
 	}
 
 	private List<String> enumNames(Enum<?>[] values) {

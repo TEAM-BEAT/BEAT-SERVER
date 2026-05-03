@@ -38,21 +38,23 @@ public class AuthenticationService {
 	public LoginSuccessResponse generateLoginSuccessResponse(final Long memberId, final String roleName,
 		final SocialMemberInfo socialMemberInfo) {
 		String nickname = socialMemberInfo.nickname();
+		Role role = mapRole(roleName);
+		String normalizedRoleName = role.getRoleName();
 
 		log.info("Starting login success response generation for memberId: {}, nickname: {}, role: {}", memberId,
-			nickname, roleName);
+			nickname, normalizedRoleName);
 
-		JwtSubject jwtSubject = createJwtSubject(memberId, roleName);
+		JwtSubject jwtSubject = createJwtSubject(memberId, role);
 		String refreshToken = issueAndSaveRefreshToken(memberId, jwtSubject);
 		String accessToken = jwtTokenPort.issueAccessToken(jwtSubject);
 
 		log.info("Login success for role: {}, hasAccessToken={}, hasRefreshToken={}",
-			roleName,
+			normalizedRoleName,
 			accessToken != null && !accessToken.isBlank(),
 			refreshToken != null && !refreshToken.isBlank()
 		);
 
-		return LoginSuccessResponse.of(accessToken, refreshToken, nickname, roleName);
+		return LoginSuccessResponse.of(accessToken, refreshToken, nickname, normalizedRoleName);
 	}
 
 	/**
@@ -98,10 +100,6 @@ public class AuthenticationService {
 
 	private JwtSubject createJwtSubject(Long memberId, Role role) {
 		return new JwtSubject(memberId, role.getRoleName());
-	}
-
-	private JwtSubject createJwtSubject(Long memberId, String roleName) {
-		return new JwtSubject(memberId, roleName);
 	}
 
 	private void validateRefreshToken(String refreshToken) {

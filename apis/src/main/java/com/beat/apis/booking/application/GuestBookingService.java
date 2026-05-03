@@ -72,7 +72,7 @@ public class GuestBookingService {
 			guestBookingRequest.purchaseTicketCount(),
 			guestBookingRequest.bookerName(),
 			guestBookingRequest.bookerPhoneNumber(),
-			ApiEnumMapper.toDomain(guestBookingRequest.bookingStatus(), BookingStatus.class),
+			BookingStatus.CHECKING_PAYMENT,
 			guestBookingRequest.birthDate(),
 			guestBookingRequest.password(),
 			null,
