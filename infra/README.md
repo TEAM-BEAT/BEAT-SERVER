@@ -100,7 +100,6 @@ infra/
 
 current transitional sources:
   infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt   # auditing mapped superclass
-  src/main/java/com/beat/global/common/config/**
 ```
 
 설명:
@@ -118,8 +117,8 @@ current transitional sources:
 
 ## #378 known deferred package exceptions
 
-#415에서 Schedule query/custom repository boundary는 `infra.persistence.schedule.repository.query`로 이동했고,
-#418에서 Booking/Ticket repository port도 `domain.booking.repository`로 정리되었다.
+Issue #415에서 Schedule query/custom repository boundary는 `infra.persistence.schedule.repository.query`로 이동했고,
+Issue #418에서 Booking/Ticket repository port도 `domain.booking.repository`로 정리되었다.
 따라서 현재 Booking/Schedule 쪽에는 `com.beat.domain.*.dao` 또는 `infra/src/main/java/com/beat/domain/...`
 형태의 deferred package exception을 두지 않는다.
 
