@@ -1242,9 +1242,14 @@ class SharedBoundaryContractTest {
 			Path.of("admin/src/main"),
 			Path.of("batch/src/main")
 		);
+		// InfraPersistenceConfig is allowed as an IDE-only breadcrumb: @EnableInfraBaseConfig is backed by
+		// DeferredImportSelector, which IntelliJ Spring plugin cannot statically trace, so each module-level
+		// InfraConfig carries @Import(InfraPersistenceConfig::class) purely to give the IDE a resolvable path.
+		// It has no effect at runtime — persistence bootstrap is owned by JpaConfig.
 		List<String> violations = executableSources.stream()
 			.flatMap(path -> readLines(path).stream()
-				.filter(line -> line.startsWith("import com.beat.infra.persistence."))
+				.filter(line -> line.startsWith("import com.beat.infra.persistence.")
+					&& !line.contains("InfraPersistenceConfig"))
 				.map(line -> path.toString().replace('\\', '/') + ": " + line))
 			.toList();
 
