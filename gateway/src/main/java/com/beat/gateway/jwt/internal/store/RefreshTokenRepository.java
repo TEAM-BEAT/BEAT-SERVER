@@ -1,4 +1,4 @@
-package com.beat.gateway.jwt.store;
+package com.beat.gateway.jwt.internal.store;
 
 import java.util.Optional;
 import org.springframework.data.repository.CrudRepository;

@@ -3,7 +3,7 @@ package com.beat.admin.user.api;
 import org.springframework.http.ResponseEntity;
 
 import com.beat.admin.user.application.dto.response.UserFindAllResponse;
-import com.beat.gateway.annotation.CurrentMember;
+import com.beat.gateway.security.servlet.CurrentMember;
 import com.beat.global.common.dto.ErrorResponse;
 import com.beat.global.common.dto.SuccessResponse;
 

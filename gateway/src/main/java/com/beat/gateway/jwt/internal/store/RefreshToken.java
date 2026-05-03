@@ -1,4 +1,4 @@
-package com.beat.gateway.jwt.store;
+package com.beat.gateway.jwt.internal.store;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;

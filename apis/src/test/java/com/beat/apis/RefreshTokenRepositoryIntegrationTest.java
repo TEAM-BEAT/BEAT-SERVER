@@ -1,41 +1,48 @@
 package com.beat.apis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.beat.apis.support.AbstractIntegrationTest;
-import com.beat.gateway.jwt.store.RefreshToken;
-import com.beat.gateway.jwt.store.RefreshTokenRepository;
+import com.beat.contracts.auth.RefreshTokenPort;
+import com.beat.contracts.auth.TokenErrorCode;
+import com.beat.global.common.exception.NotFoundException;
 
 class RefreshTokenRepositoryIntegrationTest extends AbstractIntegrationTest {
 
+	private static final Long MEMBER_ID = 1L;
+	private static final String REFRESH_TOKEN = "refresh-token";
+
 	@Autowired
-	private RefreshTokenRepository refreshTokenRepository;
+	private RefreshTokenPort refreshTokenPort;
 
 	@AfterEach
 	void tearDown() {
-		refreshTokenRepository.deleteAll();
+		try {
+			refreshTokenPort.deleteRefreshToken(MEMBER_ID);
+		} catch (NotFoundException ignored) {
+			// Already deleted by the test path.
+		}
 	}
 
 	@Test
-	void refreshTokenRepositoryRoundTripWorksWithRedisBackedInfrastructure() {
-		RefreshToken refreshToken = RefreshToken.of(1L, "refresh-token");
-		refreshTokenRepository.save(refreshToken);
+	void refreshTokenPortRoundTripWorksWithRedisBackedGatewayImplementation() {
+		refreshTokenPort.saveRefreshToken(MEMBER_ID, REFRESH_TOKEN);
 
-		RefreshToken loaded = refreshTokenRepository.findByRefreshToken("refresh-token").orElseThrow();
+		Long loadedMemberId = refreshTokenPort.findMemberIdByRefreshToken(REFRESH_TOKEN);
 
-		assertEquals(1L, loaded.getId());
-		assertEquals("refresh-token", loaded.getRefreshToken());
-		assertTrue(refreshTokenRepository.findById(1L).isPresent());
+		assertEquals(MEMBER_ID, loadedMemberId);
 
-		refreshTokenRepository.delete(loaded);
+		refreshTokenPort.deleteRefreshToken(MEMBER_ID);
 
-		assertFalse(refreshTokenRepository.findById(1L).isPresent());
-		assertFalse(refreshTokenRepository.findByRefreshToken("refresh-token").isPresent());
+		NotFoundException exception = assertThrows(
+			NotFoundException.class,
+			() -> refreshTokenPort.findMemberIdByRefreshToken(REFRESH_TOKEN)
+		);
+		assertEquals(TokenErrorCode.REFRESH_TOKEN_NOT_FOUND, exception.getBaseErrorCode());
 	}
 }

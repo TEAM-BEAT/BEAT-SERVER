@@ -97,9 +97,9 @@ class SharedBoundaryContractTest {
 	@Test
 	void redisWiringLeavesOnlyRefreshTokenRepositoryContractInGateway() throws Exception {
 		String gatewayRedisConfig = Files.readString(
-			Path.of("gateway/src/main/java/com/beat/gateway/config/GatewayRedisConfig.java"));
+			Path.of("gateway/src/main/java/com/beat/gateway/internal/config/GatewayRedisConfig.java"));
 		String refreshToken = Files.readString(
-			Path.of("gateway/src/main/java/com/beat/gateway/jwt/store/RefreshToken.java"));
+			Path.of("gateway/src/main/java/com/beat/gateway/jwt/internal/store/RefreshToken.java"));
 
 		assertFalse(Files.exists(Path.of("infra/src/main/java/com/beat/infra/config/RedisConfig.java")));
 		assertFalse(Files.exists(Path.of("gateway/src/main/java/com/beat/gateway/redis/LettuceLockRepository.java")));

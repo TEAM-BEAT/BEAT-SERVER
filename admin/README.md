@@ -13,7 +13,7 @@
 flowchart TB
     Client[Admin Client]
     Admin[admin module<br/>HTTP executable]
-    Gateway[gateway<br/>auth annotation / security bootstrap]
+    Gateway[gateway<br/>public auth contract / security bootstrap]
     Domain[domain<br/>pure domain model / repository contract]
     Contracts[module-contracts<br/>shared port contract]
     Infra[infra<br/>JPA / query / external adapter]
@@ -42,7 +42,7 @@ flowchart TB
 | 영역 | 현재 계약 |
 | --- | --- |
 | 실행 형태 | Spring Boot 관리자 HTTP executable module |
-| Bootstrap | `AdminApplication`이 `GatewayModuleConfig`, `InfraConfig`, `ObservabilityModuleConfig`만 명시 import |
+| Bootstrap | `AdminApplication`이 `@EnableGatewayConfig(SERVLET_SECURITY)`로 gateway 인증 group을 선택하고 `InfraConfig`, `ObservabilityModuleConfig`만 명시 import |
 | Package | context 기준 `admin.user`, `admin.promotion` 분리 |
 | Layer | `Controller -> Facade -> ApplicationService(command/query)` |
 | DTO | admin 전용 request/response/result DTO 소유, domain/JPA type 직접 노출 금지 |
@@ -101,9 +101,12 @@ implementation(project(":observability"))
   - `infra.*.repository.jpa`
   - `infra.external.*`
 - gateway internal 구현 직접 import 금지
-  - `gateway.security.*`
+  - `gateway.annotation.*`
+  - `gateway.jwt.internal.*`
+  - `gateway.security.internal.*`
   - `gateway.filter.*`
   - `gateway.config.*`
+- 허용되는 gateway 공개 표면은 `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember`로 제한하고 JWT/refresh token 계약은 `module-contracts`의 `com.beat.contracts.auth.*`를 사용
 - transitional package 재도입 금지
   - `adapter/`
   - `controller/`
@@ -119,12 +122,12 @@ implementation(project(":observability"))
 ```mermaid
 flowchart LR
     AdminApplication[AdminApplication]
-    GatewayModuleConfig[GatewayModuleConfig]
+    EnableGatewayConfig[@EnableGatewayConfig<br/>SERVLET_SECURITY]
     InfraConfig[Admin InfraConfig]
     InfraBase[InfraBaseConfig<br/>JPA / EXTERNAL_CLIENTS]
     ObservabilityModuleConfig[ObservabilityModuleConfig]
 
-    AdminApplication --> GatewayModuleConfig
+    AdminApplication --> EnableGatewayConfig
     AdminApplication --> InfraConfig
     AdminApplication --> ObservabilityModuleConfig
     InfraConfig --> InfraBase
@@ -135,8 +138,10 @@ flowchart LR
 ```kotlin
 @SpringBootApplication(scanBasePackageClasses = [AdminApplication::class])
 @ConfigurationPropertiesScan(basePackages = ["com.beat.infra.config"])
+@EnableGatewayConfig(
+    value = [GatewayConfigGroup.SERVLET_SECURITY],
+)
 @Import(
-    GatewayModuleConfig::class,
     InfraConfig::class,
     ObservabilityModuleConfig::class,
 )
@@ -147,7 +152,7 @@ class AdminApplication
 
 - broad `@ComponentScan`을 사용하지 않습니다.
 - `AdminApplication` 자신의 package 아래만 component scan합니다.
-- `GatewayModuleConfig`는 공개 gateway bootstrap 경계입니다.
+- `EnableGatewayConfig`는 공개 gateway bootstrap 경계이며 broad `com.beat.gateway` scan에 의존하지 않고 admin에는 refresh token store를 import하지 않습니다.
 - `InfraConfig`는 admin이 필요한 infra group만 명시합니다.
 - `ObservabilityModuleConfig`는 관측성 공개 bootstrap 경계입니다.
 - `beat.scheduler.owner=false` 계약을 유지합니다.
@@ -479,7 +484,7 @@ admin.api.response.AdminSuccessCode
 
 규칙:
 
-- gateway 내부 security 구현을 직접 import하지 않습니다.
+- gateway 내부 security 구현을 직접 import하지 않고 `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember` 같은 공개 contract만 사용합니다.
 - admin route 정책은 admin config에서 관리합니다.
 - Swagger/OpenAPI는 admin 실행 모듈의 문서화 경계입니다.
 
@@ -490,7 +495,7 @@ admin.api.response.AdminSuccessCode
 | Test | 고정하는 계약 |
 | --- | --- |
 | `AdminApplicationTest` | bootstrap import, broad component scan 금지, scheduler owner disabled |
-| `AdminArchitectureGuardTest` | root dependency 금지, forbidden import 금지, transitional package 금지, DTO/domain boundary, SuccessCode 위치 |
+| `AdminArchitectureGuardTest` | root dependency 금지, gateway public import allowlist, infra forbidden import 금지, transitional package 금지, DTO/domain boundary, SuccessCode 위치 |
 | `AdminModuleContextBootTest` | context controller/facade/service bean boot smoke, scheduler bridge 미소유 |
 | `AdminDtoJsonContractTest` | request enum 문자열, response JSON field 호환성 |
 | `PromotionBoundaryTest` | promotion 경계에서 admin DTO coupling 재발 방지 |

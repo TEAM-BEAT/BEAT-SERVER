@@ -1,8 +1,10 @@
 package com.beat.apis
 
 import com.beat.apis.config.ApisSecurityConfig
+import com.beat.apis.config.GatewayConfig
 import com.beat.apis.config.InfraConfig
-import com.beat.gateway.GatewayModuleConfig
+import com.beat.gateway.EnableGatewayConfig
+import com.beat.gateway.GatewayConfigGroup
 import com.beat.observability.ObservabilityModuleConfig
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -24,7 +26,7 @@ class ApisApplicationTest {
 
         assertEquals(
             setOf(
-                GatewayModuleConfig::class.java.name,
+                GatewayConfig::class.java.name,
                 InfraConfig::class.java.name,
                 ObservabilityModuleConfig::class.java.name,
             ),
@@ -43,10 +45,14 @@ class ApisApplicationTest {
     }
 
     @Test
-    fun `gateway module imports auth bootstrap config`() {
-        val componentScan = GatewayModuleConfig::class.java.getAnnotation(ComponentScan::class.java)
-        assertNotNull(componentScan)
-        assertTrue(componentScan.basePackages.contains("com.beat.gateway"))
+    fun `apis selects gateway servlet security with refresh token store`() {
+        val enableGatewayConfig = GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
+
+        assertNotNull(enableGatewayConfig, "apis GatewayConfig must declare @EnableGatewayConfig")
+        assertEquals(
+            setOf(GatewayConfigGroup.SERVLET_SECURITY, GatewayConfigGroup.REFRESH_TOKEN_STORE),
+            enableGatewayConfig!!.value.toSet(),
+        )
     }
 
     @Test

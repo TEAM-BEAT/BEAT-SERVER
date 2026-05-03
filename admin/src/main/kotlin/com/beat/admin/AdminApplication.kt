@@ -1,7 +1,7 @@
 package com.beat.admin
 
+import com.beat.admin.config.GatewayConfig
 import com.beat.admin.config.InfraConfig
-import com.beat.gateway.GatewayModuleConfig
 import com.beat.observability.ObservabilityModuleConfig
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Import
 @SpringBootApplication(scanBasePackageClasses = [AdminApplication::class])
 @ConfigurationPropertiesScan(basePackages = ["com.beat.infra.config"])
 @Import(
-    GatewayModuleConfig::class,
+    GatewayConfig::class,
     InfraConfig::class,
     ObservabilityModuleConfig::class,
 )

@@ -1,8 +1,10 @@
 package com.beat.admin
 
 import com.beat.admin.config.AdminSecurityConfig
+import com.beat.admin.config.GatewayConfig
 import com.beat.admin.config.InfraConfig
-import com.beat.gateway.GatewayModuleConfig
+import com.beat.gateway.EnableGatewayConfig
+import com.beat.gateway.GatewayConfigGroup
 import com.beat.observability.ObservabilityModuleConfig
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -23,7 +25,7 @@ class AdminApplicationTest {
 
         assertEquals(
             setOf(
-                GatewayModuleConfig::class.java.name,
+                GatewayConfig::class.java.name,
                 InfraConfig::class.java.name,
                 ObservabilityModuleConfig::class.java.name,
             ),
@@ -32,11 +34,14 @@ class AdminApplicationTest {
     }
 
     @Test
-    fun `gateway module imports auth bootstrap config`() {
-        val componentScan = GatewayModuleConfig::class.java.getAnnotation(ComponentScan::class.java)
+    fun `admin selects gateway servlet security without refresh token store`() {
+        val enableGatewayConfig = GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
 
-        assertNotNull(componentScan)
-        assertTrue(componentScan.basePackages.contains("com.beat.gateway"))
+        assertNotNull(enableGatewayConfig, "admin GatewayConfig must declare @EnableGatewayConfig")
+        assertEquals(
+            setOf(GatewayConfigGroup.SERVLET_SECURITY),
+            enableGatewayConfig!!.value.toSet(),
+        )
     }
 
     @Test

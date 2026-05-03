@@ -1,4 +1,4 @@
-package com.beat.gateway.jwt;
+package com.beat.gateway.jwt.internal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,8 +15,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.beat.contracts.auth.TokenErrorCode;
-import com.beat.gateway.jwt.store.RefreshToken;
-import com.beat.gateway.jwt.store.RefreshTokenRepository;
+import com.beat.gateway.jwt.internal.store.RefreshToken;
+import com.beat.gateway.jwt.internal.store.RefreshTokenRepository;
 import com.beat.global.common.exception.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)

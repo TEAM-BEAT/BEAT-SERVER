@@ -31,16 +31,18 @@ class AdminArchitectureGuardTest {
     }
 
     @Test
-    fun `admin sources must not import gateway internal packages`() {
-        val violations = findForbiddenReferences(
-            "com.beat.gateway.security.",
-            "com.beat.gateway.filter.",
-            "com.beat.gateway.config.",
+    fun `admin sources import only public gateway boundary`() {
+        val violations = findGatewayImportViolations(
+            setOf(
+                "com.beat.gateway.EnableGatewayConfig",
+                "com.beat.gateway.GatewayConfigGroup",
+                "com.beat.gateway.security.servlet.CurrentMember",
+            )
         )
 
         assertTrue(
             violations.isEmpty(),
-            "Found forbidden gateway internal references:\n${violations.joinToString("\n")}"
+            "Found non-public gateway imports:\n${violations.joinToString("\n")}"
         )
     }
 
@@ -256,6 +258,33 @@ class AdminArchitectureGuardTest {
                                 .filter(line::contains)
                                 .map { pattern -> "$path: $pattern" }
                         }
+                        .toList()
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
+    private fun findGatewayImportViolations(allowedImports: Set<String>): List<String> {
+        val paths = Files.walk(Path.of("src/main"))
+
+        return try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt") }
+                .toList()
+                .flatMap { path ->
+                    Files.readAllLines(path)
+                        .asSequence()
+                        .filter { it.trimStart().startsWith("import com.beat.gateway.") }
+                        .map { line ->
+                            line.trim()
+                                .removePrefix("import ")
+                                .removeSuffix(";")
+                                .substringBefore(" as ")
+                        }
+                        .filterNot(allowedImports::contains)
+                        .map { gatewayImport -> "$path: $gatewayImport" }
                         .toList()
                 }
         } finally {

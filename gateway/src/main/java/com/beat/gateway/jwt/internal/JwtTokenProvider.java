@@ -1,11 +1,10 @@
-package com.beat.gateway.jwt;
+package com.beat.gateway.jwt.internal;
 
 import com.beat.contracts.auth.JwtSubject;
 import com.beat.contracts.auth.JwtTokenPort;
 import com.beat.contracts.auth.TokenValidationResult;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -115,9 +114,6 @@ public class JwtTokenProvider implements JwtTokenPort {
 		final Date expiration = new Date(now.getTime() + expiredTime);
 
 		return Jwts.builder()
-			.header()
-			.add(Header.TYPE, Header.JWT_TYPE)
-			.and()
 			.issuedAt(now)
 			.expiration(expiration)
 			.claim(MEMBER_ID, subject.memberId())
