@@ -87,8 +87,8 @@ flowchart TB
     subgraph SERVLET_SECURITY["GatewayConfigGroup.SERVLET_SECURITY"]
         ServletSecurityConfig["GatewayServletSecurityConfig"]
         JwtConfig["GatewayJwtConfig<br/>→ JwtTokenProvider"]
-        SecurityConfig["GatewaySecurityServletConfig<br/>→ JwtAuthenticationFilter<br/>→ CurrentMemberArgumentResolver<br/>→ CustomAccessDeniedHandler<br/>→ CustomJwtAuthenticationEntryPoint"]
-        WebMvcConfig["GatewayWebMvcConfig<br/>→ ArgumentResolver 등록"]
+        SecurityConfig["GatewaySecurityServletConfig<br/>→ JwtAuthenticationFilter<br/>→ CustomAccessDeniedHandler<br/>→ CustomJwtAuthenticationEntryPoint"]
+        WebMvcConfig["GatewayWebMvcConfig<br/>→ CurrentMemberArgumentResolver (직접 생성)<br/>→ ArgumentResolver 등록"]
     end
 
     subgraph REFRESH_TOKEN_STORE["GatewayConfigGroup.REFRESH_TOKEN_STORE"]
@@ -233,7 +233,7 @@ gateway/
     internal/config/
       GatewayServletSecurityConfig.java   # SERVLET_SECURITY group entrypoint
       GatewayJwtConfig.java               # JwtTokenProvider import
-      GatewaySecurityServletConfig.java   # 필터 / 핸들러 / resolver import
+      GatewaySecurityServletConfig.java   # 필터 / 핸들러 import
       GatewayWebMvcConfig.java            # ArgumentResolver 등록
       GatewayRefreshTokenConfig.java      # REFRESH_TOKEN_STORE group entrypoint
       GatewayRedisConfig.java             # @EnableRedisRepositories
