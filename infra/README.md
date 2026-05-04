@@ -625,6 +625,7 @@ flowchart TB
 
 ```text
 infra/ansible/
+├── .ansible-lint.yml                    # Ansible Lint 검사 규칙
 ├── ansible.cfg                          # SOPS 플러그인, SSH 파이프라이닝
 ├── collections/requirements.yml         # community.docker, community.sops
 ├── inventories/
@@ -642,13 +643,17 @@ infra/ansible/
 │   ├── foundation.yml                   # 인프라 기반 스택
 │   ├── deploy.yml                       # 앱 배포
 │   ├── rollback.yml                     # 롤백
-│   └── secret.yml                       # 시크릿만 동기화
+│   ├── secret.yml                       # 시크릿만 동기화
+│   └── tasks/
+│       └── validate_nginx_fragments.yml # Nginx fragment 매핑 공통 검증 로직
 ├── roles/
 │   ├── foundation_stack/                # docker-compose 기반 기초 서비스
 │   │   └── templates/foundation.compose.yml.j2
 │   ├── nginx_base_config/               # nginx 설정 렌더링 + 프로모션
 │   │   └── templates/default.conf.j2
 │   ├── nginx_config_helper/             # update-nginx-config.py 배포 helper
+│   ├── nginx_fragment_transaction/      # Nginx 설정 파일 변경 시 백업/복원(트랜잭션) 롤백 보장
+│   ├── app_container_runtime/           # 컨테이너 런타임 환경변수(Profile, Actuator, 스케줄러 등) 조립
 │   ├── app_secret/                      # SOPS → properties 파일
 │   ├── app_scripts/                     # 배포 디렉토리 + nginx helper 준비
 │   ├── app_release/                     # 릴리즈 메타데이터
@@ -783,6 +788,9 @@ sequenceDiagram
     end
 ```
 
+> **💡 아키텍처 상세: Ephemeral Curl Container 패턴**
+> 위 다이어그램의 `Health Check` 단계는 타겟 호스트(EC2)에 `curl`이 설치되어 있는지 묻지도 따지지도 않습니다. 대신 도커 내부의 `beat-network`에 `curlimages/curl` 컨테이너를 일회성(ephemeral)으로 띄워 타겟 컨테이너의 Actuator 내부 엔드포인트를 호출하여 헬스체크를 수행한 뒤 즉시 삭제합니다. 이를 통해 호스트 운영체제 환경에 대한 의존성을 완벽하게 제거하고 네트워크 격리를 보장합니다.
+
 ## SOPS 시크릿 관리
 
 ### 암호화 체인
@@ -839,6 +847,7 @@ flowchart TD
 | 카테고리    | 변수                                                                      | 설명                            |
 |---------|-------------------------------------------------------------------------|-------------------------------|
 | **인프라** | `ansible_host`                                                          | 서버 IP (평문 노출 방지)              |
+| **인프라** | `ssh_host_fingerprint`                                                  | 서버 SSH 호스트 지문 (`SHA256:...`)   |
 | **인프라** | `nginx_server_name`                                                     | 도메인                           |
 | **인프라** | `letsencrypt_cert_name`                                                 | SSL 인증서 도메인                   |
 | **인프라** | `actuator_allow_cidrs`                                                  | actuator 접근 허용 CIDR 목록        |
@@ -848,6 +857,13 @@ flowchart TD
 | **앱**   | `app_secret_content`                                                    | Spring Boot 시크릿 properties 전체 |
 
 `main.yml`에는 배포 모드, 컨테이너 이름, 포트, 경로 등 **노출되어도 무방한 설정값**만 남긴다.
+
+### 🛡️ 시크릿 런타임 주입 및 권한 제어 (12-Factor)
+
+`app_secret` 역할(Role)이 `app_secret_content`를 복호화하여 타겟 서버의 물리적 파일로 쓸 때, 매우 정교한 방어적 보안이 적용됩니다.
+
+1. **파일 권한 통제 (0640 & UID 10001)**: 호스트의 `/opt/beat/secret` 경로에 생성되는 시크릿 파일은 `root:10001` 소유권과 `0640` 파일 권한을 강제합니다. 컨테이너가 루트 권한 없이 `UID 10001` 계정으로 실행되므로 파일을 합법적으로 읽을 수 있지만, 호스트에 침투한 다른 권한 없는 사용자나 스크립트는 시크릿을 절대 탈취할 수 없습니다.
+2. **읽기 전용(RO) 마운트**: 애플리케이션 컨테이너를 구동할 때 `-v /opt/beat/secret:/app/secret:ro` 형태로 볼륨을 마운트합니다. Spring Boot는 `/app/secret` 경로에서 프로퍼티를 안전하게 로드하며, 컨테이너 내부에서 시크릿 파일을 임의로 수정/삭제하는 것을 원천 차단합니다.
 
 ### 팀원 추가 절차
 
@@ -879,6 +895,32 @@ sops infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml
 # 특정 값만 추출
 sops -d --extract '["actuator_port"]' infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml
 ```
+
+## 타겟 서버 사전 요구사항 (Prerequisites)
+
+Ansible의 `community.docker` 모듈이 타겟 EC2 서버에서 정상 동작하기 위해, 서버 셋업 시(AMI 또는 User Data) 다음 패키지들이 미리 설치되어 있어야 합니다.
+
+1. **Docker Engine & Compose V2**
+   - `docker-ce`, `docker-ce-cli`
+   - `docker-compose-plugin` (`docker_compose_v2` 모듈 실행용)
+2. **Python & Docker SDK (필수!)**
+   - `python3`
+   - `python3-docker` (또는 `pip3 install docker`) 
+   - 이 패키지가 없으면 `docker_volume_info`, `docker_network` 등의 Ansible 모듈이 Python 라이브러리 참조 에러로 실패합니다.
+3. **Nginx Helper 스크립트 종속성**
+   - `update-nginx-config.py`는 외부 의존성 없이 표준 파이썬 라이브러리만 사용하므로 추가 pip 패키지 설치는 필요 없습니다.
+
+또한, Ansible Playbook이 정상 동작하려면 아래 **파일 시스템 구조**가 타겟 서버에 미리 존재해야 합니다 (Ansible이 자동으로 생성해주지 않는 Out-of-band 관리 대상입니다).
+
+4. **SSL 인증서 (Certbot)**
+   - Nginx가 HTTPS 설정으로 구동되기 위해 Let's Encrypt 인증서가 필수입니다.
+   - `/home/ubuntu/data/certbot/conf/live/<letsencrypt_cert_name>/fullchain.pem` 및 `privkey.pem`
+   - 위 파일들이 사전에 발급되어 있지 않으면 `foundation_stack` 실행 시 Nginx 컨테이너가 볼륨 마운트 및 설정 파일 파싱 오류로 즉시 종료(Exit 1)됩니다.
+5. **Redis 설정 파일**
+   - `/home/ubuntu/redis.conf`
+   - 이 파일이 호스트에 없으면 Docker 엔진이 이를 디렉토리로 간주하여 빈 폴더를 생성해버리고, 결과적으로 Redis 컨테이너가 `Fatal error, can't open config file` 에러와 함께 구동에 실패합니다.
+
+---
 
 ## 서버 구성
 
@@ -978,6 +1020,8 @@ flowchart LR
 `previous.json`으로 보존되어 rollback 입력이 된다. `app_rollback`은 rollback 전에 기존 `current.json`을 `reverted-<UTC>.json`으로
 archive한다.
 
+> **💡 리소스 정리(Cleanup) 정책**: `app_cleanup`은 메타데이터 승격과 동시에 `docker image prune -f --filter "until=72h"` 명령을 실행하여 **72시간이 지난(오래된) 댕글링 이미지를 자동 삭제**합니다. 이를 통해 빈번한 CI/CD 배포로 인해 EC2 호스트의 디스크 용량이 고갈되는 것을 효과적으로 방지합니다.
+
 | 필드                   | 의미                                  | 출처 / provenance                                     |
 |----------------------|-------------------------------------|-----------------------------------------------------|
 | `module`             | 배포 대상 모듈 (`apis`, `admin`, `batch`) | GitHub workflow matrix/input이 Ansible extra var로 전달 |
@@ -999,10 +1043,9 @@ archive한다.
 | `AGE_SECRET_KEY`               | dev 환경 SOPS 복호화용 age private key |
 | `DEV_DOCKER_LOGIN_USERNAME`    | Docker Hub 사용자명                  |
 | `DEV_DOCKER_LOGIN_ACCESSTOKEN` | Docker Hub 액세스 토큰                |
-| `DEV_SSH_HOST`                 | dev 서버 IP                        |
-| `DEV_SSH_PORT`                 | dev 서버 SSH 포트                    |
 | `DEV_SSH_PRIVATE_KEY`          | dev 서버 SSH 비밀키                   |
-| `DEV_SSH_HOST_FINGERPRINT`     | dev 서버 SSH 호스트 지문 (`SHA256:...`) |
+
+> **참고**: 이전 방식에서는 서버 IP와 SSH 지문을 GitHub Secret으로 관리했으나, 현재는 `resolve-ansible-connection` 액션을 통해 `secrets.sops.yml`에서 동적으로 복호화하여 사용하므로 GitHub Secret에서 제거되었습니다.
 
 ### 필수 (Environment: prod)
 
@@ -1011,10 +1054,7 @@ archive한다.
 | `AGE_SECRET_KEY`                | prod 환경 SOPS 복호화용 age private key |
 | `PROD_DOCKER_LOGIN_USERNAME`    | Docker Hub 사용자명                   |
 | `PROD_DOCKER_LOGIN_ACCESSTOKEN` | Docker Hub 액세스 토큰                 |
-| `PROD_SSH_HOST`                 | prod 서버 IP                        |
-| `PROD_SSH_PORT`                 | prod 서버 SSH 포트                    |
 | `PROD_SSH_PRIVATE_KEY`          | prod 서버 SSH 비밀키                   |
-| `PROD_SSH_HOST_FINGERPRINT`     | prod 서버 SSH 호스트 지문 (`SHA256:...`) |
 
 ### 선택 (Repository-level 또는 Environment-level)
 
@@ -1064,6 +1104,9 @@ pipelining 호환성을 확인한다.
    ```bash
    ./scripts/generate-local-dev-secret.sh
    # → secret/application-dev-secret.properties 생성
+   
+   ./scripts/generate-local-prod-secret.sh
+   # → secret/application-prod-secret.properties 생성
    ```
 
 ### 로컬 실행
