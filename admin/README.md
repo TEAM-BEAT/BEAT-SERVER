@@ -122,7 +122,7 @@ implementation(project(":observability"))
 ```mermaid
 flowchart LR
     AdminApplication[AdminApplication]
-    EnableGatewayConfig[@EnableGatewayConfig<br/>SERVLET_SECURITY]
+    EnableGatewayConfig["@EnableGatewayConfig<br/>SERVLET_SECURITY"]
     InfraConfig[Admin InfraConfig]
     InfraBase[InfraBaseConfig<br/>JPA / EXTERNAL_CLIENTS]
     ObservabilityModuleConfig[ObservabilityModuleConfig]
