@@ -57,8 +57,8 @@ flowchart TB
     Facade --> App
     App --> Domain
     App --> Contracts
-    Domain -->|RepositoryPort 구현| Infra
-    Contracts -->|ReadPort / ExternalPort 구현| Infra
+    Infra -->|RepositoryPort 구현| Domain
+    Infra -->|ReadPort / ExternalPort 구현| Contracts
     Infra --> External
 
     style Domain fill:#e8fff1,stroke:#15803d,stroke-width:2px
