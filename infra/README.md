@@ -144,7 +144,7 @@ class InfraConfig
 ### Support config 규칙
 
 top-level group config(`AsyncConfig`, `ExternalClientConfig`, `JpaConfig`, `RedisCacheConfig`)만 `InfraBaseConfig`를 구현합니다.
-그 아래에서 `@Import`로 전이 로드되는 support config(`TaskExecutorConfig`, `InfraPersistenceConfig`, `S3InfraConfig`)는
+그 아래에서 `@Import`로 전이 로드되는 support config(`TaskExecutorConfig`, `ThreadPoolProperties`, `InfraPersistenceConfig`, `S3InfraConfig`)는
 `InfraBaseConfig`를 구현하지 않습니다. 실행 모듈은 support config를 직접 import하지 않는 것이 원칙이나, `InfraPersistenceConfig`는 IDE static-analysis 경로 확보를 위해 예외적으로 `@Import`합니다 (Section 4 공개 표면 참조).
 
 ```mermaid
@@ -332,7 +332,7 @@ global-utils
 - UseCase, ApplicationService, Controller, 실행 모듈 전용 DTO 보유 금지
 - infra persistence model / external adapter 구현 타입을 실행 모듈 API나 domain 계약으로 직접 노출 금지
 - `InfraModuleConfig.kt`처럼 전역 스캔 진입점을 `@EnableInfraBaseConfig`와 병행 선언 금지
-- support config(`TaskExecutorConfig`, `InfraPersistenceConfig`, `S3InfraConfig`)에 `InfraBaseConfig` 구현 금지
+- support config(`TaskExecutorConfig`, `ThreadPoolProperties`, `InfraPersistenceConfig`, `S3InfraConfig`)에 `InfraBaseConfig` 구현 금지
 - 실행 모듈이 `infra.external.*` 또는 `infra.persistence.*` 구현 패키지를 직접 import하게 만들지 않습니다 (`InfraPersistenceConfig` IDE breadcrumb 제외)
 - infra query adapter가 실행 모듈 내부 DTO/ResponseDTO를 반환하지 않습니다
 - domain model, ApplicationService, Facade를 infra에서 소유하지 않습니다
