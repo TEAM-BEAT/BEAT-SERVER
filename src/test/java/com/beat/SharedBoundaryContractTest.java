@@ -126,7 +126,7 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/config/TaskExecutorConfig.java",
 			"infra/src/main/java/com/beat/infra/config/ThreadPoolProperties.java",
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
-			"infra/src/main/java/com/beat/infra/storage/s3/S3InfraConfig.java"
+			"infra/src/main/java/com/beat/infra/external/storage/s3/S3InfraConfig.java"
 		);
 
 		assertTrue(infraBaseConfig.contains("Marker for top-level infra bootstrap configurations"));

@@ -1,16 +1,16 @@
 package com.beat.infra.config;
 
 import com.beat.infra.InfraBaseConfig;
-import com.beat.infra.notification.slack.SlackBookingNotificationAdapter;
-import com.beat.infra.notification.slack.SlackMemberNotificationAdapter;
-import com.beat.infra.notification.slack.client.BookingSlackClient;
-import com.beat.infra.notification.slack.client.MemberSlackClient;
-import com.beat.infra.auth.social.kakao.KakaoSocialLoginAdapter;
-import com.beat.infra.auth.social.kakao.client.KakaoApiClient;
-import com.beat.infra.auth.social.kakao.client.KakaoAuthApiClient;
-import com.beat.infra.sms.CoolSmsAdapter;
-import com.beat.infra.storage.s3.S3FileStorageAdapter;
-import com.beat.infra.storage.s3.S3InfraConfig;
+import com.beat.infra.external.auth.social.kakao.KakaoSocialLoginAdapter;
+import com.beat.infra.external.auth.social.kakao.client.KakaoApiClient;
+import com.beat.infra.external.auth.social.kakao.client.KakaoAuthApiClient;
+import com.beat.infra.external.notification.slack.SlackBookingNotificationAdapter;
+import com.beat.infra.external.notification.slack.SlackMemberNotificationAdapter;
+import com.beat.infra.external.notification.slack.client.BookingSlackClient;
+import com.beat.infra.external.notification.slack.client.MemberSlackClient;
+import com.beat.infra.external.sms.CoolSmsAdapter;
+import com.beat.infra.external.storage.s3.S3FileStorageAdapter;
+import com.beat.infra.external.storage.s3.S3InfraConfig;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
