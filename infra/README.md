@@ -541,6 +541,15 @@ infra/ansible/
 - foundation / nginx 템플릿도 전역 `templates/`가 아니라 각 role의 `templates/` 안에서 관리한다.
 - `deploy.yml`은 blue-green 모듈에서 `app_bluegreen`을 직접 import하고, `app_rollback`은 상대 `import_tasks` 대신 `import_role` + 명시적 vars 전달 구조를 사용한다.
 
+### Legacy nginx named volume → bind mount 마이그레이션
+
+`foundation_stack`은 첫 실행 시 `nginx_legacy_config_volume_name`(Docker named volume)에 nginx 설정이 남아있으면 bind mount 디렉토리로 복사한다.
+
+- `community.docker.docker_volume_info`로 legacy volume 존재 여부를 확인한다.
+- volume이 있으면 `-anv` dry-run 후 실제 복사한다.
+- 마이그레이션 완료 후 `.bind-mount-migrated-from-{{ foundation_stack_legacy_nginx_volume_name }}` marker를 생성해 중복 마이그레이션을 방지한다.
+- Docker volume 내부 경로(`/var/lib/...`)를 직접 참조하지 않는다. `community.docker.docker_volume_info`가 volume metadata를 안전하게 추상화한다.
+
 ### Foundation marker contract
 
 - `foundation.yml`은 `foundation_stack`과 선택적 `nginx_base_config`가 모두 성공한 뒤 `{{ deployment_dir }}/.foundation-applied` marker를 생성한다.
@@ -866,6 +875,8 @@ flowchart LR
 | `deploy_actor` | 배포를 트리거한 GitHub actor | GitHub workflow의 actor 값 |
 | `deploy_environment` | Ansible inventory 환경 (`dev`/`prod`) | inventory `deploy_environment` |
 | `created_at` | metadata 생성 시각 | Ansible controller(GitHub runner)에서 계산한 UTC |
+
+`created_at`은 원격 EC2의 시스템 시간이 아니라 controller UTC(GitHub runner)에서 계산한다. EC2 clock drift의 영향을 받지 않는다.
 
 ## GitHub Secrets
 
