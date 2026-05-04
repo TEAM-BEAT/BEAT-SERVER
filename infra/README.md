@@ -1,188 +1,388 @@
 # infra module
 
-> 이 문서는 `infra` 모듈의 현재 application-infra/deployment-docs 상태, 목표 계약, 그리고 #384에서 수행하지 않는 후속 작업을 구분한다. `infra`는 구현 기술과 외부 adapter의 집합소이며, 상위 유스케이스를 알면 안 된다.
-> Kotlin JPA entity 작성 규약의 canonical source of truth는 루트 [`MIGRATION.md`](../MIGRATION.md)의 `Canonical Kotlin JPA entity rules` 절이다. 이 README는 모듈 역할만 요약하고, 규약 본문은 중복하지 않는다.
+`infra`는 BEAT의 **기술 구현 어댑터 모듈**입니다.
+JPA/QueryDSL persistence 어댑터, 외부 API 클라이언트, 파일 저장소, 메시징 어댑터처럼
+상위 레이어가 필요로 하는 모든 기술 구현을 소유합니다.
 
-## Migration status
+`infra`는 아래 구현 세부사항을 모릅니다.
 
-| Current | Target | Deferred-to-issue |
+- HTTP Controller / ResponseDTO
+- Batch Job / Runner / Scheduled entrypoint
+- 비즈니스 UseCase / ApplicationService
+- 실행 모듈 전용 ErrorCode / SuccessCode
+
+> 핵심 원칙: 실행 모듈은 `@EnableInfraBaseConfig`로 필요한 기술 슬라이스만 선택합니다.
+> 실행 모듈이 `infra.external.*` 또는 `infra.persistence.*` 구현 패키지를 직접 import하지 않습니다.
+
+---
+
+## 1. 이 문서를 읽는 방법
+
+새 infra 코드를 추가하거나 기존 코드를 이동할 때 아래 질문에 먼저 답합니다.
+
+```text
+1. 이것은 DB/캐시/검색엔진과 통신하는 저장소 구현인가?
+2. 이것은 외부 API/서드파티 서비스(OAuth, Slack, SMS, S3)를 호출하는 클라이언트인가?
+3. 이것은 domain repository interface의 구현체인가?
+4. 이것은 module-contracts read port의 구현체인가?
+5. 이것은 Spring Boot 기술 설정(async, JPA, 외부 클라이언트)인가?
+```
+
+| 질문 | 위치 |
+| --- | --- |
+| domain RepositoryPort 구현체 + Spring Data 어댑터 | `infra.persistence.<context>.repository` |
+| JPA entity / persistence model | `infra.persistence.<context>.entity` |
+| domain ↔ JPA entity 변환 mapper | `infra.persistence.<context>.mapper` |
+| module-contracts ReadPort 구현체 / query projection | `infra.persistence.<context>.repository.query` |
+| 외부 API 클라이언트 / 서드파티 어댑터 | `infra.external.<concern>.<provider>` |
+| JPA/async/external-client 기술 설정 | `infra.config` |
+| domain model, UseCase, ApplicationService | `domain` / 실행 모듈 |
+| 실행 모듈 간 계약, ReadModel contract | `module-contracts` |
+
+---
+
+## 2. 전체 레이어에서 infra의 위치
+
+```mermaid
+flowchart TB
+    Controller[Controller / Job / Runner<br/>Adapter]
+    Facade[Facade<br/>Scenario entrypoint]
+    App[ApplicationService<br/>CommandService / QueryService]
+    Domain[domain module<br/>Entity / VO / DomainService / RepositoryPort]
+    Contracts[module-contracts<br/>ReadPort / ExternalPort / ReadModel]
+    Infra[infra module<br/>persistence adapter / external adapter / config]
+    External[(DB / Redis / External APIs)]
+
+    Controller --> Facade
+    Facade --> App
+    App --> Domain
+    App --> Contracts
+    Domain -->|RepositoryPort 구현| Infra
+    Contracts -->|ReadPort / ExternalPort 구현| Infra
+    Infra --> External
+
+    style Domain fill:#e8fff1,stroke:#15803d,stroke-width:2px
+    style Contracts fill:#eef2ff,stroke:#4338ca,stroke-width:2px
+    style Infra fill:#fff7ed,stroke:#c2410c,stroke-width:2px
+```
+
+### 레이어별 책임
+
+| Layer | 책임 | 금지 |
 | --- | --- | --- |
-| Application infra bootstrap (`EnableInfraBaseConfig`, JPA, QueryDSL, async, scheduler groups, external clients) and deployment/Ansible docs coexist in this module. QueryDSL/JPA configuration remain current migration surfaces. Dormant `RedisCacheConfig` / `REDIS_CACHE` is retained as an infra-owned future shared cache extension point. | `infra` owns JPA entity / persistence model, Spring Data adapter, QueryDSL/Kotlin JDSL query implementation, and implementation of domain repository interfaces. Deployment docs stay separated from application infra contracts. | QueryDSL/JDSL and `JpaConfig` scan decisions -> #381; shared cache concrete activation policy -> future cache issue; domain persistence split -> #380. |
+| Controller / Job | 요청/트리거를 받는 adapter | infra 구현 직접 import |
+| Facade | 실행 시나리오 조합 진입점 | infra 직접 호출 |
+| ApplicationService | use-case 실행, transaction, domain 호출 | infra 구현 직접 의존 |
+| domain | 도메인 상태, 불변식, 저장소 계약(interface) | Spring/JPA/infra 구현 |
+| module-contracts | port/contract/read model 정의 | infra 구현, domain model 직접 노출 |
+| **infra** | persistence/external adapter 구현, 기술 설정 소유 | service 계층 소유, 실행 모듈 DTO import |
 
-## 역할
+---
 
-- JPA/QueryDSL/async 등 기술 설정을 소유한다.
-- JPA entity / persistence model, Spring Data adapter, QueryDSL/Kotlin JDSL query 구현체를 소유한다.
-- `domain` repository interface의 구현체를 제공한다.
-- 외부 API client, 파일 저장소, 메시징, 서드파티 adapter를 구현한다.
-- 실행 모듈이 필요한 기술 설정만 명시적으로 import할 수 있는 부트스트랩 진입점을 제공한다.
+## 3. Bootstrap 구조
 
-## 허용 의존성
+실행 모듈은 `@EnableInfraBaseConfig`로 필요한 기술 슬라이스만 선택합니다.
+`InfraBaseConfigImportSelector`(`DeferredImportSelector`)가 선택된 group에 해당하는 config만 로드합니다.
 
-- `domain`
-- `global-utils`
+```mermaid
+flowchart TB
+    ModuleInfraConfig["모듈별 InfraConfig<br/>@EnableInfraBaseConfig(groups...)"]
+    Selector["InfraBaseConfigImportSelector<br/>DeferredImportSelector"]
 
-## 금지 규칙
+    subgraph JPA_GROUP["InfraBaseConfigGroup.JPA"]
+        JpaConfig["JpaConfig<br/>@EnableJpaAuditing · @EntityScan · @EnableJpaRepositories"]
+        PersistenceConfig["InfraPersistenceConfig<br/>@ComponentScan(basePackageClasses=InfraPersistenceMarker)"]
+    end
 
-- `apis`, `admin`, `batch`, `gateway` 의존 금지
-- UseCase, Controller, 앱 전용 DTO 보유 금지
-- infra persistence model / adapter 타입을 실행 모듈 API나 domain 계약으로 직접 노출 금지
+    subgraph ASYNC_GROUP["InfraBaseConfigGroup.ASYNC"]
+        AsyncConfig["AsyncConfig<br/>@EnableAsync · @Import(TaskExecutorConfig)"]
+        TaskExecutorConfig["TaskExecutorConfig<br/>beatApplicationTaskExecutor 빈"]
+    end
 
-## As-Is 패키지 구조
+    subgraph EXTERNAL_GROUP["InfraBaseConfigGroup.EXTERNAL_CLIENTS"]
+        ExternalClientConfig["ExternalClientConfig<br/>@EnableFeignClients · @ComponentScan · @Import(S3InfraConfig)"]
+    end
+
+    subgraph REDIS_CACHE_GROUP["InfraBaseConfigGroup.REDIS_CACHE (dormant)"]
+        RedisCacheConfig["RedisCacheConfig<br/>미활성 — shared cache 설계 확정 후 활성화"]
+    end
+
+    ModuleInfraConfig -->|@Import| Selector
+    Selector --> JPA_GROUP
+    Selector --> ASYNC_GROUP
+    Selector --> EXTERNAL_CLIENTS
+    Selector --> REDIS_CACHE_GROUP
+    JpaConfig --> PersistenceConfig
+    AsyncConfig --> TaskExecutorConfig
+```
+
+### 실행 모듈별 group 선택
+
+| 모듈 | JPA | ASYNC | EXTERNAL_CLIENTS | REDIS_CACHE | 이유 |
+| --- | --- | --- | --- | --- | --- |
+| `apis` | ✅ | ✅ | ✅ | ❌ | 사용자 API + 비동기 알림 + 외부 OAuth/Slack/S3 |
+| `admin` | ✅ | ❌ | ✅ | ❌ | 관리자 API + 외부 클라이언트, 비동기 불필요 |
+| `batch` | ✅ | ✅ | ❌ | ❌ | 스케줄/배치 + 비동기, 외부 API 없음 |
+
+```kotlin
+// apis/config/InfraConfig.kt
+@EnableInfraBaseConfig(value = [JPA, ASYNC, EXTERNAL_CLIENTS])
+class InfraConfig
+
+// admin/config/InfraConfig.kt
+@EnableInfraBaseConfig(value = [JPA, EXTERNAL_CLIENTS])
+class InfraConfig
+
+// batch/config/InfraConfig.kt
+@EnableInfraBaseConfig(value = [JPA, ASYNC])
+class InfraConfig
+```
+
+### Support config 규칙
+
+top-level group config(`AsyncConfig`, `ExternalClientConfig`, `JpaConfig`, `RedisCacheConfig`)만 `InfraBaseConfig`를 구현합니다.
+그 아래에서 `@Import`로 전이 로드되는 support config(`TaskExecutorConfig`, `InfraPersistenceConfig`, `S3InfraConfig`)는
+`InfraBaseConfig`를 구현하지 않습니다. 실행 모듈은 support config를 직접 import하지 않습니다.
+
+```mermaid
+flowchart LR
+    JpaConfig["JpaConfig<br/>implements InfraBaseConfig ✅"] -->|@Import| InfraPersistenceConfig["InfraPersistenceConfig<br/>InfraBaseConfig 구현 ❌"]
+    ExternalClientConfig["ExternalClientConfig<br/>implements InfraBaseConfig ✅"] -->|@Import| S3InfraConfig["S3InfraConfig<br/>InfraBaseConfig 구현 ❌"]
+    AsyncConfig["AsyncConfig<br/>implements InfraBaseConfig ✅"] -->|@Import| TaskExecutorConfig["TaskExecutorConfig<br/>InfraBaseConfig 구현 ❌"]
+```
+
+---
+
+## 4. 공개 표면
+
+실행 모듈이 `infra`에서 직접 import할 수 있는 것은 아래뿐입니다.
+
+| 공개 타입 | 위치 | 용도 |
+| --- | --- | --- |
+| `@EnableInfraBaseConfig` | `com.beat.infra` | group 선택 annotation |
+| `InfraBaseConfigGroup` | `com.beat.infra` | JPA / ASYNC / EXTERNAL_CLIENTS / REDIS_CACHE enum |
+| `InfraPersistenceConfig` | `com.beat.infra.persistence` | IDE static-analysis breadcrumb (IDE only, runtime은 JpaConfig가 보장) |
+
+`infra.external.*`, `infra.persistence.*` 구현 패키지를 실행 모듈이 직접 import하면 안 됩니다.
+외부 어댑터 주입은 `module-contracts` port interface를 통해서만 받습니다.
+
+---
+
+## 5. infra.external — 외부 어댑터
+
+`infra.external`은 외부 API / 서드파티 서비스를 호출하는 어댑터 전용 영역입니다.
+`infra.persistence`와 같은 레벨에서 타입을 구분합니다.
+
+패키지 계층: `external.<concern>.<provider>`
+
+- **1단계 concern**: 어댑터의 비즈니스 역할(`auth`, `notification`, `sms`, `storage`)
+- **2단계 provider**: 실제 외부 서비스(`kakao`, `slack`, `s3`)
+- provider가 단일이고 concern이 이미 구체적이면 provider 레벨 생략 가능(`external.sms`)
+
+```mermaid
+flowchart TB
+    ExternalClientConfig --> KakaoAdapter["external.auth.social.kakao<br/>KakaoSocialLoginAdapter<br/>implements SocialLoginPort"]
+    ExternalClientConfig --> SlackAdapter["external.notification.slack<br/>SlackBookingNotificationAdapter<br/>SlackMemberNotificationAdapter<br/>implements BookingNotificationPort / MemberNotificationPort"]
+    ExternalClientConfig --> SmsAdapter["external.sms<br/>CoolSmsAdapter<br/>implements SmsPort"]
+    ExternalClientConfig --> S3Adapter["external.storage.s3<br/>S3FileStorageAdapter<br/>implements FileStoragePort"]
+```
+
+### 외부 어댑터 규칙
+
+- `module-contracts`의 port interface(`SocialLoginPort`, `BookingNotificationPort`, ...)를 구현합니다.
+- 실행 모듈 DTO, ApplicationService, domain model을 import하지 않습니다.
+- Feign client는 `@FeignClient` interface로 정의하고 `ExternalClientConfig`의 `@EnableFeignClients(basePackageClasses=...)`로 등록합니다.
+- 외부 API 응답 DTO (response 패키지)는 해당 provider 패키지 아래에 둡니다.
+- 새 외부 서비스가 추가될 때는 `external.<concern>.<provider>` 경로로 추가합니다.
+
+### RedisCacheConfig (dormant)
+
+`InfraBaseConfigGroup.REDIS_CACHE`는 shared cache가 필요해질 때를 위한 확장 점입니다.
+`RedisCacheConfig`는 `@Bean`, `@EnableCaching`, `CacheManager`를 포함하지 않은 상태로 유지합니다.
+활성화 전에 cache name, TTL, serializer, namespace, invalidation policy, owner module, runtime opt-in을 먼저 정해야 합니다.
+gateway-owned Redis refresh token store와 shared cache bootstrap은 별도 경계입니다.
+
+---
+
+## 6. infra.persistence — 영속성 어댑터
+
+`infra.persistence`는 JPA entity, Spring Data 어댑터, domain repository 구현체, query 어댑터를 소유합니다.
+
+패키지 계층: `persistence.<context>.*`
+
+| 하위 패키지 | 소유 대상 | 생성 기준 |
+| --- | --- | --- |
+| `.entity` | Kotlin JPA entity (`@Entity`, `@Table`) | 항상 |
+| `.repository` | JpaRepository, RepositoryPort 구현체 | 항상 |
+| `.mapper` | JPA entity ↔ domain model 변환 | entity와 domain model이 실제로 분리된 slice에서만 |
+| `.repository.query` | module-contracts ReadPort 구현체, query projection | 화면/검색/통계 조회가 복잡해질 때만 |
+
+### 현재 persistence context
+
+| Context | entity | repository | mapper | query |
+| --- | --- | --- | --- | --- |
+| `booking` | ✅ | ✅ | ✅ | ✅ (MakerTicketReadPortImpl) |
+| `cast` | ✅ | ✅ | ✅ | - |
+| `member` | ✅ | ✅ | ✅ | - |
+| `performance` | ✅ | ✅ | ✅ | - |
+| `performanceimage` | ✅ | ✅ | ✅ | - |
+| `promotion` | ✅ | ✅ | ✅ | - |
+| `schedule` | ✅ | ✅ | ✅ | ✅ (ScheduleQueryRepositoryImpl) |
+| `staff` | ✅ | ✅ | ✅ | - |
+| `user` | ✅ | ✅ | ✅ | - |
+
+### 영속성 어댑터 규칙
+
+- command repository 어댑터는 JPA entity를 domain model로 변환해 `domain` RepositoryPort를 구현합니다.
+- query 어댑터는 조회 전용 read model을 만듭니다. domain model을 억지로 복원하지 않습니다.
+- read model은 JPA Entity도 domain model도 API ResponseDTO도 아닙니다. infra query 구현과 실행 모듈 query service 사이의 조회 결과 shape입니다.
+- infra는 실행 모듈 내부 DTO/ResponseDTO를 반환하지 않습니다.
+- mapper는 persistence entity와 domain model 사이의 변환만 담당합니다. query projection 조립, lazy reference 획득, API 응답 조립은 mapper 책임이 아닙니다.
+
+### Kotlin JPA entity 규칙
+
+JPA entity 작성 규약의 canonical source of truth는 루트 [`MIGRATION.md`](../MIGRATION.md)의 `Canonical Kotlin JPA entity rules` 절입니다.
+
+---
+
+## 7. 패키지 구조
 
 ```text
 infra/
   src/main/java/com/beat/infra/
-    EnableInfraBaseConfig.java
-    InfraBaseConfig.java
-    InfraBaseConfigGroup.java
-    InfraBaseConfigImportSelector.java      # DeferredImportSelector — enum → class 매핑
+    EnableInfraBaseConfig.java                    # 공개: group 선택 annotation
+    InfraBaseConfig.java                          # 공개: top-level group marker interface
+    InfraBaseConfigGroup.java                     # 공개: JPA / ASYNC / EXTERNAL_CLIENTS / REDIS_CACHE
+    InfraBaseConfigImportSelector.java            # DeferredImportSelector — enum → config class 매핑
     config/
-      AsyncConfig.java                      # InfraBaseConfig group owner, @Import(TaskExecutorConfig)
-      ExternalClientConfig.java             # InfraBaseConfig group owner, @Import(S3InfraConfig)
-      JpaConfig.java                        # InfraBaseConfig group owner, @Import(InfraPersistenceConfig)
-      RedisCacheConfig.java                 # dormant InfraBaseConfig group owner; no executable opt-in yet
-      TaskExecutorConfig.java               # support config; beatApplicationTaskExecutor 빈 생성
-      MysqlCustomDialect.java
-      ThreadPoolProperties.java
+      AsyncConfig.java                            # ASYNC group owner, @Import(TaskExecutorConfig)
+      ExternalClientConfig.java                   # EXTERNAL_CLIENTS group owner, @Import(S3InfraConfig)
+      JpaConfig.java                              # JPA group owner, @Import(InfraPersistenceConfig)
+      RedisCacheConfig.java                       # REDIS_CACHE group owner (dormant)
+      TaskExecutorConfig.java                     # support config; beatApplicationTaskExecutor 빈
+      MysqlCustomDialect.java                     # support config
+      ThreadPoolProperties.java                   # support config
+    external/
+      auth/social/kakao/
+        KakaoSocialLoginAdapter.java              # implements SocialLoginPort
+        client/
+          KakaoApiClient.java                     # @FeignClient
+          KakaoAuthApiClient.java                 # @FeignClient
+        response/
+          KakaoAccessTokenResponse.java
+          KakaoAccount.java
+          KakaoUserProfile.java
+          KakaoUserResponse.java
+      notification/slack/
+        SlackBookingNotificationAdapter.java      # implements BookingNotificationPort
+        SlackMemberNotificationAdapter.java       # implements MemberNotificationPort
+        client/
+          BookingSlackClient.java                 # @FeignClient
+          MemberSlackClient.java                  # @FeignClient
+        vo/
+          SlackConstant.java
+          block/  Block.java DividerBlock.java HeaderBlock.java SectionBlock.java
+          message/ SlackMessage.java
+          text/   MarkdownText.java PlainText.java Text.java
+      sms/
+        CoolSmsAdapter.java                       # implements SmsPort
+      storage/s3/
+        S3FileStorageAdapter.java                 # implements FileStoragePort
+        S3InfraConfig.java                        # support config; AmazonS3 빈
     persistence/
-      InfraPersistenceConfig.java              # infra.persistence narrow component scan
-      InfraPersistenceMarker.java              # entity/repository/component scan root
-      booking/
-        mapper/BookingPersistenceMapper.java
-        repository/BookingJpaRepository.java
-        repository/BookingRepositoryImpl.java
-        repository/query/MakerTicketReadPortImpl.java   # maker ticket search/query port implementation
-      cast/
-        mapper/CastPersistenceMapper.java
-        repository/CastJpaRepository.java
-        repository/CastRepositoryImpl.java
-      member/
-        mapper/MemberPersistenceMapper.java
-        repository/MemberJpaRepository.java
-        repository/MemberRepositoryImpl.java
-      performance/
-        mapper/PerformancePersistenceMapper.java
-        repository/PerformanceJpaRepository.java
-        repository/PerformanceRepositoryImpl.java
-      performanceimage/
-        mapper/PerformanceImagePersistenceMapper.java
-        repository/PerformanceImageJpaRepository.java
-        repository/PerformanceImageRepositoryImpl.java
-      promotion/
-        mapper/PromotionPersistenceMapper.java
-        repository/PromotionJpaRepository.java
-        repository/PromotionRepositoryImpl.java
-      schedule/
-        mapper/SchedulePersistenceMapper.java
-        repository/ScheduleJpaRepository.java
-        repository/ScheduleRepositoryImpl.java
-        repository/query/ScheduleQueryRepositoryImpl.java   # implements module-contracts ScheduleReadPort
-      staff/
-        mapper/StaffPersistenceMapper.java
-        repository/StaffJpaRepository.java
-        repository/StaffRepositoryImpl.java
-      user/
-        mapper/UsersPersistenceMapper.java
-        repository/UsersJpaRepository.java
-        repository/UsersRepositoryImpl.java
-  src/main/kotlin/com/beat/infra/
-    InfraModuleConfig.kt
-    persistence/
-      booking/entity/BookingJpaEntity.kt
-      cast/entity/CastJpaEntity.kt
-      member/entity/MemberJpaEntity.kt
-      performance/entity/PerformanceJpaEntity.kt
-      performanceimage/entity/PerformanceImageJpaEntity.kt
-      promotion/entity/PromotionJpaEntity.kt   # Kotlin JPA reference slice; canonical authoring rules live in ../MIGRATION.md
-      schedule/entity/ScheduleJpaEntity.kt
-      staff/entity/StaffJpaEntity.kt
-      user/entity/UsersJpaEntity.kt
+      InfraPersistenceConfig.java                 # @ComponentScan(basePackageClasses=InfraPersistenceMarker)
+      InfraPersistenceMarker.java                 # entity/repository scan root
+      common/
+        (BaseTimeEntity.kt — Kotlin)
+      <context>/                                  # booking · cast · member · performance · performanceimage
+        entity/   <Context>JpaEntity.kt           #   · promotion · schedule · staff · user
+        mapper/   <Context>PersistenceMapper.java
+        repository/
+          <Context>JpaRepository.java
+          <Context>RepositoryImpl.java
+          query/  <Query>ReadPortImpl.java        # booking: MakerTicketReadPortImpl
+                                                  # schedule: ScheduleQueryRepositoryImpl
 
-current transitional sources:
-  infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt   # auditing mapped superclass
+  src/main/kotlin/com/beat/infra/
+    persistence/
+      common/
+        BaseTimeEntity.kt                         # @MappedSuperclass; auditing
+      <context>/entity/
+        <Context>JpaEntity.kt                     # 9개 context 전부 Kotlin
 ```
 
-설명:
-- `InfraBaseConfigImportSelector`가 `@EnableInfraBaseConfig`의 enum 값을 읽어 해당 `@Configuration` 클래스를 선택적으로 import한다.
-- `InfraBaseConfig`는 실행 모듈이 선택할 수 있는 top-level group config marker다. `AsyncConfig`, `ExternalClientConfig`, `JpaConfig`, dormant `RedisCacheConfig` 같은 enum target만 이 marker를 구현하고, `TaskExecutorConfig`, `S3InfraConfig`, `InfraPersistenceConfig` 같은 support config는 group owner가 `@Import`로 전이 로드한다.
-- `InfraPersistenceConfig`는 `JpaConfig`가 runtime safety net으로 import하고, JPA를 쓰는 실행 모듈 `InfraConfig.kt`가 IDE static-analysis breadcrumb로 한 번 더 import한다. 두 경로 모두 의도된 중복이며, `@EnableInfraBaseConfig` meta-annotation에 persistence를 직접 넣지는 않는다.
-- `AsyncConfig`는 `@Import(TaskExecutorConfig.class)`로 executor 빈만 전이 로드하고, infra는 security-aware wrapper를 직접 소유하지 않는다.
-- `ExternalClientConfig`는 external-client group owner이고 S3 support bootstrap은 `@Import(S3InfraConfig.class)`로만 포함한다. 실행 모듈은 S3 support config를 직접 import하지 않는다.
-- scheduler bean은 infra custom config가 아니라 Spring Boot `TaskSchedulingAutoConfiguration`이 소유한다. 실행 모듈 중 `batch`만 `@EnableScheduling`을 켜며, pool/thread 설정은 `spring.task.scheduling.*` property로 조정한다.
-- Redis runtime wiring은 Spring Boot auto-configuration과 gateway-owned config가 담당하고, infra는 더 이상 gateway-specific Redis bean을 소유하지 않는다.
-- future shared caching은 dormant `RedisCacheConfig` + `InfraBaseConfigGroup.REDIS_CACHE`에서 시작하고, 현재 실행 모듈은 아직 이를 import하지 않는다. 활성화 전에는 cache name, TTL, serializer, namespace, invalidation policy, owner module, runtime opt-in이 먼저 정해져야 한다.
-- #378 기준 `RedisCacheConfig`는 삭제하지도 활성화하지도 않는 infra-owned dormant extension point다. gateway refresh-token Redis storage와 shared cache bootstrap은 별도 경계다.
-- Kotlin JPA entity 작성 규칙은 root [`MIGRATION.md`](../MIGRATION.md)의 canonical guide를 따른다. `PromotionJpaEntity.kt`는 최초 검증 reference slice이고, 이후 Cast/Staff/Users/Member/Performance/PerformanceImage/Schedule/Booking entity도 같은 infra-owned persistence model 규약을 따른다.
-- Promotion, Cast, Staff, Users, Member, Performance, PerformanceImage, Schedule, Booking의 domain JPA entity / mapper / repository adapter / implementation과 공통 auditing base는 `infra.persistence.<context>` / `infra.persistence.common`으로 이동했다.
-- 남은 persistence follow-up은 복잡한 화면/목록/통계 조회를 `repository.query` read-model 경계로 더 명확히 분리하는 것이다.
-- 즉 `infra`는 persistence 구현 책임의 landing zone이며, 앞으로는 domain에 persistence concern을 새로 추가하지 않는 방향으로 유지한다.
+---
 
-## #378 known deferred package exceptions
-
-Issue #415에서 Schedule query/custom repository boundary는 `infra.persistence.schedule.repository.query`로 이동했고,
-Issue #418에서 Booking/Ticket repository port도 `domain.booking.repository`로 정리되었다.
-따라서 현재 Booking/Schedule 쪽에는 `com.beat.domain.*.dao` 또는 `infra/src/main/java/com/beat/domain/...`
-형태의 deferred package exception을 두지 않는다.
-
-`SharedBoundaryContractTest`는 infra source에서 `com.beat.domain.*` package residue가 다시 생기지 않도록 고정한다.
-
-## To-Be 패키지 구조
+## 8. 허용 의존성
 
 ```text
-com.beat.infra.config.*
-com.beat.infra.external.<provider>
-com.beat.infra.persistence.<context>.entity
-com.beat.infra.persistence.<context>.repository
-com.beat.infra.persistence.<context>.mapper             # domain repository persistence-domain mapping이 필요할 때만
-com.beat.infra.persistence.<context>.repository.query   # read 최적화/query projection이 필요할 때만
+domain
+module-contracts
+global-utils
 ```
 
-설명:
-- `domain.<context>.repository.XxxRepository` 같은 repository interface는 `domain`이 소유한다.
-- 그 interface의 구현체는 `infra.persistence.<context>.repository`가 맡는다.
-- JPA entity / persistence model은 `infra.persistence.<context>.entity`가 소유한다.
-- Spring Data JPA adapter는 `infra.persistence.<context>.repository`에 두되, domain repository interface가 아니라 infra 내부 구현 세부사항으로 취급한다.
-- mapper를 도입한다면 `XxxPersistenceMapper`는 pure domain model과 infra persistence entity가 실제로 분리된 slice에서만 추가한다. 쉽게 말해 DB 저장용 객체와 도메인 객체 사이의 번역기다. repository 조회, lazy reference 획득, query projection 조립은 mapper 책임이 아니다.
-- query 전용 구현은 지금 기본값이 아니고, 조회 복잡도 증가나 jOOQ/Kotlin JDSL 도입이 필요할 때만 `repository.query`를 추가한다. 이때 화면/목록/검색/정렬/통계용 read model은 persistence mapper를 재사용하지 않고 query 전용 row/DTO로 바로 만든다.
+---
 
+## 9. 금지 규칙
 
-### Service boundary interaction
+- `apis`, `admin`, `batch`, `gateway` 직접 의존 금지
+- UseCase, ApplicationService, Controller, 실행 모듈 전용 DTO 보유 금지
+- infra persistence model / external adapter 구현 타입을 실행 모듈 API나 domain 계약으로 직접 노출 금지
+- `InfraModuleConfig.kt`처럼 전역 스캔 진입점을 `@EnableInfraBaseConfig`와 병행 선언 금지
+- support config(`TaskExecutorConfig`, `InfraPersistenceConfig`, `S3InfraConfig`)에 `InfraBaseConfig` 구현 금지
+- 실행 모듈이 `infra.external.*` 또는 `infra.persistence.*`를 직접 import하게 만들지 않습니다
+- infra query adapter가 실행 모듈 내부 DTO/ResponseDTO를 반환하지 않습니다
+- domain model, ApplicationService, Facade를 infra에서 소유하지 않습니다
 
-Facade/ApplicationService/DomainService 표준에서 `infra`는 서비스 계층을 소유하지 않고 구현 adapter만 소유한다.
+---
 
-- Facade와 ApplicationService는 실행 모듈(`apis`, `admin`, `batch`) 책임이다.
-- DomainService는 `domain` 책임이며 infra에서 구현하거나 Spring component로 등록하지 않는다. Schedule due-date 같은 domain-specific 계산/판단도 infra 책임으로 이동시키지 않는다.
-- `infra.persistence.<context>.repository`는 domain repository port 구현체와 Spring Data adapter를 소유한다.
-- `infra.persistence.<context>.repository.query`는 `module-contracts` read/query port를 구현한다. 실행 모듈 내부 read-model이 infra 구현을 필요로 하면 먼저 `module-contracts` 계약으로 승격한다.
-- infra query adapter는 JPA/JPQL/QueryDSL/JDSL, fetch join, 검색/필터/정렬, projection 생성을 소유하지만 API ResponseDTO를 반환하지 않는다.
-- infra mapper는 persistence entity와 domain model 사이의 변환만 담당한다. Application response 조립, DomainService 정책 실행, query projection 조립 책임을 갖지 않는다.
+## 10. Guard rails
 
+### `SharedBoundaryContractTest`
 
-### Query/read-model adapter rule
+- `InfraBaseConfig` marker javadoc이 `Marker for top-level infra bootstrap configurations`를 포함하는지 확인
+- top-level group config 4개가 `InfraBaseConfig`를 구현하는지 확인
+- support config 4개가 `InfraBaseConfig`를 구현하지 않는지 확인
+- `InfraModuleConfig.kt`가 존재하지 않는지 확인
+- `RedisCacheConfig`가 `@EnableCaching`, `CacheManager`, `@Bean`을 포함하지 않는지 확인
+- `S3InfraConfig`가 `InfraBaseConfig`를 구현하지 않는지 확인
 
-- command repository adapter는 persistence entity를 pure Domain model로 변환해 domain repository port를 구현한다.
-- query adapter는 조회 전용 row/read model을 만든다. read-only 화면/검색/목록/통계 조회를 위해 Domain model을 억지로 복원하지 않는다.
-- read model은 JPA Entity도 Domain model도 API ResponseDTO도 아니다. infra query 구현과 실행 모듈 query service 사이의 조회 결과 shape다.
-- 실행 모듈이 주입받아야 하는 query 계약은 `module-contracts`의 `*ReadPort`, `*ReadModel`을 구현한다. 검색 조건이 단순하면 port 메서드 파라미터를 직접 사용하고, 조건이 많아져 의미가 분명해진 경우에만 `*SearchCondition`을 별도 contract로 추가한다.
-- infra는 실행 모듈 내부 `dto/result`나 ResponseDTO를 구현/반환하지 않는다.
-- 실행 모듈 전용 response 조립은 infra가 아니라 해당 실행 모듈 query service 책임이다.
-- `apis`, `admin`, `batch`의 DTO/ApplicationService/Facade를 import하지 않는다.
+### infra-local tests
 
-## 최종 목표
+| 테스트 | 검증 대상 |
+| --- | --- |
+| `AsyncConfigTest` | async exception handler 포맷 회귀 방지 |
+| `BookingPersistenceMapperTest` | Booking entity ↔ domain model 매핑 계약 |
+| `MakerTicketReadPortImplOrderingContractTest` | maker ticket query 정렬 계약 |
+| `CastPersistenceMapperTest` | Cast entity ↔ domain model 매핑 계약 |
+| `PromotionJpaEntityContractTest` | Kotlin JPA entity Kotlin canonical rule 검증 |
+| `PromotionPersistenceMapperTest` | Promotion entity ↔ domain model 매핑 계약 |
+| `StaffPersistenceMapperTest` | Staff entity ↔ domain model 매핑 계약 |
 
-- `infra.external.*` 타입을 상위 실행 모듈이 직접 import하지 않는다.
-- `@EnableInfraBaseConfig` + `InfraBaseConfigGroup`이 실행 모듈의 명시적 infra opt-in 진입점이다.
-- JPA/QueryDSL/async/external-client 부트스트랩은 top-level group config가 조립하고 support config는 marker를 구현하지 않는다.
-- JPA entity / Spring Data adapter / query 구현체 / domain repository 구현체는 infra 책임으로 모인다.
-- shared cache가 필요해질 때 `REDIS_CACHE` 그룹으로 확장한다.
+---
+
+## 11. 빠른 체크리스트
+
+새 infra 코드를 추가할 때 아래를 확인합니다.
+
+- [ ] 외부 어댑터라면 `infra.external.<concern>.<provider>` 아래에 두었는가?
+- [ ] 영속성 어댑터라면 `infra.persistence.<context>.*` 아래에 두었는가?
+- [ ] `module-contracts` port interface를 구현했는가? (어댑터 타입 노출 금지)
+- [ ] 실행 모듈 DTO / ResponseDTO / ApplicationService를 import하지 않았는가?
+- [ ] domain model을 infra query 결과로 직접 반환하지 않았는가? (read model 사용)
+- [ ] 새 group이 필요하다면 `InfraBaseConfigGroup`에 추가하고 `InfraBaseConfig`를 구현했는가?
+- [ ] support config라면 `InfraBaseConfig`를 구현하지 않고 group owner가 `@Import`로 전이 로드하는지 확인했는가?
+- [ ] 실행 모듈 `InfraConfig`에서 `@EnableInfraBaseConfig` group 선택이 올바른가?
+- [ ] Kotlin JPA entity 작성 규약을 `MIGRATION.md` canonical guide를 따랐는가?
+- [ ] mapper는 entity ↔ domain 변환만 담당하고 query projection 조립을 담당하지 않는가?
+- [ ] query adapter라면 `module-contracts` ReadPort를 구현하고 API ResponseDTO를 반환하지 않는가?
 
 ---
 
 # Deployment Infrastructure
 
-> `infra/ansible/` 디렉토리는 BEAT 서버의 배포 자동화를 담당한다.
-> GitHub Actions + Ansible + SOPS(age) 조합으로 dev/prod 환경을 관리한다.
+> `infra/ansible/` 디렉토리는 BEAT 서버의 배포 자동화를 담당합니다.
+> GitHub Actions + Ansible + SOPS(age) 조합으로 dev/prod 환경을 관리합니다.
 
 ## 전체 배포 아키텍처
 
@@ -337,7 +537,7 @@ infra/ansible/
 ```
 
 설명:
-- 공용 nginx helper `update-nginx-config.py`는 더 이상 `infra/ansible/files/`에 두지 않고 `roles/nginx_config_helper/files/`로 이동했다.
+- 공용 nginx helper `update-nginx-config.py`는 `roles/nginx_config_helper/files/`로 이동했다.
 - foundation / nginx 템플릿도 전역 `templates/`가 아니라 각 role의 `templates/` 안에서 관리한다.
 - `deploy.yml`은 blue-green 모듈에서 `app_bluegreen`을 직접 import하고, `app_rollback`은 상대 `import_tasks` 대신 `import_role` + 명시적 vars 전달 구조를 사용한다.
 
@@ -662,12 +862,10 @@ flowchart LR
 | `module` | 배포 대상 모듈 (`apis`, `admin`, `batch`) | GitHub workflow matrix/input이 Ansible extra var로 전달 |
 | `image` | 실제 실행할 Docker image 전체 이름 | deploy/rollback workflow에서 전달한 image extra var |
 | `image_tag` | image tag 또는 release tag | dev는 `dev-{GITHUB_SHA}`, prod는 release tag 기준 |
-| `commit_sha` | 배포 기준 Git commit SHA | GitHub run에서 해석한 commit SHA (`github.sha` 또는 release ref resolve 결과), 없으면 `unknown` |
-| `deploy_actor` | 배포를 트리거한 GitHub actor | GitHub workflow의 actor 값, 없으면 `unknown` |
+| `commit_sha` | 배포 기준 Git commit SHA | GitHub run에서 해석한 commit SHA |
+| `deploy_actor` | 배포를 트리거한 GitHub actor | GitHub workflow의 actor 값 |
 | `deploy_environment` | Ansible inventory 환경 (`dev`/`prod`) | inventory `deploy_environment` |
-| `created_at` | metadata 생성 시각 | Ansible controller(GitHub runner)에서 계산한 UTC (`now(utc=true, ...)`) |
-
-`created_at`은 원격 EC2의 시스템 시간이 아니라 controller UTC이다. 서버 로그와 비교할 때는 GitHub runner에서 metadata가 생성된 시각으로 해석한다.
+| `created_at` | metadata 생성 시각 | Ansible controller(GitHub runner)에서 계산한 UTC |
 
 ## GitHub Secrets
 
@@ -710,9 +908,6 @@ ssh-keyscan -p 22 <서버IP> 2>/dev/null | ssh-keygen -lf - -E sha256
 # 출력에서 ED25519의 SHA256:... 값을 사용
 ```
 
-> **참고**: `DEV_SSH_HOST`와 `ansible_host`(secrets.sops.yml)는 동일한 IP이다.
-> 전자는 GHA runner의 SSH known_hosts 설정에, 후자는 Ansible inventory 접속에 사용된다.
-
 ### SSH pipelining + sudo `requiretty` caveat
 
 `infra/ansible/ansible.cfg`는 SSH pipelining을 켠다. Ubuntu 22.04 계열 기본 EC2 AMI에서는 `become: true`와 함께 정상 동작하지만, 일부 커스텀 AMI나 레거시 sudoers 정책에서 `Defaults requiretty`가 켜져 있으면 Ansible pipelining + sudo 조합이 실패할 수 있다.
@@ -745,19 +940,10 @@ ssh-keyscan -p 22 <서버IP> 2>/dev/null | ssh-keygen -lf - -E sha256
    ./scripts/generate-local-dev-secret.sh
    # → secret/application-dev-secret.properties 생성
    ```
-   이 스크립트는 SOPS로 `secrets.sops.yml`을 복호화하여 로컬용 properties 파일을 만든다.
-   dev 서버 배포용 시크릿은 Docker network 기준 값을 사용하므로, 로컬 실행용 파일을 만들 때
-   `DEV_DB_URL`과 `DEV_REDIS_HOST`는 자동으로 로컬 실행 기준 값으로 오버라이드된다.
-   `DEV_DB_URL`은 암호화된 원본 값에서 host만 `localhost`로 치환하므로 별도 입력 없이 바로 실행할 수 있다.
 
 ### 로컬 실행
 
 ```bash
-# 로컬 MySQL, Redis가 필요
-# MySQL: secret/application-dev-secret.properties의 DEV_DB_URL
-# Redis: localhost:6379
-
-# 모듈별 실행
 ./gradlew :apis:bootRun
 ./gradlew :admin:bootRun
 ./gradlew :batch:bootRun
@@ -769,8 +955,11 @@ ssh-keyscan -p 22 <서버IP> 2>/dev/null | ssh-keygen -lf - -E sha256
 # 전체 테스트
 ./gradlew test
 
-# 배포 계약 테스트
-./gradlew :test --tests com.beat.RootRetirementContractTest
+# infra 컴파일
+./gradlew :infra:compileJava :infra:compileKotlin
+
+# boundary contract 테스트
+./gradlew :test --tests "com.beat.SharedBoundaryContractTest"
 
 # Ansible syntax check
 cd infra/ansible
@@ -813,15 +1002,11 @@ flowchart LR
 ```
 
 - `previous.json`이 없으면 롤백 불가 (assert 실패)
-- 롤백은 `release_ref` 입력(릴리스 태그 또는 커밋 SHA)을 먼저 immutable commit SHA로 해석하고, `_ansible-exec.yml`의 `checkout_ref`로 전달해 prod 배포 때와 같은 코드 기준에서 실행한다.
-- 롤백 후 `app_healthcheck`와 nginx route 갱신이 모두 성공해야 `current.json`을 다시 live 상태가 된 이전 배포의 메타데이터로 복원한다.
-- 이 승격은 선택사항이 아니다. 다음 deploy의 `app_cleanup`이 항상 `current.json -> previous.json`을 수행하므로, rollback 직후 `current.json`이 실제 live 릴리스를 가리키지 않으면 다음 rollback 대상이 틀어진다.
-- 반대로 post-rollback healthcheck 또는 route 갱신이 실패하면 metadata promotion을 차단하여 검증되지 않은 runtime 상태를 `current.json`에 기록하지 않는다.
-- blue-green 모듈은 `run_switch.yml`을 재활용하여 역방향 전환을 수행한다
+- 롤백은 `release_ref` 입력을 먼저 immutable commit SHA로 해석하고, `_ansible-exec.yml`의 `checkout_ref`로 전달해 prod 배포와 같은 코드 기준에서 실행한다
+- 롤백 후 `app_healthcheck`와 nginx route 갱신이 모두 성공해야 `current.json`을 live 상태로 복원한다
 
 ### Nginx source/target contract
 
-- `deployment/nginx/default.conf` 와 `deployment/nginx/generated-source/**` 는 후보(source) 설정이다. helper와 seed 로직이 이 경로를 갱신하고, 다음 promotion의 입력으로 재사용된다.
-- `deployment/nginx/conf.d/**` 와 `deployment/nginx/generated/**` 는 nginx 컨테이너에 bind mount되는 실제 적용(target) 설정이다. 컨테이너 안에서는 각각 `/etc/nginx/conf.d` 와 `/etc/nginx/generated` 로 보인다.
-- 예전 named volume(`nginx_legacy_config_volume_name`, 기본 `nginx-config-volume`)은 신규 target contract에서 제외했다. foundation은 첫 실행 시 Ansible `community.docker.docker_volume_info`로 legacy mountpoint를 해석하고, 그 안의 `conf.d`/`generated` 내용을 deployment-owned bind mount 경로로 한 번 복사한다. 이후 `.bind-mount-migrated-from-<legacy-volume-name>` marker로 재실행 시 overwrite를 막는다.
-- Nginx 관련 role은 실패 시 target만이 아니라 source도 함께 복원해야 한다. 그렇지 않으면 다음 실행에서 오염된 source가 다시 target으로 승격될 수 있다.
+- `deployment/nginx/default.conf` 와 `deployment/nginx/generated-source/**` 는 후보(source) 설정이다.
+- `deployment/nginx/conf.d/**` 와 `deployment/nginx/generated/**` 는 nginx 컨테이너에 bind mount되는 실제 적용(target) 설정이다.
+- Nginx 관련 role은 실패 시 target만이 아니라 source도 함께 복원해야 한다.
