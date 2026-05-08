@@ -27,7 +27,7 @@ dependencies {
 
     constraints {
         implementation(libs.findLibrary("tomcat-embed-core").get()) {
-            because("Trivy reports fixed Tomcat runtime CVEs against the Spring Boot 4.0.5 managed 11.0.20 baseline")
+            because("Trivy reports fixed Tomcat runtime CVEs against the Spring Boot managed 11.0.20 baseline")
         }
         implementation(libs.findLibrary("tomcat-embed-el").get()) {
             because("Keep embedded Tomcat artifacts aligned after the CVE-driven core override")
@@ -36,7 +36,7 @@ dependencies {
             because("Keep embedded Tomcat artifacts aligned after the CVE-driven core override")
         }
         implementation(libs.findLibrary("jackson3-core").get()) {
-            because("Trivy reports GHSA-2m67-wjpj-xhg9 against the Spring Boot 4.0.5 managed Jackson 3.1.0 baseline")
+            because("Trivy reports GHSA-2m67-wjpj-xhg9 against the Spring Boot managed Jackson 3.1.0 baseline")
         }
         implementation(libs.findLibrary("jackson3-databind").get()) {
             because("Keep Jackson 3 artifacts aligned after the CVE-driven core override")
