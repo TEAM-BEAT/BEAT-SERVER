@@ -127,7 +127,7 @@ user
 허용 의존성은 원칙적으로 다음뿐입니다.
 
 ```text
-global-utils
+global-support
 Kotlin/JDK standard library
 ```
 

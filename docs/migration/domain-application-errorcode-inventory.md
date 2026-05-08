@@ -5,7 +5,7 @@ Issue #421 final inventory and status/message snapshot. Commit 1 captured the or
 ## Scope and source of truth
 
 - Inventory source: `*ErrorCode` enums implementing `BaseErrorCode` and `*SuccessCode` enums implementing `BaseSuccessCode` under `domain/src/main/kotlin/**/exception`, plus the existing auth contract `module-contracts/src/main/java/com/beat/contracts/auth/TokenErrorCode.java`.
-- `BaseErrorCode` contract: `global-utils/src/main/java/com/beat/global/common/exception/base/BaseErrorCode.java` exposes `getStatus()` and `getMessage()`.
+- `BaseErrorCode` contract: `global-support/src/main/kotlin/com/beat/global/support/exception/base/BaseErrorCode.kt` exposes `getStatus()` and `getMessage()`.
 - Usage scan command shape: `rg "<Enum>\.<CODE>" apis admin batch domain gateway infra module-contracts src`, excluding the enum declaration line.
 - Success-code enums are included because #421 moved API response success messages out of `domain` and into executable response boundaries.
 
@@ -244,5 +244,5 @@ All current domain `*SuccessCode` constants are response-boundary messages. They
 - Do not move source or rewrite imports in the inventory commit; later commits should use this file as the source list for split candidates.
 - Duplicate generic codes/messages exist across `BookingErrorCode`, `PerformanceErrorCode`, and `ScheduleErrorCode` (`INVALID_DATA_FORMAT`, request/data missing/format variants). Split work should avoid changing client-visible messages unless explicitly planned.
 - `BookingApplicationErrorCode.NO_PERFORMANCE_FOUND` and `BookingApplicationErrorCode.NO_SCHEDULE_FOUND` are preserved for booking-context compatibility, while active performance/schedule lookups use their context-local application codes.
-- `TokenErrorCode` is already outside `domain`; it still depends on `BaseErrorCode` from `global-utils`, so a future split should decide whether auth codes stay contract-level or become application/support-level.
-- Domain model Kotlin files currently throw `BadRequestException`, `ForbiddenException`, or `ConflictException` with domain ErrorCodes. If future work makes domain independent from `global-utils`, replace exception/error boundaries atomically with tests.
+- `TokenErrorCode` is already outside `domain`; it still depends on `BaseErrorCode` from `global-support`, so a future split should decide whether auth codes stay contract-level or become application/support-level.
+- Domain model Kotlin files currently throw `BadRequestException`, `ForbiddenException`, or `ConflictException` with domain ErrorCodes. If future work makes domain independent from `global-support`, replace exception/error boundaries atomically with tests.

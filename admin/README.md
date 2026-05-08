@@ -83,7 +83,7 @@ implementation(project(":module-contracts"))
 implementation(project(":gateway"))
 implementation(project(":domain"))
 implementation(project(":infra"))
-implementation(project(":global-utils"))
+implementation(project(":global-support"))
 implementation(project(":observability"))
 ```
 
@@ -419,7 +419,7 @@ flowchart LR
     DomainError[domain ErrorCode<br/>pure invariant]
     AdminError[AdminApplicationErrorCode<br/>admin use-case failure]
     AdminSuccess[AdminSuccessCode<br/>admin response success]
-    Exception[global-utils exception classes]
+    Exception[global-support exception classes]
 
     DomainError --> Exception
     AdminError --> Exception
