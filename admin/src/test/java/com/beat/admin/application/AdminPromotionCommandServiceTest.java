@@ -37,7 +37,7 @@ import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.promotion.domain.CarouselNumber;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
-import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.support.exception.BadRequestException;
 
 @ExtendWith(MockitoExtension.class)
 class AdminPromotionCommandServiceTest {

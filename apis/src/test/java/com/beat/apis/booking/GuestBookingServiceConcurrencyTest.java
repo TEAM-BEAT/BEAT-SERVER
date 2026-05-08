@@ -39,7 +39,7 @@ import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
-import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.support.exception.BadRequestException;
 
 class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 

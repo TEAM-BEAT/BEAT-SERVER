@@ -14,7 +14,7 @@ import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
-import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.support.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import com.beat.apis.booking.application.exception.BookingApplicationErrorCode;

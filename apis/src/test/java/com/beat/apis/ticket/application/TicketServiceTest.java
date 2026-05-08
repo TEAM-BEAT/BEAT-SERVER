@@ -38,7 +38,7 @@ import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.user.domain.Role;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
-import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.support.exception.BadRequestException;
 
 @ExtendWith(MockitoExtension.class)
 class TicketServiceTest {

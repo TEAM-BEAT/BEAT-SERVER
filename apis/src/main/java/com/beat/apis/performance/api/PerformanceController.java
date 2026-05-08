@@ -22,7 +22,7 @@ import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDe
 import com.beat.apis.performance.api.response.PerformanceSuccessCode;
 import com.beat.apis.performance.facade.PerformanceFacade;
 import com.beat.gateway.security.servlet.CurrentMember;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.SuccessResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

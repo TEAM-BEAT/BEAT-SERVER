@@ -31,6 +31,6 @@ include(
     "gateway",
     "domain",
     "infra",
-    "global-utils",
+    "global-support",
     "observability",
 )

@@ -35,7 +35,7 @@ configurations {
 
 dependencies {
     implementation(project(":module-contracts"))
-    implementation(project(":global-utils"))
+    implementation(project(":global-support"))
     implementation(project(":gateway"))
     implementation(project(":observability"))
     implementation(project(":infra"))

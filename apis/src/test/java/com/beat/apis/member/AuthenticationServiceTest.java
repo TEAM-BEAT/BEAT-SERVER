@@ -19,7 +19,7 @@ import com.beat.contracts.auth.RefreshTokenPort;
 import com.beat.contracts.auth.TokenErrorCode;
 import com.beat.contracts.auth.TokenValidationResult;
 import com.beat.contracts.auth.social.SocialMemberInfo;
-import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.support.exception.BadRequestException;
 
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceTest {

@@ -10,8 +10,8 @@ import org.junit.jupiter.api.Test;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.domain.ScheduleNumber;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
-import com.beat.global.common.exception.BadRequestException;
-import com.beat.global.common.exception.ConflictException;
+import com.beat.global.support.exception.BadRequestException;
+import com.beat.global.support.exception.ConflictException;
 
 class ScheduleDomainInvariantTest {
 

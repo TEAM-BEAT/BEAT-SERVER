@@ -18,12 +18,12 @@ class RootRetirementContractTest {
 		assertFalse(Files.exists(Path.of("src/main/java/com/beat/BeatApplication.java")));
 		assertFalse(Files.exists(Path.of("src/main/java/com/beat/legacyroot/config/LegacyRootSecurityConfig.java")));
 		assertFalse(
-			Files.exists(Path.of("src/main/java/com/beat/global/common/handler/GlobalAsyncExceptionHandler.java")));
+			Files.exists(Path.of("src/main/java/com/beat/global/support/handler/GlobalAsyncExceptionHandler.java")));
 		assertFalse(Files.exists(
-			Path.of("src/main/java/com/beat/global/common/scheduler/application/JobSchedulerService.java")));
+			Path.of("src/main/java/com/beat/global/support/scheduler/application/JobSchedulerService.java")));
 		assertFalse(
 			Files.exists(Path.of(
-				"src/main/java/com/beat/global/common/scheduler/application/JobSchedulerTransactionalService.java")));
+				"src/main/java/com/beat/global/support/scheduler/application/JobSchedulerTransactionalService.java")));
 		assertFalse(
 			Files.exists(Path.of("src/main/java/com/beat/domain/booking/application/TicketCleanupService.java")));
 		assertFalse(

@@ -1,6 +1,6 @@
 package com.beat.apis.performance.api.response
 
-import com.beat.global.common.exception.base.BaseSuccessCode
+import com.beat.global.support.exception.base.BaseSuccessCode
 
 enum class PerformanceSuccessCode(
     private val status: Int,

@@ -10,7 +10,7 @@ import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
-import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.support.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

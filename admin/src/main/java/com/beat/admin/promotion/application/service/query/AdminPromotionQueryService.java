@@ -18,7 +18,7 @@ import com.beat.contracts.storage.FileStoragePort;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
-import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.support.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 

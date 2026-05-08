@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.beat.apis.support.AbstractIntegrationTest;
 import com.beat.contracts.auth.RefreshTokenPort;
 import com.beat.contracts.auth.TokenErrorCode;
-import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.support.exception.NotFoundException;
 
 class RefreshTokenRepositoryIntegrationTest extends AbstractIntegrationTest {
 

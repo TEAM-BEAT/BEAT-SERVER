@@ -1,6 +1,6 @@
 package com.beat.apis.external.s3.api;
 
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.SuccessResponse;
 import com.beat.apis.external.s3.api.dto.PerformanceMakerPresignedUrlFindAllResponse;
 import com.beat.apis.external.s3.exception.FileSuccessCode;
 import com.beat.apis.external.s3.facade.FileFacade;

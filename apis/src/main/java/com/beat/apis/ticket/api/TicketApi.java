@@ -14,8 +14,8 @@ import com.beat.apis.ticket.application.dto.TicketUpdateRequest;
 import com.beat.apis.booking.application.dto.BookingStatusType;
 import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.gateway.security.servlet.CurrentMember;
-import com.beat.global.common.dto.ErrorResponse;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.ErrorResponse;
+import com.beat.global.support.response.SuccessResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

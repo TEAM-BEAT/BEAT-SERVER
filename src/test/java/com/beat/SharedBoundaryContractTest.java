@@ -80,18 +80,20 @@ class SharedBoundaryContractTest {
 			.toList();
 
 		assertFalse(domainBuild.contains("lombok"),
-			"Domain must stay pure api(project(\":global-utils\")) without Lombok build dependencies");
+			"Domain must stay pure api(project(\":global-support\")) without Lombok build dependencies");
 		assertTrue(lombokSources.isEmpty(),
 			"Domain source must use explicit constructors/getters instead of Lombok:\n"
 				+ String.join("\n", lombokSources));
 	}
 
 	@Test
-	void globalUtilsBuildFileMustRemainStandalone() throws Exception {
-		String buildFile = Files.readString(Path.of("global-utils/build.gradle.kts"));
+	void globalSupportBuildFileMustRemainStandalone() throws Exception {
+		String buildFile = Files.readString(Path.of("global-support/build.gradle.kts"));
 
 		assertFalse(buildFile.contains("project(\":"));
 		assertFalse(buildFile.contains("org.springframework"));
+		assertFalse(buildFile.contains("kotlin(\"reflect\")"));
+		assertFalse(buildFile.contains("kotlin-reflect"));
 	}
 
 	@Test
@@ -189,7 +191,7 @@ class SharedBoundaryContractTest {
 		);
 		List<Path> observabilitySources = sourceFiles(Path.of("observability/src/main"));
 		List<String> violations = observabilitySources.stream()
-			.filter(path -> contains(path, "com.beat.global.common.aop"))
+			.filter(path -> contains(path, "com.beat.global.support.aop"))
 			.map(Path::toString)
 			.toList();
 		Set<String> actualAopFiles = sourceFiles(
@@ -199,7 +201,7 @@ class SharedBoundaryContractTest {
 		String pointcuts = Files.readString(
 			Path.of("observability/src/main/java/com/beat/observability/aop/Pointcuts.java"));
 
-		assertFalse(Files.exists(Path.of("observability/src/main/java/com/beat/global/common/aop")));
+		assertFalse(Files.exists(Path.of("observability/src/main/java/com/beat/global/support/aop")));
 		assertEquals(expectedAopFiles, actualAopFiles);
 		assertTrue(violations.isEmpty(),
 			"Found legacy observability AOP package references:\n" + String.join("\n", violations));
@@ -953,9 +955,9 @@ class SharedBoundaryContractTest {
 			.toList();
 
 		assertFalse(buildFile.contains("project(\":domain\")"));
-		assertTrue(buildFile.contains("compileOnly(project(\":global-utils\"))"));
+		assertTrue(buildFile.contains("compileOnly(project(\":global-support\"))"));
 		assertFalse(buildFile.contains("implementation(project(\":domain\"))"));
-		assertFalse(buildFile.contains("implementation(project(\":global-utils\"))"));
+		assertFalse(buildFile.contains("implementation(project(\":global-support\"))"));
 		assertTrue(
 			violations.isEmpty(),
 			"Found forbidden module-contracts implementation references:\n" + String.join("\n", violations)
@@ -1052,7 +1054,7 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
-	void globalUtilsSourcesMustRemainFrameworkAndLayerNeutral() throws Exception {
+	void globalSupportSourcesMustRemainFrameworkAndLayerNeutral() throws Exception {
 		List<String> forbiddenReferences = List.of(
 			"org.springframework.",
 			"jakarta.persistence.",
@@ -1066,7 +1068,7 @@ class SharedBoundaryContractTest {
 			"com.beat.observability."
 		);
 
-		try (var paths = Files.walk(Path.of("global-utils/src/main"))) {
+		try (var paths = Files.walk(Path.of("global-support/src/main"))) {
 			List<String> violations = paths
 				.filter(Files::isRegularFile)
 				.filter(path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt"))
@@ -1077,9 +1079,17 @@ class SharedBoundaryContractTest {
 
 			assertTrue(
 				violations.isEmpty(),
-				"Found forbidden global-utils references:\n" + String.join("\n", violations)
+				"Found forbidden global-support references:\n" + String.join("\n", violations)
 			);
 		}
+	}
+
+	@Test
+	void globalSupportResponseEnvelopeBelongsToResponsePackage() throws Exception {
+		assertFalse(Files.exists(Path.of("global-support/src/main/java/com/beat/global/support/dto")));
+		assertFalse(Files.exists(Path.of("global-support/src/main/kotlin/com/beat/global/support/dto")));
+		assertTrue(Files.exists(Path.of("global-support/src/main/kotlin/com/beat/global/support/response/ErrorResponse.kt")));
+		assertTrue(Files.exists(Path.of("global-support/src/main/kotlin/com/beat/global/support/response/SuccessResponse.kt")));
 	}
 
 

@@ -1,6 +1,6 @@
 package com.beat.admin.application.exception
 
-import com.beat.global.common.exception.base.BaseErrorCode
+import com.beat.global.support.exception.base.BaseErrorCode
 
 enum class AdminApplicationErrorCode(
     private val status: Int,

@@ -1,6 +1,6 @@
 package com.beat.apis.user.application.exception
 
-import com.beat.global.common.exception.base.BaseErrorCode
+import com.beat.global.support.exception.base.BaseErrorCode
 
 enum class UserApplicationErrorCode(
     private val status: Int,

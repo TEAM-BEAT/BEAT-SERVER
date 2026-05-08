@@ -3,5 +3,5 @@ plugins {
 }
 
 dependencies {
-    api(project(":global-utils"))
+    api(project(":global-support"))
 }

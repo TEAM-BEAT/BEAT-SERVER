@@ -12,7 +12,7 @@ COPY admin/build.gradle.kts ./admin/build.gradle.kts
 COPY batch/build.gradle.kts ./batch/build.gradle.kts
 COPY domain/build.gradle.kts ./domain/build.gradle.kts
 COPY gateway/build.gradle.kts ./gateway/build.gradle.kts
-COPY global-utils/build.gradle.kts ./global-utils/build.gradle.kts
+COPY global-support/build.gradle.kts ./global-support/build.gradle.kts
 COPY infra/build.gradle.kts ./infra/build.gradle.kts
 COPY module-contracts/build.gradle.kts ./module-contracts/build.gradle.kts
 COPY observability/build.gradle.kts ./observability/build.gradle.kts
@@ -25,7 +25,7 @@ COPY admin ./admin
 COPY batch ./batch
 COPY domain ./domain
 COPY gateway ./gateway
-COPY global-utils ./global-utils
+COPY global-support ./global-support
 COPY infra ./infra
 COPY module-contracts ./module-contracts
 COPY observability ./observability

@@ -17,7 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.beat.contracts.auth.TokenErrorCode;
 import com.beat.gateway.jwt.internal.store.RefreshToken;
 import com.beat.gateway.jwt.internal.store.RefreshTokenRepository;
-import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.support.exception.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 class RefreshTokenServiceTest {

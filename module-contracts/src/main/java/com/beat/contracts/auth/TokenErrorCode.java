@@ -1,6 +1,6 @@
 package com.beat.contracts.auth;
 
-import com.beat.global.common.exception.base.BaseErrorCode;
+import com.beat.global.support.exception.base.BaseErrorCode;
 public enum TokenErrorCode implements BaseErrorCode {
 
 	AUTHENTICATION_CODE_EXPIRED(401, "인가코드가 만료되었습니다"),

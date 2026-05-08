@@ -158,8 +158,8 @@ class ApisApplicationTest {
 
     @Test
     fun `controller logging aspect is owned by observability module`() {
-        assertFalse(Files.exists(Path.of("../src/main/java/com/beat/global/common/aop/ControllerLoggingAspect.java")))
-        assertFalse(Files.exists(Path.of("../observability/src/main/java/com/beat/global/common/aop/ControllerLoggingAspect.java")))
+        assertFalse(Files.exists(Path.of("../src/main/java/com/beat/global/support/aop/ControllerLoggingAspect.java")))
+        assertFalse(Files.exists(Path.of("../observability/src/main/java/com/beat/global/support/aop/ControllerLoggingAspect.java")))
         assertTrue(Files.exists(Path.of("../observability/src/main/java/com/beat/observability/aop/ControllerLoggingAspect.java")))
     }
 }

@@ -19,7 +19,7 @@ import org.springframework.http.ResponseEntity;
 import com.beat.apis.ticket.api.response.TicketSuccessCode;
 import com.beat.apis.ticket.application.dto.TicketRetrieveResponse;
 import com.beat.apis.ticket.facade.TicketFacade;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.SuccessResponse;
 
 @ExtendWith(MockitoExtension.class)
 class TicketControllerTest {
@@ -57,9 +57,9 @@ class TicketControllerTest {
 
 		assertEquals(200, response.getStatusCode().value());
 		assertEquals("no-cache", response.getHeaders().getCacheControl());
-		assertEquals(TicketSuccessCode.TICKET_SEARCH_SUCCESS.getStatus(), response.getBody().status());
-		assertEquals(TicketSuccessCode.TICKET_SEARCH_SUCCESS.getMessage(), response.getBody().message());
-		assertSame(expected, response.getBody().data());
+		assertEquals(TicketSuccessCode.TICKET_SEARCH_SUCCESS.getStatus(), response.getBody().getStatus());
+		assertEquals(TicketSuccessCode.TICKET_SEARCH_SUCCESS.getMessage(), response.getBody().getMessage());
+		assertSame(expected, response.getBody().getData());
 		verify(ticketFacade).searchTickets(1L, 100L, "ab", null, null);
 	}
 }

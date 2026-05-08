@@ -39,7 +39,7 @@ jobs:
             shared:
               # Shared application / build surface
               - 'domain/**'
-              - 'global-utils/**'
+              - 'global-support/**'
               - 'module-contracts/**'
               - 'gateway/**'
               - 'observability/**'

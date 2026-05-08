@@ -7,7 +7,7 @@ dependencies {
     implementation(project(":gateway"))
     implementation(project(":domain"))
     implementation(project(":infra"))
-    implementation(project(":global-utils"))
+    implementation(project(":global-support"))
     implementation(project(":observability"))
     implementation(libs.micrometer.registry.prometheus)
 

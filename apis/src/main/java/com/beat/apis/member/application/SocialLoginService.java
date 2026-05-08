@@ -16,8 +16,8 @@ import com.beat.contracts.auth.social.SocialLoginRequest;
 import com.beat.contracts.auth.social.SocialLoginType;
 import com.beat.contracts.auth.social.SocialMemberInfo;
 import com.beat.domain.member.domain.SocialType;
-import com.beat.global.common.exception.BadRequestException;
-import com.beat.global.common.exception.UnauthorizedException;
+import com.beat.global.support.exception.BadRequestException;
+import com.beat.global.support.exception.UnauthorizedException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
