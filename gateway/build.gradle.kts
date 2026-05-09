@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(project(":module-contracts"))
+    implementation(project(":observability"))
     api(project(":global-support"))
     implementation(libs.jjwt.api)
     runtimeOnly(libs.jjwt.impl)
@@ -17,5 +18,7 @@ dependencies {
     annotationProcessor(libs.lombok)
 
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.spring.boot.starter.security)
+    testImplementation(libs.spring.boot.starter.web)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

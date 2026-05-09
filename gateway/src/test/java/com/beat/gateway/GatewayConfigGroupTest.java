@@ -14,10 +14,9 @@ import org.junit.jupiter.api.Test;
 class GatewayConfigGroupTest {
 
 	@Test
-	void gatewayConfigGroupsExposeServletSecurityAndRefreshTokenStoreOnly() {
+	void gatewayConfigGroupsExposeOptionalRefreshTokenStoreOnly() {
 		assertArrayEquals(
 			new GatewayConfigGroup[] {
-				GatewayConfigGroup.SERVLET_SECURITY,
 				GatewayConfigGroup.REFRESH_TOKEN_STORE
 			},
 			GatewayConfigGroup.values()
@@ -25,20 +24,26 @@ class GatewayConfigGroupTest {
 	}
 
 	@Test
-	void servletSecurityGroupDoesNotImportRefreshTokenStore() throws IOException {
-		assertEquals(
-			"com.beat.gateway.internal.config.GatewayServletSecurityConfig",
-			GatewayConfigGroup.SERVLET_SECURITY.getConfigClass().getName()
-		);
-
+	void publicServletSecurityAnnotationIsStaticImportSurfaceForExecutableModules() throws IOException {
+		String annotationSource = source("src/main/java/com/beat/gateway/security/servlet/EnableGatewayServletSecurity.java");
 		String source = source("src/main/java/com/beat/gateway/internal/config/GatewayServletSecurityConfig.java");
 
+		assertTrue(annotationSource.contains("@Import(GatewayServletSecurityConfig.class)"));
 		assertTrue(source.contains("GatewayJwtConfig.class"));
 		assertTrue(source.contains("GatewaySecurityServletConfig.class"));
 		assertTrue(source.contains("GatewayWebMvcConfig.class"));
 		assertFalse(source.contains("GatewayRefreshTokenConfig.class"));
 		assertFalse(source.contains("GatewayRedisConfig.class"));
 		assertFalse(source.contains("RefreshTokenService.class"));
+	}
+
+	@Test
+	void securityMdcFilterIsPartOfServletSecurityGroupAndAutoRegistrationIsDisabled() throws IOException {
+		String servletSource = source("src/main/java/com/beat/gateway/internal/config/GatewaySecurityServletConfig.java");
+
+		assertTrue(servletSource.contains("gatewaySecurityMdcLoggingFilter"));
+		assertTrue(servletSource.contains("FilterRegistrationBean<SecurityMdcLoggingFilter>"));
+		assertTrue(servletSource.contains("registration.setEnabled(false)"));
 	}
 
 	@Test
@@ -52,6 +57,13 @@ class GatewayConfigGroupTest {
 
 		assertTrue(source.contains("GatewayRedisConfig.class"));
 		assertTrue(source.contains("RefreshTokenService.class"));
+	}
+
+	@Test
+	void jwtFilterEnrichesAlreadyInitializedMdcWithAuthenticatedUser() throws IOException {
+		String source = source("src/main/java/com/beat/gateway/security/internal/servlet/JwtAuthenticationFilter.java");
+
+		assertTrue(source.contains("MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, memberId.toString())"));
 	}
 
 	@Test

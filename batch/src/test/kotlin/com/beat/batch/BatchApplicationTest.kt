@@ -130,6 +130,30 @@ class BatchApplicationTest {
     }
 
     @Test
+    fun `actuator properties do not fall back to public default path`() {
+        val actuatorProperties = Files.readString(
+            Path.of("../observability/src/main/kotlin/com/beat/observability/metrics/config/ActuatorProperties.kt"),
+        )
+
+        assertTrue(actuatorProperties.contains("val basePath: String"))
+        assertFalse(actuatorProperties.contains("/actuator"))
+    }
+
+    @Test
+    fun `batch does not auto register servlet mdc filter`() {
+        val observabilityLoggingConfig = Files.readString(
+            Path.of("../observability/src/main/kotlin/com/beat/observability/logging/LoggingConfig.kt"),
+        )
+        val observabilityModuleConfig = Files.readString(
+            Path.of("../observability/src/main/kotlin/com/beat/observability/ObservabilityModuleConfig.kt"),
+        )
+
+        assertFalse(observabilityLoggingConfig.contains("SimpleMdcLoggingFilter"))
+        assertFalse(observabilityLoggingConfig.contains("BaseMdcLoggingFilter"))
+        assertFalse(observabilityModuleConfig.contains("SimpleMdcLoggingFilter"))
+    }
+
+    @Test
     fun `batch test resources disable scheduler ownership for smoke tests`() {
         val config = Files.readString(Path.of("src/test/resources/application-test.yml"))
 

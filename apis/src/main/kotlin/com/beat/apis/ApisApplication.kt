@@ -4,12 +4,10 @@ import com.beat.apis.config.GatewayConfig
 import com.beat.apis.config.InfraConfig
 import com.beat.observability.ObservabilityModuleConfig
 import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Import
 
 @SpringBootApplication(scanBasePackageClasses = [ApisApplication::class])
-@ConfigurationPropertiesScan(basePackages = ["com.beat.infra.config"])
 @Import(
     GatewayConfig::class,
     InfraConfig::class,

@@ -2,6 +2,7 @@ package com.beat.gateway.security.internal.servlet;
 
 import com.beat.contracts.auth.JwtTokenPort;
 import com.beat.contracts.auth.TokenValidationResult;
+import com.beat.observability.logging.filter.BaseMdcLoggingFilter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,6 +17,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.slf4j.MDC;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -74,6 +76,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
 		SecurityContextHolder.getContext().setAuthentication(authentication);
+		if (memberId != null) {
+			MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, memberId.toString());
+		}
 	}
 
 	private void handleInvalidToken(TokenValidationResult validationResult, HttpServletResponse response) {

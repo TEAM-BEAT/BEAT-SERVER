@@ -24,6 +24,7 @@ public class ApisSecurityConfig {
 	};
 
 	private final OncePerRequestFilter jwtAuthenticationFilter;
+	private final OncePerRequestFilter securityMdcLoggingFilter;
 	private final AuthenticationEntryPoint authenticationEntryPoint;
 	private final AccessDeniedHandler accessDeniedHandler;
 
@@ -32,10 +33,12 @@ public class ApisSecurityConfig {
 
 	public ApisSecurityConfig(
 		@Qualifier("gatewayJwtAuthenticationFilter") OncePerRequestFilter jwtAuthenticationFilter,
+		@Qualifier("gatewaySecurityMdcLoggingFilter") OncePerRequestFilter securityMdcLoggingFilter,
 		AuthenticationEntryPoint authenticationEntryPoint,
 		AccessDeniedHandler accessDeniedHandler
 	) {
 		this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+		this.securityMdcLoggingFilter = securityMdcLoggingFilter;
 		this.authenticationEntryPoint = authenticationEntryPoint;
 		this.accessDeniedHandler = accessDeniedHandler;
 	}
@@ -54,7 +57,8 @@ public class ApisSecurityConfig {
 				auth.requestMatchers(getAuthWhitelist()).permitAll()
 					.requestMatchers(AUTH_ADMIN_ONLY).hasAuthority(ROLE_ADMIN)
 					.anyRequest().authenticated())
-			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+			.addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter.class)
+			.addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.getClass());
 
 		return http.build();
 	}
