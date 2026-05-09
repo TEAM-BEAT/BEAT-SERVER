@@ -36,7 +36,7 @@ jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 lombok = { module = "org.projectlombok:lombok", version = "1.18.44" }
 spring-security-test = { module = "org.springframework.security:spring-security-test" }
-spring-security-core = { module = "org.springframework.security:spring-security-core", version = "7.0.3" }
+spring-security-core = { module = "org.springframework.security:spring-security-core", version = "7.0.5" }
 
 spring-aop = { module = "org.springframework:spring-aop", version.ref = "spring-framework" }
 spring-tx = { module = "org.springframework:spring-tx", version.ref = "spring-framework" }
