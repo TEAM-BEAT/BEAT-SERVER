@@ -42,7 +42,7 @@ flowchart TB
 | 영역 | 현재 계약 |
 | --- | --- |
 | 실행 형태 | Spring Boot 관리자 HTTP executable module |
-| Bootstrap | `AdminApplication`이 `@EnableGatewayConfig(SERVLET_SECURITY)`로 gateway 인증 group을 선택하고 `InfraConfig`, `ObservabilityModuleConfig`만 명시 import |
+| Bootstrap | `AdminApplication`이 `@EnableGatewayServletSecurity`로 gateway 인증 bootstrap을 선택하고 `InfraConfig`, `ObservabilityModuleConfig`만 명시 import |
 | Package | context 기준 `admin.user`, `admin.promotion` 분리 |
 | Layer | `Controller -> Facade -> ApplicationService(command/query)` |
 | DTO | admin 전용 request/response/result DTO 소유, domain/JPA type 직접 노출 금지 |
@@ -106,7 +106,7 @@ implementation(project(":observability"))
   - `gateway.security.internal.*`
   - `gateway.filter.*`
   - `gateway.config.*`
-- 허용되는 gateway 공개 표면은 `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember`로 제한하고 JWT/refresh token 계약은 `module-contracts`의 `com.beat.contracts.auth.*`를 사용
+- 허용되는 gateway 공개 표면은 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember`로 제한하고 JWT/refresh token 계약은 `module-contracts`의 `com.beat.contracts.auth.*`를 사용
 - transitional package 재도입 금지
   - `adapter/`
   - `controller/`
@@ -122,7 +122,7 @@ implementation(project(":observability"))
 ```mermaid
 flowchart LR
     AdminApplication[AdminApplication]
-    EnableGatewayConfig["@EnableGatewayConfig<br/>SERVLET_SECURITY"]
+    EnableGatewayConfig["@EnableGatewayServletSecurity"]
     InfraConfig[Admin InfraConfig]
     InfraBase[InfraBaseConfig<br/>JPA / EXTERNAL_CLIENTS]
     ObservabilityModuleConfig[ObservabilityModuleConfig]
@@ -137,10 +137,7 @@ flowchart LR
 
 ```kotlin
 @SpringBootApplication(scanBasePackageClasses = [AdminApplication::class])
-@ConfigurationPropertiesScan(basePackages = ["com.beat.infra.config"])
-@EnableGatewayConfig(
-    value = [GatewayConfigGroup.SERVLET_SECURITY],
-)
+@EnableGatewayServletSecurity
 @Import(
     InfraConfig::class,
     ObservabilityModuleConfig::class,
@@ -152,9 +149,12 @@ class AdminApplication
 
 - broad `@ComponentScan`을 사용하지 않습니다.
 - `AdminApplication` 자신의 package 아래만 component scan합니다.
-- `EnableGatewayConfig`는 공개 gateway bootstrap 경계이며 broad `com.beat.gateway` scan에 의존하지 않고 admin에는 refresh token store를 import하지 않습니다.
+- `EnableGatewayServletSecurity`는 공개 gateway servlet security bootstrap 경계이며 broad `com.beat.gateway` scan에 의존하지 않고 admin에는 refresh token store를 import하지 않습니다.
 - `InfraConfig`는 admin이 필요한 infra group만 명시합니다.
 - `ObservabilityModuleConfig`는 관측성 공개 bootstrap 경계입니다.
+- `AdminSecurityConfig`는 `gatewaySecurityMdcLoggingFilter`를 JWT보다 먼저 배치해 모든 응답에 trace/request MDC와 `X-Request-ID`를 보장하고, 이후 `gatewayJwtAuthenticationFilter`가 인증 성공 시 MDC `userId`를 갱신합니다.
+- gateway 내부 `SecurityMdcLoggingFilter` 클래스는 직접 import하지 않고 qualifier + `OncePerRequestFilter` 타입으로만 주입합니다.
+- observability 내부 config는 직접 import하지 않고 `ObservabilityModuleConfig`만 사용합니다.
 - `beat.scheduler.owner=false` 계약을 유지합니다.
 
 ---
@@ -484,7 +484,7 @@ admin.api.response.AdminSuccessCode
 
 규칙:
 
-- gateway 내부 security 구현을 직접 import하지 않고 `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember` 같은 공개 contract만 사용합니다.
+- gateway 내부 security 구현을 직접 import하지 않고 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember` 같은 공개 contract만 사용합니다.
 - admin route 정책은 admin config에서 관리합니다.
 - Swagger/OpenAPI는 admin 실행 모듈의 문서화 경계입니다.
 
