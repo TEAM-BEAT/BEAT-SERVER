@@ -99,7 +99,7 @@ flowchart TB
 
     subgraph ASYNC_GROUP["ASYNC group"]
         AsyncConfig["AsyncConfig<br/>Async 대표 설정<br/>@EnableAsync"]
-        TaskExecutorConfig["TaskExecutorConfig<br/>TaskExecutor Bean 등록<br/>beatApplicationTaskExecutor"]
+        TaskExecutorConfig["TaskExecutorConfig<br/>TaskExecutor Bean 등록<br/>beatApplicationTaskExecutor<br/>optional TaskDecorator 적용"]
         AsyncConfig --> TaskExecutorConfig
     end
 
@@ -118,6 +118,16 @@ flowchart TB
     Selector --> ExternalClientConfig
     Selector --> RedisCacheConfig
 ```
+
+
+### Async TaskDecorator 규칙
+
+`TaskExecutorConfig`는 `beatApplicationTaskExecutor`를 소유하고, application context에 존재하는 `TaskDecorator` bean을 executor에 적용합니다.
+이를 통해 `observability`가 제공하는 MDC propagation decorator처럼 executor 실행 전후 context를 다루는 횡단 관심사를 `infra`가 구체 타입에 의존하지 않고 수용할 수 있습니다.
+
+- `infra`는 observability 구현체를 직접 import하지 않고 Spring `TaskDecorator` abstraction만 봅니다.
+- decorator가 여러 개면 `CompositeTaskDecorator`로 순서대로 합성합니다.
+- `@Async("taskExecutor")`는 `AsyncConfig`가 노출하는 executor alias를 통해 동일한 decorator 적용을 받습니다.
 
 ### 실행 모듈별 group 선택
 
@@ -169,7 +179,7 @@ flowchart TB
 
     subgraph ASYNC["ASYNC"]
         AsyncConfig["AsyncConfig<br/>implements InfraBaseConfig"]
-        TaskExecutorConfig["TaskExecutorConfig<br/>내부 Import 대상<br/>InfraBaseConfig 구현 아님"]
+        TaskExecutorConfig["TaskExecutorConfig<br/>내부 Import 대상<br/>InfraBaseConfig 구현 아님<br/>TaskDecorator bean 적용"]
         AsyncConfig --> TaskExecutorConfig
     end
 ```

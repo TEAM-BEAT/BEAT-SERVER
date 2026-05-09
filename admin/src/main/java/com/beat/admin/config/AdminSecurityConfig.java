@@ -32,6 +32,7 @@ public class AdminSecurityConfig {
 	};
 
 	private final OncePerRequestFilter jwtAuthenticationFilter;
+	private final OncePerRequestFilter securityMdcLoggingFilter;
 	private final AuthenticationEntryPoint authenticationEntryPoint;
 	private final AccessDeniedHandler accessDeniedHandler;
 	private final Environment environment;
@@ -41,11 +42,13 @@ public class AdminSecurityConfig {
 
 	public AdminSecurityConfig(
 		@Qualifier("gatewayJwtAuthenticationFilter") OncePerRequestFilter jwtAuthenticationFilter,
+		@Qualifier("gatewaySecurityMdcLoggingFilter") OncePerRequestFilter securityMdcLoggingFilter,
 		AuthenticationEntryPoint authenticationEntryPoint,
 		AccessDeniedHandler accessDeniedHandler,
 		Environment environment
 	) {
 		this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+		this.securityMdcLoggingFilter = securityMdcLoggingFilter;
 		this.authenticationEntryPoint = authenticationEntryPoint;
 		this.accessDeniedHandler = accessDeniedHandler;
 		this.environment = environment;
@@ -64,7 +67,8 @@ public class AdminSecurityConfig {
 		http.authorizeHttpRequests(auth ->
 				auth.requestMatchers(getAuthWhitelist()).permitAll()
 					.anyRequest().hasAuthority(ROLE_ADMIN))
-			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+			.addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter.class)
+			.addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.getClass());
 
 		return http.build();
 	}

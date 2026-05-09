@@ -65,6 +65,7 @@ class ApisArchitectureGuardTest {
                 "com.beat.gateway.EnableGatewayConfig",
                 "com.beat.gateway.GatewayConfigGroup",
                 "com.beat.gateway.security.servlet.CurrentMember",
+                "com.beat.gateway.security.servlet.EnableGatewayServletSecurity",
             )
         )
         val infraViolations = findForbiddenImports(

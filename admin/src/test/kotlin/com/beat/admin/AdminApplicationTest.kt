@@ -4,7 +4,7 @@ import com.beat.admin.config.AdminSecurityConfig
 import com.beat.admin.config.GatewayConfig
 import com.beat.admin.config.InfraConfig
 import com.beat.gateway.EnableGatewayConfig
-import com.beat.gateway.GatewayConfigGroup
+import com.beat.gateway.security.servlet.EnableGatewayServletSecurity
 import com.beat.observability.ObservabilityModuleConfig
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -34,14 +34,12 @@ class AdminApplicationTest {
     }
 
     @Test
-    fun `admin selects gateway servlet security without refresh token store`() {
+    fun `admin selects gateway servlet security bootstrap without refresh token store`() {
+        val enableGatewayServletSecurity = GatewayConfig::class.java.getAnnotation(EnableGatewayServletSecurity::class.java)
         val enableGatewayConfig = GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
 
-        assertNotNull(enableGatewayConfig, "admin GatewayConfig must declare @EnableGatewayConfig")
-        assertEquals(
-            setOf(GatewayConfigGroup.SERVLET_SECURITY),
-            enableGatewayConfig!!.value.toSet(),
-        )
+        assertNotNull(enableGatewayServletSecurity, "admin GatewayConfig must declare @EnableGatewayServletSecurity")
+        assertNull(enableGatewayConfig, "admin must not select refresh-token store through @EnableGatewayConfig")
     }
 
     @Test
@@ -49,6 +47,17 @@ class AdminApplicationTest {
         val configuration = AdminSecurityConfig::class.java.getAnnotation(Configuration::class.java)
 
         assertNotNull(configuration)
+    }
+
+    @Test
+    fun `admin security chain registers gateway mdc filter through public filter contract`() {
+        val source = Files.readString(Path.of("src/main/java/com/beat/admin/config/AdminSecurityConfig.java"))
+
+        assertTrue(source.contains("@Qualifier(\"gatewayJwtAuthenticationFilter\") OncePerRequestFilter jwtAuthenticationFilter"))
+        assertTrue(source.contains("@Qualifier(\"gatewaySecurityMdcLoggingFilter\") OncePerRequestFilter securityMdcLoggingFilter"))
+        assertTrue(source.contains(".addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter.class)"))
+        assertTrue(source.contains(".addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.getClass())"))
+        assertFalse(source.contains("import com.beat.gateway.security.internal.servlet.SecurityMdcLoggingFilter"))
     }
 
     @Test

@@ -1,13 +1,8 @@
 package com.beat.admin.config
 
-import com.beat.gateway.EnableGatewayConfig
-import com.beat.gateway.GatewayConfigGroup
+import com.beat.gateway.security.servlet.EnableGatewayServletSecurity
 import org.springframework.context.annotation.Configuration
 
 @Configuration(proxyBeanMethods = false)
-@EnableGatewayConfig(
-    value = [
-        GatewayConfigGroup.SERVLET_SECURITY,
-    ],
-)
+@EnableGatewayServletSecurity
 class GatewayConfig

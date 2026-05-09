@@ -5,6 +5,7 @@ import com.beat.apis.config.GatewayConfig
 import com.beat.apis.config.InfraConfig
 import com.beat.gateway.EnableGatewayConfig
 import com.beat.gateway.GatewayConfigGroup
+import com.beat.gateway.security.servlet.EnableGatewayServletSecurity
 import com.beat.observability.ObservabilityModuleConfig
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -45,12 +46,14 @@ class ApisApplicationTest {
     }
 
     @Test
-    fun `apis selects gateway servlet security with refresh token store`() {
+    fun `apis selects gateway servlet security bootstrap with refresh token store`() {
+        val enableGatewayServletSecurity = GatewayConfig::class.java.getAnnotation(EnableGatewayServletSecurity::class.java)
         val enableGatewayConfig = GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
 
-        assertNotNull(enableGatewayConfig, "apis GatewayConfig must declare @EnableGatewayConfig")
+        assertNotNull(enableGatewayServletSecurity, "apis GatewayConfig must declare @EnableGatewayServletSecurity")
+        assertNotNull(enableGatewayConfig, "apis GatewayConfig must declare @EnableGatewayConfig for refresh-token store")
         assertEquals(
-            setOf(GatewayConfigGroup.SERVLET_SECURITY, GatewayConfigGroup.REFRESH_TOKEN_STORE),
+            setOf(GatewayConfigGroup.REFRESH_TOKEN_STORE),
             enableGatewayConfig!!.value.toSet(),
         )
     }
@@ -157,9 +160,20 @@ class ApisApplicationTest {
     }
 
     @Test
-    fun `controller logging aspect is owned by observability module`() {
-        assertFalse(Files.exists(Path.of("../src/main/java/com/beat/global/support/aop/ControllerLoggingAspect.java")))
-        assertFalse(Files.exists(Path.of("../observability/src/main/java/com/beat/global/support/aop/ControllerLoggingAspect.java")))
-        assertTrue(Files.exists(Path.of("../observability/src/main/java/com/beat/observability/aop/ControllerLoggingAspect.java")))
+    fun `observability legacy logging package is removed`() {
+        val legacyLoggingPackage = Path.of("../observability/src/main/java/com/beat/observability", "aop")
+
+        assertFalse(Files.exists(legacyLoggingPackage))
+    }
+
+    @Test
+    fun `apis security chain registers gateway mdc filter through public filter contract`() {
+        val source = Files.readString(Path.of("src/main/java/com/beat/apis/config/ApisSecurityConfig.java"))
+
+        assertTrue(source.contains("@Qualifier(\"gatewayJwtAuthenticationFilter\") OncePerRequestFilter jwtAuthenticationFilter"))
+        assertTrue(source.contains("@Qualifier(\"gatewaySecurityMdcLoggingFilter\") OncePerRequestFilter securityMdcLoggingFilter"))
+        assertTrue(source.contains(".addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter.class)"))
+        assertTrue(source.contains(".addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.getClass())"))
+        assertFalse(source.contains("import com.beat.gateway.security.internal.servlet.SecurityMdcLoggingFilter"))
     }
 }
