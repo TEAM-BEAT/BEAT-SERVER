@@ -8,7 +8,7 @@
 
 | 구분 | 현재 기준 |
 | --- | --- |
-| Spring | Spring Boot `4.0.5` |
+| Spring | Spring Boot `4.0.6` |
 | Language / Runtime | Kotlin `2.3.20`, Java toolchain JDK `25`, Java compile release / Kotlin JVM target `25`, Docker runtime Java `25` |
 | Build | Gradle wrapper, root project는 실행 모듈이 아니라 공통 검증/조정 역할 |
 | 실행 모듈 | `apis`, `admin`, `batch` |
@@ -23,7 +23,7 @@
 
 | 기준 | 빌드 설정 source of truth | 현재 값 |
 | --- | --- | --- |
-| Spring Boot | `gradle/libs.versions.toml`의 `spring-boot` | `4.0.5` |
+| Spring Boot | `gradle/libs.versions.toml`의 `spring-boot` | `4.0.6` |
 | Kotlin | `gradle/libs.versions.toml`의 `kotlin` | `2.3.20` |
 | Java toolchain | root `build.gradle.kts`와 `build-logic/build.gradle.kts`의 `JavaLanguageVersion.of(25)` | JDK `25` |
 | Java bytecode target | root `build.gradle.kts`와 `build-logic/build.gradle.kts`의 `options.release.set(25)` | release `25` |
