@@ -23,8 +23,8 @@ class AdminArchitectureGuardTest {
             "com.beat.BeatApplication",
             "com.beat.legacyroot.",
             "com.beat.batch.",
-            "com.beat.global.support.config.SecurityConfig",
-            "com.beat.global.support.config.WebConfig",
+            "com.beat.global.common.config.",
+            "com.beat.global.support.config.",
         )
 
         assertTrue(violations.isEmpty(), "Found forbidden root bootstrap references:\n${violations.joinToString("\n")}")

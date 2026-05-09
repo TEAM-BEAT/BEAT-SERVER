@@ -30,8 +30,8 @@ class BatchArchitectureGuardTest {
         val violations = findForbiddenReferences(
             "com.beat.BeatApplication",
             "com.beat.legacyroot.",
-            "com.beat.global.support.config.SecurityConfig",
-            "com.beat.global.support.config.WebConfig",
+            "com.beat.global.common.config.",
+            "com.beat.global.support.config.",
             "com.beat.gateway.",
             "com.beat.apis.",
             "com.beat.admin.",
