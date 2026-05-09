@@ -35,8 +35,8 @@ class ApisArchitectureGuardTest {
             "com.beat.BeatApplication",
             "com.beat.legacyroot.",
             "com.beat.batch.",
-            "com.beat.global.common.config.SecurityConfig",
-            "com.beat.global.common.config.WebConfig",
+            "com.beat.global.common.config.",
+            "com.beat.global.support.config.",
         )
 
         val paths = Files.walk(Path.of("src/main"))

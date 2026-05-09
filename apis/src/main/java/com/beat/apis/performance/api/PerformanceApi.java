@@ -13,8 +13,8 @@ import com.beat.apis.performance.application.dto.modify.PerformanceModifyRequest
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyResponse;
 import com.beat.apis.performance.application.dto.performanceDetail.PerformanceDetailResponse;
 import com.beat.gateway.security.servlet.CurrentMember;
-import com.beat.global.common.dto.ErrorResponse;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.ErrorResponse;
+import com.beat.global.support.response.SuccessResponse;
 import com.beat.apis.swagger.annotation.DisableSwaggerSecurity;
 
 import io.swagger.v3.oas.annotations.Operation;

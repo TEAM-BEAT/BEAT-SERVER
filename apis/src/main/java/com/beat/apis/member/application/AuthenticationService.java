@@ -12,9 +12,9 @@ import com.beat.contracts.auth.TokenErrorCode;
 import com.beat.contracts.auth.TokenValidationResult;
 import com.beat.contracts.auth.social.SocialMemberInfo;
 import com.beat.domain.user.domain.Role;
-import com.beat.global.common.exception.BadRequestException;
-import com.beat.global.common.exception.BeatException;
-import com.beat.global.common.exception.UnauthorizedException;
+import com.beat.global.support.exception.BadRequestException;
+import com.beat.global.support.exception.BeatException;
+import com.beat.global.support.exception.UnauthorizedException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

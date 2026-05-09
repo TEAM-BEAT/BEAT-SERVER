@@ -1,7 +1,7 @@
 package com.beat.apis.external.s3.api;
 
-import com.beat.global.common.dto.ErrorResponse;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.ErrorResponse;
+import com.beat.global.support.response.SuccessResponse;
 import com.beat.apis.external.s3.api.dto.PerformanceMakerPresignedUrlFindAllResponse;
 
 import io.swagger.v3.oas.annotations.Operation;

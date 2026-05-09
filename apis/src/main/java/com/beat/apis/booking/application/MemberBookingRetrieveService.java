@@ -24,7 +24,7 @@ import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
-import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.support.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import com.beat.apis.member.application.exception.MemberApplicationErrorCode;

@@ -14,7 +14,7 @@ import com.beat.domain.booking.domain.Booking;
 import com.beat.domain.booking.exception.BookingErrorCode;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.performance.domain.BankName;
-import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.support.exception.BadRequestException;
 
 class BookingDomainInvariantTest {
 

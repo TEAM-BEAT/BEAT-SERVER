@@ -7,7 +7,7 @@ import com.beat.apis.user.application.exception.UserApplicationErrorCode;
 import com.beat.apis.user.application.result.UserAuthenticationResult;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
-import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.support.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 

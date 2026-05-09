@@ -1,6 +1,6 @@
 package com.beat.apis.schedule.application.exception
 
-import com.beat.global.common.exception.base.BaseErrorCode
+import com.beat.global.support.exception.base.BaseErrorCode
 
 enum class ScheduleApplicationErrorCode(
     private val status: Int,

@@ -3,5 +3,5 @@ plugins {
 }
 
 dependencies {
-    compileOnly(project(":global-utils"))
+    compileOnly(project(":global-support"))
 }

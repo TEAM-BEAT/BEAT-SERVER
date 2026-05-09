@@ -16,7 +16,7 @@
 
 ## 허용 의존성
 
-- `global-utils`
+- `global-support`
 - Kotlin/JDK 표준 라이브러리
 
 ## 금지 규칙
@@ -38,7 +38,7 @@ module-contracts/
       JwtSubject.java
       JwtTokenPort.java
       RefreshTokenPort.java
-      TokenErrorCode.java                 # contract-local token error enum; global-utils BaseErrorCode contract만 구현
+      TokenErrorCode.java                 # contract-local token error enum; global-support BaseErrorCode contract만 구현
       TokenValidationResult.java           # contract-local token validation result enum
       social/
         SocialLoginRequest.java
@@ -80,7 +80,7 @@ module-contracts/
 - 현재 `module-contracts`는 `auth`, `booking`, `notification`, `schedule`, `sms`, `storage` 계약을 모아두는 얇은 공유 모듈이다.
 - 구현체는 다른 모듈에 있고, 이 모듈은 계약 타입만 제공한다.
 - Issue #378 결정: contract surface는 cross Java/Kotlin consumer API 안정성이 우선이다. 대부분 Java source를 유지하되, `SocialLoginFailure.kt`처럼 port-level failure 표현에 한해 명시적으로 허용된 Kotlin contract가 있을 수 있다.
-- `build.gradle.kts`에서 `global-utils`만 `compileOnly`로 참조한다. `SocialType`, `Schedule` 같은 domain-coupled contract type은 Issue #426에서 `SocialLoginType`, `ScheduleBookingCloseJobTarget`으로 치환했다.
+- `build.gradle.kts`에서 `global-support`만 `compileOnly`로 참조한다. `SocialType`, `Schedule` 같은 domain-coupled contract type은 Issue #426에서 `SocialLoginType`, `ScheduleBookingCloseJobTarget`으로 치환했다.
 - `SharedBoundaryContractTest`는 Spring/JPA/Redis stereotype이나 infra/executable/gateway 구현 참조가 들어오지 않도록 guard한다.
 - `ReadModel`은 module-contracts query result임을 드러내는 marker annotation이다. Spring/JPA가 인식하는 annotation이 아니며, save 대상/도메인 모델/API 응답 DTO가 아니라는 architectural label로만 사용한다.
 
@@ -165,7 +165,7 @@ ReadModel은 Domain model을 조회 화면에 억지로 맞추지 않기 위한 
 - infra query implementation 내부에서만 쓰는 row/projection은 `infra.persistence.<context>.repository.query` 내부 type으로 둔다.
 - 실행 모듈과 infra 사이로 노출되는 read-model query result는 `@ReadModel`을 붙여 domain model/API ResponseDTO/JPA projection과 구분한다.
   - 예: `@ReadModel MinPerformanceDateReadModel`, `@ReadModel MakerTicketListItemReadModel`
-  - `@ReadModel`은 `module-contracts`의 `com.beat.contracts.common`에 둔다. 이 marker가 domain/global-utils/infra에 있으면 read/query contract가 특정 계층에 불필요하게 묶이므로 금지한다.
+  - `@ReadModel`은 `module-contracts`의 `com.beat.contracts.common`에 둔다. 이 marker가 domain/global-support/infra에 있으면 read/query contract가 특정 계층에 불필요하게 묶이므로 금지한다.
   - 이 marker는 Spring component나 JPA annotation이 아니므로 bean 등록, persistence mapping, serialization behavior를 바꾸지 않는다.
 
 ## 최종 목표

@@ -1,6 +1,6 @@
 package com.beat.apis.external.s3.exception;
 
-import com.beat.global.common.exception.base.BaseSuccessCode;
+import com.beat.global.support.exception.base.BaseSuccessCode;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

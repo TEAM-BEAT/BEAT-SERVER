@@ -1,6 +1,6 @@
 package com.beat.admin.api.response
 
-import com.beat.global.common.exception.base.BaseSuccessCode
+import com.beat.global.support.exception.base.BaseSuccessCode
 
 @Suppress("ktlint:standard:enum-entry-name-case")
 enum class AdminSuccessCode(

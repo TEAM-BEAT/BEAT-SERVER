@@ -19,7 +19,7 @@ import com.beat.admin.promotion.application.dto.response.CarouselHandleAllRespon
 import com.beat.admin.promotion.application.dto.response.CarouselPresignedUrlFindAllResponse;
 import com.beat.admin.promotion.facade.AdminPromotionFacade;
 import com.beat.gateway.security.servlet.CurrentMember;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.SuccessResponse;
 
 import lombok.RequiredArgsConstructor;
 

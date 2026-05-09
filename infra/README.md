@@ -377,7 +377,7 @@ infra/
 ```text
 domain
 module-contracts
-global-utils
+global-support
 ```
 
 ---

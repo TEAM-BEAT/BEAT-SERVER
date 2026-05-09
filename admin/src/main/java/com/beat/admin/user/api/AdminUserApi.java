@@ -4,8 +4,8 @@ import org.springframework.http.ResponseEntity;
 
 import com.beat.admin.user.application.dto.response.UserFindAllResponse;
 import com.beat.gateway.security.servlet.CurrentMember;
-import com.beat.global.common.dto.ErrorResponse;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.ErrorResponse;
+import com.beat.global.support.response.SuccessResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

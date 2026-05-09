@@ -1,6 +1,6 @@
 package com.beat.apis.home.api.response
 
-import com.beat.global.common.exception.base.BaseSuccessCode
+import com.beat.global.support.exception.base.BaseSuccessCode
 
 enum class HomeSuccessCode(
     private val status: Int,

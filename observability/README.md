@@ -17,7 +17,7 @@
 
 ## 허용 의존성
 
-- `global-utils`
+- `global-support`
 - Spring Actuator / Micrometer / logging 라이브러리
 
 ## 금지 규칙

@@ -10,7 +10,7 @@ import com.beat.admin.api.response.AdminSuccessCode;
 import com.beat.admin.user.application.dto.response.UserFindAllResponse;
 import com.beat.admin.user.facade.AdminUserFacade;
 import com.beat.gateway.security.servlet.CurrentMember;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.SuccessResponse;
 
 import lombok.RequiredArgsConstructor;
 

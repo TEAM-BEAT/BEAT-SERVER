@@ -1,6 +1,6 @@
 package com.beat.apis.ticket.application.exception
 
-import com.beat.global.common.exception.base.BaseErrorCode
+import com.beat.global.support.exception.base.BaseErrorCode
 
 enum class TicketApplicationErrorCode(
     private val status: Int,

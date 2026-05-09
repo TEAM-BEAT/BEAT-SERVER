@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.exception.PerformanceErrorCode;
-import com.beat.global.common.exception.BadRequestException;
+import com.beat.global.support.exception.BadRequestException;
 
 class PerformanceDomainInvariantTest {
 

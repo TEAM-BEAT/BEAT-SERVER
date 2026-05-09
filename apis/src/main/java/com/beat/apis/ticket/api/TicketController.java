@@ -21,7 +21,7 @@ import com.beat.apis.ticket.api.response.TicketSuccessCode;
 import com.beat.apis.ticket.facade.TicketFacade;
 import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 import com.beat.gateway.security.servlet.CurrentMember;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.SuccessResponse;
 
 import lombok.RequiredArgsConstructor;
 

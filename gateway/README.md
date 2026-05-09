@@ -271,7 +271,7 @@ gateway/
 ## 8. 허용 의존성
 
 ```text
-global-utils
+global-support
 module-contracts        # JwtTokenPort, RefreshTokenPort, TokenValidationResult 계약
 ```
 

@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     implementation(project(":module-contracts"))
-    api(project(":global-utils"))
+    api(project(":global-support"))
     implementation(libs.jjwt.api)
     runtimeOnly(libs.jjwt.impl)
     runtimeOnly(libs.jjwt.jackson)

@@ -2,8 +2,8 @@ package com.beat.domain.schedule.domain
 
 import com.beat.domain.performance.domain.Performance
 import com.beat.domain.schedule.exception.ScheduleErrorCode
-import com.beat.global.common.exception.BadRequestException
-import com.beat.global.common.exception.ConflictException
+import com.beat.global.support.exception.BadRequestException
+import com.beat.global.support.exception.ConflictException
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility

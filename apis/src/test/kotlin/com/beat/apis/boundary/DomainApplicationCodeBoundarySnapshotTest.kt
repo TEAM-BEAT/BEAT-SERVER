@@ -16,11 +16,11 @@ import com.beat.apis.performance.application.exception.StaffApplicationErrorCode
 import com.beat.apis.schedule.api.response.ScheduleSuccessCode
 import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode
 import com.beat.apis.user.application.exception.UserApplicationErrorCode
-import com.beat.global.common.exception.base.BaseErrorCode
+import com.beat.global.support.exception.base.BaseErrorCode
 import com.beat.domain.booking.exception.BookingErrorCode
 import com.beat.domain.performance.exception.PerformanceErrorCode
 import com.beat.domain.schedule.exception.ScheduleErrorCode
-import com.beat.global.common.exception.base.BaseSuccessCode
+import com.beat.global.support.exception.base.BaseSuccessCode
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

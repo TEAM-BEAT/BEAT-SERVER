@@ -12,8 +12,8 @@ import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.service.ScheduleDomainService;
-import com.beat.global.common.exception.BadRequestException;
-import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.support.exception.BadRequestException;
+import com.beat.global.support.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 

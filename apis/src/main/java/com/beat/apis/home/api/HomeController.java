@@ -10,7 +10,7 @@ import com.beat.apis.home.api.response.HomeSuccessCode;
 import com.beat.apis.home.application.dto.HomeFindAllResponse;
 import com.beat.apis.home.facade.HomeFacade;
 import com.beat.apis.home.application.dto.HomeGenreType;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.SuccessResponse;
 
 import lombok.RequiredArgsConstructor;
 

@@ -46,9 +46,9 @@ import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.service.ScheduleDomainService;
 import com.beat.domain.staff.domain.Staff;
 import com.beat.domain.staff.repository.StaffRepository;
-import com.beat.global.common.exception.BadRequestException;
-import com.beat.global.common.exception.ForbiddenException;
-import com.beat.global.common.exception.NotFoundException;
+import com.beat.global.support.exception.BadRequestException;
+import com.beat.global.support.exception.ForbiddenException;
+import com.beat.global.support.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

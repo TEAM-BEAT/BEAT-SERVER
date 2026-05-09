@@ -9,8 +9,8 @@ import com.beat.apis.member.application.dto.request.MemberLoginRequest;
 import com.beat.apis.member.application.dto.response.AccessTokenGenerateResponse;
 import com.beat.apis.member.application.dto.response.MemberLoginResponse;
 import com.beat.gateway.security.servlet.CurrentMember;
-import com.beat.global.common.dto.ErrorResponse;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.ErrorResponse;
+import com.beat.global.support.response.SuccessResponse;
 import com.beat.apis.swagger.annotation.DisableSwaggerSecurity;
 
 import io.swagger.v3.oas.annotations.Operation;

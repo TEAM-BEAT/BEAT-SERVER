@@ -1,7 +1,7 @@
 package com.beat.domain.performance.domain
 
 import com.beat.domain.performance.exception.PerformanceErrorCode
-import com.beat.global.common.exception.BadRequestException
+import com.beat.global.support.exception.BadRequestException
 import com.beat.domain.user.domain.Users
 import java.time.LocalDateTime
 

@@ -1,5 +1,5 @@
 [versions]
-spring-boot = "4.0.5"
+spring-boot = "4.0.6"
 dependency-management = "1.1.7"
 kotlin = "2.3.20"
 sonarqube = "7.2.3.7755"
@@ -11,6 +11,8 @@ springdoc = "3.0.2"
 tomcat-embed = "11.0.21"
 jackson3 = "3.1.1"
 commons-fileupload = "1.6.0"
+netty = "4.2.13.Final"
+bouncycastle = "1.84"
 awspring = "4.0.0"
 jjwt = "0.13.0"
 kotlin-jdsl = "3.6.0"
@@ -34,7 +36,7 @@ jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 lombok = { module = "org.projectlombok:lombok", version = "1.18.44" }
 spring-security-test = { module = "org.springframework.security:spring-security-test" }
-spring-security-core = { module = "org.springframework.security:spring-security-core", version = "7.0.3" }
+spring-security-core = { module = "org.springframework.security:spring-security-core", version = "7.0.5" }
 
 spring-aop = { module = "org.springframework:spring-aop", version.ref = "spring-framework" }
 spring-tx = { module = "org.springframework:spring-tx", version.ref = "spring-framework" }
@@ -60,6 +62,9 @@ tomcat-embed-websocket = { module = "org.apache.tomcat.embed:tomcat-embed-websoc
 jackson3-core = { module = "tools.jackson.core:jackson-core", version.ref = "jackson3" }
 jackson3-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson3" }
 commons-fileupload = { module = "commons-fileupload:commons-fileupload", version.ref = "commons-fileupload" }
+netty-codec-dns = { module = "io.netty:netty-codec-dns", version.ref = "netty" }
+netty-resolver-dns = { module = "io.netty:netty-resolver-dns", version.ref = "netty" }
+bouncycastle-bcprov-jdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 
 spring-cloud-dependencies = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "spring-cloud" }
 spring-cloud-starter-openfeign = { module = "org.springframework.cloud:spring-cloud-starter-openfeign" }

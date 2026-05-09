@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.beat.apis.schedule.application.dto.response.TicketAvailabilityResponse;
 import com.beat.apis.schedule.api.response.ScheduleSuccessCode;
 import com.beat.apis.schedule.facade.ScheduleFacade;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.SuccessResponse;
 
 import lombok.RequiredArgsConstructor;
 

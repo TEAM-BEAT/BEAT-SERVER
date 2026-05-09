@@ -4,7 +4,7 @@ import com.beat.domain.booking.exception.BookingErrorCode
 import com.beat.domain.performance.domain.BankName
 import com.beat.domain.schedule.domain.Schedule
 import com.beat.domain.user.domain.Users
-import com.beat.global.common.exception.BadRequestException
+import com.beat.global.support.exception.BadRequestException
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility

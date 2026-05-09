@@ -1,6 +1,6 @@
 package com.beat.domain.booking.exception
 
-import com.beat.global.common.exception.base.BaseErrorCode
+import com.beat.global.support.exception.base.BaseErrorCode
 
 enum class BookingErrorCode(
     private val status: Int,

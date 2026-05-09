@@ -5,8 +5,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.beat.apis.schedule.application.dto.response.TicketAvailabilityResponse;
-import com.beat.global.common.dto.ErrorResponse;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.ErrorResponse;
+import com.beat.global.support.response.SuccessResponse;
 import com.beat.apis.swagger.annotation.DisableSwaggerSecurity;
 
 import io.swagger.v3.oas.annotations.Operation;

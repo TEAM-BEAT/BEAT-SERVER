@@ -13,13 +13,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import com.beat.global.common.dto.ErrorResponse;
-import com.beat.global.common.exception.BadRequestException;
-import com.beat.global.common.exception.BeatException;
-import com.beat.global.common.exception.ConflictException;
-import com.beat.global.common.exception.ForbiddenException;
-import com.beat.global.common.exception.NotFoundException;
-import com.beat.global.common.exception.UnauthorizedException;
+import com.beat.global.support.response.ErrorResponse;
+import com.beat.global.support.exception.BadRequestException;
+import com.beat.global.support.exception.BeatException;
+import com.beat.global.support.exception.ConflictException;
+import com.beat.global.support.exception.ForbiddenException;
+import com.beat.global.support.exception.NotFoundException;
+import com.beat.global.support.exception.UnauthorizedException;
 
 import lombok.extern.slf4j.Slf4j;
 

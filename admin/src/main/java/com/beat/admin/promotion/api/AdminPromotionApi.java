@@ -12,8 +12,8 @@ import com.beat.admin.promotion.application.dto.response.CarouselFindAllResponse
 import com.beat.admin.promotion.application.dto.response.CarouselHandleAllResponse;
 import com.beat.admin.promotion.application.dto.response.CarouselPresignedUrlFindAllResponse;
 import com.beat.gateway.security.servlet.CurrentMember;
-import com.beat.global.common.dto.ErrorResponse;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.ErrorResponse;
+import com.beat.global.support.response.SuccessResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

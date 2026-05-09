@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import com.beat.apis.home.application.dto.HomeFindAllResponse;
 import com.beat.apis.home.application.dto.HomeGenreType;
 import com.beat.apis.swagger.annotation.DisableSwaggerSecurity;
-import com.beat.global.common.dto.SuccessResponse;
+import com.beat.global.support.response.SuccessResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
