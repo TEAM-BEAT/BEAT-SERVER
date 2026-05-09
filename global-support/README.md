@@ -137,7 +137,7 @@ global-support/
       base/
         BaseErrorCode.kt
         BaseSuccessCode.kt
-    util/          # 순수 utility가 필요할 때만 생성
+    util/          # optional: 순수 utility가 필요할 때 생성
 ```
 
 ### 패키지 규칙
@@ -163,7 +163,7 @@ com.beat.global.support.response.SuccessResponse<T>
 
 - 모든 실행 모듈이 공유할 수 있는 최소 응답 envelope를 제공합니다.
 - `status`, `message`, `data`처럼 transport-agnostic한 값만 담습니다.
-- `BaseErrorCode`, `BaseSuccessCode`에서 envelope를 만들 수 있는 factory를 제공합니다.
+- `BaseErrorCode`, `BaseSuccessCode`를 입력받아 envelope를 만드는 factory를 제공합니다.
 
 금지:
 
@@ -335,7 +335,8 @@ flowchart LR
 - domain은 순수 규칙 위반을 표현하는 error code만 소유합니다.
 - domain error code가 필요하면 `BaseErrorCode`를 구현할 수 있습니다.
 - domain model은 `ErrorResponse`, `SuccessResponse`를 만들지 않습니다.
-- HTTP status 의미가 domain rule을 오염시키지 않도록, 변환 정책은 application/executable boundary에서 다룹니다.
+- 현 계약상 domain error code도 `BaseErrorCode.getStatus()` 값을 제공할 수 있지만, domain model이 response를 만들거나 HTTP 변환 정책을 직접 소유하지 않습니다.
+- status/message를 API 응답으로 해석하고 변환하는 책임은 application/executable boundary에서 다룹니다.
 
 ### 9.3 infra에서의 사용
 
@@ -374,13 +375,16 @@ flowchart LR
 일반 변경 후 최소 검증:
 
 ```bash
-./gradlew :global-support:compileJava :global-support:compileKotlin --no-daemon
+./gradlew :global-support:compileKotlin --no-daemon
 ./gradlew transitionBoundaryTest --no-daemon
 ```
 
 구조 변경 또는 public contract 변경 후 권장 검증:
 
 ```bash
+./gradlew :apis:test --tests com.beat.apis.ApisArchitectureGuardTest --no-daemon
+./gradlew :admin:test --tests com.beat.admin.AdminArchitectureGuardTest --no-daemon
+./gradlew :batch:test --tests com.beat.batch.BatchArchitectureGuardTest --no-daemon
 ./gradlew check --no-daemon
 ```
 
