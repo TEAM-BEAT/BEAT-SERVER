@@ -13,6 +13,7 @@ val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
 extra["tomcat.version"] = libs.findVersion("tomcat-embed").get().requiredVersion
 extra["jackson-bom.version"] = libs.findVersion("jackson3").get().requiredVersion
+extra["netty.version"] = libs.findVersion("netty").get().requiredVersion
 
 configurations.configureEach {
     exclude(group = "org.springframework.boot", module = "spring-boot-starter-logging")
@@ -43,6 +44,15 @@ dependencies {
         }
         implementation(libs.findLibrary("commons-fileupload").get()) {
             because("Trivy reports CVE-2025-48976 against the OpenFeign form transitive 1.5 baseline")
+        }
+        implementation(libs.findLibrary("netty-codec-dns").get()) {
+            because("Trivy reports CVE-2026-42579 against the transitive Netty 4.2.12.Final DNS codec baseline")
+        }
+        implementation(libs.findLibrary("netty-resolver-dns").get()) {
+            because("Keep Netty DNS artifacts aligned after the CVE-driven codec-dns override")
+        }
+        implementation(libs.findLibrary("bouncycastle-bcprov-jdk18on").get()) {
+            because("Trivy reports CVE-2026-5598 against the transitive Bouncy Castle 1.81 baseline")
         }
     }
 }
