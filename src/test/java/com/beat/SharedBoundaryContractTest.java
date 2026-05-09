@@ -196,6 +196,8 @@ class SharedBoundaryContractTest {
 
 		assertFalse(Files.exists(Path.of("observability/src/main/java/com/beat/global/support", "aop")));
 		assertFalse(Files.exists(Path.of("observability/src/main/java/com/beat/observability", "aop")));
+		assertFalse(Files.exists(Path.of("observability/src/main/kotlin/com/beat/global/support", "aop")));
+		assertFalse(Files.exists(Path.of("observability/src/main/kotlin/com/beat/observability", "aop")));
 		assertTrue(violations.isEmpty(),
 			"Found removed observability aspect references:\n" + String.join("\n", violations));
 	}

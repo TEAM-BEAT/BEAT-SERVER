@@ -19,18 +19,52 @@ class BaseMdcLoggingFilterTest {
     }
 
     @Test
-    fun `uses request id header as trace id and writes it to response`() {
+    fun `uses sanitized request id header as trace id and writes it to response`() {
         val filter = testFilter("42")
         val request = request()
-        request.addHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER, "trace-from-client")
+        request.addHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER, " trace-from-client_1.2:3 ")
         val response = MockHttpServletResponse()
 
         filter.doFilter(request, response) { _, _ ->
-            assertEquals("trace-from-client", MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY))
+            assertEquals("trace-from-client_1.2:3", MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY))
             assertEquals("42", MDC.get(BaseMdcLoggingFilter.USER_ID_KEY))
         }
 
-        assertEquals("trace-from-client", response.getHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER))
+        assertEquals("trace-from-client_1.2:3", response.getHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER))
+        assertMdcCleared()
+    }
+
+    @Test
+    fun `generates trace id when request id header contains unsupported characters`() {
+        val filter = testFilter(null)
+        val request = request()
+        request.addHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER, "trace id with spaces")
+        val response = MockHttpServletResponse()
+
+        filter.doFilter(request, response) { _, _ ->
+            val traceId = MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY)
+            assertNotNull(traceId)
+            assertEquals(32, traceId.length)
+            assertEquals(traceId, response.getHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER))
+        }
+
+        assertMdcCleared()
+    }
+
+    @Test
+    fun `generates trace id when request id header is too long`() {
+        val filter = testFilter(null)
+        val request = request()
+        request.addHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER, "a".repeat(129))
+        val response = MockHttpServletResponse()
+
+        filter.doFilter(request, response) { _, _ ->
+            val traceId = MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY)
+            assertNotNull(traceId)
+            assertEquals(32, traceId.length)
+            assertEquals(traceId, response.getHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER))
+        }
+
         assertMdcCleared()
     }
 

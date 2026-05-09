@@ -20,6 +20,9 @@ abstract class BaseMdcLoggingFilter : OncePerRequestFilter() {
         const val REQUEST_INFO_KEY = "requestInfo"
 
         const val DEFAULT_GUEST_USER = "GUEST"
+
+        private const val MAX_TRACE_ID_LENGTH = 128
+        private val TRACE_ID_PATTERN = Regex("^[A-Za-z0-9._:-]+$")
     }
 
     override fun doFilterInternal(
@@ -41,8 +44,12 @@ abstract class BaseMdcLoggingFilter : OncePerRequestFilter() {
 
     private fun resolveTraceId(request: HttpServletRequest): String =
         request.getHeader(TRACE_ID_HEADER)
-            ?.takeIf { it.isNotBlank() }
-            ?: UUID.randomUUID().toString().replace("-", "")
+            ?.trim()
+            ?.takeIf { it.length in 1..MAX_TRACE_ID_LENGTH }
+            ?.takeIf { TRACE_ID_PATTERN.matches(it) }
+            ?: generateTraceId()
+
+    private fun generateTraceId(): String = UUID.randomUUID().toString().replace("-", "")
 
     private fun populateMdc(request: HttpServletRequest, traceId: String) {
         MDC.put(TRACE_ID_KEY, traceId)
