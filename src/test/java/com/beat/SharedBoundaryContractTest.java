@@ -181,42 +181,36 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
-	void observabilityAopSourcesNoLongerUseLegacyGlobalCommonPackage() throws Exception {
-		Set<String> expectedAopFiles = Set.of(
-			"observability/src/main/java/com/beat/observability/aop/ControllerLoggingAspect.java",
-			"observability/src/main/java/com/beat/observability/aop/ExecutionTimeLoggerAspect.java",
-			"observability/src/main/java/com/beat/observability/aop/Pointcuts.java",
-			"observability/src/main/java/com/beat/observability/aop/ServiceLoggingAspect.java",
-			"observability/src/main/java/com/beat/observability/aop/TxAspect.java"
-		);
+	void observabilityLegacyLoggingAspectsAreRemoved() throws Exception {
 		List<Path> observabilitySources = sourceFiles(Path.of("observability/src/main"));
+		List<String> forbiddenReferences = List.of(
+			"com.beat.global.support.aop",
+			"org." + "aspectj",
+			"@" + "Aspect"
+		);
 		List<String> violations = observabilitySources.stream()
-			.filter(path -> contains(path, "com.beat.global.support.aop"))
-			.map(Path::toString)
+			.flatMap(path -> forbiddenReferences.stream()
+				.filter(pattern -> contains(path, pattern))
+				.map(pattern -> path.toString().replace('\\', '/') + ": " + pattern))
 			.toList();
-		Set<String> actualAopFiles = sourceFiles(
-			Path.of("observability/src/main/java/com/beat/observability/aop")).stream()
-			.map(path -> path.toString().replace('\\', '/'))
-			.collect(Collectors.toSet());
-		String pointcuts = Files.readString(
-			Path.of("observability/src/main/java/com/beat/observability/aop/Pointcuts.java"));
 
-		assertFalse(Files.exists(Path.of("observability/src/main/java/com/beat/global/support/aop")));
-		assertEquals(expectedAopFiles, actualAopFiles);
+		assertFalse(Files.exists(Path.of("observability/src/main/java/com/beat/global/support", "aop")));
+		assertFalse(Files.exists(Path.of("observability/src/main/java/com/beat/observability", "aop")));
 		assertTrue(violations.isEmpty(),
-			"Found legacy observability AOP package references:\n" + String.join("\n", violations));
-		assertTrue(pointcuts.contains("!within(com.beat.global..*)"));
-		assertTrue(pointcuts.contains("!within(com.beat.observability..*)"));
+			"Found removed observability aspect references:\n" + String.join("\n", violations));
 	}
 
 	@Test
-	void observabilityModuleConfigDoesNotActivateAopSurfaceImplicitly() throws Exception {
+	void observabilityModuleConfigImportsOnlyPublicObservabilitySlices() throws Exception {
 		String moduleConfig = Files.readString(
 			Path.of("observability/src/main/kotlin/com/beat/observability/ObservabilityModuleConfig.kt"));
 		String uncommentedModuleConfig = stripComments(moduleConfig);
 
 		assertFalse(uncommentedModuleConfig.contains("@ComponentScan"));
-		assertFalse(uncommentedModuleConfig.contains("@Import"));
+		assertTrue(uncommentedModuleConfig.contains("LoggingConfig::class"));
+		assertTrue(uncommentedModuleConfig.contains("MetricsConfig::class"));
+		assertTrue(uncommentedModuleConfig.contains("TracingConfig::class"));
+		assertFalse(uncommentedModuleConfig.contains("gateway"));
 	}
 
 	@Test

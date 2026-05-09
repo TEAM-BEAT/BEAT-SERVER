@@ -51,8 +51,6 @@ dependencies {
     implementation(libs.spring.boot.starter.data.redis)
 
     // Legacy root runtime support
-    implementation(libs.spring.aop)
-    runtimeOnly(libs.aspectjweaver)
     implementation(libs.kotlin.reflect)
     implementation(libs.jackson.module.kotlin)
     runtimeOnly(libs.mysql.connector.j)

@@ -1,12 +1,15 @@
 package com.beat.observability
 
+import com.beat.observability.logging.LoggingConfig
+import com.beat.observability.metrics.MetricsConfig
+import com.beat.observability.tracing.TracingConfig
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Import
 
-// Marker config for the observability module.
-//
-// This import keeps the existing activation semantics: executable modules opt into
-// the observability module boundary, but this config does not component-scan the
-// AOP package yet. When runtime logging aspects are intentionally activated,
-// import that surface here together with a boot/context test.
 @Configuration(proxyBeanMethods = false)
+@Import(
+    LoggingConfig::class,
+    MetricsConfig::class,
+    TracingConfig::class,
+)
 class ObservabilityModuleConfig
