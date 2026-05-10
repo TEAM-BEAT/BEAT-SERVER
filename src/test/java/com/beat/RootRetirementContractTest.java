@@ -125,6 +125,59 @@ class RootRetirementContractTest {
 	}
 
 	@Test
+	void nginxBaseConfigOwnsConservativeScannerBlockContract() throws Exception {
+		String defaultConfTemplate = read("infra/ansible/roles/nginx_base_config/templates/default.conf.j2");
+		String defaults = read("infra/ansible/roles/nginx_base_config/defaults/main.yml");
+		String tasks = read("infra/ansible/roles/nginx_base_config/tasks/main.yml");
+		String infraReadme = read("infra/README.md");
+		String httpServer = sectionBetween(defaultConfTemplate, "server {\n    listen 80;", "\n}\n\nserver {\n    listen 443 ssl;");
+		String httpsServer = defaultConfTemplate.substring(defaultConfTemplate.indexOf("server {\n    listen 443 ssl;"));
+
+		assertTrue(defaultConfTemplate.contains("macro render_scanner_policy()"));
+		assertEquals(2, countOccurrences(defaultConfTemplate, "{{ render_scanner_policy() }}"));
+		assertBefore(httpServer, "location ^~ /.well-known/acme-challenge/", "{{ render_scanner_policy() }}");
+		assertBefore(httpServer, "{{ render_scanner_policy() }}", "return 301 https://$host$request_uri;");
+		assertBefore(httpsServer, "{{ render_scanner_policy() }}", "BEAT MANAGED GENERATED ROUTE INCLUDES");
+		assertTrue(defaultConfTemplate.contains("location = {{ path }}"));
+		assertTrue(defaultConfTemplate.contains("location ^~ {{ prefix }}"));
+		assertTrue(defaultConfTemplate.contains("location ~ ^/\\.env(?:\\.[A-Za-z0-9_-]{1,32})?$"));
+		assertFalse(defaultConfTemplate.contains(".*\\.php"));
+		assertFalse(defaultConfTemplate.contains("limit_req "));
+		assertFalse(defaultConfTemplate.contains("limit_req_zone"));
+
+		assertTrue(defaults.contains("nginx_scanner_block_enabled: true"));
+		assertTrue(defaults.contains("nginx_scanner_block_status: 404"));
+		assertTrue(defaults.contains("- /.env"));
+		assertTrue(defaults.contains("- /.git/config"));
+		assertTrue(defaults.contains("- /wp-login.php"));
+		assertTrue(defaults.contains("- /xmlrpc.php"));
+		assertTrue(defaults.contains("- /index.php"));
+		assertTrue(defaults.contains("- /phpinfo.php"));
+		assertTrue(defaults.contains("- /info.php"));
+		assertTrue(defaults.contains("- /wordpress/"));
+		assertTrue(defaults.contains("- /wp-admin/"));
+		assertTrue(defaults.contains("- /wp-content/"));
+		assertTrue(defaults.contains("- /wp-includes/"));
+		assertTrue(defaults.contains("- /laravel/"));
+		assertTrue(defaults.contains("nginx_scanner_rate_limit_enabled: false"));
+		assertTrue(defaults.contains("nginx_scanner_rate_limit_dry_run: true"));
+		assertTrue(defaults.contains("nginx_scanner_rate_limit_status: 429"));
+
+		assertTrue(tasks.contains("Validate nginx scanner block settings"));
+		assertTrue(tasks.contains("nginx_scanner_block_status | int in [404, 444]"));
+		assertTrue(tasks.contains("nginx_scanner_exact_paths is sequence"));
+		assertTrue(tasks.contains("nginx_scanner_exact_paths is not string"));
+		assertTrue(tasks.contains("nginx_scanner_prefix_paths is sequence"));
+		assertTrue(tasks.contains("nginx_scanner_prefix_paths is not string"));
+
+		assertTrue(infraReadme.contains("Scanner/bot nginx 차단 정책"));
+		assertTrue(infraReadme.contains("기본 응답은 `404`"));
+		assertTrue(infraReadme.contains("`444`는 운영 access log와 smoke 검증 후에만 선택"));
+		assertTrue(infraReadme.contains("rate limit은 1차 rollout에서 강제 적용하지 않는다"));
+		assertTrue(infraReadme.contains("app request completion log를 추가하지 않는다"));
+	}
+
+	@Test
 	void batchRemainsTheSchedulerOwnerLaneAfterRootRetirement() throws Exception {
 		Path schedulerService = Path.of(
 			"batch/src/main/java/com/beat/batch/scheduler/application/JobSchedulerService.java");
@@ -976,6 +1029,14 @@ class RootRetirementContractTest {
 			return content.substring(start);
 		}
 		return content.substring(start, nextDocument);
+	}
+
+	private static String sectionBetween(String content, String startMarker, String endMarker) {
+		int start = content.indexOf(startMarker);
+		assertTrue(start >= 0, startMarker);
+		int end = content.indexOf(endMarker, start + startMarker.length());
+		assertTrue(end >= 0, endMarker);
+		return content.substring(start, end);
 	}
 
 	private static int countOccurrences(String content, String needle) {
