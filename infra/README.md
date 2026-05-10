@@ -723,6 +723,20 @@ placeholder는 `app_bluegreen`(apis)이나 `app_stopstart/admin_nginx_route`(adm
 `upsert-upstream`으로 실제 컨테이너 이름과 포트로 덮어쓴다. inventory에서 host/port를 변경할 수는
 있지만, nginx pre-deploy validation + blackhole 계약을 깨지 않는 값으로만 유지해야 한다.
 
+### Nginx access log와 app port 노출 계약
+
+- HTTP request completion logging은 nginx `access.log`가 소유한다.
+- `nginx_base_config`의 `log_format`은 key=value로 `traceId=$request_id`, `clientIp=$remote_addr`,
+  `request="$request"`, `status=$status`, `bytes=$body_bytes_sent`, `referer="$http_referer"`,
+  `userAgent="$http_user_agent"`, `xForwardedFor="$http_x_forwarded_for"`, `requestTime=$request_time`을 기록한다.
+- application log는 business/domain event 중심이며, nginx access log와 같은 `traceId`로 join한다.
+- foundation compose에서 host publish는 nginx `80:80`, `443:443`만 공개 소유한다. MySQL은
+  `127.0.0.1:3306:3306`으로 loopback에 한정하고 Redis는 host publish를 갖지 않는다.
+- app container(`apis`, `admin`, `batch`) run task에는 `ports:`를 추가하지 않는다. 앱은 Docker network 내부에서
+  container name + app port로만 nginx upstream에 연결된다.
+- 운영 확인은 `sudo ss -tulpen | grep -E ':80|:443|:4001|:4002|:4000'`와
+  `docker ps --format 'table {{.Names}}\t{{.Ports}}'`로 수행한다.
+
 ### Nginx fragment mapping contract
 
 `nginx_fragments` inventory 값은 upstream 이름과 generated fragment 파일명을 묶는 canonical mapping이다.

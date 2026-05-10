@@ -34,16 +34,16 @@ flowchart TB
     Gateway[gateway module]
     Infra[infra module]
     Obs[observability module]
-    Runtime[Spring runtime<br/>SecurityFilterChain · TaskExecutor · Log4j2]
+    Runtime["Spring runtime<br/>SecurityFilterChain / TaskExecutor / Log4j2"]
 
-    Apis -->|@Import ObservabilityModuleConfig| Obs
-    Admin -->|@Import ObservabilityModuleConfig| Obs
-    Batch -->|@Import ObservabilityModuleConfig| Obs
-    Gateway -->|extends BaseMdcLoggingFilter| Obs
-    Infra -->|uses TaskDecorator abstraction| Runtime
-    Obs -->|TaskDecorator bean · properties · resources| Runtime
-    Apis -->|SecurityFilterChain에 gateway MDC/JWT filter 배치| Gateway
-    Admin -->|SecurityFilterChain에 gateway MDC/JWT filter 배치| Gateway
+    Apis -->|"Import ObservabilityModuleConfig"| Obs
+    Admin -->|"Import ObservabilityModuleConfig"| Obs
+    Batch -->|"Import ObservabilityModuleConfig"| Obs
+    Gateway -->|"extends BaseMdcLoggingFilter"| Obs
+    Infra -->|"uses TaskDecorator abstraction"| Runtime
+    Obs -->|"TaskDecorator bean / properties / resources"| Runtime
+    Apis -->|"SecurityFilterChain adds gateway MDC and JWT filters"| Gateway
+    Admin -->|"SecurityFilterChain adds gateway MDC and JWT filters"| Gateway
 ```
 
 ### 레이어별 책임
@@ -65,7 +65,7 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    Module[apis/admin/batch Application<br/>@Import ObservabilityModuleConfig]
+    Module["apis/admin/batch Application<br/>Import ObservabilityModuleConfig"]
     Entry[ObservabilityModuleConfig]
 
     subgraph LOGGING[logging]
@@ -79,12 +79,12 @@ flowchart TB
 
     subgraph METRICS[metrics]
         MetricsConfig[MetricsConfig]
-        ActuatorProperties[ActuatorProperties<br/>management.endpoints.web.base-path]
+        ActuatorProperties["ActuatorProperties<br/>management.endpoints.web.base-path"]
         MetricsConfig --> ActuatorProperties
     end
 
     subgraph TRACING[tracing]
-        TracingConfig[TracingConfig<br/>vendor/exporter 없음]
+        TracingConfig["TracingConfig<br/>vendor/exporter 없음"]
     end
 
     Module --> Entry
@@ -121,16 +121,30 @@ flowchart TB
 
 ### MDC key 계약
 
-`BaseMdcLoggingFilter`가 HTTP 요청마다 아래 값을 MDC에 기록합니다.
+HTTP 요청 로깅 MDC pipeline은 아래 값을 기록합니다.
 
 | key | source | fallback |
 | --- | --- | --- |
-| `traceId` | `X-Request-ID` request header | UUID 기반 32자리 trace id 생성 |
-| `userId` | `resolveUserId()` 결과 | `GUEST` |
-| `clientIp` | `X-Forwarded-For` 첫 번째 값 → `X-Real-IP` → `remoteAddr` | `remoteAddr` |
-| `requestInfo` | `METHOD URI` | 없음 |
+| `traceId` | `BaseMdcLoggingFilter`: `X-Request-ID` request header | UUID 기반 32자리 trace id 생성 |
+| `userId` | `BaseMdcLoggingFilter`: `resolveUserId()` 결과 | `GUEST` |
+| `clientIp` | `BaseMdcLoggingFilter`: `X-Forwarded-For` 첫 번째 값 → `X-Real-IP` → `remoteAddr` | `remoteAddr` |
+| `requestInfo` | `BaseMdcLoggingFilter`: `METHOD URI` | 없음 |
+| `routePattern` | `RoutePatternMdcInterceptor`: `HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE` | `NO_ROUTE` |
 
 필터는 response에도 `X-Request-ID`를 기록하고, request 종료 시 `MDC.clear()`를 실행합니다.
+`routePattern`은 handler mapping 이후 `RoutePatternMdcInterceptor`가 채웁니다. 따라서 매칭된 Spring MVC 요청은
+`GET /api/performances/detail/{performanceId}`처럼 안정적인 route key로 집계할 수 있고, handler가 없는
+scanner/404 요청은 `NO_ROUTE` 또는 route 미기록이 정상입니다.
+
+### 운영 로그 책임 분리
+
+- Request completion logging은 nginx `access.log`가 소유합니다.
+- nginx access log는 `traceId`, `clientIp`, `request`, `status`, `bytes`, `referer`, `userAgent`, `xForwardedFor`,
+  `requestTime` 같은 HTTP 완료 사실을 기록합니다.
+- Application log는 request completion log를 중복으로 남기지 않고 business event/domain flow 메시지에 집중합니다.
+- Application log context는 MDC key-value(`traceId`, `userId`, `clientIp`, `request`, `route`)로 붙입니다.
+- nginx access log와 application log는 같은 `traceId`로 join합니다.
+- raw URI(`requestInfo`)는 디버깅용이고, route-level aggregation은 가능한 경우 `routePattern`을 사용합니다.
 
 ### Security-aware userId 흐름
 
@@ -175,9 +189,10 @@ JWT 인증 성공 시에는 `JwtAuthenticationFilter`가 MDC `userId`를 인증 
 `observability/src/main/resources/log4j2-spring.xml`은 MDC fallback을 포함합니다.
 
 ```text
-[%equals{%X{traceId}}{}{NO_TRACE}] [%equals{%X{userId}}{}{GUEST}]
+[traceId=%equals{%X{traceId}}{}{NO_TRACE}] [userId=%equals{%X{userId}}{}{GUEST}]
 [clientIp=%equals{%X{clientIp}}{}{UNKNOWN}]
 [request=%equals{%X{requestInfo}}{}{NO_REQUEST}]
+[route=%equals{%X{routePattern}}{}{NO_ROUTE}]
 ```
 
 ---
@@ -193,13 +208,13 @@ executor 소유자인 `infra`의 `TaskExecutorConfig`는 context에 있는 `Task
 flowchart LR
     Request[request thread MDC]
     Decorator[MdcTaskDecorator]
-    Executor[infra TaskExecutorConfig<br/>ThreadPoolTaskExecutor]
+    Executor["infra TaskExecutorConfig<br/>ThreadPoolTaskExecutor"]
     Worker[worker thread]
 
-    Request -->|capture MDC map| Decorator
-    Decorator -->|set before run| Worker
-    Executor -->|setTaskDecorator| Decorator
-    Worker -->|finally previous MDC restore| Decorator
+    Request -->|"capture MDC map"| Decorator
+    Decorator -->|"set before run"| Worker
+    Executor -->|"setTaskDecorator"| Decorator
+    Worker -->|"finally previous MDC restore"| Decorator
 ```
 
 규칙:
@@ -357,6 +372,13 @@ apis/admin/batch -> ObservabilityModuleConfig import
 - `requestInfo = METHOD URI`
 - userId null/blank 시 `GUEST`
 - request 종료 후 MDC clear
+
+### `RoutePatternMdcInterceptorTest`
+
+- `routePattern = METHOD BEST_MATCHING_PATTERN_ATTRIBUTE`
+- Spring MVC best matching pattern을 MDC `routePattern`으로 기록
+- handler mapping pattern이 없으면 `NO_ROUTE`
+- handler completion 후 `routePattern`만 제거하고 trace/user/request MDC는 filter boundary에 맡김
 
 ### `MdcTaskDecoratorTest`
 

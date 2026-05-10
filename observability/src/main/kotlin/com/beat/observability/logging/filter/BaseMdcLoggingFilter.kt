@@ -18,8 +18,10 @@ abstract class BaseMdcLoggingFilter : OncePerRequestFilter() {
         const val USER_ID_KEY = "userId"
         const val CLIENT_IP_KEY = "clientIp"
         const val REQUEST_INFO_KEY = "requestInfo"
+        const val ROUTE_PATTERN_KEY = "routePattern"
 
         const val DEFAULT_GUEST_USER = "GUEST"
+        const val DEFAULT_ROUTE_PATTERN = "NO_ROUTE"
 
         private const val MAX_TRACE_ID_LENGTH = 128
         private val TRACE_ID_PATTERN = Regex("^[A-Za-z0-9._:-]+$")
