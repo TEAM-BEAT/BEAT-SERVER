@@ -5,9 +5,9 @@
 include {{ nginx_generated_include_dir }}/upstreams/*.conf;
 # END BEAT MANAGED GENERATED UPSTREAM INCLUDES
 
-log_format {{ nginx_access_log_format_name }} '$request_id $remote_addr - $remote_user [$time_local] "$request" '
-    '$status $body_bytes_sent "$http_referer" '
-    '"$http_user_agent" "$http_x_forwarded_for" "$request_time"';
+log_format {{ nginx_access_log_format_name }} 'traceId=$request_id clientIp=$remote_addr request="$request" '
+    'status=$status bytes=$body_bytes_sent referer="$http_referer" userAgent="$http_user_agent" '
+    'xForwardedFor="$http_x_forwarded_for" requestTime=$request_time';
 
 server {
     listen 80;

@@ -54,6 +54,25 @@ class RootRetirementContractTest {
 	}
 
 	@Test
+	void persistenceProfileKeepsProdSqlLoggingOffWhileDevSqlLoggingStaysExplicitOptIn() throws Exception {
+		String persistence = read("infra/src/main/resources/application-persistence.yml");
+		String baseSection = persistence.substring(0, persistence.indexOf("\n---"));
+		String prodSection = sectionAfter(persistence, "on-profile: prod");
+		String devSection = sectionAfter(persistence, "on-profile: dev");
+
+		assertTrue(devSection.contains("show-sql: true"));
+		assertTrue(baseSection.contains("format_sql: true"));
+		assertTrue(prodSection.contains("show-sql: false"));
+		assertTrue(prodSection.contains("format_sql: false"));
+		assertTrue(prodSection.contains("org.hibernate.SQL: WARN"));
+		assertTrue(prodSection.contains("org.hibernate.orm.jdbc.bind: WARN"));
+		assertFalse(prodSection.contains("org.hibernate.SQL: DEBUG"));
+		assertFalse(prodSection.contains("org.hibernate.SQL: TRACE"));
+		assertFalse(prodSection.contains("org.hibernate.orm.jdbc.bind: DEBUG"));
+		assertFalse(prodSection.contains("org.hibernate.orm.jdbc.bind: TRACE"));
+	}
+
+	@Test
 	void gradleBuildNoLongerVerifiesLegacyRootBootJarBaseline() throws Exception {
 		String buildFile = Files.readString(Path.of("build.gradle.kts"));
 
@@ -77,6 +96,32 @@ class RootRetirementContractTest {
 		assertTrue(executableBuildLogic.contains("tasks.withType<BootRun>().configureEach"));
 		assertTrue(executableBuildLogic.contains("workingDir = rootDir"));
 		assertTrue(Files.exists(Path.of("observability/src/main/resources/log4j2-spring.xml")));
+	}
+
+	@Test
+	void observabilityOwnsApplicationLogMdcKeyValueAndRoutePatternContract() throws Exception {
+		String log4j2 = read("observability/src/main/resources/log4j2-spring.xml");
+		String baseFilter = read("observability/src/main/kotlin/com/beat/observability/logging/filter/BaseMdcLoggingFilter.kt");
+		String routeInterceptor =
+			read("observability/src/main/kotlin/com/beat/observability/logging/interceptor/RoutePatternMdcInterceptor.kt");
+		String loggingConfig = read("observability/src/main/kotlin/com/beat/observability/logging/LoggingConfig.kt");
+		String observabilityReadme = read("observability/README.md");
+
+		assertTrue(log4j2.contains("[traceId=%equals{%X{traceId}}{}{NO_TRACE}]"));
+		assertTrue(log4j2.contains("[userId=%equals{%X{userId}}{}{GUEST}]"));
+		assertTrue(log4j2.contains("[clientIp=%equals{%X{clientIp}}{}{UNKNOWN}]"));
+		assertTrue(log4j2.contains("[request=%equals{%X{requestInfo}}{}{NO_REQUEST}]"));
+		assertTrue(log4j2.contains("[route=%equals{%X{routePattern}}{}{NO_ROUTE}]"));
+		assertFalse(log4j2.contains("[%equals{%X{traceId}}{}{NO_TRACE}]"));
+		assertTrue(baseFilter.contains("const val ROUTE_PATTERN_KEY = \"routePattern\""));
+		assertTrue(routeInterceptor.contains("HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE"));
+		assertTrue(routeInterceptor.contains("MDC.put(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY"));
+		assertTrue(routeInterceptor.contains("\"${request.method} $bestMatchingPattern\""));
+		assertTrue(routeInterceptor.contains("MDC.remove(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY)"));
+		assertTrue(loggingConfig.contains("registry.addInterceptor(routePatternMdcInterceptor)"));
+		assertTrue(observabilityReadme.contains("Request completion logging은 nginx `access.log`가 소유합니다"));
+		assertTrue(observabilityReadme.contains("Application log는 request completion log를 중복으로 남기지 않고"));
+		assertTrue(observabilityReadme.contains("route-level aggregation은 가능한 경우 `routePattern`을 사용합니다"));
 	}
 
 	@Test
@@ -456,6 +501,10 @@ class RootRetirementContractTest {
 		assertTrue(appContainerRuntimeEnv.contains("| string | lower"));
 		assertFalse(appStopStartRunContainer.contains("\"{{ module_cfg.spring_profile | upper }}_ACTUATOR_PORT\""));
 		assertFalse(appStopStartRunContainer.contains("SPRING_PROFILES_ACTIVE"));
+		assertFalse(appStopStartRunContainer.contains("\n    ports:"));
+		assertFalse(appStopStartRunContainer.contains("0.0.0.0:400"));
+		assertFalse(appBluegreenRunSwitch.contains("\n        ports:"));
+		assertFalse(appBluegreenRunSwitch.contains("0.0.0.0:400"));
 		assertTrue(foundationPlaybook.contains("role: foundation_stack"));
 		assertTrue(foundationPlaybook.contains("role: nginx_base_config"));
 		assertTrue(foundationStackTasks.contains("project_src: \"{{ deployment_dir }}\""));
@@ -477,11 +526,14 @@ class RootRetirementContractTest {
 		assertFalse(foundationStackTasks.contains("definition: \"{{ foundation_stack_compose_definition }}\""));
 		assertTrue(foundationComposeTemplate.contains("services:"));
 		assertTrue(foundationComposeTemplate.contains("container_name: \"{{ nginx_container_name }}\""));
+		assertTrue(foundationComposeTemplate.contains("- \"80:80\""));
+		assertTrue(foundationComposeTemplate.contains("- \"443:443\""));
 		assertTrue(foundationComposeTemplate.contains("{{ deployment_dir }}/nginx/conf.d:/etc/nginx/conf.d"));
 		assertTrue(foundationComposeTemplate.contains("{{ deployment_dir }}/nginx/generated:/etc/nginx/generated"));
 		assertFalse(foundationComposeTemplate.contains(":/etc/nginx\""));
 		assertFalse(foundationComposeTemplate.contains("nginx-config-volume"));
 		assertTrue(foundationComposeTemplate.contains("foundation_mysql_enabled"));
+		assertTrue(foundationComposeTemplate.contains("- \"127.0.0.1:3306:3306\""));
 		assertTrue(foundationComposeTemplate.contains("foundation_redis_enabled"));
 		assertFalse(defaultConfTemplate.contains("upstream {{ backend_upstream_name"));
 		assertFalse(defaultConfTemplate.contains("upstream {{ actuator_upstream_name"));
@@ -489,6 +541,22 @@ class RootRetirementContractTest {
 		assertFalse(defaultConfTemplate.contains("location /admin/"));
 		assertTrue(defaultConfTemplate.contains("BEAT MANAGED GENERATED UPSTREAM INCLUDES"));
 		assertTrue(defaultConfTemplate.contains("BEAT MANAGED GENERATED ROUTE INCLUDES"));
+		assertTrue(defaultConfTemplate.contains("traceId=$request_id"));
+		assertTrue(defaultConfTemplate.contains("clientIp=$remote_addr"));
+		assertTrue(defaultConfTemplate.contains("request=\"$request\""));
+		assertTrue(defaultConfTemplate.contains("status=$status"));
+		assertTrue(defaultConfTemplate.contains("bytes=$body_bytes_sent"));
+		assertTrue(defaultConfTemplate.contains("referer=\"$http_referer\""));
+		assertTrue(defaultConfTemplate.contains("userAgent=\"$http_user_agent\""));
+		assertTrue(defaultConfTemplate.contains("xForwardedFor=\"$http_x_forwarded_for\""));
+		assertTrue(defaultConfTemplate.contains("requestTime=$request_time"));
+		assertEquals(
+			2,
+			countOccurrences(defaultConfTemplate, "access_log /var/log/nginx/access.log {{ nginx_access_log_format_name }}"));
+		assertTrue(defaultConfTemplate.contains("proxy_set_header X-Request-ID $request_id"));
+		assertTrue(infraReadme.contains("HTTP request completion logging은 nginx `access.log`가 소유한다"));
+		assertTrue(infraReadme.contains("application log는 business/domain event 중심"));
+		assertTrue(infraReadme.contains("app container(`apis`, `admin`, `batch`) run task에는 `ports:`를 추가하지 않는다"));
 		assertTrue(nginxUpdateScript.contains("BEAT MANAGED GENERATED UPSTREAM INCLUDES"));
 		assertTrue(nginxUpdateScript.contains("BEAT MANAGED GENERATED ROUTE INCLUDES"));
 		assertTrue(nginxUpdateScript.contains("bootstrap-includes"));
@@ -898,6 +966,26 @@ class RootRetirementContractTest {
 
 	private static String read(String path) throws IOException {
 		return Files.readString(Path.of(path));
+	}
+
+	private static String sectionAfter(String content, String marker) {
+		int start = content.indexOf(marker);
+		assertTrue(start >= 0, marker);
+		int nextDocument = content.indexOf("\n---", start + marker.length());
+		if (nextDocument < 0) {
+			return content.substring(start);
+		}
+		return content.substring(start, nextDocument);
+	}
+
+	private static int countOccurrences(String content, String needle) {
+		int count = 0;
+		int index = 0;
+		while ((index = content.indexOf(needle, index)) >= 0) {
+			count++;
+			index += needle.length();
+		}
+		return count;
 	}
 
 	private static String run(String... command) throws Exception {
