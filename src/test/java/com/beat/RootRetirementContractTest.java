@@ -145,8 +145,8 @@ class RootRetirementContractTest {
 		assertFalse(defaultConfTemplate.contains("limit_req "));
 		assertFalse(defaultConfTemplate.contains("limit_req_zone"));
 
-		assertTrue(defaults.contains("nginx_scanner_block_enabled: true"));
-		assertTrue(defaults.contains("nginx_scanner_block_status: 404"));
+		assertTrue(defaults.contains("nginx_base_config_scanner_block_enabled: true"));
+		assertTrue(defaults.contains("nginx_base_config_scanner_block_status: 404"));
 		assertTrue(defaults.contains("- /.env"));
 		assertTrue(defaults.contains("- /.git/config"));
 		assertTrue(defaults.contains("- /wp-login.php"));
@@ -159,16 +159,16 @@ class RootRetirementContractTest {
 		assertTrue(defaults.contains("- /wp-content/"));
 		assertTrue(defaults.contains("- /wp-includes/"));
 		assertTrue(defaults.contains("- /laravel/"));
-		assertTrue(defaults.contains("nginx_scanner_rate_limit_enabled: false"));
-		assertTrue(defaults.contains("nginx_scanner_rate_limit_dry_run: true"));
-		assertTrue(defaults.contains("nginx_scanner_rate_limit_status: 429"));
+		assertTrue(defaults.contains("nginx_base_config_scanner_rate_limit_enabled: false"));
+		assertTrue(defaults.contains("nginx_base_config_scanner_rate_limit_dry_run: true"));
+		assertTrue(defaults.contains("nginx_base_config_scanner_rate_limit_status: 429"));
 
 		assertTrue(tasks.contains("Validate nginx scanner block settings"));
-		assertTrue(tasks.contains("nginx_scanner_block_status | int in [404, 444]"));
-		assertTrue(tasks.contains("nginx_scanner_exact_paths is sequence"));
-		assertTrue(tasks.contains("nginx_scanner_exact_paths is not string"));
-		assertTrue(tasks.contains("nginx_scanner_prefix_paths is sequence"));
-		assertTrue(tasks.contains("nginx_scanner_prefix_paths is not string"));
+		assertTrue(tasks.contains("nginx_base_config_scanner_block_status | int in [404, 444]"));
+		assertTrue(tasks.contains("nginx_base_config_scanner_exact_paths is sequence"));
+		assertTrue(tasks.contains("nginx_base_config_scanner_exact_paths is not string"));
+		assertTrue(tasks.contains("nginx_base_config_scanner_prefix_paths is sequence"));
+		assertTrue(tasks.contains("nginx_base_config_scanner_prefix_paths is not string"));
 
 		assertTrue(infraReadme.contains("Scanner/bot nginx 차단 정책"));
 		assertTrue(infraReadme.contains("기본 응답은 `404`"));

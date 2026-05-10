@@ -1,8 +1,8 @@
 ---
-nginx_scanner_block_enabled: true
-nginx_scanner_block_status: 404
+nginx_base_config_scanner_block_enabled: true
+nginx_base_config_scanner_block_status: 404
 
-nginx_scanner_exact_paths:
+nginx_base_config_scanner_exact_paths:
   - /.env
   - /.env.backup
   - /.git
@@ -13,7 +13,7 @@ nginx_scanner_exact_paths:
   - /phpinfo.php
   - /info.php
 
-nginx_scanner_prefix_paths:
+nginx_base_config_scanner_prefix_paths:
   - /.git/
   - /wordpress/
   - /wp-admin/
@@ -23,6 +23,6 @@ nginx_scanner_prefix_paths:
 
 # Phase-1 contract: scanner rate limiting is intentionally not enforced.
 # Thresholds are decided only after nginx access-log distribution review.
-nginx_scanner_rate_limit_enabled: false
-nginx_scanner_rate_limit_dry_run: true
-nginx_scanner_rate_limit_status: 429
+nginx_base_config_scanner_rate_limit_enabled: false
+nginx_base_config_scanner_rate_limit_dry_run: true
+nginx_base_config_scanner_rate_limit_status: 429

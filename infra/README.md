@@ -779,7 +779,7 @@ ansible-playbook infra/ansible/playbooks/foundation.yml \
   --tags nginx \
   -e deploy_environment=prod \
   -e foundation_manage_nginx=true \
-  -e nginx_scanner_block_enabled=false
+  -e nginx_base_config_scanner_block_enabled=false
 
 docker exec nginx nginx -t
 ```
@@ -792,7 +792,7 @@ ansible-playbook infra/ansible/playbooks/foundation.yml \
   --tags nginx \
   -e deploy_environment=prod \
   -e foundation_manage_nginx=true \
-  -e nginx_scanner_block_enabled=true
+  -e nginx_base_config_scanner_block_enabled=true
 ```
 
 ### Nginx fragment mapping contract

@@ -6,20 +6,20 @@ include {{ nginx_generated_include_dir }}/upstreams/*.conf;
 # END BEAT MANAGED GENERATED UPSTREAM INCLUDES
 
 {% macro render_scanner_policy() -%}
-{% if nginx_scanner_block_enabled | default(true) | bool %}
+{% if nginx_base_config_scanner_block_enabled | default(true) | bool %}
     # BEAT scanner/bot terminal policy. Keep exact/^~ locations before generated routes.
-{% for path in nginx_scanner_exact_paths | default([]) %}
+{% for path in nginx_base_config_scanner_exact_paths | default([]) %}
     location = {{ path }} {
-        return {{ nginx_scanner_block_status | default(404) }};
+        return {{ nginx_base_config_scanner_block_status | default(404) }};
     }
 {% endfor %}
-{% for prefix in nginx_scanner_prefix_paths | default([]) %}
+{% for prefix in nginx_base_config_scanner_prefix_paths | default([]) %}
     location ^~ {{ prefix }} {
-        return {{ nginx_scanner_block_status | default(404) }};
+        return {{ nginx_base_config_scanner_block_status | default(404) }};
     }
 {% endfor %}
     location ~ ^/\.env(?:\.[A-Za-z0-9_-]{1,32})?$ {
-        return {{ nginx_scanner_block_status | default(404) }};
+        return {{ nginx_base_config_scanner_block_status | default(404) }};
     }
 {% endif %}
 {%- endmacro %}
