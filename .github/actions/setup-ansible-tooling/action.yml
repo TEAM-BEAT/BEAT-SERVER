@@ -15,7 +15,9 @@ runs:
         AGE_VERSION=v1.3.1
         AGE_TARBALL="age-${AGE_VERSION}-linux-amd64.tar.gz"
         AGE_SHA256="bdc69c09cbdd6cf8b1f333d372a1f58247b3a33146406333e30c0f26e8f51377"
-        curl -fsSLO "https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/${AGE_TARBALL}"
+        curl --fail --silent --show-error --location --remote-name \
+          --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 \
+          "https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/${AGE_TARBALL}"
         printf '%s  %s\n' "$AGE_SHA256" "$AGE_TARBALL" | sha256sum -c -
         tar -xzf "$AGE_TARBALL"
         sudo install -m 0755 age/age /usr/local/bin/age
@@ -26,10 +28,16 @@ runs:
       shell: bash
       run: |
         SOPS_VERSION=v3.12.2
-        curl -fsSLO "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64"
-        curl -fsSLO "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.checksums.txt"
-        curl -fsSLO "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.checksums.pem"
-        curl -fsSLO "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.checksums.sig"
+        download_sops_asset() {
+          local asset="$1"
+          curl --fail --silent --show-error --location --remote-name \
+            --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 \
+            "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/${asset}"
+        }
+        download_sops_asset "sops-${SOPS_VERSION}.linux.amd64"
+        download_sops_asset "sops-${SOPS_VERSION}.checksums.txt"
+        download_sops_asset "sops-${SOPS_VERSION}.checksums.pem"
+        download_sops_asset "sops-${SOPS_VERSION}.checksums.sig"
         cosign verify-blob "sops-${SOPS_VERSION}.checksums.txt" \
           --certificate "sops-${SOPS_VERSION}.checksums.pem" \
           --signature "sops-${SOPS_VERSION}.checksums.sig" \
