@@ -16,5 +16,8 @@ class Log4j2PatternContractTest {
         assertTrue(log4j2.contains("[clientIp=%equals{%X{clientIp}}{}{UNKNOWN}]"))
         assertTrue(log4j2.contains("[request=%equals{%X{requestInfo}}{}{NO_REQUEST}]"))
         assertTrue(log4j2.contains("[route=%equals{%X{routePattern}}{}{NO_ROUTE}]"))
+        assertTrue(log4j2.contains("<Sentry name=\"SentryAppender\""))
+        assertTrue(log4j2.contains("minimumEventLevel=\"ERROR\""))
+        assertTrue(log4j2.contains("<AppenderRef ref=\"SentryAppender\"/>"))
     }
 }

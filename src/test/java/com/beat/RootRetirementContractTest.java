@@ -183,6 +183,88 @@ class RootRetirementContractTest {
 	}
 
 	@Test
+	void observabilityOwnsSentryFullObservabilityContract() throws Exception {
+		String versionCatalog = read("gradle/libs.versions.toml");
+		String rootBuild = read("build.gradle.kts");
+		String observabilityBuild = read("observability/build.gradle.kts");
+		String observabilityConfig = read("observability/src/main/kotlin/com/beat/observability/ObservabilityModuleConfig.kt");
+		String sentryConfig = read("observability/src/main/kotlin/com/beat/observability/sentry/SentryConfig.kt");
+		String sentryProcessor = read("observability/src/main/kotlin/com/beat/observability/sentry/BeatSentryEventProcessor.kt");
+		String sentryMetrics = read("observability/src/main/kotlin/com/beat/observability/sentry/BeatSentryMetrics.kt");
+		String sentrySensitivePolicy = read(
+				"observability/src/main/kotlin/com/beat/observability/sentry/SentrySensitiveDataPolicy.kt");
+		String observabilityYaml = read("observability/src/main/resources/application-observability.yml");
+		String log4j2 = read("observability/src/main/resources/log4j2-spring.xml");
+		String appContainerEnv = read("infra/ansible/roles/app_container_runtime/tasks/env.yml");
+		String ciPr = read(".github/workflows/ci-pr.yml");
+		String deployDev = read(".github/workflows/deploy-dev.yml");
+		String deployProd = read(".github/workflows/deploy-prod.yml");
+		String observabilityReadme = read("observability/README.md");
+		String infraReadme = read("infra/README.md");
+
+		assertTrue(versionCatalog.contains("sentry = \"8.41.0\""));
+		assertTrue(versionCatalog.contains("sentry-gradle-plugin = \"6.6.0\""));
+		assertTrue(versionCatalog.contains("io.sentry:sentry-spring-boot-4-starter"));
+		assertTrue(versionCatalog.contains("io.sentry:sentry-async-profiler"));
+		assertTrue(versionCatalog.contains("io.sentry:sentry-log4j2"));
+		assertTrue(versionCatalog.contains("io.sentry.jvm.gradle"));
+		assertTrue(rootBuild.contains("includeSourceContext.set(true)"));
+		assertTrue(rootBuild.contains("autoUploadSourceContext.set("));
+		assertTrue(rootBuild.contains("org.set(\"beat-jo\")"));
+		assertTrue(rootBuild.contains("projectName.set(\"java-spring-boot\")"));
+		assertTrue(rootBuild.contains("authToken.set(providers.environmentVariable(\"SENTRY_AUTH_TOKEN\")"));
+		assertTrue(rootBuild.contains("autoInstallation {"));
+		assertTrue(rootBuild.contains("enabled.set(false)"));
+		assertTrue(rootBuild.contains("resolutionStrategy.force(\"io.sentry:sentry:$sentrySdkVersion\")"));
+		assertTrue(observabilityBuild.contains("libs.sentry.spring.boot.starter"));
+		assertTrue(observabilityBuild.contains("libs.sentry.async.profiler"));
+		assertTrue(observabilityBuild.contains("libs.sentry.log4j2"));
+
+		assertTrue(observabilityConfig.contains("SentryConfig::class"));
+		assertTrue(sentryConfig.contains("options.isEnabled = false"));
+		assertTrue(sentryConfig.contains("options.addEventProcessor(beatSentryEventProcessor)"));
+		assertTrue(sentrySensitivePolicy.contains("authorization"));
+		assertTrue(sentryProcessor.contains("BaseMdcLoggingFilter.TRACE_ID_KEY"));
+		assertTrue(sentryProcessor.contains("BaseMdcLoggingFilter.ROUTE_PATTERN_KEY"));
+		assertTrue(sentrySensitivePolicy.contains("cookie"));
+		assertTrue(sentrySensitivePolicy.contains("SENTRY_AUTH_TOKEN")
+				|| sentrySensitivePolicy.contains("sentry[-_]?auth[-_]?token"));
+		assertTrue(sentryMetrics.contains("class BeatSentryMetrics"));
+		assertTrue(sentryMetrics.contains("Sentry.metrics()"));
+		assertTrue(sentryMetrics.contains("SentrySensitiveDataPolicy.isForbiddenMetricTag"));
+		assertTrue(sentrySensitivePolicy.contains("forbiddenExactMetricTagKeys"));
+		assertTrue(sentrySensitivePolicy.contains("forbiddenMetricTagFragments"));
+
+		assertTrue(observabilityYaml.contains("dsn: ${SENTRY_DSN:}"));
+		assertTrue(observabilityYaml.contains("sample-rate: 1.0"));
+		assertTrue(observabilityYaml.contains("send-default-pii: true"));
+		assertTrue(observabilityYaml.contains("enabled: true"));
+		assertTrue(observabilityYaml.contains("traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:1.0}"));
+		assertTrue(observabilityYaml.contains("profile-session-sample-rate: ${SENTRY_PROFILE_SESSION_SAMPLE_RATE:1.0}"));
+		assertTrue(observabilityYaml.contains("profile-lifecycle: TRACE"));
+		assertFalse(observabilityYaml.contains("DEV_SENTRY_DSN"));
+		assertFalse(observabilityYaml.contains("PROD_SENTRY_DSN"));
+		assertTrue(observabilityYaml.contains("PROD_SENTRY_TRACES_SAMPLE_RATE:1.0"));
+		assertTrue(observabilityYaml.contains("PROD_SENTRY_PROFILE_SESSION_SAMPLE_RATE:1.0"));
+		assertFalse(observabilityYaml.contains("enable-tracing"));
+		assertTrue(log4j2.contains("<Sentry name=\"SentryAppender\""));
+		assertTrue(log4j2.contains("<AppenderRef ref=\"SentryAppender\"/>"));
+
+		assertTrue(appContainerEnv.contains("'SENTRY_RELEASE': 'beat-server@' ~ (commit_sha | default(image_tag | default('unknown')))"));
+		assertTrue(ciPr.contains("SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}"));
+		assertTrue(ciPr.contains("SENTRY_RELEASE: beat-server@${{ github.sha }}"));
+		assertTrue(deployDev.contains("SENTRY_RELEASE: beat-server@${{ github.sha }}"));
+		assertTrue(deployProd.contains("SENTRY_RELEASE: beat-server@${{ needs.resolve-release.outputs.commit_sha }}"));
+		assertFalse(appContainerEnv.contains("SENTRY_AUTH_TOKEN"));
+		assertTrue(observabilityReadme.contains("Sentry는 `observability` 모듈이 소유"));
+		assertTrue(observabilityReadme.contains("app request completion log는 추가하지 않습니다"));
+		assertTrue(infraReadme.contains("SENTRY_DSN=https://public@example.ingest.sentry.io/project-id"));
+		assertFalse(infraReadme.contains("DEV_SENTRY_DSN="));
+		assertFalse(infraReadme.contains("PROD_SENTRY_DSN="));
+		assertTrue(infraReadme.contains("SENTRY_AUTH_TOKEN=<Sentry organization token"));
+	}
+
+	@Test
 	void batchRemainsTheSchedulerOwnerLaneAfterRootRetirement() throws Exception {
 		Path schedulerService = Path.of(
 			"batch/src/main/java/com/beat/batch/scheduler/application/JobSchedulerService.java");
