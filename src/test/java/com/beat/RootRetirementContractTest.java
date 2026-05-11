@@ -196,6 +196,9 @@ class RootRetirementContractTest {
 		String observabilityYaml = read("observability/src/main/resources/application-observability.yml");
 		String log4j2 = read("observability/src/main/resources/log4j2-spring.xml");
 		String appContainerEnv = read("infra/ansible/roles/app_container_runtime/tasks/env.yml");
+		String appRollback = read("infra/ansible/roles/app_rollback/tasks/main.yml");
+		String appBluegreen = read("infra/ansible/roles/app_bluegreen/tasks/run_switch.yml");
+		String appStopstart = read("infra/ansible/roles/app_stopstart/tasks/run_container.yml");
 		String ciPr = read(".github/workflows/ci-pr.yml");
 		String deployDev = read(".github/workflows/deploy-dev.yml");
 		String deployProd = read(".github/workflows/deploy-prod.yml");
@@ -250,7 +253,13 @@ class RootRetirementContractTest {
 		assertTrue(log4j2.contains("<Sentry name=\"SentryAppender\""));
 		assertTrue(log4j2.contains("<AppenderRef ref=\"SentryAppender\"/>"));
 
-		assertTrue(appContainerEnv.contains("'SENTRY_RELEASE': 'beat-server@' ~ (commit_sha | default(image_tag | default('unknown')))"));
+		assertTrue(appContainerEnv.contains("'SENTRY_RELEASE': 'beat-server@' ~ ("));
+		assertTrue(appContainerEnv.contains("app_container_runtime_release_ref"));
+		assertTrue(appContainerEnv.contains("default(commit_sha | default(image_tag | default('unknown', true), true), true)"));
+		assertTrue(appRollback.contains("app_rollback_previous_release.commit_sha"));
+		assertTrue(appRollback.contains("app_rollback_previous_release.image_tag"));
+		assertTrue(appBluegreen.contains("app_container_runtime_release_ref: \"{{ app_bluegreen_release_ref | default('', true) }}\""));
+		assertTrue(appStopstart.contains("app_container_runtime_release_ref: \"{{ app_stopstart_release_ref | default('', true) }}\""));
 		assertTrue(ciPr.contains("SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}"));
 		assertTrue(ciPr.contains("SENTRY_RELEASE: beat-server@${{ github.sha }}"));
 		assertTrue(deployDev.contains("SENTRY_RELEASE: beat-server@${{ github.sha }}"));
