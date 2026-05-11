@@ -19,6 +19,8 @@ aws-sdk-v1 = "1.12.797"
 querydsl = "5.0.0"
 testcontainers = "1.21.3"
 redis-testcontainers = "2.2.2"
+sentry = "8.41.0"
+sentry-gradle-plugin = "6.6.0"
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
@@ -28,6 +30,7 @@ kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotl
 kotlin-jpa = { id = "org.jetbrains.kotlin.plugin.jpa", version.ref = "kotlin" }
 sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+sentry-jvm = { id = "io.sentry.jvm.gradle", version.ref = "sentry-gradle-plugin" }
 
 [libraries]
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
@@ -38,6 +41,9 @@ kotlinx-coroutines-slf4j = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-
 lombok = { module = "org.projectlombok:lombok", version = "1.18.44" }
 spring-security-test = { module = "org.springframework.security:spring-security-test" }
 spring-security-core = { module = "org.springframework.security:spring-security-core", version = "7.0.5" }
+sentry-spring-boot-starter = { module = "io.sentry:sentry-spring-boot-4-starter", version.ref = "sentry" }
+sentry-async-profiler = { module = "io.sentry:sentry-async-profiler", version.ref = "sentry" }
+sentry-log4j2 = { module = "io.sentry:sentry-log4j2", version.ref = "sentry" }
 
 slf4j-api = { module = "org.slf4j:slf4j-api", version = "2.0.17" }
 mysql-connector-j = { module = "com.mysql:mysql-connector-j", version = "9.6.0" }

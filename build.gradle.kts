@@ -1,3 +1,5 @@
+import io.sentry.android.gradle.extensions.SentryPluginExtension
+import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.compile.JavaCompile
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -13,6 +15,7 @@ plugins {
 
     alias(libs.plugins.sonarqube)
     alias(libs.plugins.kover)
+    alias(libs.plugins.sentry.jvm) apply false
     id("beat.test")
 }
 
@@ -20,6 +23,8 @@ group = "com"
 version = "0.0.1-SNAPSHOT"
 
 val queryDslSrcDir = layout.buildDirectory.dir("generated/querydsl")
+val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
+val sentrySdkVersion = libsCatalog.findVersion("sentry").get().requiredVersion
 
 java {
     toolchain {
@@ -181,4 +186,32 @@ tasks.clean {
 subprojects {
     group = rootProject.group
     version = rootProject.version
+
+    configurations.configureEach {
+        resolutionStrategy.force("io.sentry:sentry:$sentrySdkVersion")
+        resolutionStrategy.eachDependency {
+            if (requested.group == "io.sentry") {
+                useVersion(sentrySdkVersion)
+                because("Keep Sentry SDK artifacts aligned with the Boot 4 observability contract")
+            }
+        }
+    }
+
+    pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
+        pluginManager.apply("io.sentry.jvm.gradle")
+        extensions.configure<SentryPluginExtension>("sentry") {
+            includeSourceContext.set(true)
+            autoUploadSourceContext.set(
+                providers.environmentVariable("SENTRY_AUTH_TOKEN").map { it.isNotBlank() }.orElse(false),
+            )
+            org.set("beat-jo")
+            projectName.set("java-spring-boot")
+            authToken.set(providers.environmentVariable("SENTRY_AUTH_TOKEN").orElse(""))
+            autoInstallation {
+                enabled.set(false)
+                sentryVersion.set(sentrySdkVersion)
+            }
+            telemetry.set(false)
+        }
+    }
 }

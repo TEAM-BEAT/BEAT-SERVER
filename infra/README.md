@@ -1289,3 +1289,41 @@ flowchart TB
 - `deployment/nginx/default.conf` 와 `deployment/nginx/generated-source/**` 는 후보(source) 설정이다.
 - `deployment/nginx/conf.d/**` 와 `deployment/nginx/generated/**` 는 nginx 컨테이너에 bind mount되는 실제 적용(target) 설정이다.
 - Nginx 관련 role은 실패 시 target만이 아니라 source도 함께 복원해야 한다.
+
+---
+
+## Sentry runtime secret contract
+
+Sentry DSN/auth token은 평문으로 commit하지 않습니다. 공통 runtime DSN과 sampling kill-switch는 SOPS inventory의 `app_secret_content`에 넣고, Source Context upload token은 GitHub Actions secret으로만 넣습니다.
+
+### GitHub Actions secret
+
+```text
+SENTRY_AUTH_TOKEN=<Sentry organization token with source-context upload permission>
+```
+
+이 값은 Gradle Source Context upload에만 사용합니다. app container runtime env/properties에 넣지 않습니다.
+
+### dev `app_secret_content` 예시
+
+```properties
+# Sentry (dummy placeholders; real DSN is SOPS-only)
+SENTRY_DSN=https://public@example.ingest.sentry.io/project-id
+DEV_SENTRY_TRACES_SAMPLE_RATE=1.0
+DEV_SENTRY_PROFILE_SESSION_SAMPLE_RATE=1.0
+DEV_SENTRY_METRICS_ENABLED=true
+```
+
+### prod `app_secret_content` 예시
+
+```properties
+# Sentry (dummy placeholders; real DSN is SOPS-only)
+SENTRY_DSN=https://public@example.ingest.sentry.io/project-id
+PROD_SENTRY_TRACES_SAMPLE_RATE=1.0
+PROD_SENTRY_PROFILE_SESSION_SAMPLE_RATE=1.0
+PROD_SENTRY_METRICS_ENABLED=true
+```
+
+`SENTRY_RELEASE`는 deploy workflow가 Ansible extra var `commit_sha`를 넘기고, `app_container_runtime`이 `beat-server@<git-sha>`로 container env에 주입합니다. Source Context upload release와 runtime release를 맞추기 위한 값이며 secret이 아닙니다.
+
+운영 장애 시 trace/profile volume kill-switch는 DSN을 제거하지 말고 `PROD_SENTRY_TRACES_SAMPLE_RATE`, `PROD_SENTRY_PROFILE_SESSION_SAMPLE_RATE`부터 낮춥니다. Error event sample-rate는 계속 `1.0`을 유지합니다.

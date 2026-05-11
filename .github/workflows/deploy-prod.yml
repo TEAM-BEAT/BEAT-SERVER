@@ -61,6 +61,9 @@ jobs:
           cache-cleanup: on-success
 
       - name: Verify baseline
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_RELEASE: beat-server@${{ needs.resolve-release.outputs.commit_sha }}
         run: |
           chmod +x gradlew
           ./gradlew \

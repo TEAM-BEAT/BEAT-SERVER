@@ -61,16 +61,7 @@ replace_jdbc_mysql_host() {
       ;;
   esac
 
-  port=""
-  case "$authority" in
-    \[*\]*)
-      after_bracket=${authority#*]}
-      case "$after_bracket" in
-        :*) port="$after_bracket" ;;
-      esac
-      ;;
-    *:*) port=:${authority##*:} ;;
-  esac
+  port=":13306"
 
   printf '%s%s%s%s\n' "$prefix" "$replacement_host" "$port" "$path"
 }

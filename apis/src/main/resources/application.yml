@@ -63,6 +63,12 @@ spring:
       on-profile: prod
     import: optional:file:secret/application-prod-secret.properties
 
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+
 cors:
   allowed-origins: ${PROD_ALLOWED_ORIGINS}
 
