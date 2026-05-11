@@ -140,7 +140,8 @@ class RootRetirementContractTest {
 		assertBefore(httpsServer, "{{ render_scanner_policy() }}", "BEAT MANAGED GENERATED ROUTE INCLUDES");
 		assertTrue(defaultConfTemplate.contains("location = {{ path }}"));
 		assertTrue(defaultConfTemplate.contains("location ^~ {{ prefix }}"));
-		assertTrue(defaultConfTemplate.contains("location ~ ^/\\.env(?:\\.[A-Za-z0-9_-]{1,32})?$"));
+		assertTrue(defaultConfTemplate.contains("location ~ \"^/\\.env(?:\\.[A-Za-z0-9_-]{1,32})?$\""));
+		assertFalse(defaultConfTemplate.contains("location ~ ^/\\.env"));
 		assertFalse(defaultConfTemplate.contains(".*\\.php"));
 		assertFalse(defaultConfTemplate.contains("limit_req "));
 		assertFalse(defaultConfTemplate.contains("limit_req_zone"));
