@@ -448,3 +448,73 @@ rg -n "@Aspect|org\\.aspectj|ControllerLoggingAspect|ServiceLoggingAspect|TxAspe
 rg -n "ConfigurationPropertiesScan" apis admin batch infra gateway observability \
   --glob '!**/build/**' --glob '!**/out/**'
 ```
+
+---
+
+## 9. Sentry full observability 계약
+
+Sentry는 `observability` 모듈이 소유하는 vendor observability bootstrap입니다. 실행 모듈(`apis`, `admin`, `batch`)은 계속 `ObservabilityModuleConfig`만 import하고, Sentry 세부 설정을 직접 import하지 않습니다.
+
+### 책임 분리
+
+- nginx `access.log`는 HTTP completion source-of-truth입니다. `status`, `requestTime`, `request`, `clientIp`, `userAgent` 분석은 nginx access log에서 봅니다.
+- Application log는 business/domain event와 MDC context(`traceId`, `userId`, `clientIp`, `requestInfo`, `routePattern`)를 남깁니다.
+- Sentry는 error event, Sentry Logs, trace/profile context, 제한된 application metrics를 담당합니다.
+- Sentry 도입으로도 app request completion log는 추가하지 않습니다.
+- OpenTelemetry/javaagent/collector는 이번 계약 범위가 아닙니다.
+
+### Runtime 기능
+
+`application-observability.yml`의 기본 계약은 다음과 같습니다.
+
+- DSN이 비어 있으면 `SentryConfig`가 SDK를 disabled 처리합니다.
+- Error event sample rate는 `sample-rate: 1.0`입니다.
+- prod/dev trace sample rate 기본값은 `1.0`입니다.
+- prod/dev profile session sample rate 기본값은 `1.0`입니다.
+- profiling lifecycle은 `TRACE`입니다.
+- `sentry.logs.enabled=true`로 Sentry Logs를 활성화합니다.
+- `sentry.metrics.enabled=true`로 Sentry metrics API를 활성화하되, domain/application code는 `BeatSentryMetrics` wrapper만 사용합니다.
+
+prod의 `1.0 / 1.0`은 trace/profile context를 최대한 보존하기 위한 운영 결정입니다. 문제가 생기면 secret property의 `PROD_SENTRY_TRACES_SAMPLE_RATE`, `PROD_SENTRY_PROFILE_SESSION_SAMPLE_RATE`를 낮춰 즉시 kill-switch로 사용합니다.
+
+### PII / secret scrubbing
+
+`send-default-pii=true`는 user/IP/request debugging을 위해 허용합니다. 대신 `BeatSentryEventProcessor`가 아래 credential류를 event/transaction/log에서 redaction합니다.
+
+- `Authorization`, `Cookie`, `Set-Cookie`, `X-Api-Key`
+- `accessToken`, `refreshToken`, `password`, `secret`, `token`, `jwt`
+- DB URL, AWS/S3 secret 계열, `SENTRY_AUTH_TOKEN`
+
+유지해야 하는 correlation key는 `traceId`, `userId`, `clientIp`, `requestInfo`, `routePattern`, `module`, `environment`, `serverName`, `release`입니다.
+
+### Metrics 사용 규칙
+
+`Sentry.metrics()` 직접 호출을 도메인 코드에 흩뿌리지 않습니다. `BeatSentryMetrics` wrapper를 통해 name/tag/cardinality를 통제합니다.
+
+허용 예시:
+
+- `booking.created.count`
+- `booking.cancelled.count`
+- `booking.amount.distribution`
+- `batch.ticket-cleanup.deleted.count`
+- `batch.promotion-maintenance.expired.count`
+
+금지 tag 예시: `userId`, `clientIp`, raw URI, URL, token/secret/password 계열. Prometheus/Actuator는 system metrics source-of-truth로 유지합니다.
+
+### Source Context / release alignment
+
+Source Context는 Sentry JVM Gradle Plugin이 처리합니다.
+
+- CI secret: `SENTRY_AUTH_TOKEN`
+- runtime env: `SENTRY_RELEASE=beat-server@<git-sha>`
+- Gradle source bundle upload release와 runtime `sentry.release`는 같은 `beat-server@<git-sha>` 형식을 사용합니다.
+- `SENTRY_AUTH_TOKEN`은 CI에서만 쓰며 app container runtime env/properties에 넣지 않습니다.
+- DSN/auth token은 repo, issue, PR body에 평문으로 남기지 않습니다.
+
+### Dev smoke checklist
+
+1. `SENTRY_DSN`을 SOPS secret의 `app_secret_content`에 추가합니다. dev/prod 구분은 `sentry.environment` 값으로 처리합니다.
+2. dev 배포 후 intentional exception을 한 번 발생시켜 issue 생성을 확인합니다.
+3. source context, tag(`module`, `environment`, `traceId`, `routePattern`), scrubbed headers를 확인합니다.
+4. Sentry Logs, transaction, profile, metrics test signal을 각각 확인합니다.
+5. nginx `access.log`의 `traceId`와 Sentry event trace id join 가능 여부를 확인합니다.
