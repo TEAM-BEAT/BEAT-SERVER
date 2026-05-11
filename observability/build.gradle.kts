@@ -9,6 +9,9 @@ dependencies {
     compileOnly(libs.spring.boot.starter.web)
     compileOnly(libs.slf4j.api)
     implementation(libs.kotlinx.coroutines.slf4j)
+    implementation(libs.sentry.spring.boot.starter)
+    implementation(libs.sentry.async.profiler)
+    implementation(libs.sentry.log4j2)
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
 
