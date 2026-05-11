@@ -68,6 +68,7 @@ class ApisApplicationTest {
     fun `apis swagger config keeps only general grouped docs ownership`() {
         val source = Files.readString(Path.of("src/main/java/com/beat/apis/swagger/config/SwaggerConfig.java"))
 
+        assertTrue(source.contains("@Profile(\"!prod\")"))
         assertTrue(source.contains(".group(\"general\")"))
         assertFalse(source.contains(".group(\"admin\")"))
         assertFalse(source.contains("pathsToMatch(\"/api/admin/**\")"))
@@ -174,6 +175,27 @@ class ApisApplicationTest {
         assertTrue(source.contains("@Qualifier(\"gatewaySecurityMdcLoggingFilter\") OncePerRequestFilter securityMdcLoggingFilter"))
         assertTrue(source.contains(".addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter.class)"))
         assertTrue(source.contains(".addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.getClass())"))
+        assertTrue(source.contains("private static final String[] SWAGGER_WHITELIST"))
+        assertTrue(source.contains("if (!environment.acceptsProfiles(Profiles.of(\"prod\")))"))
+        assertTrue(source.contains("Collections.addAll(whitelist, SWAGGER_WHITELIST)"))
         assertFalse(source.contains("import com.beat.gateway.security.internal.servlet.SecurityMdcLoggingFilter"))
+    }
+
+    @Test
+    fun `apis prod resources disable springdoc endpoints`() {
+        val config = Files.readString(Path.of("src/main/resources/application.yml"))
+        val prodSection = config.substringAfter("on-profile: prod")
+
+        assertTrue(
+            prodSection.contains(
+                """
+                springdoc:
+                  swagger-ui:
+                    enabled: false
+                  api-docs:
+                    enabled: false
+                """.trimIndent(),
+            ),
+        )
     }
 }

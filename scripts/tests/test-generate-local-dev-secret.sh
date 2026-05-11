@@ -70,7 +70,7 @@ run_generator() {
 
 DEFAULT_OUTPUT="$TMP_DIR/default.properties"
 run_generator "$DEFAULT_OUTPUT"
-assert_line "$DEFAULT_OUTPUT" 'DEV_DB_URL=jdbc:mysql://localhost:3306/exampleDb'
+assert_line "$DEFAULT_OUTPUT" 'DEV_DB_URL=jdbc:mysql://localhost:13306/exampleDb'
 assert_line "$DEFAULT_OUTPUT" 'DEV_REDIS_HOST=localhost'
 assert_line "$DEFAULT_OUTPUT" 'DEV_ACTUATOR_PORT=18080'
 assert_line "$DEFAULT_OUTPUT" 'DEV_ACTUATOR_PATH=/new-actuator'
