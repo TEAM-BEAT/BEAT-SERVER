@@ -167,8 +167,12 @@ class RootRetirementContractTest {
 		assertTrue(tasks.contains("nginx_base_config_scanner_block_status | int in [404, 444]"));
 		assertTrue(tasks.contains("nginx_base_config_scanner_exact_paths is sequence"));
 		assertTrue(tasks.contains("nginx_base_config_scanner_exact_paths is not string"));
+		assertTrue(tasks.contains("nginx_base_config_scanner_exact_paths | select('string')"));
+		assertTrue(tasks.contains("reject('match', '^/[A-Za-z0-9._/-]+$')"));
 		assertTrue(tasks.contains("nginx_base_config_scanner_prefix_paths is sequence"));
 		assertTrue(tasks.contains("nginx_base_config_scanner_prefix_paths is not string"));
+		assertTrue(tasks.contains("nginx_base_config_scanner_prefix_paths | select('string')"));
+		assertTrue(tasks.contains("reject('match', '^/[A-Za-z0-9._/-]+/$')"));
 
 		assertTrue(infraReadme.contains("Scanner/bot nginx 차단 정책"));
 		assertTrue(infraReadme.contains("기본 응답은 `404`"));
