@@ -26,6 +26,22 @@ logging:
     root: info
   config: classpath:log4j2-spring.xml
 
+
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:${spring.profiles.active:unknown}}
+  server-name: ${spring.application.name}
+  release: ${SENTRY_RELEASE:}
+  sample-rate: 1.0
+  send-default-pii: true
+  logs:
+    enabled: true
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:1.0}
+  profile-session-sample-rate: ${SENTRY_PROFILE_SESSION_SAMPLE_RATE:1.0}
+  profile-lifecycle: TRACE
+  metrics:
+    enabled: ${SENTRY_METRICS_ENABLED:true}
+
 ---
 spring:
   config:
@@ -38,6 +54,13 @@ management:
   endpoints:
     web:
       base-path: ${DEV_ACTUATOR_PATH}
+
+sentry:
+  environment: dev
+  traces-sample-rate: ${DEV_SENTRY_TRACES_SAMPLE_RATE:1.0}
+  profile-session-sample-rate: ${DEV_SENTRY_PROFILE_SESSION_SAMPLE_RATE:1.0}
+  metrics:
+    enabled: ${DEV_SENTRY_METRICS_ENABLED:true}
 
 ---
 spring:
@@ -52,6 +75,13 @@ management:
     web:
       base-path: ${PROD_ACTUATOR_PATH}
 
+sentry:
+  environment: prod
+  traces-sample-rate: ${PROD_SENTRY_TRACES_SAMPLE_RATE:1.0}
+  profile-session-sample-rate: ${PROD_SENTRY_PROFILE_SESSION_SAMPLE_RATE:1.0}
+  metrics:
+    enabled: ${PROD_SENTRY_METRICS_ENABLED:true}
+
 ---
 spring:
   config:
@@ -64,3 +94,12 @@ management:
   endpoints:
     web:
       base-path: /actuator-test
+
+sentry:
+  dsn: ""
+  traces-sample-rate: 0.0
+  profile-session-sample-rate: 0.0
+  logs:
+    enabled: false
+  metrics:
+    enabled: false
