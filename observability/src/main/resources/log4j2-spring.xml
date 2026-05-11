@@ -10,6 +10,7 @@
         <Console name="ConsoleAppender" target="SYSTEM_OUT">
             <PatternLayout pattern="${LOG_PATTERN}"/>
         </Console>
+        <Sentry name="SentryAppender" minimumBreadcrumbLevel="INFO" minimumEventLevel="ERROR" minimumLevel="INFO"/>
     </Appenders>
 
     <Loggers>
@@ -22,12 +23,14 @@
         <springProfile name="dev">
             <Root level="INFO">
                 <AppenderRef ref="ConsoleAppender"/>
+                <AppenderRef ref="SentryAppender"/>
             </Root>
         </springProfile>
 
         <springProfile name="prod">
             <Root level="INFO">
                 <AppenderRef ref="ConsoleAppender"/>
+                <AppenderRef ref="SentryAppender"/>
             </Root>
         </springProfile>
 
