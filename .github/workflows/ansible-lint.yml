@@ -34,4 +34,7 @@ jobs:
         env:
           ANSIBLE_VARS_ENABLED: host_group_vars
         run: |
-          ansible-lint playbooks/*.yml roles
+          for module in apis admin batch; do
+            echo "Running ansible-lint with module=${module}"
+            MODULE="${module}" ansible-lint playbooks/*.yml roles
+          done
