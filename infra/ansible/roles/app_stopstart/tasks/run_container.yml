@@ -10,6 +10,7 @@
   vars:
     app_container_runtime_module_cfg: "{{ app_stopstart_module_cfg }}"
     app_container_runtime_include_scheduler_owner: true
+    app_container_runtime_release_ref: "{{ app_stopstart_release_ref | default('', true) }}"
 
 - name: Ensure stop-start container is recreated with the target image
   community.docker.docker_container:

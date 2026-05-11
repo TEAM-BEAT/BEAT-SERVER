@@ -97,6 +97,7 @@
       vars:
         app_container_runtime_module_cfg: "{{ app_bluegreen_module_cfg }}"
         app_container_runtime_include_scheduler_owner: false
+        app_container_runtime_release_ref: "{{ app_bluegreen_release_ref | default('', true) }}"
 
     - name: Start target blue-green container via Docker module
       community.docker.docker_container:

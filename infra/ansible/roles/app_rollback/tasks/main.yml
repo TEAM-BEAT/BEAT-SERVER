@@ -52,6 +52,11 @@
   vars:
     app_bluegreen_image: "{{ app_rollback_previous_release.image }}"
     app_bluegreen_module_cfg: "{{ app_rollback_module_cfg }}"
+    app_bluegreen_release_ref: >-
+      {{
+        app_rollback_previous_release.commit_sha
+        | default(app_rollback_previous_release.image_tag | default('unknown', true), true)
+      }}
   when: app_rollback_module_cfg.deploy_mode == 'blue_green'
 
 - name: Roll back stop-start lanes via Docker module
@@ -61,4 +66,9 @@
   vars:
     app_stopstart_image: "{{ app_rollback_previous_release.image }}"
     app_stopstart_module_cfg: "{{ app_rollback_module_cfg }}"
+    app_stopstart_release_ref: >-
+      {{
+        app_rollback_previous_release.commit_sha
+        | default(app_rollback_previous_release.image_tag | default('unknown', true), true)
+      }}
   when: app_rollback_module_cfg.deploy_mode == 'stop_start'
