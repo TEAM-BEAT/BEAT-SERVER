@@ -14,6 +14,30 @@
     nginx_route_source_path: "{{ nginx_generated_source_dir }}/routes/{{ nginx_fragments.route.fragment_file }}"
     nginx_route_target_path: "{{ nginx_generated_target_dir }}/routes/{{ nginx_fragments.route.fragment_file }}"
 
+- name: Validate nginx scanner block settings
+  ansible.builtin.assert:
+    that:
+      - nginx_base_config_scanner_block_status | int in [404, 444]
+      - nginx_base_config_scanner_exact_paths is sequence
+      - nginx_base_config_scanner_exact_paths is not string
+      - >-
+        (nginx_base_config_scanner_exact_paths | select('string') | list | length)
+        == (nginx_base_config_scanner_exact_paths | length)
+      - >-
+        (nginx_base_config_scanner_exact_paths
+        | reject('match', '^/[A-Za-z0-9._/-]+$')
+        | list | length) == 0
+      - nginx_base_config_scanner_prefix_paths is sequence
+      - nginx_base_config_scanner_prefix_paths is not string
+      - >-
+        (nginx_base_config_scanner_prefix_paths | select('string') | list | length)
+        == (nginx_base_config_scanner_prefix_paths | length)
+      - >-
+        (nginx_base_config_scanner_prefix_paths
+        | reject('match', '^/[A-Za-z0-9._/-]+/$')
+        | list | length) == 0
+    fail_msg: "Invalid nginx scanner block settings"
+
 - name: Ensure nginx candidate directory exists
   ansible.builtin.file:
     path: "{{ deployment_dir }}/nginx"

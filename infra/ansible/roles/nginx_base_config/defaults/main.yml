@@ -1,0 +1,28 @@
+---
+nginx_base_config_scanner_block_enabled: true
+nginx_base_config_scanner_block_status: 404
+
+nginx_base_config_scanner_exact_paths:
+  - /.env
+  - /.env.backup
+  - /.git
+  - /.git/config
+  - /wp-login.php
+  - /xmlrpc.php
+  - /index.php
+  - /phpinfo.php
+  - /info.php
+
+nginx_base_config_scanner_prefix_paths:
+  - /.git/
+  - /wordpress/
+  - /wp-admin/
+  - /wp-content/
+  - /wp-includes/
+  - /laravel/
+
+# Phase-1 contract: scanner rate limiting is intentionally not enforced.
+# Thresholds are decided only after nginx access-log distribution review.
+nginx_base_config_scanner_rate_limit_enabled: false
+nginx_base_config_scanner_rate_limit_dry_run: true
+nginx_base_config_scanner_rate_limit_status: 429

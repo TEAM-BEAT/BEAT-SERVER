@@ -5,6 +5,25 @@
 include {{ nginx_generated_include_dir }}/upstreams/*.conf;
 # END BEAT MANAGED GENERATED UPSTREAM INCLUDES
 
+{% macro render_scanner_policy() -%}
+{% if nginx_base_config_scanner_block_enabled | default(true) | bool %}
+    # BEAT scanner/bot terminal policy. Keep exact/^~ locations before generated routes.
+{% for path in nginx_base_config_scanner_exact_paths | default([]) %}
+    location = {{ path }} {
+        return {{ nginx_base_config_scanner_block_status | default(404) }};
+    }
+{% endfor %}
+{% for prefix in nginx_base_config_scanner_prefix_paths | default([]) %}
+    location ^~ {{ prefix }} {
+        return {{ nginx_base_config_scanner_block_status | default(404) }};
+    }
+{% endfor %}
+    location ~ ^/\.env(?:\.[A-Za-z0-9_-]{1,32})?$ {
+        return {{ nginx_base_config_scanner_block_status | default(404) }};
+    }
+{% endif %}
+{%- endmacro %}
+
 log_format {{ nginx_access_log_format_name }} 'traceId=$request_id clientIp=$remote_addr request="$request" '
     'status=$status bytes=$body_bytes_sent referer="$http_referer" userAgent="$http_user_agent" '
     'xForwardedFor="$http_x_forwarded_for" requestTime=$request_time';
@@ -12,9 +31,11 @@ log_format {{ nginx_access_log_format_name }} 'traceId=$request_id clientIp=$rem
 server {
     listen 80;
     server_name {{ nginx_server_name }};
-    location /.well-known/acme-challenge/ {
+    location ^~ /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
+
+{{ render_scanner_policy() }}
 
     access_log /var/log/nginx/access.log {{ nginx_access_log_format_name }};
 
@@ -33,6 +54,8 @@ server {
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
     underscores_in_headers on;
+
+{{ render_scanner_policy() }}
 
     # BEGIN BEAT MANAGED GENERATED ROUTE INCLUDES
     include {{ nginx_generated_include_dir }}/routes/*.conf;

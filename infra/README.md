@@ -737,6 +737,64 @@ placeholder는 `app_bluegreen`(apis)이나 `app_stopstart/admin_nginx_route`(adm
 - 운영 확인은 `sudo ss -tulpen | grep -E ':80|:443|:4001|:4002|:4000'`와
   `docker ps --format 'table {{.Names}}\t{{.Ports}}'`로 수행한다.
 
+### Scanner/bot nginx 차단 정책
+
+BEAT는 PHP/WordPress/Laravel 기반 서비스가 아니므로 `/.env`, `/.git/config`, `/wp-admin/`,
+`/wp-content/`, `/wordpress/`, `/laravel/`, 명백한 PHP probing path는 nginx에서 먼저 종료한다.
+
+- scanner/bot 차단은 `nginx_base_config`가 소유하고, generated route fragment보다 앞에서 평가한다.
+- HTTP server에서는 `/.well-known/acme-challenge/`를 먼저 살린 뒤 scanner block을 적용하고, 그 다음 HTTPS redirect를 수행한다.
+- HTTPS server에서는 scanner block을 generated route include보다 먼저 둔다.
+- 기본 응답은 `404`다. `444`는 운영 access log와 smoke 검증 후에만 선택한다.
+- broad `*.php`/`.*\.php` regex는 사용하지 않는다. `/index.php`, `/phpinfo.php`, `/info.php` 같은 PHP probing은 exact match로만 차단한다.
+- root `.env` 계열만 narrow anchored regex로 보강한다. path 전체의 `.env`를 넓게 잡지 않는다.
+- scanner 결과 확인은 nginx `access.log`에서 수행한다. app request completion log를 추가하지 않는다.
+- rate limit은 1차 rollout에서 강제 적용하지 않는다. access log top-N과 정상 사용자 영향도를 확인한 뒤, 필요하면 scanner location에만 별도 threshold로 적용한다.
+
+운영 전/후 smoke:
+
+```bash
+docker exec nginx nginx -t
+
+curl -Ik https://<host>/.env
+curl -Ik https://<host>/.git/config
+curl -Ik https://<host>/wp-admin/index.php
+curl -Ik https://<host>/wordpress/.git/config
+curl -Ik https://<host>/laravel/.env
+
+curl -Ik https://<host>/api/main
+curl -Ik https://<host>/admin/
+curl -Ik https://<host>/robots.txt
+curl -Ik https://<host>/favicon.ico
+```
+
+기본 기대값은 scanner path `404`, 정상 route 비차단이다.
+
+응급 rollback은 scanner block만 disable하고 foundation/nginx role을 다시 적용한다.
+`nginx_base_config` transaction이 검증과 reload를 수행하므로, 아래 `nginx -t`는 적용 후 확인용이다.
+
+```bash
+ansible-playbook infra/ansible/playbooks/foundation.yml \
+  -i infra/ansible/inventories/prod/hosts.yml \
+  --tags nginx \
+  -e deploy_environment=prod \
+  -e foundation_manage_nginx=true \
+  -e nginx_base_config_scanner_block_enabled=false
+
+docker exec nginx nginx -t
+```
+
+재활성화:
+
+```bash
+ansible-playbook infra/ansible/playbooks/foundation.yml \
+  -i infra/ansible/inventories/prod/hosts.yml \
+  --tags nginx \
+  -e deploy_environment=prod \
+  -e foundation_manage_nginx=true \
+  -e nginx_base_config_scanner_block_enabled=true
+```
+
 ### Nginx fragment mapping contract
 
 `nginx_fragments` inventory 값은 upstream 이름과 generated fragment 파일명을 묶는 canonical mapping이다.
