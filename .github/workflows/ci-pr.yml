@@ -28,13 +28,10 @@ jobs:
         with:
           cache-cleanup: on-success
 
-      # Advisory phase: keep this soft until the current catalog is classified.
-      # Hard-gate sequence:
-      # 1) remove truly stale aliases,
-      # 2) keep intentional aliases in .github/dependency-policy/version-catalog-allowlist.txt with reasons,
-      # 3) remove continue-on-error so new unused aliases fail PR CI.
+      # Hard gate: the catalog has no intentional unused aliases today. If a temporary
+      # exception is ever needed, document it with a reason in the allowlist path
+      # printed by the checker and remove it when the migration closes.
       - name: Check unused version catalog aliases
-        continue-on-error: true
         run: python3 .github/scripts/check_unused_version_catalog_aliases.py
         shell: bash
 

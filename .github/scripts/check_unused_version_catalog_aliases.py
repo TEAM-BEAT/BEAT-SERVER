@@ -11,7 +11,7 @@ Ubuntu's system Python. It understands the common Gradle Kotlin DSL access forms
 Known intentional exceptions can be documented in
 .github/dependency-policy/version-catalog-allowlist.txt using lines like:
 
-    plugins.kotlin-jpa # Kept for modules that may opt into JPA conventions.
+    libraries.example-temporary-alias # Kept until migration issue #123 removes the final caller.
 """
 from __future__ import annotations
 

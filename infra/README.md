@@ -1318,14 +1318,14 @@ flowchart TB
 
 - `previous.json`이 없으면 롤백 불가 (assert 실패)
 - 롤백은 `release_ref` 입력을 먼저 immutable commit SHA로 해석하고, 해당 commit이 `origin/main` 계열에 포함된 경우에만 `_ansible-exec.yml`의 `checkout_ref`로 전달한다
-- `release_ref`는 "롤백을 실행할 Ansible 코드 기준"이며, 실제 복원 대상 이미지는 원격 호스트의 `previous.json`에서 읽는다
+- `release_ref`는 "롤백을 실행할 Ansible 코드 기준"이며, `vX.Y.Z` release tag 또는 full 40-character commit SHA만 허용한다. 실제 복원 대상 이미지는 원격 호스트의 `previous.json`에서 읽는다
 - 롤백 후 `app_healthcheck`와 nginx route 갱신이 모두 성공해야 `current.json`을 live 상태로 복원한다
 - `admin`/`batch`처럼 `stop_start`인 모듈은 롤백 중 실패하면 사전에 archive/read한 `current.json` 이미지로 컨테이너 복원을 시도한 뒤 실패를 보고한다
 
 ### Rollback rehearsal 절차
 
 1. 최소 두 번의 managed prod 배포가 끝나 `{{ release_root }}/<module>/current.json`과 `previous.json`이 모두 존재하는지 확인한다. `legacyv1`처럼 Ansible metadata가 없는 수동 컨테이너는 `previous.json`에 기록되지 않으므로 `rollback-prod.yml`의 자동 복원 대상이 아니다.
-2. GitHub Actions에서 `rollback-prod.yml`을 수동 실행한다. `module`은 rehearsal 대상 하나를 고르고, `release_ref`는 `origin/main`에 포함된 release tag 또는 full 40-character commit SHA를 입력한다.
+2. GitHub Actions에서 `rollback-prod.yml`을 수동 실행한다. `module`은 rehearsal 대상 하나를 고르고, `release_ref`는 `origin/main`에 포함된 `vX.Y.Z` release tag 또는 full 40-character commit SHA를 입력한다.
 3. workflow 로그에서 `release_ref` checkout, `origin/main` ancestry guard, `_ansible-exec.yml` checkout commit, `app_healthcheck` 성공을 확인한다.
 4. 서버에서 `docker ps`, module health endpoint, nginx route/admin path, `current.json`이 실제 live image와 일치하는지 확인한다.
 5. 실패 rehearsal을 할 때는 `admin`/`batch`에 대해 rescue 로그(`Restore stop-start current release after rollback failure`)가 current image를 다시 기동했는지 확인한다. rescue까지 실패하면 `reverted-*.json` 또는 기존 `current.json`의 image 값으로 수동 재기동한다.

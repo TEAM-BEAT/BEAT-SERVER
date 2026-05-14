@@ -1,8 +1,0 @@
-# Temporary exceptions for catalog aliases that are intentionally retained while
-# build-logic conventions are split. Format: <section>.<alias> # reason.
-plugins.kotlin-jpa # Retained for convention plugin migration; build-logic resolves the Kotlin version directly today.
-plugins.kotlin-jvm # Retained for convention plugin migration; build-logic resolves the Kotlin version directly today.
-plugins.kotlin-spring # Retained for convention plugin migration; build-logic resolves the Kotlin version directly today.
-plugins.sentry-jvm # Retained until Sentry convention plugin adoption decides whether the catalog plugin alias is needed.
-plugins.spring-boot # Retained for convention plugin migration; build-logic resolves the Spring Boot version directly today.
-plugins.spring-dependency-management # Retained for convention plugin migration; build-logic resolves the dependency-management version directly today.

@@ -271,7 +271,6 @@ class RootRetirementContractTest {
 		assertTrue(versionCatalog.contains("io.sentry:sentry-spring-boot-4-starter"));
 		assertTrue(versionCatalog.contains("io.sentry:sentry-async-profiler"));
 		assertTrue(versionCatalog.contains("io.sentry:sentry-log4j2"));
-		assertTrue(versionCatalog.contains("io.sentry.jvm.gradle"));
 		assertFalse(rootBuild.contains("includeSourceContext.set(true)"));
 		assertFalse(rootBuild.contains("autoUploadSourceContext.set("));
 		assertFalse(rootBuild.contains("authToken.set(providers.environmentVariable(\"SENTRY_AUTH_TOKEN\")"));
@@ -1263,6 +1262,12 @@ class RootRetirementContractTest {
 		assertCatalogAliasAbsent(catalog, "versions", "awspring");
 		assertCatalogAliasAbsent(catalog, "versions", "querydsl");
 		assertCatalogAliasAbsent(catalog, "versions", "slf4j");
+		assertCatalogAliasAbsent(catalog, "plugins", "spring-boot");
+		assertCatalogAliasAbsent(catalog, "plugins", "spring-dependency-management");
+		assertCatalogAliasAbsent(catalog, "plugins", "kotlin-jvm");
+		assertCatalogAliasAbsent(catalog, "plugins", "kotlin-spring");
+		assertCatalogAliasAbsent(catalog, "plugins", "kotlin-jpa");
+		assertCatalogAliasAbsent(catalog, "plugins", "sentry-jvm");
 		assertCatalogAliasAbsent(catalog, "libraries", "awspring-cloud-aws-starter-s3");
 		assertCatalogAliasAbsent(catalog, "libraries", "querydsl-jpa");
 		assertCatalogAliasAbsent(catalog, "libraries", "querydsl-apt");
@@ -1313,7 +1318,6 @@ class RootRetirementContractTest {
 		assertEquals(0, exitCode, output);
 		return output;
 	}
-
 
 	private static void assertCatalogAliasAbsent(String catalog, String section, String alias) {
 		String sectionBody = sectionBody(catalog, section);
