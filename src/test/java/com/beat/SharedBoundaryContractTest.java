@@ -41,7 +41,8 @@ class SharedBoundaryContractTest {
 
 		assertTrue(rootBuild.contains("JavaLanguageVersion.of(25)"));
 		assertTrue(rootBuild.contains("options.release.set(25)"));
-		assertTrue(rootBuild.contains("JvmTarget.JVM_25"));
+		assertFalse(rootBuild.contains("JvmTarget.JVM_25"));
+		assertFalse(rootBuild.contains("KotlinCompile"));
 		assertTrue(buildLogic.contains("JavaLanguageVersion.of(25)"));
 		assertTrue(buildLogic.contains("options.release.set(25)"));
 		assertTrue(buildLogic.contains("JvmTarget.JVM_25"));

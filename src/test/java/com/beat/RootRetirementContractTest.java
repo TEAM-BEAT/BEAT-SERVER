@@ -76,12 +76,55 @@ class RootRetirementContractTest {
 	void gradleBuildNoLongerVerifiesLegacyRootBootJarBaseline() throws Exception {
 		String buildFile = Files.readString(Path.of("build.gradle.kts"));
 
+		assertFalse(buildFile.contains("implementation(project(\":module-contracts\"))"));
+		assertFalse(buildFile.contains("implementation(project(\":global-support\"))"));
+		assertFalse(buildFile.contains("implementation(project(\":gateway\"))"));
+		assertFalse(buildFile.contains("implementation(project(\":observability\"))"));
+		assertFalse(buildFile.contains("implementation(project(\":infra\"))"));
+		assertFalse(buildFile.contains("implementation(project(\":domain\"))"));
+		assertFalse(buildFile.contains("runtimeOnly(libs.mysql.connector.j)"));
+		assertFalse(buildFile.contains("runtimeOnly(libs.jjwt.impl)"));
+		assertFalse(buildFile.contains("runtimeOnly(libs.jjwt.jackson)"));
+		assertFalse(buildFile.contains("compileOnly {"));
+		assertFalse(buildFile.contains("annotationProcessor"));
+		assertFalse(buildFile.contains("testImplementation(libs.bundles.test.common)"));
+		assertFalse(buildFile.contains("testImplementation(libs.bundles.integration.testcontainers)"));
+		assertFalse(buildFile.contains("libs.spring.boot.starter"));
+		assertFalse(buildFile.contains("libs.spring.cloud"));
+		assertFalse(buildFile.contains("libs.awspring"));
+		assertFalse(buildFile.contains("libs.aws.java.sdk"));
+		assertFalse(buildFile.contains("libs.querydsl"));
 		assertFalse(buildFile.contains("verifyLegacyV1Baseline"));
 		assertFalse(buildFile.contains("verifyV2WebBaseline"));
+		assertTrue(buildFile.contains("testImplementation(project(\":domain\"))"));
+		assertTrue(buildFile.contains("testImplementation(libs.junit.jupiter)"));
 		assertTrue(buildFile.contains("verifyModuleBootJars"));
 		assertTrue(buildFile.contains("\":apis:bootJar\""));
 		assertTrue(buildFile.contains("\":admin:bootJar\""));
 		assertTrue(buildFile.contains("\":batch:bootJar\""));
+	}
+
+	@Test
+	void rootCoordinationBuildNoLongerAppliesExecutableOrKotlinPlugins() throws Exception {
+		String buildFile = Files.readString(Path.of("build.gradle.kts"));
+
+		assertTrue(buildFile.contains("java"));
+		assertTrue(buildFile.contains("alias(libs.plugins.sonarqube)"));
+		assertTrue(buildFile.contains("alias(libs.plugins.kover)"));
+		assertTrue(buildFile.contains("alias(libs.plugins.sentry.jvm) apply false"));
+		assertTrue(buildFile.contains("id(\"beat.test\")"));
+
+		assertFalse(buildFile.contains("alias(libs.plugins.spring.boot)"));
+		assertFalse(buildFile.contains("alias(libs.plugins.spring.dependency.management)"));
+		assertFalse(buildFile.contains("alias(libs.plugins.kotlin.jvm)"));
+		assertFalse(buildFile.contains("alias(libs.plugins.kotlin.spring)"));
+		assertFalse(buildFile.contains("alias(libs.plugins.kotlin.jpa)"));
+		assertFalse(buildFile.contains("tasks.named(\"bootJar\")"));
+		assertFalse(buildFile.contains("tasks.named(\"bootRun\")"));
+		assertFalse(buildFile.contains("tasks.withType<KotlinCompile>()"));
+		assertFalse(buildFile.contains("queryDslSrcDir"));
+		assertFalse(buildFile.contains("generatedSourceOutputDirectory"));
+		assertFalse(buildFile.contains("generated/querydsl"));
 	}
 
 	@Test

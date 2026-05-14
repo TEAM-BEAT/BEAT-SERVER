@@ -1,18 +1,9 @@
 import io.sentry.android.gradle.extensions.SentryPluginExtension
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.compile.JavaCompile
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     java
-    alias(libs.plugins.spring.boot)
-    alias(libs.plugins.spring.dependency.management)
-
-    alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.kotlin.spring)
-    alias(libs.plugins.kotlin.jpa)
-
     alias(libs.plugins.sonarqube)
     alias(libs.plugins.kover)
     alias(libs.plugins.sentry.jvm) apply false
@@ -22,7 +13,6 @@ plugins {
 group = "com"
 version = "0.0.1-SNAPSHOT"
 
-val queryDslSrcDir = layout.buildDirectory.dir("generated/querydsl")
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 val sentrySdkVersion = libsCatalog.findVersion("sentry").get().requiredVersion
 
@@ -32,78 +22,9 @@ java {
     }
 }
 
-configurations {
-    compileOnly {
-        extendsFrom(configurations.annotationProcessor.get())
-    }
-}
-
 dependencies {
-    implementation(project(":module-contracts"))
-    implementation(project(":global-support"))
-    implementation(project(":gateway"))
-    implementation(project(":observability"))
-    implementation(project(":infra"))
-    implementation(project(":domain"))
-
-    // Web and security
-    implementation(libs.spring.boot.starter.web)
-    implementation(libs.spring.boot.starter.actuator)
-    implementation(libs.spring.boot.starter.data.jpa)
-    implementation(libs.spring.boot.starter.validation)
-    implementation(libs.spring.boot.starter.security)
-    implementation(libs.spring.boot.starter.oauth2.client)
-    implementation(libs.spring.boot.starter.data.redis)
-
-    // Legacy root runtime support
-    implementation(libs.kotlin.reflect)
-    implementation(libs.jackson.module.kotlin)
-    runtimeOnly(libs.mysql.connector.j)
-    compileOnly(libs.lombok)
-    annotationProcessor(libs.lombok)
-    annotationProcessor(libs.spring.boot.configuration.processor)
-
-    // Cloud and integration
-    implementation(platform(libs.spring.cloud.dependencies))
-    implementation(libs.spring.cloud.starter.openfeign)
-    implementation(libs.jjwt.api)
-    runtimeOnly(libs.jjwt.impl)
-    runtimeOnly(libs.jjwt.jackson)
-    implementation(libs.springdoc.openapi.starter.webmvc.ui)
-    implementation(platform(libs.awspring.dependencies))
-    implementation(libs.awspring.starter)
-    implementation(libs.awspring.secrets.manager)
-
-    // Legacy AWS SDK v1 support remains only while S3 code still uses com.amazonaws.* types.
-    implementation(platform(libs.aws.java.sdk.bom))
-    implementation(libs.aws.java.sdk.s3)
-    implementation(libs.nurigo.sdk)
-    implementation(libs.nurigo.java.sdk)
-
-    // QueryDSL APT still relies on javac annotation processing for generated Q-types.
-    implementation(libs.querydsl.jpa.jakarta) {
-        artifact {
-            classifier = "jakarta"
-        }
-    }
-    annotationProcessor(libs.querydsl.apt.jakarta) {
-        artifact {
-            classifier = "jakarta"
-        }
-    }
-    annotationProcessor(libs.jakarta.annotation.api)
-    annotationProcessor(libs.jakarta.persistence.api)
-
-    implementation(libs.kotlin.jdsl.jpql.dsl)
-    implementation(libs.kotlin.jdsl.spring.data.jpa.support)
-
-    // Observability
-    implementation(libs.micrometer.registry.prometheus)
-    implementation(libs.slack.api.client)
-
-    // Test support
-    testImplementation(libs.bundles.test.common)
-    testImplementation(libs.bundles.integration.testcontainers)
+    testImplementation(project(":domain"))
+    testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
@@ -111,32 +32,9 @@ tasks.named<Jar>("jar") {
     enabled = true
 }
 
-// Root project is a coordination module only; executable lanes live in apis/admin/batch.
-tasks.named("bootJar") {
-    enabled = false
-}
-
-tasks.named("bootRun") {
-    enabled = false
-}
-
 tasks.withType<JavaCompile>().configureEach {
-    options.generatedSourceOutputDirectory.set(queryDslSrcDir.get().asFile)
     options.release.set(25)
     options.encoding = "UTF-8"
-}
-
-tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_25)
-        freeCompilerArgs.add("-Xjsr305=strict")
-    }
-}
-
-sourceSets {
-    named("main") {
-        java.srcDir(queryDslSrcDir)
-    }
 }
 
 fun registerVerificationTask(
@@ -171,10 +69,6 @@ registerVerificationTask(
     ":admin:bootJar",
     ":batch:bootJar",
 )
-
-tasks.clean {
-    delete(queryDslSrcDir)
-}
 
 subprojects {
     group = rootProject.group

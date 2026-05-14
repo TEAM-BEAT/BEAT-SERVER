@@ -21,6 +21,7 @@ testcontainers = "1.21.3"
 redis-testcontainers = "2.2.2"
 sentry = "8.41.0"
 sentry-gradle-plugin = "6.6.0"
+junit = "6.0.3"
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
@@ -33,7 +34,8 @@ kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 sentry-jvm = { id = "io.sentry.jvm.gradle", version.ref = "sentry-gradle-plugin" }
 
 [libraries]
-junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
