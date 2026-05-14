@@ -22,8 +22,8 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         shell: bash
         run: |
-          if [[ -z "$RELEASE_TAG" ]] || [[ ! "$RELEASE_TAG" =~ ^[0-9A-Za-z._-]+$ ]]; then
-            echo "Invalid release tag: $RELEASE_TAG" >&2
+          if [[ -z "$RELEASE_TAG" ]] || [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release tag: $RELEASE_TAG (expected vX.Y.Z)" >&2
             exit 1
           fi
           echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
@@ -32,6 +32,24 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: refs/tags/${{ steps.release.outputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Guard release commit is on main
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+        shell: bash
+        run: |
+          COMMIT_SHA="$(git rev-parse HEAD)"
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
+          if ! git merge-base --is-ancestor "$COMMIT_SHA" refs/remotes/origin/main; then
+            echo "Release tag is not contained in origin/main" >&2
+            echo "release_tag=${RELEASE_TAG}" >&2
+            echo "commit_sha=${COMMIT_SHA}" >&2
+            echo "origin_main_sha=${MAIN_SHA}" >&2
+            exit 1
+          fi
+          echo "Release tag ${RELEASE_TAG} commit ${COMMIT_SHA} is contained in origin/main ${MAIN_SHA}"
 
       - name: Capture released commit
         id: git-ref
@@ -60,23 +78,64 @@ jobs:
         with:
           cache-cleanup: on-success
 
-      - name: Verify baseline
+      - name: Verify Gradle check
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_RELEASE: beat-server@${{ needs.resolve-release.outputs.commit_sha }}
         run: |
           chmod +x gradlew
-          ./gradlew \
-            verifyV2WebBaseline \
-            :admin:test :batch:test \
-            verifyModuleBootJars \
-            --parallel --build-cache
+          ./gradlew check verifyModuleBootJars --parallel --build-cache
         shell: bash
+
+  secret-preflight:
+    needs:
+      - resolve-release
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    environment: prod
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.resolve-release.outputs.module_matrix) }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.resolve-release.outputs.commit_sha }}
+
+      - name: Setup Ansible tooling
+        uses: ./.github/actions/setup-ansible-tooling
+
+      - name: Resolve prod SSH connection metadata
+        id: resolve
+        uses: ./.github/actions/resolve-ansible-connection
+        with:
+          inventory_path: inventories/prod/hosts.yml
+          module: ${{ matrix.module }}
+          SOPS_AGE_KEY: ${{ secrets.AGE_SECRET_KEY }}
+
+      - name: Verify prod encrypted inventory, resolver, and lint
+        working-directory: infra/ansible
+        env:
+          MODULE: ${{ matrix.module }}
+          SOPS_AGE_KEY: ${{ secrets.AGE_SECRET_KEY }}
+          SSH_HOST: ${{ steps.resolve.outputs.ssh_host }}
+          SSH_PORT: ${{ steps.resolve.outputs.ssh_port }}
+          SSH_HOST_FINGERPRINT: ${{ steps.resolve.outputs.ssh_host_fingerprint }}
+        run: |
+          ansible-inventory -i inventories/prod/hosts.yml --list >/dev/null
+          echo "Prod secret-aware preflight verified resolver for module=${MODULE}"
+          [[ -n "$SSH_HOST" ]]
+          [[ -n "$SSH_PORT" ]]
+          [[ -n "$SSH_HOST_FINGERPRINT" ]]
+          ansible-lint playbooks/*.yml roles
 
   build-image:
     needs:
       - resolve-release
       - verify
+      - secret-preflight
     runs-on: ubuntu-22.04
     timeout-minutes: 30
     permissions:
@@ -128,6 +187,7 @@ jobs:
     needs:
       - resolve-release
       - verify
+      - secret-preflight
       - build-image
     concurrency:
       group: prod-runtime
@@ -156,6 +216,7 @@ jobs:
     needs:
       - resolve-release
       - verify
+      - secret-preflight
       - build-image
       - foundation
     concurrency:

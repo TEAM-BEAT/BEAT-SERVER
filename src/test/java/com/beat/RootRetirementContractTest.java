@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class RootRetirementContractTest {
 
@@ -73,14 +74,71 @@ class RootRetirementContractTest {
 	}
 
 	@Test
+	void domainInvariantTestsLiveWithDomainModule() {
+		assertFalse(Files.exists(Path.of("src/test/java/com/beat/domain")));
+		assertTrue(Files.exists(Path.of("domain/src/test/java/com/beat/domain")));
+	}
+
+	@Test
 	void gradleBuildNoLongerVerifiesLegacyRootBootJarBaseline() throws Exception {
 		String buildFile = Files.readString(Path.of("build.gradle.kts"));
 
+		assertFalse(buildFile.contains("implementation(project(\":module-contracts\"))"));
+		assertFalse(buildFile.contains("implementation(project(\":global-support\"))"));
+		assertFalse(buildFile.contains("implementation(project(\":gateway\"))"));
+		assertFalse(buildFile.contains("implementation(project(\":observability\"))"));
+		assertFalse(buildFile.contains("implementation(project(\":infra\"))"));
+		assertFalse(buildFile.contains("implementation(project(\":domain\"))"));
+		assertFalse(buildFile.contains("testImplementation(project(\":domain\"))"));
+		assertFalse(buildFile.contains("runtimeOnly(libs.mysql.connector.j)"));
+		assertFalse(buildFile.contains("runtimeOnly(libs.jjwt.impl)"));
+		assertFalse(buildFile.contains("runtimeOnly(libs.jjwt.jackson)"));
+		assertFalse(buildFile.contains("compileOnly {"));
+		assertFalse(buildFile.contains("annotationProcessor"));
+		assertFalse(buildFile.contains("testImplementation(libs.bundles.test.common)"));
+		assertFalse(buildFile.contains("testImplementation(libs.bundles.integration.testcontainers)"));
+		assertFalse(buildFile.contains("libs.spring.boot.starter"));
+		assertFalse(buildFile.contains("libs.spring.cloud"));
+		assertFalse(buildFile.contains("libs.awspring"));
+		assertFalse(buildFile.contains("libs.aws.java.sdk"));
+		assertFalse(buildFile.contains("libs.querydsl"));
 		assertFalse(buildFile.contains("verifyLegacyV1Baseline"));
+		assertFalse(buildFile.contains("verifyV2WebBaseline"));
+		assertTrue(buildFile.contains("testImplementation(libs.junit.jupiter)"));
+		assertTrue(buildFile.contains("Builds the non-executable root coordination artifact."));
 		assertTrue(buildFile.contains("verifyModuleBootJars"));
 		assertTrue(buildFile.contains("\":apis:bootJar\""));
 		assertTrue(buildFile.contains("\":admin:bootJar\""));
 		assertTrue(buildFile.contains("\":batch:bootJar\""));
+	}
+
+	@Test
+	void rootCoordinationBuildNoLongerAppliesExecutableOrKotlinPlugins() throws Exception {
+		String buildFile = Files.readString(Path.of("build.gradle.kts"));
+
+		assertTrue(buildFile.contains("java"));
+		assertTrue(buildFile.contains("alias(libs.plugins.sonarqube)"));
+		assertTrue(buildFile.contains("alias(libs.plugins.kover)"));
+		assertTrue(buildFile.contains("id(\"beat.test\")"));
+
+		assertFalse(buildFile.contains("alias(libs.plugins.sentry.jvm) apply false"));
+		assertFalse(buildFile.contains("SentryPluginExtension"));
+		assertFalse(buildFile.contains("sentrySdkVersion"));
+		assertFalse(buildFile.contains("io.sentry.jvm.gradle"));
+		assertFalse(buildFile.contains("collectExternalDependenciesForSentry"));
+		assertFalse(buildFile.contains("generateSentry"));
+
+		assertFalse(buildFile.contains("alias(libs.plugins.spring.boot)"));
+		assertFalse(buildFile.contains("alias(libs.plugins.spring.dependency.management)"));
+		assertFalse(buildFile.contains("alias(libs.plugins.kotlin.jvm)"));
+		assertFalse(buildFile.contains("alias(libs.plugins.kotlin.spring)"));
+		assertFalse(buildFile.contains("alias(libs.plugins.kotlin.jpa)"));
+		assertFalse(buildFile.contains("tasks.named(\"bootJar\")"));
+		assertFalse(buildFile.contains("tasks.named(\"bootRun\")"));
+		assertFalse(buildFile.contains("tasks.withType<KotlinCompile>()"));
+		assertFalse(buildFile.contains("queryDslSrcDir"));
+		assertFalse(buildFile.contains("generatedSourceOutputDirectory"));
+		assertFalse(buildFile.contains("generated/querydsl"));
 	}
 
 	@Test
@@ -186,6 +244,12 @@ class RootRetirementContractTest {
 	void observabilityOwnsSentryFullObservabilityContract() throws Exception {
 		String versionCatalog = read("gradle/libs.versions.toml");
 		String rootBuild = read("build.gradle.kts");
+		String sentrySourceContextConvention = read("build-logic/src/main/kotlin/beat.sentry-source-context.gradle.kts");
+		String prometheusRuntimeConvention = read("build-logic/src/main/kotlin/beat.prometheus-runtime.gradle.kts");
+		String buildLogicBuild = read("build-logic/build.gradle.kts");
+		String apisBuild = read("apis/build.gradle.kts");
+		String adminBuild = read("admin/build.gradle.kts");
+		String batchBuild = read("batch/build.gradle.kts");
 		String observabilityBuild = read("observability/build.gradle.kts");
 		String observabilityConfig = read("observability/src/main/kotlin/com/beat/observability/ObservabilityModuleConfig.kt");
 		String sentryConfig = read("observability/src/main/kotlin/com/beat/observability/sentry/SentryConfig.kt");
@@ -210,18 +274,46 @@ class RootRetirementContractTest {
 		assertTrue(versionCatalog.contains("io.sentry:sentry-spring-boot-4-starter"));
 		assertTrue(versionCatalog.contains("io.sentry:sentry-async-profiler"));
 		assertTrue(versionCatalog.contains("io.sentry:sentry-log4j2"));
-		assertTrue(versionCatalog.contains("io.sentry.jvm.gradle"));
-		assertTrue(rootBuild.contains("includeSourceContext.set(true)"));
-		assertTrue(rootBuild.contains("autoUploadSourceContext.set("));
-		assertTrue(rootBuild.contains("org.set(\"beat-jo\")"));
-		assertTrue(rootBuild.contains("projectName.set(\"java-spring-boot\")"));
-		assertTrue(rootBuild.contains("authToken.set(providers.environmentVariable(\"SENTRY_AUTH_TOKEN\")"));
-		assertTrue(rootBuild.contains("autoInstallation {"));
-		assertTrue(rootBuild.contains("enabled.set(false)"));
-		assertTrue(rootBuild.contains("resolutionStrategy.force(\"io.sentry:sentry:$sentrySdkVersion\")"));
+		assertFalse(rootBuild.contains("includeSourceContext.set(true)"));
+		assertFalse(rootBuild.contains("autoUploadSourceContext.set("));
+		assertFalse(rootBuild.contains("authToken.set(providers.environmentVariable(\"SENTRY_AUTH_TOKEN\")"));
+		assertFalse(rootBuild.contains("resolutionStrategy.force(\"io.sentry:sentry:$sentrySdkVersion\")"));
+		assertTrue(buildLogicBuild.contains("sentry-gradle-plugin"));
+		assertTrue(buildLogicBuild.contains("io.sentry.jvm.gradle.gradle.plugin"));
+		assertTrue(sentrySourceContextConvention.contains("id(\"io.sentry.jvm.gradle\")"));
+		assertTrue(sentrySourceContextConvention.contains("includeSourceContext.set(true)"));
+		assertTrue(sentrySourceContextConvention.contains("autoUploadSourceContext.set("));
+		assertTrue(sentrySourceContextConvention.contains("org.set(\"beat-jo\")"));
+		assertTrue(sentrySourceContextConvention.contains("projectName.set(\"java-spring-boot\")"));
+		assertTrue(sentrySourceContextConvention.contains("authToken.set(providers.environmentVariable(\"SENTRY_AUTH_TOKEN\")"));
+		assertTrue(sentrySourceContextConvention.contains("autoInstallation {"));
+		assertTrue(sentrySourceContextConvention.contains("enabled.set(false)"));
+		assertTrue(sentrySourceContextConvention.contains("resolutionStrategy.force(\"io.sentry:sentry:$sentrySdkVersion\")"));
+		assertTrue(sentrySourceContextConvention.contains("collectExternalDependenciesForSentry"));
+		assertTrue(sentrySourceContextConvention.contains("generateSentry"));
+		assertTrue(sentrySourceContextConvention.contains("explodeCodeSourceMain"));
+		for (String moduleBuild : new String[] {
+			"apis/build.gradle.kts",
+			"admin/build.gradle.kts",
+			"batch/build.gradle.kts",
+			"observability/build.gradle.kts",
+			"infra/build.gradle.kts",
+			"domain/build.gradle.kts",
+			"gateway/build.gradle.kts",
+			"global-support/build.gradle.kts",
+			"module-contracts/build.gradle.kts"
+		}) {
+			assertTrue(read(moduleBuild).contains("id(\"beat.sentry-source-context\")"), moduleBuild);
+		}
 		assertTrue(observabilityBuild.contains("libs.sentry.spring.boot.starter"));
 		assertTrue(observabilityBuild.contains("libs.sentry.async.profiler"));
 		assertTrue(observabilityBuild.contains("libs.sentry.log4j2"));
+		assertTrue(prometheusRuntimeConvention.contains("add(\"runtimeOnly\", libs.findLibrary(\"micrometer-registry-prometheus\").get())"));
+		assertTrue(apisBuild.contains("id(\"beat.prometheus-runtime\")"));
+		assertTrue(batchBuild.contains("id(\"beat.prometheus-runtime\")"));
+		assertFalse(adminBuild.contains("id(\"beat.prometheus-runtime\")"));
+		assertFalse(apisBuild.contains("implementation(libs.micrometer.registry.prometheus)"));
+		assertFalse(observabilityBuild.contains("libs.micrometer.registry.prometheus"));
 
 		assertTrue(observabilityConfig.contains("SentryConfig::class"));
 		assertTrue(sentryConfig.contains("options.isEnabled = false"));
@@ -328,7 +420,10 @@ class RootRetirementContractTest {
 		assertTrue(Files.exists(Path.of(".github/workflows/_ansible-exec.yml")));
 		assertTrue(Files.exists(Path.of(".github/workflows/ansible-lint.yml")));
 		assertTrue(Files.exists(Path.of(".trivy-image.yaml")));
-		assertTrue(ciPr.contains("verifyV2WebBaseline"));
+		assertTrue(ciPr.contains("./gradlew check verifyModuleBootJars --parallel --build-cache"));
+		assertFalse(ciPr.contains("verifyV2WebBaseline"));
+		assertTrue(deployDev.contains("./gradlew check verifyModuleBootJars --parallel --build-cache"));
+		assertFalse(deployDev.contains("verifyV2WebBaseline"));
 		assertTrue(ciPr.contains("verifyModuleBootJars"));
 		assertTrue(ciPr.contains("matrix:"));
 		assertTrue(ciPr.contains("- apis"));
@@ -345,6 +440,12 @@ class RootRetirementContractTest {
 		assertTrue(deployDev.contains("fromJSON("));
 		assertTrue(deployDev.contains("uses: ./.github/workflows/_ansible-exec.yml"));
 		assertTrue(deployProd.contains("uses: ./.github/workflows/_ansible-exec.yml"));
+		assertTrue(deployProd.contains("secret-preflight:"));
+		assertTrue(deployProd.contains("Resolve prod SSH connection metadata"));
+		assertTrue(deployProd.contains("Verify prod encrypted inventory, resolver, and lint"));
+		assertTrue(deployProd.contains("Prod secret-aware preflight verified resolver for module=${MODULE}"));
+		assertTrue(deployProd.contains("ansible-lint playbooks/*.yml roles"));
+		assertTrue(deployProd.contains("git merge-base --is-ancestor \"$COMMIT_SHA\" refs/remotes/origin/main"));
 		assertTrue(rollbackProd.contains("uses: ./.github/workflows/_ansible-exec.yml"));
 		assertTrue(deployDev.contains("environment_name: dev"));
 		assertTrue(deployProd.contains("environment_name: prod"));
@@ -425,11 +526,18 @@ class RootRetirementContractTest {
 		assertTrue(deployProd.contains("release:"));
 		assertTrue(deployProd.contains("- published"));
 		assertTrue(deployProd.contains("github.event.release.tag_name"));
+		assertTrue(deployProd.contains("^v[0-9]+\\.[0-9]+\\.[0-9]+$"));
+		assertTrue(deployProd.contains("Invalid release tag: $RELEASE_TAG (expected vX.Y.Z)"));
 		assertTrue(deployProd.contains("module_matrix"));
 		assertTrue(deployProd.contains("matrix.module"));
 		assertTrue(deployProd.contains("commit_sha"));
 		assertTrue(deployProd.contains("ref: ${{ needs.resolve-release.outputs.commit_sha }}"));
 		assertTrue(deployProd.contains("checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}"));
+		assertTrue(deployProd.contains("- secret-preflight"));
+		assertTrue(deployProd.contains("Resolve prod SSH connection metadata"));
+		assertTrue(deployProd.contains("Prod secret-aware preflight verified resolver for module=${MODULE}"));
+		assertTrue(deployProd.contains("ansible-lint playbooks/*.yml roles"));
+		assertTrue(deployProd.contains("git merge-base --is-ancestor \"$COMMIT_SHA\" refs/remotes/origin/main"));
 		assertFalse(deployProd.contains("workflow_dispatch:"));
 		assertFalse(deployProd.contains("github.event.inputs.version"));
 		assertFalse(deployProd.contains("github.event.inputs.module"));
@@ -499,7 +607,7 @@ class RootRetirementContractTest {
 		assertFalse(rollbackPlaybook.contains("default(['inventories/dev/hosts.yml'])"));
 		assertTrue(rollbackPlaybook.contains("Or trigger the foundation step on GitHub Actions before retrying rollback."));
 		assertTrue(rollbackPlaybook.contains("name: Report foundation marker contents"));
-		assertBefore(rollbackPlaybook, "name: Stat foundation marker", "role: app_rollback");
+		assertBefore(rollbackPlaybook, "name: Stat foundation marker", "name: Roll back runtime to previous release");
 
 		assertBefore(deployDev, "\n  foundation:", "\n  deploy:");
 		String devFoundationNeeds =
@@ -527,9 +635,11 @@ class RootRetirementContractTest {
 				+ "    needs:\n"
 				+ "      - resolve-release\n"
 				+ "      - verify\n"
+				+ "      - secret-preflight\n"
 				+ "      - build-image";
 		String prodDeployNeedsFoundation =
-			"      - build-image\n"
+			"      - secret-preflight\n"
+				+ "      - build-image\n"
 				+ "      - foundation\n"
 				+ "    concurrency:\n"
 				+ "      group: prod-runtime";
@@ -541,6 +651,8 @@ class RootRetirementContractTest {
 		assertTrue(deployProd.contains("checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}"));
 		assertTrue(deployProd.contains(prodDeployNeedsFoundation));
 		assertTrue(deployProd.contains("group: prod-runtime"));
+		assertTrue(infraReadme.contains(
+			"`deploy-prod.yml`의 `resolve-release` → `verify` + `secret-preflight` → `build-image` → `foundation` → `deploy` 순서를 확인한다."));
 
 		assertTrue(infraReadme.contains("Foundation marker contract"));
 		assertTrue(infraReadme.contains("{{ deployment_dir }}/.foundation-applied"));
@@ -735,7 +847,15 @@ class RootRetirementContractTest {
 		assertTrue(deployPlaybook.contains("- cleanup"));
 		assertTrue(rollbackPlaybook.contains("name: app_healthcheck"));
 		assertTrue(rollbackPlaybook.contains("module in modules"));
+		assertTrue(rollbackPlaybook.contains("name: Roll back runtime to previous release"));
+		assertTrue(rollbackPlaybook.contains("name: Execute rollback and restore metadata truth"));
 		assertTrue(rollbackPlaybook.contains("app_rollback_module_cfg.nginx_route is defined"));
+		assertTrue(rollbackPlaybook.contains("name: Restore stop-start current release after rollback failure"));
+		assertTrue(rollbackPlaybook.contains("app_stopstart_image: \"{{ app_rollback_current_release.image }}\""));
+		assertTrue(rollbackPlaybook.contains("name: Healthcheck restored stop-start current release"));
+		assertTrue(rollbackPlaybook.contains("app_rollback_module_cfg.deploy_mode == 'stop_start'"));
+		assertTrue(rollbackPlaybook.contains("For stop-start modules, the playbook attempted to restore the archived current image"));
+		assertBefore(rollbackPlaybook, "name: Roll back runtime to previous release", "name: Healthcheck module after rollback before metadata promotion");
 		assertTrue(rollbackPlaybook.contains("- rollback"));
 		assertTrue(appSecretRole.contains("application-secret.properties.j2"));
 		assertFalse(appSecretRole.contains("app_secret_content_normalized"));
@@ -748,6 +868,8 @@ class RootRetirementContractTest {
 		assertTrue(deployProd.contains("resolve-release"));
 		assertTrue(deployProd.contains("release_tag"));
 		assertTrue(rollbackProd.contains("playbook: playbooks/rollback.yml"));
+		assertTrue(rollbackProd.contains("git merge-base --is-ancestor \"$commit_sha\" refs/remotes/origin/main"));
+		assertTrue(rollbackProd.contains("origin_main_sha=${main_sha}"));
 		assertFalse(deployDev.contains("ansible-playbook playbooks/deploy.yml"));
 		assertFalse(deployProd.contains("ansible-playbook playbooks/deploy.yml"));
 		assertFalse(rollbackProd.contains("ansible-playbook playbooks/rollback.yml"));
@@ -798,6 +920,10 @@ class RootRetirementContractTest {
 		assertFalse(appCleanupRole.contains("failed_when: false"));
 		assertTrue(appRollbackRole.contains("app_rollback_archive_timestamp"));
 		assertTrue(appRollbackRole.contains("now(utc=true, fmt='%Y%m%dT%H%M%SZ')"));
+		assertTrue(appRollbackRole.contains("name: Read current release metadata before rollback"));
+		assertTrue(appRollbackRole.contains("app_rollback_current_release_raw"));
+		assertTrue(appRollbackRole.contains("app_rollback_current_release"));
+		assertBefore(appRollbackRole, "name: Parse current release metadata before rollback", "name: Roll back stop-start lanes via Docker module");
 		assertFalse(appRollbackRole.contains("lookup('pipe', 'date -u"));
 		assertTrue(infraReadme.contains("Release metadata schema"));
 		assertTrue(infraReadme.contains("created_at`은 원격 EC2의 시스템 시간이 아니라 controller UTC"));
@@ -812,6 +938,9 @@ class RootRetirementContractTest {
 		assertTrue(infraReadme.contains("Nginx fragment mapping contract"));
 		assertTrue(infraReadme.contains("nginx_fragments"));
 		assertTrue(infraReadme.contains("read-only contract"));
+		assertTrue(infraReadme.contains("Rollback rehearsal 절차"));
+		assertTrue(infraReadme.contains("legacyv1"));
+		assertTrue(infraReadme.contains("Restore stop-start current release after rollback failure"));
 		assertTrue(devInventory.contains("nginx_seed_placeholder_host: \"127.0.0.1\""));
 		assertTrue(devInventory.contains("nginx_seed_placeholder_port: 65535"));
 		assertTrue(devInventory.contains("nginx_legacy_config_volume_name: nginx-config-volume"));
@@ -1113,6 +1242,91 @@ class RootRetirementContractTest {
 		assertTrue(adminSecurity.contains("actuatorEndPoint + \"/health\""));
 	}
 
+	@Test
+	void observabilityBuildKeepsSentryRuntimeOnlyAndAvoidsSharedBoundaryLeaks() throws Exception {
+		String observabilityBuild = read("observability/build.gradle.kts");
+		String uncommented = stripLineComments(observabilityBuild);
+
+		assertTrue(uncommented.contains("compileOnly(libs.spring.boot.starter.web)"));
+		assertTrue(uncommented.contains("implementation(libs.kotlinx.coroutines.slf4j)"));
+		assertTrue(uncommented.contains("implementation(libs.sentry.spring.boot.starter)"));
+		assertTrue(uncommented.contains("runtimeOnly(libs.sentry.async.profiler)"));
+		assertTrue(uncommented.contains("runtimeOnly(libs.sentry.log4j2)"));
+
+		assertFalse(uncommented.contains("project(\":global-support\")"));
+		assertFalse(uncommented.contains("libs.lombok"));
+		assertFalse(uncommented.contains("annotationProcessor"));
+		assertFalse(uncommented.contains("libs.spring.boot.starter.actuator"));
+		assertFalse(uncommented.contains("libs.slf4j.api"));
+		assertFalse(uncommented.contains("slf4j-api"));
+	}
+
+	@Test
+	void staleDependencyBoundaryCatalogAliasesDoNotReturn() throws Exception {
+		String catalog = read("gradle/libs.versions.toml");
+
+		assertCatalogAliasAbsent(catalog, "versions", "awspring");
+		assertCatalogAliasAbsent(catalog, "versions", "querydsl");
+		assertCatalogAliasAbsent(catalog, "versions", "slf4j");
+		assertCatalogAliasAbsent(catalog, "plugins", "spring-boot");
+		assertCatalogAliasAbsent(catalog, "plugins", "spring-dependency-management");
+		assertCatalogAliasAbsent(catalog, "plugins", "kotlin-jvm");
+		assertCatalogAliasAbsent(catalog, "plugins", "kotlin-spring");
+		assertCatalogAliasAbsent(catalog, "plugins", "kotlin-jpa");
+		assertCatalogAliasAbsent(catalog, "plugins", "sentry-jvm");
+		assertCatalogAliasAbsent(catalog, "libraries", "awspring-cloud-aws-starter-s3");
+		assertCatalogAliasAbsent(catalog, "libraries", "querydsl-jpa");
+		assertCatalogAliasAbsent(catalog, "libraries", "querydsl-apt");
+		assertCatalogAliasAbsent(catalog, "libraries", "spring-security-core");
+		assertCatalogAliasAbsent(catalog, "libraries", "slf4j-api");
+		assertCatalogAliasAbsent(catalog, "bundles", "test-common");
+		assertCatalogAliasAbsent(catalog, "bundles", "web-app-god");
+	}
+
+	@Test
+	void versionCatalogCheckerDoesNotTreatCommentedGradleAccessorsAsUsage(@TempDir Path tempRoot) throws Exception {
+		Path gradleDir = tempRoot.resolve("gradle");
+		Files.createDirectories(gradleDir);
+		Files.writeString(gradleDir.resolve("libs.versions.toml"), """
+			[versions]
+			used = "1.0.0"
+			lookup = "1.0.0"
+			unused = "1.0.0"
+
+			[libraries]
+			used-lib = { module = "com.example:used", version.ref = "used" }
+			lookup-lib = { module = "com.example:lookup", version.ref = "lookup" }
+			unused-lib = { module = "com.example:unused", version.ref = "unused" }
+			""".stripIndent());
+		Files.writeString(tempRoot.resolve("build.gradle.kts"), String.join("\n",
+			"// implementation(libs.unused.lib)",
+			"val stringMention = \"libs.unused.lib\"",
+			"val multilineMention = \"\"\"",
+			"    libs.unused.lib",
+			"\"\"\"",
+			"dependencies {",
+			"    implementation(libs.used.lib)",
+			"    implementation(libs.findLibrary(\"lookup-lib\").get())",
+			"    /*",
+			"     * implementation(libs.unused.lib)",
+			"     */",
+			"}"
+		));
+
+		Path checker = Path.of(".github/scripts/check_unused_version_catalog_aliases.py")
+			.toAbsolutePath()
+			.normalize();
+		Process process = new ProcessBuilder("python3", checker.toString(), "--root", tempRoot.toString())
+			.redirectErrorStream(true)
+			.start();
+		String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+		int exitCode = process.waitFor();
+
+		assertEquals(1, exitCode, output);
+		assertTrue(output.contains("libraries.unused-lib"), output);
+		assertTrue(output.contains("versions.unused"), output);
+	}
+
 	private static String read(String path) throws IOException {
 		return Files.readString(Path.of(path));
 	}
@@ -1153,6 +1367,24 @@ class RootRetirementContractTest {
 		int exitCode = process.waitFor();
 		assertEquals(0, exitCode, output);
 		return output;
+	}
+
+	private static void assertCatalogAliasAbsent(String catalog, String section, String alias) {
+		String sectionBody = sectionBody(catalog, section);
+		assertFalse(sectionBody.matches("(?ms).*^" + java.util.regex.Pattern.quote(alias) + "\\s*=.*"),
+			"gradle/libs.versions.toml must not reintroduce " + section + "." + alias);
+	}
+
+	private static String sectionBody(String catalog, String section) {
+		String marker = "[" + section + "]";
+		int start = catalog.indexOf(marker);
+		assertTrue(start >= 0, marker);
+		int next = catalog.indexOf("\n[", start + marker.length());
+		return next < 0 ? catalog.substring(start) : catalog.substring(start, next);
+	}
+
+	private static String stripLineComments(String source) {
+		return source.replaceAll("(?m)//.*$", "");
 	}
 
 	private static void assertBefore(String content, String first, String second) {

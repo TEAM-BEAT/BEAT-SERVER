@@ -1,5 +1,8 @@
 plugins {
     id("beat.spring-boot-app")
+    id("beat.actuator-http-runtime")
+    id("beat.sentry-source-context")
+    id("beat.prometheus-runtime")
 }
 
 dependencies {
@@ -8,7 +11,6 @@ dependencies {
     implementation(project(":infra"))
     implementation(project(":global-support"))
     implementation(project(":observability"))
-    implementation(libs.spring.boot.starter.web)
 
     testImplementation(libs.bundles.integration.testcontainers)
 }

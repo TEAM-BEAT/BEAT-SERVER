@@ -24,6 +24,17 @@
     path: "{{ release_dir }}/current.json"
   register: app_rollback_current_release_stat
 
+- name: Read current release metadata before rollback
+  ansible.builtin.slurp:
+    src: "{{ release_dir }}/current.json"
+  register: app_rollback_current_release_raw
+  when: app_rollback_current_release_stat.stat.exists
+
+- name: Parse current release metadata before rollback
+  ansible.builtin.set_fact:
+    app_rollback_current_release: "{{ app_rollback_current_release_raw.content | b64decode | from_json }}"
+  when: app_rollback_current_release_stat.stat.exists
+
 - name: Assert deploy_mode is a supported rollback target
   ansible.builtin.assert:
     that:

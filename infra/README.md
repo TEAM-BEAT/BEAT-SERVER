@@ -593,7 +593,9 @@ flowchart TB
         Batch["batch"]:::matrix
     end
 
-    Verify["verify<br/>Gradle 테스트 (단일 실행)<br/>commit SHA 기준 checkout"]:::verify
+    Verify["verify<br/>check verifyModuleBootJars<br/>commit SHA 기준 checkout"]:::verify
+
+    SecretPreflight["secret-preflight<br/>prod inventory · SSH metadata · ansible-lint<br/>apis/admin/batch matrix"]:::verify
 
     Build["build-image<br/>Docker 빌드 · max-parallel 3<br/>:{release_tag} + :prod-latest push"]:::build
 
@@ -604,7 +606,11 @@ flowchart TB
     Trigger --> Resolve
     Resolve --> Admin & APIs & Batch
     Resolve --> Verify
+    Resolve --> SecretPreflight
     Verify --> Build
+    SecretPreflight --> Build
+    SecretPreflight --> Foundation
+    SecretPreflight --> Deploy
     Build --> Foundation
     Foundation --> Deploy
 
@@ -618,8 +624,11 @@ flowchart TB
 ```
 
 - `github.event.release.tag_name` 을 **prod 공통 버전 source**로 사용
+- release tag checkout 후 `origin/main`을 fetch하고 `git merge-base --is-ancestor "$COMMIT_SHA" origin/main`으로 release 대상 commit이 main 계열에 포함되는지 검증한다. 실패하면 tag, commit SHA, `origin/main` SHA를 로그에 남기고 prod deploy를 중단한다.
 - `apis/admin/batch` 3개 모듈을 **같은 release tag**로 build/push/deploy
-- release tag는 `resolve-release` 단계에서 한 번만 해석하고, 이후 verify/build/deploy는 모두 **immutable commit SHA** 를 사용해 TOCTOU를 방지한다
+- release tag는 `resolve-release` 단계에서 한 번만 해석하고, 이후 verify/preflight/build/deploy는 모두 **immutable commit SHA** 를 사용해 TOCTOU를 방지한다
+- prod release verify는 PR CI와 같은 `./gradlew check verifyModuleBootJars --parallel --build-cache`를 실행한다. `check`가 root/subproject의 Java/Kotlin 테스트를 표준 lifecycle로 수집하고, `verifyModuleBootJars`가 prod 실행 모듈 패키징 계약을 별도로 고정한다.
+- `secret-preflight`는 deploy-prod 내부에서 항상 실행된다. `ansible-secret-aware-verify.yml`의 path filter가 일반 release에서 skip되더라도, prod 배포 직전 `apis/admin/batch` 각각의 prod inventory resolver, `ssh_host`, `ssh_port`, `ssh_host_fingerprint`, `ansible-inventory --list`, `ansible-lint playbooks/*.yml roles`를 검증한다.
 - 이미지 태그는 모듈별로 `:{release_tag}` 와 `:prod-latest` 를 함께 push
 - deploy 단계는 `max-parallel: 1` 로 모듈을 순차 배포
 - `release-drafter.yml` 은 draft release 갱신용이며, **실제 prod deploy trigger는 published release** 뿐이다
@@ -628,6 +637,29 @@ flowchart TB
 - resolver는 `ansible-inventory`로 대상 host/group를 선택하고, `community.sops` 환경에서 `ansible-inventory --host` 결과에 `ENC[...]` 가
   남을 수 있기 때문에 평문이 필요한 `ssh_host / ssh_port / ssh_host_fingerprint`만 임시 `ansible-playbook`으로 materialize 한다
 - `_ansible-exec.yml` 은 inventory resolver 성공을 전제로 하며, prod caller 쪽 legacy SSH fallback은 두지 않는다
+
+### Prod release preflight / runbook
+
+published release가 prod 자동 배포를 시작하기 전에 아래 항목을 확인한다. 실패 항목이 있으면 release를 publish하지 말고 draft 상태에서 수정한다.
+
+1. **tag 기준 확인**
+    - release tag는 workflow 검증과 동일하게 `vX.Y.Z` 형식이어야 한다.
+    - tag가 가리키는 commit은 `origin/main`에 포함되어 있어야 한다. main에 merge되지 않은 hotfix/개인 브랜치 tag는 prod 배포 대상이 아니다.
+    - 배포 workflow는 release tag를 한 번만 immutable commit SHA로 해석하고 이후 verify/build/deploy/rollback 기준으로 그 SHA를 전달한다.
+2. **CI/Gradle 확인**
+    - main의 최신 PR/merge commit에서 Gradle check와 boot jar 검증이 통과해야 한다.
+    - release 직전 로컬/CI에서 확인할 최소 명령은 `./gradlew check verifyModuleBootJars --parallel --build-cache`이다.
+3. **secret-aware Ansible preflight**
+    - prod `AGE_SECRET_KEY`가 GitHub Environment secret에 있고 SOPS recipient가 최신인지 확인한다.
+    - `ansible-secret-aware-verify.yml`을 prod 대상으로 실행해 `apis`, `admin`, `batch` 세 module group resolver가 모두 통과하는지 확인한다.
+    - resolver 실패, `ENC[...]` 잔존, host fingerprint 불일치는 배포 전 hard stop이다. GitHub Secret fallback을 추가하지 말고 SOPS inventory를 고친다.
+4. **release publish**
+    - draft release notes를 확인한 뒤 GitHub Release를 publish한다.
+    - `deploy-prod.yml`의 `resolve-release` → `verify` + `secret-preflight` → `build-image` → `foundation` → `deploy` 순서를 확인한다.
+    - prod runtime은 `prod-runtime` concurrency group으로 직렬화되므로 기존 prod deploy/rollback 실행 중에는 새 release를 publish하지 않는다.
+5. **post-deploy 확인**
+    - Slack 알림의 release tag, commit SHA, module별 image tag가 기대값과 일치하는지 확인한다.
+    - healthcheck 실패나 nginx route 오류가 있으면 같은 release를 재시도하기 전에 원인 로그를 보존하고, 필요 시 `rollback-prod.yml`을 수동 실행한다.
 
 ## Ansible 구조
 
@@ -1242,9 +1274,11 @@ prod 전용 `rollback-prod.yml` 워크플로우가 제공된다.
 flowchart TB
     Start["workflow_dispatch<br/>module + release_ref 선택"]:::event
     Checkout["release_ref checkout<br/>commit SHA 고정"]:::step
+    MainGuard["origin/main 포함 여부 검증<br/>merge-base --is-ancestor"]:::verify
     Exec["_ansible-exec.yml<br/>checkout_ref = commit SHA<br/>playbook = rollback.yml"]:::executor
 
     ReadPrev["previous.json 읽기<br/>이전 배포 메타데이터 확인"]:::step
+    ReadCurrent["current.json 사전 읽기<br/>stop-start rescue 이미지 보관"]:::step
     Mode{"deploy_mode"}:::decision
 
     subgraph STRATEGY["Rollback 전략"]
@@ -1257,9 +1291,11 @@ flowchart TB
     Metadata["previous.json → current.json<br/>rollback metadata 복원"]:::post
 
     Start --> Checkout
-    Checkout --> Exec
+    Checkout --> MainGuard
+    MainGuard --> Exec
     Exec --> ReadPrev
-    ReadPrev --> Mode
+    ReadPrev --> ReadCurrent
+    ReadCurrent --> Mode
 
     Mode -->|"apis"| BlueGreen
     Mode -->|"admin / batch"| StopStart
@@ -1281,8 +1317,19 @@ flowchart TB
 ```
 
 - `previous.json`이 없으면 롤백 불가 (assert 실패)
-- 롤백은 `release_ref` 입력을 먼저 immutable commit SHA로 해석하고, `_ansible-exec.yml`의 `checkout_ref`로 전달해 prod 배포와 같은 코드 기준에서 실행한다
+- 롤백은 `release_ref` 입력을 먼저 immutable commit SHA로 해석하고, 해당 commit이 `origin/main` 계열에 포함된 경우에만 `_ansible-exec.yml`의 `checkout_ref`로 전달한다
+- `release_ref`는 "롤백을 실행할 Ansible 코드 기준"이며, `vX.Y.Z` release tag 또는 full 40-character commit SHA만 허용한다. 실제 복원 대상 이미지는 원격 호스트의 `previous.json`에서 읽는다
 - 롤백 후 `app_healthcheck`와 nginx route 갱신이 모두 성공해야 `current.json`을 live 상태로 복원한다
+- `admin`/`batch`처럼 `stop_start`인 모듈은 롤백 중 실패하면 사전에 archive/read한 `current.json` 이미지로 컨테이너 복원을 시도한 뒤 실패를 보고한다
+
+### Rollback rehearsal 절차
+
+1. 최소 두 번의 managed prod 배포가 끝나 `{{ release_root }}/<module>/current.json`과 `previous.json`이 모두 존재하는지 확인한다. `legacyv1`처럼 Ansible metadata가 없는 수동 컨테이너는 `previous.json`에 기록되지 않으므로 `rollback-prod.yml`의 자동 복원 대상이 아니다.
+2. GitHub Actions에서 `rollback-prod.yml`을 수동 실행한다. `module`은 rehearsal 대상 하나를 고르고, `release_ref`는 `origin/main`에 포함된 `vX.Y.Z` release tag 또는 full 40-character commit SHA를 입력한다.
+3. workflow 로그에서 `release_ref` checkout, `origin/main` ancestry guard, `_ansible-exec.yml` checkout commit, `app_healthcheck` 성공을 확인한다.
+4. 서버에서 `docker ps`, module health endpoint, nginx route/admin path, `current.json`이 실제 live image와 일치하는지 확인한다.
+5. 실패 rehearsal을 할 때는 `admin`/`batch`에 대해 rescue 로그(`Restore stop-start current release after rollback failure`)가 current image를 다시 기동했는지 확인한다. rescue까지 실패하면 `reverted-*.json` 또는 기존 `current.json`의 image 값으로 수동 재기동한다.
+6. rehearsal 후 다시 forward 배포하거나 동일 워크플로우로 원래 target을 복원해 `current.json`/`previous.json` 순서를 운영 의도에 맞게 정리한다.
 
 ### Nginx source/target contract
 
@@ -1294,7 +1341,7 @@ flowchart TB
 
 ## Sentry runtime secret contract
 
-Sentry DSN/auth token은 평문으로 commit하지 않습니다. 공통 runtime DSN과 sampling kill-switch는 SOPS inventory의 `app_secret_content`에 넣고, Source Context upload token은 GitHub Actions secret으로만 넣습니다.
+Sentry DSN/auth token은 평문으로 commit하지 않습니다. 공통 runtime DSN과 sampling kill-switch는 SOPS inventory의 `app_secret_content`에 넣고, Source Context upload token은 `beat.sentry-source-context` build convention이 CI에서만 읽도록 GitHub Actions secret으로만 넣습니다.
 
 ### GitHub Actions secret
 

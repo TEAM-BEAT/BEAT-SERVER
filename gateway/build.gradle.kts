@@ -1,11 +1,12 @@
 plugins {
     id("beat.spring-library")
+    id("beat.sentry-source-context")
 }
 
 dependencies {
-    implementation(project(":module-contracts"))
-    implementation(project(":observability"))
-    api(project(":global-support"))
+    api(project(":module-contracts"))
+    api(project(":observability"))
+    implementation(project(":global-support"))
     implementation(libs.jjwt.api)
     runtimeOnly(libs.jjwt.impl)
     runtimeOnly(libs.jjwt.jackson)
@@ -13,7 +14,6 @@ dependencies {
     compileOnly(libs.springdoc.openapi.starter.webmvc.ui)
     compileOnly(libs.spring.boot.starter.security)
     compileOnly(libs.spring.boot.starter.web)
-    compileOnly(libs.spring.boot.core)
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
 

@@ -28,13 +28,32 @@ jobs:
         with:
           cache-cleanup: on-success
 
-      - name: Verify baseline
+      # Hard gate: the catalog has no intentional unused aliases today. If a temporary
+      # exception is ever needed, document it with a reason in the allowlist path
+      # printed by the checker and remove it when the migration closes.
+      - name: Check unused version catalog aliases
+        run: python3 .github/scripts/check_unused_version_catalog_aliases.py
+        shell: bash
+
+      - name: Verify Gradle check
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_RELEASE: beat-server@${{ github.sha }}
         run: |
           chmod +x gradlew
-          ./gradlew verifyV2WebBaseline :admin:test :batch:test verifyModuleBootJars --parallel --build-cache
+          ./gradlew check verifyModuleBootJars --parallel --build-cache
+        shell: bash
+
+      # Advisory phase: buildHealth is intentionally non-blocking on first adoption.
+      # Promote to a hard gate only after the report is triaged into:
+      # - immediate fixes,
+      # - intentional false positives / runtime-only cases with documented plugin config,
+      # - follow-up cleanup issues.
+      # Then remove continue-on-error and switch dependencyAnalysis severity from warn to fail.
+      - name: Generate dependency health report
+        continue-on-error: true
+        run: |
+          ./gradlew buildHealth --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g" --build-cache
         shell: bash
 
   scan-images:

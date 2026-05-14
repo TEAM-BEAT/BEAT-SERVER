@@ -41,7 +41,8 @@ class SharedBoundaryContractTest {
 
 		assertTrue(rootBuild.contains("JavaLanguageVersion.of(25)"));
 		assertTrue(rootBuild.contains("options.release.set(25)"));
-		assertTrue(rootBuild.contains("JvmTarget.JVM_25"));
+		assertFalse(rootBuild.contains("JvmTarget.JVM_25"));
+		assertFalse(rootBuild.contains("KotlinCompile"));
 		assertTrue(buildLogic.contains("JavaLanguageVersion.of(25)"));
 		assertTrue(buildLogic.contains("options.release.set(25)"));
 		assertTrue(buildLogic.contains("JvmTarget.JVM_25"));
@@ -951,7 +952,8 @@ class SharedBoundaryContractTest {
 			.toList();
 
 		assertFalse(buildFile.contains("project(\":domain\")"));
-		assertTrue(buildFile.contains("compileOnly(project(\":global-support\"))"));
+		assertTrue(buildFile.contains("api(project(\":global-support\"))"));
+		assertFalse(buildFile.contains("compileOnly(project(\":global-support\"))"));
 		assertFalse(buildFile.contains("implementation(project(\":domain\"))"));
 		assertFalse(buildFile.contains("implementation(project(\":global-support\"))"));
 		assertTrue(
@@ -1200,6 +1202,82 @@ class SharedBoundaryContractTest {
 			() -> assertTrue(performanceDomain.contains("linkedUserId = Users.Id.from(userId)")),
 			() -> assertFalse(performanceDomain.contains("val userId: Long,"))
 		);
+	}
+
+	@Test
+	void webConventionSplitKeepsFeignOpenApiSecurityAndMvcOptIn() throws Exception {
+		Path webAppConvention = Path.of("build-logic/src/main/kotlin/beat.web-app.gradle.kts");
+		Path webMvcConvention = Path.of("build-logic/src/main/kotlin/beat.web-mvc.gradle.kts");
+		Path webSecurityConvention = Path.of("build-logic/src/main/kotlin/beat.web-security.gradle.kts");
+		Path openApiConvention = Path.of("build-logic/src/main/kotlin/beat.openapi.gradle.kts");
+		Path feignRuntimeConvention = Path.of("build-logic/src/main/kotlin/beat.feign-runtime.gradle.kts");
+		Path actuatorHttpRuntimeConvention =
+			Path.of("build-logic/src/main/kotlin/beat.actuator-http-runtime.gradle.kts");
+
+		assertFalse(Files.exists(webAppConvention), "beat.web-app must stay retired; modules must opt into web capabilities explicitly");
+		assertTrue(Files.exists(webMvcConvention), "web MVC must be selectable via beat.web-mvc");
+		assertTrue(Files.exists(webSecurityConvention), "security must be selectable via beat.web-security");
+		assertTrue(Files.exists(openApiConvention), "OpenAPI must be selectable via beat.openapi");
+		assertTrue(Files.exists(feignRuntimeConvention), "Feign must be selectable via beat.feign-runtime");
+		assertTrue(Files.exists(actuatorHttpRuntimeConvention),
+			"actuator HTTP must be selectable without opting batch into the full web MVC convention");
+		String actuatorHttpRuntime = Files.readString(actuatorHttpRuntimeConvention);
+		assertTrue(actuatorHttpRuntime.contains("add(\"runtimeOnly\", libs.findLibrary(\"spring-boot-starter-web\").get())"));
+		assertFalse(actuatorHttpRuntime.contains("add(\"implementation\", libs.findLibrary(\"spring-boot-starter-web\").get())"));
+
+		String apisBuild = Files.readString(Path.of("apis/build.gradle.kts"));
+		String adminBuild = Files.readString(Path.of("admin/build.gradle.kts"));
+		String batchBuild = Files.readString(Path.of("batch/build.gradle.kts"));
+
+		assertFalse(apisBuild.contains("id(\"beat.web-app\")"));
+		assertFalse(adminBuild.contains("id(\"beat.web-app\")"));
+		assertTrue(apisBuild.contains("id(\"beat.spring-boot-app\")"));
+		assertTrue(adminBuild.contains("id(\"beat.spring-boot-app\")"));
+		assertTrue(apisBuild.contains("id(\"beat.web-mvc\")"));
+		assertTrue(adminBuild.contains("id(\"beat.web-mvc\")"));
+		assertTrue(apisBuild.contains("id(\"beat.web-security\")"));
+		assertTrue(adminBuild.contains("id(\"beat.web-security\")"));
+		assertTrue(apisBuild.contains("id(\"beat.openapi\")"));
+		assertTrue(adminBuild.contains("id(\"beat.openapi\")"));
+		assertTrue(apisBuild.contains("id(\"beat.feign-runtime\")"));
+		assertTrue(batchBuild.contains("id(\"beat.actuator-http-runtime\")"));
+		assertFalse(batchBuild.contains("implementation(libs.spring.boot.starter.web)"));
+		assertFalse(batchBuild.contains("id(\"beat.web-mvc\")"));
+	}
+
+	@Test
+	void infraConventionSplitKeepsJpaExternalClientAndBaseLibraryBoundariesSeparate() throws Exception {
+		Path infraLibraryConvention = Path.of("build-logic/src/main/kotlin/beat.infra-library.gradle.kts");
+		Path jpaAdapterConvention = Path.of("build-logic/src/main/kotlin/beat.jpa-adapter.gradle.kts");
+		Path externalClientConvention = Path.of("build-logic/src/main/kotlin/beat.external-client.gradle.kts");
+		Path legacyJpaInfraConvention = Path.of("build-logic/src/main/kotlin/beat.jpa-infra.gradle.kts");
+		String infraBuild = Files.readString(Path.of("infra/build.gradle.kts"));
+
+		assertTrue(Files.exists(infraLibraryConvention), "infra base library convention must exist");
+		assertTrue(Files.exists(jpaAdapterConvention), "JPA adapter convention must exist");
+		assertTrue(Files.exists(externalClientConvention), "external client convention must exist");
+		assertFalse(Files.exists(legacyJpaInfraConvention), "beat.jpa-infra must stay retired in favor of focused infra conventions");
+		assertFalse(infraBuild.contains("id(\"beat.jpa-infra\")"));
+		assertTrue(infraBuild.contains("id(\"beat.jpa-adapter\")"));
+		assertTrue(infraBuild.contains("id(\"beat.external-client\")"));
+		assertTrue(infraBuild.contains("implementation(libs.aws.java.sdk.s3)"), "S3 remains explicit in infra/build.gradle.kts");
+		assertTrue(infraBuild.contains("implementation(libs.nurigo.java.sdk)"), "SMS remains explicit in infra/build.gradle.kts");
+
+		String infraLibrary = Files.readString(infraLibraryConvention);
+		String jpaAdapter = Files.readString(jpaAdapterConvention);
+		String externalClient = Files.readString(externalClientConvention);
+		String combinedConventions = infraLibrary + "\n" + jpaAdapter + "\n" + externalClient;
+
+		assertTrue(jpaAdapter.contains("id(\"beat.infra-library\")"));
+		assertTrue(externalClient.contains("id(\"beat.infra-library\")"));
+		assertTrue(jpaAdapter.contains("spring-boot-starter-data-jpa"));
+		assertTrue(externalClient.contains("compileOnly(platform(libs.findLibrary(\"spring-cloud-dependencies\").get()))"));
+		assertTrue(externalClient.contains("spring-cloud-starter-openfeign"));
+		assertFalse(infraLibrary.contains("spring-boot-starter-data-jpa"));
+		assertFalse(infraLibrary.contains("spring-cloud-starter-openfeign"));
+		assertFalse(combinedConventions.contains("spring-boot-starter-data-redis"));
+		assertFalse(combinedConventions.contains("spring-boot-starter-security"));
+		assertFalse(combinedConventions.contains("querydsl"));
 	}
 
 	private Path performanceImageJpaEntitySourcePath() {
