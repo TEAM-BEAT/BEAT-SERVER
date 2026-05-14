@@ -511,7 +511,7 @@ class RootRetirementContractTest {
 		assertFalse(rollbackPlaybook.contains("default(['inventories/dev/hosts.yml'])"));
 		assertTrue(rollbackPlaybook.contains("Or trigger the foundation step on GitHub Actions before retrying rollback."));
 		assertTrue(rollbackPlaybook.contains("name: Report foundation marker contents"));
-		assertBefore(rollbackPlaybook, "name: Stat foundation marker", "role: app_rollback");
+		assertBefore(rollbackPlaybook, "name: Stat foundation marker", "name: Roll back runtime to previous release");
 
 		assertBefore(deployDev, "\n  foundation:", "\n  deploy:");
 		String devFoundationNeeds =
@@ -749,7 +749,15 @@ class RootRetirementContractTest {
 		assertTrue(deployPlaybook.contains("- cleanup"));
 		assertTrue(rollbackPlaybook.contains("name: app_healthcheck"));
 		assertTrue(rollbackPlaybook.contains("module in modules"));
+		assertTrue(rollbackPlaybook.contains("name: Roll back runtime to previous release"));
+		assertTrue(rollbackPlaybook.contains("name: Execute rollback and restore metadata truth"));
 		assertTrue(rollbackPlaybook.contains("app_rollback_module_cfg.nginx_route is defined"));
+		assertTrue(rollbackPlaybook.contains("name: Restore stop-start current release after rollback failure"));
+		assertTrue(rollbackPlaybook.contains("app_stopstart_image: \"{{ app_rollback_current_release.image }}\""));
+		assertTrue(rollbackPlaybook.contains("name: Healthcheck restored stop-start current release"));
+		assertTrue(rollbackPlaybook.contains("app_rollback_module_cfg.deploy_mode == 'stop_start'"));
+		assertTrue(rollbackPlaybook.contains("For stop-start modules, the playbook attempted to restore the archived current image"));
+		assertBefore(rollbackPlaybook, "name: Roll back runtime to previous release", "name: Healthcheck module after rollback before metadata promotion");
 		assertTrue(rollbackPlaybook.contains("- rollback"));
 		assertTrue(appSecretRole.contains("application-secret.properties.j2"));
 		assertFalse(appSecretRole.contains("app_secret_content_normalized"));
@@ -762,6 +770,8 @@ class RootRetirementContractTest {
 		assertTrue(deployProd.contains("resolve-release"));
 		assertTrue(deployProd.contains("release_tag"));
 		assertTrue(rollbackProd.contains("playbook: playbooks/rollback.yml"));
+		assertTrue(rollbackProd.contains("git merge-base --is-ancestor \"$commit_sha\" refs/remotes/origin/main"));
+		assertTrue(rollbackProd.contains("origin_main_sha=${main_sha}"));
 		assertFalse(deployDev.contains("ansible-playbook playbooks/deploy.yml"));
 		assertFalse(deployProd.contains("ansible-playbook playbooks/deploy.yml"));
 		assertFalse(rollbackProd.contains("ansible-playbook playbooks/rollback.yml"));
@@ -812,6 +822,10 @@ class RootRetirementContractTest {
 		assertFalse(appCleanupRole.contains("failed_when: false"));
 		assertTrue(appRollbackRole.contains("app_rollback_archive_timestamp"));
 		assertTrue(appRollbackRole.contains("now(utc=true, fmt='%Y%m%dT%H%M%SZ')"));
+		assertTrue(appRollbackRole.contains("name: Read current release metadata before rollback"));
+		assertTrue(appRollbackRole.contains("app_rollback_current_release_raw"));
+		assertTrue(appRollbackRole.contains("app_rollback_current_release"));
+		assertBefore(appRollbackRole, "name: Parse current release metadata before rollback", "name: Roll back stop-start lanes via Docker module");
 		assertFalse(appRollbackRole.contains("lookup('pipe', 'date -u"));
 		assertTrue(infraReadme.contains("Release metadata schema"));
 		assertTrue(infraReadme.contains("created_at`은 원격 EC2의 시스템 시간이 아니라 controller UTC"));
@@ -826,6 +840,9 @@ class RootRetirementContractTest {
 		assertTrue(infraReadme.contains("Nginx fragment mapping contract"));
 		assertTrue(infraReadme.contains("nginx_fragments"));
 		assertTrue(infraReadme.contains("read-only contract"));
+		assertTrue(infraReadme.contains("Rollback rehearsal 절차"));
+		assertTrue(infraReadme.contains("legacyv1"));
+		assertTrue(infraReadme.contains("Restore stop-start current release after rollback failure"));
 		assertTrue(devInventory.contains("nginx_seed_placeholder_host: \"127.0.0.1\""));
 		assertTrue(devInventory.contains("nginx_seed_placeholder_port: 65535"));
 		assertTrue(devInventory.contains("nginx_legacy_config_volume_name: nginx-config-volume"));

@@ -65,6 +65,17 @@ jobs:
             echo "Rollback release tag mismatch: input=$RELEASE_REF checkout=$commit_sha" >&2
             exit 1
           fi
+
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          main_sha="$(git rev-parse refs/remotes/origin/main)"
+          if ! git merge-base --is-ancestor "$commit_sha" refs/remotes/origin/main; then
+            echo "Rollback release_ref is not contained in origin/main" >&2
+            echo "release_ref=${RELEASE_REF}" >&2
+            echo "commit_sha=${commit_sha}" >&2
+            echo "origin_main_sha=${main_sha}" >&2
+            exit 1
+          fi
+          echo "Rollback release_ref ${RELEASE_REF} commit ${commit_sha} is contained in origin/main ${main_sha}"
           echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
 
   rollback:

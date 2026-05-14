@@ -84,15 +84,16 @@
         - validate
         - preflight
 
-  roles:
-    - role: app_rollback
-      tags:
-        - rollback
-        - release
-
   tasks:
-    - name: Verify rollback result and restore metadata truth
+    - name: Execute rollback and restore metadata truth
       block:
+        - name: Roll back runtime to previous release
+          ansible.builtin.import_role:
+            name: app_rollback
+          tags:
+            - rollback
+            - release
+
         - name: Healthcheck module after rollback before metadata promotion
           ansible.builtin.import_role:
             name: app_healthcheck
@@ -124,9 +125,49 @@
             - rollback
             - release
       rescue:
-        - name: Abort rollback metadata promotion when post-rollback invariant fails
+        - name: Restore stop-start current release after rollback failure
+          block:
+            - name: Recreate stop-start container with archived current image
+              ansible.builtin.import_role:
+                name: app_stopstart
+                tasks_from: run_container.yml
+              vars:
+                app_stopstart_image: "{{ app_rollback_current_release.image }}"
+                app_stopstart_module_cfg: "{{ app_rollback_module_cfg }}"
+                app_stopstart_release_ref: >-
+                  {{
+                    app_rollback_current_release.commit_sha
+                    | default(app_rollback_current_release.image_tag | default('unknown', true), true)
+                  }}
+              tags:
+                - rollback
+                - restore
+
+            - name: Healthcheck restored stop-start current release
+              ansible.builtin.import_role:
+                name: app_healthcheck
+              tags:
+                - rollback
+                - restore
+                - healthcheck
+          rescue:
+            - name: Report stop-start current release restore failure
+              ansible.builtin.debug:
+                msg: >-
+                  Failed to restore current release image after rollback failure for module '{{ module }}'.
+                  Manual intervention required. current_image={{ app_rollback_current_release.image | default('unknown') }}
+          when:
+            - app_rollback_module_cfg.deploy_mode == 'stop_start'
+            - app_rollback_current_release is defined
+            - app_rollback_current_release.image is defined
+          tags:
+            - rollback
+            - restore
+
+        - name: Abort rollback metadata promotion when rollback invariant fails
           ansible.builtin.fail:
             msg: >-
-              Rollback runtime change completed but post-rollback healthcheck or nginx route update failed
-              for module '{{ module }}'. Metadata promotion was intentionally skipped so
+              Rollback failed for module '{{ module }}'. Metadata promotion was intentionally skipped so
               {{ release_dir }}/current.json is not advanced to an unverified runtime state.
+              For stop-start modules, the playbook attempted to restore the archived current image before aborting
+              when current metadata was available.
