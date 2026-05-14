@@ -18,6 +18,9 @@ testcontainers = "1.21.3"
 redis-testcontainers = "2.2.2"
 sentry = "8.41.0"
 sentry-gradle-plugin = "6.6.0"
+# JUnit Platform/Jupiter is the baseline for existing Java tests and Spring Boot starter-test.
+# Kotlin migration may add Kotest/MockK as an optional Kotlin test layer on top of this baseline,
+# not as a replacement for the shared JUnit Platform execution contract.
 junit = "6.0.3"
 dependency-analysis = "3.11.0"
 
