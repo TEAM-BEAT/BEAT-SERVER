@@ -1221,6 +1221,9 @@ class SharedBoundaryContractTest {
 		assertTrue(Files.exists(feignRuntimeConvention), "Feign must be selectable via beat.feign-runtime");
 		assertTrue(Files.exists(actuatorHttpRuntimeConvention),
 			"actuator HTTP must be selectable without opting batch into the full web MVC convention");
+		String actuatorHttpRuntime = Files.readString(actuatorHttpRuntimeConvention);
+		assertTrue(actuatorHttpRuntime.contains("add(\"runtimeOnly\", libs.findLibrary(\"spring-boot-starter-web\").get())"));
+		assertFalse(actuatorHttpRuntime.contains("add(\"implementation\", libs.findLibrary(\"spring-boot-starter-web\").get())"));
 
 		String apisBuild = Files.readString(Path.of("apis/build.gradle.kts"));
 		String adminBuild = Files.readString(Path.of("admin/build.gradle.kts"));
