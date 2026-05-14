@@ -242,7 +242,11 @@ class RootRetirementContractTest {
 		String versionCatalog = read("gradle/libs.versions.toml");
 		String rootBuild = read("build.gradle.kts");
 		String sentrySourceContextConvention = read("build-logic/src/main/kotlin/beat.sentry-source-context.gradle.kts");
+		String prometheusRuntimeConvention = read("build-logic/src/main/kotlin/beat.prometheus-runtime.gradle.kts");
 		String buildLogicBuild = read("build-logic/build.gradle.kts");
+		String apisBuild = read("apis/build.gradle.kts");
+		String adminBuild = read("admin/build.gradle.kts");
+		String batchBuild = read("batch/build.gradle.kts");
 		String observabilityBuild = read("observability/build.gradle.kts");
 		String observabilityConfig = read("observability/src/main/kotlin/com/beat/observability/ObservabilityModuleConfig.kt");
 		String sentryConfig = read("observability/src/main/kotlin/com/beat/observability/sentry/SentryConfig.kt");
@@ -299,6 +303,12 @@ class RootRetirementContractTest {
 		assertTrue(observabilityBuild.contains("libs.sentry.spring.boot.starter"));
 		assertTrue(observabilityBuild.contains("libs.sentry.async.profiler"));
 		assertTrue(observabilityBuild.contains("libs.sentry.log4j2"));
+		assertTrue(prometheusRuntimeConvention.contains("add(\"runtimeOnly\", libs.findLibrary(\"micrometer-registry-prometheus\").get())"));
+		assertTrue(apisBuild.contains("id(\"beat.prometheus-runtime\")"));
+		assertTrue(batchBuild.contains("id(\"beat.prometheus-runtime\")"));
+		assertFalse(adminBuild.contains("id(\"beat.prometheus-runtime\")"));
+		assertFalse(apisBuild.contains("implementation(libs.micrometer.registry.prometheus)"));
+		assertFalse(observabilityBuild.contains("libs.micrometer.registry.prometheus"));
 
 		assertTrue(observabilityConfig.contains("SentryConfig::class"));
 		assertTrue(sentryConfig.contains("options.isEnabled = false"));

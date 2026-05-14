@@ -1,6 +1,7 @@
 plugins {
     id("beat.spring-boot-app")
     id("beat.sentry-source-context")
+    id("beat.prometheus-runtime")
 }
 
 dependencies {

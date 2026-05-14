@@ -1,6 +1,7 @@
 plugins {
     id("beat.web-app")
     id("beat.sentry-source-context")
+    id("beat.prometheus-runtime")
 }
 
 dependencies {
@@ -10,7 +11,6 @@ dependencies {
     implementation(project(":infra"))
     implementation(project(":global-support"))
     implementation(project(":observability"))
-    implementation(libs.micrometer.registry.prometheus)
 
     testImplementation(libs.bundles.integration.testcontainers)
 }

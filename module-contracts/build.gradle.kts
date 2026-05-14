@@ -4,5 +4,5 @@ plugins {
 }
 
 dependencies {
-    compileOnly(project(":global-support"))
+    api(project(":global-support"))
 }

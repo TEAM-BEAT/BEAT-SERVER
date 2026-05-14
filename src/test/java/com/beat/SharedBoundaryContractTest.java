@@ -952,7 +952,8 @@ class SharedBoundaryContractTest {
 			.toList();
 
 		assertFalse(buildFile.contains("project(\":domain\")"));
-		assertTrue(buildFile.contains("compileOnly(project(\":global-support\"))"));
+		assertTrue(buildFile.contains("api(project(\":global-support\"))"));
+		assertFalse(buildFile.contains("compileOnly(project(\":global-support\"))"));
 		assertFalse(buildFile.contains("implementation(project(\":domain\"))"));
 		assertFalse(buildFile.contains("implementation(project(\":global-support\"))"));
 		assertTrue(
