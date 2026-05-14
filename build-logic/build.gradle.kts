@@ -13,6 +13,7 @@ val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 val kotlinVersion = libsCatalog.findVersion("kotlin").get().requiredVersion
 val springBootVersion = libsCatalog.findVersion("spring-boot").get().requiredVersion
 val dependencyManagementVersion = libsCatalog.findVersion("dependency-management").get().requiredVersion
+val sentryGradlePluginVersion = libsCatalog.findVersion("sentry-gradle-plugin").get().requiredVersion
 
 fun pluginMarker(group: String, artifact: String, version: String): String =
     "$group:$artifact:$version"
@@ -44,6 +45,13 @@ dependencies {
             "io.spring.dependency-management",
             "io.spring.dependency-management.gradle.plugin",
             dependencyManagementVersion,
+        )
+    )
+    implementation(
+        pluginMarker(
+            "io.sentry.jvm.gradle",
+            "io.sentry.jvm.gradle.gradle.plugin",
+            sentryGradlePluginVersion,
         )
     )
 }

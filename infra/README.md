@@ -1341,7 +1341,7 @@ flowchart TB
 
 ## Sentry runtime secret contract
 
-Sentry DSN/auth token은 평문으로 commit하지 않습니다. 공통 runtime DSN과 sampling kill-switch는 SOPS inventory의 `app_secret_content`에 넣고, Source Context upload token은 GitHub Actions secret으로만 넣습니다.
+Sentry DSN/auth token은 평문으로 commit하지 않습니다. 공통 runtime DSN과 sampling kill-switch는 SOPS inventory의 `app_secret_content`에 넣고, Source Context upload token은 `beat.sentry-source-context` build convention이 CI에서만 읽도록 GitHub Actions secret으로만 넣습니다.
 
 ### GitHub Actions secret
 

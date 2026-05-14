@@ -1,5 +1,6 @@
 plugins {
     id("beat.jpa-infra")
+    id("beat.sentry-source-context")
 }
 
 dependencies {

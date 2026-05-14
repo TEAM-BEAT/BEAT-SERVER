@@ -1,5 +1,6 @@
 plugins {
     id("beat.web-app")
+    id("beat.sentry-source-context")
 }
 
 dependencies {

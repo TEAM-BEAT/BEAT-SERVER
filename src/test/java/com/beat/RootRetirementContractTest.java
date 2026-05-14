@@ -117,8 +117,12 @@ class RootRetirementContractTest {
 		assertTrue(buildFile.contains("java"));
 		assertTrue(buildFile.contains("alias(libs.plugins.sonarqube)"));
 		assertTrue(buildFile.contains("alias(libs.plugins.kover)"));
-		assertTrue(buildFile.contains("alias(libs.plugins.sentry.jvm) apply false"));
 		assertTrue(buildFile.contains("id(\"beat.test\")"));
+
+		assertFalse(buildFile.contains("alias(libs.plugins.sentry.jvm) apply false"));
+		assertFalse(buildFile.contains("SentryPluginExtension"));
+		assertFalse(buildFile.contains("sentrySdkVersion"));
+		assertFalse(buildFile.contains("io.sentry.jvm.gradle"));
 
 		assertFalse(buildFile.contains("alias(libs.plugins.spring.boot)"));
 		assertFalse(buildFile.contains("alias(libs.plugins.spring.dependency.management)"));
@@ -236,6 +240,8 @@ class RootRetirementContractTest {
 	void observabilityOwnsSentryFullObservabilityContract() throws Exception {
 		String versionCatalog = read("gradle/libs.versions.toml");
 		String rootBuild = read("build.gradle.kts");
+		String sentrySourceContextConvention = read("build-logic/src/main/kotlin/beat.sentry-source-context.gradle.kts");
+		String buildLogicBuild = read("build-logic/build.gradle.kts");
 		String observabilityBuild = read("observability/build.gradle.kts");
 		String observabilityConfig = read("observability/src/main/kotlin/com/beat/observability/ObservabilityModuleConfig.kt");
 		String sentryConfig = read("observability/src/main/kotlin/com/beat/observability/sentry/SentryConfig.kt");
@@ -261,14 +267,34 @@ class RootRetirementContractTest {
 		assertTrue(versionCatalog.contains("io.sentry:sentry-async-profiler"));
 		assertTrue(versionCatalog.contains("io.sentry:sentry-log4j2"));
 		assertTrue(versionCatalog.contains("io.sentry.jvm.gradle"));
-		assertTrue(rootBuild.contains("includeSourceContext.set(true)"));
-		assertTrue(rootBuild.contains("autoUploadSourceContext.set("));
-		assertTrue(rootBuild.contains("org.set(\"beat-jo\")"));
-		assertTrue(rootBuild.contains("projectName.set(\"java-spring-boot\")"));
-		assertTrue(rootBuild.contains("authToken.set(providers.environmentVariable(\"SENTRY_AUTH_TOKEN\")"));
-		assertTrue(rootBuild.contains("autoInstallation {"));
-		assertTrue(rootBuild.contains("enabled.set(false)"));
-		assertTrue(rootBuild.contains("resolutionStrategy.force(\"io.sentry:sentry:$sentrySdkVersion\")"));
+		assertFalse(rootBuild.contains("includeSourceContext.set(true)"));
+		assertFalse(rootBuild.contains("autoUploadSourceContext.set("));
+		assertFalse(rootBuild.contains("authToken.set(providers.environmentVariable(\"SENTRY_AUTH_TOKEN\")"));
+		assertFalse(rootBuild.contains("resolutionStrategy.force(\"io.sentry:sentry:$sentrySdkVersion\")"));
+		assertTrue(buildLogicBuild.contains("sentry-gradle-plugin"));
+		assertTrue(buildLogicBuild.contains("io.sentry.jvm.gradle.gradle.plugin"));
+		assertTrue(sentrySourceContextConvention.contains("id(\"io.sentry.jvm.gradle\")"));
+		assertTrue(sentrySourceContextConvention.contains("includeSourceContext.set(true)"));
+		assertTrue(sentrySourceContextConvention.contains("autoUploadSourceContext.set("));
+		assertTrue(sentrySourceContextConvention.contains("org.set(\"beat-jo\")"));
+		assertTrue(sentrySourceContextConvention.contains("projectName.set(\"java-spring-boot\")"));
+		assertTrue(sentrySourceContextConvention.contains("authToken.set(providers.environmentVariable(\"SENTRY_AUTH_TOKEN\")"));
+		assertTrue(sentrySourceContextConvention.contains("autoInstallation {"));
+		assertTrue(sentrySourceContextConvention.contains("enabled.set(false)"));
+		assertTrue(sentrySourceContextConvention.contains("resolutionStrategy.force(\"io.sentry:sentry:$sentrySdkVersion\")"));
+		for (String moduleBuild : new String[] {
+			"apis/build.gradle.kts",
+			"admin/build.gradle.kts",
+			"batch/build.gradle.kts",
+			"observability/build.gradle.kts",
+			"infra/build.gradle.kts",
+			"domain/build.gradle.kts",
+			"gateway/build.gradle.kts",
+			"global-support/build.gradle.kts",
+			"module-contracts/build.gradle.kts"
+		}) {
+			assertTrue(read(moduleBuild).contains("id(\"beat.sentry-source-context\")"), moduleBuild);
+		}
 		assertTrue(observabilityBuild.contains("libs.sentry.spring.boot.starter"));
 		assertTrue(observabilityBuild.contains("libs.sentry.async.profiler"));
 		assertTrue(observabilityBuild.contains("libs.sentry.log4j2"));

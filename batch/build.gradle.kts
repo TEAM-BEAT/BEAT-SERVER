@@ -1,5 +1,6 @@
 plugins {
     id("beat.spring-boot-app")
+    id("beat.sentry-source-context")
 }
 
 dependencies {
