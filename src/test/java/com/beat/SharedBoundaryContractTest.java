@@ -1211,15 +1211,20 @@ class SharedBoundaryContractTest {
 		Path webSecurityConvention = Path.of("build-logic/src/main/kotlin/beat.web-security.gradle.kts");
 		Path openApiConvention = Path.of("build-logic/src/main/kotlin/beat.openapi.gradle.kts");
 		Path feignRuntimeConvention = Path.of("build-logic/src/main/kotlin/beat.feign-runtime.gradle.kts");
+		Path actuatorHttpRuntimeConvention =
+			Path.of("build-logic/src/main/kotlin/beat.actuator-http-runtime.gradle.kts");
 
 		assertFalse(Files.exists(webAppConvention), "beat.web-app must stay retired; modules must opt into web capabilities explicitly");
 		assertTrue(Files.exists(webMvcConvention), "web MVC must be selectable via beat.web-mvc");
 		assertTrue(Files.exists(webSecurityConvention), "security must be selectable via beat.web-security");
 		assertTrue(Files.exists(openApiConvention), "OpenAPI must be selectable via beat.openapi");
 		assertTrue(Files.exists(feignRuntimeConvention), "Feign must be selectable via beat.feign-runtime");
+		assertTrue(Files.exists(actuatorHttpRuntimeConvention),
+			"actuator HTTP must be selectable without opting batch into the full web MVC convention");
 
 		String apisBuild = Files.readString(Path.of("apis/build.gradle.kts"));
 		String adminBuild = Files.readString(Path.of("admin/build.gradle.kts"));
+		String batchBuild = Files.readString(Path.of("batch/build.gradle.kts"));
 
 		assertFalse(apisBuild.contains("id(\"beat.web-app\")"));
 		assertFalse(adminBuild.contains("id(\"beat.web-app\")"));
@@ -1232,6 +1237,9 @@ class SharedBoundaryContractTest {
 		assertTrue(apisBuild.contains("id(\"beat.openapi\")"));
 		assertTrue(adminBuild.contains("id(\"beat.openapi\")"));
 		assertTrue(apisBuild.contains("id(\"beat.feign-runtime\")"));
+		assertTrue(batchBuild.contains("id(\"beat.actuator-http-runtime\")"));
+		assertFalse(batchBuild.contains("implementation(libs.spring.boot.starter.web)"));
+		assertFalse(batchBuild.contains("id(\"beat.web-mvc\")"));
 	}
 
 	@Test
