@@ -1317,7 +1317,7 @@ class RootRetirementContractTest {
 
 	private static void assertCatalogAliasAbsent(String catalog, String section, String alias) {
 		String sectionBody = sectionBody(catalog, section);
-		assertFalse(sectionBody.matches("(?s).*^" + java.util.regex.Pattern.quote(alias) + "\\s*=.*"),
+		assertFalse(sectionBody.matches("(?ms).*^" + java.util.regex.Pattern.quote(alias) + "\\s*=.*"),
 			"gradle/libs.versions.toml must not reintroduce " + section + "." + alias);
 	}
 

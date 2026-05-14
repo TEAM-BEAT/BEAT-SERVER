@@ -94,7 +94,9 @@ def alias_to_accessor(alias: str) -> str:
 
 def accessor_pattern(prefix: str, alias: str) -> re.Pattern[str]:
     accessor = re.escape(alias_to_accessor(alias))
-    return re.compile(rf"(?<![A-Za-z0-9_.]){re.escape(prefix)}\.{accessor}(?![A-Za-z0-9_.])")
+    return re.compile(
+        rf"(?<![A-Za-z0-9_.]){re.escape(prefix)}\.{accessor}(?:\.get\(\))?(?![A-Za-z0-9_.])"
+    )
 
 
 def lookup_pattern(method: str, alias: str) -> re.Pattern[str]:
