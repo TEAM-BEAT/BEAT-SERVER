@@ -1,50 +1,129 @@
 # build-logic module guide
 
 `build-logic`은 BEAT 멀티모듈 Gradle 빌드의 **convention plugin 모듈**입니다.
-각 애플리케이션/라이브러리 모듈이 직접 Spring, Kotlin, Web, Infra, Sentry, Test 의존성을 반복 선언하지 않도록 공통 빌드 정책을 capability 단위로 제공합니다.
+제품 코드는 없고, 각 모듈이 필요한 빌드 capability를 짧고 명확하게 선택할 수 있도록 Gradle plugin을 제공합니다.
 
-> 핵심 원칙: `build-logic`은 제품 런타임 코드가 아니라 빌드 정책 코드입니다. 모듈은 필요한 capability plugin만 명시적으로 선택합니다.
+> 처음 보는 사람을 위한 한 줄 요약: `build-logic`은 `apis`, `admin`, `batch`, `domain`, `infra` 같은 제품 모듈이 직접 수십 줄의 Gradle 설정을 반복하지 않도록 만든 **빌드 정책 모듈**입니다.
 
 ---
 
-## Migration status
+## 1. 이 문서를 읽는 방법
 
-| Current | Target | Deferred-to-issue |
+새 dependency나 plugin을 추가하려면 먼저 아래 질문에 답합니다.
+
+```text
+1. 이 모듈은 실행 가능한 Spring Boot app인가?
+2. HTTP API, Security, OpenAPI, Feign, Prometheus 중 어떤 capability가 필요한가?
+3. infra/JPA/external-client adapter인가?
+4. 이 설정이 runtime concern인가, compile concern인가, build/release concern인가?
+5. 이미 build-logic에 목적에 맞는 convention plugin이 있는가?
+```
+
+답에 따라 위치가 달라집니다.
+
+| 필요 | 먼저 볼 plugin |
+| --- | --- |
+| 실행 가능한 Spring Boot app | `beat.spring-boot-app` |
+| Spring library / bean compile surface | `beat.spring-library` |
+| HTTP Controller / MVC / Validation | `beat.web-mvc` |
+| Security filter/config | `beat.web-security` |
+| Swagger/OpenAPI UI | `beat.openapi` |
+| Feign runtime | `beat.feign-runtime` |
+| Actuator HTTP endpoint runtime만 필요 | `beat.actuator-http-runtime` |
+| Prometheus scrape 대상 | `beat.prometheus-runtime` |
+| JPA adapter 구현 | `beat.jpa-adapter` |
+| External client compile surface | `beat.external-client` |
+| Sentry source context upload | `beat.sentry-source-context` |
+
+---
+
+## 2. 전체 빌드 구조에서 build-logic의 위치
+
+```mermaid
+flowchart TB
+    Catalog[gradle/libs.versions.toml<br/>version catalog]
+    BuildLogic[build-logic<br/>Gradle convention plugins]
+    Root[Root build.gradle.kts<br/>coordination build]
+
+    subgraph Executable[Executable modules]
+        APIs[apis]
+        Admin[admin]
+        Batch[batch]
+    end
+
+    subgraph Libraries[Library / adapter modules]
+        Domain[domain]
+        Gateway[gateway]
+        Infra[infra]
+        Contracts[module-contracts]
+        Observability[observability]
+        Support[global-support]
+    end
+
+    Catalog --> BuildLogic
+    BuildLogic --> APIs
+    BuildLogic --> Admin
+    BuildLogic --> Batch
+    BuildLogic --> Domain
+    BuildLogic --> Gateway
+    BuildLogic --> Infra
+    BuildLogic --> Contracts
+    BuildLogic --> Observability
+    BuildLogic --> Support
+    Root --> Executable
+    Root --> Libraries
+
+    style BuildLogic fill:#eef2ff,stroke:#4338ca,stroke-width:2px
+    style Catalog fill:#fef9c3,stroke:#a16207,stroke-width:2px
+    style Root fill:#f8fafc,stroke:#475569,stroke-width:1px
+```
+
+### 레이어별 책임
+
+| Layer | 책임 | 금지 |
 | --- | --- | --- |
-| `beat.web-app`, `beat.jpa-infra` 같은 god convention을 제거하고 web/security/openapi/feign/infra/jpa/runtime capability를 선택형 plugin으로 분리했다. | 각 모듈의 `build.gradle.kts`만 봐도 필요한 runtime/compile capability가 드러나는 구조를 유지한다. | dependency-analysis hard gate 전환 전 남은 advisory report 분류와 예외 정책 정리. |
+| `gradle/libs.versions.toml` | dependency/plugin version catalog | 사용처 없는 alias 방치 |
+| `build-logic` | 반복되는 Gradle 정책을 convention plugin으로 제공 | 제품 모듈/런타임 코드 의존 |
+| root `build.gradle.kts` | coordination/test/verification task | subprojects vendor 설정 주입 |
+| executable modules | 실제 app runtime 조합 선택 | build policy 직접 복붙 |
+| library/adapter modules | 필요한 compile/runtime capability만 선택 | god convention에 기대기 |
 
 ---
 
-## 역할
+## 3. 핵심 원칙
 
-- Java/Kotlin toolchain, JVM target, 테스트 실행 정책을 중앙에서 고정한다.
-- Spring Boot executable module과 Spring library module의 기본 plugin 조합을 제공한다.
-- Web MVC, Security, OpenAPI, Feign, Prometheus, Actuator HTTP runtime 같은 기능을 선택형 convention으로 분리한다.
-- Infra/JPA/external-client build surface를 책임 단위로 분리한다.
-- Sentry source context upload와 Sentry SDK version alignment를 module-local convention으로 소유한다.
-- 보안상 필요한 transitive dependency override/constraint를 실행 모듈 convention에 모은다.
+```text
+모듈은 필요한 capability를 직접 고른다.
+build-logic은 capability를 작게 제공한다.
+root build는 제품 runtime이나 vendor 세부사항을 모른다.
+```
 
-## 허용 의존성
+### 좋은 예
 
-`build-logic`은 제품 모듈에 의존하지 않습니다. 허용되는 입력은 다음뿐입니다.
+```kotlin
+plugins {
+    id("beat.spring-boot-app")
+    id("beat.web-mvc")
+    id("beat.web-security")
+    id("beat.openapi")
+    id("beat.feign-runtime")
+    id("beat.sentry-source-context")
+}
+```
 
-- Gradle Kotlin DSL
-- Gradle plugin marker artifacts
-- `../gradle/libs.versions.toml`
-- Gradle/Spring/Kotlin/Sentry plugin APIs
+### 피해야 할 예
 
-## 금지 규칙
+```kotlin
+plugins {
+    id("beat.web-app") // Web + Security + OpenAPI + Feign을 한 번에 주는 god convention
+}
+```
 
-- `apis`, `admin`, `batch`, `domain`, `infra`, `gateway`, `observability`, `module-contracts`, `global-support` 같은 제품 모듈에 의존 금지
-- application/domain runtime 코드를 import 금지
-- `build.gradle.kts` root `subprojects { ... }`로 vendor 정책을 다시 주입 금지
-- 하나의 convention에 Web, Security, OpenAPI, Feign, Persistence를 다시 묶는 god convention 재도입 금지
-- 실행 모듈이 직접 starter dependency를 우회 추가하기 전에 목적별 convention 검토 없이 추가 금지
-- CI/build 전용 secret(`SENTRY_AUTH_TOKEN`)을 runtime container contract로 문서화하거나 전파 금지
+`beat.web-app`과 `beat.jpa-infra` 같은 wrapper/god convention은 제거된 상태입니다. 다시 만들지 않습니다.
 
 ---
 
-## 현재 plugin 구조
+## 4. 현재 plugin 구조
 
 ```text
 build-logic/
@@ -73,48 +152,166 @@ build-logic/
 
 ---
 
-## Plugin catalog
+## 5. Plugin dependency map
 
-### Base plugins
+```mermaid
+flowchart TB
+    KotlinBase[beat.kotlin-base]
+    Library[beat.library]
+    Test[beat.test]
+    SpringLibrary[beat.spring-library]
+    SpringBootApp[beat.spring-boot-app]
 
-| Plugin | 책임 | 적용 대상 |
-| --- | --- | --- |
-| `beat.kotlin-base` | Kotlin JVM plugin, Java 25 toolchain, JVM 25 bytecode, compiler option | Kotlin/Java code를 갖는 모든 BEAT module의 기반 |
-| `beat.library` | `java-library` + `beat.kotlin-base` | 순수 library module |
-| `beat.spring-library` | `beat.library`, `beat.test`, Spring dependency-management, Kotlin Spring plugin | Spring type을 compile surface로 갖는 library module |
-| `beat.spring-boot-app` | Spring Boot executable 기본, Log4j2, Lombok, test starter, CVE constraint, `BootRun` working dir | `apis`, `admin`, `batch` 같은 bootable module |
-| `beat.test` | 모든 `Test` task에 `useJUnitPlatform()` 적용 | Java/JUnit, Spring Boot test, future Kotest/MockK layer |
+    WebMvc[beat.web-mvc]
+    WebSecurity[beat.web-security]
+    OpenApi[beat.openapi]
+    FeignRuntime[beat.feign-runtime]
+    ActuatorHttp[beat.actuator-http-runtime]
+    Prometheus[beat.prometheus-runtime]
 
-### Web / runtime capability plugins
+    InfraLibrary[beat.infra-library]
+    JpaAdapter[beat.jpa-adapter]
+    ExternalClient[beat.external-client]
 
-| Plugin | 책임 | 현재 적용 |
-| --- | --- | --- |
-| `beat.web-mvc` | `spring-boot-starter-web`, validation | `apis`, `admin` |
-| `beat.web-security` | `spring-boot-starter-security` | `apis`, `admin` |
-| `beat.openapi` | Springdoc OpenAPI UI | `apis`, `admin` |
-| `beat.feign-runtime` | Spring Cloud BOM + OpenFeign runtime | `apis`, `admin` |
-| `beat.actuator-http-runtime` | Actuator health endpoint용 Web runtime만 `runtimeOnly`로 제공 | `batch` |
-| `beat.prometheus-runtime` | Prometheus registry를 runtime에만 제공 | `apis`, `batch` |
+    Sentry[beat.sentry-source-context]
 
-### Infra capability plugins
+    KotlinBase --> Library
+    Library --> SpringLibrary
+    Test --> SpringLibrary
+    KotlinBase --> SpringBootApp
+    Test --> SpringBootApp
 
-| Plugin | 책임 | 현재 적용 |
-| --- | --- | --- |
-| `beat.infra-library` | Spring library 기반 + Spring Boot core compile/runtime support | `infra` 하위 convention 기반 |
-| `beat.jpa-adapter` | JPA adapter compile surface, Kotlin JPA plugin, Spring Boot persistence | `infra` |
-| `beat.external-client` | external client compile surface: Spring Web + OpenFeign annotations/BOM | `infra` |
+    SpringLibrary --> InfraLibrary
+    InfraLibrary --> JpaAdapter
+    InfraLibrary --> ExternalClient
 
-### Observability build plugin
+    SpringBootApp -. optional .-> WebMvc
+    SpringBootApp -. optional .-> WebSecurity
+    SpringBootApp -. optional .-> OpenApi
+    SpringBootApp -. optional .-> FeignRuntime
+    SpringBootApp -. optional .-> ActuatorHttp
+    SpringBootApp -. optional .-> Prometheus
 
-| Plugin | 책임 | 현재 적용 |
-| --- | --- | --- |
-| `beat.sentry-source-context` | Sentry Gradle plugin, source context bundle, auto upload toggle, Sentry SDK alignment, dependency-analysis task edge 보정 | production/library modules 전체 |
+    Sentry -. explicit apply .-> SpringBootApp
+    Sentry -. explicit apply .-> SpringLibrary
+    Sentry -. explicit apply .-> Library
+
+    style SpringBootApp fill:#e8fff1,stroke:#15803d,stroke-width:2px
+    style SpringLibrary fill:#e0f2fe,stroke:#0369a1,stroke-width:2px
+    style Sentry fill:#fef3c7,stroke:#b45309,stroke-width:2px
+```
+
+> 점선은 자동 상속이 아니라 “필요한 모듈이 명시적으로 같이 적용한다”는 의미입니다.
 
 ---
 
-## 모듈별 적용 현황
+## 6. Plugin catalog
 
-| Module | Plugins |
+### Base plugins
+
+| Plugin | 제공하는 것 | 주의 |
+| --- | --- | --- |
+| `beat.kotlin-base` | Kotlin JVM, Java 25 toolchain, JVM 25 bytecode, `-Xjsr305=strict` | 단독으로 쓰기보다 `beat.library`, `beat.spring-boot-app`을 통해 사용 |
+| `beat.library` | `java-library` + `beat.kotlin-base` | 순수 library 기본값 |
+| `beat.spring-library` | `beat.library`, `beat.test`, Spring dependency-management, Kotlin Spring plugin | Spring bean/type compile surface가 있는 library용 |
+| `beat.spring-boot-app` | Spring Boot app, dependency-management, Kotlin Spring, Log4j2, Lombok, test starter, CVE constraints | 실행 모듈 기본값. Web/Security/OpenAPI/Feign은 별도 선택 |
+| `beat.test` | 모든 `Test` task에 `useJUnitPlatform()` 적용 | Java/JUnit과 future Kotest/MockK의 공통 실행 계약 |
+
+### Web / runtime capability plugins
+
+| Plugin | 제공하는 것 | 대표 사용처 |
+| --- | --- | --- |
+| `beat.web-mvc` | `spring-boot-starter-web`, validation | `apis`, `admin` |
+| `beat.web-security` | Spring Security starter | `apis`, `admin` |
+| `beat.openapi` | Springdoc OpenAPI UI | `apis`, `admin` |
+| `beat.feign-runtime` | Spring Cloud BOM + OpenFeign runtime | `apis`, `admin` |
+| `beat.actuator-http-runtime` | `spring-boot-starter-web`을 `runtimeOnly`로 제공 | `batch` health endpoint |
+| `beat.prometheus-runtime` | Prometheus registry를 `runtimeOnly`로 제공 | `apis`, `batch` |
+
+### Infra capability plugins
+
+| Plugin | 제공하는 것 | 대표 사용처 |
+| --- | --- | --- |
+| `beat.infra-library` | `beat.spring-library` + Spring Boot core | infra family 기반 |
+| `beat.jpa-adapter` | `beat.infra-library`, Kotlin JPA plugin, Spring Boot persistence, JPA compile surface | `infra` |
+| `beat.external-client` | Spring Cloud BOM, Spring Web/OpenFeign compile surface | `infra` |
+
+### Build / release capability plugins
+
+| Plugin | 제공하는 것 | 대표 사용처 |
+| --- | --- | --- |
+| `beat.sentry-source-context` | Sentry Gradle plugin, source context bundle, optional upload, Sentry SDK alignment | production/library modules 전체 |
+
+---
+
+## 7. 모듈별 적용 현황
+
+```mermaid
+flowchart LR
+    subgraph Apps[Executable]
+        APIs[apis]
+        Admin[admin]
+        Batch[batch]
+    end
+
+    subgraph Libs[Library / adapter]
+        Domain[domain]
+        Gateway[gateway]
+        Infra[infra]
+        Contracts[module-contracts]
+        Observability[observability]
+        Support[global-support]
+    end
+
+    SpringBoot[beat.spring-boot-app]
+    WebMvc[beat.web-mvc]
+    Security[beat.web-security]
+    OpenAPI[beat.openapi]
+    Feign[beat.feign-runtime]
+    Actuator[beat.actuator-http-runtime]
+    Prometheus[beat.prometheus-runtime]
+    SpringLib[beat.spring-library]
+    Library[beat.library]
+    Jpa[beat.jpa-adapter]
+    External[beat.external-client]
+    Sentry[beat.sentry-source-context]
+
+    SpringBoot --> APIs
+    SpringBoot --> Admin
+    SpringBoot --> Batch
+
+    WebMvc --> APIs
+    WebMvc --> Admin
+    Security --> APIs
+    Security --> Admin
+    OpenAPI --> APIs
+    OpenAPI --> Admin
+    Feign --> APIs
+    Feign --> Admin
+    Actuator --> Batch
+    Prometheus --> APIs
+    Prometheus --> Batch
+
+    Library --> Domain
+    Library --> Contracts
+    Library --> Support
+    SpringLib --> Gateway
+    SpringLib --> Observability
+    Jpa --> Infra
+    External --> Infra
+
+    Sentry --> APIs
+    Sentry --> Admin
+    Sentry --> Batch
+    Sentry --> Domain
+    Sentry --> Gateway
+    Sentry --> Infra
+    Sentry --> Contracts
+    Sentry --> Observability
+    Sentry --> Support
+```
+
+| Module | 적용 plugin |
 | --- | --- |
 | `apis` | `beat.spring-boot-app`, `beat.web-mvc`, `beat.web-security`, `beat.openapi`, `beat.feign-runtime`, `beat.sentry-source-context`, `beat.prometheus-runtime` |
 | `admin` | `beat.spring-boot-app`, `beat.web-mvc`, `beat.web-security`, `beat.openapi`, `beat.feign-runtime`, `beat.sentry-source-context` |
@@ -128,47 +325,71 @@ build-logic/
 
 ---
 
-## Capability selection rule
+## 8. Capability 선택 예시
 
-새 모듈 또는 기존 모듈에 dependency가 필요할 때는 먼저 아래 순서로 판단합니다.
+### `apis` / `admin`
 
-```text
-1. 실행 가능한 Spring Boot app인가?
-   -> beat.spring-boot-app
+사용자/관리자 HTTP API 모듈입니다.
 
-2. Spring bean/library compile surface가 필요한가?
-   -> beat.spring-library
-
-3. HTTP API MVC controller가 필요한가?
-   -> beat.web-mvc
-
-4. Spring Security filter/config가 필요한가?
-   -> beat.web-security
-
-5. Swagger/OpenAPI UI가 필요한가?
-   -> beat.openapi
-
-6. Feign client runtime을 실행 모듈이 소유해야 하는가?
-   -> beat.feign-runtime
-
-7. 단순 actuator HTTP endpoint runtime만 필요한가?
-   -> beat.actuator-http-runtime
-
-8. Prometheus scrape 대상인가?
-   -> beat.prometheus-runtime
-
-9. JPA adapter 구현 module인가?
-   -> beat.jpa-adapter
-
-10. external client annotation/compile surface가 필요한 infra module인가?
-    -> beat.external-client
+```kotlin
+plugins {
+    id("beat.spring-boot-app")
+    id("beat.web-mvc")
+    id("beat.web-security")
+    id("beat.openapi")
+    id("beat.feign-runtime")
+    id("beat.sentry-source-context")
+}
 ```
 
-직접 `implementation(libs.spring.boot.starter.*)`를 추가하기 전에 위 convention이 이미 존재하는지 먼저 확인합니다.
+`apis`만 Prometheus scrape 대상이므로 `beat.prometheus-runtime`을 추가합니다.
+
+### `batch`
+
+사용자 API는 없지만 health endpoint runtime은 필요합니다.
+
+```kotlin
+plugins {
+    id("beat.spring-boot-app")
+    id("beat.actuator-http-runtime")
+    id("beat.sentry-source-context")
+    id("beat.prometheus-runtime")
+}
+```
+
+`beat.web-mvc`를 쓰지 않는 이유는 batch가 Controller/MVC compile API를 소유하지 않기 때문입니다.
+
+### `infra`
+
+JPA persistence adapter와 external client adapter를 소유합니다.
+
+```kotlin
+plugins {
+    id("beat.jpa-adapter")
+    id("beat.external-client")
+    id("beat.sentry-source-context")
+}
+```
+
+Feign annotation/compile surface는 `infra`가 알고, Feign runtime은 실행 모듈이 `beat.feign-runtime`으로 선택합니다.
+
+### `domain`
+
+순수 domain module입니다.
+
+```kotlin
+plugins {
+    id("beat.library")
+    id("beat.test")
+    id("beat.sentry-source-context")
+}
+```
+
+Spring Boot app이나 Spring library convention을 적용하지 않습니다.
 
 ---
 
-## Version catalog usage rule
+## 9. Version catalog usage rule
 
 `build-logic`은 root `gradle/libs.versions.toml`을 재사용합니다.
 
@@ -178,7 +399,7 @@ implementation(libs.findLibrary("spring-boot-starter-web").get())
 implementation(libs.findBundle("boot-app-core").get())
 ```
 
-이 문자열 기반 lookup은 IDE가 unused catalog alias로 오탐할 수 있습니다. 실제 unused 판단은 아래 CI checker가 기준입니다.
+이 문자열 기반 lookup은 IDE가 unused catalog alias로 오탐할 수 있습니다. 실제 unused 판단은 CI checker가 기준입니다.
 
 ```bash
 python3 .github/scripts/check_unused_version_catalog_aliases.py
@@ -186,11 +407,29 @@ python3 .github/scripts/check_unused_version_catalog_aliases.py
 
 ---
 
-## Sentry source context rule
+## 10. Sentry source context rule
+
+```mermaid
+flowchart TB
+    Module[Production/library module]
+    Plugin[beat.sentry-source-context]
+    Sources[Java/Kotlin source bundle]
+    Env[SENTRY_AUTH_TOKEN<br/>CI/build only]
+    Sentry[Sentry server]
+    Runtime[Runtime container]
+
+    Module --> Plugin
+    Plugin --> Sources
+    Env --> Plugin
+    Plugin -->|token exists| Sentry
+    Runtime -. must not receive .-> Env
+
+    style Plugin fill:#fef3c7,stroke:#b45309,stroke-width:2px
+    style Runtime fill:#fee2e2,stroke:#b91c1c,stroke-width:1px
+```
 
 Sentry runtime dependency는 `observability`가 소유합니다.
-
-`build-logic`의 `beat.sentry-source-context`는 runtime dependency가 아니라 build/release concern을 소유합니다.
+`beat.sentry-source-context`는 runtime dependency가 아니라 build/release concern입니다.
 
 - `includeSourceContext=true`
 - `SENTRY_AUTH_TOKEN`이 있을 때만 source bundle auto upload
@@ -202,7 +441,7 @@ Sentry runtime dependency는 `observability`가 소유합니다.
 
 ---
 
-## CVE constraint ownership
+## 11. CVE constraint ownership
 
 `beat.spring-boot-app`은 실행 모듈 boot jar에 영향을 주는 보안 constraint를 소유합니다.
 
@@ -218,7 +457,18 @@ Sentry runtime dependency는 `observability`가 소유합니다.
 
 ---
 
-## Guard rails
+## 12. 금지 규칙
+
+- `build-logic`에서 제품 모듈을 의존하지 않습니다.
+- 제품 runtime class를 import하지 않습니다.
+- root `build.gradle.kts`의 `subprojects { ... }`로 vendor/build 정책을 주입하지 않습니다.
+- Web, Security, OpenAPI, Feign, Persistence를 한 convention에 다시 묶지 않습니다.
+- 실행 모듈에 직접 starter dependency를 추가하기 전에 목적별 convention을 먼저 확인합니다.
+- CI/build 전용 secret을 runtime container contract로 문서화하지 않습니다.
+
+---
+
+## 13. Guard rails
 
 - `RootRetirementContractTest`
   - root build가 executable/runtime dependency를 다시 소유하지 않는지 검증
@@ -235,7 +485,7 @@ Sentry runtime dependency는 `observability`가 소유합니다.
 
 ---
 
-## 검증 명령
+## 14. 검증 명령
 
 `build-logic` 또는 convention plugin을 수정했다면 최소 아래를 실행합니다.
 
@@ -255,7 +505,7 @@ git diff --check
 
 ---
 
-## To-Be direction
+## 15. To-Be direction
 
 ```text
 build-logic/src/main/kotlin/
