@@ -84,12 +84,4 @@ subprojects {
     group = rootProject.group
     version = rootProject.version
     apply(plugin = "com.autonomousapps.dependency-analysis")
-
-    // Dependency-analysis consumes generated source-context resources; keep Sentry's
-    // generators as explicit prerequisites for Gradle task validation.
-    tasks.matching { it.name == "explodeCodeSourceMain" }.configureEach {
-        dependsOn(tasks.matching {
-            it.name == "collectExternalDependenciesForSentry" || it.name.startsWith("generateSentry")
-        })
-    }
 }

@@ -124,6 +124,8 @@ class RootRetirementContractTest {
 		assertFalse(buildFile.contains("SentryPluginExtension"));
 		assertFalse(buildFile.contains("sentrySdkVersion"));
 		assertFalse(buildFile.contains("io.sentry.jvm.gradle"));
+		assertFalse(buildFile.contains("collectExternalDependenciesForSentry"));
+		assertFalse(buildFile.contains("generateSentry"));
 
 		assertFalse(buildFile.contains("alias(libs.plugins.spring.boot)"));
 		assertFalse(buildFile.contains("alias(libs.plugins.spring.dependency.management)"));
@@ -286,6 +288,9 @@ class RootRetirementContractTest {
 		assertTrue(sentrySourceContextConvention.contains("autoInstallation {"));
 		assertTrue(sentrySourceContextConvention.contains("enabled.set(false)"));
 		assertTrue(sentrySourceContextConvention.contains("resolutionStrategy.force(\"io.sentry:sentry:$sentrySdkVersion\")"));
+		assertTrue(sentrySourceContextConvention.contains("collectExternalDependenciesForSentry"));
+		assertTrue(sentrySourceContextConvention.contains("generateSentry"));
+		assertTrue(sentrySourceContextConvention.contains("explodeCodeSourceMain"));
 		for (String moduleBuild : new String[] {
 			"apis/build.gradle.kts",
 			"admin/build.gradle.kts",

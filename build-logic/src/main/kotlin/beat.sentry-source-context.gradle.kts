@@ -18,6 +18,15 @@ configurations.configureEach {
     }
 }
 
+// Dependency-analysis consumes Sentry-generated source-context resources when both
+// plugins are active. Keep the task validation edge with the source-context owner
+// instead of teaching the root coordination build about Sentry internals.
+tasks.matching { it.name == "explodeCodeSourceMain" }.configureEach {
+    dependsOn(tasks.matching {
+        it.name == "collectExternalDependenciesForSentry" || it.name.startsWith("generateSentry")
+    })
+}
+
 extensions.configure<SentryPluginExtension>("sentry") {
     includeSourceContext.set(true)
     autoUploadSourceContext.set(
