@@ -77,6 +77,7 @@ class RootRetirementContractTest {
 		String buildFile = Files.readString(Path.of("build.gradle.kts"));
 
 		assertFalse(buildFile.contains("verifyLegacyV1Baseline"));
+		assertFalse(buildFile.contains("verifyV2WebBaseline"));
 		assertTrue(buildFile.contains("verifyModuleBootJars"));
 		assertTrue(buildFile.contains("\":apis:bootJar\""));
 		assertTrue(buildFile.contains("\":admin:bootJar\""));
@@ -330,6 +331,8 @@ class RootRetirementContractTest {
 		assertTrue(Files.exists(Path.of(".trivy-image.yaml")));
 		assertTrue(ciPr.contains("./gradlew check verifyModuleBootJars --parallel --build-cache"));
 		assertFalse(ciPr.contains("verifyV2WebBaseline"));
+		assertTrue(deployDev.contains("./gradlew check verifyModuleBootJars --parallel --build-cache"));
+		assertFalse(deployDev.contains("verifyV2WebBaseline"));
 		assertTrue(ciPr.contains("verifyModuleBootJars"));
 		assertTrue(ciPr.contains("matrix:"));
 		assertTrue(ciPr.contains("- apis"));

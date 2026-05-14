@@ -165,13 +165,6 @@ val transitionBoundaryTest by tasks.registering(Test::class) {
 }
 
 registerVerificationTask(
-    "verifyV2WebBaseline",
-    "Verifies the v2-web transition baseline with module tests and the root boundary guard.",
-    ":apis:test",
-    ":apis:bootJar",
-    transitionBoundaryTest,
-)
-registerVerificationTask(
     "verifyModuleBootJars",
     "Builds boot jars for the current executable modules.",
     ":apis:bootJar",

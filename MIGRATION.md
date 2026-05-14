@@ -449,7 +449,6 @@ root project는 실행 모듈이 아니라 조정/검증 모듈입니다.
 root verification task:
 
 - `transitionBoundaryTest`: root transition boundary guard test만 실행
-- `verifyV2WebBaseline`: `:apis:test`, `:apis:bootJar`, `transitionBoundaryTest`
 - `verifyModuleBootJars`: `apis`, `admin`, `batch` boot jar build
 
 ## Kotlin migration 단계 지도
@@ -532,11 +531,11 @@ git diff --check
 ```
 
 ```bash
-./gradlew tasks --all --console=plain | rg -i 'kover|sonar|verifyV2WebBaseline|verifyModuleBootJars|transitionBoundaryTest'
+./gradlew tasks --all --console=plain | rg -i 'kover|sonar|verifyModuleBootJars|transitionBoundaryTest'
 ```
 
 ```bash
-./gradlew verifyV2WebBaseline :admin:test :batch:test verifyModuleBootJars --parallel --build-cache
+./gradlew check verifyModuleBootJars --parallel --build-cache
 ```
 
 로컬에서 Docker/Testcontainers provider를 초기화할 수 없어 전체 baseline이 실패할 수 있습니다. 이 경우 compile/bootJar 경로가 통과했는지 확인한 뒤, Docker provider 초기화 실패는 코드 회귀가 아니라 환경 gap으로 기록합니다.
