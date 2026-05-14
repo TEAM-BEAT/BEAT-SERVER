@@ -28,13 +28,13 @@ jobs:
         with:
           cache-cleanup: on-success
 
-      - name: Verify baseline
+      - name: Verify Gradle check
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_RELEASE: beat-server@${{ github.sha }}
         run: |
           chmod +x gradlew
-          ./gradlew verifyV2WebBaseline :admin:test :batch:test verifyModuleBootJars --parallel --build-cache
+          ./gradlew check verifyModuleBootJars --parallel --build-cache
         shell: bash
 
   scan-images:

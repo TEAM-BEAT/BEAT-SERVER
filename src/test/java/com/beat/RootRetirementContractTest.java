@@ -328,7 +328,8 @@ class RootRetirementContractTest {
 		assertTrue(Files.exists(Path.of(".github/workflows/_ansible-exec.yml")));
 		assertTrue(Files.exists(Path.of(".github/workflows/ansible-lint.yml")));
 		assertTrue(Files.exists(Path.of(".trivy-image.yaml")));
-		assertTrue(ciPr.contains("verifyV2WebBaseline"));
+		assertTrue(ciPr.contains("./gradlew check verifyModuleBootJars --parallel --build-cache"));
+		assertFalse(ciPr.contains("verifyV2WebBaseline"));
 		assertTrue(ciPr.contains("verifyModuleBootJars"));
 		assertTrue(ciPr.contains("matrix:"));
 		assertTrue(ciPr.contains("- apis"));
@@ -345,6 +346,12 @@ class RootRetirementContractTest {
 		assertTrue(deployDev.contains("fromJSON("));
 		assertTrue(deployDev.contains("uses: ./.github/workflows/_ansible-exec.yml"));
 		assertTrue(deployProd.contains("uses: ./.github/workflows/_ansible-exec.yml"));
+		assertTrue(deployProd.contains("secret-preflight:"));
+		assertTrue(deployProd.contains("Resolve prod SSH connection metadata"));
+		assertTrue(deployProd.contains("Verify prod encrypted inventory, resolver, and lint"));
+		assertTrue(deployProd.contains("Prod secret-aware preflight verified resolver for module=${MODULE}"));
+		assertTrue(deployProd.contains("ansible-lint playbooks/*.yml roles"));
+		assertTrue(deployProd.contains("git merge-base --is-ancestor \"$COMMIT_SHA\" refs/remotes/origin/main"));
 		assertTrue(rollbackProd.contains("uses: ./.github/workflows/_ansible-exec.yml"));
 		assertTrue(deployDev.contains("environment_name: dev"));
 		assertTrue(deployProd.contains("environment_name: prod"));
@@ -430,6 +437,11 @@ class RootRetirementContractTest {
 		assertTrue(deployProd.contains("commit_sha"));
 		assertTrue(deployProd.contains("ref: ${{ needs.resolve-release.outputs.commit_sha }}"));
 		assertTrue(deployProd.contains("checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}"));
+		assertTrue(deployProd.contains("- secret-preflight"));
+		assertTrue(deployProd.contains("Resolve prod SSH connection metadata"));
+		assertTrue(deployProd.contains("Prod secret-aware preflight verified resolver for module=${MODULE}"));
+		assertTrue(deployProd.contains("ansible-lint playbooks/*.yml roles"));
+		assertTrue(deployProd.contains("git merge-base --is-ancestor \"$COMMIT_SHA\" refs/remotes/origin/main"));
 		assertFalse(deployProd.contains("workflow_dispatch:"));
 		assertFalse(deployProd.contains("github.event.inputs.version"));
 		assertFalse(deployProd.contains("github.event.inputs.module"));
@@ -527,9 +539,11 @@ class RootRetirementContractTest {
 				+ "    needs:\n"
 				+ "      - resolve-release\n"
 				+ "      - verify\n"
+				+ "      - secret-preflight\n"
 				+ "      - build-image";
 		String prodDeployNeedsFoundation =
-			"      - build-image\n"
+			"      - secret-preflight\n"
+				+ "      - build-image\n"
 				+ "      - foundation\n"
 				+ "    concurrency:\n"
 				+ "      group: prod-runtime";

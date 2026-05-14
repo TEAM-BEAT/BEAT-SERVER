@@ -593,7 +593,9 @@ flowchart TB
         Batch["batch"]:::matrix
     end
 
-    Verify["verify<br/>Gradle 테스트 (단일 실행)<br/>commit SHA 기준 checkout"]:::verify
+    Verify["verify<br/>Gradle check + bootJar<br/>commit SHA 기준 checkout"]:::verify
+
+    SecretPreflight["secret-preflight<br/>prod inventory · SSH metadata · ansible-lint<br/>apis/admin/batch matrix"]:::verify
 
     Build["build-image<br/>Docker 빌드 · max-parallel 3<br/>:{release_tag} + :prod-latest push"]:::build
 
@@ -604,7 +606,11 @@ flowchart TB
     Trigger --> Resolve
     Resolve --> Admin & APIs & Batch
     Resolve --> Verify
+    Resolve --> SecretPreflight
     Verify --> Build
+    SecretPreflight --> Build
+    SecretPreflight --> Foundation
+    SecretPreflight --> Deploy
     Build --> Foundation
     Foundation --> Deploy
 
@@ -618,8 +624,11 @@ flowchart TB
 ```
 
 - `github.event.release.tag_name` 을 **prod 공통 버전 source**로 사용
+- release tag checkout 후 `origin/main`을 fetch하고 `git merge-base --is-ancestor "$COMMIT_SHA" origin/main`으로 release 대상 commit이 main 계열에 포함되는지 검증한다. 실패하면 tag, commit SHA, `origin/main` SHA를 로그에 남기고 prod deploy를 중단한다.
 - `apis/admin/batch` 3개 모듈을 **같은 release tag**로 build/push/deploy
-- release tag는 `resolve-release` 단계에서 한 번만 해석하고, 이후 verify/build/deploy는 모두 **immutable commit SHA** 를 사용해 TOCTOU를 방지한다
+- release tag는 `resolve-release` 단계에서 한 번만 해석하고, 이후 verify/preflight/build/deploy는 모두 **immutable commit SHA** 를 사용해 TOCTOU를 방지한다
+- prod release verify는 PR CI와 같은 `./gradlew check verifyModuleBootJars --parallel --build-cache`를 실행한다. `check`가 root/subproject의 Java/Kotlin 테스트를 표준 lifecycle로 수집하고, `verifyModuleBootJars`가 prod 실행 모듈 패키징 계약을 별도로 고정한다.
+- `secret-preflight`는 deploy-prod 내부에서 항상 실행된다. `ansible-secret-aware-verify.yml`의 path filter가 일반 release에서 skip되더라도, prod 배포 직전 `apis/admin/batch` 각각의 prod inventory resolver, `ssh_host`, `ssh_port`, `ssh_host_fingerprint`, `ansible-inventory --list`, `ansible-lint playbooks/*.yml roles`를 검증한다.
 - 이미지 태그는 모듈별로 `:{release_tag}` 와 `:prod-latest` 를 함께 push
 - deploy 단계는 `max-parallel: 1` 로 모듈을 순차 배포
 - `release-drafter.yml` 은 draft release 갱신용이며, **실제 prod deploy trigger는 published release** 뿐이다
@@ -628,6 +637,29 @@ flowchart TB
 - resolver는 `ansible-inventory`로 대상 host/group를 선택하고, `community.sops` 환경에서 `ansible-inventory --host` 결과에 `ENC[...]` 가
   남을 수 있기 때문에 평문이 필요한 `ssh_host / ssh_port / ssh_host_fingerprint`만 임시 `ansible-playbook`으로 materialize 한다
 - `_ansible-exec.yml` 은 inventory resolver 성공을 전제로 하며, prod caller 쪽 legacy SSH fallback은 두지 않는다
+
+### Prod release preflight / runbook
+
+published release가 prod 자동 배포를 시작하기 전에 아래 항목을 확인한다. 실패 항목이 있으면 release를 publish하지 말고 draft 상태에서 수정한다.
+
+1. **tag 기준 확인**
+    - release tag는 `vX.Y.Z` 형식이어야 한다.
+    - tag가 가리키는 commit은 `origin/main`에 포함되어 있어야 한다. main에 merge되지 않은 hotfix/개인 브랜치 tag는 prod 배포 대상이 아니다.
+    - 배포 workflow는 release tag를 한 번만 immutable commit SHA로 해석하고 이후 verify/build/deploy/rollback 기준으로 그 SHA를 전달한다.
+2. **CI/Gradle 확인**
+    - main의 최신 PR/merge commit에서 Gradle check와 boot jar 검증이 통과해야 한다.
+    - release 직전 로컬/CI에서 확인할 최소 명령은 `./gradlew check verifyModuleBootJars --parallel --build-cache`이다.
+3. **secret-aware Ansible preflight**
+    - prod `AGE_SECRET_KEY`가 GitHub Environment secret에 있고 SOPS recipient가 최신인지 확인한다.
+    - `ansible-secret-aware-verify.yml`을 prod 대상으로 실행해 `apis`, `admin`, `batch` 세 module group resolver가 모두 통과하는지 확인한다.
+    - resolver 실패, `ENC[...]` 잔존, host fingerprint 불일치는 배포 전 hard stop이다. GitHub Secret fallback을 추가하지 말고 SOPS inventory를 고친다.
+4. **release publish**
+    - draft release notes를 확인한 뒤 GitHub Release를 publish한다.
+    - `deploy-prod.yml`의 `resolve-release` → `verify` → `build-image` → `foundation` → `deploy` 순서를 확인한다.
+    - prod runtime은 `prod-runtime` concurrency group으로 직렬화되므로 기존 prod deploy/rollback 실행 중에는 새 release를 publish하지 않는다.
+5. **post-deploy 확인**
+    - Slack 알림의 release tag, commit SHA, module별 image tag가 기대값과 일치하는지 확인한다.
+    - healthcheck 실패나 nginx route 오류가 있으면 같은 release를 재시도하기 전에 원인 로그를 보존하고, 필요 시 `rollback-prod.yml`을 수동 실행한다.
 
 ## Ansible 구조
 
