@@ -126,6 +126,13 @@
             - release
       rescue:
         - name: Restore stop-start current release after rollback failure
+          when:
+            - app_rollback_module_cfg.deploy_mode == 'stop_start'
+            - app_rollback_current_release is defined
+            - app_rollback_current_release.image is defined
+          tags:
+            - rollback
+            - restore
           block:
             - name: Recreate stop-start container with archived current image
               ansible.builtin.import_role:
@@ -156,13 +163,6 @@
                 msg: >-
                   Failed to restore current release image after rollback failure for module '{{ module }}'.
                   Manual intervention required. current_image={{ app_rollback_current_release.image | default('unknown') }}
-          when:
-            - app_rollback_module_cfg.deploy_mode == 'stop_start'
-            - app_rollback_current_release is defined
-            - app_rollback_current_release.image is defined
-          tags:
-            - rollback
-            - restore
 
         - name: Abort rollback metadata promotion when rollback invariant fails
           ansible.builtin.fail:
