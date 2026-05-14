@@ -9,5 +9,4 @@ val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
 dependencies {
     implementation(platform(libs.findLibrary("spring-cloud-dependencies").get()))
     implementation(libs.findBundle("web-app-core").get())
-    testImplementation(libs.findLibrary("spring-security-test").get())
 }

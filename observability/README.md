@@ -333,9 +333,10 @@ observability/src/main/java/com/beat/observability/aop/*
 ## 11. 허용 의존성
 
 ```text
-observability -> global-support
 observability -> Spring logging / web / actuator / task abstractions
 observability -> kotlinx-coroutines-slf4j
+observability -> Sentry Spring Boot starter API
+observability -> Sentry Log4j2 / async profiler runtime integrations
 ```
 
 허용되는 외부 역할:

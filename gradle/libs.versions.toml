@@ -12,11 +12,8 @@ jackson3 = "3.1.1"
 commons-fileupload = "1.6.0"
 netty = "4.2.13.Final"
 bouncycastle = "1.84"
-awspring = "4.0.0"
 jjwt = "0.13.0"
-kotlin-jdsl = "3.6.0"
 aws-sdk-v1 = "1.12.797"
-querydsl = "5.0.0"
 testcontainers = "1.21.3"
 redis-testcontainers = "2.2.2"
 sentry = "8.41.0"
@@ -38,18 +35,13 @@ junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-slf4j = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-slf4j", version.ref = "kotlinx-coroutines" }
 lombok = { module = "org.projectlombok:lombok", version = "1.18.44" }
-spring-security-test = { module = "org.springframework.security:spring-security-test" }
-spring-security-core = { module = "org.springframework.security:spring-security-core", version = "7.0.5" }
 sentry-spring-boot-starter = { module = "io.sentry:sentry-spring-boot-4-starter", version.ref = "sentry" }
 sentry-async-profiler = { module = "io.sentry:sentry-async-profiler", version.ref = "sentry" }
 sentry-log4j2 = { module = "io.sentry:sentry-log4j2", version.ref = "sentry" }
 
-slf4j-api = { module = "org.slf4j:slf4j-api", version = "2.0.17" }
 mysql-connector-j = { module = "com.mysql:mysql-connector-j", version = "9.6.0" }
-spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor", version.ref = "spring-boot" }
 spring-boot-core = { module = "org.springframework.boot:spring-boot", version.ref = "spring-boot" }
 spring-boot-persistence = { module = "org.springframework.boot:spring-boot-persistence", version.ref = "spring-boot" }
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }
@@ -58,7 +50,6 @@ spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-
 spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa", version.ref = "spring-boot" }
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "spring-boot" }
 spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security", version.ref = "spring-boot" }
-spring-boot-starter-oauth2-client = { module = "org.springframework.boot:spring-boot-starter-oauth2-client", version.ref = "spring-boot" }
 spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis", version.ref = "spring-boot" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
 spring-boot-starter-log4j2 = { module = "org.springframework.boot:spring-boot-starter-log4j2", version.ref = "spring-boot" }
@@ -76,10 +67,6 @@ spring-cloud-dependencies = { module = "org.springframework.cloud:spring-cloud-d
 spring-cloud-starter-openfeign = { module = "org.springframework.cloud:spring-cloud-starter-openfeign" }
 springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 
-awspring-dependencies = { module = "io.awspring.cloud:spring-cloud-aws-dependencies", version.ref = "awspring" }
-awspring-starter = { module = "io.awspring.cloud:spring-cloud-aws-starter" }
-awspring-secrets-manager = { module = "io.awspring.cloud:spring-cloud-aws-starter-secrets-manager" }
-
 jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
 jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
 jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
@@ -87,21 +74,9 @@ jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
 aws-java-sdk-bom = { module = "com.amazonaws:aws-java-sdk-bom", version.ref = "aws-sdk-v1" }
 aws-java-sdk-s3 = { module = "com.amazonaws:aws-java-sdk-s3" }
 
-nurigo-sdk = { module = "net.nurigo:sdk", version = "4.3.0" }
 nurigo-java-sdk = { module = "net.nurigo:javaSDK", version = "2.2" }
 
-querydsl-jpa = { module = "com.querydsl:querydsl-jpa", version.ref = "querydsl" }
-querydsl-apt = { module = "com.querydsl:querydsl-apt", version.ref = "querydsl" }
-querydsl-jpa-jakarta = { module = "com.querydsl:querydsl-jpa", version.ref = "querydsl" }
-querydsl-apt-jakarta = { module = "com.querydsl:querydsl-apt", version.ref = "querydsl" }
-jakarta-annotation-api = { module = "jakarta.annotation:jakarta.annotation-api", version = "3.0.0" }
-jakarta-persistence-api = { module = "jakarta.persistence:jakarta.persistence-api", version = "3.2.0" }
-
-kotlin-jdsl-jpql-dsl = { module = "com.linecorp.kotlin-jdsl:jpql-dsl", version.ref = "kotlin-jdsl" }
-kotlin-jdsl-spring-data-jpa-support = { module = "com.linecorp.kotlin-jdsl:spring-data-jpa-support", version.ref = "kotlin-jdsl" }
-
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
-slack-api-client = { module = "com.slack.api:slack-api-client", version = "1.45.3" }
 testcontainers-mysql = { module = "org.testcontainers:mysql", version.ref = "testcontainers" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
 testcontainers-redis = { module = "com.redis:testcontainers-redis", version.ref = "redis-testcontainers" }
@@ -121,10 +96,6 @@ web-app-core = [
     "spring-boot-starter-security",
     "spring-cloud-starter-openfeign",
     "springdoc-openapi-starter-webmvc-ui"
-]
-test-common = [
-    "spring-boot-starter-test",
-    "spring-security-test"
 ]
 integration-testcontainers = [
     "testcontainers-mysql",
