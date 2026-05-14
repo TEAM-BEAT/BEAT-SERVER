@@ -1237,6 +1237,41 @@ class RootRetirementContractTest {
 		assertTrue(adminSecurity.contains("actuatorEndPoint + \"/health\""));
 	}
 
+	@Test
+	void observabilityBuildKeepsSentryRuntimeOnlyAndAvoidsSharedBoundaryLeaks() throws Exception {
+		String observabilityBuild = read("observability/build.gradle.kts");
+		String uncommented = stripLineComments(observabilityBuild);
+
+		assertTrue(uncommented.contains("compileOnly(libs.spring.boot.starter.web)"));
+		assertTrue(uncommented.contains("implementation(libs.kotlinx.coroutines.slf4j)"));
+		assertTrue(uncommented.contains("implementation(libs.sentry.spring.boot.starter)"));
+		assertTrue(uncommented.contains("runtimeOnly(libs.sentry.async.profiler)"));
+		assertTrue(uncommented.contains("runtimeOnly(libs.sentry.log4j2)"));
+
+		assertFalse(uncommented.contains("project(\":global-support\")"));
+		assertFalse(uncommented.contains("libs.lombok"));
+		assertFalse(uncommented.contains("annotationProcessor"));
+		assertFalse(uncommented.contains("libs.spring.boot.starter.actuator"));
+		assertFalse(uncommented.contains("libs.slf4j.api"));
+		assertFalse(uncommented.contains("slf4j-api"));
+	}
+
+	@Test
+	void staleDependencyBoundaryCatalogAliasesDoNotReturn() throws Exception {
+		String catalog = read("gradle/libs.versions.toml");
+
+		assertCatalogAliasAbsent(catalog, "versions", "awspring");
+		assertCatalogAliasAbsent(catalog, "versions", "querydsl");
+		assertCatalogAliasAbsent(catalog, "versions", "slf4j");
+		assertCatalogAliasAbsent(catalog, "libraries", "awspring-cloud-aws-starter-s3");
+		assertCatalogAliasAbsent(catalog, "libraries", "querydsl-jpa");
+		assertCatalogAliasAbsent(catalog, "libraries", "querydsl-apt");
+		assertCatalogAliasAbsent(catalog, "libraries", "spring-security-core");
+		assertCatalogAliasAbsent(catalog, "libraries", "slf4j-api");
+		assertCatalogAliasAbsent(catalog, "bundles", "test-common");
+		assertCatalogAliasAbsent(catalog, "bundles", "web-app-god");
+	}
+
 	private static String read(String path) throws IOException {
 		return Files.readString(Path.of(path));
 	}
@@ -1277,6 +1312,25 @@ class RootRetirementContractTest {
 		int exitCode = process.waitFor();
 		assertEquals(0, exitCode, output);
 		return output;
+	}
+
+
+	private static void assertCatalogAliasAbsent(String catalog, String section, String alias) {
+		String sectionBody = sectionBody(catalog, section);
+		assertFalse(sectionBody.matches("(?s).*^" + java.util.regex.Pattern.quote(alias) + "\\s*=.*"),
+			"gradle/libs.versions.toml must not reintroduce " + section + "." + alias);
+	}
+
+	private static String sectionBody(String catalog, String section) {
+		String marker = "[" + section + "]";
+		int start = catalog.indexOf(marker);
+		assertTrue(start >= 0, marker);
+		int next = catalog.indexOf("\n[", start + marker.length());
+		return next < 0 ? catalog.substring(start) : catalog.substring(start, next);
+	}
+
+	private static String stripLineComments(String source) {
+		return source.replaceAll("(?m)//.*$", "");
 	}
 
 	private static void assertBefore(String content, String first, String second) {

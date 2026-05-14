@@ -28,6 +28,11 @@ jobs:
         with:
           cache-cleanup: on-success
 
+      - name: Check unused version catalog aliases
+        continue-on-error: true
+        run: python3 .github/scripts/check_unused_version_catalog_aliases.py
+        shell: bash
+
       - name: Verify Gradle check
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -35,6 +40,12 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew check verifyModuleBootJars --parallel --build-cache
+        shell: bash
+
+      - name: Generate dependency health report
+        continue-on-error: true
+        run: |
+          ./gradlew buildHealth --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g" --build-cache
         shell: bash
 
   scan-images:

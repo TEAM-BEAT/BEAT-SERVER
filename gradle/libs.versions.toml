@@ -19,6 +19,7 @@ redis-testcontainers = "2.2.2"
 sentry = "8.41.0"
 sentry-gradle-plugin = "6.6.0"
 junit = "6.0.3"
+dependency-analysis = "3.11.0"
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
@@ -29,6 +30,7 @@ kotlin-jpa = { id = "org.jetbrains.kotlin.plugin.jpa", version.ref = "kotlin" }
 sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 sentry-jvm = { id = "io.sentry.jvm.gradle", version.ref = "sentry-gradle-plugin" }
+dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependency-analysis" }
 
 [libraries]
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit" }
@@ -89,13 +91,6 @@ boot-app-core = [
     "spring-boot-starter-data-jpa",
     "jackson-module-kotlin",
     "kotlin-reflect"
-]
-web-app-core = [
-    "spring-boot-starter-web",
-    "spring-boot-starter-validation",
-    "spring-boot-starter-security",
-    "spring-cloud-starter-openfeign",
-    "springdoc-openapi-starter-webmvc-ui"
 ]
 integration-testcontainers = [
     "testcontainers-mysql",

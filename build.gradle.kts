@@ -4,6 +4,7 @@ plugins {
     java
     alias(libs.plugins.sonarqube)
     alias(libs.plugins.kover)
+    alias(libs.plugins.dependency.analysis)
     id("beat.test")
 }
 
@@ -29,6 +30,17 @@ tasks.named<Jar>("jar") {
 tasks.withType<JavaCompile>().configureEach {
     options.release.set(25)
     options.encoding = "UTF-8"
+}
+
+
+dependencyAnalysis {
+    issues {
+        all {
+            onAny {
+                severity("warn")
+            }
+        }
+    }
 }
 
 fun registerVerificationTask(
@@ -67,4 +79,13 @@ registerVerificationTask(
 subprojects {
     group = rootProject.group
     version = rootProject.version
+    apply(plugin = "com.autonomousapps.dependency-analysis")
+
+    // Dependency-analysis consumes generated source-context resources; keep Sentry's
+    // generators as explicit prerequisites for Gradle task validation.
+    tasks.matching { it.name == "explodeCodeSourceMain" }.configureEach {
+        dependsOn(tasks.matching {
+            it.name == "collectExternalDependenciesForSentry" || it.name.startsWith("generateSentry")
+        })
+    }
 }
