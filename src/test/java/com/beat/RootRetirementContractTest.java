@@ -104,6 +104,7 @@ class RootRetirementContractTest {
 		assertFalse(buildFile.contains("verifyLegacyV1Baseline"));
 		assertFalse(buildFile.contains("verifyV2WebBaseline"));
 		assertTrue(buildFile.contains("testImplementation(libs.junit.jupiter)"));
+		assertTrue(buildFile.contains("Builds the non-executable root coordination artifact."));
 		assertTrue(buildFile.contains("verifyModuleBootJars"));
 		assertTrue(buildFile.contains("\":apis:bootJar\""));
 		assertTrue(buildFile.contains("\":admin:bootJar\""));
@@ -510,6 +511,8 @@ class RootRetirementContractTest {
 		assertTrue(deployProd.contains("release:"));
 		assertTrue(deployProd.contains("- published"));
 		assertTrue(deployProd.contains("github.event.release.tag_name"));
+		assertTrue(deployProd.contains("^v[0-9]+\\.[0-9]+\\.[0-9]+$"));
+		assertTrue(deployProd.contains("Invalid release tag: $RELEASE_TAG (expected vX.Y.Z)"));
 		assertTrue(deployProd.contains("module_matrix"));
 		assertTrue(deployProd.contains("matrix.module"));
 		assertTrue(deployProd.contains("commit_sha"));
@@ -633,6 +636,8 @@ class RootRetirementContractTest {
 		assertTrue(deployProd.contains("checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}"));
 		assertTrue(deployProd.contains(prodDeployNeedsFoundation));
 		assertTrue(deployProd.contains("group: prod-runtime"));
+		assertTrue(infraReadme.contains(
+			"`deploy-prod.yml`의 `resolve-release` → `verify` + `secret-preflight` → `build-image` → `foundation` → `deploy` 순서를 확인한다."));
 
 		assertTrue(infraReadme.contains("Foundation marker contract"));
 		assertTrue(infraReadme.contains("{{ deployment_dir }}/.foundation-applied"));

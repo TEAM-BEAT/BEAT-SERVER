@@ -22,6 +22,7 @@ dependencies {
 }
 
 tasks.named<Jar>("jar") {
+    description = "Builds the non-executable root coordination artifact."
     enabled = true
 }
 

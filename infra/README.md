@@ -643,7 +643,7 @@ flowchart TB
 published release가 prod 자동 배포를 시작하기 전에 아래 항목을 확인한다. 실패 항목이 있으면 release를 publish하지 말고 draft 상태에서 수정한다.
 
 1. **tag 기준 확인**
-    - release tag는 `vX.Y.Z` 형식이어야 한다.
+    - release tag는 workflow 검증과 동일하게 `vX.Y.Z` 형식이어야 한다.
     - tag가 가리키는 commit은 `origin/main`에 포함되어 있어야 한다. main에 merge되지 않은 hotfix/개인 브랜치 tag는 prod 배포 대상이 아니다.
     - 배포 workflow는 release tag를 한 번만 immutable commit SHA로 해석하고 이후 verify/build/deploy/rollback 기준으로 그 SHA를 전달한다.
 2. **CI/Gradle 확인**
@@ -655,7 +655,7 @@ published release가 prod 자동 배포를 시작하기 전에 아래 항목을 
     - resolver 실패, `ENC[...]` 잔존, host fingerprint 불일치는 배포 전 hard stop이다. GitHub Secret fallback을 추가하지 말고 SOPS inventory를 고친다.
 4. **release publish**
     - draft release notes를 확인한 뒤 GitHub Release를 publish한다.
-    - `deploy-prod.yml`의 `resolve-release` → `verify` → `build-image` → `foundation` → `deploy` 순서를 확인한다.
+    - `deploy-prod.yml`의 `resolve-release` → `verify` + `secret-preflight` → `build-image` → `foundation` → `deploy` 순서를 확인한다.
     - prod runtime은 `prod-runtime` concurrency group으로 직렬화되므로 기존 prod deploy/rollback 실행 중에는 새 release를 publish하지 않는다.
 5. **post-deploy 확인**
     - Slack 알림의 release tag, commit SHA, module별 image tag가 기대값과 일치하는지 확인한다.

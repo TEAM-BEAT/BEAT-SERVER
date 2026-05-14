@@ -22,8 +22,8 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         shell: bash
         run: |
-          if [[ -z "$RELEASE_TAG" ]] || [[ ! "$RELEASE_TAG" =~ ^[0-9A-Za-z._-]+$ ]]; then
-            echo "Invalid release tag: $RELEASE_TAG" >&2
+          if [[ -z "$RELEASE_TAG" ]] || [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release tag: $RELEASE_TAG (expected vX.Y.Z)" >&2
             exit 1
           fi
           echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
