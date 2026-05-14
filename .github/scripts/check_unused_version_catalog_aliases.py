@@ -72,6 +72,236 @@ class Usage:
     versions: set[str] = field(default_factory=set)
 
 
+@dataclass
+class CatalogCheck:
+    catalog: Catalog
+    allowlist: Allowlist
+    unused: dict[str, list[str]]
+    errors: list[str]
+    root: Path
+    catalog_path: Path
+    allowlist_path: Path
+    usage_file_count: int
+
+
+@dataclass
+class CatalogPaths:
+    root: Path
+    catalog_path: Path
+    allowlist_path: Path
+
+
+class KotlinSourceCleaner:
+    """Small tokenizer for Gradle Kotlin DSL comments and strings."""
+
+    def __init__(self, source: str) -> None:
+        self.source = source
+        self.output: list[str] = []
+        self.index = 0
+        self.escaped = False
+
+    def strip_comments(self) -> str:
+        while self.has_current():
+            if self.consume_line_comment() or self.consume_block_comment():
+                continue
+            if self.copy_triple_string() or self.copy_quoted_string('"') or self.copy_quoted_string("'"):
+                continue
+            self.emit_current()
+        return "".join(self.output)
+
+    def mask_strings(self) -> str:
+        while self.has_current():
+            if self.mask_triple_string() or self.mask_quoted_string('"') or self.mask_quoted_string("'"):
+                continue
+            self.emit_current()
+        return "".join(self.output)
+
+    def has_current(self) -> bool:
+        return self.index < len(self.source)
+
+    def current(self) -> str:
+        return self.source[self.index]
+
+    def next_char(self) -> str:
+        return self.source[self.index + 1] if self.index + 1 < len(self.source) else ""
+
+    def next_three(self) -> str:
+        return self.source[self.index:self.index + 3]
+
+    def emit_current(self) -> None:
+        self.output.append(self.current())
+        self.index += 1
+
+    def emit_masked_current(self) -> None:
+        self.output.append("\n" if self.current() == "\n" else " ")
+        self.index += 1
+
+    def consume_line_comment(self) -> bool:
+        if self.current() != "/" or self.next_char() != "/":
+            return False
+        self.output.extend("  ")
+        self.index += 2
+        self.mask_until_line_end()
+        return True
+
+    def mask_until_line_end(self) -> None:
+        while self.has_current() and self.current() != "\n":
+            self.emit_masked_current()
+        if self.has_current():
+            self.emit_current()
+
+    def consume_block_comment(self) -> bool:
+        if self.current() != "/" or self.next_char() != "*":
+            return False
+        self.output.extend("  ")
+        self.index += 2
+        self.mask_until_block_comment_end()
+        return True
+
+    def mask_until_block_comment_end(self) -> None:
+        while self.has_current():
+            if self.current() == "*" and self.next_char() == "/":
+                self.output.extend("  ")
+                self.index += 2
+                return
+            self.emit_masked_current()
+
+    def copy_triple_string(self) -> bool:
+        if self.next_three() != '"""':
+            return False
+        self.copy_literal_until_triple_quote(mask_contents=False)
+        return True
+
+    def mask_triple_string(self) -> bool:
+        if self.next_three() != '"""':
+            return False
+        self.copy_literal_until_triple_quote(mask_contents=True)
+        return True
+
+    def copy_literal_until_triple_quote(self, mask_contents: bool) -> None:
+        self.output.extend(self.next_three())
+        self.index += 3
+        while self.has_current():
+            if self.next_three() == '"""':
+                self.output.extend(self.next_three())
+                self.index += 3
+                return
+            self.emit_masked_current() if mask_contents else self.emit_current()
+
+    def copy_quoted_string(self, quote: str) -> bool:
+        if self.current() != quote:
+            return False
+        self.copy_literal_until_quote(quote, mask_contents=False)
+        return True
+
+    def mask_quoted_string(self, quote: str) -> bool:
+        if self.current() != quote:
+            return False
+        self.copy_literal_until_quote(quote, mask_contents=True)
+        return True
+
+    def copy_literal_until_quote(self, quote: str, mask_contents: bool) -> None:
+        self.output.append(self.current())
+        self.index += 1
+        self.escaped = False
+        while self.has_current():
+            if self.consume_escape(mask_contents):
+                continue
+            if self.current() == quote:
+                self.emit_current()
+                return
+            self.emit_masked_current() if mask_contents else self.emit_current()
+
+    def consume_escape(self, mask_contents: bool) -> bool:
+        if not self.escaped and self.current() != "\\":
+            return False
+
+        was_escape_prefix = self.current() == "\\" and not self.escaped
+        self.escaped = was_escape_prefix
+        self.emit_masked_current() if mask_contents else self.emit_current()
+        return True
+
+
+class CatalogParser:
+    def __init__(self) -> None:
+        self.catalog = Catalog()
+        self.current_section: str | None = None
+        self.pending: tuple[str, str, int, int] | None = None
+        self.pending_value: list[str] = []
+
+    def parse(self, catalog_path: Path) -> Catalog:
+        if not catalog_path.exists():
+            raise FileNotFoundError(f"Catalog not found: {catalog_path}")
+        for line_number, raw_line in enumerate(catalog_path.read_text(encoding="utf-8").splitlines(), 1):
+            self.consume_line(line_number, strip_comment(raw_line).rstrip())
+        self.finish_pending()
+        return self.catalog
+
+    def consume_line(self, line_number: int, line: str) -> None:
+        stripped = line.strip()
+        if self.consume_section_header(stripped):
+            return
+        if self.consume_pending_entry(line):
+            return
+        self.start_entry(line_number, line, stripped)
+
+    def consume_section_header(self, stripped: str) -> bool:
+        match = re.match(r"^\[([A-Za-z0-9_.-]+)]\s*$", stripped)
+        if not match:
+            return False
+        self.finish_pending()
+        self.current_section = match.group(1)
+        return True
+
+    def consume_pending_entry(self, line: str) -> bool:
+        if self.pending is None:
+            return False
+        self.pending_value.append(line)
+        self.update_pending_balance(bracket_balance_delta(line))
+        return True
+
+    def update_pending_balance(self, delta: int) -> None:
+        if self.pending is None:
+            return
+        section, alias, start_line, balance = self.pending
+        self.pending = (section, alias, start_line, balance + delta)
+        if balance + delta <= 0:
+            self.finish_pending()
+
+    def start_entry(self, line_number: int, line: str, stripped: str) -> None:
+        if self.current_section not in CATALOG_SECTIONS or not stripped:
+            return
+        match = re.match(r"^([A-Za-z0-9_.-]+)\s*=\s*(.*)$", line)
+        if match:
+            self.pending = (
+                self.current_section,
+                match.group(1),
+                line_number,
+                bracket_balance_delta(match.group(2)),
+            )
+            self.pending_value = [match.group(2)]
+        if self.pending is not None and self.pending[3] <= 0:
+            self.finish_pending()
+
+    def finish_pending(self) -> None:
+        if self.pending is None:
+            return
+        section, alias, start_line, _balance = self.pending
+        value = "\n".join(self.pending_value)
+        self.catalog.entries[section][alias] = CatalogEntry(section, alias, start_line, value)
+        self.record_entry_metadata(section, alias, value)
+        self.pending = None
+        self.pending_value = []
+
+    def record_entry_metadata(self, section: str, alias: str, value: str) -> None:
+        if section in ("libraries", "plugins"):
+            refs = set(re.findall(r"version\.ref\s*=\s*[\"']([^\"']+)[\"']", value))
+            target = self.catalog.library_version_refs if section == "libraries" else self.catalog.plugin_version_refs
+            target[alias] = refs
+        elif section == "bundles":
+            self.catalog.bundle_members[alias] = set(re.findall(r"[\"']([^\"']+)[\"']", value))
+
+
 def strip_comment(line: str) -> str:
     in_single = False
     in_double = False
@@ -95,169 +325,11 @@ def strip_comment(line: str) -> str:
 
 
 def strip_kotlin_comments(source: str) -> str:
-    """Remove Kotlin/Groovy-style comments without touching string literals."""
-    output: list[str] = []
-    index = 0
-    in_line_comment = False
-    in_block_comment = False
-    in_single = False
-    in_double = False
-    in_triple_double = False
-    escaped = False
-
-    while index < len(source):
-        char = source[index]
-        next_char = source[index + 1] if index + 1 < len(source) else ""
-        next_three = source[index:index + 3]
-
-        if in_line_comment:
-            if char == "\n":
-                in_line_comment = False
-                output.append(char)
-            else:
-                output.append(" ")
-            index += 1
-            continue
-
-        if in_block_comment:
-            if char == "*" and next_char == "/":
-                output.extend("  ")
-                in_block_comment = False
-                index += 2
-            else:
-                output.append("\n" if char == "\n" else " ")
-                index += 1
-            continue
-
-        if in_triple_double:
-            output.append(char)
-            if next_three == '"""':
-                output.extend(source[index + 1:index + 3])
-                in_triple_double = False
-                index += 3
-            else:
-                index += 1
-            continue
-
-        if in_single:
-            output.append(char)
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif char == "'":
-                in_single = False
-            index += 1
-            continue
-
-        if in_double:
-            output.append(char)
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif char == '"':
-                in_double = False
-            index += 1
-            continue
-
-        if char == "/" and next_char == "/":
-            output.extend("  ")
-            in_line_comment = True
-            index += 2
-        elif char == "/" and next_char == "*":
-            output.extend("  ")
-            in_block_comment = True
-            index += 2
-        elif next_three == '"""':
-            output.extend(next_three)
-            in_triple_double = True
-            index += 3
-        elif char == '"':
-            output.append(char)
-            in_double = True
-            index += 1
-        elif char == "'":
-            output.append(char)
-            in_single = True
-            index += 1
-        else:
-            output.append(char)
-            index += 1
-
-    return "".join(output)
+    return KotlinSourceCleaner(source).strip_comments()
 
 
 def mask_kotlin_strings(source: str) -> str:
-    """Mask string literal contents so direct libs.* accessors inside strings do not count."""
-    output: list[str] = []
-    index = 0
-    in_single = False
-    in_double = False
-    in_triple_double = False
-    escaped = False
-
-    while index < len(source):
-        char = source[index]
-        next_three = source[index:index + 3]
-
-        if in_triple_double:
-            if next_three == '"""':
-                output.extend(next_three)
-                in_triple_double = False
-                index += 3
-            else:
-                output.append("\n" if char == "\n" else " ")
-                index += 1
-            continue
-
-        if in_single:
-            if escaped:
-                output.append(" ")
-                escaped = False
-            elif char == "\\":
-                output.append(" ")
-                escaped = True
-            elif char == "'":
-                output.append(char)
-                in_single = False
-            else:
-                output.append("\n" if char == "\n" else " ")
-            index += 1
-            continue
-
-        if in_double:
-            if escaped:
-                output.append(" ")
-                escaped = False
-            elif char == "\\":
-                output.append(" ")
-                escaped = True
-            elif char == '"':
-                output.append(char)
-                in_double = False
-            else:
-                output.append("\n" if char == "\n" else " ")
-            index += 1
-            continue
-
-        if next_three == '"""':
-            output.extend(next_three)
-            in_triple_double = True
-            index += 3
-        elif char == '"':
-            output.append(char)
-            in_double = True
-            index += 1
-        elif char == "'":
-            output.append(char)
-            in_single = True
-            index += 1
-        else:
-            output.append(char)
-            index += 1
-
-    return "".join(output)
+    return KotlinSourceCleaner(source).mask_strings()
 
 
 def alias_to_accessor(alias: str) -> str:
@@ -295,64 +367,7 @@ def display_path(path: Path, root: Path) -> str:
 
 
 def parse_catalog(catalog_path: Path) -> Catalog:
-    if not catalog_path.exists():
-        raise FileNotFoundError(f"Catalog not found: {catalog_path}")
-
-    catalog = Catalog()
-    current_section: str | None = None
-    pending: tuple[str, str, int, int] | None = None  # section, alias, start line, bracket balance
-    pending_value: list[str] = []
-
-    def finish_pending() -> None:
-        nonlocal pending, pending_value
-        if pending is None:
-            return
-        section, alias, start_line, _balance = pending
-        value = "\n".join(pending_value)
-        catalog.entries[section][alias] = CatalogEntry(section, alias, start_line, value)
-        if section in ("libraries", "plugins"):
-            refs = set(re.findall(r"version\.ref\s*=\s*[\"']([^\"']+)[\"']", value))
-            if section == "libraries":
-                catalog.library_version_refs[alias] = refs
-            else:
-                catalog.plugin_version_refs[alias] = refs
-        elif section == "bundles":
-            catalog.bundle_members[alias] = set(re.findall(r"[\"']([^\"']+)[\"']", value))
-        pending = None
-        pending_value = []
-
-    for line_number, raw_line in enumerate(catalog_path.read_text(encoding="utf-8").splitlines(), 1):
-        without_comment = strip_comment(raw_line).rstrip()
-        stripped = without_comment.strip()
-        section_match = re.match(r"^\[([A-Za-z0-9_.-]+)]\s*$", stripped)
-        if section_match:
-            finish_pending()
-            current_section = section_match.group(1)
-            continue
-
-        if pending is not None:
-            pending_value.append(without_comment)
-            balance = pending[3] + bracket_balance_delta(without_comment)
-            pending = (pending[0], pending[1], pending[2], balance)
-            if balance <= 0:
-                finish_pending()
-            continue
-
-        if current_section not in CATALOG_SECTIONS or not stripped:
-            continue
-
-        key_match = re.match(r"^([A-Za-z0-9_.-]+)\s*=\s*(.*)$", without_comment)
-        if not key_match:
-            continue
-        alias, remainder = key_match.group(1), key_match.group(2)
-        balance = bracket_balance_delta(remainder)
-        pending = (current_section, alias, line_number, balance)
-        pending_value = [remainder]
-        if balance <= 0:
-            finish_pending()
-
-    finish_pending()
-    return catalog
+    return CatalogParser().parse(catalog_path)
 
 
 def parse_allowlist(path: Path) -> Allowlist:
@@ -362,35 +377,54 @@ def parse_allowlist(path: Path) -> Allowlist:
         return Allowlist(reasons, errors)
 
     for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-        stripped = raw_line.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        if "#" not in raw_line:
-            errors.append(f"{path}:{line_number}: allowlist entries must include a # reason comment")
-            continue
-        entry, reason = raw_line.split("#", 1)
-        qualified = entry.strip()
-        reason = reason.strip()
-        if not reason:
-            errors.append(f"{path}:{line_number}: allowlist reason comment is empty")
-            continue
-        match = re.match(r"^(versions|plugins|libraries|bundles)\.([A-Za-z0-9_.-]+)$", qualified)
-        if not match:
-            errors.append(
-                f"{path}:{line_number}: expected '<versions|plugins|libraries|bundles>.<alias> # reason'"
-            )
-            continue
-        reasons[(match.group(1), match.group(2))] = reason
+        parse_allowlist_line(path, line_number, raw_line, reasons, errors)
     return Allowlist(reasons, errors)
+
+
+def parse_allowlist_line(
+    path: Path,
+    line_number: int,
+    raw_line: str,
+    reasons: dict[tuple[str, str], str],
+    errors: list[str],
+) -> None:
+    stripped = raw_line.strip()
+    if not stripped or stripped.startswith("#"):
+        return
+    if "#" not in raw_line:
+        errors.append(f"{path}:{line_number}: allowlist entries must include a # reason comment")
+        return
+    record_allowlist_entry(path, line_number, raw_line, reasons, errors)
+
+
+def record_allowlist_entry(
+    path: Path,
+    line_number: int,
+    raw_line: str,
+    reasons: dict[tuple[str, str], str],
+    errors: list[str],
+) -> None:
+    qualified, reason = split_allowlist_entry(raw_line)
+    match = re.match(r"^(versions|plugins|libraries|bundles)\.([A-Za-z0-9_.-]+)$", qualified)
+    if not reason:
+        errors.append(f"{path}:{line_number}: allowlist reason comment is empty")
+    elif match:
+        reasons[(match.group(1), match.group(2))] = reason
+    else:
+        errors.append(f"{path}:{line_number}: expected '<versions|plugins|libraries|bundles>.<alias> # reason'")
+
+
+def split_allowlist_entry(raw_line: str) -> tuple[str, str]:
+    entry, reason = raw_line.split("#", 1)
+    return entry.strip(), reason.strip()
 
 
 def gradle_kts_files(root: Path) -> list[Path]:
     ignored_dirs = {".git", ".gradle", ".omx", "build"}
     files: list[Path] = []
     for path in root.rglob("*.gradle.kts"):
-        if any(part in ignored_dirs for part in path.relative_to(root).parts):
-            continue
-        files.append(path)
+        if not any(part in ignored_dirs for part in path.relative_to(root).parts):
+            files.append(path)
     return sorted(files)
 
 
@@ -398,11 +432,7 @@ def read_usage_text(files: Iterable[Path]) -> UsageText:
     lookup_chunks = []
     accessor_chunks = []
     for path in files:
-        try:
-            source = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            source = path.read_text()
-        without_comments = strip_kotlin_comments(source)
+        without_comments = strip_kotlin_comments(read_text(path))
         lookup_chunks.append(without_comments)
         accessor_chunks.append(mask_kotlin_strings(without_comments))
     return UsageText(
@@ -411,54 +441,68 @@ def read_usage_text(files: Iterable[Path]) -> UsageText:
     )
 
 
+def read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return path.read_text()
+
+
 def collect_usage(catalog: Catalog, usage_text: UsageText) -> Usage:
     usage = Usage()
+    add_used_aliases(usage.libraries, catalog.entries["libraries"], usage_text, "libs", "findLibrary")
+    add_used_aliases(usage.bundles, catalog.entries["bundles"], usage_text, "libs.bundles", "findBundle")
+    add_used_aliases(usage.plugins, catalog.entries["plugins"], usage_text, "libs.plugins", "findPlugin")
+    add_used_aliases(usage.versions, catalog.entries["versions"], usage_text, "libs.versions", "findVersion")
+    add_transitive_catalog_usage(catalog, usage)
+    return usage
 
-    for alias in catalog.entries["libraries"]:
-        if alias_is_used(usage_text, "libs", "findLibrary", alias):
-            usage.libraries.add(alias)
 
-    for alias in catalog.entries["bundles"]:
-        if alias_is_used(usage_text, "libs.bundles", "findBundle", alias):
-            usage.bundles.add(alias)
+def add_used_aliases(
+    target: set[str],
+    entries: dict[str, CatalogEntry],
+    usage_text: UsageText,
+    accessor_prefix: str,
+    lookup_method: str,
+) -> None:
+    for alias in entries:
+        if alias_is_used(usage_text, accessor_prefix, lookup_method, alias):
+            target.add(alias)
 
-    for alias in catalog.entries["plugins"]:
-        if alias_is_used(usage_text, "libs.plugins", "findPlugin", alias):
-            usage.plugins.add(alias)
 
-    for alias in catalog.entries["versions"]:
-        if alias_is_used(usage_text, "libs.versions", "findVersion", alias):
-            usage.versions.add(alias)
-
-    # A used bundle makes its member library aliases used too.
+def add_transitive_catalog_usage(catalog: Catalog, usage: Usage) -> None:
     for bundle_alias in usage.bundles:
         usage.libraries.update(catalog.bundle_members.get(bundle_alias, set()))
-
-    # version.ref aliases are used only when their owning catalog entry is used.
     for library_alias in usage.libraries:
         usage.versions.update(catalog.library_version_refs.get(library_alias, set()))
     for plugin_alias in usage.plugins:
         usage.versions.update(catalog.plugin_version_refs.get(plugin_alias, set()))
 
-    return usage
-
 
 def unknown_references(catalog: Catalog) -> list[str]:
     errors: list[str] = []
-    library_aliases = set(catalog.entries["libraries"])
-    version_aliases = set(catalog.entries["versions"])
-
-    for bundle_alias, members in sorted(catalog.bundle_members.items()):
-        for member in sorted(members - library_aliases):
-            errors.append(f"bundles.{bundle_alias} references missing libraries.{member}")
-
-    for library_alias, refs in sorted(catalog.library_version_refs.items()):
-        for ref in sorted(refs - version_aliases):
-            errors.append(f"libraries.{library_alias} references missing versions.{ref}")
-    for plugin_alias, refs in sorted(catalog.plugin_version_refs.items()):
-        for ref in sorted(refs - version_aliases):
-            errors.append(f"plugins.{plugin_alias} references missing versions.{ref}")
+    errors.extend(missing_bundle_members(catalog))
+    errors.extend(missing_version_refs("libraries", catalog.library_version_refs, catalog))
+    errors.extend(missing_version_refs("plugins", catalog.plugin_version_refs, catalog))
     return errors
+
+
+def missing_bundle_members(catalog: Catalog) -> list[str]:
+    library_aliases = set(catalog.entries["libraries"])
+    return [
+        f"bundles.{bundle_alias} references missing libraries.{member}"
+        for bundle_alias, members in sorted(catalog.bundle_members.items())
+        for member in sorted(members - library_aliases)
+    ]
+
+
+def missing_version_refs(section: str, refs_by_alias: dict[str, set[str]], catalog: Catalog) -> list[str]:
+    version_aliases = set(catalog.entries["versions"])
+    return [
+        f"{section}.{alias} references missing versions.{ref}"
+        for alias, refs in sorted(refs_by_alias.items())
+        for ref in sorted(refs - version_aliases)
+    ]
 
 
 def unused_entries(catalog: Catalog, usage: Usage) -> dict[str, list[str]]:
@@ -474,7 +518,7 @@ def unused_entries(catalog: Catalog, usage: Usage) -> dict[str, list[str]]:
     }
 
 
-def main() -> int:
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Check unused Gradle version catalog aliases.")
     parser.add_argument("--root", type=Path, default=Path.cwd(), help="Repository root (default: cwd)")
     parser.add_argument(
@@ -489,72 +533,130 @@ def main() -> int:
         default=Path(DEFAULT_ALLOWLIST),
         help="Allowlist path relative to --root unless absolute",
     )
-    args = parser.parse_args()
+    return parser.parse_args()
 
+
+def resolve_paths(args: argparse.Namespace) -> CatalogPaths:
     root = args.root.resolve()
-    catalog_path = args.catalog if args.catalog.is_absolute() else root / args.catalog
-    allowlist_path = args.allowlist if args.allowlist.is_absolute() else root / args.allowlist
+    return CatalogPaths(
+        root=root,
+        catalog_path=args.catalog if args.catalog.is_absolute() else root / args.catalog,
+        allowlist_path=args.allowlist if args.allowlist.is_absolute() else root / args.allowlist,
+    )
 
-    catalog = parse_catalog(catalog_path)
-    allowlist = parse_allowlist(allowlist_path)
-    errors = list(allowlist.errors)
-    errors.extend(unknown_references(catalog))
 
-    usage_files = gradle_kts_files(root)
+def build_check(paths: CatalogPaths) -> CatalogCheck:
+    catalog = parse_catalog(paths.catalog_path)
+    allowlist = parse_allowlist(paths.allowlist_path)
+    usage_files = gradle_kts_files(paths.root)
     usage = collect_usage(catalog, read_usage_text(usage_files))
     unused = unused_entries(catalog, usage)
+    errors = list(allowlist.errors)
+    errors.extend(unknown_references(catalog))
+    errors.extend(allowlist_reference_errors(catalog, unused, allowlist))
+    return CatalogCheck(
+        catalog=catalog,
+        allowlist=allowlist,
+        unused=unused,
+        errors=errors,
+        root=paths.root,
+        catalog_path=paths.catalog_path,
+        allowlist_path=paths.allowlist_path,
+        usage_file_count=len(usage_files),
+    )
 
+
+def allowlist_reference_errors(catalog: Catalog, unused: dict[str, list[str]], allowlist: Allowlist) -> list[str]:
     catalog_keys = {entry.key for section in catalog.entries.values() for entry in section.values()}
     unused_keys = {(section, alias) for section, aliases in unused.items() for alias in aliases}
-    allowed_keys = set(allowlist.reasons)
+    errors = [
+        f"allowlist references missing catalog alias: {key[0]}.{key[1]}"
+        for key in sorted(set(allowlist.reasons) - catalog_keys)
+    ]
+    errors.extend(
+        f"allowlist entry is no longer needed: {key[0]}.{key[1]}"
+        for key in sorted(set(allowlist.reasons) - unused_keys)
+        if key in catalog_keys
+    )
+    return errors
 
-    for key in sorted(allowed_keys - catalog_keys):
-        errors.append(f"allowlist references missing catalog alias: {key[0]}.{key[1]}")
-    for key in sorted(allowed_keys - unused_keys):
-        if key in catalog_keys:
-            errors.append(f"allowlist entry is no longer needed: {key[0]}.{key[1]}")
 
-    unallowed_unused = {
+def unallowed_unused_entries(check: CatalogCheck) -> dict[str, list[str]]:
+    allowed_keys = set(check.allowlist.reasons)
+    return {
         section: [alias for alias in aliases if (section, alias) not in allowed_keys]
-        for section, aliases in unused.items()
+        for section, aliases in check.unused.items()
     }
 
-    print(f"Checked {display_path(catalog_path, root)} against {len(usage_files)} Gradle Kotlin DSL files.")
-    if allowlist_path.exists():
-        print(f"Loaded allowlist: {display_path(allowlist_path, root)}")
 
+def print_check_header(check: CatalogCheck) -> None:
+    print(f"Checked {display_path(check.catalog_path, check.root)} against {check.usage_file_count} Gradle Kotlin DSL files.")
+    if check.allowlist_path.exists():
+        print(f"Loaded allowlist: {display_path(check.allowlist_path, check.root)}")
+
+
+def print_allowed_unused(check: CatalogCheck) -> None:
     for section in CATALOG_SECTIONS:
-        allowed = [alias for alias in unused[section] if (section, alias) in allowed_keys]
-        if allowed:
-            print(f"Allowed unused {section} aliases:")
-            for alias in allowed:
-                print(f"  - {section}.{alias}: {allowlist.reasons[(section, alias)]}")
+        aliases = [alias for alias in check.unused[section] if (section, alias) in check.allowlist.reasons]
+        print_allowed_section(check, section, aliases)
 
+
+def print_allowed_section(check: CatalogCheck, section: str, aliases: list[str]) -> None:
+    if not aliases:
+        return
+    print(f"Allowed unused {section} aliases:")
+    for alias in aliases:
+        print(f"  - {section}.{alias}: {check.allowlist.reasons[(section, alias)]}")
+
+
+def print_unallowed_unused(check: CatalogCheck, unallowed: dict[str, list[str]]) -> bool:
     failed = False
     for section in CATALOG_SECTIONS:
-        if unallowed_unused[section]:
+        if unallowed[section]:
             failed = True
-            print(f"Unused {section} aliases:", file=sys.stderr)
-            for alias in unallowed_unused[section]:
-                entry = catalog.entries[section][alias]
-                print(f"  - {entry.qualified} ({display_path(catalog_path, root)}:{entry.line})", file=sys.stderr)
+            print_unused_section(check, section, unallowed[section])
+    return failed
 
-    if errors:
-        failed = True
-        print("Catalog checker configuration errors:", file=sys.stderr)
-        for error in errors:
-            print(f"  - {error}", file=sys.stderr)
 
+def print_unused_section(check: CatalogCheck, section: str, aliases: list[str]) -> None:
+    print(f"Unused {section} aliases:", file=sys.stderr)
+    for alias in aliases:
+        entry = check.catalog.entries[section][alias]
+        print(f"  - {entry.qualified} ({display_path(check.catalog_path, check.root)}:{entry.line})", file=sys.stderr)
+
+
+def print_errors(errors: list[str]) -> bool:
+    if not errors:
+        return False
+    print("Catalog checker configuration errors:", file=sys.stderr)
+    for error in errors:
+        print(f"  - {error}", file=sys.stderr)
+    return True
+
+
+def print_failure_hint(check: CatalogCheck) -> None:
+    print(
+        "Add a real usage, remove the stale alias, or document a temporary exception in "
+        f"{display_path(check.allowlist_path, check.root)}.",
+        file=sys.stderr,
+    )
+
+
+def run_check(args: argparse.Namespace) -> int:
+    check = build_check(resolve_paths(args))
+    print_check_header(check)
+    print_allowed_unused(check)
+    failed = print_unallowed_unused(check, unallowed_unused_entries(check))
+    failed = print_errors(check.errors) or failed
     if failed:
-        print(
-            "Add a real usage, remove the stale alias, or document a temporary exception in "
-            f"{display_path(allowlist_path, root)}.",
-            file=sys.stderr,
-        )
+        print_failure_hint(check)
         return 1
-
     print("No unused version catalog aliases found.")
     return 0
+
+
+def main() -> int:
+    return run_check(parse_args())
 
 
 if __name__ == "__main__":
