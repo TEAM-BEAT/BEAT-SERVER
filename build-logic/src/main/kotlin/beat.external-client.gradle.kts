@@ -7,7 +7,7 @@ plugins {
 val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
 dependencies {
-    implementation(platform(libs.findLibrary("spring-cloud-dependencies").get()))
+    compileOnly(platform(libs.findLibrary("spring-cloud-dependencies").get()))
     compileOnly(libs.findLibrary("spring-boot-starter-web").get())
     compileOnly(libs.findLibrary("spring-cloud-starter-openfeign").get())
 }

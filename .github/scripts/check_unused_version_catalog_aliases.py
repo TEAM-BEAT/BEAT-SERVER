@@ -101,6 +101,25 @@ def lookup_pattern(method: str, alias: str) -> re.Pattern[str]:
     return re.compile(rf"\b{re.escape(method)}\s*\(\s*[\"']{re.escape(alias)}[\"']\s*\)")
 
 
+def bracket_balance_delta(text: str) -> int:
+    """Return a lightweight TOML inline table/list balance delta."""
+    return text.count("[") + text.count("{") - text.count("]") - text.count("}")
+
+
+def alias_is_used(usage_text: str, accessor_prefix: str, lookup_method: str, alias: str) -> bool:
+    return (
+        accessor_pattern(accessor_prefix, alias).search(usage_text) is not None
+        or lookup_pattern(lookup_method, alias).search(usage_text) is not None
+    )
+
+
+def display_path(path: Path, root: Path) -> str:
+    try:
+        return str(path.relative_to(root))
+    except ValueError:
+        return str(path)
+
+
 def parse_catalog(catalog_path: Path) -> Catalog:
     if not catalog_path.exists():
         raise FileNotFoundError(f"Catalog not found: {catalog_path}")
@@ -139,7 +158,7 @@ def parse_catalog(catalog_path: Path) -> Catalog:
 
         if pending is not None:
             pending_value.append(without_comment)
-            balance = pending[3] + without_comment.count("[") + without_comment.count("{") - without_comment.count("]") - without_comment.count("}")
+            balance = pending[3] + bracket_balance_delta(without_comment)
             pending = (pending[0], pending[1], pending[2], balance)
             if balance <= 0:
                 finish_pending()
@@ -152,7 +171,7 @@ def parse_catalog(catalog_path: Path) -> Catalog:
         if not key_match:
             continue
         alias, remainder = key_match.group(1), key_match.group(2)
-        balance = remainder.count("[") + remainder.count("{") - remainder.count("]") - remainder.count("}")
+        balance = bracket_balance_delta(remainder)
         pending = (current_section, alias, line_number, balance)
         pending_value = [remainder]
         if balance <= 0:
@@ -215,21 +234,19 @@ def collect_usage(catalog: Catalog, usage_text: str) -> Usage:
     usage = Usage()
 
     for alias in catalog.entries["libraries"]:
-        if accessor_pattern("libs", alias).search(usage_text) or lookup_pattern("findLibrary", alias).search(usage_text):
+        if alias_is_used(usage_text, "libs", "findLibrary", alias):
             usage.libraries.add(alias)
 
     for alias in catalog.entries["bundles"]:
-        if accessor_pattern("libs.bundles", alias).search(usage_text) or lookup_pattern("findBundle", alias).search(usage_text):
+        if alias_is_used(usage_text, "libs.bundles", "findBundle", alias):
             usage.bundles.add(alias)
 
     for alias in catalog.entries["plugins"]:
-        if accessor_pattern("libs.plugins", alias).search(usage_text) or lookup_pattern("findPlugin", alias).search(usage_text):
+        if alias_is_used(usage_text, "libs.plugins", "findPlugin", alias):
             usage.plugins.add(alias)
 
     for alias in catalog.entries["versions"]:
-        direct_accessor = accessor_pattern("libs.versions", alias).search(usage_text)
-        direct_lookup = lookup_pattern("findVersion", alias).search(usage_text)
-        if direct_accessor or direct_lookup:
+        if alias_is_used(usage_text, "libs.versions", "findVersion", alias):
             usage.versions.add(alias)
 
     # A used bundle makes its member library aliases used too.
@@ -321,9 +338,9 @@ def main() -> int:
         for section, aliases in unused.items()
     }
 
-    print(f"Checked {catalog_path.relative_to(root)} against {len(usage_files)} Gradle Kotlin DSL files.")
+    print(f"Checked {display_path(catalog_path, root)} against {len(usage_files)} Gradle Kotlin DSL files.")
     if allowlist_path.exists():
-        print(f"Loaded allowlist: {allowlist_path.relative_to(root)}")
+        print(f"Loaded allowlist: {display_path(allowlist_path, root)}")
 
     for section in CATALOG_SECTIONS:
         allowed = [alias for alias in unused[section] if (section, alias) in allowed_keys]
@@ -339,7 +356,7 @@ def main() -> int:
             print(f"Unused {section} aliases:", file=sys.stderr)
             for alias in unallowed_unused[section]:
                 entry = catalog.entries[section][alias]
-                print(f"  - {entry.qualified} ({catalog_path.relative_to(root)}:{entry.line})", file=sys.stderr)
+                print(f"  - {entry.qualified} ({display_path(catalog_path, root)}:{entry.line})", file=sys.stderr)
 
     if errors:
         failed = True
@@ -350,7 +367,7 @@ def main() -> int:
     if failed:
         print(
             "Add a real usage, remove the stale alias, or document a temporary exception in "
-            f"{DEFAULT_ALLOWLIST}.",
+            f"{display_path(allowlist_path, root)}.",
             file=sys.stderr,
         )
         return 1

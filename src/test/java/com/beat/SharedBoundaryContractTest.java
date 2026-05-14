@@ -1212,19 +1212,11 @@ class SharedBoundaryContractTest {
 		Path openApiConvention = Path.of("build-logic/src/main/kotlin/beat.openapi.gradle.kts");
 		Path feignRuntimeConvention = Path.of("build-logic/src/main/kotlin/beat.feign-runtime.gradle.kts");
 
+		assertFalse(Files.exists(webAppConvention), "beat.web-app must stay retired; modules must opt into web capabilities explicitly");
 		assertTrue(Files.exists(webMvcConvention), "web MVC must be selectable via beat.web-mvc");
 		assertTrue(Files.exists(webSecurityConvention), "security must be selectable via beat.web-security");
 		assertTrue(Files.exists(openApiConvention), "OpenAPI must be selectable via beat.openapi");
 		assertTrue(Files.exists(feignRuntimeConvention), "Feign must be selectable via beat.feign-runtime");
-
-		if (Files.exists(webAppConvention)) {
-			String webApp = Files.readString(webAppConvention);
-			assertFalse(webApp.contains("web-app-core"), "beat.web-app must not keep the former god bundle");
-			assertFalse(webApp.contains("spring-cloud-starter-openfeign"));
-			assertFalse(webApp.contains("springdoc-openapi-starter-webmvc-ui"));
-			assertFalse(webApp.contains("spring-boot-starter-security"));
-			assertFalse(webApp.contains("spring-boot-starter-web"));
-		}
 
 		String apisBuild = Files.readString(Path.of("apis/build.gradle.kts"));
 		String adminBuild = Files.readString(Path.of("admin/build.gradle.kts"));
@@ -1253,18 +1245,12 @@ class SharedBoundaryContractTest {
 		assertTrue(Files.exists(infraLibraryConvention), "infra base library convention must exist");
 		assertTrue(Files.exists(jpaAdapterConvention), "JPA adapter convention must exist");
 		assertTrue(Files.exists(externalClientConvention), "external client convention must exist");
+		assertFalse(Files.exists(legacyJpaInfraConvention), "beat.jpa-infra must stay retired in favor of focused infra conventions");
 		assertFalse(infraBuild.contains("id(\"beat.jpa-infra\")"));
 		assertTrue(infraBuild.contains("id(\"beat.jpa-adapter\")"));
 		assertTrue(infraBuild.contains("id(\"beat.external-client\")"));
 		assertTrue(infraBuild.contains("implementation(libs.aws.java.sdk.s3)"), "S3 remains explicit in infra/build.gradle.kts");
 		assertTrue(infraBuild.contains("implementation(libs.nurigo.java.sdk)"), "SMS remains explicit in infra/build.gradle.kts");
-
-		if (Files.exists(legacyJpaInfraConvention)) {
-			String legacyJpaInfra = Files.readString(legacyJpaInfraConvention);
-			assertFalse(legacyJpaInfra.contains("spring-boot-starter-data-redis"));
-			assertFalse(legacyJpaInfra.contains("spring-boot-starter-security"));
-			assertFalse(legacyJpaInfra.contains("querydsl"));
-		}
 
 		String infraLibrary = Files.readString(infraLibraryConvention);
 		String jpaAdapter = Files.readString(jpaAdapterConvention);
@@ -1274,7 +1260,7 @@ class SharedBoundaryContractTest {
 		assertTrue(jpaAdapter.contains("id(\"beat.infra-library\")"));
 		assertTrue(externalClient.contains("id(\"beat.infra-library\")"));
 		assertTrue(jpaAdapter.contains("spring-boot-starter-data-jpa"));
-		assertTrue(externalClient.contains("spring-cloud-dependencies"));
+		assertTrue(externalClient.contains("compileOnly(platform(libs.findLibrary(\"spring-cloud-dependencies\").get()))"));
 		assertTrue(externalClient.contains("spring-cloud-starter-openfeign"));
 		assertFalse(infraLibrary.contains("spring-boot-starter-data-jpa"));
 		assertFalse(infraLibrary.contains("spring-cloud-starter-openfeign"));
