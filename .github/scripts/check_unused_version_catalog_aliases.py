@@ -59,6 +59,12 @@ class Allowlist:
 
 
 @dataclass
+class UsageText:
+    lookup_text: str
+    accessor_text: str
+
+
+@dataclass
 class Usage:
     libraries: set[str] = field(default_factory=set)
     plugins: set[str] = field(default_factory=set)
@@ -182,6 +188,78 @@ def strip_kotlin_comments(source: str) -> str:
     return "".join(output)
 
 
+def mask_kotlin_strings(source: str) -> str:
+    """Mask string literal contents so direct libs.* accessors inside strings do not count."""
+    output: list[str] = []
+    index = 0
+    in_single = False
+    in_double = False
+    in_triple_double = False
+    escaped = False
+
+    while index < len(source):
+        char = source[index]
+        next_three = source[index:index + 3]
+
+        if in_triple_double:
+            if next_three == '"""':
+                output.extend(next_three)
+                in_triple_double = False
+                index += 3
+            else:
+                output.append("\n" if char == "\n" else " ")
+                index += 1
+            continue
+
+        if in_single:
+            if escaped:
+                output.append(" ")
+                escaped = False
+            elif char == "\\":
+                output.append(" ")
+                escaped = True
+            elif char == "'":
+                output.append(char)
+                in_single = False
+            else:
+                output.append("\n" if char == "\n" else " ")
+            index += 1
+            continue
+
+        if in_double:
+            if escaped:
+                output.append(" ")
+                escaped = False
+            elif char == "\\":
+                output.append(" ")
+                escaped = True
+            elif char == '"':
+                output.append(char)
+                in_double = False
+            else:
+                output.append("\n" if char == "\n" else " ")
+            index += 1
+            continue
+
+        if next_three == '"""':
+            output.extend(next_three)
+            in_triple_double = True
+            index += 3
+        elif char == '"':
+            output.append(char)
+            in_double = True
+            index += 1
+        elif char == "'":
+            output.append(char)
+            in_single = True
+            index += 1
+        else:
+            output.append(char)
+            index += 1
+
+    return "".join(output)
+
+
 def alias_to_accessor(alias: str) -> str:
     return re.sub(r"[-_.]+", ".", alias)
 
@@ -202,10 +280,10 @@ def bracket_balance_delta(text: str) -> int:
     return text.count("[") + text.count("{") - text.count("]") - text.count("}")
 
 
-def alias_is_used(usage_text: str, accessor_prefix: str, lookup_method: str, alias: str) -> bool:
+def alias_is_used(usage_text: UsageText, accessor_prefix: str, lookup_method: str, alias: str) -> bool:
     return (
-        accessor_pattern(accessor_prefix, alias).search(usage_text) is not None
-        or lookup_pattern(lookup_method, alias).search(usage_text) is not None
+        accessor_pattern(accessor_prefix, alias).search(usage_text.accessor_text) is not None
+        or lookup_pattern(lookup_method, alias).search(usage_text.lookup_text) is not None
     )
 
 
@@ -316,18 +394,24 @@ def gradle_kts_files(root: Path) -> list[Path]:
     return sorted(files)
 
 
-def read_usage_text(files: Iterable[Path]) -> str:
-    chunks = []
+def read_usage_text(files: Iterable[Path]) -> UsageText:
+    lookup_chunks = []
+    accessor_chunks = []
     for path in files:
         try:
             source = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             source = path.read_text()
-        chunks.append(strip_kotlin_comments(source))
-    return "\n".join(chunks)
+        without_comments = strip_kotlin_comments(source)
+        lookup_chunks.append(without_comments)
+        accessor_chunks.append(mask_kotlin_strings(without_comments))
+    return UsageText(
+        lookup_text="\n".join(lookup_chunks),
+        accessor_text="\n".join(accessor_chunks),
+    )
 
 
-def collect_usage(catalog: Catalog, usage_text: str) -> Usage:
+def collect_usage(catalog: Catalog, usage_text: UsageText) -> Usage:
     usage = Usage()
 
     for alias in catalog.entries["libraries"]:

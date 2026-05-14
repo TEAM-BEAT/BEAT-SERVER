@@ -1290,21 +1290,28 @@ class RootRetirementContractTest {
 		Files.writeString(gradleDir.resolve("libs.versions.toml"), """
 			[versions]
 			used = "1.0.0"
+			lookup = "1.0.0"
 			unused = "1.0.0"
 
 			[libraries]
 			used-lib = { module = "com.example:used", version.ref = "used" }
+			lookup-lib = { module = "com.example:lookup", version.ref = "lookup" }
 			unused-lib = { module = "com.example:unused", version.ref = "unused" }
 			""".stripIndent());
-		Files.writeString(tempRoot.resolve("build.gradle.kts"), """
-			// implementation(libs.unused.lib)
-			dependencies {
-			    implementation(libs.used.lib)
-			    /*
-			     * implementation(libs.unused.lib)
-			     */
-			}
-			""".stripIndent());
+		Files.writeString(tempRoot.resolve("build.gradle.kts"), String.join("\n",
+			"// implementation(libs.unused.lib)",
+			"val stringMention = \"libs.unused.lib\"",
+			"val multilineMention = \"\"\"",
+			"    libs.unused.lib",
+			"\"\"\"",
+			"dependencies {",
+			"    implementation(libs.used.lib)",
+			"    implementation(libs.findLibrary(\"lookup-lib\").get())",
+			"    /*",
+			"     * implementation(libs.unused.lib)",
+			"     */",
+			"}"
+		));
 
 		Path checker = Path.of(".github/scripts/check_unused_version_catalog_aliases.py")
 			.toAbsolutePath()
