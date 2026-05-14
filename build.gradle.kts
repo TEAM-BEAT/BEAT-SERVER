@@ -23,7 +23,6 @@ java {
 }
 
 dependencies {
-    testImplementation(project(":domain"))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

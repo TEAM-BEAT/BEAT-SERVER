@@ -73,6 +73,12 @@ class RootRetirementContractTest {
 	}
 
 	@Test
+	void domainInvariantTestsLiveWithDomainModule() {
+		assertFalse(Files.exists(Path.of("src/test/java/com/beat/domain")));
+		assertTrue(Files.exists(Path.of("domain/src/test/java/com/beat/domain")));
+	}
+
+	@Test
 	void gradleBuildNoLongerVerifiesLegacyRootBootJarBaseline() throws Exception {
 		String buildFile = Files.readString(Path.of("build.gradle.kts"));
 
@@ -82,6 +88,7 @@ class RootRetirementContractTest {
 		assertFalse(buildFile.contains("implementation(project(\":observability\"))"));
 		assertFalse(buildFile.contains("implementation(project(\":infra\"))"));
 		assertFalse(buildFile.contains("implementation(project(\":domain\"))"));
+		assertFalse(buildFile.contains("testImplementation(project(\":domain\"))"));
 		assertFalse(buildFile.contains("runtimeOnly(libs.mysql.connector.j)"));
 		assertFalse(buildFile.contains("runtimeOnly(libs.jjwt.impl)"));
 		assertFalse(buildFile.contains("runtimeOnly(libs.jjwt.jackson)"));
@@ -96,7 +103,6 @@ class RootRetirementContractTest {
 		assertFalse(buildFile.contains("libs.querydsl"));
 		assertFalse(buildFile.contains("verifyLegacyV1Baseline"));
 		assertFalse(buildFile.contains("verifyV2WebBaseline"));
-		assertTrue(buildFile.contains("testImplementation(project(\":domain\"))"));
 		assertTrue(buildFile.contains("testImplementation(libs.junit.jupiter)"));
 		assertTrue(buildFile.contains("verifyModuleBootJars"));
 		assertTrue(buildFile.contains("\":apis:bootJar\""));
