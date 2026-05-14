@@ -37,6 +37,10 @@ dependencyAnalysis {
     issues {
         all {
             onAny {
+                // Keep dependency-analysis advisory while existing advice is classified.
+                // Hard-gate timing: after the buildHealth report has only accepted
+                // exceptions or fixed findings, change this to fail and remove the
+                // ci-pr.yml continue-on-error guard for buildHealth.
                 severity("warn")
             }
         }
