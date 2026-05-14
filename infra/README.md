@@ -593,7 +593,7 @@ flowchart TB
         Batch["batch"]:::matrix
     end
 
-    Verify["verify<br/>Gradle check + bootJar<br/>commit SHA 기준 checkout"]:::verify
+    Verify["verify<br/>check verifyModuleBootJars<br/>commit SHA 기준 checkout"]:::verify
 
     SecretPreflight["secret-preflight<br/>prod inventory · SSH metadata · ansible-lint<br/>apis/admin/batch matrix"]:::verify
 
