@@ -88,6 +88,100 @@ def strip_comment(line: str) -> str:
     return line
 
 
+def strip_kotlin_comments(source: str) -> str:
+    """Remove Kotlin/Groovy-style comments without touching string literals."""
+    output: list[str] = []
+    index = 0
+    in_line_comment = False
+    in_block_comment = False
+    in_single = False
+    in_double = False
+    in_triple_double = False
+    escaped = False
+
+    while index < len(source):
+        char = source[index]
+        next_char = source[index + 1] if index + 1 < len(source) else ""
+        next_three = source[index:index + 3]
+
+        if in_line_comment:
+            if char == "\n":
+                in_line_comment = False
+                output.append(char)
+            else:
+                output.append(" ")
+            index += 1
+            continue
+
+        if in_block_comment:
+            if char == "*" and next_char == "/":
+                output.extend("  ")
+                in_block_comment = False
+                index += 2
+            else:
+                output.append("\n" if char == "\n" else " ")
+                index += 1
+            continue
+
+        if in_triple_double:
+            output.append(char)
+            if next_three == '"""':
+                output.extend(source[index + 1:index + 3])
+                in_triple_double = False
+                index += 3
+            else:
+                index += 1
+            continue
+
+        if in_single:
+            output.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == "'":
+                in_single = False
+            index += 1
+            continue
+
+        if in_double:
+            output.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_double = False
+            index += 1
+            continue
+
+        if char == "/" and next_char == "/":
+            output.extend("  ")
+            in_line_comment = True
+            index += 2
+        elif char == "/" and next_char == "*":
+            output.extend("  ")
+            in_block_comment = True
+            index += 2
+        elif next_three == '"""':
+            output.extend(next_three)
+            in_triple_double = True
+            index += 3
+        elif char == '"':
+            output.append(char)
+            in_double = True
+            index += 1
+        elif char == "'":
+            output.append(char)
+            in_single = True
+            index += 1
+        else:
+            output.append(char)
+            index += 1
+
+    return "".join(output)
+
+
 def alias_to_accessor(alias: str) -> str:
     return re.sub(r"[-_.]+", ".", alias)
 
@@ -226,9 +320,10 @@ def read_usage_text(files: Iterable[Path]) -> str:
     chunks = []
     for path in files:
         try:
-            chunks.append(path.read_text(encoding="utf-8"))
+            source = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
-            chunks.append(path.read_text())
+            source = path.read_text()
+        chunks.append(strip_kotlin_comments(source))
     return "\n".join(chunks)
 
 

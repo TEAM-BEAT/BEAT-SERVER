@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class RootRetirementContractTest {
 
@@ -1280,6 +1281,43 @@ class RootRetirementContractTest {
 		assertCatalogAliasAbsent(catalog, "libraries", "slf4j-api");
 		assertCatalogAliasAbsent(catalog, "bundles", "test-common");
 		assertCatalogAliasAbsent(catalog, "bundles", "web-app-god");
+	}
+
+	@Test
+	void versionCatalogCheckerDoesNotTreatCommentedGradleAccessorsAsUsage(@TempDir Path tempRoot) throws Exception {
+		Path gradleDir = tempRoot.resolve("gradle");
+		Files.createDirectories(gradleDir);
+		Files.writeString(gradleDir.resolve("libs.versions.toml"), """
+			[versions]
+			used = "1.0.0"
+			unused = "1.0.0"
+
+			[libraries]
+			used-lib = { module = "com.example:used", version.ref = "used" }
+			unused-lib = { module = "com.example:unused", version.ref = "unused" }
+			""".stripIndent());
+		Files.writeString(tempRoot.resolve("build.gradle.kts"), """
+			// implementation(libs.unused.lib)
+			dependencies {
+			    implementation(libs.used.lib)
+			    /*
+			     * implementation(libs.unused.lib)
+			     */
+			}
+			""".stripIndent());
+
+		Path checker = Path.of(".github/scripts/check_unused_version_catalog_aliases.py")
+			.toAbsolutePath()
+			.normalize();
+		Process process = new ProcessBuilder("python3", checker.toString(), "--root", tempRoot.toString())
+			.redirectErrorStream(true)
+			.start();
+		String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+		int exitCode = process.waitFor();
+
+		assertEquals(1, exitCode, output);
+		assertTrue(output.contains("libraries.unused-lib"), output);
+		assertTrue(output.contains("versions.unused"), output);
 	}
 
 	private static String read(String path) throws IOException {
