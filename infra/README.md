@@ -520,11 +520,11 @@ flowchart TB
 
 ## CI/CD 파이프라인
 
-### Dev 배포 (자동)
+### Dev 배포 (자동/수동)
 
 ```mermaid
 flowchart TB
-    Trigger["push → develop<br/>Dev 자동 배포"]:::event
+    Trigger["push → develop 또는 workflow_dispatch<br/>Dev 자동/수동 배포"]:::event
 
     Detect["detect-changes<br/>paths-filter"]:::step
 
@@ -560,9 +560,9 @@ flowchart TB
 ```
 
 - `shared` 경로(domain, gateway, build-logic, gradle 등) 변경 시 **전체 모듈** 배포
-- 이미지 태그: `dev-${GITHUB_SHA}`
-- foundation job은 build-image 이후 deploy 전에 실행되며, deploy와 같은 `deploy-dev-runtime-${{ github.ref }}` concurrency group을
-  사용하고 `needs: foundation`으로 marker 생성을 강제한다
+- 이미지 태그: `dev-{resolved_sha}`. push 배포는 `github.sha`, 수동 배포는 선택 입력 `deploy_ref`를 한 번만 full 40-character commit SHA로 해석한 값을 사용한다.
+- 수동 `deploy_ref`가 잘못된 branch/tag/SHA이면 verify/build-image/foundation/deploy 전에 실패해야 하며, 이후 checkout, commit_sha, image tag, Sentry release, summary/Slack 알림은 모두 resolved SHA를 공유한다.
+- foundation job은 build-image 이후 deploy 전에 실행되며, deploy와 같은 dev runtime concurrency group을 사용하고 `needs: foundation`으로 marker 생성을 강제한다. concurrency key는 source ref가 아니라 dev 런타임 대상 기준이어야 하며, matrix deploy job이 pending 취소되지 않도록 `queue: max`로 큐잉한다.
 - deploy job은 `max-parallel: 1` — nginx 설정 충돌 방지
 
 ### Ansible lint / secret-aware 검증
@@ -599,9 +599,9 @@ flowchart TB
 
     Build["build-image<br/>Docker 빌드 · max-parallel 3<br/>:{release_tag} + :prod-latest push"]:::build
 
-    Foundation["foundation<br/>기반 스택 확인 · Slack<br/>concurrency: prod-runtime"]:::infra
+    Foundation["foundation<br/>기반 스택 확인 · Slack<br/>concurrency: prod-runtime<br/>queue: max"]:::infra
 
-    Deploy["deploy<br/>모듈 순차 배포 · Slack<br/>max-parallel 1 · concurrency: prod-runtime"]:::deploy
+    Deploy["deploy<br/>모듈 순차 배포 · Slack<br/>max-parallel 1<br/>concurrency: prod-runtime · queue: max"]:::deploy
 
     Trigger --> Resolve
     Resolve --> Admin & APIs & Batch
@@ -633,7 +633,7 @@ flowchart TB
 - deploy 단계는 `max-parallel: 1` 로 모듈을 순차 배포
 - `release-drafter.yml` 은 draft release 갱신용이며, **실제 prod deploy trigger는 published release** 뿐이다
 - `rollback-prod.yml` 은 계속 **수동 workflow_dispatch** 로 유지
-- foundation/deploy/rollback은 모두 `concurrency: prod-runtime` — prod 런타임 변경은 동시에 1개만
+- foundation/deploy/rollback은 모두 `concurrency: prod-runtime` + `queue: max` — prod 런타임 변경은 동시에 1개만 실행하고 pending deploy/rollback은 취소하지 않고 큐잉한다
 - resolver는 `ansible-inventory`로 대상 host/group를 선택하고, `community.sops` 환경에서 `ansible-inventory --host` 결과에 `ENC[...]` 가
   남을 수 있기 때문에 평문이 필요한 `ssh_host / ssh_port / ssh_host_fingerprint`만 임시 `ansible-playbook`으로 materialize 한다
 - `_ansible-exec.yml` 은 inventory resolver 성공을 전제로 하며, prod caller 쪽 legacy SSH fallback은 두지 않는다
@@ -660,6 +660,85 @@ published release가 prod 자동 배포를 시작하기 전에 아래 항목을 
 5. **post-deploy 확인**
     - Slack 알림의 release tag, commit SHA, module별 image tag가 기대값과 일치하는지 확인한다.
     - healthcheck 실패나 nginx route 오류가 있으면 같은 release를 재시도하기 전에 원인 로그를 보존하고, 필요 시 `rollback-prod.yml`을 수동 실행한다.
+
+
+### v1.3.0 release readiness / dev rollback rehearsal runbook
+
+v1.3.0 release 전에는 dev에서 `N → N+1 → rollback to N` 경로를 실제 workflow로 rehearsing 한다. 이 절차는 prod deploy gate를 느슨하게 만들지 않는다. prod 배포는 계속 `release.published` + `vX.Y.Z` tag + `origin/main`에 포함된 commit만 허용하며, prod에 arbitrary branch/SHA deploy path를 추가하지 않는다.
+
+#### 1. N 기준선 배포
+
+1. rollback 대상이 될 기준 commit `N`을 고른다. `N`은 full 40-character commit SHA나 해석 가능한 branch/tag일 수 있지만, `deploy-dev.yml`은 이를 한 번만 resolved SHA로 고정해야 한다.
+2. GitHub Actions에서 `deploy-dev.yml`을 `workflow_dispatch`로 실행한다.
+    - `module`: rehearsal 대상 (`apis`, `admin`, `batch` 중 하나 또는 workflow가 허용하는 전체 경로)
+    - `deploy_ref`: `N`
+3. workflow 로그와 Slack summary에서 아래 값을 확인한다.
+    - resolved SHA가 full 40-character commit SHA인지
+    - checkout ref, `commit_sha`, Docker image tag, Sentry release, summary/notification이 같은 resolved SHA를 쓰는지
+    - dev image tag가 정확히 `dev-{resolved_sha}`인지
+4. 서버에서 module healthcheck와 release metadata를 확인한다. 이 배포가 끝나면 `current.json`은 `N` 이미지/commit을 가리킨다.
+
+#### 2. N+1 forward 배포
+
+1. 다음 후보 commit `N+1`을 같은 방식으로 `deploy-dev.yml` `workflow_dispatch` + `deploy_ref`에 입력한다.
+2. dev deploy concurrency는 branch/tag/SHA 같은 source ref가 아니라 dev runtime target 기준으로 잠겨야 한다. 같은 dev 환경의 foundation/deploy/rollback이 동시에 실행되면 rehearsal 증거가 무효가 되므로 `queue: max`로 pending job을 큐잉한다.
+3. 배포 완료 후 원격 release metadata를 확인한다.
+    - `current.json`: `N+1`
+    - `previous.json`: `N`
+4. `apis`는 blue-green route가 새 slot으로 전환됐는지, `admin`/`batch`는 stop-start 컨테이너가 새 이미지로 교체됐는지 확인한다.
+
+#### 3. rollback to N
+
+1. GitHub Actions에서 `rollback-dev.yml`을 수동 실행한다.
+    - `module`: rollback할 모듈 (`apis`, `admin`, `batch`)
+    - `release_ref`: rollback playbook/role 코드를 checkout할 ref. dev rehearsal에서는 보통 `N+1`과 같은 코드 기준을 입력한다.
+2. `release_ref`는 **롤백을 실행할 Ansible 코드 checkout 기준**이다. 실제 rollback target image를 고르는 입력이 아니다.
+3. 실제 복원 대상은 원격 호스트의 `{{ release_root }}/<module>/previous.json`에서 읽는다. 따라서 `N+1` 배포가 `previous.json`에 `N`을 남겼다는 증거가 rollback 전제 조건이다.
+4. `rollback-dev.yml`은 dev inventory/secrets만 사용해야 한다.
+    - inventory: `inventories/dev/hosts.yml`
+    - SSH key: `DEV_SSH_PRIVATE_KEY`
+    - SOPS key: dev environment `AGE_SECRET_KEY`
+    - Slack: `SLACK_WEBHOOK_URL` (있으면 알림)
+    - playbook: prod와 같은 `playbooks/rollback.yml`
+5. rollback 완료 후 확인한다.
+    - `app_healthcheck` 성공
+    - `current.json`이 다시 `N` metadata로 복원
+    - `apis`: blue-green 반대 slot에 `N` 이미지가 뜨고 nginx route가 복원
+    - `admin`/`batch`: stop-start 컨테이너가 `previous.json`의 `N` 이미지로 재생성
+
+#### release_ref vs previous.json target image
+
+| 항목 | 의미 | 실패 시 해석 |
+|------|------|--------------|
+| `deploy-dev.deploy_ref` | dev forward deploy source ref. workflow가 한 번만 full SHA로 resolve하고 `dev-{resolved_sha}` 이미지를 만든다. | 잘못된 ref는 verify/build/deploy 전에 실패해야 한다. |
+| `rollback-dev.release_ref` | rollback workflow가 사용할 repository code/Ansible checkout ref. | ref가 해석되지 않으면 rollback playbook 실행 전에 실패해야 한다. |
+| `previous.json.image` | rollback이 실제로 되살릴 target image. 사람이 입력하지 않는다. | 없거나 손상되면 rollback은 assert로 중단해야 한다. |
+
+#### Ansible `--check` / `--diff`의 한계
+
+`ansible-playbook --check --diff`는 변수 해석, template diff, 일부 idempotency 문제를 찾는 advisory signal이다. Docker container 교체, nginx live route 전환, healthcheck, release metadata 승격/복원처럼 실제 runtime side effect가 필요한 동작은 check mode만으로 증명되지 않는다. v1.3.0 rollback readiness의 증거는 반드시 managed dev 배포 2회와 실제 `rollback-dev.yml` 실행 결과(`current.json`/`previous.json`, healthcheck, nginx/container 상태)를 포함해야 한다.
+
+#### Compatibility checklist
+
+v1.3.0 release candidate가 rollback 가능한지 아래 항목을 forward deploy 전에 확인한다.
+
+- **DB/schema**: `N+1` migration이 `N` application binary와 호환되는가? destructive column/table drop, enum 축소, NOT NULL 추가는 rollback window 이후로 분리한다.
+- **Config/env vars/secrets**: `N+1`에서 추가한 env var나 SOPS secret 없이 `N` 컨테이너가 다시 부팅되는가? 제거/rename은 backward-compatible 기간을 둔다.
+- **API contract**: client-facing request/response, admin API, batch input/output contract가 `N`으로 되돌아가도 호출자가 깨지지 않는가? breaking response field removal은 rollout/rollback 순서를 따로 설계한다.
+- **Redis/cache format**: `N+1`이 쓴 cache key/value/TTL/serialization format을 `N` 코드가 읽어도 실패하지 않는가? format 변경은 versioned key 또는 dual-read/write를 사용한다.
+
+#### Module-specific rehearsal evidence
+
+- **apis / blue-green**
+    - `N` 배포 후 active slot과 health endpoint를 기록한다.
+    - `N+1` 배포 후 반대 slot이 올라오고 nginx route가 `N+1`로 전환됐는지 기록한다.
+    - rollback 후 `previous.json`의 `N` 이미지가 비활성/반대 slot에 재배포되고 nginx route가 다시 `N` healthcheck 성공 slot을 가리키는지 기록한다.
+- **admin / stop-start**
+    - `N+1` forward deploy 중 컨테이너 재생성, admin nginx route 갱신, healthcheck 성공을 기록한다.
+    - rollback 실패 rehearsal이 필요하면 stop-start rescue 로그가 기존 `current.json` image를 다시 기동하는지 확인한다.
+- **batch / stop-start**
+    - 스케줄러/runner가 `N+1` 이미지로 재시작됐는지와 중복 job 실행이 없는지 확인한다.
+    - rollback 후 `previous.json`의 `N` 이미지로 컨테이너가 재생성되고 batch health/actuator 또는 smoke runner 확인이 성공하는지 기록한다.
 
 ## Ansible 구조
 
@@ -737,8 +816,7 @@ infra/ansible/
   `module: foundation`을 전달하되, SSH metadata resolver는 현재 단일 host inventory contract를 재사용하기 위해 `connection_module`을 조회한다.
   기본값은 `apis`이며, inventory 대표 호스트가 바뀌면 GitHub environment/repository variable `DEV_FOUNDATION_CONNECTION_MODULE` /
   `PROD_FOUNDATION_CONNECTION_MODULE`로 `${connection_module}_servers` 조회 대상을 바꾼다.
-- foundation job과 deploy/rollback job은 각각 기존 `deploy-dev-runtime-${{ github.ref }}` / `prod-runtime` concurrency group을
-  공유하므로 foundation, deploy, rollback이 같은 런타임에서 겹치지 않는다.
+- foundation job과 deploy/rollback job은 각각 dev runtime target group / `prod-runtime` concurrency group을 공유하므로 foundation, deploy, rollback이 같은 런타임에서 겹치지 않는다. 각 runtime concurrency block은 `queue: max`를 사용해 matrix/pending job이 취소되지 않고 순차 실행되게 한다. dev key는 branch/tag/SHA 같은 source ref가 아니라 dev 환경 런타임 target 기준이어야 한다.
 
 ### Seed placeholder upstreams
 
@@ -1140,7 +1218,7 @@ archive한다.
 |----------------------|-------------------------------------|-----------------------------------------------------|
 | `module`             | 배포 대상 모듈 (`apis`, `admin`, `batch`) | GitHub workflow matrix/input이 Ansible extra var로 전달 |
 | `image`              | 실제 실행할 Docker image 전체 이름           | deploy/rollback workflow에서 전달한 image extra var      |
-| `image_tag`          | image tag 또는 release tag            | dev는 `dev-{GITHUB_SHA}`, prod는 release tag 기준       |
+| `image_tag`          | image tag 또는 release tag            | dev는 resolved SHA 기반 `dev-{resolved_sha}`, prod는 release tag 기준 |
 | `commit_sha`         | 배포 기준 Git commit SHA                | GitHub run에서 해석한 commit SHA                         |
 | `deploy_actor`       | 배포를 트리거한 GitHub actor               | GitHub workflow의 actor 값                            |
 | `deploy_environment` | Ansible inventory 환경 (`dev`/`prod`) | inventory `deploy_environment`                      |
@@ -1259,22 +1337,22 @@ ansible-playbook playbooks/rollback.yml -i inventories/prod/hosts.yml --syntax-c
 | 항목          | Dev                                        | Prod                                            |
 |-------------|--------------------------------------------|-------------------------------------------------|
 | 배포 트리거      | develop push / workflow_dispatch           | release.published (자동, shared tag)              |
-| 이미지 태그      | `dev-{SHA}` + `dev-latest`                 | `{release_tag}` (예: `v1.2.3`) + `prod-latest`   |
+| 이미지 태그      | `dev-{resolved_sha}` + `dev-latest`        | `{release_tag}` (예: `v1.2.3`) + `prod-latest`   |
 | MySQL       | Docker 컨테이너 (foundation)                   | 비활성 (`foundation_mysql_enabled: false`, 외부 RDS) |
 | Redis 컨테이너명 | `redis`                                    | `beat-prod-redis`                               |
 | 도메인         | `secrets.sops.yml`의 `nginx_server_name` 참조 | 동일                                              |
-| 롤백          | 재배포로 대체                                    | rollback-prod.yml (수동)                          |
-| concurrency | `deploy-dev-runtime-{ref}` (브랜치별)          | `prod-runtime` (전역 락)                           |
+| 롤백          | rollback-dev.yml (수동 rehearsal/복구)           | rollback-prod.yml (수동)                          |
+| concurrency | dev runtime target lock + `queue: max` (source ref와 무관) | `prod-runtime` + `queue: max` (전역 락)             |
 
 ## Rollback
 
-prod 전용 `rollback-prod.yml` 워크플로우가 제공된다.
+dev/prod 수동 rollback workflow가 제공된다. prod는 `rollback-prod.yml`, dev는 rehearsal과 dev 복구를 위한 `rollback-dev.yml`을 사용한다. 두 workflow 모두 실제 복원 대상 이미지는 사람이 입력하지 않고 원격 호스트의 `previous.json`에서 읽는다.
 
 ```mermaid
 flowchart TB
     Start["workflow_dispatch<br/>module + release_ref 선택"]:::event
     Checkout["release_ref checkout<br/>commit SHA 고정"]:::step
-    MainGuard["origin/main 포함 여부 검증<br/>merge-base --is-ancestor"]:::verify
+    MainGuard["prod only<br/>origin/main 포함 여부 검증"]:::verify
     Exec["_ansible-exec.yml<br/>checkout_ref = commit SHA<br/>playbook = rollback.yml"]:::executor
 
     ReadPrev["previous.json 읽기<br/>이전 배포 메타데이터 확인"]:::step
@@ -1317,12 +1395,13 @@ flowchart TB
 ```
 
 - `previous.json`이 없으면 롤백 불가 (assert 실패)
-- 롤백은 `release_ref` 입력을 먼저 immutable commit SHA로 해석하고, 해당 commit이 `origin/main` 계열에 포함된 경우에만 `_ansible-exec.yml`의 `checkout_ref`로 전달한다
-- `release_ref`는 "롤백을 실행할 Ansible 코드 기준"이며, `vX.Y.Z` release tag 또는 full 40-character commit SHA만 허용한다. 실제 복원 대상 이미지는 원격 호스트의 `previous.json`에서 읽는다
+- `release_ref`는 "롤백을 실행할 Ansible 코드 checkout 기준"이며, 실제 복원 대상 이미지는 원격 호스트의 `previous.json`에서 읽는다.
+- `rollback-dev.yml`은 rehearsal 편의를 위해 branch/tag/full SHA를 허용하되, workflow 초기에 checkout commit SHA로 고정하고 `dev-runtime` concurrency lock + `queue: max`를 사용한다.
+- `rollback-prod.yml`은 `vX.Y.Z` release tag 또는 full 40-character commit SHA만 허용하고, 해당 commit이 `origin/main` 계열에 포함된 경우에만 `_ansible-exec.yml`의 `checkout_ref`로 전달한다.
 - 롤백 후 `app_healthcheck`와 nginx route 갱신이 모두 성공해야 `current.json`을 live 상태로 복원한다
 - `admin`/`batch`처럼 `stop_start`인 모듈은 롤백 중 실패하면 사전에 archive/read한 `current.json` 이미지로 컨테이너 복원을 시도한 뒤 실패를 보고한다
 
-### Rollback rehearsal 절차
+### Prod rollback rehearsal 절차
 
 1. 최소 두 번의 managed prod 배포가 끝나 `{{ release_root }}/<module>/current.json`과 `previous.json`이 모두 존재하는지 확인한다. `legacyv1`처럼 Ansible metadata가 없는 수동 컨테이너는 `previous.json`에 기록되지 않으므로 `rollback-prod.yml`의 자동 복원 대상이 아니다.
 2. GitHub Actions에서 `rollback-prod.yml`을 수동 실행한다. `module`은 rehearsal 대상 하나를 고르고, `release_ref`는 `origin/main`에 포함된 `vX.Y.Z` release tag 또는 full 40-character commit SHA를 입력한다.

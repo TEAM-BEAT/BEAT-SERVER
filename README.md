@@ -2,7 +2,7 @@
 
 > 백엔드 Java → Kotlin 마이그레이션 기준과 CI gate 정리는 [`MIGRATION.md`](MIGRATION.md)를 참고하세요.
 
-# BEAT <a href="https://www.beatlive.kr"><img src="https://github.com/user-attachments/assets/49b52b5a-1859-486e-aaf5-e8bee25f64ca" align="left" width="100"></a>
+# BEAT <a href="https://www.beatlive.kr"><img src="https://github.com/user-attachments/assets/49b52b5a-1859-486e-aaf5-e8bee25f64ca" align="left" width="100" alt="BEAT logo"></a>
 
 <a href="https://hits.seeyoufarm.com">
   <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FTEAM-BEAT%2FBEAT-SERVER&count_bg=%23FD28C0&title_bg=%230F0F0F&icon=beatport.svg&icon_color=%23E7E7E7&title=hits&edge_flat=false" alt="Hits">
@@ -96,43 +96,43 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 
 ### Framework
 
-<img src="https://img.shields.io/badge/Spring_Boot_3-0?style=flat-square&logo=spring-boot&logoColor=white&color=%236DB33F" alt="Spring Boot 3 badge">   <img src="https://img.shields.io/badge/Gradle-0?style=flat-square&logo=gradle&logoColor=white&color=%2302303A" alt="Gradle badge">
+<img src="https://img.shields.io/badge/Spring_Boot_4-0?style=flat-square&logo=spring-boot&logoColor=white&color=%236DB33F" alt="Spring Boot 4 badge">   <img src="https://img.shields.io/badge/Gradle-0?style=flat-square&logo=gradle&logoColor=white&color=%2302303A" alt="Gradle badge">
 
 #### ORM
 
-<img src="https://img.shields.io/badge/Spring Data JPA-6DB33F?style=flat-square&logo=Databricks&logoColor=white">
+<img src="https://img.shields.io/badge/Spring Data JPA-6DB33F?style=flat-square&logo=Databricks&logoColor=white" alt="Spring Data JPA badge">
 
 #### Authorization
 
-<img src="https://img.shields.io/badge/Spring Security-6DB33F?style=flat-square&logo=springsecurity&logoColor=white">  <img src="https://img.shields.io/badge/JSON Web Tokens-000000?style=flat-square&logo=JSON Web Tokens&logoColor=white">
+<img src="https://img.shields.io/badge/Spring Security-6DB33F?style=flat-square&logo=springsecurity&logoColor=white" alt="Spring Security badge">  <img src="https://img.shields.io/badge/JSON Web Tokens-000000?style=flat-square&logo=JSON Web Tokens&logoColor=white" alt="JSON Web Tokens badge">
 
 #### Test
 
-<img src="https://img.shields.io/badge/JUnit5-25A162?style=flat-square&logo=junit5&logoColor=white">
+<img src="https://img.shields.io/badge/JUnit5-25A162?style=flat-square&logo=junit5&logoColor=white" alt="JUnit 5 badge">
 
 #### Database
 
-<img src="https://img.shields.io/badge/MySQL-4479A1.svg?style=flat-square&logo=MySQL&logoColor=white"> <img src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white">
+<img src="https://img.shields.io/badge/MySQL-4479A1.svg?style=flat-square&logo=MySQL&logoColor=white" alt="MySQL badge"> <img src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis badge">
 
 #### AWS
 
-<img src ="https://img.shields.io/badge/AWS EC2-FF9900?style=flat-square&logo=amazonec2&logoColor=white">  <img src ="https://img.shields.io/badge/AWS S3-69A31?style=flat-square&logo=amazons3&logoColor=white">  <img src="https://img.shields.io/badge/AWS RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white">
+<img src ="https://img.shields.io/badge/AWS EC2-FF9900?style=flat-square&logo=amazonec2&logoColor=white" alt="AWS EC2 badge">  <img src ="https://img.shields.io/badge/AWS S3-69A31?style=flat-square&logo=amazons3&logoColor=white" alt="AWS S3 badge">  <img src="https://img.shields.io/badge/AWS RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white" alt="AWS RDS badge">
 
 #### CI/CD
 
-<img src="https://img.shields.io/badge/GitHub%20Actions-0?style=flat-square&logo=GitHub%20Actions&logoColor=white&color=%232088FF"> <img src="https://img.shields.io/badge/Jenkins-0?style=flat-square&logo=Jenkins&logoColor=white&color=%23D24939"> <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white">
+<img src="https://img.shields.io/badge/GitHub%20Actions-0?style=flat-square&logo=GitHub%20Actions&logoColor=white&color=%232088FF" alt="GitHub Actions badge"> <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker badge">
 
 #### Monitoring
 
-<img src="https://img.shields.io/badge/Slack-4A154B?style=flat-square&logo=slack&logoColor=white">
+<img src="https://img.shields.io/badge/Slack-4A154B?style=flat-square&logo=slack&logoColor=white" alt="Slack badge">
 
 #### Other
 
-<img src="https://img.shields.io/badge/ Swagger-6DB33F?style=flat-square&logo=swagger&logoColor=white">
+<img src="https://img.shields.io/badge/Swagger-6DB33F?style=flat-square&logo=swagger&logoColor=white" alt="Swagger badge">
 
 ## 🔨 Architecture
 
-<img src="https://github.com/user-attachments/assets/7b1f3833-f2b0-40fb-970e-e9f8becc9a6d">
+<img src="https://github.com/user-attachments/assets/7b1f3833-f2b0-40fb-970e-e9f8becc9a6d" alt="BEAT server architecture diagram">
 
 ### Backend migration baseline
 
