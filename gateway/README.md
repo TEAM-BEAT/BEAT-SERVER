@@ -171,12 +171,12 @@ sequenceDiagram
     participant Ctrl as Controller
 
     C->>F: Authorization: Bearer <token>
-    F->>J: validateToken(token)
+    F->>J: validateAccessToken(token)
     J-->>F: TokenValidationResult
 
     alt VALID
-        F->>J: getMemberId(token)
-        F->>J: getRoleName(token)
+        F->>J: getMemberId(token, ACCESS)
+        F->>J: getRoleName(token, ACCESS)
         F->>SC: setAuthentication(MemberAuthentication / AdminAuthentication)
         F->>C: filterChain.doFilter()
         C->>Ctrl: @CurrentMember Long memberId 파라미터

@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.beat.apis.member.application.AuthenticationService;
 import com.beat.contracts.auth.JwtTokenPort;
+import com.beat.contracts.auth.JwtTokenType;
 import com.beat.contracts.auth.RefreshTokenPort;
 import com.beat.contracts.auth.TokenErrorCode;
 import com.beat.contracts.auth.TokenValidationResult;
@@ -54,10 +55,10 @@ class AuthenticationServiceTest {
 	void generateAccessTokenFromRefreshTokenShouldRejectUnknownRoleClaim() {
 		String refreshToken = "refresh-token";
 
-		when(jwtTokenPort.validateToken(refreshToken)).thenReturn(TokenValidationResult.VALID);
-		when(jwtTokenPort.getMemberId(refreshToken)).thenReturn(1L);
+		when(jwtTokenPort.validateRefreshToken(refreshToken)).thenReturn(TokenValidationResult.VALID);
+		when(jwtTokenPort.getMemberId(refreshToken, JwtTokenType.REFRESH)).thenReturn(1L);
 		when(refreshTokenPort.findMemberIdByRefreshToken(refreshToken)).thenReturn(1L);
-		when(jwtTokenPort.getRoleName(refreshToken)).thenReturn("ROLE_UNKNOWN");
+		when(jwtTokenPort.getRoleName(refreshToken, JwtTokenType.REFRESH)).thenReturn("ROLE_UNKNOWN");
 
 		BadRequestException exception = assertThrows(
 			BadRequestException.class,
@@ -65,15 +66,15 @@ class AuthenticationServiceTest {
 		);
 
 		assertEquals(TokenErrorCode.INVALID_REFRESH_TOKEN_ERROR, exception.getBaseErrorCode());
-		verify(jwtTokenPort).getRoleName(refreshToken);
+		verify(jwtTokenPort).getRoleName(refreshToken, JwtTokenType.REFRESH);
 	}
 
 	@Test
 	void generateAccessTokenFromRefreshTokenShouldRejectMissingMemberIdClaim() {
 		String refreshToken = "refresh-token";
 
-		when(jwtTokenPort.validateToken(refreshToken)).thenReturn(TokenValidationResult.VALID);
-		when(jwtTokenPort.getMemberId(refreshToken)).thenReturn(null);
+		when(jwtTokenPort.validateRefreshToken(refreshToken)).thenReturn(TokenValidationResult.VALID);
+		when(jwtTokenPort.getMemberId(refreshToken, JwtTokenType.REFRESH)).thenReturn(null);
 
 		BadRequestException exception = assertThrows(
 			BadRequestException.class,
@@ -95,10 +96,10 @@ class AuthenticationServiceTest {
 	void generateAccessTokenFromRefreshTokenShouldRejectMissingRoleClaim() {
 		String refreshToken = "refresh-token";
 
-		when(jwtTokenPort.validateToken(refreshToken)).thenReturn(TokenValidationResult.VALID);
-		when(jwtTokenPort.getMemberId(refreshToken)).thenReturn(1L);
+		when(jwtTokenPort.validateRefreshToken(refreshToken)).thenReturn(TokenValidationResult.VALID);
+		when(jwtTokenPort.getMemberId(refreshToken, JwtTokenType.REFRESH)).thenReturn(1L);
 		when(refreshTokenPort.findMemberIdByRefreshToken(refreshToken)).thenReturn(1L);
-		when(jwtTokenPort.getRoleName(refreshToken)).thenReturn(null);
+		when(jwtTokenPort.getRoleName(refreshToken, JwtTokenType.REFRESH)).thenReturn(null);
 
 		BadRequestException exception = assertThrows(
 			BadRequestException.class,
@@ -106,6 +107,6 @@ class AuthenticationServiceTest {
 		);
 
 		assertEquals(TokenErrorCode.INVALID_REFRESH_TOKEN_ERROR, exception.getBaseErrorCode());
-		verify(jwtTokenPort).getRoleName(refreshToken);
+		verify(jwtTokenPort).getRoleName(refreshToken, JwtTokenType.REFRESH);
 	}
 }
