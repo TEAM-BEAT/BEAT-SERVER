@@ -67,10 +67,10 @@ class GatewayConfigGroupTest {
 	}
 
 	@Test
-	void jwtConfigImportsJwtProviderOnly() throws IOException {
+	void jwtConfigRegistersJwtProviderOnly() throws IOException {
 		String source = source("src/main/java/com/beat/gateway/internal/config/GatewayJwtConfig.java");
 
-		assertTrue(source.contains("JwtTokenProvider.class"));
+		assertTrue(source.contains("JwtTokenProvider jwtTokenProvider(JwtProperties jwtProperties)"));
 		assertFalse(source.contains("RefreshTokenService.class"));
 		assertFalse(source.contains("GatewayRedisConfig.class"));
 	}

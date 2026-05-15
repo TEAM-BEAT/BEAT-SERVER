@@ -6,9 +6,11 @@ public interface JwtTokenPort {
 
 	String issueRefreshToken(JwtSubject subject);
 
-	TokenValidationResult validateToken(String token);
+	TokenValidationResult validateAccessToken(String token);
 
-	Long getMemberId(String token);
+	TokenValidationResult validateRefreshToken(String token);
 
-	String getRoleName(String token);
+	Long getMemberId(String token, JwtTokenType expectedType);
+
+	String getRoleName(String token, JwtTokenType expectedType);
 }

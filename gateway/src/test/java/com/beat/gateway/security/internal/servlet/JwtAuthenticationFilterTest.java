@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.beat.contracts.auth.JwtTokenPort;
+import com.beat.contracts.auth.JwtTokenType;
 import com.beat.contracts.auth.TokenValidationResult;
 import com.beat.observability.logging.filter.BaseMdcLoggingFilter;
 import jakarta.servlet.FilterChain;
@@ -35,9 +36,9 @@ class JwtAuthenticationFilterTest {
 	void validTokenUpdatesSecurityContextAndAlreadyInitializedMdcUserId() throws Exception {
 		MDC.put(BaseMdcLoggingFilter.TRACE_ID_KEY, "trace-123");
 		MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, BaseMdcLoggingFilter.DEFAULT_GUEST_USER);
-		when(jwtTokenPort.validateToken("valid-token")).thenReturn(TokenValidationResult.VALID);
-		when(jwtTokenPort.getMemberId("valid-token")).thenReturn(42L);
-		when(jwtTokenPort.getRoleName("valid-token")).thenReturn("ROLE_MEMBER");
+		when(jwtTokenPort.validateAccessToken("valid-token")).thenReturn(TokenValidationResult.VALID);
+		when(jwtTokenPort.getMemberId("valid-token", JwtTokenType.ACCESS)).thenReturn(42L);
+		when(jwtTokenPort.getRoleName("valid-token", JwtTokenType.ACCESS)).thenReturn("ROLE_MEMBER");
 		MockHttpServletRequest request = requestWithBearer("valid-token");
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		FilterChain chain = (servletRequest, servletResponse) -> {
@@ -56,7 +57,7 @@ class JwtAuthenticationFilterTest {
 	void invalidTokenDoesNotClearAlreadyInitializedMdcWhenShortCircuitingChain() throws Exception {
 		MDC.put(BaseMdcLoggingFilter.TRACE_ID_KEY, "trace-123");
 		MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, BaseMdcLoggingFilter.DEFAULT_GUEST_USER);
-		when(jwtTokenPort.validateToken("expired-token")).thenReturn(TokenValidationResult.EXPIRED);
+		when(jwtTokenPort.validateAccessToken("expired-token")).thenReturn(TokenValidationResult.EXPIRED);
 		MockHttpServletRequest request = requestWithBearer("expired-token");
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		FilterChain chain = mock(FilterChain.class);

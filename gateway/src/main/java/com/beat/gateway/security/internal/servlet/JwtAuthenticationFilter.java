@@ -1,6 +1,7 @@
 package com.beat.gateway.security.internal.servlet;
 
 import com.beat.contracts.auth.JwtTokenPort;
+import com.beat.contracts.auth.JwtTokenType;
 import com.beat.contracts.auth.TokenValidationResult;
 import com.beat.observability.logging.filter.BaseMdcLoggingFilter;
 import jakarta.servlet.FilterChain;
@@ -49,7 +50,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		}
 
 		try {
-			TokenValidationResult validationResult = jwtTokenPort.validateToken(token);
+			TokenValidationResult validationResult = jwtTokenPort.validateAccessToken(token);
 
 			if (validationResult != TokenValidationResult.VALID) {
 				handleInvalidToken(validationResult, response);
@@ -68,8 +69,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	}
 
 	private void setAuthentication(String token, HttpServletRequest request) {
-		Long memberId = jwtTokenPort.getMemberId(token);
-		String roleName = jwtTokenPort.getRoleName(token);
+		Long memberId = jwtTokenPort.getMemberId(token, JwtTokenType.ACCESS);
+		String roleName = jwtTokenPort.getRoleName(token, JwtTokenType.ACCESS);
 
 		Collection<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(roleName));
 		UsernamePasswordAuthenticationToken authentication = createAuthentication(memberId, authorities, roleName);

@@ -7,6 +7,7 @@ import com.beat.apis.member.application.dto.response.AccessTokenGenerateResponse
 import com.beat.apis.member.application.dto.response.LoginSuccessResponse;
 import com.beat.contracts.auth.JwtSubject;
 import com.beat.contracts.auth.JwtTokenPort;
+import com.beat.contracts.auth.JwtTokenType;
 import com.beat.contracts.auth.RefreshTokenPort;
 import com.beat.contracts.auth.TokenErrorCode;
 import com.beat.contracts.auth.TokenValidationResult;
@@ -71,11 +72,11 @@ public class AuthenticationService {
 	public AccessTokenGenerateResponse generateAccessTokenFromRefreshToken(final String refreshToken) {
 		validateRefreshToken(refreshToken);
 
-		Long memberId = jwtTokenPort.getMemberId(refreshToken);
+		Long memberId = jwtTokenPort.getMemberId(refreshToken, JwtTokenType.REFRESH);
 		validateMemberId(memberId);
 		verifyMemberIdWithStoredToken(refreshToken, memberId);
 
-		Role role = mapRole(jwtTokenPort.getRoleName(refreshToken));
+		Role role = mapRole(jwtTokenPort.getRoleName(refreshToken, JwtTokenType.REFRESH));
 
 		log.info("Generated new access token for memberId: {}, role: {}",
 			memberId, role.getRoleName());
@@ -88,7 +89,6 @@ public class AuthenticationService {
 	 * 발급된 Refresh Token을 TokenService에 저장
 	 *
 	 * @param memberId 회원의 고유 ID
-	 * @param authenticationToken 사용자 인증 정보
 	 * @return 발급된 Refresh Token
 	 */
 	private String issueAndSaveRefreshToken(Long memberId, JwtSubject jwtSubject) {
@@ -103,7 +103,7 @@ public class AuthenticationService {
 	}
 
 	private void validateRefreshToken(String refreshToken) {
-		TokenValidationResult validationResult = jwtTokenPort.validateToken(refreshToken);
+		TokenValidationResult validationResult = jwtTokenPort.validateRefreshToken(refreshToken);
 
 		if (validationResult != TokenValidationResult.VALID) {
 			throw switch (validationResult) {

@@ -3,6 +3,7 @@ jwt:
   secret: ${DEV_JWT_SECRET}
   access-token-expire-time: ${DEV_ACCESS_TOKEN_EXPIRE_TIME}
   refresh-token-expire-time: ${DEV_REFRESH_TOKEN_EXPIRE_TIME}
+  key-id: dev-2026-05-current
 
 spring:
   config:
@@ -14,6 +15,7 @@ jwt:
   secret: ${PROD_JWT_SECRET}
   access-token-expire-time: ${PROD_ACCESS_TOKEN_EXPIRE_TIME}
   refresh-token-expire-time: ${PROD_REFRESH_TOKEN_EXPIRE_TIME}
+  key-id: prod-2026-05-current
 
 spring:
   config:
@@ -27,6 +29,7 @@ spring:
       on-profile: test
 
 jwt:
-  secret: test-jwt-secret-test-jwt-secret-test-jwt-secret-test-jwt-secret
+  secret: AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QA==
   access-token-expire-time: 3600000
   refresh-token-expire-time: 1209600000
+  key-id: test-current
