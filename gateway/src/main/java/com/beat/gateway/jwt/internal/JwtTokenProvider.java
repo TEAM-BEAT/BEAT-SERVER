@@ -1,9 +1,15 @@
 package com.beat.gateway.jwt.internal;
 
+import java.time.Instant;
+import java.util.Date;
+
+import javax.crypto.SecretKey;
+
 import com.beat.contracts.auth.JwtSubject;
 import com.beat.contracts.auth.JwtTokenPort;
 import com.beat.contracts.auth.JwtTokenType;
 import com.beat.contracts.auth.TokenValidationResult;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -13,12 +19,6 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.Date;
-import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -27,7 +27,6 @@ public class JwtTokenProvider implements JwtTokenPort {
 	private static final String MEMBER_ID = "memberId";
 	private static final String ROLE_KEY = "role";
 	private static final String TOKEN_TYPE = "tokenType";
-	private static final long LEGACY_ACCESS_TOKEN_CLOCK_SKEW_MILLIS = Duration.ofMinutes(10).toMillis();
 
 	private final JwtProperties jwtProperties;
 
@@ -39,9 +38,6 @@ public class JwtTokenProvider implements JwtTokenPort {
 	protected void validateSigningKeyConfiguration() {
 		validateRequiredConfiguration();
 		getCurrentSigningKey();
-		if (isBeforeLegacyCutoff()) {
-			getLegacySigningKey();
-		}
 	}
 
 	@Override
@@ -143,36 +139,15 @@ public class JwtTokenProvider implements JwtTokenPort {
 	}
 
 	private Claims getBody(final String token, final JwtTokenType expectedType) {
-		try {
-			Claims claims = parseWithCurrentKey(token);
-			validateCurrentTokenType(claims, expectedType);
-			log.debug("JWT validated with current key for expected tokenType={}", expectedType);
-			return claims;
-		} catch (SignatureException currentSignatureFailure) {
-			if (expectedType == JwtTokenType.ACCESS && isBeforeLegacyCutoff()) {
-				Claims claims = parseWithLegacyKey(token);
-				validateLegacyAccessWindow(claims);
-				log.warn("JWT legacy access fallback succeeded before cutoff={}",
-					jwtProperties.legacyAccessTokenVerifyUntil());
-				return claims;
-			}
-			log.warn("JWT legacy access fallback rejected for expected tokenType={} cutoff={}", expectedType,
-				jwtProperties.legacyAccessTokenVerifyUntil());
-			throw currentSignatureFailure;
-		}
+		Claims claims = parseWithCurrentKey(token);
+		validateCurrentTokenType(claims, expectedType);
+		log.debug("JWT validated with current key for expected tokenType={}", expectedType);
+		return claims;
 	}
 
 	private Claims parseWithCurrentKey(final String token) {
 		return Jwts.parser()
 			.verifyWith(getCurrentSigningKey())
-			.build()
-			.parseSignedClaims(token)
-			.getPayload();
-	}
-
-	private Claims parseWithLegacyKey(final String token) {
-		return Jwts.parser()
-			.verifyWith(getLegacySigningKey())
 			.build()
 			.parseSignedClaims(token)
 			.getPayload();
@@ -184,28 +159,6 @@ public class JwtTokenProvider implements JwtTokenPort {
 			log.warn("JWT tokenType mismatch: expected={}, actual={}", expectedType, actualType);
 			throw new InvalidTokenClaimsException("JWT tokenType does not match expected type");
 		}
-	}
-
-	private void validateLegacyAccessWindow(final Claims claims) {
-		Date issuedAt = claims.getIssuedAt();
-		Date expiration = claims.getExpiration();
-		if (issuedAt == null || expiration == null) {
-			log.warn("JWT legacy fallback rejected because iat or exp is missing");
-			throw new InvalidTokenClaimsException("Legacy JWT is missing iat or exp");
-		}
-
-		long lifetimeMillis = expiration.getTime() - issuedAt.getTime();
-		long maximumLegacyAccessLifetime = jwtProperties.accessTokenExpireTime()
-			+ LEGACY_ACCESS_TOKEN_CLOCK_SKEW_MILLIS;
-		if (lifetimeMillis > maximumLegacyAccessLifetime) {
-			log.warn("JWT legacy fallback rejected by lifetime heuristic: lifetimeMillis={}, maximumMillis={}",
-				lifetimeMillis, maximumLegacyAccessLifetime);
-			throw new InvalidTokenClaimsException("Legacy JWT lifetime exceeds access token window");
-		}
-	}
-
-	private boolean isBeforeLegacyCutoff() {
-		return Instant.now().isBefore(jwtProperties.legacyAccessTokenVerifyUntil());
 	}
 
 	private boolean hasValidMemberId(final Claims claims) {
@@ -226,9 +179,6 @@ public class JwtTokenProvider implements JwtTokenPort {
 	private void validateRequiredConfiguration() {
 		requireText(jwtProperties.secret(), "jwt.secret");
 		requireText(jwtProperties.keyId(), "jwt.key-id");
-		if (jwtProperties.legacyAccessTokenVerifyUntil() == null) {
-			throw new IllegalStateException("jwt.legacy-access-token-verify-until is required");
-		}
 		requirePositive(jwtProperties.accessTokenExpireTime(), "jwt.access-token-expire-time");
 		requirePositive(jwtProperties.refreshTokenExpireTime(), "jwt.refresh-token-expire-time");
 	}
@@ -248,22 +198,6 @@ public class JwtTokenProvider implements JwtTokenPort {
 	private SecretKey getCurrentSigningKey() {
 		byte[] keyBytes = Decoders.BASE64.decode(jwtProperties.secret());
 		return Keys.hmacShaKeyFor(keyBytes);
-	}
-
-	private SecretKey getLegacySigningKey() {
-		requireLegacySecretConfigured();
-
-		String onceEncoded = Base64.getEncoder()
-			.encodeToString(jwtProperties.legacySecret().getBytes(StandardCharsets.UTF_8));
-		String twiceEncoded = Base64.getEncoder()
-			.encodeToString(onceEncoded.getBytes(StandardCharsets.UTF_8));
-		return Keys.hmacShaKeyFor(twiceEncoded.getBytes(StandardCharsets.UTF_8));
-	}
-
-	private void requireLegacySecretConfigured() {
-		if (jwtProperties.legacySecret() == null || jwtProperties.legacySecret().isBlank()) {
-			throw new IllegalStateException("jwt.legacy-secret is required for legacy JWT verification");
-		}
 	}
 
 	private static class InvalidTokenClaimsException extends IllegalArgumentException {

@@ -1,11 +1,9 @@
 ---
 jwt:
   secret: ${DEV_JWT_SECRET}
-  legacy-secret: ${DEV_JWT_LEGACY_SECRET}
   access-token-expire-time: ${DEV_ACCESS_TOKEN_EXPIRE_TIME}
   refresh-token-expire-time: ${DEV_REFRESH_TOKEN_EXPIRE_TIME}
   key-id: dev-2026-05-current
-  legacy-access-token-verify-until: 1970-01-01T00:00:00Z
 
 spring:
   config:
@@ -15,11 +13,9 @@ spring:
 ---
 jwt:
   secret: ${PROD_JWT_SECRET}
-  legacy-secret: ${PROD_JWT_LEGACY_SECRET}
   access-token-expire-time: ${PROD_ACCESS_TOKEN_EXPIRE_TIME}
   refresh-token-expire-time: ${PROD_REFRESH_TOKEN_EXPIRE_TIME}
   key-id: prod-2026-05-current
-  legacy-access-token-verify-until: 1970-01-01T00:00:00Z
 
 spring:
   config:
@@ -34,8 +30,6 @@ spring:
 
 jwt:
   secret: AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QA==
-  legacy-secret: ""
   access-token-expire-time: 3600000
   refresh-token-expire-time: 1209600000
   key-id: test-current
-  legacy-access-token-verify-until: 1970-01-01T00:00:00Z

@@ -5,10 +5,7 @@ Use this during the JWT signing-key migration deployment. The application keeps 
 ## Preconditions
 
 - New application version is deployed with decoded Base64 JWT signing and `tokenType` validation.
-- `jwt.legacy-access-token-verify-until` is set to deployment time plus access-token TTL plus clock skew.
 - `jwt.secret` is the Base64 text form of the current raw JWT secret bytes.
-- `jwt.legacy-secret` is explicitly injected with the previous raw JWT secret until the cutoff. The application fails
-  fast if legacy fallback is enabled without this value.
 - Redis key patterns are verified in staging. Do not run broad `KEYS *` in production.
 
 ## Dry run
