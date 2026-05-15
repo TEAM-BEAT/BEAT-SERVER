@@ -191,6 +191,7 @@ jobs:
       - build-image
     concurrency:
       group: prod-runtime
+      queue: max
       cancel-in-progress: false
     uses: ./.github/workflows/_ansible-exec.yml
     with:
@@ -221,6 +222,7 @@ jobs:
       - foundation
     concurrency:
       group: prod-runtime
+      queue: max
       cancel-in-progress: false
     strategy:
       fail-fast: false

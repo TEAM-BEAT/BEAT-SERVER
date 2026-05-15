@@ -1,4 +1,4 @@
-name: rollback-prod
+name: rollback-dev
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ on:
           - batch
         required: true
       release_ref:
-        description: "Release tag or commit SHA whose rollback workflow code should run; target image comes from previous.json"
+        description: "Branch, tag, or full commit SHA whose rollback workflow code should run; target image comes from previous.json"
         type: string
         required: true
 
@@ -26,18 +26,23 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Validate rollback release ref
+      - name: Validate dev rollback release ref
         id: rollback-ref
         env:
           RELEASE_REF: ${{ github.event.inputs.release_ref }}
         shell: bash
         run: |
+          if [[ -z "$RELEASE_REF" ]]; then
+            echo "Invalid dev rollback release_ref: value is required" >&2
+            exit 1
+          fi
+
           if [[ "$RELEASE_REF" =~ ^[0-9a-fA-F]{40}$ ]]; then
             echo "checkout_ref_input=$RELEASE_REF" >> "$GITHUB_OUTPUT"
-          elif [[ "$RELEASE_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "checkout_ref_input=refs/tags/$RELEASE_REF" >> "$GITHUB_OUTPUT"
+          elif [[ "$RELEASE_REF" != -* && "$RELEASE_REF" != refs/pull/* ]] && git check-ref-format --allow-onelevel "$RELEASE_REF"; then
+            echo "checkout_ref_input=$RELEASE_REF" >> "$GITHUB_OUTPUT"
           else
-            echo "Invalid rollback release ref: $RELEASE_REF (expected vX.Y.Z tag or full 40-character commit SHA)" >&2
+            echo "Invalid dev rollback release_ref: $RELEASE_REF (expected branch, tag, or full 40-character commit SHA)" >&2
             exit 1
           fi
 
@@ -46,60 +51,44 @@ jobs:
           ref: ${{ steps.rollback-ref.outputs.checkout_ref_input }}
           fetch-depth: 0
 
-      - name: Capture rollback code commit
+      - name: Capture dev rollback code commit
         id: git-ref
         env:
           RELEASE_REF: ${{ github.event.inputs.release_ref }}
         shell: bash
         run: |
           commit_sha="$(git rev-parse HEAD)"
-          if [[ "$RELEASE_REF" =~ ^[0-9a-fA-F]{40}$ ]]; then
-            if [[ "${commit_sha,,}" != "${RELEASE_REF,,}" ]]; then
-              echo "Rollback commit SHA mismatch: input=$RELEASE_REF checkout=$commit_sha" >&2
-              exit 1
-            fi
-          elif ! git rev-parse --verify --quiet "refs/tags/${RELEASE_REF}^{commit}" >/tmp/rollback_ref_commit; then
-            echo "Rollback release_ref must be an existing release tag or a full 40-character commit SHA: $RELEASE_REF" >&2
-            exit 1
-          elif [[ "$(cat /tmp/rollback_ref_commit)" != "$commit_sha" ]]; then
-            echo "Rollback release tag mismatch: input=$RELEASE_REF checkout=$commit_sha" >&2
+          if [[ "$RELEASE_REF" =~ ^[0-9a-fA-F]{40}$ && "${commit_sha,,}" != "${RELEASE_REF,,}" ]]; then
+            echo "Dev rollback commit SHA mismatch: input=$RELEASE_REF checkout=$commit_sha" >&2
             exit 1
           fi
 
-          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
-          main_sha="$(git rev-parse refs/remotes/origin/main)"
-          if ! git merge-base --is-ancestor "$commit_sha" refs/remotes/origin/main; then
-            echo "Rollback release_ref is not contained in origin/main" >&2
-            echo "release_ref=${RELEASE_REF}" >&2
-            echo "commit_sha=${commit_sha}" >&2
-            echo "origin_main_sha=${main_sha}" >&2
-            exit 1
-          fi
-          echo "Rollback release_ref ${RELEASE_REF} commit ${commit_sha} is contained in origin/main ${main_sha}"
+          echo "Dev rollback release_ref ${RELEASE_REF} resolved to commit ${commit_sha}"
           echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
 
   rollback:
     needs:
       - resolve-rollback-ref
     concurrency:
-      group: prod-runtime
+      group: dev-runtime
       queue: max
       cancel-in-progress: false
     uses: ./.github/workflows/_ansible-exec.yml
     with:
-      environment_name: prod
+      environment_name: dev
       module: ${{ github.event.inputs.module }}
       playbook: playbooks/rollback.yml
-      inventory_path: inventories/prod/hosts.yml
-      success_title: Rollback Prod Succeeded
-      failure_title: Rollback Prod Failed
+      inventory_path: inventories/dev/hosts.yml
+      success_title: Rollback Dev Succeeded
+      failure_title: Rollback Dev Failed
       notify_description: |
         Module: ${{ github.event.inputs.module }}
         Release Ref: ${{ github.event.inputs.release_ref }}
         Checkout Commit: ${{ needs.resolve-rollback-ref.outputs.checkout_ref }}
+        Target Image: read from previous.json on the dev host
         Actor: ${{ github.actor }}
       checkout_ref: ${{ needs.resolve-rollback-ref.outputs.checkout_ref }}
     secrets:
-      ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+      ssh_private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
       sops_age_key: ${{ secrets.AGE_SECRET_KEY }}
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
