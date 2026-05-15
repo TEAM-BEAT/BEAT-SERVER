@@ -101,22 +101,22 @@ public class JwtTokenProvider implements JwtTokenPort {
 
 			return TokenValidationResult.VALID;
 		} catch (MalformedJwtException ex) {
-			log.error("Invalid JWT Token: {}", ex.getMessage());
+			log.warn("Invalid JWT Token: {}", ex.getMessage());
 			return TokenValidationResult.INVALID_TOKEN;
 		} catch (ExpiredJwtException ex) {
-			log.error("Expired JWT Token: {}", ex.getMessage());
+			log.warn("Expired JWT Token: {}", ex.getMessage());
 			return TokenValidationResult.EXPIRED;
 		} catch (UnsupportedJwtException ex) {
-			log.error("Unsupported JWT Token: {}", ex.getMessage());
+			log.warn("Unsupported JWT Token: {}", ex.getMessage());
 			return TokenValidationResult.UNSUPPORTED;
 		} catch (InvalidTokenClaimsException ex) {
-			log.error("Invalid JWT claims: {}", ex.getMessage());
+			log.warn("Invalid JWT claims: {}", ex.getMessage());
 			return TokenValidationResult.INVALID_TOKEN;
 		} catch (IllegalArgumentException ex) {
-			log.error("Empty JWT Token or Illegal Argument: {}", ex.getMessage());
+			log.warn("Empty JWT Token or Illegal Argument: {}", ex.getMessage());
 			return TokenValidationResult.EMPTY;
 		} catch (SignatureException ex) {
-			log.error("Invalid JWT Signature: {}", ex.getMessage());
+			log.warn("Invalid JWT Signature: {}", ex.getMessage());
 			return TokenValidationResult.INVALID_SIGNATURE;
 		}
 	}
