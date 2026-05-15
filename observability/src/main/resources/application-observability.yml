@@ -21,6 +21,31 @@ management:
       export:
         enabled: true
 
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      module: ${spring.application.name}
+      env: ${spring.profiles.active:unknown}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 100ms, 200ms, 500ms, 1s, 2s
+      percentiles:
+        http.server.requests: 0.95, 0.99
+
+  tracing:
+    enabled: ${MANAGEMENT_TRACING_ENABLED:false}
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING:1.0}
+    propagation:
+      type: W3C
+  otlp:
+    tracing:
+      endpoint: ${OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+      transport: http
+      timeout: 10s
+
 logging:
   level:
     root: info
@@ -36,11 +61,11 @@ sentry:
   send-default-pii: true
   logs:
     enabled: true
-  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:1.0}
-  profile-session-sample-rate: ${SENTRY_PROFILE_SESSION_SAMPLE_RATE:1.0}
+  traces-sample-rate: 0.0
+  profile-session-sample-rate: 0.0
   profile-lifecycle: TRACE
   metrics:
-    enabled: ${SENTRY_METRICS_ENABLED:true}
+    enabled: false
 
 ---
 spring:
@@ -54,13 +79,15 @@ management:
   endpoints:
     web:
       base-path: ${DEV_ACTUATOR_PATH}
+  tracing:
+    enabled: false
 
 sentry:
   environment: dev
-  traces-sample-rate: ${DEV_SENTRY_TRACES_SAMPLE_RATE:1.0}
-  profile-session-sample-rate: ${DEV_SENTRY_PROFILE_SESSION_SAMPLE_RATE:1.0}
+  traces-sample-rate: 0.0
+  profile-session-sample-rate: 0.0
   metrics:
-    enabled: ${DEV_SENTRY_METRICS_ENABLED:true}
+    enabled: false
 
 ---
 spring:
@@ -74,13 +101,17 @@ management:
   endpoints:
     web:
       base-path: ${PROD_ACTUATOR_PATH}
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
 
 sentry:
   environment: prod
-  traces-sample-rate: ${PROD_SENTRY_TRACES_SAMPLE_RATE:1.0}
-  profile-session-sample-rate: ${PROD_SENTRY_PROFILE_SESSION_SAMPLE_RATE:1.0}
+  traces-sample-rate: 0.0
+  profile-session-sample-rate: 0.0
   metrics:
-    enabled: ${PROD_SENTRY_METRICS_ENABLED:true}
+    enabled: false
 
 ---
 spring:
@@ -94,6 +125,8 @@ management:
   endpoints:
     web:
       base-path: /actuator-test
+  tracing:
+    enabled: false
 
 sentry:
   dsn: ""

@@ -12,6 +12,7 @@ class Log4j2PatternContractTest {
         val log4j2 = Files.readString(Path.of("src/main/resources/log4j2-spring.xml"))
 
         assertTrue(log4j2.contains("[traceId=%equals{%X{traceId}}{}{NO_TRACE}]"))
+        assertTrue(log4j2.contains("[spanId=%equals{%X{spanId}}{}{NO_SPAN}]"))
         assertTrue(log4j2.contains("[userId=%equals{%X{userId}}{}{GUEST}]"))
         assertTrue(log4j2.contains("[clientIp=%equals{%X{clientIp}}{}{UNKNOWN}]"))
         assertTrue(log4j2.contains("[request=%equals{%X{requestInfo}}{}{NO_REQUEST}]"))

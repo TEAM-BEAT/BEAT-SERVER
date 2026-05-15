@@ -2,13 +2,13 @@
 <Configuration status="INFO">
     <Properties>
         <Property name="LOG_PATTERN">
-            %style{%d{yyyy-MM-dd HH:mm:ss,SSS}}{blue} %highlight{[%-5p]}{FATAL=bg_red, ERROR=red, WARN=yellow, INFO=green, DEBUG=bright_blue, TRACE=cyan} [%t] [traceId=%equals{%X{traceId}}{}{NO_TRACE}] [userId=%equals{%X{userId}}{}{GUEST}] [clientIp=%equals{%X{clientIp}}{}{UNKNOWN}] [request=%equals{%X{requestInfo}}{}{NO_REQUEST}] [route=%equals{%X{routePattern}}{}{NO_ROUTE}] %style{[%c{1}.%M():%L]}{BRIGHT_BLACK} - %m%n
+            %style{%d{yyyy-MM-dd HH:mm:ss,SSS}}{blue} %highlight{[%-5p]}{FATAL=bg_red, ERROR=red, WARN=yellow, INFO=green, DEBUG=bright_blue, TRACE=cyan} [%t] %style{[traceId=%equals{%X{traceId}}{}{NO_TRACE}]}{cyan} %style{[spanId=%equals{%X{spanId}}{}{NO_SPAN}]}{bright_blue} %style{[userId=%equals{%X{userId}}{}{GUEST}]}{yellow} %style{[clientIp=%equals{%X{clientIp}}{}{UNKNOWN}]}{magenta} %style{[request=%equals{%X{requestInfo}}{}{NO_REQUEST}]}{green} %style{[route=%equals{%X{routePattern}}{}{NO_ROUTE}]}{bright_green} %style{[%c{1}.%M():%L]}{BRIGHT_BLACK} - %m%n
         </Property>
     </Properties>
 
     <Appenders>
         <Console name="ConsoleAppender" target="SYSTEM_OUT">
-            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <PatternLayout pattern="${LOG_PATTERN}" disableAnsi="${env:LOG_DISABLE_ANSI:-false}"/>
         </Console>
         <Sentry name="SentryAppender" minimumBreadcrumbLevel="INFO" minimumEventLevel="ERROR" minimumLevel="INFO"/>
     </Appenders>
