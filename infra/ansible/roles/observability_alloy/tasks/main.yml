@@ -1,0 +1,104 @@
+---
+- name: Ensure alloy config directory
+  ansible.builtin.file:
+    path: "{{ observability_alloy_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure alloy secret directory (private)
+  ansible.builtin.file:
+    path: "{{ observability_alloy_secret_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Render Grafana Cloud secrets to host
+  ansible.builtin.copy:
+    content: "{{ item.value }}"
+    dest: "{{ observability_alloy_secret_dir }}/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - name: gc_token
+      value: "{{ gc_token }}"
+    - name: gc_prom_user
+      value: "{{ gc_prom_user }}"
+    - name: gc_loki_user
+      value: "{{ gc_loki_user }}"
+    - name: gc_tempo_user
+      value: "{{ gc_tempo_user }}"
+  loop_control:
+    label: "{{ item.name }}"
+  no_log: true
+  notify: Restart alloy container
+
+- name: Render alloy config
+  ansible.builtin.template:
+    src: config.alloy.j2
+    dest: "{{ observability_alloy_config_dir }}/config.alloy"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart alloy container
+
+- name: Ensure alloy data volume exists
+  community.docker.docker_volume:
+    name: "{{ observability_alloy_data_volume }}"
+    state: present
+
+- name: Ensure beat docker network exists
+  community.docker.docker_network:
+    name: "{{ docker_network }}"
+    state: present
+
+- name: Start alloy edge agent
+  community.docker.docker_container:
+    name: "{{ observability_alloy_container_name }}"
+    image: "{{ observability_alloy_image }}"
+    state: started
+    restart_policy: unless-stopped
+    pull: true
+    # docker_container 기본 spec 비교는 privileged/volumes 같은 옵션 변경 감지 못해
+    # changed=0으로 떨어져 컨테이너 재생성 누락. strict 비교로 모든 spec 변경을 정확히 감지.
+    comparisons:
+      '*': strict
+    networks:
+      - name: "{{ docker_network }}"
+    memory: "{{ observability_alloy_mem_limit }}"
+    cpus: "{{ observability_alloy_cpus }}"
+    published_ports: "{{ observability_alloy_published_ports }}"
+    command:
+      - "run"
+      - "--server.http.listen-addr=0.0.0.0:12345"
+      - "--storage.path=/var/lib/alloy/data"
+      - "--stability.level=generally-available"
+      - "/etc/alloy/config.alloy"
+    # docker.sock은 docker discovery가 필요한 logs/cAdvisor 활성 시에만 마운트 (최소권한)
+    # privileged는 제거 — host /proc /sys 는 read-only bind mount로 node_exporter 동작 가능
+    volumes: >-
+      {{
+        [
+          observability_alloy_config_dir ~ '/config.alloy:/etc/alloy/config.alloy:ro',
+          observability_alloy_secret_dir ~ ':' ~ observability_alloy_container_secret_dir ~ ':ro',
+          observability_alloy_data_volume ~ ':/var/lib/alloy/data',
+          '/proc:/host/proc:ro',
+          '/sys:/host/sys:ro',
+          '/:/host/rootfs:ro,rslave'
+        ]
+        + (['/var/run/docker.sock:/var/run/docker.sock:ro']
+           if (observability_alloy_enable_logs | bool) or (observability_alloy_enable_cadvisor | bool)
+           else [])
+      }}
+
+- name: Wait for alloy ready endpoint
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:12345/-/ready"
+    status_code: 200
+  register: alloy_ready
+  retries: 15
+  delay: 2
+  until: alloy_ready.status == 200

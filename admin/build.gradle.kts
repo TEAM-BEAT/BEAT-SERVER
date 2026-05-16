@@ -5,6 +5,7 @@ plugins {
     id("beat.openapi")
     id("beat.feign-runtime")
     id("beat.sentry-source-context")
+    id("beat.prometheus-runtime")
 }
 
 dependencies {

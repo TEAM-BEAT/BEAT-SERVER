@@ -78,3 +78,21 @@ modules:
     app_port: 4002
     container_name: batch
     scheduler_owner: true
+
+# observability_alloy — prod는 metrics+logs+traces 풀스택
+# t3a.small 2GB에 apis(BG)+admin+batch+redis+nginx+alloy 공존 — 보수적 256m로 시작
+# 1주차 운영 후 부족하면 inventory에서 384m로 증액
+observability_alloy_mem_limit: "256m"
+observability_alloy_cpus: "1.0"
+observability_alloy_scrape_interval: "30s"
+observability_alloy_wal_truncate: "12h"
+observability_alloy_enable_logs: true
+observability_alloy_enable_traces: true
+observability_alloy_enable_cadvisor: true
+observability_alloy_published_ports:
+  - "127.0.0.1:12345:12345"
+  - "127.0.0.1:4317:4317"
+  - "127.0.0.1:4318:4318"
+
+# Spring Boot OTel exporter endpoint (app 컨테이너에 환경변수로 주입)
+otel_otlp_tracing_endpoint: "http://alloy:4318/v1/traces"

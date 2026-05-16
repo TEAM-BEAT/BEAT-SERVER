@@ -10,6 +10,9 @@ dependencies {
     runtimeOnly(libs.sentry.async.profiler)
     runtimeOnly(libs.sentry.log4j2)
 
+    implementation(libs.micrometer.tracing.bridge.otel)
+    implementation(libs.opentelemetry.exporter.otlp)
+
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.boot.starter.web)
     testRuntimeOnly(libs.junit.platform.launcher)

@@ -1,0 +1,100 @@
+name: deploy-observability-prod
+
+# Alloy edge agent + Grafana Cloud observability stack 배포 (prod)
+# Trigger: workflow_dispatch only (prod 변경은 운영자 수동 통제)
+# 자동 트리거 안 두는 이유:
+#   - alloy 재시작은 prod 메트릭/로그/트레이스 스트림에 잠시 영향
+#   - 변경 빈도 매우 낮음 (월 1회 미만 예상)
+#   - release tag 배포와 별개 cadence
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_ref:
+        description: "Branch, tag, or SHA to deploy (required for prod)"
+        type: string
+        required: true
+
+jobs:
+  resolve-ref:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      commit_sha: ${{ steps.resolve.outputs.commit_sha }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Resolve deploy ref
+        id: resolve
+        env:
+          DEPLOY_REF: ${{ github.event.inputs.deploy_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          requested="$DEPLOY_REF"
+
+          git fetch --force --prune origin \
+            '+refs/heads/*:refs/remotes/origin/*' \
+            '+refs/tags/*:refs/tags/*'
+
+          candidates=("$requested")
+          if [[ "$requested" == refs/heads/* ]]; then
+            candidates+=("refs/remotes/origin/${requested#refs/heads/}")
+          elif [[ "$requested" != refs/* ]]; then
+            candidates+=("refs/remotes/origin/$requested" "refs/tags/$requested")
+          fi
+
+          commit_sha=""
+          for candidate in "${candidates[@]}"; do
+            if resolved="$(git rev-parse --verify --quiet "${candidate}^{commit}")"; then
+              commit_sha="$resolved"
+              break
+            fi
+          done
+
+          if [[ ! "$commit_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid deploy_ref: $requested (expected a branch, tag, or commit SHA in this repository)" >&2
+            exit 1
+          fi
+
+          # prod 배포 대상 commit은 origin/main 계열에 포함되어야 함 (deploy-prod.yml과 동일 가드)
+          if ! git merge-base --is-ancestor "$commit_sha" origin/main; then
+            origin_main="$(git rev-parse --verify origin/main)"
+            echo "Refusing prod observability deploy: commit $commit_sha is not an ancestor of origin/main ($origin_main)" >&2
+            exit 1
+          fi
+
+          echo "Resolved deploy ref '$requested' to $commit_sha"
+          echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs:
+      - resolve-ref
+    # alloy 재시작은 prod runtime concurrency group으로 묶어 deploy/rollback과 직렬화
+    concurrency:
+      group: prod-runtime
+      queue: max
+      cancel-in-progress: false
+    uses: ./.github/workflows/_ansible-exec.yml
+    with:
+      environment_name: prod
+      module: observability
+      connection_module: ${{ vars.PROD_FOUNDATION_CONNECTION_MODULE || 'apis' }}
+      playbook: playbooks/observability.yml
+      inventory_path: inventories/prod/hosts.yml
+      success_title: Observability Prod Succeeded
+      failure_title: Observability Prod Failed
+      notify_description: |
+        Alloy edge agent deploy
+        Actor: ${{ github.actor }}
+        Commit: ${{ needs.resolve-ref.outputs.commit_sha }}
+      commit_sha: ${{ needs.resolve-ref.outputs.commit_sha }}
+      checkout_ref: ${{ needs.resolve-ref.outputs.commit_sha }}
+    secrets:
+      ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+      sops_age_key: ${{ secrets.AGE_SECRET_KEY }}
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
