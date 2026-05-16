@@ -93,3 +93,6 @@ observability_alloy_published_ports:
   - "127.0.0.1:12345:12345"
   - "127.0.0.1:4317:4317"
   - "127.0.0.1:4318:4318"
+
+# Spring Boot OTel exporter endpoint (app 컨테이너에 환경변수로 주입)
+otel_otlp_tracing_endpoint: "http://alloy:4318/v1/traces"
