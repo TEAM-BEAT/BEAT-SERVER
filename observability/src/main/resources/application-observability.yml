@@ -24,7 +24,6 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
-      module: ${spring.application.name}
       env: ${spring.profiles.active:unknown}
     distribution:
       percentiles-histogram:
