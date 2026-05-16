@@ -211,9 +211,12 @@ otelcol.receiver.otlp "apps" {
 }
 
 otelcol.processor.tail_sampling "policy" {
+  // BEAT 트래픽 실측 기반 보수적 buffer. trace당 평균 5 spans 가정 시 25k spans (~50MB).
+  // expected_new_traces_per_sec는 평상시 10~30 추정, 50으로 여유.
+  // 실측 후 부족하면 num_traces 단계적 증액.
   decision_wait               = "10s"
-  num_traces                  = 50000
-  expected_new_traces_per_sec = 200
+  num_traces                  = 5000
+  expected_new_traces_per_sec = 50
 
   policy {
     name = "errors"
