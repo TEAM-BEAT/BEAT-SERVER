@@ -62,6 +62,10 @@
     state: started
     restart_policy: unless-stopped
     pull: true
+    # docker_container 기본 spec 비교는 privileged/volumes 같은 옵션 변경 감지 못해
+    # changed=0으로 떨어져 컨테이너 재생성 누락. strict 비교로 모든 spec 변경을 정확히 감지.
+    comparisons:
+      '*': strict
     networks:
       - name: "{{ docker_network }}"
     memory: "{{ observability_alloy_mem_limit }}"
