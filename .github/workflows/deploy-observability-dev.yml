@@ -1,0 +1,107 @@
+name: deploy-observability-dev
+
+# Alloy edge agent + Grafana Cloud observability stack 배포 (dev)
+# Trigger:
+#   - push to develop with paths match (alloy role/playbook/inventory observability vars 변경 시)
+#   - workflow_dispatch (수동)
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'infra/ansible/roles/observability_alloy/**'
+      - 'infra/ansible/playbooks/observability.yml'
+      - 'infra/ansible/inventories/dev/group_vars/all/main.yml'
+      - 'infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml'
+      - '.github/workflows/deploy-observability-dev.yml'
+      - '.github/workflows/_ansible-exec.yml'
+  workflow_dispatch:
+    inputs:
+      deploy_ref:
+        description: "Optional branch, tag, or SHA to deploy (defaults to the triggering commit)"
+        type: string
+        required: false
+        default: ""
+
+jobs:
+  resolve-ref:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      commit_sha: ${{ steps.resolve.outputs.commit_sha }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Resolve deploy ref
+        id: resolve
+        env:
+          DEPLOY_REF: ${{ github.event.inputs.deploy_ref }}
+          DEFAULT_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          requested="${DEPLOY_REF:-}"
+          if [[ -z "$requested" ]]; then
+            requested="$DEFAULT_SHA"
+          fi
+
+          git fetch --force --prune origin \
+            '+refs/heads/*:refs/remotes/origin/*' \
+            '+refs/tags/*:refs/tags/*'
+
+          candidates=("$requested")
+          if [[ "$requested" == refs/heads/* ]]; then
+            candidates+=("refs/remotes/origin/${requested#refs/heads/}")
+          elif [[ "$requested" != refs/* ]]; then
+            candidates+=("refs/remotes/origin/$requested" "refs/tags/$requested")
+          fi
+
+          commit_sha=""
+          for candidate in "${candidates[@]}"; do
+            if resolved="$(git rev-parse --verify --quiet "${candidate}^{commit}")"; then
+              commit_sha="$resolved"
+              break
+            fi
+          done
+
+          if [[ ! "$commit_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid deploy_ref: $requested (expected a branch, tag, or commit SHA in this repository)" >&2
+            exit 1
+          fi
+
+          echo "Resolved deploy ref '$requested' to $commit_sha"
+          echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs:
+      - resolve-ref
+    # alloy 재시작은 app deploy/foundation과 같은 dev runtime concurrency group으로 묶어 직렬화
+    concurrency:
+      group: dev-runtime
+      queue: max
+      cancel-in-progress: false
+    uses: ./.github/workflows/_ansible-exec.yml
+    with:
+      environment_name: dev
+      # observability.yml은 hosts:all이라 module 변수 안 쓰지만 _ansible-exec.yml 계약상 필수
+      module: observability
+      connection_module: ${{ vars.DEV_FOUNDATION_CONNECTION_MODULE || 'apis' }}
+      playbook: playbooks/observability.yml
+      inventory_path: inventories/dev/hosts.yml
+      success_title: Observability Dev Succeeded
+      failure_title: Observability Dev Failed
+      notify_description: |
+        Alloy edge agent deploy
+        Actor: ${{ github.actor }}
+        Commit: ${{ needs.resolve-ref.outputs.commit_sha }}
+      commit_sha: ${{ needs.resolve-ref.outputs.commit_sha }}
+      checkout_ref: ${{ needs.resolve-ref.outputs.commit_sha }}
+    secrets:
+      ssh_private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+      sops_age_key: ${{ secrets.AGE_SECRET_KEY }}
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
