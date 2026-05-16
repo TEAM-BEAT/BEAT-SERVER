@@ -1,0 +1,10 @@
+---
+- name: Deploy Grafana Alloy edge agent
+  hosts: all
+  become: true
+  gather_facts: false
+  roles:
+    - role: observability_alloy
+      tags:
+        - observability
+        - alloy

@@ -1,0 +1,7 @@
+---
+- name: Restart alloy container
+  community.docker.docker_container:
+    name: "{{ observability_alloy_container_name }}"
+    restart: true
+  listen: Restart alloy container
+  when: not ansible_check_mode
