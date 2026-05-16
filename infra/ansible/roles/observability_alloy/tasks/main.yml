@@ -61,7 +61,6 @@
     image: "{{ observability_alloy_image }}"
     state: started
     restart_policy: unless-stopped
-    privileged: true
     pull: true
     networks:
       - name: "{{ docker_network }}"
@@ -74,14 +73,22 @@
       - "--storage.path=/var/lib/alloy/data"
       - "--stability.level=generally-available"
       - "/etc/alloy/config.alloy"
-    volumes:
-      - "{{ observability_alloy_config_dir }}/config.alloy:/etc/alloy/config.alloy:ro"
-      - "{{ observability_alloy_secret_dir }}:{{ observability_alloy_container_secret_dir }}:ro"
-      - "{{ observability_alloy_data_volume }}:/var/lib/alloy/data"
-      - "/proc:/host/proc:ro"
-      - "/sys:/host/sys:ro"
-      - "/:/host/rootfs:ro,rslave"
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    # docker.sock은 docker discovery가 필요한 logs/cAdvisor 활성 시에만 마운트 (최소권한)
+    # privileged는 제거 — host /proc /sys 는 read-only bind mount로 node_exporter 동작 가능
+    volumes: >-
+      {{
+        [
+          observability_alloy_config_dir ~ '/config.alloy:/etc/alloy/config.alloy:ro',
+          observability_alloy_secret_dir ~ ':' ~ observability_alloy_container_secret_dir ~ ':ro',
+          observability_alloy_data_volume ~ ':/var/lib/alloy/data',
+          '/proc:/host/proc:ro',
+          '/sys:/host/sys:ro',
+          '/:/host/rootfs:ro,rslave'
+        ]
+        + (['/var/run/docker.sock:/var/run/docker.sock:ro']
+           if (observability_alloy_enable_logs | bool) or (observability_alloy_enable_cadvisor | bool)
+           else [])
+      }}
 
 - name: Wait for alloy ready endpoint
   ansible.builtin.uri:
