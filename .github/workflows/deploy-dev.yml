@@ -191,6 +191,25 @@ jobs:
           ./gradlew check verifyModuleBootJars --parallel --build-cache
         shell: bash
 
+      - name: Stage bootJars for downstream image build
+        run: |
+          mkdir -p staged-jars
+          for module in apis admin batch; do
+            JAR=$(find "${module}/build/libs" -maxdepth 1 -name "${module}-*.jar" ! -name '*-plain.jar' | head -n 1)
+            [ -n "$JAR" ] || { echo "No bootJar produced for ${module}" >&2; exit 1; }
+            cp "$JAR" "staged-jars/${module}.jar"
+          done
+          ls -lh staged-jars
+        shell: bash
+
+      - name: Upload bootJars artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bootjars
+          path: staged-jars/
+          if-no-files-found: error
+          retention-days: 1
+
   build-image:
     needs:
       - detect-changes
@@ -198,7 +217,7 @@ jobs:
       - verify
     if: needs.detect-changes.outputs.has_modules == 'true'
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 10
     permissions:
       contents: read
     environment: dev
@@ -216,6 +235,21 @@ jobs:
         with:
           username: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}
           password: ${{ secrets.DEV_DOCKER_LOGIN_ACCESSTOKEN }}
+
+      - name: Download bootJars artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bootjars
+          path: staged-jars
+
+      - name: Prepare app.jar for Docker build context
+        env:
+          MODULE: ${{ matrix.module }}
+        run: |
+          [ -f "staged-jars/${MODULE}.jar" ] || { echo "Missing staged-jars/${MODULE}.jar" >&2; exit 1; }
+          cp "staged-jars/${MODULE}.jar" app.jar
+          ls -lh app.jar
+        shell: bash
 
       - name: Compute image name
         id: image
@@ -237,7 +271,6 @@ jobs:
         run: |
           docker build -f Dockerfile.module \
             --build-arg MODULE=${MODULE} \
-            --platform linux/amd64 \
             -t "${{ steps.image.outputs.image }}" \
             -t "${{ steps.image.outputs.latest }}" \
             .
