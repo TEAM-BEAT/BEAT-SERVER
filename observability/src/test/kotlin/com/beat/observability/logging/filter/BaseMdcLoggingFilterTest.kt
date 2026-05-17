@@ -1,12 +1,18 @@
 package com.beat.observability.logging.filter
 
+import io.micrometer.tracing.Span
+import io.micrometer.tracing.TraceContext
+import io.micrometer.tracing.Tracer
 import jakarta.servlet.FilterChain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.slf4j.MDC
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
@@ -137,9 +143,69 @@ class BaseMdcLoggingFilterTest {
         assertMdcCleared()
     }
 
-    private fun testFilter(userId: String?): BaseMdcLoggingFilter = object : BaseMdcLoggingFilter() {
-        override fun resolveUserId(): String? = userId
+    @Test
+    fun `uses OTel traceId and spanId when active span is available`() {
+        val otelTraceId = "abcdef0123456789abcdef0123456789"
+        val otelSpanId = "fedcba9876543210"
+        val tracer = mockTracer(otelTraceId, otelSpanId)
+        val filter = testFilter(null, tracer)
+        val response = MockHttpServletResponse()
+
+        filter.doFilter(request(), response) { _, _ ->
+            assertEquals(otelTraceId, MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY))
+            assertEquals(otelSpanId, MDC.get(BaseMdcLoggingFilter.SPAN_ID_KEY))
+        }
+
+        assertEquals(otelTraceId, response.getHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER))
+        assertMdcCleared()
     }
+
+    @Test
+    fun `falls back to UUID traceId and omits spanId when no active span`() {
+        val tracer = mock(Tracer::class.java)
+        `when`(tracer.currentSpan()).thenReturn(null)
+        val filter = testFilter(null, tracer)
+
+        filter.doFilter(request(), MockHttpServletResponse()) { _, _ ->
+            val traceId = MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY)
+            assertNotNull(traceId)
+            assertEquals(32, traceId.length)
+            assertNull(MDC.get(BaseMdcLoggingFilter.SPAN_ID_KEY))
+        }
+
+        assertMdcCleared()
+    }
+
+    @Test
+    fun `falls back to UUID when active span reports noop traceId`() {
+        val tracer = mockTracer("00000000000000000000000000000000", "0000000000000000")
+        val filter = testFilter(null, tracer)
+
+        filter.doFilter(request(), MockHttpServletResponse()) { _, _ ->
+            val traceId = MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY)
+            assertNotNull(traceId)
+            assertEquals(32, traceId.length)
+            assertNull(MDC.get(BaseMdcLoggingFilter.SPAN_ID_KEY))
+        }
+
+        assertMdcCleared()
+    }
+
+    private fun mockTracer(traceId: String, spanId: String): Tracer {
+        val context = mock(TraceContext::class.java)
+        `when`(context.traceId()).thenReturn(traceId)
+        `when`(context.spanId()).thenReturn(spanId)
+        val span = mock(Span::class.java)
+        `when`(span.context()).thenReturn(context)
+        val tracer = mock(Tracer::class.java)
+        `when`(tracer.currentSpan()).thenReturn(span)
+        return tracer
+    }
+
+    private fun testFilter(userId: String?, tracer: Tracer? = null): BaseMdcLoggingFilter =
+        object : BaseMdcLoggingFilter(tracer) {
+            override fun resolveUserId(): String? = userId
+        }
 
     private fun request(method: String = "GET", uri: String = "/api/main"): MockHttpServletRequest =
         MockHttpServletRequest(method, uri)

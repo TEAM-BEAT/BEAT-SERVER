@@ -4,6 +4,8 @@ import com.beat.gateway.security.internal.servlet.CustomAccessDeniedHandler;
 import com.beat.gateway.security.internal.servlet.CustomJwtAuthenticationEntryPoint;
 import com.beat.gateway.security.internal.servlet.JwtAuthenticationFilter;
 import com.beat.gateway.security.internal.servlet.SecurityMdcLoggingFilter;
+import io.micrometer.tracing.Tracer;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,8 +20,8 @@ import org.springframework.context.annotation.Import;
 public class GatewaySecurityServletConfig {
 
 	@Bean(name = "gatewaySecurityMdcLoggingFilter")
-	public SecurityMdcLoggingFilter gatewaySecurityMdcLoggingFilter() {
-		return new SecurityMdcLoggingFilter();
+	public SecurityMdcLoggingFilter gatewaySecurityMdcLoggingFilter(ObjectProvider<Tracer> tracerProvider) {
+		return new SecurityMdcLoggingFilter(tracerProvider.getIfAvailable());
 	}
 
 	@Bean
