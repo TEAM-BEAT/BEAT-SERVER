@@ -1,10 +1,14 @@
 package com.beat.observability.logging.filter
 
+import com.beat.observability.tracing.NoOpTraceContextResolver
+import com.beat.observability.tracing.TraceContextResolver
+import com.beat.observability.tracing.TraceContextResolver.ResolvedTraceContext
 import jakarta.servlet.FilterChain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.slf4j.MDC
@@ -137,9 +141,46 @@ class BaseMdcLoggingFilterTest {
         assertMdcCleared()
     }
 
-    private fun testFilter(userId: String?): BaseMdcLoggingFilter = object : BaseMdcLoggingFilter() {
-        override fun resolveUserId(): String? = userId
+    @Test
+    fun `uses resolved traceId and spanId when active span is available`() {
+        val otelTraceId = "abcdef0123456789abcdef0123456789"
+        val otelSpanId = "fedcba9876543210"
+        val filter = testFilter(null, stubResolver(otelTraceId, otelSpanId))
+        val response = MockHttpServletResponse()
+
+        filter.doFilter(request(), response) { _, _ ->
+            assertEquals(otelTraceId, MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY))
+            assertEquals(otelSpanId, MDC.get(BaseMdcLoggingFilter.SPAN_ID_KEY))
+        }
+
+        assertEquals(otelTraceId, response.getHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER))
+        assertMdcCleared()
     }
+
+    @Test
+    fun `falls back to UUID traceId and omits spanId when resolver returns null`() {
+        val filter = testFilter(null, NoOpTraceContextResolver)
+
+        filter.doFilter(request(), MockHttpServletResponse()) { _, _ ->
+            val traceId = MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY)
+            assertNotNull(traceId)
+            assertEquals(32, traceId.length)
+            assertNull(MDC.get(BaseMdcLoggingFilter.SPAN_ID_KEY))
+        }
+
+        assertMdcCleared()
+    }
+
+    private fun stubResolver(traceId: String, spanId: String): TraceContextResolver =
+        TraceContextResolver { ResolvedTraceContext(traceId, spanId) }
+
+    private fun testFilter(
+        userId: String?,
+        resolver: TraceContextResolver = NoOpTraceContextResolver,
+    ): BaseMdcLoggingFilter =
+        object : BaseMdcLoggingFilter(resolver) {
+            override fun resolveUserId(): String? = userId
+        }
 
     private fun request(method: String = "GET", uri: String = "/api/main"): MockHttpServletRequest =
         MockHttpServletRequest(method, uri)

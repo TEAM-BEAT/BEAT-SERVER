@@ -1,5 +1,7 @@
 package com.beat.observability.logging.filter
 
+import com.beat.observability.tracing.NoOpTraceContextResolver
+import com.beat.observability.tracing.TraceContextResolver
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -7,7 +9,9 @@ import org.slf4j.MDC
 import org.springframework.web.filter.OncePerRequestFilter
 import java.util.UUID
 
-abstract class BaseMdcLoggingFilter : OncePerRequestFilter() {
+abstract class BaseMdcLoggingFilter(
+    private val traceContextResolver: TraceContextResolver = NoOpTraceContextResolver,
+) : OncePerRequestFilter() {
 
     companion object {
         const val TRACE_ID_HEADER = "X-Request-ID"
@@ -15,6 +19,7 @@ abstract class BaseMdcLoggingFilter : OncePerRequestFilter() {
         const val X_REAL_IP_HEADER = "X-Real-IP"
 
         const val TRACE_ID_KEY = "traceId"
+        const val SPAN_ID_KEY = "spanId"
         const val USER_ID_KEY = "userId"
         const val CLIENT_IP_KEY = "clientIp"
         const val REQUEST_INFO_KEY = "requestInfo"
@@ -32,10 +37,8 @@ abstract class BaseMdcLoggingFilter : OncePerRequestFilter() {
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
-        val traceId = resolveTraceId(request)
-        response.setHeader(TRACE_ID_HEADER, traceId)
-
-        populateMdc(request, traceId)
+        val effectiveTraceId = populateMdc(request)
+        response.setHeader(TRACE_ID_HEADER, effectiveTraceId)
 
         try {
             filterChain.doFilter(request, response)
@@ -44,7 +47,27 @@ abstract class BaseMdcLoggingFilter : OncePerRequestFilter() {
         }
     }
 
-    private fun resolveTraceId(request: HttpServletRequest): String =
+    private fun populateMdc(request: HttpServletRequest): String {
+        val traceId = applyTraceContext(request)
+        MDC.put(CLIENT_IP_KEY, extractClientIp(request))
+        MDC.put(REQUEST_INFO_KEY, "${request.method} ${request.requestURI}")
+        MDC.put(USER_ID_KEY, resolveUserId()?.takeIf { it.isNotBlank() } ?: DEFAULT_GUEST_USER)
+        return traceId
+    }
+
+    private fun applyTraceContext(request: HttpServletRequest): String {
+        val resolved = traceContextResolver.resolve()
+        val traceId = if (resolved != null) {
+            MDC.put(SPAN_ID_KEY, resolved.spanId)
+            resolved.traceId
+        } else {
+            resolveFallbackTraceId(request)
+        }
+        MDC.put(TRACE_ID_KEY, traceId)
+        return traceId
+    }
+
+    private fun resolveFallbackTraceId(request: HttpServletRequest): String =
         request.getHeader(TRACE_ID_HEADER)
             ?.trim()
             ?.takeIf { it.length in 1..MAX_TRACE_ID_LENGTH }
@@ -52,15 +75,6 @@ abstract class BaseMdcLoggingFilter : OncePerRequestFilter() {
             ?: generateTraceId()
 
     private fun generateTraceId(): String = UUID.randomUUID().toString().replace("-", "")
-
-    private fun populateMdc(request: HttpServletRequest, traceId: String) {
-        MDC.put(TRACE_ID_KEY, traceId)
-        MDC.put(CLIENT_IP_KEY, extractClientIp(request))
-        MDC.put(REQUEST_INFO_KEY, "${request.method} ${request.requestURI}")
-
-        val userId = resolveUserId()
-        MDC.put(USER_ID_KEY, userId?.takeIf { it.isNotBlank() } ?: DEFAULT_GUEST_USER)
-    }
 
     private fun extractClientIp(request: HttpServletRequest): String {
         val forwardedFor = request.getHeader(X_FORWARDED_FOR_HEADER)
