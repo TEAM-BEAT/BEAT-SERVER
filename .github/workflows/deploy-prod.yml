@@ -104,7 +104,7 @@ jobs:
           name: bootjars
           path: staged-jars/
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
 
   secret-preflight:
     needs:
@@ -159,6 +159,8 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      id-token: write
+      attestations: write
     environment: prod
     strategy:
       fail-fast: false
@@ -208,15 +210,43 @@ jobs:
           echo "latest=$IMAGE_LATEST" >> "$GITHUB_OUTPUT"
 
       - name: Build and push image
+        id: build
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          file: Dockerfile.module
+          push: true
+          tags: |
+            ${{ steps.image.outputs.image }}
+            ${{ steps.image.outputs.latest }}
+          build-args: |
+            MODULE=${{ matrix.module }}
+          cache-from: type=gha,scope=prod-${{ matrix.module }}
+          cache-to: type=gha,mode=max,scope=prod-${{ matrix.module }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-name: docker.io/${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Write build summary
         env:
           MODULE: ${{ matrix.module }}
+          IMAGE: ${{ steps.image.outputs.image }}
+          DIGEST: ${{ steps.build.outputs.digest }}
         run: |
-          docker buildx build -f Dockerfile.module \
-            --build-arg MODULE=${MODULE} \
-            -t "${{ steps.image.outputs.image }}" \
-            -t "${{ steps.image.outputs.latest }}" \
-            --push \
-            .
+          {
+            echo "### Build Summary"
+            echo ""
+            echo "- Module: \`${MODULE}\`"
+            echo "- Image: \`${IMAGE}\`"
+            echo "- Digest: \`${DIGEST}\`"
+            echo "- Attestation: signed via Sigstore (provenance + SBOM)"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   foundation:
     needs:
