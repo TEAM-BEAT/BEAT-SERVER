@@ -1,0 +1,154 @@
+---
+- name: "Deploy {{ module }}"
+  hosts: "{{ module }}_servers"
+  become: true
+  gather_facts: false
+
+  vars:
+    release_dir: "{{ release_root }}/{{ module }}"
+    pending_metadata_path: "{{ release_dir }}/pending.json"
+    foundation_marker_path: "{{ deployment_dir }}/.foundation-applied"
+    network_health_max_attempts: 30
+    network_health_sleep_seconds: 2
+    service_smoke_max_attempts: 15
+    service_smoke_sleep_seconds: 2
+
+  pre_tasks:
+    - name: Validate required inputs
+      ansible.builtin.assert:
+        that:
+          - module is defined
+          - modules is defined
+          - module in modules
+          - image is defined
+          - image_tag is defined
+          - actuator_port is defined
+          - actuator_path is defined
+        fail_msg: "Required extra vars: module, image, image_tag"
+      tags:
+        - always
+        - validate
+
+    - name: Validate nginx fragments mapping invariant
+      ansible.builtin.import_tasks: tasks/validate_nginx_fragments.yml
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Stat foundation marker
+      ansible.builtin.stat:
+        path: "{{ foundation_marker_path }}"
+      register: deploy_foundation_marker_stat
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Read foundation marker for diagnostics
+      ansible.builtin.slurp:
+        src: "{{ foundation_marker_path }}"
+      register: deploy_foundation_marker_raw
+      when: deploy_foundation_marker_stat.stat.exists
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Abort deploy when foundation is not applied
+      ansible.builtin.fail:
+        msg:
+          - "Foundation has not been applied on host {{ inventory_hostname }}."
+          - "Marker missing: {{ foundation_marker_path }}"
+          - "Run foundation first via:"
+          - >-
+            {{
+              "  ansible-playbook playbooks/foundation.yml -i "
+              ~ (
+                (ansible_inventory_sources | default([]))
+                | first
+                | default('inventories/<env>/hosts.yml', true)
+              )
+            }}
+          - "Or trigger the foundation step on GitHub Actions before retrying deploy."
+      when: not deploy_foundation_marker_stat.stat.exists
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Report foundation marker contents
+      ansible.builtin.debug:
+        msg: "Foundation applied: {{ deploy_foundation_marker_raw.content | b64decode }}"
+      when: deploy_foundation_marker_stat.stat.exists
+      tags:
+        - always
+        - validate
+        - preflight
+
+  roles:
+    - role: app_secret
+      vars:
+        app_secret_module_cfg: "{{ modules[module] }}"
+      tags:
+        - deploy
+        - secrets
+    - role: app_scripts
+      tags:
+        - deploy
+        - scripts
+    - role: app_release
+      tags:
+        - deploy
+        - release
+
+  tasks:
+    - name: Run blue-green switch
+      ansible.builtin.import_role:
+        name: app_bluegreen
+        tasks_from: run_switch.yml
+      vars:
+        app_bluegreen_image: "{{ image }}"
+        app_bluegreen_module_cfg: "{{ modules[module] }}"
+      when: modules[module].deploy_mode == "blue_green"
+      tags:
+        - deploy
+        - switch
+        - blue-green
+
+    - name: Run stop-start switch
+      ansible.builtin.import_role:
+        name: app_stopstart
+      vars:
+        app_stopstart_module_cfg: "{{ modules[module] }}"
+      when: modules[module].deploy_mode == "stop_start"
+      tags:
+        - deploy
+        - switch
+        - stop-start
+
+    - name: Run app healthcheck
+      ansible.builtin.import_role:
+        name: app_healthcheck
+      tags:
+        - deploy
+        - healthcheck
+
+    - name: Configure nginx routing for stop-start module
+      ansible.builtin.import_role:
+        name: app_stopstart
+        tasks_from: admin_nginx_route.yml
+      vars:
+        app_stopstart_module_cfg: "{{ modules[module] }}"
+      when: modules[module].nginx_route is defined
+      tags:
+        - deploy
+        - nginx
+        - routing
+
+    - name: Clean up after deploy
+      ansible.builtin.import_role:
+        name: app_cleanup
+      tags:
+        - deploy
+        - cleanup

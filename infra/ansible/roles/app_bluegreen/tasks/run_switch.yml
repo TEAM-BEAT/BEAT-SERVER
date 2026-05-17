@@ -1,0 +1,416 @@
+---
+- name: Ensure nginx config helper is installed
+  ansible.builtin.import_role:
+    name: nginx_config_helper
+
+- name: Resolve blue-green rollout paths
+  ansible.builtin.set_fact:
+    app_bluegreen_active_slot_file: "{{ release_dir }}/current-slot"
+    app_bluegreen_backend_upstream_source_path: >-
+      {{
+        nginx_generated_source_dir ~ '/upstreams/' ~ nginx_fragments.backend.fragment_file
+      }}
+    app_bluegreen_backend_upstream_target_path: >-
+      {{
+        nginx_generated_target_dir ~ '/upstreams/' ~ nginx_fragments.backend.fragment_file
+      }}
+    app_bluegreen_actuator_upstream_source_path: >-
+      {{
+        nginx_generated_source_dir ~ '/upstreams/' ~ nginx_fragments.actuator.fragment_file
+      }}
+    app_bluegreen_actuator_upstream_target_path: >-
+      {{
+        nginx_generated_target_dir ~ '/upstreams/' ~ nginx_fragments.actuator.fragment_file
+      }}
+
+- name: Ensure release directory exists for blue-green rollout
+  ansible.builtin.file:
+    path: "{{ release_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Check current active slot file
+  ansible.builtin.stat:
+    path: "{{ app_bluegreen_active_slot_file }}"
+  register: app_bluegreen_active_slot_stat
+
+- name: Read current active slot
+  ansible.builtin.slurp:
+    src: "{{ app_bluegreen_active_slot_file }}"
+  register: app_bluegreen_active_slot_raw
+  when: app_bluegreen_active_slot_stat.stat.exists
+
+- name: Decode current active slot
+  ansible.builtin.set_fact:
+    app_bluegreen_current_slot: >-
+      {{
+        (
+          app_bluegreen_active_slot_raw.content | b64decode | trim
+        ) if app_bluegreen_active_slot_stat.stat.exists else ''
+      }}
+
+- name: Validate current active slot value
+  ansible.builtin.assert:
+    that:
+      - app_bluegreen_current_slot in ['blue', 'green']
+    fail_msg: >-
+      Unsupported active slot '{{ app_bluegreen_current_slot }}'
+      found in {{ app_bluegreen_active_slot_file }}.
+      Expected one of: blue, green.
+  when: app_bluegreen_active_slot_stat.stat.exists
+
+- name: Determine whether blue is currently active
+  ansible.builtin.set_fact:
+    app_bluegreen_is_blue_active: "{{ app_bluegreen_current_slot == 'blue' }}"
+
+- name: Compute blue-green target lane
+  ansible.builtin.set_fact:
+    app_bluegreen_target_slot: "{{ 'green' if app_bluegreen_is_blue_active else 'blue' }}"
+    app_bluegreen_target_container: >-
+      {{
+        app_bluegreen_module_cfg.green_container_name
+        if app_bluegreen_is_blue_active
+        else app_bluegreen_module_cfg.blue_container_name
+      }}
+    app_bluegreen_old_container: >-
+      {{
+        app_bluegreen_module_cfg.blue_container_name
+        if app_bluegreen_is_blue_active
+        else app_bluegreen_module_cfg.green_container_name
+      }}
+
+- name: Expose blue-green healthcheck target container
+  ansible.builtin.set_fact:
+    healthcheck_target_container: "{{ app_bluegreen_target_container }}"
+
+- name: Run blue-green rollout
+  block:
+    - name: Remove target blue-green container before recreate
+      community.docker.docker_container:
+        name: "{{ app_bluegreen_target_container }}"
+        state: absent
+
+    - name: Build blue-green container environment
+      ansible.builtin.import_role:
+        name: app_container_runtime
+        tasks_from: env.yml
+      vars:
+        app_container_runtime_module_cfg: "{{ app_bluegreen_module_cfg }}"
+        app_container_runtime_include_scheduler_owner: false
+        app_container_runtime_release_ref: "{{ app_bluegreen_release_ref | default('', true) }}"
+
+    - name: Start target blue-green container via Docker module
+      community.docker.docker_container:
+        name: "{{ app_bluegreen_target_container }}"
+        image: "{{ app_bluegreen_image }}"
+        state: started
+        recreate: true
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ docker_network }}"
+        volumes:
+          - "{{ secret_dir }}:/app/secret:ro"
+        env: "{{ app_container_env }}"
+
+    - name: Wait for target blue-green container internal health
+      ansible.builtin.include_role:
+        name: app_healthcheck
+        tasks_from: probe.yml
+      vars:
+        app_healthcheck_probe_target_container: "{{ app_bluegreen_target_container }}"
+
+    - name: Build blue-green nginx transaction plan
+      ansible.builtin.set_fact:
+        # Keep nginx backups until the full rollout succeeds. The shared role
+        # validates/reloads nginx, but this caller still owns post-switch health,
+        # public smoke, old-container cleanup, and active-slot persistence.
+        app_bluegreen_nginx_transaction_files:
+          - id: live-config-source
+            path: "{{ nginx_conf_source_path }}"
+            role: source-config
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: live-config-target
+            path: "{{ nginx_conf_target_path }}"
+            role: live-config
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: backend-upstream-source
+            path: "{{ app_bluegreen_backend_upstream_source_path }}"
+            role: source
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: backend-upstream-target
+            path: "{{ app_bluegreen_backend_upstream_target_path }}"
+            role: target
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: actuator-upstream-source
+            path: "{{ app_bluegreen_actuator_upstream_source_path }}"
+            role: source
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+          - id: actuator-upstream-target
+            path: "{{ app_bluegreen_actuator_upstream_target_path }}"
+            role: target
+            backup: true
+            cleanup_backup_on_success: false
+            required: false
+        app_bluegreen_nginx_transaction_operations:
+          - id: bootstrap-nginx-include-markers
+            name: Ensure nginx generated include markers exist
+            kind: command
+            command:
+              argv:
+                - python3
+                - "{{ deployment_dir }}/update-nginx-config.py"
+                - bootstrap-includes
+                - --path
+                - "{{ nginx_conf_source_path }}"
+                - --upstream-include-glob
+                - "{{ nginx_generated_include_dir }}/upstreams/*.conf"
+                - --route-include-glob
+                - "{{ nginx_generated_include_dir }}/routes/*.conf"
+            changed_if:
+              stdout_json:
+                changed: true
+            affects_reload: false
+          - id: sync-bootstrapped-live-config
+            name: Sync bootstrapped nginx config to live target
+            kind: copy
+            src_file: live-config-source
+            dest_file: live-config-target
+            mode: "0644"
+            affects_reload: true
+          - id: update-backend-upstream-source
+            name: Update managed backend upstream to target container
+            kind: command
+            command:
+              argv:
+                - python3
+                - "{{ deployment_dir }}/update-nginx-config.py"
+                - upsert-upstream
+                - --path
+                - "{{ app_bluegreen_backend_upstream_source_path }}"
+                - --upstream-name
+                - "{{ app_bluegreen_module_cfg.backend_upstream_name }}"
+                - --container-name
+                - "{{ app_bluegreen_target_container }}"
+                - --backend-port
+                - "{{ app_bluegreen_module_cfg.app_port | string }}"
+            changed_if:
+              stdout_json:
+                changed: true
+            affects_reload: false
+          - id: update-actuator-upstream-source
+            name: Update managed actuator upstream to target container
+            kind: command
+            command:
+              argv:
+                - python3
+                - "{{ deployment_dir }}/update-nginx-config.py"
+                - upsert-upstream
+                - --path
+                - "{{ app_bluegreen_actuator_upstream_source_path }}"
+                - --upstream-name
+                - "{{ nginx_fragments.actuator.upstream_name }}"
+                - --container-name
+                - "{{ app_bluegreen_target_container }}"
+                - --backend-port
+                - "{{ actuator_port }}"
+            changed_if:
+              stdout_json:
+                changed: true
+            affects_reload: false
+          - id: sync-backend-upstream-target
+            name: Sync backend upstream fragment to target
+            kind: copy
+            src_file: backend-upstream-source
+            dest_file: backend-upstream-target
+            mode: "0644"
+            affects_reload: true
+          - id: sync-actuator-upstream-target
+            name: Sync actuator upstream fragment to target
+            kind: copy
+            src_file: actuator-upstream-source
+            dest_file: actuator-upstream-target
+            mode: "0644"
+            affects_reload: true
+    - name: Switch blue-green nginx upstreams transactionally
+      ansible.builtin.include_role:
+        name: nginx_fragment_transaction
+      vars:
+        nginx_fragment_transaction_id: app-bluegreen-switch
+        nginx_fragment_transaction_files: "{{ app_bluegreen_nginx_transaction_files }}"
+        nginx_fragment_transaction_operations: "{{ app_bluegreen_nginx_transaction_operations }}"
+        nginx_fragment_transaction_failure_summary: >-
+          Blue-green nginx upstream switch failed for {{ module }} and previous
+          nginx source/target state was restored
+
+    - name: Recheck target blue-green container internal health after switch
+      ansible.builtin.include_role:
+        name: app_healthcheck
+        tasks_from: probe.yml
+      vars:
+        app_healthcheck_probe_target_container: "{{ app_bluegreen_target_container }}"
+
+    - name: Verify public smoke URL after blue-green switch
+      ansible.builtin.shell: |
+        set -euo pipefail
+        attempts="{{ service_smoke_max_attempts }}"
+        delay="{{ service_smoke_sleep_seconds }}"
+        for attempt in $(seq 1 "$attempts"); do
+          if curl -fsS --connect-timeout 5 --max-time 10 "{{ app_bluegreen_module_cfg.public_smoke_url }}" >/dev/null 2>&1; then
+            exit 0
+          fi
+          sleep "$delay"
+        done
+        exit 1
+      args:
+        executable: /bin/bash
+      when: app_bluegreen_module_cfg.public_smoke_url | default('') | length > 0
+      changed_when: false
+
+    - name: Remove old blue-green container after successful switch
+      community.docker.docker_container:
+        name: "{{ app_bluegreen_old_container }}"
+        state: absent
+      when: app_bluegreen_current_slot | length > 0
+
+    - name: Persist new active slot
+      ansible.builtin.copy:
+        dest: "{{ app_bluegreen_active_slot_file }}"
+        content: "{{ app_bluegreen_target_slot }}"
+        mode: "0644"
+
+  rescue:
+    - name: Restore blue-green nginx transaction files after failed rollout
+      ansible.builtin.copy:
+        src: "{{ item.path }}{{ nginx_fragment_transaction_backup_suffix | default('.bak') }}"
+        dest: "{{ item.path }}"
+        remote_src: true
+        mode: preserve
+      when:
+        - app_bluegreen_nginx_transaction_files is defined
+        - nginx_fragment_transaction_file_pre_state is defined
+        - item.backup | default(true)
+        - nginx_fragment_transaction_file_pre_state.get(item.id, {}).exists | default(false)
+      loop: "{{ app_bluegreen_nginx_transaction_files | default([]) }}"
+      loop_control:
+        label: "{{ item.id }} -> {{ item.path }}"
+
+    - name: Remove blue-green nginx transaction files absent before failed rollout
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      when:
+        - app_bluegreen_nginx_transaction_files is defined
+        - nginx_fragment_transaction_file_pre_state is defined
+        - not (nginx_fragment_transaction_file_pre_state.get(item.id, {}).exists | default(false))
+      loop: "{{ app_bluegreen_nginx_transaction_files | default([]) }}"
+      loop_control:
+        label: "{{ item.id }} -> {{ item.path }}"
+
+    - name: Validate restored nginx config after failed blue-green rollout
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ nginx_container_name }}"
+          - nginx
+          - -t
+      register: app_bluegreen_post_failure_restore_validate_result
+      failed_when: false
+      changed_when: false
+      when:
+        - app_bluegreen_nginx_transaction_files is defined
+        - nginx_fragment_transaction_file_pre_state is defined
+
+    - name: Reload restored nginx config after failed blue-green rollout
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ nginx_container_name }}"
+          - nginx
+          - -s
+          - reload
+      register: app_bluegreen_post_failure_restore_reload_result
+      failed_when: false
+      changed_when: false
+      when:
+        - app_bluegreen_post_failure_restore_validate_result is defined
+        - (app_bluegreen_post_failure_restore_validate_result.rc | default(1)) == 0
+
+    - name: Remove blue-green nginx transaction backup files after failed rollout restore
+      ansible.builtin.file:
+        path: "{{ item.path }}{{ nginx_fragment_transaction_backup_suffix | default('.bak') }}"
+        state: absent
+      when:
+        - app_bluegreen_nginx_transaction_files is defined
+        - nginx_fragment_transaction_file_pre_state is defined
+        - item.backup | default(true)
+      loop: "{{ app_bluegreen_nginx_transaction_files | default([]) }}"
+      loop_control:
+        label: "{{ item.id }} -> {{ item.path }}"
+
+    - name: Remove failed blue-green target container
+      community.docker.docker_container:
+        name: "{{ app_bluegreen_target_container }}"
+        state: absent
+      failed_when: false
+
+    - name: Abort blue-green rollout after failure
+      ansible.builtin.fail:
+        msg: |-
+          Blue-green rollout failed for {{ module }}.
+          nginx_transaction_failed_operation={{ nginx_fragment_transaction_failed_operation | default('not-run') }}
+          nginx_transaction_restore_validate_rc={{
+            nginx_fragment_transaction_restore_validate_result.rc | default('not-run')
+          }}
+          nginx_transaction_restore_validate_stdout={{
+            nginx_fragment_transaction_restore_validate_result.stdout | default('')
+          }}
+          nginx_transaction_restore_validate_stderr={{
+            nginx_fragment_transaction_restore_validate_result.stderr | default('')
+          }}
+          nginx_transaction_restore_reload_rc={{
+            nginx_fragment_transaction_restore_reload_result.rc | default('skipped')
+          }}
+          nginx_transaction_restore_reload_stdout={{
+            nginx_fragment_transaction_restore_reload_result.stdout | default('')
+          }}
+          nginx_transaction_restore_reload_stderr={{
+            nginx_fragment_transaction_restore_reload_result.stderr | default('')
+          }}
+          post_failure_restore_validate_rc={{
+            app_bluegreen_post_failure_restore_validate_result.rc | default('not-run')
+          }}
+          post_failure_restore_validate_stdout={{
+            app_bluegreen_post_failure_restore_validate_result.stdout | default('')
+          }}
+          post_failure_restore_validate_stderr={{
+            app_bluegreen_post_failure_restore_validate_result.stderr | default('')
+          }}
+          post_failure_restore_reload_rc={{
+            app_bluegreen_post_failure_restore_reload_result.rc | default('skipped')
+          }}
+          post_failure_restore_reload_stdout={{
+            app_bluegreen_post_failure_restore_reload_result.stdout | default('')
+          }}
+          post_failure_restore_reload_stderr={{
+            app_bluegreen_post_failure_restore_reload_result.stderr | default('')
+          }}
+
+- name: Remove blue-green nginx transaction backup files after successful rollout
+  ansible.builtin.file:
+    path: "{{ item.path }}{{ nginx_fragment_transaction_backup_suffix | default('.bak') }}"
+    state: absent
+  loop: "{{ app_bluegreen_nginx_transaction_files }}"
+  loop_control:
+    label: "{{ item.id }} -> {{ item.path }}"

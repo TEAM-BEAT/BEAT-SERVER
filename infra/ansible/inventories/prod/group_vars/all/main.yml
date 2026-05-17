@@ -1,0 +1,100 @@
+deploy_environment: prod
+deployment_dir: /home/ubuntu/deployment
+docker_network: beat-network
+secret_dir: /opt/beat/secret
+release_root: /opt/beat/releases
+nginx_container_name: nginx
+nginx_conf_source_path: /home/ubuntu/deployment/nginx/default.conf
+nginx_conf_target_path: /home/ubuntu/deployment/nginx/conf.d/default.conf
+nginx_generated_source_dir: /home/ubuntu/deployment/nginx/generated-source
+nginx_generated_target_dir: /home/ubuntu/deployment/nginx/generated
+curl_image: curlimages/curl:8.12.1
+
+foundation_mysql_enabled: false
+foundation_redis_enabled: true
+nginx_image: nginx:alpine
+nginx_legacy_config_volume_name: nginx-config-volume
+certbot_conf_dir: /home/ubuntu/data/certbot/conf
+certbot_www_dir: /home/ubuntu/data/certbot/www
+nginx_access_log_format_name: custom
+actuator_upstream_name: actuator
+foundation_manage_nginx: true
+nginx_generated_include_dir: /etc/nginx/generated
+# nginx upstream seed placeholder used by nginx_base_config before any app is deployed.
+# Keeps nginx -t valid while blackholing accidental traffic until app deploy rewrites it.
+nginx_seed_placeholder_host: "127.0.0.1"
+nginx_seed_placeholder_port: 65535
+# nginx upstream/fragment canonical mapping. Treat as read-only after foundation is applied:
+# changing fragment_file values can orphan existing generated fragments on hosts.
+nginx_fragments:
+  backend:
+    upstream_name: "{{ backend_upstream_name | default('backend') }}"
+    fragment_file: backend.conf
+  admin:
+    upstream_name: "{{ admin_upstream_name | default('admin_backend') }}"
+    fragment_file: admin_backend.conf
+  actuator:
+    upstream_name: "{{ actuator_upstream_name | default('actuator') }}"
+    fragment_file: actuator.conf
+  route:
+    fragment_file: 10-managed.conf
+
+mysql_image: mysql:8.4.5
+mysql_container_name: mysql
+mysql_data_volume_name: mysql-data
+
+redis_image: redis:alpine
+redis_container_name: redis
+redis_conf_path: /home/ubuntu/redis.conf
+redis_data_volume_name: redis-data
+
+apis_app_port: 4001
+admin_upstream_name: admin_backend
+admin_container_name: admin
+admin_app_port: 4000
+
+modules:
+  apis:
+    deploy_mode: blue_green
+    spring_profile: prod
+    app_port: 4001
+    public_smoke_url: "https://{{ nginx_server_name }}/api/main"
+    blue_container_name: apis-blue
+    green_container_name: apis-green
+    backend_upstream_name: backend
+  admin:
+    deploy_mode: stop_start
+    spring_profile: prod
+    app_port: 4000
+    container_name: admin
+    scheduler_owner: false
+    nginx_route:
+      upstream_name: admin_backend
+      external_path: /admin
+      upstream_path: /api/admin
+  batch:
+    deploy_mode: stop_start
+    spring_profile: prod
+    app_port: 4002
+    container_name: batch
+    scheduler_owner: true
+
+# observability_alloy — prod는 metrics+logs+traces 풀스택
+# t3a.small 2GB에 apis(BG)+admin+batch+redis+nginx+alloy 공존 — 보수적 256m로 시작
+# 1주차 운영 후 부족하면 inventory에서 384m로 증액
+observability_alloy_mem_limit: "256m"
+observability_alloy_cpus: "1.0"
+observability_alloy_scrape_interval: "30s"
+observability_alloy_wal_truncate: "12h"
+observability_alloy_enable_logs: true
+observability_alloy_enable_traces: true
+observability_alloy_enable_cadvisor: true
+observability_alloy_published_ports:
+  - "127.0.0.1:12345:12345"
+  - "127.0.0.1:4317:4317"
+  - "127.0.0.1:4318:4318"
+
+letsencrypt_cron_enabled: true
+
+# Spring Boot OTel exporter endpoint (app 컨테이너에 환경변수로 주입)
+otel_otlp_tracing_endpoint: "http://alloy:4318/v1/traces"

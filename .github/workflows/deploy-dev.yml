@@ -1,0 +1,314 @@
+name: deploy-dev
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Module to deploy"
+        type: choice
+        options:
+          - all
+          - apis
+          - admin
+          - batch
+        default: all
+      deploy_ref:
+        description: "Optional branch, tag, or SHA to deploy (defaults to the triggering commit)"
+        type: string
+        required: false
+        default: ""
+
+jobs:
+  resolve-ref:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      commit_sha: ${{ steps.resolve.outputs.commit_sha }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Resolve deploy ref
+        id: resolve
+        env:
+          DEPLOY_REF: ${{ github.event.inputs.deploy_ref }}
+          DEFAULT_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          requested="${DEPLOY_REF:-}"
+          if [[ -z "$requested" ]]; then
+            requested="$DEFAULT_SHA"
+          fi
+
+          git fetch --force --prune origin \
+            '+refs/heads/*:refs/remotes/origin/*' \
+            '+refs/tags/*:refs/tags/*'
+
+          candidates=("$requested")
+          if [[ "$requested" == refs/heads/* ]]; then
+            candidates+=("refs/remotes/origin/${requested#refs/heads/}")
+          elif [[ "$requested" != refs/* ]]; then
+            candidates+=("refs/remotes/origin/$requested" "refs/tags/$requested")
+          fi
+
+          commit_sha=""
+          for candidate in "${candidates[@]}"; do
+            if resolved="$(git rev-parse --verify --quiet "${candidate}^{commit}")"; then
+              commit_sha="$resolved"
+              break
+            fi
+          done
+
+          if [[ ! "$commit_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid deploy_ref: $requested (expected a branch, tag, or commit SHA in this repository)" >&2
+            exit 1
+          fi
+
+          echo "Resolved deploy ref '$requested' to $commit_sha"
+          echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
+
+  detect-changes:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      has_modules: ${{ steps.matrix.outputs.has_modules }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: filter
+        with:
+          filters: |
+            apis:
+              - 'apis/**'
+            admin:
+              - 'admin/**'
+            batch:
+              - 'batch/**'
+            shared:
+              # Shared application / build surface
+              - 'domain/**'
+              - 'global-support/**'
+              - 'module-contracts/**'
+              - 'gateway/**'
+              - 'observability/**'
+              - 'infra/src/**'
+              - 'infra/ansible/**'
+              - 'infra/build.gradle.kts'
+              - 'build-logic/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - 'gradle/**'
+              - 'gradle.properties'
+              - 'gradlew'
+              - 'Dockerfile.module'
+              - '.dockerignore'
+              - '.sops.yaml'
+              # Shared deploy / reusable workflow surface
+              - '.github/workflows/_ansible-exec.yml'
+              - '.github/actions/resolve-ansible-connection/**'
+              - '.github/scripts/resolve_ansible_connection.py'
+              - '.github/actions/setup-ansible-tooling/**'
+              - '.github/actions/setup-ssh-client/**'
+
+      - name: Build final deploy matrix
+        id: matrix
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_MODULE: ${{ github.event.inputs.module }}
+          APIS: ${{ steps.filter.outputs.apis }}
+          ADMIN: ${{ steps.filter.outputs.admin }}
+          BATCH: ${{ steps.filter.outputs.batch }}
+          SHARED: ${{ steps.filter.outputs.shared }}
+        run: |
+          python <<'PY'
+          import json
+          import os
+
+          event_name = os.environ["EVENT_NAME"]
+          requested = os.environ.get("INPUT_MODULE") or "all"
+          preferred_order = ["admin", "apis", "batch"]
+          modules = []
+
+          if event_name == "workflow_dispatch":
+              modules = preferred_order if requested == "all" else [requested]
+          else:
+              if os.environ["SHARED"] == "true":
+                  modules = preferred_order
+              else:
+                  selected_modules = {
+                      "admin": os.environ["ADMIN"] == "true",
+                      "apis": os.environ["APIS"] == "true",
+                      "batch": os.environ["BATCH"] == "true",
+                  }
+                  modules = [module for module in preferred_order if selected_modules[module]]
+
+          matrix = {"include": [{"module": module} for module in modules]}
+          github_output = os.environ["GITHUB_OUTPUT"]
+          with open(github_output, "a", encoding="utf-8") as fh:
+              fh.write(f"matrix={json.dumps(matrix)}\n")
+              fh.write(f"has_modules={'true' if modules else 'false'}\n")
+          PY
+
+  verify:
+    needs:
+      - detect-changes
+      - resolve-ref
+    if: needs.detect-changes.outputs.has_modules == 'true'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.resolve-ref.outputs.commit_sha }}
+
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          java-version: "25"
+          distribution: "temurin"
+
+      - uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
+        with:
+          cache-cleanup: on-success
+
+      - name: Verify Gradle check
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_RELEASE: beat-server@${{ needs.resolve-ref.outputs.commit_sha }}
+        run: |
+          chmod +x gradlew
+          ./gradlew check verifyModuleBootJars --parallel --build-cache
+        shell: bash
+
+  build-image:
+    needs:
+      - detect-changes
+      - resolve-ref
+      - verify
+    if: needs.detect-changes.outputs.has_modules == 'true'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    environment: dev
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.resolve-ref.outputs.commit_sha }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          username: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}
+          password: ${{ secrets.DEV_DOCKER_LOGIN_ACCESSTOKEN }}
+
+      - name: Compute image name
+        id: image
+        env:
+          DOCKER_NAMESPACE: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}
+          MODULE: ${{ matrix.module }}
+          RESOLVED_SHA: ${{ needs.resolve-ref.outputs.commit_sha }}
+        run: |
+          IMAGE_TAG="dev-${RESOLVED_SHA}"
+          IMAGE_REF="${DOCKER_NAMESPACE}/beat-${MODULE}:${IMAGE_TAG}"
+          IMAGE_LATEST="${DOCKER_NAMESPACE}/beat-${MODULE}:dev-latest"
+          echo "tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "image=$IMAGE_REF" >> "$GITHUB_OUTPUT"
+          echo "latest=$IMAGE_LATEST" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        env:
+          MODULE: ${{ matrix.module }}
+        run: |
+          docker build -f Dockerfile.module \
+            --build-arg MODULE=${MODULE} \
+            --platform linux/amd64 \
+            -t "${{ steps.image.outputs.image }}" \
+            -t "${{ steps.image.outputs.latest }}" \
+            .
+          docker push "${{ steps.image.outputs.image }}"
+          docker push "${{ steps.image.outputs.latest }}"
+
+  foundation:
+    needs:
+      - detect-changes
+      - resolve-ref
+      - verify
+      - build-image
+    if: needs.detect-changes.outputs.has_modules == 'true'
+    concurrency:
+      group: dev-runtime
+      queue: max
+      cancel-in-progress: false
+    uses: ./.github/workflows/_ansible-exec.yml
+    with:
+      environment_name: dev
+      module: foundation
+      connection_module: ${{ vars.DEV_FOUNDATION_CONNECTION_MODULE || 'apis' }}
+      playbook: playbooks/foundation.yml
+      inventory_path: inventories/dev/hosts.yml
+      success_title: Foundation Dev Succeeded
+      failure_title: Foundation Dev Failed
+      notify_description: |
+        Foundation stack
+        Actor: ${{ github.actor }}
+        Commit: ${{ needs.resolve-ref.outputs.commit_sha }}
+      commit_sha: ${{ needs.resolve-ref.outputs.commit_sha }}
+      checkout_ref: ${{ needs.resolve-ref.outputs.commit_sha }}
+    secrets:
+      ssh_private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+      sops_age_key: ${{ secrets.AGE_SECRET_KEY }}
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  deploy:
+    needs:
+      - detect-changes
+      - resolve-ref
+      - verify
+      - build-image
+      - foundation
+    if: needs.detect-changes.outputs.has_modules == 'true'
+    concurrency:
+      group: dev-runtime
+      queue: max
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
+    uses: ./.github/workflows/_ansible-exec.yml
+    with:
+      environment_name: dev
+      module: ${{ matrix.module }}
+      playbook: playbooks/deploy.yml
+      inventory_path: inventories/dev/hosts.yml
+      success_title: Deploy Dev Succeeded
+      failure_title: Deploy Dev Failed
+      notify_description: |
+        Module: ${{ matrix.module }}
+        Actor: ${{ github.actor }}
+        Commit: ${{ needs.resolve-ref.outputs.commit_sha }}
+      image: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ needs.resolve-ref.outputs.commit_sha }}
+      image_tag: dev-${{ needs.resolve-ref.outputs.commit_sha }}
+      commit_sha: ${{ needs.resolve-ref.outputs.commit_sha }}
+      deploy_actor: ${{ github.actor }}
+      checkout_ref: ${{ needs.resolve-ref.outputs.commit_sha }}
+    secrets:
+      ssh_private_key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+      sops_age_key: ${{ secrets.AGE_SECRET_KEY }}
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

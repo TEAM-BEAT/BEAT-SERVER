@@ -1,0 +1,14 @@
+---
+- name: Assert healthcheck target container is provided
+  ansible.builtin.assert:
+    that:
+      - healthcheck_target_container is defined
+      - healthcheck_target_container | length > 0
+    fail_msg: >-
+      healthcheck_target_container must be set by the deploy or rollback switch role
+      before app_healthcheck runs.
+
+- name: Probe module health on docker network
+  ansible.builtin.include_tasks: probe.yml
+  vars:
+    app_healthcheck_probe_target_container: "{{ healthcheck_target_container }}"

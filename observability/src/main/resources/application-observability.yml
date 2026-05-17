@@ -1,0 +1,137 @@
+management:
+  endpoint:
+    health:
+      show-details: always
+      access: read-only
+    info:
+      access: read-only
+    prometheus:
+      access: read-only
+  endpoints:
+    access:
+      default: none
+    jmx:
+      exposure:
+        exclude: "*"
+    web:
+      exposure:
+        include: info, health, prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      env: ${spring.profiles.active:unknown}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 100ms, 200ms, 500ms, 1s, 2s
+      percentiles:
+        http.server.requests: 0.95, 0.99
+
+  tracing:
+    enabled: ${MANAGEMENT_TRACING_ENABLED:false}
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING:1.0}
+    propagation:
+      type: W3C
+  otlp:
+    tracing:
+      endpoint: ${OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+      transport: http
+      timeout: 10s
+
+logging:
+  level:
+    root: info
+  config: classpath:log4j2-spring.xml
+
+
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:${spring.profiles.active:unknown}}
+  server-name: ${spring.application.name}
+  release: ${SENTRY_RELEASE:}
+  sample-rate: 1.0
+  send-default-pii: true
+  logs:
+    enabled: true
+  traces-sample-rate: 0.0
+  profile-session-sample-rate: 0.0
+  profile-lifecycle: TRACE
+  metrics:
+    enabled: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+management:
+  server:
+    port: ${DEV_ACTUATOR_PORT}
+  endpoints:
+    web:
+      base-path: ${DEV_ACTUATOR_PATH}
+  tracing:
+    enabled: false
+
+sentry:
+  environment: dev
+  traces-sample-rate: 0.0
+  profile-session-sample-rate: 0.0
+  metrics:
+    enabled: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+management:
+  server:
+    port: ${PROD_ACTUATOR_PORT}
+  endpoints:
+    web:
+      base-path: ${PROD_ACTUATOR_PATH}
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+
+sentry:
+  environment: prod
+  traces-sample-rate: 0.0
+  profile-session-sample-rate: 0.0
+  metrics:
+    enabled: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+
+management:
+  server:
+    port: 0
+  endpoints:
+    web:
+      base-path: /actuator-test
+  tracing:
+    enabled: false
+
+sentry:
+  dsn: ""
+  traces-sample-rate: 0.0
+  profile-session-sample-rate: 0.0
+  logs:
+    enabled: false
+  metrics:
+    enabled: false

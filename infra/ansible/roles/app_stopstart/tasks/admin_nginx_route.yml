@@ -1,0 +1,148 @@
+---
+- name: Ensure nginx config helper is installed
+  ansible.builtin.import_role:
+    name: nginx_config_helper
+
+- name: Resolve admin nginx fragment paths
+  ansible.builtin.set_fact:
+    app_stopstart_admin_upstream_source_path: >-
+      {{
+        nginx_generated_source_dir ~ '/upstreams/' ~ nginx_fragments.admin.fragment_file
+      }}
+    app_stopstart_admin_upstream_target_path: >-
+      {{
+        nginx_generated_target_dir ~ '/upstreams/' ~ nginx_fragments.admin.fragment_file
+      }}
+    app_stopstart_admin_route_source_path: >-
+      {{
+        nginx_generated_source_dir ~ '/routes/' ~ nginx_fragments.route.fragment_file
+      }}
+    app_stopstart_admin_route_target_path: >-
+      {{
+        nginx_generated_target_dir ~ '/routes/' ~ nginx_fragments.route.fragment_file
+      }}
+
+- name: Build admin nginx route transaction plan
+  ansible.builtin.set_fact:
+    app_stopstart_admin_nginx_transaction_files:
+      - id: live-config-source
+        path: "{{ nginx_conf_source_path }}"
+        role: source-config
+        backup: true
+        required: false
+      - id: live-config-target
+        path: "{{ nginx_conf_target_path }}"
+        role: live-config
+        backup: true
+        required: false
+      - id: admin-upstream-source
+        path: "{{ app_stopstart_admin_upstream_source_path }}"
+        role: source
+        backup: true
+        required: false
+      - id: admin-upstream-target
+        path: "{{ app_stopstart_admin_upstream_target_path }}"
+        role: target
+        backup: true
+        required: false
+      - id: admin-route-source
+        path: "{{ app_stopstart_admin_route_source_path }}"
+        role: source
+        backup: true
+        required: false
+      - id: admin-route-target
+        path: "{{ app_stopstart_admin_route_target_path }}"
+        role: target
+        backup: true
+        required: false
+    app_stopstart_admin_nginx_transaction_operations:
+      - id: bootstrap-nginx-include-markers
+        name: Ensure nginx generated include markers exist
+        kind: command
+        command:
+          argv:
+            - python3
+            - "{{ deployment_dir }}/update-nginx-config.py"
+            - bootstrap-includes
+            - --path
+            - "{{ nginx_conf_source_path }}"
+            - --upstream-include-glob
+            - "{{ nginx_generated_include_dir }}/upstreams/*.conf"
+            - --route-include-glob
+            - "{{ nginx_generated_include_dir }}/routes/*.conf"
+        changed_if:
+          stdout_json:
+            changed: true
+        affects_reload: false
+      - id: update-admin-upstream-source
+        name: Ensure admin upstream fragment exists
+        kind: command
+        command:
+          argv:
+            - python3
+            - "{{ deployment_dir }}/update-nginx-config.py"
+            - upsert-upstream
+            - --path
+            - "{{ app_stopstart_admin_upstream_source_path }}"
+            - --upstream-name
+            - "{{ app_stopstart_module_cfg.nginx_route.upstream_name }}"
+            - --container-name
+            - "{{ app_stopstart_module_cfg.container_name }}"
+            - --backend-port
+            - "{{ app_stopstart_module_cfg.app_port | string }}"
+        changed_if:
+          stdout_json:
+            changed: true
+        affects_reload: false
+      - id: update-admin-route-source
+        name: Ensure admin route fragment exists
+        kind: command
+        command:
+          argv:
+            - python3
+            - "{{ deployment_dir }}/update-nginx-config.py"
+            - ensure-route
+            - --path
+            - "{{ app_stopstart_admin_route_source_path }}"
+            - --upstream-name
+            - "{{ app_stopstart_module_cfg.nginx_route.upstream_name }}"
+            - --external-path
+            - "{{ app_stopstart_module_cfg.nginx_route.external_path }}"
+            - --upstream-path
+            - "{{ app_stopstart_module_cfg.nginx_route.upstream_path }}"
+        changed_if:
+          stdout_json:
+            changed: true
+        affects_reload: false
+      - id: sync-admin-upstream-target
+        name: Sync generated admin upstream fragment to target
+        kind: copy
+        src_file: admin-upstream-source
+        dest_file: admin-upstream-target
+        mode: "0644"
+        affects_reload: true
+      - id: sync-admin-route-target
+        name: Sync generated admin route fragment to target
+        kind: copy
+        src_file: admin-route-source
+        dest_file: admin-route-target
+        mode: "0644"
+        affects_reload: true
+      - id: sync-bootstrapped-live-config
+        name: Sync bootstrapped nginx source config to target
+        kind: copy
+        src_file: live-config-source
+        dest_file: live-config-target
+        mode: "0644"
+        affects_reload: true
+
+- name: Sync admin nginx source and target files transactionally
+  ansible.builtin.include_role:
+    name: nginx_fragment_transaction
+  vars:
+    nginx_fragment_transaction_id: app-stopstart-admin-route
+    nginx_fragment_transaction_files: "{{ app_stopstart_admin_nginx_transaction_files }}"
+    nginx_fragment_transaction_operations: "{{ app_stopstart_admin_nginx_transaction_operations }}"
+    nginx_fragment_transaction_failure_summary: >-
+      Admin nginx route update failed for {{ module }} and previous nginx
+      source/target state was restored

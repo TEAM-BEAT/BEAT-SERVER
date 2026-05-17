@@ -1,0 +1,50 @@
+FROM eclipse-temurin:25-jdk AS build
+
+ARG MODULE
+
+WORKDIR /workspace
+
+COPY gradlew gradlew.bat build.gradle.kts settings.gradle.kts ./
+COPY gradle ./gradle
+COPY build-logic ./build-logic
+COPY apis/build.gradle.kts ./apis/build.gradle.kts
+COPY admin/build.gradle.kts ./admin/build.gradle.kts
+COPY batch/build.gradle.kts ./batch/build.gradle.kts
+COPY domain/build.gradle.kts ./domain/build.gradle.kts
+COPY gateway/build.gradle.kts ./gateway/build.gradle.kts
+COPY global-support/build.gradle.kts ./global-support/build.gradle.kts
+COPY infra/build.gradle.kts ./infra/build.gradle.kts
+COPY module-contracts/build.gradle.kts ./module-contracts/build.gradle.kts
+COPY observability/build.gradle.kts ./observability/build.gradle.kts
+
+RUN chmod +x gradlew
+RUN ./gradlew :${MODULE}:dependencies --no-daemon >/dev/null
+
+COPY apis ./apis
+COPY admin ./admin
+COPY batch ./batch
+COPY domain ./domain
+COPY gateway ./gateway
+COPY global-support ./global-support
+COPY infra ./infra
+COPY module-contracts ./module-contracts
+COPY observability ./observability
+
+RUN ./gradlew :${MODULE}:bootJar --no-daemon \
+  && cp "$(find /workspace/${MODULE}/build/libs -maxdepth 1 -name "${MODULE}-*.jar" ! -name '*-plain.jar' | head -n 1)" /workspace/app.jar
+
+FROM eclipse-temurin:25-jre-alpine
+
+ARG MODULE
+
+RUN addgroup -g 10001 -S beat && adduser -S -u 10001 -G beat beat && mkdir -p /app && chown beat:beat /app
+
+WORKDIR /app
+
+LABEL beat.module="${MODULE}"
+
+COPY --from=build --chown=beat:beat /workspace/app.jar /app/app.jar
+
+USER beat
+
+ENTRYPOINT ["java", "-Duser.timezone=Asia/Seoul", "-jar", "/app/app.jar"]

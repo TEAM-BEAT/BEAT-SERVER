@@ -1,0 +1,55 @@
+---
+# Grafana Alloy edge agent — defaults
+# 환경별 override는 inventories/{dev,prod}/group_vars/all/main.yml에서 처리.
+
+# Image — 2026-05 기준 latest stable (Docker Hub `latest` 태그 포인터)
+observability_alloy_image: "grafana/alloy:v1.16.1"
+observability_alloy_container_name: "alloy"
+observability_alloy_data_volume: "alloy-data"
+
+# Paths on host (where Ansible writes files)
+observability_alloy_config_dir: "/opt/beat/alloy"
+observability_alloy_secret_dir: "/opt/beat/alloy/secrets"
+
+# Paths inside container (where alloy reads files via volume mount)
+observability_alloy_container_secret_dir: "/etc/alloy/secrets"
+
+# Resource limits (dev t3.micro 1GB / prod t3a.small 2GB 기준)
+observability_alloy_mem_limit: "128m"
+observability_alloy_cpus: "0.5"
+
+# Telemetry pipeline switches (dev=metrics only, prod=full)
+observability_alloy_enable_logs: false
+observability_alloy_enable_traces: false
+observability_alloy_enable_cadvisor: false
+
+# Scraping
+observability_alloy_scrape_interval: "30s"
+observability_alloy_wal_truncate: "2h"
+
+# Cluster label (e.g. beat-dev, beat-prod) — group_vars에서 deploy_environment 기반 override
+observability_alloy_cluster: "beat-{{ deploy_environment }}"
+
+# OTLP receiver bind addresses (prod에서만 활성화됨)
+observability_alloy_otlp_grpc_addr: "0.0.0.0:4317"
+observability_alloy_otlp_http_addr: "0.0.0.0:4318"
+
+# Published ports — 호스트에 외부 노출 (default는 alloy UI만, prod override에서 OTLP 추가)
+observability_alloy_published_ports:
+  - "127.0.0.1:12345:12345"
+
+# Spring Boot scrape targets — 단일 호스트에 apis (BG: blue/green) + admin + batch
+# actuator_port와 actuator_path는 secrets.sops.yml의 app_secret_content와 동일 값
+observability_alloy_spring_targets:
+  - name: apis-blue
+    module: apis
+    color: blue
+  - name: apis-green
+    module: apis
+    color: green
+  - name: admin
+    module: admin
+    color: ""
+  - name: batch
+    module: batch
+    color: ""

@@ -1,0 +1,3 @@
+---
+- name: Recreate stop-start container via Docker module
+  ansible.builtin.import_tasks: run_container.yml

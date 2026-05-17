@@ -1,0 +1,257 @@
+// =============================================================================
+// Grafana Alloy edge agent — BEAT
+// Rendered by ansible role observability_alloy
+// env={{ deploy_environment }} cluster={{ observability_alloy_cluster }} host={{ inventory_hostname }}
+// =============================================================================
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// -----------------------------------------------------------------------------
+// 1. Secrets (호스트에 root:0600 으로 떨어진 파일 참조)
+// -----------------------------------------------------------------------------
+// token은 진짜 secret. user IDs는 numeric ID라 plain string 필드에 직접 들어가야 함 (is_secret=false)
+local.file "gc_token" {
+  filename  = "{{ observability_alloy_container_secret_dir }}/gc_token"
+  is_secret = true
+}
+
+local.file "gc_prom_user" {
+  filename  = "{{ observability_alloy_container_secret_dir }}/gc_prom_user"
+  is_secret = false
+}
+
+{% if observability_alloy_enable_logs %}
+local.file "gc_loki_user" {
+  filename  = "{{ observability_alloy_container_secret_dir }}/gc_loki_user"
+  is_secret = false
+}
+{% endif %}
+{% if observability_alloy_enable_traces %}
+local.file "gc_tempo_user" {
+  filename  = "{{ observability_alloy_container_secret_dir }}/gc_tempo_user"
+  is_secret = false
+}
+{% endif %}
+
+// -----------------------------------------------------------------------------
+// 2. Host metrics — node_exporter 대체 (Alloy 내장 unix exporter)
+// -----------------------------------------------------------------------------
+prometheus.exporter.unix "node" {
+  rootfs_path = "/host/rootfs"
+  procfs_path = "/host/proc"
+  sysfs_path  = "/host/sys"
+  disable_collectors = ["wifi", "ipvs", "infiniband", "btrfs", "zfs"]
+}
+
+prometheus.scrape "node" {
+  targets         = prometheus.exporter.unix.node.targets
+  scrape_interval = "{{ observability_alloy_scrape_interval }}"
+  forward_to      = [prometheus.relabel.cleanup.receiver]
+}
+
+{% if observability_alloy_enable_cadvisor %}
+// -----------------------------------------------------------------------------
+// 3. Container metrics — cAdvisor 대체 (prod only)
+// -----------------------------------------------------------------------------
+prometheus.exporter.cadvisor "containers" {
+  docker_host = "unix:///var/run/docker.sock"
+  storage_duration = "5m"
+}
+
+prometheus.scrape "containers" {
+  targets         = prometheus.exporter.cadvisor.containers.targets
+  scrape_interval = "{{ observability_alloy_scrape_interval }}"
+  forward_to      = [prometheus.relabel.cleanup.receiver]
+}
+{% endif %}
+
+// -----------------------------------------------------------------------------
+// 4. Spring Boot Actuator scrape — 정적 target, BG 미동작 색은 up=0 으로 처리
+// -----------------------------------------------------------------------------
+prometheus.scrape "spring_boot" {
+  targets = [
+{% for t in observability_alloy_spring_targets %}
+    { __address__ = "{{ t.name }}:{{ actuator_port }}", job = "{{ t.module }}", module = "{{ t.module }}"{% if t.color %}, color = "{{ t.color }}"{% endif %} },
+{% endfor %}
+  ]
+  metrics_path    = "{{ actuator_path }}/prometheus"
+  scrape_interval = "{{ observability_alloy_scrape_interval }}"
+  forward_to      = [prometheus.relabel.cleanup.receiver]
+}
+
+// -----------------------------------------------------------------------------
+// 5. Cardinality 보호 (drop high-cardinality 시리즈/라벨)
+// -----------------------------------------------------------------------------
+prometheus.relabel "cleanup" {
+  rule {
+    source_labels = ["__name__"]
+    regex         = "jvm_(buffer_pool|memory_pool|classes_unloaded)_.*"
+    action        = "drop"
+  }
+  rule {
+    source_labels = ["__name__"]
+    regex         = "tomcat_(global|cache|servlet)_.*"
+    action        = "drop"
+  }
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_(cpu_schedstat|hugetlb|fs_inodes|memory_failures)_.*"
+    action        = "drop"
+  }
+  rule {
+    source_labels = ["__name__", "le"]
+    separator     = ";"
+    regex         = "http_server_requests_seconds_bucket;(0\\.01|0\\.025|0\\.05|10\\.0|30\\.0).*"
+    action        = "drop"
+  }
+  rule {
+    action = "labeldrop"
+    regex  = "(exception|outcome|instance_name)"
+  }
+
+  forward_to = [prometheus.remote_write.gc.receiver]
+}
+
+// -----------------------------------------------------------------------------
+// 6. Remote write → Grafana Cloud Prometheus
+// -----------------------------------------------------------------------------
+prometheus.remote_write "gc" {
+  external_labels = {
+    env     = "{{ deploy_environment }}",
+    cluster = "{{ observability_alloy_cluster }}",
+    host    = "{{ inventory_hostname }}",
+  }
+  endpoint {
+    url = "{{ gc_prom_url }}"
+    basic_auth {
+      username = local.file.gc_prom_user.content
+      password = local.file.gc_token.content
+    }
+    queue_config {
+      max_shards           = 8
+      capacity             = 10000
+      max_samples_per_send = 2000
+    }
+  }
+  wal {
+    truncate_frequency = "{{ observability_alloy_wal_truncate }}"
+  }
+}
+
+{% if observability_alloy_enable_logs %}
+// -----------------------------------------------------------------------------
+// 7. Docker stdout/stderr → Loki (prod only)
+// -----------------------------------------------------------------------------
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.containers.targets
+  labels = {
+    env     = "{{ deploy_environment }}",
+    cluster = "{{ observability_alloy_cluster }}",
+    host    = "{{ inventory_hostname }}",
+  }
+  forward_to = [loki.process.module.receiver]
+}
+
+loki.process "module" {
+  // 컨테이너 이름에서 module 라벨 추출 (회귀 안전 패턴)
+  //  - apis-blue / apis-green → apis
+  //  - admin / batch / nginx / redis / mysql → 그대로
+  stage.regex {
+    expression = "^/.*?(?P<module>apis|admin|batch|mysql|redis|nginx).*$"
+    source     = "__meta_docker_container_name"
+  }
+  stage.labels {
+    values = {
+      module = "",
+    }
+  }
+  // stale stream 자동 drop
+  stage.drop {
+    older_than          = "12h"
+    drop_counter_reason = "stale"
+  }
+  forward_to = [loki.write.gc.receiver]
+}
+
+loki.write "gc" {
+  endpoint {
+    url = "{{ gc_loki_url }}"
+    basic_auth {
+      username = local.file.gc_loki_user.content
+      password = local.file.gc_token.content
+    }
+  }
+}
+{% endif %}
+
+{% if observability_alloy_enable_traces %}
+// -----------------------------------------------------------------------------
+// 8. OTLP traces 수신 + tail sampling → Grafana Cloud Tempo (prod only)
+// -----------------------------------------------------------------------------
+otelcol.receiver.otlp "apps" {
+  grpc {
+    endpoint = "{{ observability_alloy_otlp_grpc_addr }}"
+  }
+  http {
+    endpoint = "{{ observability_alloy_otlp_http_addr }}"
+  }
+  output {
+    traces = [otelcol.processor.tail_sampling.policy.input]
+  }
+}
+
+otelcol.processor.tail_sampling "policy" {
+  // BEAT 트래픽 실측 기반 보수적 buffer. trace당 평균 5 spans 가정 시 25k spans (~50MB).
+  // expected_new_traces_per_sec는 평상시 10~30 추정, 50으로 여유.
+  // 실측 후 부족하면 num_traces 단계적 증액.
+  decision_wait               = "10s"
+  num_traces                  = 5000
+  expected_new_traces_per_sec = 50
+
+  policy {
+    name = "errors"
+    type = "status_code"
+    status_code {
+      status_codes = ["ERROR"]
+    }
+  }
+  policy {
+    name = "slow"
+    type = "latency"
+    latency {
+      threshold_ms = 1000
+    }
+  }
+  policy {
+    name = "sample"
+    type = "probabilistic"
+    probabilistic {
+      sampling_percentage = 10
+    }
+  }
+
+  output {
+    traces = [otelcol.exporter.otlp.gc.input]
+  }
+}
+
+otelcol.exporter.otlp "gc" {
+  client {
+    endpoint = "{{ gc_tempo_endpoint }}"
+    auth     = otelcol.auth.basic.gc.handler
+  }
+}
+
+otelcol.auth.basic "gc" {
+  username = local.file.gc_tempo_user.content
+  password = local.file.gc_token.content
+}
+{% endif %}

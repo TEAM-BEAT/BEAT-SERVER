@@ -1,0 +1,77 @@
+server:
+  port: 4000
+
+spring:
+  application:
+    name: beat-admin
+  profiles:
+    group:
+      dev:
+        - persistence
+        - redis
+        - external
+        - jwt
+        - observability
+        - thread-pool
+      prod:
+        - persistence
+        - redis
+        - external
+        - jwt
+        - observability
+        - thread-pool
+      test:
+        - persistence
+        - redis
+        - external
+        - jwt
+        - observability
+        - thread-pool
+
+beat:
+  scheduler:
+    owner: false
+
+springdoc:
+  use-fqn: false
+  default-consumes-media-type: application/json;charset=UTF-8
+  default-produces-media-type: application/json;charset=UTF-8
+  swagger-ui:
+    tags-sorter: alpha
+    operations-sorter: alpha
+    display-request-duration: true
+    urls-primary-name: admin
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+    import: optional:file:secret/application-dev-secret.properties
+
+cors:
+  allowed-origins: ${DEV_ALLOWED_ORIGINS}
+
+app:
+  server:
+    url: ${DEV_SERVER_URL}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+    import: optional:file:secret/application-prod-secret.properties
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+
+cors:
+  allowed-origins: ${PROD_ALLOWED_ORIGINS}
+
+app:
+  server:
+    url: ${PROD_SERVER_URL}

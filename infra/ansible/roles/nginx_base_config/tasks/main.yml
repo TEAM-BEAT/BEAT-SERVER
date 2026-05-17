@@ -1,0 +1,291 @@
+---
+- name: Ensure nginx config helper is installed
+  ansible.builtin.import_role:
+    name: nginx_config_helper
+
+- name: Resolve generated nginx fragment paths
+  ansible.builtin.set_fact:
+    nginx_backend_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/{{ nginx_fragments.backend.fragment_file }}"
+    nginx_admin_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/{{ nginx_fragments.admin.fragment_file }}"
+    nginx_actuator_upstream_source_path: "{{ nginx_generated_source_dir }}/upstreams/{{ nginx_fragments.actuator.fragment_file }}"
+    nginx_backend_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/{{ nginx_fragments.backend.fragment_file }}"
+    nginx_admin_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/{{ nginx_fragments.admin.fragment_file }}"
+    nginx_actuator_upstream_target_path: "{{ nginx_generated_target_dir }}/upstreams/{{ nginx_fragments.actuator.fragment_file }}"
+    nginx_route_source_path: "{{ nginx_generated_source_dir }}/routes/{{ nginx_fragments.route.fragment_file }}"
+    nginx_route_target_path: "{{ nginx_generated_target_dir }}/routes/{{ nginx_fragments.route.fragment_file }}"
+
+- name: Validate nginx scanner block settings
+  ansible.builtin.assert:
+    that:
+      - nginx_base_config_scanner_block_status | int in [404, 444]
+      - nginx_base_config_scanner_exact_paths is sequence
+      - nginx_base_config_scanner_exact_paths is not string
+      - >-
+        (nginx_base_config_scanner_exact_paths | select('string') | list | length)
+        == (nginx_base_config_scanner_exact_paths | length)
+      - >-
+        (nginx_base_config_scanner_exact_paths
+        | reject('match', '^/[A-Za-z0-9._/-]+$')
+        | list | length) == 0
+      - nginx_base_config_scanner_prefix_paths is sequence
+      - nginx_base_config_scanner_prefix_paths is not string
+      - >-
+        (nginx_base_config_scanner_prefix_paths | select('string') | list | length)
+        == (nginx_base_config_scanner_prefix_paths | length)
+      - >-
+        (nginx_base_config_scanner_prefix_paths
+        | reject('match', '^/[A-Za-z0-9._/-]+/$')
+        | list | length) == 0
+    fail_msg: "Invalid nginx scanner block settings"
+
+- name: Ensure nginx candidate directory exists
+  ansible.builtin.file:
+    path: "{{ deployment_dir }}/nginx"
+    state: directory
+    mode: "0755"
+
+- name: Preview candidate nginx default.conf in check mode
+  ansible.builtin.debug:
+    msg: "Would render nginx candidate to {{ deployment_dir }}/nginx/default.conf"
+  when: ansible_check_mode
+
+- name: Ensure generated nginx directories exist (source)
+  ansible.builtin.file:
+    path: "{{ nginx_generated_source_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - upstreams
+    - routes
+
+- name: Ensure generated nginx base directory exists (target)
+  ansible.builtin.file:
+    path: "{{ nginx_generated_target_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Ensure generated nginx directories exist (target)
+  ansible.builtin.file:
+    path: "{{ nginx_generated_target_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - upstreams
+    - routes
+
+- name: Report nginx promotion plan in check mode
+  ansible.builtin.debug:
+    msg:
+      - "Would backup {{ deployment_dir }}/nginx/default.conf to {{ deployment_dir }}/nginx/default.conf.bak"
+      - "Would backup {{ nginx_backend_upstream_source_path }} to {{ nginx_backend_upstream_source_path }}.bak"
+      - "Would backup {{ nginx_admin_upstream_source_path }} to {{ nginx_admin_upstream_source_path }}.bak"
+      - "Would backup {{ nginx_actuator_upstream_source_path }} to {{ nginx_actuator_upstream_source_path }}.bak"
+      - "Would backup {{ nginx_route_source_path }} to {{ nginx_route_source_path }}.bak"
+      - "Would backup {{ nginx_backend_upstream_target_path }} to {{ nginx_backend_upstream_target_path }}.bak"
+      - "Would backup {{ nginx_admin_upstream_target_path }} to {{ nginx_admin_upstream_target_path }}.bak"
+      - "Would backup {{ nginx_actuator_upstream_target_path }} to {{ nginx_actuator_upstream_target_path }}.bak"
+      - "Would backup {{ nginx_route_target_path }} to {{ nginx_route_target_path }}.bak"
+      - "Would backup {{ nginx_conf_target_path }} to {{ nginx_conf_target_path }}.bak"
+      - "Would render {{ deployment_dir }}/nginx/default.conf and sync generated fragments to target"
+      - "Would validate with docker exec {{ nginx_container_name }} nginx -t"
+      - "Would reload nginx on validation success"
+  when: ansible_check_mode
+
+- name: Build nginx base config transaction plan
+  ansible.builtin.set_fact:
+    nginx_base_config_transaction_files:
+      - id: candidate-config-source
+        path: "{{ deployment_dir }}/nginx/default.conf"
+        role: source-config
+        backup: true
+        required: false
+      - id: backend-upstream-source
+        path: "{{ nginx_backend_upstream_source_path }}"
+        role: source
+        backup: true
+        required: false
+      - id: admin-upstream-source
+        path: "{{ nginx_admin_upstream_source_path }}"
+        role: source
+        backup: true
+        required: false
+      - id: actuator-upstream-source
+        path: "{{ nginx_actuator_upstream_source_path }}"
+        role: source
+        backup: true
+        required: false
+      - id: route-source
+        path: "{{ nginx_route_source_path }}"
+        role: source
+        backup: true
+        required: false
+      - id: backend-upstream-target
+        path: "{{ nginx_backend_upstream_target_path }}"
+        role: target
+        backup: true
+        required: false
+      - id: admin-upstream-target
+        path: "{{ nginx_admin_upstream_target_path }}"
+        role: target
+        backup: true
+        required: false
+      - id: actuator-upstream-target
+        path: "{{ nginx_actuator_upstream_target_path }}"
+        role: target
+        backup: true
+        required: false
+      - id: route-target
+        path: "{{ nginx_route_target_path }}"
+        role: target
+        backup: true
+        required: false
+      - id: live-config-target
+        path: "{{ nginx_conf_target_path }}"
+        role: live-config
+        backup: true
+        required: false
+    nginx_base_config_transaction_operations:
+      - id: render-candidate-nginx-config
+        name: Render candidate nginx default.conf
+        kind: template
+        dest_file: candidate-config-source
+        template:
+          src: "{{ role_path }}/templates/default.conf.j2"
+          mode: "0644"
+        affects_reload: false
+      # Seed placeholder upstream so nginx -t passes before any module is deployed.
+      # upsert-upstream rewrites this with the real container at first deploy.
+      - id: seed-backend-upstream
+        name: Seed backend upstream marker in source fragment
+        kind: command
+        when_file_missing: backend-upstream-source
+        command:
+          argv:
+            - python3
+            - "{{ deployment_dir }}/update-nginx-config.py"
+            - upsert-upstream
+            - --path
+            - "{{ nginx_backend_upstream_source_path }}"
+            - --upstream-name
+            - "{{ nginx_fragments.backend.upstream_name }}"
+            - --container-name
+            - "{{ nginx_seed_placeholder_host }}"
+            - --backend-port
+            - "{{ nginx_seed_placeholder_port | string }}"
+        changed_if:
+          stdout_json:
+            changed: true
+        affects_reload: false
+      # Seed placeholder upstream so nginx -t passes before any module is deployed.
+      # upsert-upstream rewrites this with the real container at first deploy.
+      - id: seed-admin-upstream
+        name: Seed admin upstream marker in source fragment
+        kind: command
+        when_file_missing: admin-upstream-source
+        command:
+          argv:
+            - python3
+            - "{{ deployment_dir }}/update-nginx-config.py"
+            - upsert-upstream
+            - --path
+            - "{{ nginx_admin_upstream_source_path }}"
+            - --upstream-name
+            - "{{ nginx_fragments.admin.upstream_name }}"
+            - --container-name
+            - "{{ nginx_seed_placeholder_host }}"
+            - --backend-port
+            - "{{ nginx_seed_placeholder_port | string }}"
+        changed_if:
+          stdout_json:
+            changed: true
+        affects_reload: false
+      # Seed placeholder upstream so nginx -t passes before any module is deployed.
+      # upsert-upstream rewrites this with the real container at first deploy.
+      - id: seed-actuator-upstream
+        name: Seed actuator upstream marker in source fragment
+        kind: command
+        when_file_missing: actuator-upstream-source
+        command:
+          argv:
+            - python3
+            - "{{ deployment_dir }}/update-nginx-config.py"
+            - upsert-upstream
+            - --path
+            - "{{ nginx_actuator_upstream_source_path }}"
+            - --upstream-name
+            - "{{ nginx_fragments.actuator.upstream_name }}"
+            - --container-name
+            - "{{ nginx_seed_placeholder_host }}"
+            - --backend-port
+            - "{{ nginx_seed_placeholder_port | string }}"
+        changed_if:
+          stdout_json:
+            changed: true
+        affects_reload: false
+      - id: seed-admin-route
+        name: Seed admin route marker in source fragment
+        kind: command
+        when_file_missing: route-source
+        command:
+          argv:
+            - python3
+            - "{{ deployment_dir }}/update-nginx-config.py"
+            - ensure-route
+            - --path
+            - "{{ nginx_route_source_path }}"
+            - --upstream-name
+            - "{{ nginx_fragments.admin.upstream_name }}"
+            - --external-path
+            - "{{ modules.admin.nginx_route.external_path | default('/admin') }}"
+            - --upstream-path
+            - "{{ modules.admin.nginx_route.upstream_path | default('/api/admin') }}"
+        changed_if:
+          stdout_json:
+            changed: true
+        affects_reload: false
+      - id: sync-backend-upstream-target
+        name: Sync backend upstream fragment to target
+        kind: copy
+        src_file: backend-upstream-source
+        dest_file: backend-upstream-target
+        mode: "0644"
+        affects_reload: true
+      - id: sync-admin-upstream-target
+        name: Sync admin upstream fragment to target
+        kind: copy
+        src_file: admin-upstream-source
+        dest_file: admin-upstream-target
+        mode: "0644"
+        affects_reload: true
+      - id: sync-actuator-upstream-target
+        name: Sync actuator upstream fragment to target
+        kind: copy
+        src_file: actuator-upstream-source
+        dest_file: actuator-upstream-target
+        mode: "0644"
+        affects_reload: true
+      - id: sync-route-target
+        name: Sync route fragment to target
+        kind: copy
+        src_file: route-source
+        dest_file: route-target
+        mode: "0644"
+        affects_reload: true
+      - id: promote-live-nginx-config
+        name: Promote candidate nginx config to live target
+        kind: copy
+        src_file: candidate-config-source
+        dest_file: live-config-target
+        mode: "0644"
+        affects_reload: true
+
+- name: Promote and validate nginx config transactionally
+  ansible.builtin.include_role:
+    name: nginx_fragment_transaction
+  vars:
+    nginx_fragment_transaction_id: nginx-base-config
+    nginx_fragment_transaction_files: "{{ nginx_base_config_transaction_files }}"
+    nginx_fragment_transaction_operations: "{{ nginx_base_config_transaction_operations }}"
+    nginx_fragment_transaction_failure_summary: >-
+      nginx config promotion failed and previous source/target config was restored
+  when: not ansible_check_mode

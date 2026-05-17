@@ -1,0 +1,122 @@
+package com.beat.apis.home.application;
+
+import com.beat.apis.common.application.converter.GenreEnumConverter;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.beat.apis.home.application.dto.HomeFindAllResponse;
+import com.beat.apis.home.application.dto.HomeFindRequest;
+import com.beat.apis.home.application.dto.HomeGenreType;
+import com.beat.apis.home.application.dto.HomePerformanceDetail;
+import com.beat.apis.home.application.dto.HomePromotionDetail;
+import com.beat.apis.promotion.application.PromotionService;
+import com.beat.apis.promotion.application.result.PromotionHomeResult;
+import com.beat.apis.schedule.application.ScheduleService;
+import com.beat.apis.schedule.application.dto.response.MinPerformanceDateResponse;
+import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.performance.repository.PerformanceRepository;
+import com.beat.domain.schedule.service.ScheduleDomainService;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class HomeService {
+
+	private final ScheduleService scheduleService;
+	private final PromotionService promotionService;
+	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
+
+	private final PerformanceRepository performanceRepository;
+
+	@Transactional(readOnly = true)
+	public HomeFindAllResponse findHomePerformanceList(HomeFindRequest homeFindRequest) {
+
+		List<Performance> performances = findPerformancesByGenre(homeFindRequest);
+		List<HomePromotionDetail> promotionDetails = findAllPromotionsSortedByCarouselNumber();
+
+		if (performances.isEmpty()) {
+			return HomeFindAllResponse.of(promotionDetails, List.of());
+		}
+
+		List<HomePerformanceDetail> sortedPerformances = getSortedPerformanceDetails(performances);
+
+		return HomeFindAllResponse.of(promotionDetails, sortedPerformances);
+	}
+
+	private List<Performance> findPerformancesByGenre(HomeFindRequest homeFindRequest) {
+		HomeGenreType genre = homeFindRequest.genre();
+
+		if (genre != null) {
+			return performanceRepository.findByGenre(GenreEnumConverter.toDomain(genre));
+		}
+
+		return performanceRepository.findAll();
+	}
+
+	private List<HomePromotionDetail> findAllPromotionsSortedByCarouselNumber() {
+		return promotionService.findAllPromotionHomeResults()
+			.stream()
+			.sorted(Comparator.comparingInt(PromotionHomeResult::carouselNumberOrder))
+			.map(promotion -> HomePromotionDetail.of(
+				promotion.promotionId(),
+				promotion.promotionPhoto(),
+				promotion.performanceId(),
+				promotion.redirectUrl(),
+				promotion.external(),
+				promotion.carouselNumber()
+			))
+			.toList();
+	}
+
+	private List<HomePerformanceDetail> getSortedPerformanceDetails(List<Performance> performances) {
+		List<Long> performanceIds = extractPerformanceIds(performances);
+		Map<Long, LocalDateTime> minPerformanceDateMap = retrieveMinPerformanceDateMap(performanceIds);
+		LocalDate today = LocalDate.now();
+
+		return performances.stream()
+			.map(performance -> createHomePerformanceDetail(today, performance, minPerformanceDateMap))
+			.sorted(Comparator.comparing((HomePerformanceDetail detail) -> detail.dueDate() < 0)
+				.thenComparingInt(detail -> Math.abs(detail.dueDate())))
+			.toList();
+	}
+
+	private List<Long> extractPerformanceIds(List<Performance> performances) {
+		return performances.stream()
+			.map(Performance::getId)
+			.toList();
+	}
+
+	private Map<Long, LocalDateTime> retrieveMinPerformanceDateMap(List<Long> performanceIds) {
+		MinPerformanceDateResponse minPerformanceDateResponse = scheduleService.retrieveMinPerformanceDateByPerformanceIds(
+			performanceIds);
+		return minPerformanceDateResponse.performanceDateMap();
+	}
+
+	private HomePerformanceDetail createHomePerformanceDetail(LocalDate today, Performance performance,
+		Map<Long, LocalDateTime> minPerformanceDateMap) {
+		return HomePerformanceDetail.of(
+			performance.getId(),
+			performance.getPerformanceTitle(),
+			performance.getPerformancePeriod(),
+			performance.getTicketPrice(),
+			calculateDueDate(today, minPerformanceDateMap.get(performance.getId())),
+			performance.getGenre().name(),
+			performance.getPosterImage(),
+			performance.getPerformanceVenue()
+		);
+	}
+
+	private int calculateDueDate(LocalDate today, LocalDateTime baseDateTime) {
+		if (baseDateTime == null) {
+			return Integer.MAX_VALUE;
+		}
+		return scheduleDomainService.calculateDueDate(today, baseDateTime);
+	}
+}

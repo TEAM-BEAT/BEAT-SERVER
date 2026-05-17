@@ -1,0 +1,118 @@
+package com.beat.apis.booking.application;
+
+import com.beat.apis.common.application.converter.BookingStatusEnumConverter;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.beat.apis.booking.application.dto.GuestBookingRequest;
+import com.beat.apis.booking.application.dto.GuestBookingResponse;
+import com.beat.apis.booking.application.dto.event.BookingCreatedEvent;
+import com.beat.domain.booking.repository.BookingRepository;
+import com.beat.domain.booking.domain.Booking;
+import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.performance.repository.PerformanceRepository;
+import com.beat.domain.schedule.repository.ScheduleRepository;
+import com.beat.domain.schedule.domain.Schedule;
+import com.beat.domain.user.domain.Users;
+import com.beat.domain.user.repository.UserRepository;
+import com.beat.global.support.exception.BadRequestException;
+import com.beat.global.support.exception.NotFoundException;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
+import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class GuestBookingService {
+
+	private final ScheduleRepository scheduleRepository;
+	private final BookingRepository bookingRepository;
+	private final UserRepository userRepository;
+	private final PerformanceRepository performanceRepository;
+	private final ApplicationEventPublisher eventPublisher;
+
+	@Transactional
+	public GuestBookingResponse createGuestBooking(GuestBookingRequest guestBookingRequest) {
+		Schedule schedule = scheduleRepository.lockById(guestBookingRequest.scheduleId())
+			.orElseThrow(() -> new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND));
+
+		int availableTicketCount = schedule.getTotalTicketCount() - schedule.getSoldTicketCount();
+		if (availableTicketCount < guestBookingRequest.purchaseTicketCount()) {
+			throw new BadRequestException(ScheduleApplicationErrorCode.INSUFFICIENT_TICKETS);
+		}
+
+		schedule = updateSoldTicketCountAndIsBooking(schedule, guestBookingRequest.purchaseTicketCount());
+
+		Long userId = bookingRepository.findFirstByBookerNameAndBookerPhoneNumberAndBirthDateAndPassword(
+			guestBookingRequest.bookerName(),
+			guestBookingRequest.bookerPhoneNumber(),
+			guestBookingRequest.birthDate(),
+			guestBookingRequest.password()
+		).map(Booking::getUserId).orElseGet(() -> {
+			Users newUser = Users.create();
+			Users savedUser = userRepository.save(newUser);
+			return savedUser.getId();
+		});
+
+		Performance performance = performanceRepository.findById(schedule.getPerformanceId())
+			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
+		int ticketPrice = performance.getTicketPrice();
+		int totalPaymentAmount = ticketPrice * guestBookingRequest.purchaseTicketCount();
+		schedule = scheduleRepository.save(schedule);
+
+		Booking booking = Booking.create(
+			guestBookingRequest.purchaseTicketCount(),
+			guestBookingRequest.bookerName(),
+			guestBookingRequest.bookerPhoneNumber(),
+			guestBookingRequest.birthDate(),
+			guestBookingRequest.password(),
+			null,
+			null,
+			null,
+			schedule.getId(),
+			userId
+		);
+		booking = bookingRepository.save(booking);
+
+		log.info("Guest Booking created: {}", booking);
+
+		eventPublisher.publishEvent(BookingCreatedEvent.of(
+			booking.getCreatedAt(),
+			performance.getPerformanceTitle(),
+			booking.getPurchaseTicketCount(),
+			booking.getBookerName(),
+			schedule.getScheduleNumber().getDisplayName(),
+			schedule.getSoldTicketCount(),
+			schedule.getTotalTicketCount()
+		));
+
+		return GuestBookingResponse.of(
+			booking.getId(),
+			schedule.getId(),
+			booking.getUserId(),
+			booking.getPurchaseTicketCount(),
+			ScheduleNumberEnumConverter.toApi(schedule.getScheduleNumber()),
+			booking.getBookerName(),
+			booking.getBookerPhoneNumber(),
+			BookingStatusEnumConverter.toApi(booking.getBookingStatus()),
+			BankNameEnumConverter.toApi(performance.getBankName()),
+			performance.getAccountNumber(),
+			totalPaymentAmount,
+			booking.getCreatedAt()
+		);
+	}
+
+	private Schedule updateSoldTicketCountAndIsBooking(Schedule schedule, int purchaseTicketCount) {
+		schedule = schedule.increaseSoldTicketCount(purchaseTicketCount);
+		if (schedule.getTotalTicketCount() == schedule.getSoldTicketCount()) {
+			schedule = schedule.updateIsBooking(false);
+		}
+		return schedule;
+	}
+}

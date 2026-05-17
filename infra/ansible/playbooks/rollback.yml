@@ -1,0 +1,173 @@
+---
+- name: "Rollback {{ module }}"
+  hosts: "{{ module }}_servers"
+  become: true
+  gather_facts: false
+
+  vars:
+    app_rollback_module_cfg: "{{ modules[module] }}"
+    release_dir: "{{ release_root }}/{{ module }}"
+    foundation_marker_path: "{{ deployment_dir }}/.foundation-applied"
+    network_health_max_attempts: 30
+    network_health_sleep_seconds: 2
+    service_smoke_max_attempts: 15
+    service_smoke_sleep_seconds: 2
+
+  pre_tasks:
+    - name: Validate module parameter
+      ansible.builtin.assert:
+        that:
+          - module is defined
+          - modules is defined
+          - module in modules
+          - actuator_port is defined
+          - actuator_path is defined
+        fail_msg: "Required extra vars: module"
+      tags:
+        - always
+        - validate
+
+    - name: Validate nginx fragments mapping invariant
+      ansible.builtin.import_tasks: tasks/validate_nginx_fragments.yml
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Stat foundation marker
+      ansible.builtin.stat:
+        path: "{{ foundation_marker_path }}"
+      register: rollback_foundation_marker_stat
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Read foundation marker for diagnostics
+      ansible.builtin.slurp:
+        src: "{{ foundation_marker_path }}"
+      register: rollback_foundation_marker_raw
+      when: rollback_foundation_marker_stat.stat.exists
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Abort rollback when foundation is not applied
+      ansible.builtin.fail:
+        msg:
+          - "Foundation has not been applied on host {{ inventory_hostname }}."
+          - "Marker missing: {{ foundation_marker_path }}"
+          - "Run foundation first via:"
+          - >-
+            {{
+              "  ansible-playbook playbooks/foundation.yml -i "
+              ~ (
+                (ansible_inventory_sources | default([]))
+                | first
+                | default('inventories/<env>/hosts.yml', true)
+              )
+            }}
+          - "Or trigger the foundation step on GitHub Actions before retrying rollback."
+      when: not rollback_foundation_marker_stat.stat.exists
+      tags:
+        - always
+        - validate
+        - preflight
+
+    - name: Report foundation marker contents
+      ansible.builtin.debug:
+        msg: "Foundation applied: {{ rollback_foundation_marker_raw.content | b64decode }}"
+      when: rollback_foundation_marker_stat.stat.exists
+      tags:
+        - always
+        - validate
+        - preflight
+
+  tasks:
+    - name: Execute rollback and restore metadata truth
+      block:
+        - name: Roll back runtime to previous release
+          ansible.builtin.import_role:
+            name: app_rollback
+          tags:
+            - rollback
+            - release
+
+        - name: Healthcheck module after rollback before metadata promotion
+          ansible.builtin.import_role:
+            name: app_healthcheck
+          tags:
+            - rollback
+            - healthcheck
+
+        - name: Configure nginx routing after rollback
+          ansible.builtin.import_role:
+            name: app_stopstart
+            tasks_from: admin_nginx_route.yml
+          vars:
+            app_stopstart_module_cfg: "{{ app_rollback_module_cfg }}"
+          when: app_rollback_module_cfg.nginx_route is defined
+          tags:
+            - rollback
+            - nginx
+            - routing
+
+        - name: Promote previous metadata back to current after rollback completion to restore live metadata truth
+          # Keep current.json aligned with the release that is live again after
+          # rollback so the next deploy snapshots the correct previous release.
+          ansible.builtin.copy:
+            src: "{{ release_dir }}/previous.json"
+            dest: "{{ release_dir }}/current.json"
+            remote_src: true
+            mode: "0644"
+          tags:
+            - rollback
+            - release
+      rescue:
+        - name: Restore stop-start current release after rollback failure
+          when:
+            - app_rollback_module_cfg.deploy_mode == 'stop_start'
+            - app_rollback_current_release is defined
+            - app_rollback_current_release.image is defined
+          tags:
+            - rollback
+            - restore
+          block:
+            - name: Recreate stop-start container with archived current image
+              ansible.builtin.import_role:
+                name: app_stopstart
+                tasks_from: run_container.yml
+              vars:
+                app_stopstart_image: "{{ app_rollback_current_release.image }}"
+                app_stopstart_module_cfg: "{{ app_rollback_module_cfg }}"
+                app_stopstart_release_ref: >-
+                  {{
+                    app_rollback_current_release.commit_sha
+                    | default(app_rollback_current_release.image_tag | default('unknown', true), true)
+                  }}
+              tags:
+                - rollback
+                - restore
+
+            - name: Healthcheck restored stop-start current release
+              ansible.builtin.import_role:
+                name: app_healthcheck
+              tags:
+                - rollback
+                - restore
+                - healthcheck
+          rescue:
+            - name: Report stop-start current release restore failure
+              ansible.builtin.debug:
+                msg: >-
+                  Failed to restore current release image after rollback failure for module '{{ module }}'.
+                  Manual intervention required. current_image={{ app_rollback_current_release.image | default('unknown') }}
+
+        - name: Abort rollback metadata promotion when rollback invariant fails
+          ansible.builtin.fail:
+            msg: >-
+              Rollback failed for module '{{ module }}'. Metadata promotion was intentionally skipped so
+              {{ release_dir }}/current.json is not advanced to an unverified runtime state.
+              For stop-start modules, the playbook attempted to restore the archived current image before aborting
+              when current metadata was available.

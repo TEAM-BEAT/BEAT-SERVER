@@ -1,0 +1,256 @@
+name: deploy-prod
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  resolve-release:
+    outputs:
+      release_tag: ${{ steps.release.outputs.release_tag }}
+      module_matrix: ${{ steps.release.outputs.module_matrix }}
+      commit_sha: ${{ steps.git-ref.outputs.commit_sha }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Validate release tag
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        shell: bash
+        run: |
+          if [[ -z "$RELEASE_TAG" ]] || [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release tag: $RELEASE_TAG (expected vX.Y.Z)" >&2
+            exit 1
+          fi
+          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo 'module_matrix={"include":[{"module":"admin"},{"module":"apis"},{"module":"batch"}]}' >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: refs/tags/${{ steps.release.outputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Guard release commit is on main
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+        shell: bash
+        run: |
+          COMMIT_SHA="$(git rev-parse HEAD)"
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          MAIN_SHA="$(git rev-parse refs/remotes/origin/main)"
+          if ! git merge-base --is-ancestor "$COMMIT_SHA" refs/remotes/origin/main; then
+            echo "Release tag is not contained in origin/main" >&2
+            echo "release_tag=${RELEASE_TAG}" >&2
+            echo "commit_sha=${COMMIT_SHA}" >&2
+            echo "origin_main_sha=${MAIN_SHA}" >&2
+            exit 1
+          fi
+          echo "Release tag ${RELEASE_TAG} commit ${COMMIT_SHA} is contained in origin/main ${MAIN_SHA}"
+
+      - name: Capture released commit
+        id: git-ref
+        shell: bash
+        run: |
+          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  verify:
+    needs:
+      - resolve-release
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.resolve-release.outputs.commit_sha }}
+
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          java-version: "25"
+          distribution: "temurin"
+
+      - uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
+        with:
+          cache-cleanup: on-success
+
+      - name: Verify Gradle check
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_RELEASE: beat-server@${{ needs.resolve-release.outputs.commit_sha }}
+        run: |
+          chmod +x gradlew
+          ./gradlew check verifyModuleBootJars --parallel --build-cache
+        shell: bash
+
+  secret-preflight:
+    needs:
+      - resolve-release
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    environment: prod
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.resolve-release.outputs.module_matrix) }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.resolve-release.outputs.commit_sha }}
+
+      - name: Setup Ansible tooling
+        uses: ./.github/actions/setup-ansible-tooling
+
+      - name: Resolve prod SSH connection metadata
+        id: resolve
+        uses: ./.github/actions/resolve-ansible-connection
+        with:
+          inventory_path: inventories/prod/hosts.yml
+          module: ${{ matrix.module }}
+          SOPS_AGE_KEY: ${{ secrets.AGE_SECRET_KEY }}
+
+      - name: Verify prod encrypted inventory, resolver, and lint
+        working-directory: infra/ansible
+        env:
+          MODULE: ${{ matrix.module }}
+          SOPS_AGE_KEY: ${{ secrets.AGE_SECRET_KEY }}
+          SSH_HOST: ${{ steps.resolve.outputs.ssh_host }}
+          SSH_PORT: ${{ steps.resolve.outputs.ssh_port }}
+          SSH_HOST_FINGERPRINT: ${{ steps.resolve.outputs.ssh_host_fingerprint }}
+        run: |
+          ansible-inventory -i inventories/prod/hosts.yml --list >/dev/null
+          echo "Prod secret-aware preflight verified resolver for module=${MODULE}"
+          [[ -n "$SSH_HOST" ]]
+          [[ -n "$SSH_PORT" ]]
+          [[ -n "$SSH_HOST_FINGERPRINT" ]]
+          ansible-lint playbooks/*.yml roles
+
+  build-image:
+    needs:
+      - resolve-release
+      - verify
+      - secret-preflight
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    environment: prod
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.resolve-release.outputs.module_matrix) }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.resolve-release.outputs.commit_sha }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          username: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}
+          password: ${{ secrets.PROD_DOCKER_LOGIN_ACCESSTOKEN }}
+
+      - name: Compute image name
+        id: image
+        env:
+          DOCKER_NAMESPACE: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}
+          MODULE: ${{ matrix.module }}
+          RELEASE_TAG: ${{ needs.resolve-release.outputs.release_tag }}
+        run: |
+          IMAGE_TAG="${RELEASE_TAG}"
+          IMAGE_REF="${DOCKER_NAMESPACE}/beat-${MODULE}:${IMAGE_TAG}"
+          IMAGE_LATEST="${DOCKER_NAMESPACE}/beat-${MODULE}:prod-latest"
+          echo "tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "image=$IMAGE_REF" >> "$GITHUB_OUTPUT"
+          echo "latest=$IMAGE_LATEST" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        env:
+          MODULE: ${{ matrix.module }}
+        run: |
+          docker buildx build -f Dockerfile.module \
+            --build-arg MODULE=${MODULE} \
+            --platform linux/arm64 \
+            -t "${{ steps.image.outputs.image }}" \
+            -t "${{ steps.image.outputs.latest }}" \
+            --push \
+            .
+
+  foundation:
+    needs:
+      - resolve-release
+      - verify
+      - secret-preflight
+      - build-image
+    concurrency:
+      group: prod-runtime
+      queue: max
+      cancel-in-progress: false
+    uses: ./.github/workflows/_ansible-exec.yml
+    with:
+      environment_name: prod
+      module: foundation
+      connection_module: ${{ vars.PROD_FOUNDATION_CONNECTION_MODULE || 'apis' }}
+      playbook: playbooks/foundation.yml
+      inventory_path: inventories/prod/hosts.yml
+      success_title: Foundation Prod Succeeded
+      failure_title: Foundation Prod Failed
+      notify_description: |
+        Foundation stack
+        Release Tag: ${{ needs.resolve-release.outputs.release_tag }}
+        Actor: ${{ github.actor }}
+      commit_sha: ${{ needs.resolve-release.outputs.commit_sha }}
+      checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}
+    secrets:
+      ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+      sops_age_key: ${{ secrets.AGE_SECRET_KEY }}
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  deploy:
+    needs:
+      - resolve-release
+      - verify
+      - secret-preflight
+      - build-image
+      - foundation
+    concurrency:
+      group: prod-runtime
+      queue: max
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.resolve-release.outputs.module_matrix) }}
+    uses: ./.github/workflows/_ansible-exec.yml
+    with:
+      environment_name: prod
+      module: ${{ matrix.module }}
+      playbook: playbooks/deploy.yml
+      inventory_path: inventories/prod/hosts.yml
+      success_title: Deploy Prod Succeeded
+      failure_title: Deploy Prod Failed
+      notify_description: |
+        Module: ${{ matrix.module }}
+        Release Tag: ${{ needs.resolve-release.outputs.release_tag }}
+        Actor: ${{ github.actor }}
+      image: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:${{ needs.resolve-release.outputs.release_tag }}
+      image_tag: ${{ needs.resolve-release.outputs.release_tag }}
+      commit_sha: ${{ needs.resolve-release.outputs.commit_sha }}
+      deploy_actor: ${{ github.actor }}
+      checkout_ref: ${{ needs.resolve-release.outputs.commit_sha }}
+    secrets:
+      ssh_private_key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+      sops_age_key: ${{ secrets.AGE_SECRET_KEY }}
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

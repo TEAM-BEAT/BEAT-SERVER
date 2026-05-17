@@ -1,0 +1,231 @@
+---
+- name: Ensure deployment directory exists
+  ansible.builtin.file:
+    path: "{{ deployment_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Resolve legacy nginx named volume name
+  ansible.builtin.set_fact:
+    foundation_stack_legacy_nginx_volume_name: >-
+      {{
+        nginx_legacy_config_volume_name
+        | default(nginx_config_volume_name | default('nginx-config-volume'))
+      }}
+
+- name: Resolve legacy nginx named volume migration marker path
+  ansible.builtin.set_fact:
+    foundation_stack_bind_migration_marker_path: >-
+      {{ deployment_dir }}/nginx/.bind-mount-migrated-from-{{ foundation_stack_legacy_nginx_volume_name }}
+
+- name: Check legacy nginx bind mount migration marker
+  ansible.builtin.stat:
+    path: "{{ foundation_stack_bind_migration_marker_path }}"
+  register: foundation_stack_bind_migration_marker_stat
+
+- name: Inspect legacy nginx named volume metadata
+  community.docker.docker_volume_info:
+    name: "{{ foundation_stack_legacy_nginx_volume_name }}"
+  register: foundation_stack_legacy_nginx_volume_info
+  when: not foundation_stack_bind_migration_marker_stat.stat.exists
+
+- name: Resolve legacy nginx named volume mountpoint
+  ansible.builtin.set_fact:
+    foundation_stack_legacy_nginx_volume_data_dir: "{{ foundation_stack_legacy_nginx_volume_info.volume.Mountpoint }}"
+  when:
+    - not foundation_stack_bind_migration_marker_stat.stat.exists
+    - foundation_stack_legacy_nginx_volume_info.exists | default(false)
+    - foundation_stack_legacy_nginx_volume_info.volume.Mountpoint | default('') | length > 0
+
+- name: Ensure nginx bind mount and candidate directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ deployment_dir }}/nginx"
+    - "{{ deployment_dir }}/nginx/conf.d"
+    - "{{ nginx_generated_target_dir }}"
+    - "{{ nginx_generated_target_dir }}/upstreams"
+    - "{{ nginx_generated_target_dir }}/routes"
+    - "{{ nginx_generated_source_dir }}"
+    - "{{ nginx_generated_source_dir }}/upstreams"
+    - "{{ nginx_generated_source_dir }}/routes"
+
+- name: Check legacy nginx named volume config directory
+  ansible.builtin.stat:
+    path: "{{ foundation_stack_legacy_nginx_volume_data_dir }}/conf.d"
+  register: foundation_stack_legacy_nginx_volume_config_stat
+  when: foundation_stack_legacy_nginx_volume_data_dir is defined
+
+- name: Check legacy nginx named volume generated directory
+  ansible.builtin.stat:
+    path: "{{ foundation_stack_legacy_nginx_volume_data_dir }}/generated"
+  register: foundation_stack_legacy_nginx_volume_generated_stat
+  when: foundation_stack_legacy_nginx_volume_data_dir is defined
+
+- name: Resolve whether legacy nginx named volume migration is needed
+  ansible.builtin.set_fact:
+    foundation_stack_should_migrate_legacy_nginx_volume: >-
+      {{
+        not foundation_stack_bind_migration_marker_stat.stat.exists
+        and (
+          foundation_stack_legacy_nginx_volume_config_stat.stat.exists | default(false)
+          or foundation_stack_legacy_nginx_volume_generated_stat.stat.exists | default(false)
+        )
+      }}
+
+- name: Migrate legacy nginx named volume config to bind mount
+  ansible.builtin.command:
+    argv:
+      - cp
+      - -anv
+      - "{{ foundation_stack_legacy_nginx_volume_data_dir }}/conf.d/."
+      - "{{ deployment_dir }}/nginx/conf.d/"
+  register: foundation_stack_legacy_config_migration_result
+  when:
+    - foundation_stack_should_migrate_legacy_nginx_volume
+    - not foundation_stack_bind_migration_marker_stat.stat.exists
+    - foundation_stack_legacy_nginx_volume_config_stat.stat.exists | default(false)
+  changed_when: foundation_stack_legacy_config_migration_result.stdout | default('') | length > 0
+
+- name: Migrate legacy nginx named volume fragments to bind mount
+  ansible.builtin.command:
+    argv:
+      - cp
+      - -anv
+      - "{{ foundation_stack_legacy_nginx_volume_data_dir }}/generated/."
+      - "{{ nginx_generated_target_dir }}/"
+  register: foundation_stack_legacy_fragments_migration_result
+  when:
+    - foundation_stack_should_migrate_legacy_nginx_volume
+    - not foundation_stack_bind_migration_marker_stat.stat.exists
+    - foundation_stack_legacy_nginx_volume_generated_stat.stat.exists | default(false)
+  changed_when: foundation_stack_legacy_fragments_migration_result.stdout | default('') | length > 0
+
+- name: Mark legacy nginx named volume migration complete
+  ansible.builtin.copy:
+    dest: "{{ foundation_stack_bind_migration_marker_path }}"
+    mode: "0644"
+    content: |
+      migrated_at: {{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}
+      legacy_volume: {{ foundation_stack_legacy_nginx_volume_name }}
+      legacy_data_dir: {{ foundation_stack_legacy_nginx_volume_data_dir }}
+      bind_conf_dir: {{ deployment_dir }}/nginx/conf.d
+      bind_generated_dir: {{ nginx_generated_target_dir }}
+  when: foundation_stack_should_migrate_legacy_nginx_volume
+
+- name: Check nginx bind config after migration
+  ansible.builtin.stat:
+    path: "{{ nginx_conf_target_path }}"
+  register: foundation_stack_bind_config_after_migration_stat
+
+- name: Check nginx bind fragments after migration
+  ansible.builtin.stat:
+    path: "{{ nginx_generated_target_dir }}/upstreams/{{ nginx_fragments.backend.fragment_file }}"
+  register: foundation_stack_bind_generated_after_migration_stat
+
+- name: Seed nginx candidate config from bind target after migration
+  ansible.builtin.copy:
+    src: "{{ nginx_conf_target_path }}"
+    dest: "{{ nginx_conf_source_path }}"
+    remote_src: true
+    mode: "0644"
+    force: "{{ foundation_stack_should_migrate_legacy_nginx_volume }}"
+  when: foundation_stack_bind_config_after_migration_stat.stat.exists
+
+- name: Check migrated nginx candidate fragments
+  ansible.builtin.stat:
+    path: "{{ nginx_generated_source_dir }}/upstreams/{{ nginx_fragments.backend.fragment_file }}"
+  register: foundation_stack_candidate_generated_stat
+
+- name: Seed nginx candidate fragments from bind target after migration
+  ansible.builtin.command:
+    argv:
+      - cp
+      - -a
+      - "{{ nginx_generated_target_dir }}/."
+      - "{{ nginx_generated_source_dir }}/"
+  when:
+    - foundation_stack_bind_generated_after_migration_stat.stat.exists
+    - not foundation_stack_candidate_generated_stat.stat.exists or foundation_stack_should_migrate_legacy_nginx_volume
+  changed_when: true
+
+- name: Find stale nginx helper lock files in deployment-owned nginx tree
+  ansible.builtin.find:
+    paths:
+      - "{{ deployment_dir }}/nginx"
+    patterns: "*.lock"
+    file_type: file
+    recurse: true
+  register: foundation_stack_stale_nginx_lock_files
+  when: foundation_stack_should_migrate_legacy_nginx_volume
+
+- name: Remove stale nginx helper lock files from deployment-owned nginx tree
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ foundation_stack_stale_nginx_lock_files.files | default([]) }}"
+  when: foundation_stack_should_migrate_legacy_nginx_volume
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Render foundation compose file
+  ansible.builtin.template:
+    src: foundation.compose.yml.j2
+    dest: "{{ deployment_dir }}/docker-compose.yml"
+    mode: "0640"
+    backup: false
+  no_log: true
+
+- name: Ensure deployment Docker network exists
+  community.docker.docker_network:
+    name: "{{ docker_network }}"
+    state: present
+
+- name: Ensure mysql data volume exists
+  community.docker.docker_volume:
+    name: "{{ mysql_data_volume_name | default('mysql-data') }}"
+    state: present
+  when: foundation_mysql_enabled | default(true)
+
+- name: Ensure redis data volume exists
+  community.docker.docker_volume:
+    name: "{{ redis_data_volume_name | default('redis-data') }}"
+    state: present
+  when: foundation_redis_enabled | default(true)
+
+- name: Validate rendered foundation compose
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - -f
+      - "{{ deployment_dir }}/docker-compose.yml"
+      - config
+  changed_when: false
+  no_log: true
+
+- name: Ensure foundation stack is present
+  community.docker.docker_compose_v2:
+    project_name: deployment
+    project_src: "{{ deployment_dir }}"
+    files:
+      - docker-compose.yml
+    state: present
+  register: foundation_stack_compose_result
+  no_log: true
+
+- name: Report foundation compose result (redacted)
+  ansible.builtin.debug:
+    msg:
+      changed: "{{ foundation_stack_compose_result.changed | default(false) }}"
+      services: >-
+        {{
+          (
+            ['nginx']
+            + (['mysql'] if foundation_mysql_enabled | default(true) else [])
+            + (['redis'] if foundation_redis_enabled | default(true) else [])
+          )
+          | sort
+        }}

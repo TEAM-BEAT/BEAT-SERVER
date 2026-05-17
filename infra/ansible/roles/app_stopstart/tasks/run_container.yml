@@ -1,0 +1,26 @@
+---
+- name: Resolve stop-start runtime facts
+  ansible.builtin.set_fact:
+    healthcheck_target_container: "{{ app_stopstart_module_cfg.container_name }}"
+
+- name: Build stop-start container environment
+  ansible.builtin.import_role:
+    name: app_container_runtime
+    tasks_from: env.yml
+  vars:
+    app_container_runtime_module_cfg: "{{ app_stopstart_module_cfg }}"
+    app_container_runtime_include_scheduler_owner: true
+    app_container_runtime_release_ref: "{{ app_stopstart_release_ref | default('', true) }}"
+
+- name: Ensure stop-start container is recreated with the target image
+  community.docker.docker_container:
+    name: "{{ app_stopstart_module_cfg.container_name }}"
+    image: "{{ app_stopstart_image | default(image) }}"
+    state: started
+    recreate: true
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ docker_network }}"
+    volumes:
+      - "{{ secret_dir }}:/app/secret:ro"
+    env: "{{ app_container_env }}"

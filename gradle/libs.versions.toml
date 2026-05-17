@@ -1,0 +1,101 @@
+[versions]
+spring-boot = "4.0.6"
+dependency-management = "1.1.7"
+kotlin = "2.3.20"
+kotlinx-coroutines = "1.10.2"
+sonarqube = "7.2.3.7755"
+kover = "0.9.7"
+spring-cloud = "2025.1.1"
+springdoc = "3.0.2"
+tomcat-embed = "11.0.21"
+jackson3 = "3.1.1"
+commons-fileupload = "1.6.0"
+netty = "4.2.13.Final"
+bouncycastle = "1.84"
+jjwt = "0.13.0"
+aws-sdk-v1 = "1.12.797"
+testcontainers = "1.21.3"
+redis-testcontainers = "2.2.2"
+sentry = "8.41.0"
+sentry-gradle-plugin = "6.6.0"
+micrometer-tracing = "1.4.2"
+opentelemetry = "1.55.0"
+# JUnit Platform/Jupiter is the baseline for existing Java tests and Spring Boot starter-test.
+# Kotlin migration may add Kotest/MockK as an optional Kotlin test layer on top of this baseline,
+# not as a replacement for the shared JUnit Platform execution contract.
+junit = "6.0.3"
+dependency-analysis = "3.11.0"
+
+[plugins]
+sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependency-analysis" }
+
+[libraries]
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+kotlinx-coroutines-slf4j = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-slf4j", version.ref = "kotlinx-coroutines" }
+lombok = { module = "org.projectlombok:lombok", version = "1.18.44" }
+sentry-spring-boot-starter = { module = "io.sentry:sentry-spring-boot-4-starter", version.ref = "sentry" }
+sentry-async-profiler = { module = "io.sentry:sentry-async-profiler", version.ref = "sentry" }
+sentry-log4j2 = { module = "io.sentry:sentry-log4j2", version.ref = "sentry" }
+
+mysql-connector-j = { module = "com.mysql:mysql-connector-j", version = "9.6.0" }
+spring-boot-core = { module = "org.springframework.boot:spring-boot", version.ref = "spring-boot" }
+spring-boot-persistence = { module = "org.springframework.boot:spring-boot-persistence", version.ref = "spring-boot" }
+spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
+spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa", version.ref = "spring-boot" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "spring-boot" }
+spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security", version.ref = "spring-boot" }
+spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis", version.ref = "spring-boot" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
+spring-boot-starter-log4j2 = { module = "org.springframework.boot:spring-boot-starter-log4j2", version.ref = "spring-boot" }
+tomcat-embed-core = { module = "org.apache.tomcat.embed:tomcat-embed-core", version.ref = "tomcat-embed" }
+tomcat-embed-el = { module = "org.apache.tomcat.embed:tomcat-embed-el", version.ref = "tomcat-embed" }
+tomcat-embed-websocket = { module = "org.apache.tomcat.embed:tomcat-embed-websocket", version.ref = "tomcat-embed" }
+jackson3-core = { module = "tools.jackson.core:jackson-core", version.ref = "jackson3" }
+jackson3-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson3" }
+commons-fileupload = { module = "commons-fileupload:commons-fileupload", version.ref = "commons-fileupload" }
+netty-codec-dns = { module = "io.netty:netty-codec-dns", version.ref = "netty" }
+netty-resolver-dns = { module = "io.netty:netty-resolver-dns", version.ref = "netty" }
+bouncycastle-bcprov-jdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+
+spring-cloud-dependencies = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "spring-cloud" }
+spring-cloud-starter-openfeign = { module = "org.springframework.cloud:spring-cloud-starter-openfeign" }
+springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+
+jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
+jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
+jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
+
+aws-java-sdk-bom = { module = "com.amazonaws:aws-java-sdk-bom", version.ref = "aws-sdk-v1" }
+aws-java-sdk-s3 = { module = "com.amazonaws:aws-java-sdk-s3" }
+
+nurigo-java-sdk = { module = "net.nurigo:javaSDK", version = "2.2" }
+
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+micrometer-tracing-bridge-otel = { module = "io.micrometer:micrometer-tracing-bridge-otel", version.ref = "micrometer-tracing" }
+opentelemetry-exporter-otlp = { module = "io.opentelemetry:opentelemetry-exporter-otlp", version.ref = "opentelemetry" }
+testcontainers-mysql = { module = "org.testcontainers:mysql", version.ref = "testcontainers" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
+testcontainers-redis = { module = "com.redis:testcontainers-redis", version.ref = "redis-testcontainers" }
+spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers", version.ref = "spring-boot" }
+
+[bundles]
+boot-app-core = [
+    "spring-boot-starter",
+    "spring-boot-starter-actuator",
+    "spring-boot-starter-data-jpa",
+    "jackson-module-kotlin",
+    "kotlin-reflect"
+]
+integration-testcontainers = [
+    "testcontainers-mysql",
+    "testcontainers-junit-jupiter",
+    "testcontainers-redis",
+    "spring-boot-testcontainers"
+]

@@ -1,0 +1,2 @@
+extra_vars:
+  module: "{{ lookup('env', 'MODULE') | default('apis', true) }}"

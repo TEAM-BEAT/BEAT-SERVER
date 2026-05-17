@@ -1,0 +1,138 @@
+spring:
+  security:
+    oauth2:
+      client:
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+cloud:
+  aws:
+    region: ap-northeast-2
+  stack:
+    auto: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${DEV_KAKAO_CLIENT_ID}
+            client-secret: ${DEV_KAKAO_CLIENT_SECRET}
+            redirect-uri: ${DEV_KAKAO_REDIRECT_URI}
+            client-authentication-method: post
+            authorization-grant-type: authorization_code
+            scope: profile_nickname, account_email
+            client-name: Kakao
+  coolsms:
+    api:
+      key: ${DEV_COOLSMS_KEY}
+      secret: ${DEV_COOLSMS_SECRET}
+      number: ${DEV_COOLSMS_NUMBER}
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${DEV_S3_ACCESS_KEY}
+      secret-key: ${DEV_S3_SECRET_KEY}
+  s3:
+    bucket: beat-dev-bucket
+
+slack:
+  webhook:
+    member-url: ${DEV_SLACK_MEMBER_WEBHOOK_URL}
+    booking-url: ${DEV_SLACK_BOOKING_WEBHOOK_URL}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${PROD_KAKAO_CLIENT_ID}
+            client-secret: ${PROD_KAKAO_CLIENT_SECRET}
+            redirect-uri: ${PROD_KAKAO_REDIRECT_URI}
+            client-authentication-method: post
+            authorization-grant-type: authorization_code
+            scope: profile_nickname, account_email
+            client-name: Kakao
+  coolsms:
+    api:
+      key: ${PROD_COOLSMS_KEY}
+      secret: ${PROD_COOLSMS_SECRET}
+      number: ${PROD_COOLSMS_NUMBER}
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${PROD_S3_ACCESS_KEY}
+      secret-key: ${PROD_S3_SECRET_KEY}
+  s3:
+    bucket: beat-prod-bucket
+
+slack:
+  webhook:
+    member-url: ${PROD_SLACK_MEMBER_WEBHOOK_URL}
+    booking-url: ${PROD_SLACK_BOOKING_WEBHOOK_URL}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+  cloud:
+    aws:
+      region:
+        static: ap-northeast-2
+      credentials:
+        access-key: test-access-key
+        secret-key: test-secret-key
+      secretsmanager:
+        enabled: false
+      parameterstore:
+        enabled: false
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            redirect-uri: http://localhost/login/oauth2/code/kakao
+            client-authentication-method: post
+            authorization-grant-type: authorization_code
+            scope: profile_nickname, account_email
+            client-name: Kakao
+  coolsms:
+    api:
+      key: test-coolsms-key
+      secret: test-coolsms-secret
+      number: 01000000000
+
+cloud:
+  aws:
+    region: ap-northeast-2
+    credentials:
+      access-key: test-access-key
+      secret-key: test-secret-key
+  s3:
+    bucket: beat-test-bucket
+  stack:
+    auto: false
+
+slack:
+  webhook:
+    member-url: http://localhost/member
+    booking-url: http://localhost/booking

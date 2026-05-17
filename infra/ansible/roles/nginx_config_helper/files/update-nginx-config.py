@@ -1,0 +1,267 @@
+#!/usr/bin/env python3
+
+from __future__ import annotations
+
+import argparse
+import fcntl
+import hashlib
+import json
+import os
+import re
+import tempfile
+from pathlib import Path
+
+UPSTREAM_INCLUDE_MARKER = "BEAT MANAGED GENERATED UPSTREAM INCLUDES"
+ROUTE_INCLUDE_MARKER = "BEAT MANAGED GENERATED ROUTE INCLUDES"
+LOCK_DIR_ENV = "BEAT_NGINX_LOCK_DIR"
+DEFAULT_LOCK_DIR = Path("/run/lock/beat-nginx")
+SERVER_OPEN_PATTERN = re.compile(r"(?m)^(?P<indent>[ \t]*)server[ \t]*\{")
+LISTEN_DIRECTIVE_PATTERN = re.compile(r"(?m)^[ \t]*listen[ \t]+(?P<args>[^;#]+)")
+
+
+def normalize_text(text: str) -> str:
+    return re.sub(r"\n{3,}", "\n\n", text.strip() + "\n")
+
+
+def read_text_or_empty(path: Path) -> str:
+    return path.read_text() if path.exists() else ""
+
+
+def lock_dir() -> Path:
+    return Path(os.environ.get(LOCK_DIR_ENV, str(DEFAULT_LOCK_DIR)))
+
+
+def ensure_lock_dir() -> Path:
+    lock_root = lock_dir()
+    try:
+        lock_root.mkdir(parents=True, exist_ok=True)
+        return lock_root
+    except OSError:
+        if LOCK_DIR_ENV in os.environ:
+            raise
+        fallback = Path(tempfile.gettempdir()) / "beat-nginx-locks"
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
+
+def lock_filename(path: Path) -> str:
+    path_key = str(path.resolve(strict=False))
+    path_hash = hashlib.sha256(path_key.encode()).hexdigest()[:16]
+    return f"{path.name}.{path_hash}.lock"
+
+
+def write_normalized(path: Path, text: str) -> bool:
+    normalized = normalize_text(text)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock_root = ensure_lock_dir()
+    lock_path = lock_root / lock_filename(path)
+    with open(lock_path, "w") as lock_fh:
+        fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
+        current = read_text_or_empty(path)
+        if path.exists() and normalize_text(current) == normalized:
+            return False
+        fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp_" + path.name)
+        try:
+            with os.fdopen(fd, "w") as f:
+                f.write(normalized)
+            os.replace(tmp, path)
+        except Exception:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
+    return True
+
+
+def find_matching_brace(text: str, opening_brace_index: int) -> int | None:
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    in_comment = False
+    for index in range(opening_brace_index, len(text)):
+        char = text[index]
+        if in_comment:
+            if char == "\n":
+                in_comment = False
+            continue
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char == "#":
+            in_comment = True
+        elif char in {"'", '"'}:
+            quote = char
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return index + 1
+    return None
+
+
+def listens_on_443(server_block: str) -> bool:
+    for listen_match in LISTEN_DIRECTIVE_PATTERN.finditer(server_block):
+        for token in listen_match.group("args").split():
+            if token == "443" or token.endswith(":443"):
+                return True
+    return False
+
+
+def find_443_server_insert_at(text: str) -> int | None:
+    for server_match in SERVER_OPEN_PATTERN.finditer(text):
+        block_end = find_matching_brace(text, server_match.end() - 1)
+        if block_end is None:
+            raise SystemExit("Could not locate complete server block to insert generated route include")
+
+        if listens_on_443(text[server_match.start() : block_end]):
+            line_end = text.find("\n", server_match.end() - 1)
+            return server_match.end() if line_end == -1 else line_end + 1
+    return None
+
+
+def upsert_managed_block(body: str, marker: str, block_body: str) -> str:
+    reserved_end_marker = f"# END {marker}"
+    if reserved_end_marker in block_body:
+        raise SystemExit(
+            f"Managed block body for marker '{marker}' contains reserved end marker '{reserved_end_marker}'"
+        )
+
+    pattern = re.compile(
+        rf"\n?# BEGIN {re.escape(marker)}.*?# END {re.escape(marker)}\n?",
+        flags=re.S,
+    )
+    replacement = f"# BEGIN {marker}\n{block_body.rstrip()}\n# END {marker}\n"
+    if pattern.search(body):
+        body = pattern.sub(replacement, body)
+    else:
+        body = f"{body.rstrip()}\n\n{replacement}" if body.strip() else replacement
+    return re.sub(r"\n{3,}", "\n\n", body).strip() + "\n"
+
+
+def bootstrap_includes(path: Path, upstream_include_glob: str, route_include_glob: str) -> bool:
+    if not path.exists():
+        raise SystemExit(f"nginx config does not exist at {path}; run nginx_base_config first")
+
+    text = path.read_text()
+
+    upstream_block = (
+        f"# BEGIN {UPSTREAM_INCLUDE_MARKER}\n"
+        f"include {upstream_include_glob};\n"
+        f"# END {UPSTREAM_INCLUDE_MARKER}\n"
+    )
+    if upstream_block not in text:
+        server_match = re.search(r"^\s*server\s*\{", text, flags=re.M)
+        insert_at = server_match.start() if server_match else 0
+        text = f"{text[:insert_at].rstrip()}\n\n{upstream_block}\n{text[insert_at:].lstrip()}"
+
+    route_block = (
+        f"    # BEGIN {ROUTE_INCLUDE_MARKER}\n"
+        f"    include {route_include_glob};\n"
+        f"    # END {ROUTE_INCLUDE_MARKER}\n"
+    )
+    route_pattern = re.compile(
+        rf"\n?\s*# BEGIN {re.escape(ROUTE_INCLUDE_MARKER)}.*?# END {re.escape(ROUTE_INCLUDE_MARKER)}\n?",
+        flags=re.S,
+    )
+    text = route_pattern.sub("\n", text)
+    insert_at = find_443_server_insert_at(text)
+    if insert_at is None:
+        raise SystemExit("Could not locate server block listening on 443 to insert generated route include")
+    text = f"{text[:insert_at]}{route_block}{text[insert_at:]}"
+
+    return write_normalized(path, text)
+
+
+def upsert_upstream(path: Path, upstream_name: str, container_name: str, backend_port: str) -> bool:
+    marker = f"BEAT MANAGED UPSTREAM {upstream_name}"
+    block_body = (
+        f"upstream {upstream_name} {{\n"
+        f"    server {container_name}:{backend_port};\n"
+        f"}}"
+    )
+    text = upsert_managed_block(read_text_or_empty(path), marker, block_body)
+    return write_normalized(path, text)
+
+
+def ensure_route(path: Path, upstream_name: str, external_path: str, upstream_path: str) -> bool:
+    normalized_external_path = external_path.rstrip("/")
+    normalized_upstream_path = upstream_path if upstream_path.startswith("/") else f"/{upstream_path}"
+    if not normalized_upstream_path.endswith("/"):
+        normalized_upstream_path = f"{normalized_upstream_path}/"
+
+    marker = f"BEAT MANAGED ROUTE {normalized_external_path}"
+    block_body = (
+        f"location {normalized_external_path}/ {{\n"
+        f"    proxy_pass http://{upstream_name}{normalized_upstream_path};\n"
+        f"    proxy_redirect off;\n"
+        f"    proxy_set_header Host $host;\n"
+        f"    proxy_set_header X-Real-IP $remote_addr;\n"
+        f"    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n"
+        f"    proxy_set_header X-Forwarded-Proto $scheme;\n"
+        f"    proxy_set_header X-Request-ID $request_id;\n"
+        f"}}"
+    )
+    text = upsert_managed_block(read_text_or_empty(path), marker, block_body)
+    return write_normalized(path, text)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    subcommands = parser.add_subparsers(dest="command", required=True)
+
+    bootstrap_parser = subcommands.add_parser("bootstrap-includes")
+    bootstrap_parser.add_argument("--path", required=True)
+    bootstrap_parser.add_argument("--upstream-include-glob", required=True)
+    bootstrap_parser.add_argument("--route-include-glob", required=True)
+
+    upsert_upstream_parser = subcommands.add_parser("upsert-upstream")
+    upsert_upstream_parser.add_argument("--path", required=True)
+    upsert_upstream_parser.add_argument("--upstream-name", required=True)
+    upsert_upstream_parser.add_argument("--container-name", required=True)
+    upsert_upstream_parser.add_argument("--backend-port", required=True)
+
+    ensure_route_parser = subcommands.add_parser("ensure-route")
+    ensure_route_parser.add_argument("--path", required=True)
+    ensure_route_parser.add_argument("--upstream-name", required=True)
+    ensure_route_parser.add_argument("--external-path", required=True)
+    ensure_route_parser.add_argument("--upstream-path", required=True)
+
+    return parser
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    if args.command == "bootstrap-includes":
+        changed = bootstrap_includes(
+            Path(args.path),
+            args.upstream_include_glob,
+            args.route_include_glob,
+        )
+    elif args.command == "upsert-upstream":
+        changed = upsert_upstream(
+            Path(args.path),
+            args.upstream_name,
+            args.container_name,
+            args.backend_port,
+        )
+    elif args.command == "ensure-route":
+        changed = ensure_route(
+            Path(args.path),
+            args.upstream_name,
+            args.external_path,
+            args.upstream_path,
+        )
+    else:
+        raise SystemExit(f"Unsupported command: {args.command}")
+    print(json.dumps({"changed": changed}))
+
+
+if __name__ == "__main__":
+    main()

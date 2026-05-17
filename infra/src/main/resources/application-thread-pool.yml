@@ -1,0 +1,12 @@
+thread-pool:
+  core-size: 2
+  max-pool-size: 4
+  queue-capacity: 50
+  thread-name-prefix: executor-
+
+spring:
+  task:
+    scheduling:
+      thread-name-prefix: executor-scheduler-
+      pool:
+        size: 2

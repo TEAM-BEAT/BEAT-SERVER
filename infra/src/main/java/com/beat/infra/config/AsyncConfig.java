@@ -1,0 +1,58 @@
+package com.beat.infra.config;
+
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.concurrent.Executor;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.lang.Nullable;
+import org.springframework.scheduling.annotation.AsyncConfigurer;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import com.beat.infra.InfraBaseConfig;
+
+@Configuration(proxyBeanMethods = false)
+@EnableAsync
+@Import(TaskExecutorConfig.class)
+public class AsyncConfig implements AsyncConfigurer, InfraBaseConfig {
+
+	private static final Logger log = LoggerFactory.getLogger(AsyncConfig.class);
+
+	private final ThreadPoolTaskExecutor applicationTaskExecutor;
+
+	public AsyncConfig(@Qualifier("beatApplicationTaskExecutor") ThreadPoolTaskExecutor applicationTaskExecutor) {
+		this.applicationTaskExecutor = applicationTaskExecutor;
+	}
+
+	@Override
+	@Bean(name = "taskExecutor")
+	public Executor getAsyncExecutor() {
+		return applicationTaskExecutor;
+	}
+
+	@Override
+	@Bean
+	public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
+		return (ex, method, params) ->
+			log.error(formatAsyncExceptionMessage(method, params, ex), ex);
+	}
+
+	static String formatAsyncExceptionMessage(Method method, @Nullable Object[] params, Throwable ex) {
+		return "비동기 작업 중 예외 발생! Method: [%s], Params: [%s], Exception: [%s]"
+			.formatted(method.getName(), formatAsyncParameters(params), ex.getMessage());
+	}
+
+	static String formatAsyncParameters(@Nullable Object[] params) {
+		if (params == null) {
+			return "null";
+		}
+		return Arrays.toString(params);
+	}
+}

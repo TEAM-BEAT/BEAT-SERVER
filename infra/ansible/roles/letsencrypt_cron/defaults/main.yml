@@ -1,0 +1,14 @@
+---
+letsencrypt_cron_enabled: false
+
+letsencrypt_cron_certbot_image: "certbot/certbot"
+letsencrypt_cron_conf_dir: "{{ certbot_conf_dir }}"
+letsencrypt_cron_www_dir: "{{ certbot_www_dir }}"
+letsencrypt_cron_nginx_container: "{{ nginx_container_name }}"
+
+# 매월 20일 00:00 실행 (갱신 유효기간 90일 기준 안전 주기)
+letsencrypt_cron_minute: "0"
+letsencrypt_cron_hour: "0"
+letsencrypt_cron_day: "20"
+letsencrypt_cron_month: "*"
+letsencrypt_cron_weekday: "*"
