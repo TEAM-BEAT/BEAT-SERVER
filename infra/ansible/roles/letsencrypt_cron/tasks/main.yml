@@ -1,0 +1,17 @@
+---
+- name: Manage certbot renewal cron
+  ansible.builtin.cron:
+    name: certbot-renew
+    state: "{{ 'present' if letsencrypt_cron_enabled | bool else 'absent' }}"
+    user: root
+    minute: "{{ letsencrypt_cron_minute }}"
+    hour: "{{ letsencrypt_cron_hour }}"
+    day: "{{ letsencrypt_cron_day }}"
+    month: "{{ letsencrypt_cron_month }}"
+    weekday: "{{ letsencrypt_cron_weekday }}"
+    job: >-
+      docker run --rm
+      -v {{ letsencrypt_cron_conf_dir }}:/etc/letsencrypt
+      -v {{ letsencrypt_cron_www_dir }}:/var/www/certbot
+      {{ letsencrypt_cron_certbot_image }} renew
+      && docker exec {{ letsencrypt_cron_nginx_container }} nginx -s reload

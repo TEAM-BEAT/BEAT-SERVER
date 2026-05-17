@@ -1338,7 +1338,7 @@ ansible-playbook playbooks/rollback.yml -i inventories/prod/hosts.yml --syntax-c
 | 배포 트리거      | develop push / workflow_dispatch           | release.published (자동, shared tag)              |
 | 이미지 태그      | `dev-{resolved_sha}` + `dev-latest`        | `{release_tag}` (예: `v1.2.3`) + `prod-latest`   |
 | MySQL       | Docker 컨테이너 (foundation)                   | 비활성 (`foundation_mysql_enabled: false`, 외부 RDS) |
-| Redis 컨테이너명 | `redis`                                    | `beat-prod-redis`                               |
+| Redis 컨테이너명 | `redis`                                    | `redis`                                         |
 | 도메인         | `secrets.sops.yml`의 `nginx_server_name` 참조 | 동일                                              |
 | 롤백          | rollback-dev.yml (수동 rehearsal/복구)           | rollback-prod.yml (수동)                          |
 | concurrency | dev runtime target lock + `queue: max` (source ref와 무관) | `prod-runtime` + `queue: max` (전역 락)             |
