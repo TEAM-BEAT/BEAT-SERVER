@@ -1,6 +1,7 @@
 package com.beat.observability.logging.filter
 
-import io.micrometer.tracing.Tracer
+import com.beat.observability.tracing.NoOpTraceContextResolver
+import com.beat.observability.tracing.TraceContextResolver
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -9,7 +10,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 import java.util.UUID
 
 abstract class BaseMdcLoggingFilter(
-    private val tracer: Tracer? = null,
+    private val traceContextResolver: TraceContextResolver = NoOpTraceContextResolver,
 ) : OncePerRequestFilter() {
 
     companion object {
@@ -29,7 +30,6 @@ abstract class BaseMdcLoggingFilter(
 
         private const val MAX_TRACE_ID_LENGTH = 128
         private val TRACE_ID_PATTERN = Regex("^[A-Za-z0-9._:-]+$")
-        private const val NOOP_TRACE_ID = "00000000000000000000000000000000"
     }
 
     override fun doFilterInternal(
@@ -47,6 +47,26 @@ abstract class BaseMdcLoggingFilter(
         }
     }
 
+    private fun populateMdc(request: HttpServletRequest): String {
+        val traceId = applyTraceContext(request)
+        MDC.put(CLIENT_IP_KEY, extractClientIp(request))
+        MDC.put(REQUEST_INFO_KEY, "${request.method} ${request.requestURI}")
+        MDC.put(USER_ID_KEY, resolveUserId()?.takeIf { it.isNotBlank() } ?: DEFAULT_GUEST_USER)
+        return traceId
+    }
+
+    private fun applyTraceContext(request: HttpServletRequest): String {
+        val resolved = traceContextResolver.resolve()
+        val traceId = if (resolved != null) {
+            MDC.put(SPAN_ID_KEY, resolved.spanId)
+            resolved.traceId
+        } else {
+            resolveFallbackTraceId(request)
+        }
+        MDC.put(TRACE_ID_KEY, traceId)
+        return traceId
+    }
+
     private fun resolveFallbackTraceId(request: HttpServletRequest): String =
         request.getHeader(TRACE_ID_HEADER)
             ?.trim()
@@ -55,29 +75,6 @@ abstract class BaseMdcLoggingFilter(
             ?: generateTraceId()
 
     private fun generateTraceId(): String = UUID.randomUUID().toString().replace("-", "")
-
-    private fun populateMdc(request: HttpServletRequest): String {
-        val fallbackTraceId = resolveFallbackTraceId(request)
-        val otelContext = tracer?.currentSpan()?.context()
-        val effectiveTraceId = if (otelContext != null &&
-            otelContext.traceId().isNotBlank() &&
-            otelContext.traceId() != NOOP_TRACE_ID
-        ) {
-            MDC.put(SPAN_ID_KEY, otelContext.spanId())
-            otelContext.traceId()
-        } else {
-            fallbackTraceId
-        }
-
-        MDC.put(TRACE_ID_KEY, effectiveTraceId)
-        MDC.put(CLIENT_IP_KEY, extractClientIp(request))
-        MDC.put(REQUEST_INFO_KEY, "${request.method} ${request.requestURI}")
-
-        val userId = resolveUserId()
-        MDC.put(USER_ID_KEY, userId?.takeIf { it.isNotBlank() } ?: DEFAULT_GUEST_USER)
-
-        return effectiveTraceId
-    }
 
     private fun extractClientIp(request: HttpServletRequest): String {
         val forwardedFor = request.getHeader(X_FORWARDED_FOR_HEADER)

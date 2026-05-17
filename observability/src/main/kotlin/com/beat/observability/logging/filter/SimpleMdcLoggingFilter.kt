@@ -1,7 +1,10 @@
 package com.beat.observability.logging.filter
 
-import io.micrometer.tracing.Tracer
+import com.beat.observability.tracing.NoOpTraceContextResolver
+import com.beat.observability.tracing.TraceContextResolver
 
-class SimpleMdcLoggingFilter(tracer: Tracer? = null) : BaseMdcLoggingFilter(tracer) {
+class SimpleMdcLoggingFilter(
+    resolver: TraceContextResolver = NoOpTraceContextResolver,
+) : BaseMdcLoggingFilter(resolver) {
     override fun resolveUserId(): String? = null
 }
