@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.List;
 
 import com.beat.observability.logging.filter.BaseMdcLoggingFilter;
+import com.beat.observability.tracing.NoOpTraceContextResolver;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.AfterEach;
@@ -20,7 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 class SecurityMdcLoggingFilterTest {
 
-	private final SecurityMdcLoggingFilter filter = new SecurityMdcLoggingFilter();
+	private final SecurityMdcLoggingFilter filter = new SecurityMdcLoggingFilter(NoOpTraceContextResolver.INSTANCE);
 
 	@AfterEach
 	void clearContext() {
