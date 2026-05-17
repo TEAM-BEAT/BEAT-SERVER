@@ -191,6 +191,25 @@ jobs:
           ./gradlew check verifyModuleBootJars --parallel --build-cache
         shell: bash
 
+      - name: Stage bootJars for downstream image build
+        run: |
+          mkdir -p staged-jars
+          for module in apis admin batch; do
+            JAR=$(find "${module}/build/libs" -maxdepth 1 -name "${module}-*.jar" ! -name '*-plain.jar' | head -n 1)
+            [ -n "$JAR" ] || { echo "No bootJar produced for ${module}" >&2; exit 1; }
+            cp "$JAR" "staged-jars/${module}.jar"
+          done
+          ls -lh staged-jars
+        shell: bash
+
+      - name: Upload bootJars artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bootjars
+          path: staged-jars/
+          if-no-files-found: error
+          retention-days: 3
+
   build-image:
     needs:
       - detect-changes
@@ -198,7 +217,7 @@ jobs:
       - verify
     if: needs.detect-changes.outputs.has_modules == 'true'
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 10
     permissions:
       contents: read
     environment: dev
@@ -211,11 +230,29 @@ jobs:
         with:
           ref: ${{ needs.resolve-ref.outputs.commit_sha }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
       - name: Log in to Docker Hub
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           username: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}
           password: ${{ secrets.DEV_DOCKER_LOGIN_ACCESSTOKEN }}
+
+      - name: Download bootJars artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bootjars
+          path: staged-jars
+
+      - name: Prepare app.jar for Docker build context
+        env:
+          MODULE: ${{ matrix.module }}
+        run: |
+          [ -f "staged-jars/${MODULE}.jar" ] || { echo "Missing staged-jars/${MODULE}.jar" >&2; exit 1; }
+          cp "staged-jars/${MODULE}.jar" app.jar
+          ls -lh app.jar
+        shell: bash
 
       - name: Compute image name
         id: image
@@ -232,17 +269,33 @@ jobs:
           echo "latest=$IMAGE_LATEST" >> "$GITHUB_OUTPUT"
 
       - name: Build and push image
+        id: build
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          file: Dockerfile.module
+          push: true
+          tags: |
+            ${{ steps.image.outputs.image }}
+            ${{ steps.image.outputs.latest }}
+          build-args: |
+            MODULE=${{ matrix.module }}
+          cache-from: type=gha,scope=dev-${{ matrix.module }}
+          cache-to: type=gha,mode=max,scope=dev-${{ matrix.module }}
+
+      - name: Write build summary
         env:
           MODULE: ${{ matrix.module }}
+          IMAGE: ${{ steps.image.outputs.image }}
+          DIGEST: ${{ steps.build.outputs.digest }}
         run: |
-          docker build -f Dockerfile.module \
-            --build-arg MODULE=${MODULE} \
-            --platform linux/amd64 \
-            -t "${{ steps.image.outputs.image }}" \
-            -t "${{ steps.image.outputs.latest }}" \
-            .
-          docker push "${{ steps.image.outputs.image }}"
-          docker push "${{ steps.image.outputs.latest }}"
+          {
+            echo "### Build Summary"
+            echo ""
+            echo "- Module: \`${MODULE}\`"
+            echo "- Image: \`${IMAGE}\`"
+            echo "- Digest: \`${DIGEST}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   foundation:
     needs:
