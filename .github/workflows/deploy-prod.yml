@@ -87,6 +87,25 @@ jobs:
           ./gradlew check verifyModuleBootJars --parallel --build-cache
         shell: bash
 
+      - name: Stage bootJars for downstream image build
+        run: |
+          mkdir -p staged-jars
+          for module in apis admin batch; do
+            JAR=$(find "${module}/build/libs" -maxdepth 1 -name "${module}-*.jar" ! -name '*-plain.jar' | head -n 1)
+            [ -n "$JAR" ] || { echo "No bootJar produced for ${module}" >&2; exit 1; }
+            cp "$JAR" "staged-jars/${module}.jar"
+          done
+          ls -lh staged-jars
+        shell: bash
+
+      - name: Upload bootJars artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootjars
+          path: staged-jars/
+          if-no-files-found: error
+          retention-days: 1
+
   secret-preflight:
     needs:
       - resolve-release
@@ -136,8 +155,8 @@ jobs:
       - resolve-release
       - verify
       - secret-preflight
-    runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
     permissions:
       contents: read
     environment: prod
@@ -150,9 +169,6 @@ jobs:
         with:
           ref: ${{ needs.resolve-release.outputs.commit_sha }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
@@ -161,6 +177,21 @@ jobs:
         with:
           username: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}
           password: ${{ secrets.PROD_DOCKER_LOGIN_ACCESSTOKEN }}
+
+      - name: Download bootJars artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bootjars
+          path: staged-jars
+
+      - name: Prepare app.jar for Docker build context
+        env:
+          MODULE: ${{ matrix.module }}
+        run: |
+          [ -f "staged-jars/${MODULE}.jar" ] || { echo "Missing staged-jars/${MODULE}.jar" >&2; exit 1; }
+          cp "staged-jars/${MODULE}.jar" app.jar
+          ls -lh app.jar
+        shell: bash
 
       - name: Compute image name
         id: image
@@ -182,7 +213,6 @@ jobs:
         run: |
           docker buildx build -f Dockerfile.module \
             --build-arg MODULE=${MODULE} \
-            --platform linux/arm64 \
             -t "${{ steps.image.outputs.image }}" \
             -t "${{ steps.image.outputs.latest }}" \
             --push \
