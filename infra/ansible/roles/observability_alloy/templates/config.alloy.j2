@@ -163,9 +163,7 @@ loki.source.docker "containers" {
 loki.process "module" {
   // 컨테이너 이름에서 module 라벨 추출 (회귀 안전 패턴)
   //  - apis-blue / apis-green → apis
-  //  - admin / batch / nginx → 그대로
-  //  - beat-prod-redis / redis → redis (prod의 환경 prefix 허용)
-  //  - mysql → mysql
+  //  - admin / batch / nginx / redis / mysql → 그대로
   stage.regex {
     expression = "^/.*?(?P<module>apis|admin|batch|mysql|redis|nginx).*$"
     source     = "__meta_docker_container_name"

@@ -44,7 +44,7 @@ mysql_container_name: mysql
 mysql_data_volume_name: mysql-data
 
 redis_image: redis:alpine
-redis_container_name: beat-prod-redis
+redis_container_name: redis
 redis_conf_path: /home/ubuntu/redis.conf
 redis_data_volume_name: redis-data
 
@@ -93,6 +93,8 @@ observability_alloy_published_ports:
   - "127.0.0.1:12345:12345"
   - "127.0.0.1:4317:4317"
   - "127.0.0.1:4318:4318"
+
+letsencrypt_cron_enabled: true
 
 # Spring Boot OTel exporter endpoint (app 컨테이너에 환경변수로 주입)
 otel_otlp_tracing_endpoint: "http://alloy:4318/v1/traces"
