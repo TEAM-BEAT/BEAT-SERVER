@@ -8,10 +8,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 public class SecurityMdcLoggingFilter extends BaseMdcLoggingFilter {
 
-	public SecurityMdcLoggingFilter() {
-		super(null);
-	}
-
 	public SecurityMdcLoggingFilter(@Nullable Tracer tracer) {
 		super(tracer);
 	}

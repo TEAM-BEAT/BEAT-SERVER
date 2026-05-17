@@ -20,7 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 class SecurityMdcLoggingFilterTest {
 
-	private final SecurityMdcLoggingFilter filter = new SecurityMdcLoggingFilter();
+	private final SecurityMdcLoggingFilter filter = new SecurityMdcLoggingFilter(null);
 
 	@AfterEach
 	void clearContext() {
