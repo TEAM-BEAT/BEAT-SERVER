@@ -50,7 +50,7 @@ class SharedBoundaryContractTest {
 		assertTrue(buildLogicBuild.contains("options.release.set(25)"));
 		assertTrue(buildLogicBuild.contains("JvmTarget.JVM_25"));
 
-		assertTrue(dockerfile.contains("eclipse-temurin:25-jdk"));
+		// ARM native build path compiles the JAR on the GHA runner; Docker image is runtime-only (single jre-alpine stage).
 		assertTrue(dockerfile.contains("eclipse-temurin:25-jre-alpine"));
 	}
 
