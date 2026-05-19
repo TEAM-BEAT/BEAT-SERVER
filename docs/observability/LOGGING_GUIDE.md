@@ -251,7 +251,7 @@ fun runNotificationBatch() {
 
 ## 8. Emergency Access Log Kill-Switch
 
-If Loki ingest spikes (see `infra/grafana/alerts/loki-ingest-budget.yaml`), disable access log emission without redeployment:
+If Loki ingest spikes — monitored manually via the Grafana Cloud Loki dashboard — disable access log emission without redeployment:
 
 ```bash
 # Set env var on the running container and restart
