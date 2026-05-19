@@ -7,33 +7,73 @@
     </Properties>
 
     <Appenders>
+        <!--
+            dev / test: ANSI 색상 패턴 (사람이 읽는 용도)
+        -->
         <Console name="ConsoleAppender" target="SYSTEM_OUT">
             <PatternLayout pattern="${LOG_PATTERN}" disableAnsi="${env:LOG_DISABLE_ANSI:-false}"/>
         </Console>
+
+        <!--
+            prod: JSON 구조화 로그 (Loki 파싱 최적화)
+            beat-log-event-template.json 이 MDC 필드를 top-level 로 노출해
+            LogQL 에서 | json | http_status>=500 같은 필드 검색이 바로 가능하다.
+        -->
+        <Console name="JsonConsoleAppender" target="SYSTEM_OUT">
+            <JsonTemplateLayout eventTemplateUri="classpath:beat-log-event-template.json"/>
+        </Console>
+
+        <!--
+            SentryAppender: minimumEventLevel=ERROR → com.beat 로거에서만 참조.
+            Root 로거는 Sentry 에 연결하지 않아 서드파티 라이브러리 ERROR 가
+            Sentry 이벤트를 오염시키는 것을 방지한다.
+        -->
         <Sentry name="SentryAppender" minimumBreadcrumbLevel="INFO" minimumEventLevel="ERROR" minimumLevel="INFO"/>
     </Appenders>
 
     <Loggers>
-        <springProfile name="local">
-            <Root level="INFO">
-                <AppenderRef ref="ConsoleAppender"/>
-            </Root>
-        </springProfile>
-
-        <springProfile name="dev">
-            <Root level="INFO">
-                <AppenderRef ref="ConsoleAppender"/>
-                <AppenderRef ref="SentryAppender"/>
-            </Root>
-        </springProfile>
-
+        <!--
+            prod: JSON 구조화 로그.
+            access / audit 로거는 Sentry 에 연결하지 않는다.
+        -->
         <springProfile name="prod">
-            <Root level="INFO">
-                <AppenderRef ref="ConsoleAppender"/>
+            <Logger name="com.beat.observability.logging.access" level="INFO" additivity="false">
+                <AppenderRef ref="JsonConsoleAppender"/>
+            </Logger>
+            <Logger name="audit.beat" level="INFO" additivity="false">
+                <AppenderRef ref="JsonConsoleAppender"/>
+            </Logger>
+            <Logger name="com.beat" level="INFO" additivity="false">
+                <AppenderRef ref="JsonConsoleAppender"/>
                 <AppenderRef ref="SentryAppender"/>
+            </Logger>
+            <Root level="INFO">
+                <AppenderRef ref="JsonConsoleAppender"/>
             </Root>
         </springProfile>
 
+        <!--
+            dev: plain-text 콘솔 + Sentry (ERROR → Sentry 이벤트).
+        -->
+        <springProfile name="dev">
+            <Logger name="com.beat.observability.logging.access" level="INFO" additivity="false">
+                <AppenderRef ref="ConsoleAppender"/>
+            </Logger>
+            <Logger name="audit.beat" level="INFO" additivity="false">
+                <AppenderRef ref="ConsoleAppender"/>
+            </Logger>
+            <Logger name="com.beat" level="INFO" additivity="false">
+                <AppenderRef ref="ConsoleAppender"/>
+                <AppenderRef ref="SentryAppender"/>
+            </Logger>
+            <Root level="INFO">
+                <AppenderRef ref="ConsoleAppender"/>
+            </Root>
+        </springProfile>
+
+        <!--
+            test: Sentry DSN 이 공백이라 SentryAppender 참조 불필요.
+        -->
         <springProfile name="test">
             <Root level="INFO">
                 <AppenderRef ref="ConsoleAppender"/>

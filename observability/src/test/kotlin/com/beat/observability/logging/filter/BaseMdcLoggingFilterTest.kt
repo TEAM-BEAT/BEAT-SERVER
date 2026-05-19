@@ -9,11 +9,14 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.slf4j.MDC
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
+import org.springframework.web.servlet.HandlerMapping
 
 class BaseMdcLoggingFilterTest {
 
@@ -21,6 +24,8 @@ class BaseMdcLoggingFilterTest {
     fun clearMdc() {
         MDC.clear()
     }
+
+    // ── MDC population ────────────────────────────────────────────────────────
 
     @Test
     fun `uses sanitized request id header as trace id and writes it to response`() {
@@ -170,6 +175,144 @@ class BaseMdcLoggingFilterTest {
 
         assertMdcCleared()
     }
+
+    // ── emitAccessLog ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `emitAccessLog sets status and elapsed MDC fields`() {
+        val filter = testFilter(null)
+        val request = request()
+        request.setAttribute(BaseMdcLoggingFilter.START_NANOS_ATTR, System.nanoTime() - 10_000_000L)
+        val response = MockHttpServletResponse().apply { status = 200 }
+
+        filter.emitAccessLog(request, response)
+
+        assertEquals("200", MDC.get(BaseMdcLoggingFilter.STATUS_KEY))
+        val elapsed = MDC.get(BaseMdcLoggingFilter.ELAPSED_KEY)?.toLongOrNull()
+        assertNotNull(elapsed)
+        assertTrue(elapsed!! >= 0)
+    }
+
+    @Test
+    fun `emitAccessLog falls back to request attribute when MDC route pattern is absent`() {
+        val filter = testFilter(null)
+        val request = request(method = "GET", uri = "/api/concerts/1")
+        request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/concerts/{id}")
+        request.setAttribute(BaseMdcLoggingFilter.START_NANOS_ATTR, System.nanoTime())
+        val response = MockHttpServletResponse()
+
+        assertNull(MDC.get(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY))
+
+        filter.emitAccessLog(request, response)
+
+        assertEquals("GET /api/concerts/{id}", MDC.get(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY))
+    }
+
+    @Test
+    fun `emitAccessLog uses DEFAULT_ROUTE_PATTERN when neither MDC nor request attribute has route`() {
+        val filter = testFilter(null)
+        val request = request()
+        request.setAttribute(BaseMdcLoggingFilter.START_NANOS_ATTR, System.nanoTime())
+
+        filter.emitAccessLog(request, MockHttpServletResponse())
+
+        assertEquals(BaseMdcLoggingFilter.DEFAULT_ROUTE_PATTERN, MDC.get(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY))
+    }
+
+    @Test
+    fun `emitAccessLog keeps interceptor-set route pattern over request attribute fallback`() {
+        val filter = testFilter(null)
+        val request = request(method = "GET", uri = "/api/concerts/1")
+        request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/concerts/{id}")
+        request.setAttribute(BaseMdcLoggingFilter.START_NANOS_ATTR, System.nanoTime())
+
+        MDC.put(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY, "GET /api/concerts/{concertId}")
+
+        filter.emitAccessLog(request, MockHttpServletResponse())
+
+        assertEquals("GET /api/concerts/{concertId}", MDC.get(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY))
+    }
+
+    // ── Path / method skip ────────────────────────────────────────────────────
+
+    @Test
+    fun `OPTIONS request does not emit access log but MDC is still cleared`() {
+        val filter = testFilter(null)
+        val request = request(method = "OPTIONS", uri = "/api/performances")
+
+        filter.doFilter(request, MockHttpServletResponse()) { _, _ -> }
+
+        assertMdcCleared()
+        assertNull(MDC.get(BaseMdcLoggingFilter.STATUS_KEY))
+    }
+
+    @Test
+    fun `actuator health path does not emit access log`() {
+        val filter = testFilter(null)
+        val request = request(method = "GET", uri = "/actuator/health")
+
+        filter.doFilter(request, MockHttpServletResponse()) { _, _ -> }
+
+        assertMdcCleared()
+        assertNull(MDC.get(BaseMdcLoggingFilter.STATUS_KEY))
+    }
+
+    // ── refreshUserIdInMdc ────────────────────────────────────────────────────
+
+    @Test
+    fun `refreshUserIdInMdc updates MDC with current resolved userId`() {
+        var resolvedId: String? = null
+        val filter = object : BaseMdcLoggingFilter(NoOpTraceContextResolver) {
+            override fun resolveUserId(): String? = resolvedId
+        }
+
+        MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, BaseMdcLoggingFilter.DEFAULT_GUEST_USER)
+        resolvedId = "99"
+
+        filter.refreshUserIdInMdc()
+
+        assertEquals("99", MDC.get(BaseMdcLoggingFilter.USER_ID_KEY))
+    }
+
+    @Test
+    fun `refreshUserIdInMdc falls back to GUEST when resolveUserId returns blank`() {
+        val filter = testFilter("  ")
+
+        MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, "stale")
+        filter.refreshUserIdInMdc()
+
+        assertEquals(BaseMdcLoggingFilter.DEFAULT_GUEST_USER, MDC.get(BaseMdcLoggingFilter.USER_ID_KEY))
+    }
+
+    // ── Exception handling ────────────────────────────────────────────────────
+
+    @Test
+    fun `exception thrown by filter chain is stored as request attribute and rethrown`() {
+        val cause = RuntimeException("db timeout")
+        val filter = testFilter(null)
+        val request = request()
+        val response = MockHttpServletResponse()
+
+        assertThrows<RuntimeException> {
+            filter.doFilter(request, response, FilterChain { _, _ -> throw cause })
+        }
+
+        assertSame(cause, request.getAttribute(BaseMdcLoggingFilter.EXCEPTION_ATTR))
+        assertMdcCleared()
+    }
+
+    @Test
+    fun `MDC is cleared even when filter chain throws`() {
+        val filter = testFilter(null)
+
+        runCatching {
+            filter.doFilter(request(), MockHttpServletResponse(), FilterChain { _, _ -> throw RuntimeException() })
+        }
+
+        assertMdcCleared()
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun stubResolver(traceId: String, spanId: String): TraceContextResolver =
         TraceContextResolver { ResolvedTraceContext(traceId, spanId) }
