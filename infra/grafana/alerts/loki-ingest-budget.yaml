@@ -1,0 +1,159 @@
+# Grafana Managed Alert — Loki ingest budget guard
+#
+# 배포 방법 (envsubst 사용):
+#   export LOKI_DATASOURCE_UID="$(curl -s https://<grafana-host>/api/datasources/name/Loki -H 'Authorization: Bearer ...' | jq -r .uid)"
+#   envsubst < infra/grafana/alerts/loki-ingest-budget.yaml | \
+#     curl -X POST https://<grafana-host>/api/v1/provisioning/alert-rules \
+#          -H 'Authorization: Bearer ...' \
+#          -H 'Content-Type: application/yaml' \
+#          --data-binary @-
+#   또는 self-managed Grafana 의 provisioning/alerting/ 디렉터리에 envsubst 후 배치.
+#
+# 전제:
+#   - LOKI_DATASOURCE_UID env var 가 deploy 시 envsubst 로 실제 UID 로 치환되어야 함
+#     (Grafana Console > Connections > Data sources > Loki 의 UID 사용).
+#   - "BEAT/Observability" 폴더가 Grafana 에 미리 생성되어 있어야 함.
+#   - 30 일 rolling 쿼리(720h)는 Grafana Cloud Loki 의 최대 쿼리 range 한계(32d) 내에 있음.
+#
+# 라벨 정책 근거:
+#   env / cluster / host / module / level 만 Loki 스트림 라벨로 허용.
+#   고카디널리티 값(userId, traceId, route)은 JSON 라인 필드로만 보존.
+#   라벨 수가 많을수록 스트림 수가 지수적으로 증가해 ingest 비용이 급등한다.
+#
+# 임계값 근거 (월 48 GB 요금제 기준):
+#   warn  = 40 GB → 83 %: 트래픽 급증 조기 탐지 및 원인 파악 시간 확보
+#   crit  = 48 GB → 100 %: 초과 과금 직전 즉시 대응 필요
+
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: loki-ingest-budget
+    folder: BEAT/Observability
+    interval: 1h
+    rules:
+
+      # ── WARNING: 30-day rolling ingest ≥ 40 GB ──────────────────────────────
+      - uid: beat-loki-ingest-warn
+        title: "Loki ingest ≥ 40 GB (30d rolling) — WARNING"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: ${LOKI_DATASOURCE_UID}
+            queryType: instant
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              expr: 'sum(bytes_over_period({env="prod"}[720h]))'
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: "-100"
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 42949672960  # 40 GB in bytes (40 * 1024^3)
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: "-100"
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: classic_conditions
+        noDataState: NoData
+        execErrState: Error
+        for: 30m
+        annotations:
+          summary: "Loki ingest is approaching the 48 GB monthly budget"
+          description: >
+            30-day rolling ingest exceeded 40 GB (83 % of 48 GB plan).
+            Check for log flood: high-volume logger, missing log.isDebugEnabled guard,
+            or accidental high-cardinality label introduction.
+            LogQL: {env="prod"} | bytes_over_period
+          runbook_url: "https://github.com/TEAM-BEAT/BEAT-SERVER/blob/main/docs/observability/LOGGING_GUIDE.md#8-emergency-access-log-kill-switch"
+        labels:
+          severity: warning
+          team: platform
+        isPaused: false
+
+      # ── CRITICAL: 30-day rolling ingest ≥ 48 GB ─────────────────────────────
+      - uid: beat-loki-ingest-crit
+        title: "Loki ingest ≥ 48 GB (30d rolling) — CRITICAL"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: ${LOKI_DATASOURCE_UID}
+            queryType: instant
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              expr: 'sum(bytes_over_period({env="prod"}[720h]))'
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: "-100"
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 51539607552  # 48 GB in bytes (48 * 1024^3)
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: "-100"
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: classic_conditions
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "Loki ingest has reached the 48 GB monthly budget — extra charges imminent"
+          description: >
+            30-day rolling ingest exceeded 48 GB.
+            Emergency actions:
+            1. Set BEAT_ACCESS_LOG_ENABLED=false to pause access log emission.
+            2. Increase log level to WARN for noisy loggers via log4j2-spring.xml hot reload.
+            3. Identify the flood source with: {env="prod"} | json | label_format level=level | rate [5m]
+          runbook_url: "https://github.com/TEAM-BEAT/BEAT-SERVER/blob/main/docs/observability/LOGGING_GUIDE.md#8-emergency-access-log-kill-switch"
+        labels:
+          severity: critical
+          team: platform
+        isPaused: false
