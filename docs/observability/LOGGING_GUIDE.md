@@ -135,6 +135,8 @@ log.debug("SMS sent to: {}", maskPhone(phoneNumber))  // maskPhone: "010-****-56
 
 `userId` in MDC is the internal Long ID, not any PII. It is safe to expose in logs.
 
+**URI path PII risk**: `requestInfo` / `request` field contains `method + requestURI`. Path-parameter values flow into this field. Standard BEAT routes use opaque IDs (`/api/performances/19`) so this is safe. **Do not introduce routes that embed PII in the path** (e.g. `/api/users/email/{email}` or `/api/customers/{phoneNumber}`) — use route bodies or query parameters with explicit scrubbing instead.
+
 ---
 
 ## 4. Structured Log Fields (prod LogQL)
