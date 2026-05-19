@@ -9,7 +9,7 @@ import org.slf4j.MDC
 import org.springframework.http.HttpMethod
 import org.springframework.web.servlet.HandlerMapping
 
-class AccessLogEmitter {
+open class AccessLogEmitter {
 
     fun markStart(request: HttpServletRequest) {
         request.setAttribute(START_NANOS_ATTR, System.nanoTime())
@@ -20,7 +20,7 @@ class AccessLogEmitter {
             request.method !in SKIP_HTTP_METHODS &&
             SKIP_PATH_PREFIXES.none(request.requestURI::startsWith)
 
-    fun emit(request: HttpServletRequest, response: HttpServletResponse) {
+    open fun emit(request: HttpServletRequest, response: HttpServletResponse) {
         val startNanos = request.getAttribute(START_NANOS_ATTR) as? Long ?: System.nanoTime()
         val elapsedMs = (System.nanoTime() - startNanos) / NANOS_PER_MILLI
         val status = response.status
