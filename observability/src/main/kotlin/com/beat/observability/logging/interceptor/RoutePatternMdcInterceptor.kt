@@ -24,7 +24,10 @@ class RoutePatternMdcInterceptor : HandlerInterceptor {
         handler: Any,
         ex: Exception?,
     ) {
-        MDC.remove(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY)
+        // Intentionally not calling MDC.remove here.
+        // BaseMdcLoggingFilter.doFilterInternal finally block emits the access log
+        // (which reads routePattern) and then calls MDC.clear() — that is the single
+        // owner of MDC cleanup for the entire request lifecycle.
     }
 
     private fun resolveRoutePattern(request: HttpServletRequest): String {

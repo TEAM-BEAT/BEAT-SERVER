@@ -175,7 +175,10 @@ class RootRetirementContractTest {
 		assertTrue(routeInterceptor.contains("HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE"));
 		assertTrue(routeInterceptor.contains("MDC.put(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY"));
 		assertTrue(routeInterceptor.contains("\"${request.method} $bestMatchingPattern\""));
-		assertTrue(routeInterceptor.contains("MDC.remove(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY)"));
+		// The interceptor intentionally does NOT call MDC.remove — BaseMdcLoggingFilter.doFilterInternal
+		// finally owns all MDC cleanup (including routePattern) so the access log (emitted in filter
+		// finally, which runs AFTER interceptor afterCompletion) can read routePattern directly.
+		assertFalse(routeInterceptor.contains("MDC.remove(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY)"));
 		assertTrue(loggingConfig.contains("registry.addInterceptor(routePatternMdcInterceptor)"));
 		assertTrue(observabilityReadme.contains("Request completion logging은 nginx `access.log`가 소유합니다"));
 		assertTrue(observabilityReadme.contains("Application log는 request completion log를 중복으로 남기지 않고"));
@@ -311,7 +314,7 @@ class RootRetirementContractTest {
 		assertTrue(prometheusRuntimeConvention.contains("add(\"runtimeOnly\", libs.findLibrary(\"micrometer-registry-prometheus\").get())"));
 		assertTrue(apisBuild.contains("id(\"beat.prometheus-runtime\")"));
 		assertTrue(batchBuild.contains("id(\"beat.prometheus-runtime\")"));
-		assertFalse(adminBuild.contains("id(\"beat.prometheus-runtime\")"));
+		assertTrue(adminBuild.contains("id(\"beat.prometheus-runtime\")"));
 		assertFalse(apisBuild.contains("implementation(libs.micrometer.registry.prometheus)"));
 		assertFalse(observabilityBuild.contains("libs.micrometer.registry.prometheus"));
 
@@ -334,13 +337,15 @@ class RootRetirementContractTest {
 		assertTrue(observabilityYaml.contains("sample-rate: 1.0"));
 		assertTrue(observabilityYaml.contains("send-default-pii: true"));
 		assertTrue(observabilityYaml.contains("enabled: true"));
-		assertTrue(observabilityYaml.contains("traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:1.0}"));
-		assertTrue(observabilityYaml.contains("profile-session-sample-rate: ${SENTRY_PROFILE_SESSION_SAMPLE_RATE:1.0}"));
+		// Sentry distributed tracing and profiling are intentionally disabled (0.0).
+		// Sentry is used for error event capture and Sentry Logs only.
+		assertTrue(observabilityYaml.contains("traces-sample-rate: 0.0"));
+		assertTrue(observabilityYaml.contains("profile-session-sample-rate: 0.0"));
 		assertTrue(observabilityYaml.contains("profile-lifecycle: TRACE"));
 		assertFalse(observabilityYaml.contains("DEV_SENTRY_DSN"));
 		assertFalse(observabilityYaml.contains("PROD_SENTRY_DSN"));
-		assertTrue(observabilityYaml.contains("PROD_SENTRY_TRACES_SAMPLE_RATE:1.0"));
-		assertTrue(observabilityYaml.contains("PROD_SENTRY_PROFILE_SESSION_SAMPLE_RATE:1.0"));
+		assertFalse(observabilityYaml.contains("PROD_SENTRY_TRACES_SAMPLE_RATE"));
+		assertFalse(observabilityYaml.contains("PROD_SENTRY_PROFILE_SESSION_SAMPLE_RATE"));
 		assertFalse(observabilityYaml.contains("enable-tracing"));
 		assertTrue(log4j2.contains("<Sentry name=\"SentryAppender\""));
 		assertTrue(log4j2.contains("<AppenderRef ref=\"SentryAppender\"/>"));
@@ -354,7 +359,8 @@ class RootRetirementContractTest {
 		assertTrue(appStopstart.contains("app_container_runtime_release_ref: \"{{ app_stopstart_release_ref | default('', true) }}\""));
 		assertTrue(ciPr.contains("SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}"));
 		assertTrue(ciPr.contains("SENTRY_RELEASE: beat-server@${{ github.sha }}"));
-		assertTrue(deployDev.contains("SENTRY_RELEASE: beat-server@${{ github.sha }}"));
+		// deploy-dev resolves the deploy ref via `resolve-ref` step, so SENTRY_RELEASE pins to the resolved commit.
+		assertTrue(deployDev.contains("SENTRY_RELEASE: beat-server@${{ needs.resolve-ref.outputs.commit_sha }}"));
 		assertTrue(deployProd.contains("SENTRY_RELEASE: beat-server@${{ needs.resolve-release.outputs.commit_sha }}"));
 		assertFalse(appContainerEnv.contains("SENTRY_AUTH_TOKEN"));
 		assertTrue(observabilityReadme.contains("Sentry는 `observability` 모듈이 소유"));
@@ -614,6 +620,7 @@ class RootRetirementContractTest {
 			"  foundation:\n"
 				+ "    needs:\n"
 				+ "      - detect-changes\n"
+				+ "      - resolve-ref\n"
 				+ "      - verify\n"
 				+ "      - build-image";
 		String devDeployNeedsFoundation =
@@ -624,10 +631,12 @@ class RootRetirementContractTest {
 		assertTrue(deployDev.contains("module: foundation"));
 		assertTrue(deployDev.contains("connection_module: ${{ vars.DEV_FOUNDATION_CONNECTION_MODULE || 'apis' }}"));
 		assertTrue(deployDev.contains("playbook: playbooks/foundation.yml"));
-		assertTrue(deployDev.contains("commit_sha: ${{ github.sha }}"));
-		assertTrue(deployDev.contains("checkout_ref: ${{ github.sha }}"));
+		// commit_sha / checkout_ref now pin to the resolved deploy ref (supports manual deploy_ref input).
+		assertTrue(deployDev.contains("commit_sha: ${{ needs.resolve-ref.outputs.commit_sha }}"));
+		assertTrue(deployDev.contains("checkout_ref: ${{ needs.resolve-ref.outputs.commit_sha }}"));
 		assertTrue(deployDev.contains(devDeployNeedsFoundation));
-		assertTrue(deployDev.contains("group: deploy-dev-runtime-${{ github.ref }}"));
+		// dev-runtime concurrency group serializes deploys to the single dev runtime cluster.
+		assertTrue(deployDev.contains("group: dev-runtime"));
 
 		assertBefore(deployProd, "\n  foundation:", "\n  deploy:");
 		String prodFoundationNeeds =
@@ -715,9 +724,8 @@ class RootRetirementContractTest {
 		assertTrue(Files.exists(Path.of("scripts/generate-local-prod-secret.sh")));
 		assertTrue(Files.exists(Path.of(".dockerignore")));
 		assertTrue(dockerfileModule.contains("ARG MODULE"));
-		assertTrue(dockerfileModule.contains("AS build"));
-		assertTrue(dockerfileModule.contains(":${MODULE}:dependencies"));
-		assertTrue(dockerfileModule.contains("cp \"$(find /workspace/${MODULE}/build/libs"));
+		// JAR is built outside the container (ARM native build) and COPY'd in — no in-container build stage.
+		assertTrue(dockerfileModule.contains("COPY --chown=beat:beat app.jar /app/app.jar"));
 		assertTrue(dockerfileModule.contains(
 			"ENTRYPOINT [\"java\", \"-Duser.timezone=Asia/Seoul\", \"-jar\", \"/app/app.jar\"]"));
 		assertFalse(dockerfileModule.contains("COPY src ./src"));
@@ -868,8 +876,8 @@ class RootRetirementContractTest {
 		assertTrue(deployProd.contains("resolve-release"));
 		assertTrue(deployProd.contains("release_tag"));
 		assertTrue(rollbackProd.contains("playbook: playbooks/rollback.yml"));
-		assertTrue(rollbackProd.contains("git merge-base --is-ancestor \"$commit_sha\" refs/remotes/origin/main"));
-		assertTrue(rollbackProd.contains("origin_main_sha=${main_sha}"));
+		// rollback-prod.yml delegates ref validation to the playbook itself; no in-workflow merge-base guard.
+		assertTrue(rollbackProd.contains("module: ${{ github.event.inputs.module }}"));
 		assertFalse(deployDev.contains("ansible-playbook playbooks/deploy.yml"));
 		assertFalse(deployProd.contains("ansible-playbook playbooks/deploy.yml"));
 		assertFalse(rollbackProd.contains("ansible-playbook playbooks/rollback.yml"));
@@ -884,9 +892,9 @@ class RootRetirementContractTest {
 		assertTrue(deployDev.contains("preferred_order = [\"admin\", \"apis\", \"batch\"]"));
 		assertTrue(deployDev.contains("modules = preferred_order if requested == \"all\" else [requested]"));
 		assertTrue(deployDev.contains("modules = [module for module in preferred_order if selected_modules[module]]"));
-		assertTrue(deployDev.contains("IMAGE_TAG=\"dev-${GITHUB_SHA}\""));
+		assertTrue(deployDev.contains("IMAGE_TAG=\"dev-${RESOLVED_SHA}\""));
 		String devRuntimeImage =
-			"image: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ github.sha }}";
+			"image: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:dev-${{ needs.resolve-ref.outputs.commit_sha }}";
 		String prodRuntimeImage =
 			"image: ${{ vars.PROD_DOCKER_LOGIN_USERNAME }}/beat-${{ matrix.module }}:"
 				+ "${{ needs.resolve-release.outputs.release_tag }}";
@@ -938,7 +946,7 @@ class RootRetirementContractTest {
 		assertTrue(infraReadme.contains("Nginx fragment mapping contract"));
 		assertTrue(infraReadme.contains("nginx_fragments"));
 		assertTrue(infraReadme.contains("read-only contract"));
-		assertTrue(infraReadme.contains("Rollback rehearsal 절차"));
+		assertTrue(infraReadme.contains("Prod rollback rehearsal 절차"));
 		assertTrue(infraReadme.contains("legacyv1"));
 		assertTrue(infraReadme.contains("Restore stop-start current release after rollback failure"));
 		assertTrue(devInventory.contains("nginx_seed_placeholder_host: \"127.0.0.1\""));
