@@ -9,7 +9,7 @@ import org.slf4j.MDC
 import org.springframework.http.HttpMethod
 import org.springframework.web.servlet.HandlerMapping
 
-open class AccessLogEmitter {
+internal open class AccessLogEmitter {
 
     fun markStart(request: HttpServletRequest) {
         request.setAttribute(START_NANOS_ATTR, System.nanoTime())

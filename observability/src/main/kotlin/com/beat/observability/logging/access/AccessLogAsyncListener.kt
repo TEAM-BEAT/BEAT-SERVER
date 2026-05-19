@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.MDC
 
-class AccessLogAsyncListener(
+internal class AccessLogAsyncListener(
     private val emitter: AccessLogEmitter,
     private val mdcSnapshot: Map<String, String>,
 ) : AsyncListener {
