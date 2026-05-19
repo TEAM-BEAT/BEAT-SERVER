@@ -35,8 +35,6 @@ Application code
            │
            ├── com.beat.observability.logging.access  →  JsonConsoleAppender (access log only)
            │
-           ├── audit.beat                             →  JsonConsoleAppender (audit placeholder)
-           │
            ├── com.beat  (all business code)          →  JsonConsoleAppender
            │                                          →  SentryAppender (ERROR → Sentry event)
            │

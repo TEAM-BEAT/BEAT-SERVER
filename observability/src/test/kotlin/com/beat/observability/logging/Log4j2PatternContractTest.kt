@@ -25,8 +25,6 @@ class Log4j2PatternContractTest {
     private fun nodeList(expr: String): NodeList =
         xpath.evaluate(expr, doc, XPathConstants.NODESET) as NodeList
 
-    // ── Phase 1: PatternLayout MDC contract ──────────────────────────────────
-
     @Test
     fun `LOG_PATTERN exposes all required MDC context fields`() {
         val pattern = string("//Properties/Property[@name='LOG_PATTERN']")
@@ -42,7 +40,7 @@ class Log4j2PatternContractTest {
     }
 
     @Test
-    fun `access logger is defined in prod and dev profiles and never connected to SentryAppender`() {
+    fun `access logger is defined in prod and dev profiles and never references SentryAppender`() {
         listOf("prod", "dev").forEach { profile ->
             val accessLoggers = nodeList(
                 "//springProfile[contains(@name,'$profile')]" +
@@ -55,16 +53,6 @@ class Log4j2PatternContractTest {
             "//Logger[@name='com.beat.observability.logging.access']//AppenderRef[@ref='SentryAppender']",
         )
         assertEquals(0, sentryRefs.length, "access logger must not reference SentryAppender in any profile")
-    }
-
-    @Test
-    fun `audit logger is defined as placeholder in prod and dev profiles`() {
-        listOf("prod", "dev").forEach { profile ->
-            val auditLoggers = nodeList(
-                "//springProfile[contains(@name,'$profile')]//Logger[@name='audit.beat']",
-            )
-            assertTrue(auditLoggers.length > 0, "audit.beat logger must be defined in $profile profile")
-        }
     }
 
     @Test
@@ -89,21 +77,15 @@ class Log4j2PatternContractTest {
         )
     }
 
-    // ── Phase 2: JSON layout contract ─────────────────────────────────────────
-
     @Test
-    fun `JsonConsoleAppender is defined and uses beat event template`() {
+    fun `JsonConsoleAppender uses beat event template`() {
         val uri = string("//Appenders/Console[@name='JsonConsoleAppender']/JsonTemplateLayout/@eventTemplateUri")
-        assertEquals(
-            "classpath:beat-log-event-template.json",
-            uri,
-            "JsonConsoleAppender must reference beat-log-event-template.json",
-        )
+        assertEquals("classpath:beat-log-event-template.json", uri)
     }
 
     @Test
     fun `prod profile uses JsonConsoleAppender for all loggers`() {
-        listOf("com.beat.observability.logging.access", "audit.beat", "com.beat").forEach { loggerName ->
+        listOf("com.beat.observability.logging.access", "com.beat").forEach { loggerName ->
             val refs = nodeList(
                 "//springProfile[contains(@name,'prod')]" +
                     "//Logger[@name='$loggerName']" +
@@ -133,7 +115,6 @@ class Log4j2PatternContractTest {
 
     @Test
     fun `beat event template exposes all required fields for LogQL queries`() {
-        // Parse to a real JSON tree so the contract validates top-level structure, not raw text.
         val template = tools.jackson.databind.json.JsonMapper.builder().build()
             .readTree(File("src/main/resources/beat-log-event-template.json"))
         listOf(

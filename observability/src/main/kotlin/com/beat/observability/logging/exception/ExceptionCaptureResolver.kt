@@ -1,6 +1,6 @@
 package com.beat.observability.logging.exception
 
-import com.beat.observability.logging.filter.BaseMdcLoggingFilter
+import com.beat.observability.logging.access.AccessLogEmitter
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.core.Ordered
@@ -17,7 +17,7 @@ class ExceptionCaptureResolver : HandlerExceptionResolver, Ordered {
         handler: Any?,
         ex: Exception,
     ): ModelAndView? {
-        request.setAttribute(BaseMdcLoggingFilter.EXCEPTION_ATTR, ex)
+        request.setAttribute(AccessLogEmitter.EXCEPTION_ATTR, ex)
         return null
     }
 }
