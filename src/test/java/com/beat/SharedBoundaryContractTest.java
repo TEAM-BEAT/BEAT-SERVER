@@ -182,6 +182,41 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
+	void mainSourcesMustNotUseRawConsoleOutput() throws Exception {
+		List<Path> allMainSources = sourceFiles(
+			Path.of("apis/src/main"),
+			Path.of("admin/src/main"),
+			Path.of("batch/src/main"),
+			Path.of("domain/src/main"),
+			Path.of("infra/src/main"),
+			Path.of("gateway/src/main"),
+			Path.of("observability/src/main"),
+			Path.of("global-support/src/main")
+		);
+
+		List<String> printlnViolations = allMainSources.stream()
+			.filter(path -> contains(path, "System.out.println"))
+			.map(path -> path.toString().replace('\\', '/'))
+			.toList();
+
+		List<String> printStackTraceViolations = allMainSources.stream()
+			.filter(path -> contains(path, ".printStackTrace("))
+			.map(path -> path.toString().replace('\\', '/'))
+			.toList();
+
+		assertAll(
+			() -> assertTrue(printlnViolations.isEmpty(),
+				"System.out.println bypasses the logging pipeline and must not appear in main sources.\n"
+					+ "Use SLF4J (log.info / log.debug / log.warn / log.error) instead:\n"
+					+ String.join("\n", printlnViolations)),
+			() -> assertTrue(printStackTraceViolations.isEmpty(),
+				".printStackTrace() bypasses the logging pipeline and must not appear in main sources.\n"
+					+ "Pass the Throwable as the last argument to the SLF4J logger instead:\n"
+					+ String.join("\n", printStackTraceViolations))
+		);
+	}
+
+	@Test
 	void observabilityLegacyLoggingAspectsAreRemoved() throws Exception {
 		List<Path> observabilitySources = sourceFiles(Path.of("observability/src/main"));
 		List<String> forbiddenReferences = List.of(
