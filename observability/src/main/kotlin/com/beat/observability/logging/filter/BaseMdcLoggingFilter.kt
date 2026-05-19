@@ -4,7 +4,6 @@ import com.beat.observability.logging.access.AccessLogAsyncListener
 import com.beat.observability.logging.access.AccessLogEmitter
 import com.beat.observability.tracing.NoOpTraceContextResolver
 import com.beat.observability.tracing.TraceContextResolver
-import jakarta.servlet.DispatcherType
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -37,17 +36,17 @@ abstract class BaseMdcLoggingFilter(
 
     private val accessLog = AccessLogEmitter()
 
+    // OncePerRequestFilter.shouldNotFilterAsyncDispatch() defaults to true → this filter runs
+    // only on DispatcherType.REQUEST. ASYNC re-dispatch never invokes us; AsyncListener does.
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
-        val isInitial = request.dispatcherType == DispatcherType.REQUEST
-        if (isInitial) {
-            val effectiveTraceId = populateMdc(request)
-            response.setHeader(TRACE_ID_HEADER, effectiveTraceId)
-            accessLog.markStart(request)
-        }
+        val effectiveTraceId = populateMdc(request)
+        response.setHeader(TRACE_ID_HEADER, effectiveTraceId)
+        accessLog.markStart(request)
 
         try {
             filterChain.doFilter(request, response)
@@ -58,19 +57,15 @@ abstract class BaseMdcLoggingFilter(
             try {
                 // Refresh before snapshot/emit: JWT filter has now run on this thread.
                 // The async worker thread that runs onComplete cannot see SecurityContextHolder.
-                if (isInitial) refreshUserIdInMdc()
-                emitOrDeferAccessLog(request, response, isInitial)
+                refreshUserIdInMdc()
+                emitOrDeferAccessLog(request, response)
             } finally {
                 MDC.clear()
             }
         }
     }
 
-    private fun emitOrDeferAccessLog(
-        request: HttpServletRequest,
-        response: HttpServletResponse,
-        isInitial: Boolean,
-    ) {
+    private fun emitOrDeferAccessLog(request: HttpServletRequest, response: HttpServletResponse) {
         if (request.isAsyncStarted) {
             val snapshot = MDC.getCopyOfContextMap() ?: emptyMap()
             try {
@@ -81,17 +76,16 @@ abstract class BaseMdcLoggingFilter(
                 )
             } catch (_: IllegalStateException) {
                 // TOCTOU: async completed between isAsyncStarted check and addListener.
-                if (isInitial && accessLog.shouldEmit(request)) {
+                if (accessLog.shouldEmit(request)) {
                     MDC.setContextMap(snapshot)
                     accessLog.emit(request, response)
                 }
             }
             return
         }
-        if (isInitial && accessLog.shouldEmit(request)) {
+        if (accessLog.shouldEmit(request)) {
             accessLog.emit(request, response)
         }
-        // ASYNC re-dispatch (isInitial=false): listener already emitted; nothing to do.
     }
 
     internal fun refreshUserIdInMdc() {
