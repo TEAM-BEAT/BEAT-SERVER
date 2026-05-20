@@ -2,7 +2,7 @@
 <Configuration status="INFO">
     <Properties>
         <Property name="LOG_PATTERN">
-            %style{%d{yyyy-MM-dd HH:mm:ss,SSS}}{blue} %highlight{[%-5p]}{FATAL=bg_red, ERROR=red, WARN=yellow, INFO=green, DEBUG=bright_blue, TRACE=cyan} [%t] %style{[traceId=%equals{%X{traceId}}{}{NO_TRACE}]}{cyan}%notEmpty{ %style{[spanId=%X{spanId}]}{bright_blue}} %style{[userId=%equals{%X{userId}}{}{GUEST}]}{yellow} %style{[clientIp=%equals{%X{clientIp}}{}{UNKNOWN}]}{magenta} %style{[request=%equals{%X{requestInfo}}{}{NO_REQUEST}]}{green} %style{[route=%equals{%X{routePattern}}{}{NO_ROUTE}]}{bright_green} %style{[%c{1}.%M():%L]}{BRIGHT_BLACK} - %m%n
+            %style{%d{yyyy-MM-dd HH:mm:ss,SSS}}{blue} %highlight{[%-5p]}{FATAL=bg_red, ERROR=red, WARN=yellow, INFO=green, DEBUG=bright_blue, TRACE=cyan} [%t] %style{[traceId=%equals{%X{traceId}}{}{NO_TRACE}]}{cyan}%style{%replace{%X{spanId}}{^(.+)$}{ [spanId=$1]}}{bright_blue} %style{[userId=%equals{%X{userId}}{}{GUEST}]}{yellow} %style{[clientIp=%equals{%X{clientIp}}{}{UNKNOWN}]}{magenta} %style{[request=%equals{%X{requestInfo}}{}{NO_REQUEST}]}{green} %style{[route=%equals{%X{routePattern}}{}{NO_ROUTE}]}{bright_green} %style{[%c{1}.%M():%L]}{BRIGHT_BLACK} - %m%n
         </Property>
     </Properties>
 
