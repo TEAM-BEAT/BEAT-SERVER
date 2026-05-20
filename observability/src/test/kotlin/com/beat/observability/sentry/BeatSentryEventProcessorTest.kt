@@ -28,6 +28,7 @@ class BeatSentryEventProcessorTest {
     @Test
     fun `enriches sentry events with MDC context and scrubs credentials`() {
         MDC.put(BaseMdcLoggingFilter.TRACE_ID_KEY, "trace-123")
+        MDC.put(BaseMdcLoggingFilter.SPAN_ID_KEY, "span-abc")
         MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, "42")
         MDC.put(BaseMdcLoggingFilter.CLIENT_IP_KEY, "10.0.0.1")
         MDC.put(BaseMdcLoggingFilter.REQUEST_INFO_KEY, "GET /api/performances/detail/19")
@@ -56,6 +57,7 @@ class BeatSentryEventProcessorTest {
         assertEquals("beat-server", processed.getTag("service"))
         assertEquals("beat-apis", processed.getTag("module"))
         assertEquals("trace-123", processed.getTag(BaseMdcLoggingFilter.TRACE_ID_KEY))
+        assertEquals("span-abc", processed.getTag(BaseMdcLoggingFilter.SPAN_ID_KEY))
         assertEquals("GET /api/performances/detail/{performanceId}", processed.getTag(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY))
         assertEquals("42", processedUser.id)
         assertEquals("10.0.0.1", processedUser.ipAddress)

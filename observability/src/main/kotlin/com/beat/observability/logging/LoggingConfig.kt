@@ -1,5 +1,6 @@
 package com.beat.observability.logging
 
+import com.beat.observability.logging.exception.ExceptionCaptureResolver
 import com.beat.observability.logging.interceptor.RoutePatternMdcInterceptor
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -23,4 +24,7 @@ class LoggingConfig {
                 registry.addInterceptor(routePatternMdcInterceptor)
             }
         }
+
+    @Bean
+    fun exceptionCaptureResolver(): ExceptionCaptureResolver = ExceptionCaptureResolver()
 }

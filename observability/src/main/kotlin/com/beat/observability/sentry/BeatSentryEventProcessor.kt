@@ -163,6 +163,7 @@ class BeatSentryEventProcessor(
 
         private val MDC_KEYS = listOf(
             BaseMdcLoggingFilter.TRACE_ID_KEY,
+            BaseMdcLoggingFilter.SPAN_ID_KEY,
             BaseMdcLoggingFilter.USER_ID_KEY,
             BaseMdcLoggingFilter.CLIENT_IP_KEY,
             BaseMdcLoggingFilter.REQUEST_INFO_KEY,

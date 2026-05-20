@@ -1,5 +1,6 @@
 package com.beat.observability.logging.filter
 
+import com.beat.observability.logging.access.AccessLogEmitter
 import com.beat.observability.tracing.NoOpTraceContextResolver
 import com.beat.observability.tracing.TraceContextResolver
 import com.beat.observability.tracing.TraceContextResolver.ResolvedTraceContext
@@ -9,8 +10,10 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.slf4j.MDC
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
@@ -40,104 +43,85 @@ class BaseMdcLoggingFilterTest {
 
     @Test
     fun `generates trace id when request id header contains unsupported characters`() {
-        val filter = testFilter(null)
-        val request = request()
-        request.addHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER, "trace id with spaces")
         val response = MockHttpServletResponse()
+        val request = request().apply {
+            addHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER, "trace id with spaces")
+        }
 
-        filter.doFilter(request, response) { _, _ ->
+        testFilter(null).doFilter(request, response) { _, _ ->
             val traceId = MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY)
             assertNotNull(traceId)
             assertEquals(32, traceId.length)
             assertEquals(traceId, response.getHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER))
         }
-
         assertMdcCleared()
     }
 
     @Test
     fun `generates trace id when request id header is too long`() {
-        val filter = testFilter(null)
-        val request = request()
-        request.addHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER, "a".repeat(129))
         val response = MockHttpServletResponse()
+        val request = request().apply {
+            addHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER, "a".repeat(129))
+        }
 
-        filter.doFilter(request, response) { _, _ ->
+        testFilter(null).doFilter(request, response) { _, _ ->
             val traceId = MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY)
             assertNotNull(traceId)
             assertEquals(32, traceId.length)
-            assertEquals(traceId, response.getHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER))
         }
-
         assertMdcCleared()
     }
 
     @Test
     fun `generates trace id when request id header is missing`() {
-        val filter = testFilter(null)
-        val request = request()
         val response = MockHttpServletResponse()
-
-        filter.doFilter(request, response) { _, _ ->
+        testFilter(null).doFilter(request(), response) { _, _ ->
             val traceId = MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY)
             assertNotNull(traceId)
             assertEquals(32, traceId.length)
-            assertEquals(traceId, response.getHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER))
         }
-
         assertMdcCleared()
     }
 
     @Test
     fun `uses first forwarded for ip before real ip and remote addr`() {
-        val filter = testFilter(null)
-        val request = request()
-        request.addHeader(BaseMdcLoggingFilter.X_FORWARDED_FOR_HEADER, "10.0.0.1, 10.0.0.2")
-        request.addHeader(BaseMdcLoggingFilter.X_REAL_IP_HEADER, "10.0.0.3")
-
-        filter.doFilter(request, MockHttpServletResponse()) { _, _ ->
-            assertEquals("10.0.0.1", MDC.get(BaseMdcLoggingFilter.CLIENT_IP_KEY))
+        val request = request().apply {
+            addHeader(BaseMdcLoggingFilter.X_FORWARDED_FOR_HEADER, "10.0.0.1, 10.0.0.2")
+            addHeader(BaseMdcLoggingFilter.X_REAL_IP_HEADER, "10.0.0.3")
         }
 
+        testFilter(null).doFilter(request, MockHttpServletResponse()) { _, _ ->
+            assertEquals("10.0.0.1", MDC.get(BaseMdcLoggingFilter.CLIENT_IP_KEY))
+        }
         assertMdcCleared()
     }
 
     @Test
     fun `uses real ip when forwarded for is missing`() {
-        val filter = testFilter(null)
-        val request = request()
-        request.addHeader(BaseMdcLoggingFilter.X_REAL_IP_HEADER, "10.0.0.3")
+        val request = request().apply { addHeader(BaseMdcLoggingFilter.X_REAL_IP_HEADER, "10.0.0.3") }
 
-        filter.doFilter(request, MockHttpServletResponse()) { _, _ ->
+        testFilter(null).doFilter(request, MockHttpServletResponse()) { _, _ ->
             assertEquals("10.0.0.3", MDC.get(BaseMdcLoggingFilter.CLIENT_IP_KEY))
         }
-
         assertMdcCleared()
     }
 
     @Test
     fun `uses remote addr when proxy headers are missing`() {
-        val filter = testFilter(null)
-        val request = request()
-        request.remoteAddr = "127.0.0.1"
+        val request = request().apply { remoteAddr = "127.0.0.1" }
 
-        filter.doFilter(request, MockHttpServletResponse()) { _, _ ->
+        testFilter(null).doFilter(request, MockHttpServletResponse()) { _, _ ->
             assertEquals("127.0.0.1", MDC.get(BaseMdcLoggingFilter.CLIENT_IP_KEY))
         }
-
         assertMdcCleared()
     }
 
     @Test
-    fun `stores request info and falls back to guest user`() {
-        val filter = testFilter(" ")
-        val request = request(method = "POST", uri = "/api/bookings")
-
-        filter.doFilter(request, MockHttpServletResponse()) { _, _ ->
+    fun `stores request info and falls back to guest user when resolver returns blank`() {
+        testFilter(" ").doFilter(request(method = "POST", uri = "/api/bookings"), MockHttpServletResponse()) { _, _ ->
             assertEquals("POST /api/bookings", MDC.get(BaseMdcLoggingFilter.REQUEST_INFO_KEY))
             assertEquals(BaseMdcLoggingFilter.DEFAULT_GUEST_USER, MDC.get(BaseMdcLoggingFilter.USER_ID_KEY))
         }
-
         assertMdcCleared()
     }
 
@@ -145,29 +129,66 @@ class BaseMdcLoggingFilterTest {
     fun `uses resolved traceId and spanId when active span is available`() {
         val otelTraceId = "abcdef0123456789abcdef0123456789"
         val otelSpanId = "fedcba9876543210"
-        val filter = testFilter(null, stubResolver(otelTraceId, otelSpanId))
         val response = MockHttpServletResponse()
 
-        filter.doFilter(request(), response) { _, _ ->
+        testFilter(null, stubResolver(otelTraceId, otelSpanId)).doFilter(request(), response) { _, _ ->
             assertEquals(otelTraceId, MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY))
             assertEquals(otelSpanId, MDC.get(BaseMdcLoggingFilter.SPAN_ID_KEY))
         }
-
         assertEquals(otelTraceId, response.getHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER))
         assertMdcCleared()
     }
 
     @Test
     fun `falls back to UUID traceId and omits spanId when resolver returns null`() {
-        val filter = testFilter(null, NoOpTraceContextResolver)
-
-        filter.doFilter(request(), MockHttpServletResponse()) { _, _ ->
+        testFilter(null, NoOpTraceContextResolver).doFilter(request(), MockHttpServletResponse()) { _, _ ->
             val traceId = MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY)
             assertNotNull(traceId)
             assertEquals(32, traceId.length)
             assertNull(MDC.get(BaseMdcLoggingFilter.SPAN_ID_KEY))
         }
+        assertMdcCleared()
+    }
 
+    @Test
+    fun `refreshUserIdInMdc updates MDC with current resolved userId`() {
+        var resolvedId: String? = null
+        val filter = object : BaseMdcLoggingFilter(NoOpTraceContextResolver) {
+            override fun resolveUserId(): String? = resolvedId
+        }
+
+        MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, BaseMdcLoggingFilter.DEFAULT_GUEST_USER)
+        resolvedId = "99"
+        filter.refreshUserIdInMdc()
+
+        assertEquals("99", MDC.get(BaseMdcLoggingFilter.USER_ID_KEY))
+    }
+
+    @Test
+    fun `refreshUserIdInMdc falls back to GUEST when resolveUserId returns blank`() {
+        MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, "stale")
+        testFilter("  ").refreshUserIdInMdc()
+        assertEquals(BaseMdcLoggingFilter.DEFAULT_GUEST_USER, MDC.get(BaseMdcLoggingFilter.USER_ID_KEY))
+    }
+
+    @Test
+    fun `exception thrown by filter chain is stored as request attribute and rethrown`() {
+        val cause = RuntimeException("db timeout")
+        val request = request()
+
+        assertThrows<RuntimeException> {
+            testFilter(null).doFilter(request, MockHttpServletResponse(), FilterChain { _, _ -> throw cause })
+        }
+
+        assertSame(cause, request.getAttribute(AccessLogEmitter.EXCEPTION_ATTR))
+        assertMdcCleared()
+    }
+
+    @Test
+    fun `MDC is cleared even when filter chain throws`() {
+        runCatching {
+            testFilter(null).doFilter(request(), MockHttpServletResponse(), FilterChain { _, _ -> throw RuntimeException() })
+        }
         assertMdcCleared()
     }
 
@@ -190,14 +211,12 @@ class BaseMdcLoggingFilterTest {
         response: MockHttpServletResponse,
         assertion: (MockHttpServletRequest, MockHttpServletResponse) -> Unit,
     ) {
-        val chain = FilterChain { servletRequest, servletResponse ->
-            assertion(servletRequest as MockHttpServletRequest, servletResponse as MockHttpServletResponse)
-        }
-        doFilter(request, response, chain)
+        doFilter(request, response, FilterChain { req, res ->
+            assertion(req as MockHttpServletRequest, res as MockHttpServletResponse)
+        })
     }
 
     private fun assertMdcCleared() {
         assertTrue(MDC.getCopyOfContextMap().isNullOrEmpty())
-        assertFalse(MDC.getCopyOfContextMap()?.containsKey(BaseMdcLoggingFilter.TRACE_ID_KEY) ?: false)
     }
 }

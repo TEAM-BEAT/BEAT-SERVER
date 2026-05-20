@@ -173,6 +173,21 @@ loki.process "module" {
       module = "",
     }
   }
+  // prod JSON 로그에서 level 필드를 Loki 라벨로 승격 (LogQL level 필터링 최적화)
+  // beat-log-event-template.json 의 "level" 최상위 필드를 파싱.
+  // non-prod(plain-text) 행에서는 필드가 없어 라벨이 설정되지 않으므로 무해함.
+  // 라벨 정책: env / cluster / host / module / level 만 허용 — 고카디널리티 값(userId, route, traceId) 은
+  // JSON 라인 필드로만 보존하고 라벨로 승격하지 않는다.
+  stage.json {
+    expressions = {
+      level = "level",
+    }
+  }
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
   // stale stream 자동 drop
   stage.drop {
     older_than          = "12h"

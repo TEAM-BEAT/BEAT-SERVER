@@ -1,5 +1,7 @@
 package com.beat.observability.logging.filter
 
+import com.beat.observability.logging.access.AccessLogAsyncListener
+import com.beat.observability.logging.access.AccessLogEmitter
 import com.beat.observability.tracing.NoOpTraceContextResolver
 import com.beat.observability.tracing.TraceContextResolver
 import jakarta.servlet.FilterChain
@@ -32,6 +34,11 @@ abstract class BaseMdcLoggingFilter(
         private val TRACE_ID_PATTERN = Regex("^[A-Za-z0-9._:-]+$")
     }
 
+    private val accessLog = AccessLogEmitter()
+
+    // OncePerRequestFilter.shouldNotFilterAsyncDispatch() defaults to true → this filter runs
+    // only on DispatcherType.REQUEST. ASYNC re-dispatch never invokes us; AsyncListener does.
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -39,12 +46,50 @@ abstract class BaseMdcLoggingFilter(
     ) {
         val effectiveTraceId = populateMdc(request)
         response.setHeader(TRACE_ID_HEADER, effectiveTraceId)
+        accessLog.markStart(request)
 
         try {
             filterChain.doFilter(request, response)
+        } catch (ex: Throwable) {
+            request.setAttribute(AccessLogEmitter.EXCEPTION_ATTR, ex)
+            throw ex
         } finally {
-            MDC.clear()
+            try {
+                // Refresh before snapshot/emit: JWT filter has now run on this thread.
+                // The async worker thread that runs onComplete cannot see SecurityContextHolder.
+                refreshUserIdInMdc()
+                emitOrDeferAccessLog(request, response)
+            } finally {
+                MDC.clear()
+            }
         }
+    }
+
+    private fun emitOrDeferAccessLog(request: HttpServletRequest, response: HttpServletResponse) {
+        if (request.isAsyncStarted) {
+            val snapshot = MDC.getCopyOfContextMap() ?: emptyMap()
+            try {
+                request.asyncContext.addListener(
+                    AccessLogAsyncListener(accessLog, snapshot),
+                    request,
+                    response,
+                )
+            } catch (_: IllegalStateException) {
+                // TOCTOU: async completed between isAsyncStarted check and addListener.
+                if (accessLog.shouldEmit(request)) {
+                    MDC.setContextMap(snapshot)
+                    accessLog.emit(request, response)
+                }
+            }
+            return
+        }
+        if (accessLog.shouldEmit(request)) {
+            accessLog.emit(request, response)
+        }
+    }
+
+    internal fun refreshUserIdInMdc() {
+        MDC.put(USER_ID_KEY, resolveUserId()?.takeIf { it.isNotBlank() } ?: DEFAULT_GUEST_USER)
     }
 
     private fun populateMdc(request: HttpServletRequest): String {
@@ -77,16 +122,10 @@ abstract class BaseMdcLoggingFilter(
     private fun generateTraceId(): String = UUID.randomUUID().toString().replace("-", "")
 
     private fun extractClientIp(request: HttpServletRequest): String {
-        val forwardedFor = request.getHeader(X_FORWARDED_FOR_HEADER)
-        if (!forwardedFor.isNullOrBlank()) {
-            return forwardedFor.split(",").first().trim()
-        }
-
-        val realIp = request.getHeader(X_REAL_IP_HEADER)
-        if (!realIp.isNullOrBlank()) {
-            return realIp.trim()
-        }
-
+        request.getHeader(X_FORWARDED_FOR_HEADER)?.takeIf { it.isNotBlank() }
+            ?.let { return it.split(",").first().trim() }
+        request.getHeader(X_REAL_IP_HEADER)?.takeIf { it.isNotBlank() }
+            ?.let { return it.trim() }
         return request.remoteAddr
     }
 
