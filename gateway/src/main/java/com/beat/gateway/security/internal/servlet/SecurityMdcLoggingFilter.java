@@ -2,6 +2,7 @@ package com.beat.gateway.security.internal.servlet;
 
 import com.beat.observability.logging.filter.BaseMdcLoggingFilter;
 import com.beat.observability.tracing.TraceContextResolver;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -14,7 +15,7 @@ public class SecurityMdcLoggingFilter extends BaseMdcLoggingFilter {
 	@Override
 	protected String resolveUserId() {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		if (authentication == null) {
+		if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
 			return null;
 		}
 
