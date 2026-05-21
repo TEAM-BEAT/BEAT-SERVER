@@ -12,7 +12,8 @@ logging {
 // -----------------------------------------------------------------------------
 // 1. Secrets (호스트에 root:0600 으로 떨어진 파일 참조)
 // -----------------------------------------------------------------------------
-// token은 진짜 secret. user IDs는 numeric ID라 plain string 필드에 직접 들어가야 함 (is_secret=false)
+// GC user IDs (Prometheus/Loki/Tempo 인증용)는 plain string 필드에 그대로 들어가야 해서 is_secret=false.
+// token만 실제 secret — 노출되면 GC 계정 침해 가능.
 local.file "gc_token" {
   filename  = "{{ observability_alloy_container_secret_dir }}/gc_token"
   is_secret = true
@@ -43,7 +44,7 @@ prometheus.exporter.unix "node" {
   rootfs_path = "/host/rootfs"
   procfs_path = "/host/proc"
   sysfs_path  = "/host/sys"
-  disable_collectors = ["wifi", "ipvs", "infiniband", "btrfs", "zfs"]
+  disable_collectors = ["btrfs", "infiniband", "ipvs", "wifi", "zfs"]
 }
 
 prometheus.scrape "node" {
@@ -109,7 +110,7 @@ prometheus.relabel "cleanup" {
   }
   rule {
     action = "labeldrop"
-    regex  = "(exception|outcome|instance_name)"
+    regex  = "exception|outcome|instance_name"
   }
 
   forward_to = [prometheus.remote_write.gc.receiver]
@@ -149,50 +150,64 @@ discovery.docker "containers" {
   host = "unix:///var/run/docker.sock"
 }
 
+// __meta_docker_container_name 은 discovery 단계에서만 유효하므로
+// loki.process stage.regex 가 아닌 discovery.relabel 에서 module 라벨을 추출한다.
+//  - /apis-blue, /apis-green → apis
+//  - /admin, /batch, /nginx, /redis, /mysql → 그대로
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "^/.*?(apis|admin|batch|mysql|redis|nginx).*$"
+    target_label  = "module"
+    replacement   = "$1"
+  }
+}
+
 loki.source.docker "containers" {
-  host       = "unix:///var/run/docker.sock"
-  targets    = discovery.docker.containers.targets
+  host    = "unix:///var/run/docker.sock"
+  targets = discovery.relabel.containers.output
   labels = {
     env     = "{{ deploy_environment }}",
     cluster = "{{ observability_alloy_cluster }}",
     host    = "{{ inventory_hostname }}",
   }
-  forward_to = [loki.process.module.receiver]
+  forward_to = [loki.process.enrich.receiver]
 }
 
-loki.process "module" {
-  // 컨테이너 이름에서 module 라벨 추출 (회귀 안전 패턴)
-  //  - apis-blue / apis-green → apis
-  //  - admin / batch / nginx / redis / mysql → 그대로
-  stage.regex {
-    expression = "^/.*?(?P<module>apis|admin|batch|mysql|redis|nginx).*$"
-    source     = "__meta_docker_container_name"
-  }
-  stage.labels {
-    values = {
-      module = "",
-    }
-  }
-  // prod JSON 로그에서 level 필드를 Loki 라벨로 승격 (LogQL level 필터링 최적화)
-  // beat-log-event-template.json 의 "level" 최상위 필드를 파싱.
-  // non-prod(plain-text) 행에서는 필드가 없어 라벨이 설정되지 않으므로 무해함.
-  // 라벨 정책: env / cluster / host / module / level 만 허용 — 고카디널리티 값(userId, route, traceId) 은
-  // JSON 라인 필드로만 보존하고 라벨로 승격하지 않는다.
+// 라벨 정책: env / cluster / host / module / level 만 허용 — 고카디널리티 필드(userId/route/traceId 등)는 JSON 라인 내부에 보존.
+loki.process "enrich" {
+  // JsonTemplateLayout 의 @timestamp / level 추출.
   stage.json {
     expressions = {
-      level = "level",
+      timestamp = "\"@timestamp\"",
+      level     = "level",
     }
   }
+
+  // @timestamp 를 entry timestamp 로 설정 → stage.drop older_than 기준이 실제 로그 발생 시각이 됨.
+  // RFC3339Nano 는 milliseconds 정밀도까지 허용 — log4j2 의 "yyyy-MM-dd'T'HH:mm:ss.SSSXXX" 호환.
+  // action_on_failure="skip" 으로 parse 실패 시 Docker scrape time 을 유지 (default "fudge" 는 +1ns 누적되어 timestamp 왜곡).
+  stage.timestamp {
+    source            = "timestamp"
+    format            = "RFC3339Nano"
+    fallback_formats  = ["RFC3339"]
+    action_on_failure = "skip"
+  }
+
+  // 12시간 이상 지난 entry drop — stale stream 백필 차단. labels 보다 앞에 두어 불필요한 처리 회피.
+  stage.drop {
+    older_than          = "12h"
+    drop_counter_reason = "stale"
+  }
+
+  // level 을 라벨로 승격 → LogQL `{level="ERROR"}` 필터링 최적화.
   stage.labels {
     values = {
       level = "",
     }
   }
-  // stale stream 자동 drop
-  stage.drop {
-    older_than          = "12h"
-    drop_counter_reason = "stale"
-  }
+
   forward_to = [loki.write.gc.receiver]
 }
 
@@ -246,7 +261,7 @@ otelcol.processor.tail_sampling "policy" {
     }
   }
   policy {
-    name = "sample"
+    name = "default_probabilistic"
     type = "probabilistic"
     probabilistic {
       sampling_percentage = 10
