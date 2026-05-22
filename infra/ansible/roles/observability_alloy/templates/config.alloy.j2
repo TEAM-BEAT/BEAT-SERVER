@@ -269,15 +269,15 @@ otelcol.processor.tail_sampling "policy" {
   }
 
   output {
-    traces = [otelcol.exporter.otlphttp.gc.input]
+    traces = [otelcol.exporter.otlp.gc.input]
   }
 }
 
-// Grafana Cloud Tempo 는 OTLP HTTP gateway 만 제공 (gRPC 미지원).
-// otelcol.exporter.otlp (gRPC) 로 보내면 connection 단계에서 silent fail.
-// endpoint 는 https://otlp-gateway-...grafana.net/otlp 또는 https://tempo-...grafana.net/tempo 형식 (https scheme 필수).
-// otlphttp 가 endpoint 뒤에 /v1/traces 를 자동 append.
-otelcol.exporter.otlphttp "gc" {
+// Grafana Cloud Tempo OTLP ingest — 콘솔의 공식 Alloy example 기준.
+//   exporter: otelcol.exporter.otlp (gRPC, port 443/TLS)
+//   endpoint: tempo-prod-XX-<region>.grafana.net:443  (scheme/path 없음)
+// tempo-...grafana.net/tempo 는 Grafana datasource 가 query 할 때 쓰는 URL 이지 OTLP ingest 와 다름.
+otelcol.exporter.otlp "gc" {
   client {
     endpoint = "{{ gc_tempo_endpoint }}"
     auth     = otelcol.auth.basic.gc.handler
