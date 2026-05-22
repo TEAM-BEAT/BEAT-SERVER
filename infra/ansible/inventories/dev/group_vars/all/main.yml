@@ -89,7 +89,3 @@ observability_alloy_enable_traces: false
 observability_alloy_enable_cadvisor: false
 observability_alloy_published_ports:
   - "127.0.0.1:12345:12345"
-
-# Spring Boot OTel exporter endpoint (app 컨테이너에 환경변수로 주입)
-# dev는 tracing.enabled=false라 실제 송신 안 되지만, 일관성 위해 정의
-otel_otlp_tracing_endpoint: "http://alloy:4318/v1/traces"

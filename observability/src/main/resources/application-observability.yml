@@ -34,16 +34,18 @@ management:
         http.server.requests: 0.95, 0.99
 
   tracing:
-    enabled: ${MANAGEMENT_TRACING_ENABLED:false}
+    enabled: false
     sampling:
-      probability: ${MANAGEMENT_TRACING_SAMPLING:1.0}
+      probability: 1.0
     propagation:
       type: W3C
-  otlp:
+  opentelemetry:
     tracing:
-      endpoint: ${OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
-      transport: http
-      timeout: 10s
+      export:
+        otlp:
+          endpoint: http://alloy:4318/v1/traces
+          transport: http
+          timeout: 10s
 
 logging:
   level:

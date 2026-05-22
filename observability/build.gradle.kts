@@ -11,8 +11,7 @@ dependencies {
     runtimeOnly(libs.sentry.log4j2)
     runtimeOnly(libs.log4j.layout.template.json)
 
-    api(libs.micrometer.tracing.bridge.otel)
-    implementation(libs.opentelemetry.exporter.otlp)
+    api(libs.spring.boot.starter.opentelemetry)
 
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.boot.starter.web)
