@@ -17,7 +17,7 @@
 
 - name: Resolve repository root
   ansible.builtin.set_fact:
-    image_cdn_repo_root: "{{ (playbook_dir | dirname) | dirname }}"
+    image_cdn_repo_root: "{{ ((playbook_dir | dirname) | dirname) | dirname }}"
 
 - name: Build Lambda deployment package
   ansible.builtin.command:
