@@ -24,7 +24,7 @@
     cmd: >
       bash -c "cd '{{ image_cdn_repo_root }}/{{ image_cdn_lambda_src_relpath }}'
       && rm -rf node_modules
-      && npm install --omit=dev --os=linux --cpu=arm64 --no-audit --no-fund"
+      && npm install --omit=dev --include=optional --os=linux --cpu=arm64 --libc=glibc --no-audit --no-fund"
   changed_when: true
 
 - name: Compute Lambda package hash for versioning
