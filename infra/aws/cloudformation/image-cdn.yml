@@ -256,9 +256,6 @@ Resources:
             DomainName: !GetAtt TransformedImageBucket.RegionalDomainName
             S3OriginConfig: { OriginAccessIdentity: "" }
             OriginAccessControlId: !GetAtt S3OriginAccessControl.Id
-            OriginShield:
-              Enabled: true
-              OriginShieldRegion: !Ref AWS::Region
           - Id: image-processor
             DomainName: !Select
               - 2
@@ -267,9 +264,6 @@ Resources:
               OriginProtocolPolicy: https-only
               OriginSSLProtocols: [TLSv1.2]
             OriginAccessControlId: !GetAtt LambdaOriginAccessControl.Id
-            OriginShield:
-              Enabled: true
-              OriginShieldRegion: !Ref AWS::Region
         OriginGroups:
           Quantity: 1
           Items:

@@ -67,7 +67,14 @@ infra/aws/
 
 본 구성은
 [`aws-samples/image-optimization`](https://github.com/aws-samples/image-optimization)
-패턴을 기반으로 하되, BEAT 특수 요구사항에 맞춰 다음 두 가지를 강화했습니다.
+패턴을 기반으로 하되, BEAT 특수 요구사항에 맞춰 두 가지를 강화하고
+한 가지를 의도적으로 생략했습니다.
+
+> [!NOTE]
+> **Origin Shield 는 사용하지 않습니다.** BEAT 트래픽은 한국 단일 region
+> 으로 집중되어 multi-region fan-out 효과가 없고, 변환본 S3 저장 패턴으로
+> cache miss 자체가 적어 Shield 의 효익이 비용을 초과하지 못합니다.
+> 추후 글로벌 트래픽이 생기면 한 줄로 활성화 가능.
 
 | 강화 포인트 | 내용 |
 | --- | --- |
