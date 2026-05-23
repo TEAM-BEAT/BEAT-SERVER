@@ -26,6 +26,9 @@ function handler(event) {
     var qs = request.querystring || {};
 
     var widthRaw = qs.w && qs.w.value;
+    if (widthRaw && !/^\d+$/.test(widthRaw)) {
+        return reject(400, 'invalid width');
+    }
     var width = widthRaw ? parseInt(widthRaw, 10) : DEFAULT_WIDTH;
     if (!ALLOWED_WIDTHS[width]) {
         return reject(400, 'invalid width');

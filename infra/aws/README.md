@@ -10,8 +10,8 @@ CloudFront, Lambda, S3 등 AWS 네이티브 리소스를 정의하는 CloudForma
 
 1. [디렉토리 구조](#1-디렉토리-구조)
 2. [Phase 1 — Image CDN](#2-phase-1--image-cdn)
-   - [아키텍처](#21-아키텍처)
-   - [핵심 설계 결정](#22-핵심-설계-결정)
+   - [아키텍처](#2-1-아키텍처)
+   - [핵심 설계 결정](#2-2-핵심-설계-결정)
 3. [최초 배포 절차](#3-최초-배포-절차)
    - [3-1. 사전 준비](#3-1-사전-준비-1회성)
    - [3-2. 배포 명령](#3-2-배포-명령)
@@ -24,7 +24,7 @@ CloudFront, Lambda, S3 등 AWS 네이티브 리소스를 정의하는 CloudForma
 
 ## 1. 디렉토리 구조
 
-```
+```text
 infra/aws/
 ├── cloudformation/
 │   └── image-cdn.yml                       # Phase 1 — 이미지 전송 스택
@@ -42,7 +42,7 @@ infra/aws/
 
 ### 2-1. 아키텍처
 
-```
+```text
                 ┌───────────────────────────┐
        viewer ──► CloudFront                │
                 │  + viewer-request Function │  ◄─ 경로 정규화
@@ -51,7 +51,7 @@ infra/aws/
                 │   · 400 reject             │
                 └──────────────┬─────────────┘
                                ▼
-                Origin Group  (403/404 발생 시 자동 failover)
+                Origin Group  (403/500/503/504 발생 시 자동 failover)
                 ├─ Primary :  transformed-images S3
                 └─ Fallback:  Lambda Function URL
                                │
@@ -192,7 +192,7 @@ AWS_PROFILE=beat-prod ansible-playbook \
 `image_cdn_custom_domain` 을 설정한 경우, 스택 출력값 `DistributionDomainName`
 을 확인한 뒤 Route 53 에 alias (또는 CNAME) 레코드를 추가합니다.
 
-```
+```text
 cdn.beatlive.kr  →  d{xxxxxxx}.cloudfront.net
 ```
 

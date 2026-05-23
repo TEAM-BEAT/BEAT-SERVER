@@ -12,7 +12,7 @@
       image_cdn_alarm_email, image_cdn_lambda_code_bucket and, when
       image_cdn_custom_domain is set, a matching image_cdn_acm_cert_arn.
       AWS credentials are picked up from the environment
-      (AWS_ACCESS_KEY_ID / AWS_SESSION_TOKEN or AWS_PROFILE) — set them
+      (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_SESSION_TOKEN or AWS_PROFILE) — set them
       before invoking the playbook.
 
 - name: Resolve repository root

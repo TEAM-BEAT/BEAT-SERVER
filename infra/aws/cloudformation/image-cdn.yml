@@ -308,6 +308,7 @@ Resources:
     Type: AWS::SNS::Topic
     Properties:
       TopicName: !Sub "beat-image-cdn-alarms-${Environment}"
+      KmsMasterKeyId: "alias/aws/sns"
       Subscription:
         - Protocol: email
           Endpoint: !Ref AlarmEmail
