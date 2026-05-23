@@ -218,7 +218,7 @@ Resources:
     Properties:
       CachePolicyConfig:
         Name: !Sub "beat-image-cdn-cache-${Environment}"
-        Comment: "URI is the full cache key; querystring/headers are ignored. Image bytes are already compressed, so Accept-Encoding negotiation is disabled."
+        Comment: "URI is the full cache key; querystring/headers ignored; image bytes already compressed."
         DefaultTTL: 31536000
         MaxTTL: 31536000
         MinTTL: 0
