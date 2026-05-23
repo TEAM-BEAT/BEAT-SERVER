@@ -131,17 +131,43 @@ image_cdn_alarm_email: alerts@example.com
 
 ### 3-2. 배포 명령
 
+### 배포 주체
+
+BEAT 의 표준 배포 경로는 **GitHub Actions + Ansible** 입니다
+([[project_infra_deploy_strategy]]). GHA workflow 가 dev/prod 환경별 AWS
+credentials 를 OIDC role 또는 secrets 로 주입하고, runner 에서
+`ansible-playbook` 을 실행하는 형태입니다. 본 role 도 동일 패턴을
+전제로 합니다 — `amazon.aws` 모듈은 환경변수
+(`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN`
+또는 `AWS_PROFILE`) 를 자동 인식합니다.
+
+> [!NOTE]
+> Phase 1 의 GHA 워크플로우 정의는 별도 PR scope. 본 PR 은 role/CFN/JS
+> 만 포함하며, 첫 실 배포까지의 GHA 추가는 후속 작업입니다.
+
+### 로컬 디버깅 실행
+
+> [!IMPORTANT]
+> `ansible.cfg` 의 `roles_path` 가 상대경로이므로 **반드시 `infra/ansible/`
+> 디렉토리에서 실행** 해야 합니다.
+
+dev/prod 는 **AWS 계정이 분리되어 있으므로** 환경변수로 profile 을 지정합니다.
+로컬 `~/.aws/config` 에 사전 구성된 profile 이름을 사용하세요 (예: `beat-dev`,
+`beat-prod`).
+
 ```bash
-# dev 먼저
-ansible-playbook \
-  -i infra/ansible/inventories/dev \
-  infra/ansible/playbooks/image_cdn.yml \
+cd infra/ansible
+
+# dev
+AWS_PROFILE=beat-dev ansible-playbook \
+  -i inventories/dev \
+  playbooks/image_cdn.yml \
   -e deploy_environment=dev
 
-# dev 검증 통과 후 prod
-ansible-playbook \
-  -i infra/ansible/inventories/prod \
-  infra/ansible/playbooks/image_cdn.yml \
+# prod (dev 검증 통과 후)
+AWS_PROFILE=beat-prod ansible-playbook \
+  -i inventories/prod \
+  playbooks/image_cdn.yml \
   -e deploy_environment=prod
 ```
 
