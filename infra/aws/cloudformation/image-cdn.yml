@@ -157,7 +157,6 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref ImageProcessingLambda
       Principal: cloudfront.amazonaws.com
-      FunctionUrlAuthType: AWS_IAM
       SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
 
   ViewerRequestFunction:
