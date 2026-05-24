@@ -2,6 +2,8 @@ package com.beat.admin.promotion.application.dto.result;
 
 import java.util.List;
 
+import com.beat.global.support.jackson.CdnImageUrl;
+
 public record AdminPromotionResults(
 	List<AdminPromotionResult> promotionResults
 ) {
@@ -17,7 +19,7 @@ public record AdminPromotionResults(
 	public record AdminPromotionResult(
 		Long promotionId,
 		String carouselNumber,
-		String newImageUrl,
+		@CdnImageUrl String newImageUrl,
 		boolean isExternal,
 		String redirectUrl,
 		Long performanceId

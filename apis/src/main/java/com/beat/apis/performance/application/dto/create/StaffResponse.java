@@ -1,10 +1,12 @@
 package com.beat.apis.performance.application.dto.create;
 
+import com.beat.global.support.jackson.CdnImageUrl;
+
 public record StaffResponse(
 	Long staffId,
 	String staffName,
 	String staffRole,
-	String staffPhoto
+	@CdnImageUrl String staffPhoto
 ) {
 	public static StaffResponse of(
 		Long staffId,

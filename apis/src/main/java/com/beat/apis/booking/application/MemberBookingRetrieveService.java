@@ -1,8 +1,5 @@
 package com.beat.apis.booking.application;
 
-import com.beat.apis.common.application.converter.BookingStatusEnumConverter;
-import com.beat.apis.common.application.converter.BankNameEnumConverter;
-import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -13,8 +10,15 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import com.beat.apis.booking.application.dto.MemberBookingRetrieveResponse;
-import com.beat.domain.booking.repository.BookingRepository;
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.BookingStatusEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
+import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
+import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
+import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
+import com.beat.apis.user.application.exception.UserApplicationErrorCode;
 import com.beat.domain.booking.domain.Booking;
+import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.Performance;
@@ -27,10 +31,6 @@ import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.support.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
-import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
-import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
-import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
-import com.beat.apis.user.application.exception.UserApplicationErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -81,7 +81,8 @@ public class MemberBookingRetrieveService {
 			.collect(Collectors.toMap(Performance::getId, Function.identity()));
 	}
 
-	private MemberBookingRetrieveResponse toMemberBookingResponse(LocalDate today, Booking booking, Map<Long, Schedule> scheduleMap,
+	private MemberBookingRetrieveResponse toMemberBookingResponse(LocalDate today, Booking booking,
+		Map<Long, Schedule> scheduleMap,
 		Map<Long, Performance> performanceMap) {
 		Schedule schedule = findScheduleForBooking(scheduleMap, booking);
 		Performance performance = findPerformanceForSchedule(performanceMap, schedule);
