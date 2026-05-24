@@ -43,7 +43,6 @@ sentry-log4j2 = { module = "io.sentry:sentry-log4j2", version.ref = "sentry" }
 log4j-layout-template-json = { module = "org.apache.logging.log4j:log4j-layout-template-json", version = "2.26.0" }
 
 mysql-connector-j = { module = "com.mysql:mysql-connector-j", version = "9.6.0" }
-spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
 spring-boot-core = { module = "org.springframework.boot:spring-boot", version.ref = "spring-boot" }
 spring-boot-persistence = { module = "org.springframework.boot:spring-boot-persistence", version.ref = "spring-boot" }
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }

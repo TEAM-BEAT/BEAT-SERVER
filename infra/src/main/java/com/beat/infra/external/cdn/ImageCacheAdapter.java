@@ -51,6 +51,11 @@ public class ImageCacheAdapter implements ImageCachePort {
         return factory;
     }
 
+    private static boolean isAbsoluteUrl(String value) {
+        String lower = value.toLowerCase(java.util.Locale.ROOT);
+        return lower.startsWith("http://") || lower.startsWith("https://");
+    }
+
     private static String normalize(String domain) {
         if (domain == null || domain.isBlank()) {
             return "";
@@ -65,7 +70,7 @@ public class ImageCacheAdapter implements ImageCachePort {
             return;
         }
         String normalizedKey = imageKey.startsWith("/") ? imageKey.substring(1) : imageKey;
-        if (normalizedKey.startsWith("http")) {
+        if (isAbsoluteUrl(normalizedKey)) {
             log.debug("Skipping pre-warm for full URL value: {}", imageKey);
             return;
         }

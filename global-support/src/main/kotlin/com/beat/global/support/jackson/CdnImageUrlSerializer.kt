@@ -17,7 +17,7 @@ class CdnImageUrlSerializer : ValueSerializer<String>() {
             gen.writeNull()
             return
         }
-        if (value.isBlank() || value.startsWith("http") || cdnBase.isEmpty()) {
+        if (value.isBlank() || isAbsoluteUrl(value) || cdnBase.isEmpty()) {
             gen.writeString(value)
             return
         }
@@ -28,6 +28,10 @@ class CdnImageUrlSerializer : ValueSerializer<String>() {
     companion object {
         @Volatile
         private var cdnBase: String = ""
+
+        private fun isAbsoluteUrl(value: String): Boolean =
+            value.startsWith("http://", ignoreCase = true) ||
+                value.startsWith("https://", ignoreCase = true)
 
         @JvmStatic
         fun initialize(domain: String?) {

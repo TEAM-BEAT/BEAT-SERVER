@@ -11,7 +11,7 @@ object ImageKeyExtractor {
 
     @JvmStatic
     fun extract(value: String?): String? {
-        if (value.isNullOrBlank() || !value.startsWith("http")) {
+        if (value.isNullOrBlank() || !isAbsoluteUrl(value)) {
             return value
         }
         return try {
@@ -25,4 +25,8 @@ object ImageKeyExtractor {
             value
         }
     }
+
+    private fun isAbsoluteUrl(value: String): Boolean =
+        value.startsWith("http://", ignoreCase = true) ||
+            value.startsWith("https://", ignoreCase = true)
 }
