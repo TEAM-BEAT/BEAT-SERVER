@@ -2,12 +2,13 @@ package com.beat.apis.performance.application.dto.modify;
 
 import java.util.List;
 
+import com.beat.apis.performance.application.dto.BankNameType;
+import com.beat.apis.performance.application.dto.GenreType;
 import com.beat.apis.performance.application.dto.modify.cast.CastModifyResponse;
 import com.beat.apis.performance.application.dto.modify.performanceImage.PerformanceImageModifyResponse;
 import com.beat.apis.performance.application.dto.modify.schedule.ScheduleModifyResponse;
 import com.beat.apis.performance.application.dto.modify.staff.StaffModifyResponse;
-import com.beat.apis.performance.application.dto.BankNameType;
-import com.beat.apis.performance.application.dto.GenreType;
+import com.beat.global.support.jackson.CdnImageUrl;
 
 public record PerformanceModifyResponse(
 	Long userId,
@@ -20,7 +21,7 @@ public record PerformanceModifyResponse(
 	BankNameType bankName,
 	String accountNumber,
 	String accountHolder,
-	String posterImage,
+	@CdnImageUrl String posterImage,
 	String performanceTeamName,
 	String performanceVenue,
 	String roadAddressName,

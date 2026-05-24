@@ -45,6 +45,8 @@ cloud:
       secret-key: ${DEV_S3_SECRET_KEY}
   s3:
     bucket: beat-dev-bucket
+  cdn:
+    domain: "https://d3oubuynagl140.cloudfront.net"
 
 slack:
   webhook:
@@ -81,6 +83,8 @@ cloud:
       secret-key: ${PROD_S3_SECRET_KEY}
   s3:
     bucket: beat-prod-bucket
+  cdn:
+    domain: "https://cdn.beatlive.kr"
 
 slack:
   webhook:
@@ -129,6 +133,8 @@ cloud:
       secret-key: test-secret-key
   s3:
     bucket: beat-test-bucket
+  cdn:
+    domain: "https://test-cdn.beatlive.kr"
   stack:
     auto: false
 

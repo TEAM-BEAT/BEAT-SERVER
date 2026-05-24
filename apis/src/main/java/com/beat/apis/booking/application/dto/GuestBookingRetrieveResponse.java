@@ -1,10 +1,10 @@
 package com.beat.apis.booking.application.dto;
 
-import com.beat.apis.booking.application.dto.BookingStatusType;
+import java.time.LocalDateTime;
+
 import com.beat.apis.performance.application.dto.BankNameType;
 import com.beat.apis.schedule.application.dto.ScheduleNumberType;
-
-import java.time.LocalDateTime;
+import com.beat.global.support.jackson.CdnImageUrl;
 
 public record GuestBookingRetrieveResponse(
 	Long bookingId,
@@ -23,7 +23,7 @@ public record GuestBookingRetrieveResponse(
 	int dueDate,
 	BookingStatusType bookingStatus,
 	LocalDateTime createdAt,
-	String posterImage,
+	@CdnImageUrl String posterImage,
 	int totalPaymentAmount
 ) {
 	public static GuestBookingRetrieveResponse of(

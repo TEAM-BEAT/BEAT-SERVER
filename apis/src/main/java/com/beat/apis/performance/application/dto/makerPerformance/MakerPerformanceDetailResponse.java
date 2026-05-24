@@ -1,10 +1,12 @@
 package com.beat.apis.performance.application.dto.makerPerformance;
 
+import com.beat.global.support.jackson.CdnImageUrl;
+
 public record MakerPerformanceDetailResponse(
 	Long performanceId,
 	String genre,
 	String performanceTitle,
-	String posterImage,
+	@CdnImageUrl String posterImage,
 	String performancePeriod,
 	int minDueDate
 ) {

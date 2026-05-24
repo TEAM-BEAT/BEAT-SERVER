@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.beat.apis.performance.application.dto.BankNameType;
 import com.beat.apis.performance.application.dto.GenreType;
+import com.beat.global.support.jackson.CdnImageUrl;
 
 public record PerformanceResponse(
 	Long userId,
@@ -16,7 +17,7 @@ public record PerformanceResponse(
 	BankNameType bankName,
 	String accountNumber,
 	String accountHolder,
-	String posterImage,
+	@CdnImageUrl String posterImage,
 	String performanceTeamName,
 	String performanceVenue,
 	String roadAddressName,

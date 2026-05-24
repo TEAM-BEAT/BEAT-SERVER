@@ -1,8 +1,5 @@
 package com.beat.apis.performance.application;
 
-import com.beat.apis.common.application.converter.GenreEnumConverter;
-import com.beat.apis.common.application.converter.BankNameEnumConverter;
-import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,6 +9,9 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.GenreEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyRequest;
 import com.beat.apis.performance.application.dto.modify.PerformanceModifyResponse;
@@ -28,6 +28,7 @@ import com.beat.apis.performance.application.exception.PerformanceApplicationErr
 import com.beat.apis.performance.application.exception.PerformanceImageApplicationErrorCode;
 import com.beat.apis.performance.application.exception.StaffApplicationErrorCode;
 import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
+import com.beat.contracts.cdn.ImageCachePort;
 import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
 import com.beat.contracts.schedule.ScheduleBookingCloseJobTarget;
 import com.beat.domain.booking.domain.BookingStatus;
@@ -49,6 +50,7 @@ import com.beat.domain.staff.repository.StaffRepository;
 import com.beat.global.support.exception.BadRequestException;
 import com.beat.global.support.exception.ForbiddenException;
 import com.beat.global.support.exception.NotFoundException;
+import com.beat.global.support.utils.ImageKeyExtractor;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -66,6 +68,7 @@ public class PerformanceModifyService {
 	private final BookingRepository bookingRepository;
 	private final PerformanceImageRepository performanceImageRepository;
 	private final ScheduleBookingCloseJobPort scheduleBookingCloseJobPort;
+	private final ImageCachePort imageCachePort;
 	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 
 	@Transactional
@@ -99,6 +102,8 @@ public class PerformanceModifyService {
 
 		PerformanceModifyResponse response = completeModifyResponse(performance, modifiedSchedules, modifiedCasts,
 			modifiedStaffs, modifiedPerformanceImages);
+
+		imageCachePort.preWarm(performance.getPosterImage());
 
 		log.info("Successfully completed updatePerformance for performanceId: {}", request.performanceId());
 		return response;
@@ -146,7 +151,7 @@ public class PerformanceModifyService {
 			BankNameEnumConverter.toDomain(request.bankName()),
 			request.accountNumber(),
 			request.accountHolder(),
-			request.posterImage(),
+			ImageKeyExtractor.extract(request.posterImage()),
 			request.performanceTeamName(),
 			request.performanceVenue(),
 			request.roadAddressName(),
@@ -358,7 +363,7 @@ public class PerformanceModifyService {
 		Cast cast = Cast.create(
 			request.castName(),
 			request.castRole(),
-			request.castPhoto(),
+			ImageKeyExtractor.extract(request.castPhoto()),
 			performance.getId()
 		);
 		Cast savedCast = castRepository.save(cast);
@@ -387,7 +392,7 @@ public class PerformanceModifyService {
 		cast = castRepository.save(cast.update(
 			request.castName(),
 			request.castRole(),
-			request.castPhoto()
+			ImageKeyExtractor.extract(request.castPhoto())
 		));
 		log.debug("Updated cast with castId: {}", cast.getId());
 		return CastModifyResponse.of(
@@ -442,7 +447,7 @@ public class PerformanceModifyService {
 		Staff staff = Staff.create(
 			request.staffName(),
 			request.staffRole(),
-			request.staffPhoto(),
+			ImageKeyExtractor.extract(request.staffPhoto()),
 			performance.getId()
 		);
 		Staff savedStaff = staffRepository.save(staff);
@@ -471,7 +476,7 @@ public class PerformanceModifyService {
 		staff = staffRepository.save(staff.update(
 			request.staffName(),
 			request.staffRole(),
-			request.staffPhoto()
+			ImageKeyExtractor.extract(request.staffPhoto())
 		));
 		log.debug("Updated staff with staffId: {}", staff.getId());
 		return StaffModifyResponse.of(
@@ -526,7 +531,7 @@ public class PerformanceModifyService {
 		log.debug("Adding performanceImages for performanceId: {}", performance.getId());
 
 		PerformanceImage performanceImage = PerformanceImage.create(
-			request.performanceImage(),
+			ImageKeyExtractor.extract(request.performanceImage()),
 			performance.getId()
 		);
 		PerformanceImage savedPerformanceImage = performanceImageRepository.save(performanceImage);
@@ -552,7 +557,8 @@ public class PerformanceModifyService {
 				PerformanceImageApplicationErrorCode.PERFORMANCE_IMAGE_NOT_BELONG_TO_PERFORMANCE);
 		}
 
-		performanceImage = performanceImageRepository.save(performanceImage.update(request.performanceImage()));
+		performanceImage = performanceImageRepository.save(
+			performanceImage.update(ImageKeyExtractor.extract(request.performanceImage())));
 		log.debug("Updated performanceImage: {}", performanceImage.getId());
 		return PerformanceImageModifyResponse.of(
 			performanceImage.getId(),
