@@ -3,12 +3,16 @@ package com.beat.infra.external.cdn;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import com.beat.contracts.cdn.ImageCachePort;
 
@@ -25,6 +29,7 @@ public class ImageCacheAdapter implements ImageCachePort {
     private static final List<Integer> TARGET_WIDTHS = List.of(480, 960);
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(2);
     private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
+    private static final Executor VARIANT_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
 
     private final RestClient restClient;
     private final String cdnBase;
@@ -65,9 +70,11 @@ public class ImageCacheAdapter implements ImageCachePort {
             return;
         }
         String baseUrl = cdnBase + "/" + normalizedKey;
-        for (int width : TARGET_WIDTHS) {
-            warmSingleVariant(baseUrl, width);
-        }
+        CompletableFuture<?>[] variantTasks = TARGET_WIDTHS.stream()
+                .map(width -> CompletableFuture.runAsync(
+                        () -> warmSingleVariant(baseUrl, width), VARIANT_EXECUTOR))
+                .toArray(CompletableFuture[]::new);
+        CompletableFuture.allOf(variantTasks).join();
         log.info("CDN pre-warm completed for {}", baseUrl);
     }
 
@@ -78,7 +85,7 @@ public class ImageCacheAdapter implements ImageCachePort {
                     .uri(targetUrl)
                     .retrieve()
                     .toBodilessEntity();
-        } catch (Exception e) {
+        } catch (RestClientException e) {
             log.warn("CDN pre-warm failed: {} — {}", targetUrl, e.getMessage());
         }
     }
