@@ -1,0 +1,15 @@
+---
+# dev-environment overrides for the image_cdn role.
+# Secrets (alarm email, ACM cert ARN if used) belong in secrets.sops.yml.
+
+image_cdn_source_bucket: "beat-dev-bucket"
+image_cdn_lambda_code_bucket: "beat-lambda-artifacts-dev"
+
+# Leave empty until ACM cert is provisioned and Route53 record is ready.
+image_cdn_custom_domain: ""
+image_cdn_acm_cert_arn: ""
+
+# image_cdn_alarm_email is sourced from secrets.sops.yml. Add the
+# following key there (use `sops` to edit):
+#
+#   image_cdn_alarm_email: alerts-dev@example.com
