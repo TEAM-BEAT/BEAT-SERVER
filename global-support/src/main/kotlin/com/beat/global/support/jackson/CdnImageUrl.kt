@@ -1,7 +1,7 @@
 package com.beat.global.support.jackson
 
 import com.fasterxml.jackson.annotation.JacksonAnnotationsInside
-import com.fasterxml.jackson.databind.annotation.JsonSerialize
+import tools.jackson.databind.annotation.JsonSerialize
 
 /**
  * Marks a response DTO field that holds a storage key for an image. Jackson

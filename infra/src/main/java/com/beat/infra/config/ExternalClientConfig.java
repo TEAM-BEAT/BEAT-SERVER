@@ -10,7 +10,6 @@ import com.beat.infra.InfraBaseConfig;
 import com.beat.infra.external.auth.social.kakao.KakaoSocialLoginAdapter;
 import com.beat.infra.external.auth.social.kakao.client.KakaoApiClient;
 import com.beat.infra.external.auth.social.kakao.client.KakaoAuthApiClient;
-import com.beat.infra.external.cdn.CdnImageUrlConfig;
 import com.beat.infra.external.cdn.ImageCacheAdapter;
 import com.beat.infra.external.notification.slack.SlackBookingNotificationAdapter;
 import com.beat.infra.external.notification.slack.SlackMemberNotificationAdapter;
@@ -21,7 +20,7 @@ import com.beat.infra.external.storage.s3.S3FileStorageAdapter;
 import com.beat.infra.external.storage.s3.S3InfraConfig;
 
 @Configuration(proxyBeanMethods = false)
-@Import({S3InfraConfig.class, CdnImageUrlConfig.class})
+@Import(S3InfraConfig.class)
 @EnableFeignClients(basePackageClasses = {
 	KakaoApiClient.class,
 	KakaoAuthApiClient.class,

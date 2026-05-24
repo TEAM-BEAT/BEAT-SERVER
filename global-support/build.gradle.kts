@@ -4,6 +4,7 @@ plugins {
 }
 
 dependencies {
-    compileOnly("com.fasterxml.jackson.core:jackson-annotations:2.15.4")
-    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.15.4")
+    // Jackson 3 (tools.jackson.*) — Spring Boot 4.0 default ObjectMapper.
+    // jackson-annotations remains under com.fasterxml.jackson.annotation per Jackson 3 migration rules.
+    compileOnly(libs.jackson3.databind)
 }
