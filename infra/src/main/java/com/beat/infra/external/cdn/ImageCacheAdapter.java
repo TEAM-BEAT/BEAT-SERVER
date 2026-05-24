@@ -1,8 +1,11 @@
 package com.beat.infra.external.cdn;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -20,14 +23,27 @@ import lombok.extern.slf4j.Slf4j;
 public class ImageCacheAdapter implements ImageCachePort {
 
     private static final List<Integer> TARGET_WIDTHS = List.of(480, 960);
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(2);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
 
     private final RestClient restClient;
     private final String cdnBase;
 
     public ImageCacheAdapter(RestClient.Builder restClientBuilder,
                              @Value("${cloud.cdn.domain:}") String cdnDomain) {
-        this.restClient = restClientBuilder.build();
+        this.restClient = restClientBuilder
+                .requestFactory(buildRequestFactory())
+                .build();
         this.cdnBase = normalize(cdnDomain);
+    }
+
+    private static JdkClientHttpRequestFactory buildRequestFactory() {
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(CONNECT_TIMEOUT)
+                .build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
+        factory.setReadTimeout(READ_TIMEOUT);
+        return factory;
     }
 
     private static String normalize(String domain) {
