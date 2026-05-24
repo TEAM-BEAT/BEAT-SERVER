@@ -18,10 +18,6 @@ import com.beat.contracts.cdn.ImageCachePort;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Infrastructure adapter that pre-warms the CDN by issuing GETs for the
- * common width variants of a freshly registered image key.
- */
 @Slf4j
 @Component
 public class ImageCacheAdapter implements ImageCachePort {

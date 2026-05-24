@@ -1,15 +1,10 @@
 package com.beat.global.support.jackson
 
-import com.beat.global.support.jackson.CdnImageUrlSerializer.Companion.initialize
 import tools.jackson.core.JsonGenerator
 import tools.jackson.databind.SerializationContext
 import tools.jackson.databind.ValueSerializer
 
-/**
- * Jackson 3 serializer that prepends the configured CDN base to a bare image key.
- * Jackson instantiates this class reflectively (no Spring DI), so the CDN base
- * is supplied at boot time via [initialize] from infra.
- */
+// Jackson 이 reflective 로 생성하므로 Spring DI 를 못 받음 → 부트 시점에 initialize() 로 주입.
 class CdnImageUrlSerializer : ValueSerializer<String>() {
 
     override fun serialize(value: String?, gen: JsonGenerator, ctxt: SerializationContext) {
@@ -29,10 +24,6 @@ class CdnImageUrlSerializer : ValueSerializer<String>() {
         @Volatile
         private var cdnBase: String = ""
 
-        private fun isAbsoluteUrl(value: String): Boolean =
-            value.startsWith("http://", ignoreCase = true) ||
-                value.startsWith("https://", ignoreCase = true)
-
         @JvmStatic
         fun initialize(domain: String?) {
             cdnBase = when {
@@ -41,5 +32,9 @@ class CdnImageUrlSerializer : ValueSerializer<String>() {
                 else -> domain
             }
         }
+
+        private fun isAbsoluteUrl(value: String): Boolean =
+            value.startsWith("http://", ignoreCase = true) ||
+                value.startsWith("https://", ignoreCase = true)
     }
 }

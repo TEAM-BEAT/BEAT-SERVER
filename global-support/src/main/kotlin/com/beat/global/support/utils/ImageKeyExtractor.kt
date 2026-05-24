@@ -2,17 +2,9 @@ package com.beat.global.support.utils
 
 import java.net.URI
 
-/**
- * Pure utility: extract the storage key (URI path without leading slash) from
- * a full S3/CDN URL and verify it lives under a known image prefix. Idempotent —
- * applying twice yields the same key. Returns the input unchanged when it is
- * null/blank. Throws [IllegalArgumentException] when the resulting key does not
- * start with one of the prefixes the S3 PresignedUrl flow can produce, blocking
- * arbitrary external URLs from being persisted (mirrors the CloudFront
- * viewer-request `ALLOWED_PREFIXES` whitelist).
- */
 object ImageKeyExtractor {
 
+    // CloudFront viewer-request ALLOWED_PREFIXES 와 정확히 일치해야 함.
     private val ALLOWED_PREFIXES: Set<String> =
         setOf("poster", "cast", "staff", "performance", "carousel", "banner")
 
