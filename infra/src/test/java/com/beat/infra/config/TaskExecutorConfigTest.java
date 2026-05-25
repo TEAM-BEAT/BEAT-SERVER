@@ -8,6 +8,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.task.TaskDecorator;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -15,10 +17,11 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 class TaskExecutorConfigTest {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+		.withConfiguration(AutoConfigurations.of(TaskExecutionAutoConfiguration.class))
 		.withUserConfiguration(TaskExecutorConfig.class);
 
 	@Test
-	void registersAndBindsThreadPoolPropertiesFromOwningConfig() {
+	void customizerOverridesAutoConfiguredApplicationTaskExecutorWithThreadPoolProperties() {
 		contextRunner
 			.withPropertyValues(
 				"thread-pool.core-size=3",
@@ -29,7 +32,7 @@ class TaskExecutorConfigTest {
 			.run(context -> {
 				ThreadPoolProperties properties = context.getBean(ThreadPoolProperties.class);
 				ThreadPoolTaskExecutor executor = context.getBean(
-					"beatApplicationTaskExecutor",
+					"applicationTaskExecutor",
 					ThreadPoolTaskExecutor.class
 				);
 
@@ -63,7 +66,7 @@ class TaskExecutorConfigTest {
 			)
 			.run(context -> {
 				ThreadPoolTaskExecutor executor = context.getBean(
-					"beatApplicationTaskExecutor",
+					"applicationTaskExecutor",
 					ThreadPoolTaskExecutor.class
 				);
 				CountDownLatch latch = new CountDownLatch(1);
