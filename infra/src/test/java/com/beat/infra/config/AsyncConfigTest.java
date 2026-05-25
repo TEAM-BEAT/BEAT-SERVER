@@ -6,17 +6,18 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import java.lang.reflect.Method;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 class AsyncConfigTest {
 
 	@Test
-	void getAsyncExecutorReusesApplicationExecutorWithoutSecuritySpecificWrapper() {
+	void beatAsyncConfigurerReusesApplicationExecutorWithoutSecuritySpecificWrapper() {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 		executor.initialize();
-		AsyncConfig asyncConfig = new AsyncConfig(executor);
+		AsyncConfigurer configurer = new AsyncConfig().beatAsyncConfigurer(executor);
 
-		assertSame(executor, asyncConfig.getAsyncExecutor());
+		assertSame(executor, configurer.getAsyncExecutor());
 	}
 
 	@Test
