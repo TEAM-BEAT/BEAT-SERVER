@@ -20,6 +20,10 @@ management:
     metrics:
       export:
         enabled: true
+  otlp:
+    metrics:
+      export:
+        enabled: false
 
   metrics:
     tags:
