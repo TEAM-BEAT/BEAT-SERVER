@@ -82,6 +82,8 @@ management:
       base-path: ${DEV_ACTUATOR_PATH}
   tracing:
     enabled: false
+    export:
+      enabled: false
 
 sentry:
   environment: dev
