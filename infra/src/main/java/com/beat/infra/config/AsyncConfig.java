@@ -25,7 +25,7 @@ import com.beat.infra.InfraBaseConfig;
 // 단일 인스턴스로 wrap 하도록 유도.
 @Configuration(proxyBeanMethods = false)
 @EnableAsync
-@Import(TaskExecutorConfig.class)
+@Import({TaskExecutorConfig.class, AsyncConfigurerDiagnostic.class})
 public class AsyncConfig implements InfraBaseConfig {
 
 	private static final Logger log = LoggerFactory.getLogger(AsyncConfig.class);
