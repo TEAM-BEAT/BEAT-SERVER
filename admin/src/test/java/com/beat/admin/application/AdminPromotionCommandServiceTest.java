@@ -29,6 +29,7 @@ import com.beat.admin.application.exception.AdminApplicationErrorCode;
 import com.beat.admin.promotion.application.service.command.AdminPromotionCommandService;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
+import com.beat.contracts.cdn.ImageCachePort;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;
@@ -44,6 +45,9 @@ class AdminPromotionCommandServiceTest {
 
 	private static final long MEMBER_ID = 7L;
 	private static final long PERFORMANCE_ID = 11L;
+
+	@Mock
+	private ImageCachePort imageCachePort;
 
 	@Mock
 	private MemberRepository memberRepository;

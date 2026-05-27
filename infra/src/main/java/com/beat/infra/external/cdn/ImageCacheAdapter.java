@@ -8,6 +8,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ImageCacheAdapter implements ImageCachePort {
 
     private static final List<Integer> TARGET_WIDTHS = List.of(480, 960);
+    private static final List<String> TARGET_FORMATS = List.of("image/avif", "image/webp", "image/jpeg");
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(2);
     private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
     private static final Executor VARIANT_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
@@ -72,22 +74,24 @@ public class ImageCacheAdapter implements ImageCachePort {
         }
         String baseUrl = cdnBase + "/" + normalizedKey;
         CompletableFuture<?>[] variantTasks = TARGET_WIDTHS.stream()
-                .map(width -> CompletableFuture.runAsync(
-                        () -> warmSingleVariant(baseUrl, width), VARIANT_EXECUTOR))
+                .flatMap(width -> TARGET_FORMATS.stream()
+                        .map(accept -> CompletableFuture.runAsync(
+                                () -> warmSingleVariant(baseUrl, width, accept), VARIANT_EXECUTOR)))
                 .toArray(CompletableFuture[]::new);
         CompletableFuture.allOf(variantTasks).join();
-        log.info("CDN pre-warm completed for {}", baseUrl);
+        log.info("CDN pre-warm completed for {} ({} variants)", baseUrl, variantTasks.length);
     }
 
-    private void warmSingleVariant(String baseUrl, int width) {
+    private void warmSingleVariant(String baseUrl, int width, String accept) {
         String targetUrl = baseUrl + "?w=" + width;
         try {
             restClient.get()
                     .uri(targetUrl)
+                    .header(HttpHeaders.ACCEPT, accept)
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientException e) {
-            log.warn("CDN pre-warm failed: {} — {}", targetUrl, e.getMessage());
+            log.warn("CDN pre-warm failed: {} [{}] — {}", targetUrl, accept, e.getMessage());
         }
     }
 }
