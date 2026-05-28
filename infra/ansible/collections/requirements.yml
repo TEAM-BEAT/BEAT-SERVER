@@ -1,5 +1,7 @@
 ---
 collections:
+  - name: amazon.aws
+    version: ">=8.0.0,<9.0.0"
   - name: community.docker
     version: ">=4.8.1,<5.0.0"
   - name: community.sops

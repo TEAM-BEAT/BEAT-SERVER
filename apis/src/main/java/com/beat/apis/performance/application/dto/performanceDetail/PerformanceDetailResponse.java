@@ -2,6 +2,8 @@ package com.beat.apis.performance.application.dto.performanceDetail;
 
 import java.util.List;
 
+import com.beat.global.support.jackson.CdnImageUrl;
+
 public record PerformanceDetailResponse(
 	Long performanceId,
 	String performanceTitle,
@@ -9,7 +11,7 @@ public record PerformanceDetailResponse(
 	List<PerformanceDetailScheduleResponse> scheduleList,
 	int ticketPrice,
 	String genre,
-	String posterImage,
+	@CdnImageUrl String posterImage,
 	int runningTime,
 	String performanceVenue,
 	String roadAddressName,

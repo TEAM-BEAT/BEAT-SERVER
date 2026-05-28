@@ -1,6 +1,5 @@
 package com.beat.apis.home.application;
 
-import com.beat.apis.common.application.converter.GenreEnumConverter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -10,6 +9,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.beat.apis.common.application.converter.GenreEnumConverter;
 import com.beat.apis.home.application.dto.HomeFindAllResponse;
 import com.beat.apis.home.application.dto.HomeFindRequest;
 import com.beat.apis.home.application.dto.HomeGenreType;

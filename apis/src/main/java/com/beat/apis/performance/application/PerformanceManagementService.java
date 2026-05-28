@@ -1,8 +1,5 @@
 package com.beat.apis.performance.application;
 
-import com.beat.apis.common.application.converter.GenreEnumConverter;
-import com.beat.apis.common.application.converter.BankNameEnumConverter;
-import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import static java.util.Comparator.comparing;
 
 import java.time.LocalDate;
@@ -14,6 +11,9 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.beat.apis.common.application.converter.BankNameEnumConverter;
+import com.beat.apis.common.application.converter.GenreEnumConverter;
+import com.beat.apis.common.application.converter.ScheduleNumberEnumConverter;
 import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
 import com.beat.apis.performance.application.dto.create.CastResponse;
 import com.beat.apis.performance.application.dto.create.PerformanceImageResponse;
@@ -22,6 +22,7 @@ import com.beat.apis.performance.application.dto.create.PerformanceResponse;
 import com.beat.apis.performance.application.dto.create.ScheduleResponse;
 import com.beat.apis.performance.application.dto.create.StaffResponse;
 import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
+import com.beat.contracts.cdn.ImageCachePort;
 import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
 import com.beat.contracts.schedule.ScheduleBookingCloseJobTarget;
 import com.beat.domain.booking.domain.BookingStatus;
@@ -44,6 +45,7 @@ import com.beat.domain.staff.repository.StaffRepository;
 import com.beat.global.support.exception.BadRequestException;
 import com.beat.global.support.exception.ForbiddenException;
 import com.beat.global.support.exception.NotFoundException;
+import com.beat.global.support.utils.ImageKeyExtractor;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,6 +64,7 @@ public class PerformanceManagementService {
 	private final PerformanceImageRepository performanceImageRepository;
 	private final PromotionRepository promotionRepository;
 	private final ScheduleBookingCloseJobPort scheduleBookingCloseJobPort;
+	private final ImageCachePort imageCachePort;
 	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 
 	@Transactional
@@ -78,7 +81,7 @@ public class PerformanceManagementService {
 			BankNameEnumConverter.toDomain(request.bankName()),
 			request.accountNumber(),
 			request.accountHolder(),
-			request.posterImage(),
+			ImageKeyExtractor.extract(request.posterImage()),
 			request.performanceTeamName(),
 			request.performanceVenue(),
 			request.roadAddressName(),
@@ -128,7 +131,7 @@ public class PerformanceManagementService {
 			.map(castRequest -> Cast.create(
 				castRequest.castName(),
 				castRequest.castRole(),
-				castRequest.castPhoto(),
+				ImageKeyExtractor.extract(castRequest.castPhoto()),
 				savedPerformanceId
 			))
 			.toList());
@@ -137,7 +140,7 @@ public class PerformanceManagementService {
 			.map(staffRequest -> Staff.create(
 				staffRequest.staffName(),
 				staffRequest.staffRole(),
-				staffRequest.staffPhoto(),
+				ImageKeyExtractor.extract(staffRequest.staffPhoto()),
 				savedPerformanceId
 			))
 			.toList());
@@ -145,11 +148,13 @@ public class PerformanceManagementService {
 		List<PerformanceImage> performanceImageList = performanceImageRepository.saveAll(
 			request.performanceImageList().stream()
 				.map(performanceImageRequest -> PerformanceImage.create(
-					performanceImageRequest.performanceImage(),
+					ImageKeyExtractor.extract(performanceImageRequest.performanceImage()),
 					savedPerformanceId
 				))
 				.toList()
 		);
+
+		imageCachePort.preWarm(savedPerformance.getPosterImage());
 
 		return mapToPerformanceResponse(savedPerformance, schedules, casts, staffs, performanceImageList);
 	}

@@ -1,0 +1,15 @@
+---
+# prod-environment overrides for the image_cdn role.
+# Secrets (alarm email, ACM cert ARN) belong in secrets.sops.yml.
+
+image_cdn_source_bucket: "beat-prod-bucket"
+image_cdn_lambda_code_bucket: "beat-lambda-artifacts-prod"
+
+# Target custom domain. The ACM cert ARN is sourced from secrets.sops.yml.
+image_cdn_custom_domain: "cdn.beatlive.kr"
+
+# image_cdn_alarm_email and image_cdn_acm_cert_arn are sourced from
+# secrets.sops.yml. Add the following keys there (use `sops` to edit):
+#
+#   image_cdn_alarm_email: alerts@example.com
+#   image_cdn_acm_cert_arn: "arn:aws:acm:us-east-1:<account>:certificate/<id>"

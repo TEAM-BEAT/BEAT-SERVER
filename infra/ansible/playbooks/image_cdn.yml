@@ -1,0 +1,18 @@
+---
+- name: Provision BEAT Image CDN (CloudFront + Dynamic Image Transformation + Function)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  pre_tasks:
+    - name: Assert deploy_environment is provided
+      ansible.builtin.assert:
+        that:
+          - deploy_environment is defined
+          - deploy_environment | length > 0
+        fail_msg: "deploy_environment must be provided (e.g., -e deploy_environment=dev)."
+
+  roles:
+    - role: image_cdn
+      tags:
+        - image_cdn

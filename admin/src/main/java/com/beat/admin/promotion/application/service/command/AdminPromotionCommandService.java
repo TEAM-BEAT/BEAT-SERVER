@@ -10,8 +10,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.beat.admin.application.exception.AdminApplicationErrorCode;
 import com.beat.admin.common.application.converter.AdminCarouselNumberEnumConverter;
-
 import com.beat.admin.promotion.application.dto.request.AdminCarouselNumber;
 import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest;
 import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
@@ -20,7 +20,7 @@ import com.beat.admin.promotion.application.dto.request.PromotionHandleRequest;
 import com.beat.admin.promotion.application.dto.response.CarouselHandleAllResponse;
 import com.beat.admin.promotion.application.dto.result.AdminPromotionResults;
 import com.beat.admin.promotion.application.dto.result.AdminPromotionResults.AdminPromotionResult;
-import com.beat.admin.application.exception.AdminApplicationErrorCode;
+import com.beat.contracts.cdn.ImageCachePort;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.promotion.domain.CarouselNumber;
@@ -28,6 +28,7 @@ import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
 import com.beat.global.support.exception.BadRequestException;
 import com.beat.global.support.exception.NotFoundException;
+import com.beat.global.support.utils.ImageKeyExtractor;
 
 import lombok.RequiredArgsConstructor;
 
@@ -43,6 +44,7 @@ public class AdminPromotionCommandService {
 	private final MemberRepository memberRepository;
 	private final PromotionRepository promotionRepository;
 	private final PerformanceRepository performanceRepository;
+	private final ImageCachePort imageCachePort;
 
 	@Transactional
 	public CarouselHandleAllResponse processAllPromotionsSortedByCarouselNumber(Long memberId,
@@ -146,11 +148,15 @@ public class AdminPromotionCommandService {
 				Promotion promotion = findPromotionById(modifyRequest.promotionId());
 				Long performanceId = validatePerformanceId(modifyRequest.performanceId());
 
+				String imageKey = ImageKeyExtractor.extract(modifyRequest.newImageUrl());
 				Promotion updatedPromotion = promotion.updatePromotionDetails(
 					toCarouselNumber(modifyRequest.carouselNumber()),
-					modifyRequest.newImageUrl(), modifyRequest.isExternal(), modifyRequest.redirectUrl(),
+					imageKey, modifyRequest.isExternal(),
+					modifyRequest.redirectUrl(),
 					performanceId);
-				return promotionRepository.save(updatedPromotion);
+				Promotion saved = promotionRepository.save(updatedPromotion);
+				imageCachePort.preWarm(imageKey);
+				return saved;
 			})
 			.toList();
 	}
@@ -160,10 +166,14 @@ public class AdminPromotionCommandService {
 			.map(generateRequest -> {
 				Long performanceId = validatePerformanceId(generateRequest.performanceId());
 
-				Promotion newPromotion = Promotion.create(generateRequest.newImageUrl(), performanceId,
+				String imageKey = ImageKeyExtractor.extract(generateRequest.newImageUrl());
+				Promotion newPromotion = Promotion.create(imageKey,
+					performanceId,
 					generateRequest.redirectUrl(), generateRequest.isExternal(),
 					toCarouselNumber(generateRequest.carouselNumber()));
-				return promotionRepository.save(newPromotion);
+				Promotion saved = promotionRepository.save(newPromotion);
+				imageCachePort.preWarm(imageKey);
+				return saved;
 			})
 			.toList();
 	}

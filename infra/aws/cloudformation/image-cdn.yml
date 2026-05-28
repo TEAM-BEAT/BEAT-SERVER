@@ -1,0 +1,382 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  BEAT Image CDN — CloudFront distribution backed by a Lambda image
+  processor (Sharp) with S3 caching of transformed variants. Pattern
+  derived from aws-samples/image-optimization, adapted for the BEAT
+  workload (variant whitelist + Accept-header negotiation enforced at
+  the edge by a viewer-request CloudFront Function).
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [dev, prod]
+
+  OriginalImageBucketName:
+    Type: String
+    Description: Existing S3 bucket holding original uploads.
+
+  LambdaCodeBucket:
+    Type: String
+    Description: S3 bucket holding the Lambda deployment package.
+  LambdaCodeKey:
+    Type: String
+    Description: S3 key of the Lambda deployment zip.
+
+  ViewerRequestFunctionCode:
+    Type: String
+    Description: CloudFront Function source (viewer-request).
+
+  CustomDomainName:
+    Type: String
+    Default: ""
+    Description: Optional alternate domain (e.g. cdn.beatlive.kr). Leave empty to skip.
+  AcmCertificateArn:
+    Type: String
+    Default: ""
+    Description: ACM certificate ARN in us-east-1. Required when CustomDomainName is set.
+
+  AlarmEmail:
+    Type: String
+    Description: SNS subscription email for image-cdn alarms.
+
+  LambdaMemoryMb:
+    Type: Number
+    Default: 1500
+    Description: >
+      Memory size of the image processor. 1500 MB matches the
+      aws-samples/image-optimization default and gives Sharp enough
+      headroom for AVIF encoding without timeouts on cold start.
+  LambdaTimeoutSeconds:
+    Type: Number
+    Default: 30
+  LambdaLogRetentionDays:
+    Type: Number
+    Default: 14
+  TransformedImageRetentionDays:
+    Type: Number
+    Default: 90
+  TransformedImageCacheControl:
+    Type: String
+    Default: "public, max-age=31536000, immutable"
+
+Conditions:
+  HasCustomDomain: !Not [!Equals [!Ref CustomDomainName, ""]]
+
+Resources:
+
+  TransformedImageBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "beat-image-cdn-transformed-${Environment}"
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-transformed
+            Status: Enabled
+            ExpirationInDays: !Ref TransformedImageRetentionDays
+
+  ImageProcessingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: image-cdn-s3-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub "arn:aws:s3:::${OriginalImageBucketName}/*"
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub "${TransformedImageBucket.Arn}/*"
+
+  ImageProcessingLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/beat-image-cdn-processor-${Environment}"
+      RetentionInDays: !Ref LambdaLogRetentionDays
+
+  ImageProcessingLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: ImageProcessingLogGroup
+    Properties:
+      FunctionName: !Sub "beat-image-cdn-processor-${Environment}"
+      Runtime: nodejs24.x
+      Architectures: [arm64]
+      Handler: index.handler
+      Role: !GetAtt ImageProcessingRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaCodeBucket
+        S3Key: !Ref LambdaCodeKey
+      MemorySize: !Ref LambdaMemoryMb
+      Timeout: !Ref LambdaTimeoutSeconds
+      Environment:
+        Variables:
+          ORIGINAL_IMAGE_BUCKET: !Ref OriginalImageBucketName
+          TRANSFORMED_IMAGE_BUCKET: !Ref TransformedImageBucket
+          TRANSFORMED_IMAGE_CACHE_CONTROL: !Ref TransformedImageCacheControl
+
+  ImageProcessingFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt ImageProcessingLambda.Arn
+      AuthType: AWS_IAM
+      InvokeMode: BUFFERED
+
+  ImageProcessingUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunctionUrl
+      FunctionName: !Ref ImageProcessingLambda
+      Principal: cloudfront.amazonaws.com
+      FunctionUrlAuthType: AWS_IAM
+      SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+
+  ImageProcessingInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ImageProcessingLambda
+      Principal: cloudfront.amazonaws.com
+      SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+
+  ViewerRequestFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub "beat-image-cdn-viewer-request-${Environment}"
+      AutoPublish: true
+      FunctionConfig:
+        Comment: "Path normalization + variant whitelist + Accept negotiation."
+        Runtime: cloudfront-js-2.0
+      FunctionCode: !Ref ViewerRequestFunctionCode
+
+  S3OriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "beat-image-cdn-s3-oac-${Environment}"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  LambdaOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "beat-image-cdn-lambda-oac-${Environment}"
+        OriginAccessControlOriginType: lambda
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  ResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub "beat-image-cdn-headers-${Environment}"
+        Comment: "CORS for cross-origin <img> consumers + vary:accept hint for downstream caches."
+        CorsConfig:
+          AccessControlAllowCredentials: false
+          AccessControlAllowHeaders:
+            Items: ["*"]
+          AccessControlAllowMethods:
+            Items: [GET]
+          AccessControlAllowOrigins:
+            Items: ["*"]
+          AccessControlMaxAgeSec: 600
+          OriginOverride: false
+        CustomHeadersConfig:
+          Items:
+            - Header: x-beat-image-cdn
+              Value: v1
+              Override: true
+            - Header: vary
+              Value: accept
+              Override: true
+
+  ImageCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub "beat-image-cdn-cache-${Environment}"
+        Comment: "URI is the full cache key; querystring/headers ignored; image bytes already compressed."
+        DefaultTTL: 31536000
+        MaxTTL: 31536000
+        MinTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingBrotli: false
+          EnableAcceptEncodingGzip: false
+          QueryStringsConfig:
+            QueryStringBehavior: none
+          HeadersConfig:
+            HeaderBehavior: none
+          CookiesConfig:
+            CookieBehavior: none
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub "BEAT image CDN (${Environment})"
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_200
+        Aliases: !If
+          - HasCustomDomain
+          - [!Ref CustomDomainName]
+          - !Ref AWS::NoValue
+        ViewerCertificate: !If
+          - HasCustomDomain
+          - AcmCertificateArn: !Ref AcmCertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - CloudFrontDefaultCertificate: true
+        Origins:
+          - Id: transformed-s3
+            DomainName: !GetAtt TransformedImageBucket.RegionalDomainName
+            S3OriginConfig: { OriginAccessIdentity: "" }
+            OriginAccessControlId: !GetAtt S3OriginAccessControl.Id
+          - Id: image-processor
+            DomainName: !Select
+              - 2
+              - !Split ["/", !GetAtt ImageProcessingFunctionUrl.FunctionUrl]
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [TLSv1.2]
+            OriginAccessControlId: !GetAtt LambdaOriginAccessControl.Id
+        OriginGroups:
+          Quantity: 1
+          Items:
+            - Id: transformed-with-fallback
+              FailoverCriteria:
+                StatusCodes:
+                  Quantity: 4
+                  Items: [403, 500, 503, 504]
+              Members:
+                Quantity: 2
+                Items:
+                  - { OriginId: transformed-s3 }
+                  - { OriginId: image-processor }
+        DefaultCacheBehavior:
+          TargetOriginId: transformed-with-fallback
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD, OPTIONS]
+          Compress: false
+          CachePolicyId: !Ref ImageCachePolicy
+          ResponseHeadersPolicyId: !Ref ResponseHeadersPolicy
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt ViewerRequestFunction.FunctionMetadata.FunctionARN
+
+  TransformedImageBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TransformedImageBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub "${TransformedImageBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "beat-image-cdn-alarms-${Environment}"
+      KmsMasterKeyId: "alias/aws/sns"
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref AlarmEmail
+
+  LambdaErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "beat-image-cdn-lambda-errors-${Environment}"
+      AlarmDescription: Image processor Lambda errors over 5 minutes.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ImageProcessingLambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  CloudFront5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "beat-image-cdn-5xx-${Environment}"
+      AlarmDescription: CloudFront 5xx error rate > 0.5% sustained.
+      Namespace: AWS/CloudFront
+      MetricName: 5xxErrorRate
+      Dimensions:
+        - Name: DistributionId
+          Value: !Ref Distribution
+        - Name: Region
+          Value: Global
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 0.5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  CacheHitRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "beat-image-cdn-cache-hit-rate-${Environment}"
+      AlarmDescription: CloudFront cache hit rate < 90% sustained.
+      Namespace: AWS/CloudFront
+      MetricName: CacheHitRate
+      Dimensions:
+        - Name: DistributionId
+          Value: !Ref Distribution
+        - Name: Region
+          Value: Global
+      Statistic: Average
+      Period: 900
+      EvaluationPeriods: 3
+      Threshold: 90
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+Outputs:
+  DistributionDomainName:
+    Value: !GetAtt Distribution.DomainName
+  DistributionId:
+    Value: !Ref Distribution
+  TransformedImageBucketName:
+    Value: !Ref TransformedImageBucket
+  AlarmTopicArn:
+    Value: !Ref AlarmTopic

@@ -1,0 +1,92 @@
+---
+- name: Assert required image_cdn inputs
+  ansible.builtin.assert:
+    that:
+      - deploy_environment in ["dev", "prod"]
+      - image_cdn_source_bucket | length > 0
+      - image_cdn_alarm_email | length > 0
+      - image_cdn_lambda_code_bucket | length > 0
+      - (image_cdn_custom_domain | length == 0) or (image_cdn_acm_cert_arn | length > 0)
+    fail_msg: >
+      image_cdn role requires deploy_environment, image_cdn_source_bucket,
+      image_cdn_alarm_email, image_cdn_lambda_code_bucket and, when
+      image_cdn_custom_domain is set, a matching image_cdn_acm_cert_arn.
+      AWS credentials are picked up from the environment
+      (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_SESSION_TOKEN or AWS_PROFILE) — set them
+      before invoking the playbook.
+
+- name: Resolve repository root
+  ansible.builtin.set_fact:
+    image_cdn_repo_root: "{{ ((playbook_dir | dirname) | dirname) | dirname }}"
+
+- name: Build Lambda deployment package
+  ansible.builtin.command:
+    cmd: >
+      bash -c "cd '{{ image_cdn_repo_root }}/{{ image_cdn_lambda_src_relpath }}'
+      && rm -rf node_modules
+      && npm install --omit=dev --include=optional --os=linux --cpu=arm64 --libc=glibc --no-audit --no-fund"
+  changed_when: true
+
+- name: Compute Lambda package hash for versioning
+  ansible.builtin.command:
+    cmd: >
+      bash -c "cd '{{ image_cdn_repo_root }}/{{ image_cdn_lambda_src_relpath }}'
+      && find . -type f -not -path './.git/*' -print0 | xargs -0 shasum | shasum | cut -c1-12"
+  register: image_cdn_lambda_hash
+  changed_when: false
+
+- name: Override Lambda code key with content hash
+  ansible.builtin.set_fact:
+    image_cdn_lambda_code_key: "image-cdn/{{ image_cdn_lambda_hash.stdout | trim }}/image-processing.zip"
+
+- name: Zip Lambda deployment package
+  ansible.builtin.command:
+    cmd: >
+      bash -c "cd '{{ image_cdn_repo_root }}/{{ image_cdn_lambda_src_relpath }}'
+      && zip -qr /tmp/beat-image-processing.zip ."
+  changed_when: true
+
+- name: Upload Lambda deployment package to S3
+  amazon.aws.s3_object:
+    bucket: "{{ image_cdn_lambda_code_bucket }}"
+    object: "{{ image_cdn_lambda_code_key }}"
+    src: /tmp/beat-image-processing.zip
+    mode: put
+    region: "{{ image_cdn_region }}"
+
+- name: Read CloudFront Function source
+  ansible.builtin.set_fact:
+    image_cdn_function_code: "{{ lookup('file', image_cdn_repo_root ~ '/' ~ image_cdn_function_relpath) }}"
+
+- name: Sanity-check Function source size (CloudFront Functions hard limit 10 KB)
+  ansible.builtin.assert:
+    that:
+      - image_cdn_function_code | length < 10240
+    fail_msg: "viewer-request CloudFront Function exceeds the 10 KB hard limit."
+
+- name: Deploy image-cdn CloudFormation stack
+  amazon.aws.cloudformation:
+    stack_name: "{{ image_cdn_stack_name }}"
+    state: present
+    region: "{{ image_cdn_region }}"
+    template: "{{ image_cdn_repo_root }}/{{ image_cdn_template_relpath }}"
+    capabilities:
+      - CAPABILITY_IAM
+    template_parameters:
+      Environment: "{{ deploy_environment }}"
+      OriginalImageBucketName: "{{ image_cdn_source_bucket }}"
+      LambdaCodeBucket: "{{ image_cdn_lambda_code_bucket }}"
+      LambdaCodeKey: "{{ image_cdn_lambda_code_key }}"
+      ViewerRequestFunctionCode: "{{ image_cdn_function_code }}"
+      CustomDomainName: "{{ image_cdn_custom_domain }}"
+      AcmCertificateArn: "{{ image_cdn_acm_cert_arn }}"
+      AlarmEmail: "{{ image_cdn_alarm_email }}"
+      LambdaMemoryMb: "{{ image_cdn_lambda_memory_mb }}"
+      LambdaTimeoutSeconds: "{{ image_cdn_lambda_timeout_seconds }}"
+      LambdaLogRetentionDays: "{{ image_cdn_lambda_log_retention_days }}"
+      TransformedImageRetentionDays: "{{ image_cdn_transformed_retention_days }}"
+  register: image_cdn_stack_result
+
+- name: Show image-cdn stack outputs
+  ansible.builtin.debug:
+    msg: "{{ image_cdn_stack_result.stack_outputs | default({}) }}"

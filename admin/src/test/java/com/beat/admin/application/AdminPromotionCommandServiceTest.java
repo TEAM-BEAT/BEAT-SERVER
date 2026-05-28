@@ -29,6 +29,7 @@ import com.beat.admin.application.exception.AdminApplicationErrorCode;
 import com.beat.admin.promotion.application.service.command.AdminPromotionCommandService;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.domain.SocialType;
+import com.beat.contracts.cdn.ImageCachePort;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;
@@ -44,6 +45,9 @@ class AdminPromotionCommandServiceTest {
 
 	private static final long MEMBER_ID = 7L;
 	private static final long PERFORMANCE_ID = 11L;
+
+	@Mock
+	private ImageCachePort imageCachePort;
 
 	@Mock
 	private MemberRepository memberRepository;
@@ -93,9 +97,9 @@ class AdminPromotionCommandServiceTest {
 		});
 
 		CarouselHandleRequest request = new CarouselHandleRequest(List.of(
-			new PromotionModifyRequest(1L, AdminCarouselNumber.THREE, "modified-image", true, "modified-url",
+			new PromotionModifyRequest(1L, AdminCarouselNumber.THREE, "carousel/modified-image", true, "modified-url",
 				PERFORMANCE_ID),
-			new PromotionGenerateRequest(AdminCarouselNumber.ONE, "created-image", false, "created-url", null)
+			new PromotionGenerateRequest(AdminCarouselNumber.ONE, "carousel/created-image", false, "created-url", null)
 		));
 
 		CarouselHandleAllResponse response =
@@ -109,10 +113,10 @@ class AdminPromotionCommandServiceTest {
 
 		assertEquals(2, response.modifiedPromotionResponses().size());
 		assertEquals(3L, response.modifiedPromotionResponses().get(0).promotionId());
-		assertEquals("created-image", response.modifiedPromotionResponses().get(0).newImageUrl());
+		assertEquals("carousel/created-image", response.modifiedPromotionResponses().get(0).newImageUrl());
 		assertEquals("ONE", response.modifiedPromotionResponses().get(0).carouselNumber());
 		assertEquals(1L, response.modifiedPromotionResponses().get(1).promotionId());
-		assertEquals("modified-image", response.modifiedPromotionResponses().get(1).newImageUrl());
+		assertEquals("carousel/modified-image", response.modifiedPromotionResponses().get(1).newImageUrl());
 		assertEquals("THREE", response.modifiedPromotionResponses().get(1).carouselNumber());
 	}
 

@@ -1,0 +1,26 @@
+---
+# Defaults for the image_cdn role. Override per environment under
+# inventories/{dev,prod}/group_vars/all/image_cdn.yml and secrets.sops.yml.
+
+image_cdn_stack_name: "beat-image-cdn-{{ deploy_environment }}"
+image_cdn_region: "ap-northeast-2"
+
+# Paths (relative to repo root) of source artifacts.
+image_cdn_template_relpath: "infra/aws/cloudformation/image-cdn.yml"
+image_cdn_function_relpath: "infra/aws/cloudfront-functions/image-cdn-viewer-request.js"
+image_cdn_lambda_src_relpath: "infra/aws/lambda/image-processing"
+
+# Where to upload the Lambda deployment zip. Bucket must exist beforehand
+# and live in the same region as the Lambda function.
+image_cdn_lambda_code_bucket: "beat-lambda-artifacts-{{ deploy_environment }}"
+image_cdn_lambda_code_key: "image-cdn/{{ image_cdn_lambda_code_version | default('latest') }}/image-processing.zip"
+
+# Optional custom domain. When set, AcmCertificateArn must point to a
+# certificate in us-east-1.
+image_cdn_custom_domain: ""
+image_cdn_acm_cert_arn: ""
+
+image_cdn_lambda_memory_mb: 1500
+image_cdn_lambda_timeout_seconds: 30
+image_cdn_lambda_log_retention_days: 14
+image_cdn_transformed_retention_days: 90

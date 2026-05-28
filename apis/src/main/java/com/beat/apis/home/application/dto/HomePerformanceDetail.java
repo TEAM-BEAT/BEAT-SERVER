@@ -1,5 +1,7 @@
 package com.beat.apis.home.application.dto;
 
+import com.beat.global.support.jackson.CdnImageUrl;
+
 public record HomePerformanceDetail(
 	Long performanceId,
 	String performanceTitle,
@@ -7,7 +9,7 @@ public record HomePerformanceDetail(
 	int ticketPrice,
 	int dueDate,
 	String genre,
-	String posterImage,
+	@CdnImageUrl String posterImage,
 	String performanceVenue
 ) {
 
