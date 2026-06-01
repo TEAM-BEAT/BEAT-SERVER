@@ -381,7 +381,7 @@ Boundary rules:
   `infra.persistence.booking.repository.query.MakerTicketReadPortImpl.kt`의 Kotlin JDSL `jpql { }` DSL로 수행합니다.
   `JpqlRenderContext`는 `JpaConfig`에서 단일 bean으로 등록해 재사용하며 generated Q-type을 source tree에 커밋하지 않습니다.
 
-#### ADR: read/query adapter 의 Kotlin JDSL 실행 방식 (#442)
+### ADR: read/query adapter 의 Kotlin JDSL 실행 방식 (#442)
 
 - **결정**: read/query adapter 는 `EntityManager + 공유 JpqlRenderContext` 직접 실행 방식을 사용하고,
   Spring Data 통합(`JpaRepository + KotlinJdslJpqlExecutor`)은 사용하지 않는다.

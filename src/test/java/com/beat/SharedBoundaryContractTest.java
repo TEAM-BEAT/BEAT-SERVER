@@ -512,8 +512,9 @@ class SharedBoundaryContractTest {
 				+ String.join("\n", namingViolations));
 
 		// Return contract: query adapters back a module-contracts ReadPort and must not leak executable response DTOs.
+		// Trailing ';' is optional so both Java (.java) and Kotlin (.kt) imports are detected.
 		Pattern executableResponseImport = Pattern.compile(
-			"^import com\\.beat\\.(apis|admin|batch)\\..*(Response|ResponseDto|ResponseDTO|Dto|DTO);",
+			"^import com\\.beat\\.(apis|admin|batch)\\..*(Response|ResponseDto|ResponseDTO|Dto|DTO);?$",
 			Pattern.MULTILINE);
 		List<String> contractViolations = new ArrayList<>();
 		for (Path adapter : queryAdapters) {

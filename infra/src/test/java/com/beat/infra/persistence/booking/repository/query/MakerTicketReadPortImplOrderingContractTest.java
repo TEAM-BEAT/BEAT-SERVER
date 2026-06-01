@@ -18,8 +18,8 @@ class MakerTicketReadPortImplOrderingContractTest {
 	void makerTicketQueriesOrderByCreatedAtDescendingAfterStatusPriority() throws IOException {
 		String source = Files.readString(Path.of(System.getProperty("user.dir")).resolve(ADAPTER_SOURCE));
 
-		// Kotlin JDSL: status-priority CASE WHEN ... .asc() comes first, then createdAt .desc().
-		int statusPriorityOrder = source.indexOf(".asc()");
+		// Kotlin JDSL: status-priority CASE WHEN(REFUND_REQUESTED -> 1 ...) comes first, then createdAt .desc().
+		int statusPriorityOrder = source.indexOf("BookingStatus.REFUND_REQUESTED)).then(1)");
 		int createdAtDescendingOrder = source.indexOf("BookingJpaEntity::createdAt).desc()");
 
 		assertTrue(statusPriorityOrder >= 0, "Ticket query must keep status-priority ordering first");
