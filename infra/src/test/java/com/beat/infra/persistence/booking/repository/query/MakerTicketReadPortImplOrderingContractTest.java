@@ -11,13 +11,16 @@ import org.junit.jupiter.api.Test;
 
 class MakerTicketReadPortImplOrderingContractTest {
 
+	private static final String ADAPTER_SOURCE =
+		"src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.kt";
+
 	@Test
 	void makerTicketQueriesOrderByCreatedAtDescendingAfterStatusPriority() throws IOException {
-		String source = Files.readString(Path.of(System.getProperty("user.dir"))
-			.resolve("src/main/java/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.java"));
+		String source = Files.readString(Path.of(System.getProperty("user.dir")).resolve(ADAPTER_SOURCE));
 
-		int statusPriorityOrder = source.indexOf("END ASC");
-		int createdAtDescendingOrder = source.indexOf("b.createdAt DESC");
+		// Kotlin JDSL: status-priority CASE WHEN ... .asc() comes first, then createdAt .desc().
+		int statusPriorityOrder = source.indexOf(".asc()");
+		int createdAtDescendingOrder = source.indexOf("BookingJpaEntity::createdAt).desc()");
 
 		assertTrue(statusPriorityOrder >= 0, "Ticket query must keep status-priority ordering first");
 		assertTrue(createdAtDescendingOrder > statusPriorityOrder,
@@ -26,10 +29,9 @@ class MakerTicketReadPortImplOrderingContractTest {
 
 	@Test
 	void makerTicketReadModelUsesDisplayNameForBankName() throws IOException {
-		String source = Files.readString(Path.of(System.getProperty("user.dir"))
-			.resolve("src/main/java/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.java"));
+		String source = Files.readString(Path.of(System.getProperty("user.dir")).resolve(ADAPTER_SOURCE));
 
-		assertTrue(source.contains("bankName.getDisplayName()"));
-		assertFalse(source.contains("bankName.name()"));
+		assertTrue(source.contains(".displayName"));
+		assertFalse(source.contains("bankName.name"));
 	}
 }

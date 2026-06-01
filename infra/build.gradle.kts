@@ -10,6 +10,9 @@ dependencies {
     implementation(project(":domain"))
     implementation(project(":global-support"))
     implementation(libs.aws.java.sdk.s3)
+    implementation(libs.kotlin.jdsl.jpql.dsl)
+    implementation(libs.kotlin.jdsl.jpql.render)
+    implementation(libs.kotlin.jdsl.hibernate.support)
     implementation(libs.nurigo.java.sdk) {
         // javaSDK 2.2 incorrectly declares Maven build plugins as runtime dependencies.
         // They are not needed by CoolSmsAdapter and pull vulnerable Struts/Maven tooling
