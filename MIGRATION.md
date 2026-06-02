@@ -398,10 +398,12 @@ Boundary rules:
   bootstrap 과 충돌(부팅 실패)한다. `hibernate-support` 는 해당 auto-config 자체가 없어 별도 exclude 가 불필요하며,
   `JpqlRenderContext` 는 `JpaConfig` 에서 단일 bean 으로 등록한다. (3개 모듈 `*ModuleContextBootTest` 로 부팅 검증)
 - **IDE 경고 처리**: `JpaConfig` 는 `@EnableInfraBaseConfig` 의 `DeferredImportSelector` 로 등록돼 IntelliJ Spring
-  플러그인이 정적 추적하지 못하므로, 거기 선언한 `JpqlRenderContext` 주입이 IDE autowiring 검사에서 false positive 로
-  잡힌다. bean 은 의미상 맞는 `JpaConfig`(JPA/JDSL 인프라 부트스트랩)에 그대로 두고, 두 adapter 에
-  `@Suppress("SpringJavaInjectionPointsAutowiringInspection")` 로 억제 사유를 코드에 명시한다. (IDE 회피를 위해
-  bean 을 책임이 다른 config 로 옮기지 않는다 — 런타임 정상은 context-boot 통합 테스트로 검증됨)
+  플러그인이 정적 추적하지 못하므로, 거기 선언한 `JpqlRenderContext` 주입이 IntelliJ 에서 "Could not autowire"
+  false positive 로 잡힌다. 이는 **에러가 아니라 경고이며 런타임 정상**(context-boot 통합 테스트로 검증)이므로
+  코드에 `@Suppress` 를 붙이거나 bean 위치를 옮기지 않고 **그대로 무시한다**. (`@Suppress`/`InfraPersistenceConfig`
+  이동/`.idea` inspection scope 도 검토했으나, 각각 코드 오염·책임 혼재·IDE 버전 의존 문제가 있어 채택하지 않았다.)
+  실행 모듈의 infra adapter 인식은 별개로 `InfraConfig` 의 `@Import(InfraPersistenceConfig)` breadcrumb 이 담당하며,
+  이는 IDE 회피가 아니라 실제 인식을 돕는 효과적 장치이므로 유지한다.
 - 실행 모듈(`apis`, `batch`)은 domain repository contract와 domain model만 import하며 `com.beat.infra.persistence.schedule.*` type을 직접 import하지 않습니다.
 - `JobSchedulerTransactionalService.closeBooking()`은 immutable domain object 반환값을 명시적으로 `scheduleRepository.save(schedule.updateIsBooking(false))`로 저장합니다.
 - DB schema, pessimistic lock 기술 세부사항, ScheduleNumber enum은 변경하지 않습니다.

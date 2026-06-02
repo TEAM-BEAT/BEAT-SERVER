@@ -28,9 +28,10 @@ public class JpaConfig implements InfraBaseConfig {
 	 * read/query adapter via the {@code EntityManager + JpqlRenderContext} path.</p>
 	 *
 	 * <p>Note: this config is wired through {@code @EnableInfraBaseConfig}'s {@code DeferredImportSelector},
-	 * which the IntelliJ Spring plugin cannot statically trace. Adapters therefore carry
-	 * {@code @Suppress("SpringJavaInjectionPointsAutowiringInspection")} for this injection point — it is an
-	 * IDE false positive, not a wiring problem (verified by the module context-boot integration tests).</p>
+	 * which the IntelliJ Spring plugin cannot statically trace. Injecting this bean is therefore reported as
+	 * an IDE autowiring false positive ("Could not autowire") at the read/query adapters — it is a warning
+	 * only and safe to ignore, not a wiring problem. Runtime wiring is verified by the module context-boot
+	 * integration tests.</p>
 	 */
 	@Bean
 	public JpqlRenderContext jpqlRenderContext() {

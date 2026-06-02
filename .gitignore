@@ -183,6 +183,9 @@ Temporary Items
 /.kotlin/
 **/.gradle/
 build/
+# IntelliJ 가 컴파일 출력 경로를 build/ 가 아닌 bin/ 으로 잡을 때 생기는 stale 출력 (소스 복사본 포함).
+# IDE 출력 경로를 build/ 로 정상화하면 더 이상 생기지 않는다.
+bin/
 
 secret/*
 default.conf

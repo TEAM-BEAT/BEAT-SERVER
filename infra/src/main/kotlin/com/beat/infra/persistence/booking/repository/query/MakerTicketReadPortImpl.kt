@@ -17,10 +17,6 @@ import jakarta.persistence.EntityManager
 import org.springframework.stereotype.Repository
 
 @Repository
-// JpqlRenderContext is provided by JpaConfig, which is wired via @EnableInfraBaseConfig's
-// DeferredImportSelector. IntelliJ cannot statically trace that path, so the injection is flagged as a
-// false positive; runtime wiring is verified by the module context-boot integration tests.
-@Suppress("SpringJavaInjectionPointsAutowiringInspection")
 class MakerTicketReadPortImpl(
     private val entityManager: EntityManager,
     private val jpqlRenderContext: JpqlRenderContext,
