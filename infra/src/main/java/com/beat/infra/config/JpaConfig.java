@@ -23,9 +23,14 @@ public class JpaConfig implements InfraBaseConfig {
 	 * Kotlin JDSL render context for read/query adapters.
 	 *
 	 * <p>We depend on {@code hibernate-support} (EntityManager extension only), not the Spring Data
-	 * integration module, so no {@code KotlinJdslJpqlExecutor} / auto-configuration is on the
-	 * classpath. The render context is immutable and thread-safe, so it is registered once here and
-	 * reused by every read/query adapter via the {@code EntityManager + JpqlRenderContext} path.</p>
+	 * integration module, so no {@code KotlinJdslJpqlExecutor} / auto-configuration is on the classpath.
+	 * The render context is immutable and thread-safe, so it is registered once here and reused by every
+	 * read/query adapter via the {@code EntityManager + JpqlRenderContext} path.</p>
+	 *
+	 * <p>Note: this config is wired through {@code @EnableInfraBaseConfig}'s {@code DeferredImportSelector},
+	 * which the IntelliJ Spring plugin cannot statically trace. Adapters therefore carry
+	 * {@code @Suppress("SpringJavaInjectionPointsAutowiringInspection")} for this injection point — it is an
+	 * IDE false positive, not a wiring problem (verified by the module context-boot integration tests).</p>
 	 */
 	@Bean
 	public JpqlRenderContext jpqlRenderContext() {
