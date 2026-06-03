@@ -24,6 +24,7 @@ sentry-gradle-plugin = "6.6.0"
 # not as a replacement for the shared JUnit Platform execution contract.
 junit = "6.0.3"
 dependency-analysis = "3.11.0"
+kotlin-jdsl = "3.8.2"
 
 [plugins]
 sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
@@ -43,6 +44,14 @@ sentry-log4j2 = { module = "io.sentry:sentry-log4j2", version.ref = "sentry" }
 log4j-layout-template-json = { module = "org.apache.logging.log4j:log4j-layout-template-json", version = "2.26.0" }
 
 mysql-connector-j = { module = "com.mysql:mysql-connector-j", version = "9.6.0" }
+
+# Kotlin JDSL — read/query adapter 의 type-safe JPQL DSL.
+# hibernate-support 는 EntityManager.createQuery extension 만 제공한다(Executor/auto-config 미포함).
+# Spring Data 통합 모듈(spring-data-jpa-*-support)을 쓰면 사용하지 않는 KotlinJdslJpqlExecutor /
+# repository post-processor 가 강제 등록되어 부팅 시 EntityManager 와 충돌하므로 사용하지 않는다.
+kotlin-jdsl-jpql-dsl = { module = "com.linecorp.kotlin-jdsl:jpql-dsl", version.ref = "kotlin-jdsl" }
+kotlin-jdsl-jpql-render = { module = "com.linecorp.kotlin-jdsl:jpql-render", version.ref = "kotlin-jdsl" }
+kotlin-jdsl-hibernate-support = { module = "com.linecorp.kotlin-jdsl:hibernate-support", version.ref = "kotlin-jdsl" }
 spring-boot-core = { module = "org.springframework.boot:spring-boot", version.ref = "spring-boot" }
 spring-boot-persistence = { module = "org.springframework.boot:spring-boot-persistence", version.ref = "spring-boot" }
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }
