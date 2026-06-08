@@ -61,7 +61,7 @@ public class ImageCacheAdapter implements ImageCachePort {
         return domain.endsWith("/") ? domain.substring(0, domain.length() - 1) : domain;
     }
 
-    @Async
+    @Async("beatAsyncExecutor")
     @Override
     public void preWarm(String imageKey) {
         if (imageKey == null || imageKey.isBlank() || cdnBase.isEmpty()) {
