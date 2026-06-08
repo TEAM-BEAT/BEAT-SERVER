@@ -19,7 +19,7 @@ public class BookingCreatedEventListener {
 
 	private final BookingNotificationPort bookingNotificationPort;
 
-	@Async("taskExecutor")
+	@Async("beatAsyncExecutor")
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void sendSlackNotification(BookingCreatedEvent event) {
 		try {

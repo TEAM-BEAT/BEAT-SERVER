@@ -21,7 +21,7 @@ public class MemberRegisteredEventListener {
 	private final MemberService memberService;
 	private final MemberNotificationPort memberNotificationPort;
 
-	@Async("taskExecutor")
+	@Async("beatAsyncExecutor")
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void sendSlackNotification(MemberRegisteredEvent event) {
 		try {

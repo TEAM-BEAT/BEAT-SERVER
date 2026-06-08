@@ -295,7 +295,7 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java",
-			"infra/src/main/java/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.kt",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java",
@@ -322,7 +322,7 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java",
-			"infra/src/main/java/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.kt",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java",
@@ -355,7 +355,7 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.java",
-			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/query/ScheduleQueryRepositoryImpl.java"
+			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query/ScheduleReadPortImpl.kt"
 		));
 		allowedInfraPersistenceFiles.addAll(bookingInfraPersistenceSourcePathsIfPresent());
 
@@ -471,16 +471,68 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
-	void makerTicketReadAdapterAvoidsManualScheduleQueryDslType() throws Exception {
+	void makerTicketReadAdapterUsesKotlinJdslInsteadOfQueryDsl() throws Exception {
 		String makerTicketReadAdapter = Files.readString(
-			Path.of("infra/src/main/java/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.java"));
+			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.kt"));
 
 		assertFalse(Files.exists(
 			Path.of("infra/src/main/java/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.java")));
 		assertFalse(makerTicketReadAdapter.contains("QScheduleJpaEntity"));
 		assertFalse(makerTicketReadAdapter.contains("com.querydsl"));
-		assertTrue(makerTicketReadAdapter.contains("TypedQuery<BookingJpaEntity>"));
-		assertTrue(makerTicketReadAdapter.contains("FROM Booking b, Schedule s"));
+		// Kotlin JDSL type-safe query over a manual JPQL string or QueryDSL Q-types.
+		assertTrue(makerTicketReadAdapter.contains("com.linecorp.kotlinjdsl"));
+		assertTrue(makerTicketReadAdapter.contains("jpql {"));
+		assertTrue(makerTicketReadAdapter.contains("entity(BookingJpaEntity::class)"));
+		assertTrue(makerTicketReadAdapter.contains("entity(ScheduleJpaEntity::class)"));
+	}
+
+	@Test
+	void queryAdaptersStayOnReadPortNamingAndExposeOnlyModuleContractsReadModels() throws Exception {
+		List<Path> queryAdapters = sourceFiles(
+			Path.of("infra/src/main/java/com/beat/infra/persistence/booking/repository/query"),
+			Path.of("infra/src/main/java/com/beat/infra/persistence/schedule/repository/query"),
+			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query"),
+			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query")
+		).stream()
+			.filter(path -> path.getFileName().toString().endsWith(".java")
+				|| path.getFileName().toString().endsWith(".kt"))
+			.toList();
+
+		assertFalse(queryAdapters.isEmpty(),
+			"repository.query adapters must exist under booking/schedule query packages");
+
+		// Naming: every query adapter implementation is unified under the *ReadPortImpl convention.
+		List<String> namingViolations = queryAdapters.stream()
+			.filter(path -> !path.getFileName().toString().endsWith("ReadPortImpl.java")
+				&& !path.getFileName().toString().endsWith("ReadPortImpl.kt"))
+			.map(path -> path.toString().replace('\\', '/'))
+			.toList();
+		assertTrue(namingViolations.isEmpty(),
+			"repository.query adapters must follow the *ReadPortImpl naming convention:\n"
+				+ String.join("\n", namingViolations));
+
+		// Return contract: query adapters back a module-contracts ReadPort and must not leak executable response DTOs.
+		// Trailing ';' is optional so both Java (.java) and Kotlin (.kt) imports are detected.
+		Pattern executableResponseImport = Pattern.compile(
+			"^import com\\.beat\\.(apis|admin|batch)\\..*(Response|ResponseDto|ResponseDTO|Dto|DTO);?$",
+			Pattern.MULTILINE);
+		List<String> contractViolations = new ArrayList<>();
+		for (Path adapter : queryAdapters) {
+			String source = Files.readString(adapter);
+			String name = adapter.toString().replace('\\', '/');
+			if (!source.contains("com.beat.contracts")) {
+				contractViolations.add(name + ": must depend on module-contracts read contracts");
+			}
+			if (!Pattern.compile("(implements|:)[^{]*ReadPort").matcher(source).find()) {
+				contractViolations.add(name + ": must implement a module-contracts *ReadPort");
+			}
+			if (executableResponseImport.matcher(source).find()) {
+				contractViolations.add(name + ": must not import executable response/DTO types");
+			}
+		}
+		assertTrue(contractViolations.isEmpty(),
+			"Query adapters must return module-contracts ReadModels via a ReadPort and must not leak executable response DTOs:\n"
+				+ String.join("\n", contractViolations));
 	}
 
 	@Test
@@ -1138,7 +1190,7 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java",
-			"infra/src/main/java/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.java"
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketReadPortImpl.kt"
 		);
 	}
 

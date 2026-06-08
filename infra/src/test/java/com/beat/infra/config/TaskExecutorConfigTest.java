@@ -21,7 +21,7 @@ class TaskExecutorConfigTest {
 		.withUserConfiguration(TaskExecutorConfig.class);
 
 	@Test
-	void customizerOverridesAutoConfiguredApplicationTaskExecutorWithThreadPoolProperties() {
+	void beatAsyncExecutorConfiguredWithThreadPoolProperties() {
 		contextRunner
 			.withPropertyValues(
 				"thread-pool.core-size=3",
@@ -30,9 +30,10 @@ class TaskExecutorConfigTest {
 				"thread-pool.thread-name-prefix=test-executor-"
 			)
 			.run(context -> {
+				assertTrue(context.containsBean("applicationTaskExecutor"));
 				ThreadPoolProperties properties = context.getBean(ThreadPoolProperties.class);
 				ThreadPoolTaskExecutor executor = context.getBean(
-					"applicationTaskExecutor",
+					"beatAsyncExecutor",
 					ThreadPoolTaskExecutor.class
 				);
 
@@ -49,7 +50,7 @@ class TaskExecutorConfigTest {
 	}
 
 	@Test
-	void appliesAvailableTaskDecoratorBeansToApplicationExecutor() {
+	void appliesAvailableTaskDecoratorBeansToBeatAsyncExecutor() {
 		AtomicBoolean decorated = new AtomicBoolean(false);
 		TaskDecorator taskDecorator = runnable -> () -> {
 			decorated.set(true);
@@ -66,7 +67,7 @@ class TaskExecutorConfigTest {
 			)
 			.run(context -> {
 				ThreadPoolTaskExecutor executor = context.getBean(
-					"applicationTaskExecutor",
+					"beatAsyncExecutor",
 					ThreadPoolTaskExecutor.class
 				);
 				CountDownLatch latch = new CountDownLatch(1);
@@ -75,6 +76,29 @@ class TaskExecutorConfigTest {
 
 				assertTrue(latch.await(3, TimeUnit.SECONDS));
 				assertTrue(decorated.get());
+			});
+	}
+
+	@Test
+	void beatAsyncExecutorIsExcludedFromDefaultInjectionCandidate() {
+		contextRunner
+			.withPropertyValues(
+				"thread-pool.core-size=3",
+				"thread-pool.max-pool-size=5",
+				"thread-pool.queue-capacity=20",
+				"thread-pool.thread-name-prefix=test-executor-"
+			)
+			.run(context -> {
+				// 1. Get Executor by type (since beatAsyncExecutor has defaultCandidate = false,
+				// applicationTaskExecutor must be returned as the default autowire candidate)
+				java.util.concurrent.Executor defaultExecutor = context.getBean(java.util.concurrent.Executor.class);
+				ThreadPoolTaskExecutor appExecutor = context.getBean("applicationTaskExecutor", ThreadPoolTaskExecutor.class);
+				
+				assertEquals(appExecutor, defaultExecutor);
+
+				// 2. beatAsyncExecutor must still be retrievable when explicitly requested by name
+				ThreadPoolTaskExecutor beatExecutor = context.getBean("beatAsyncExecutor", ThreadPoolTaskExecutor.class);
+				assertTrue(beatExecutor != defaultExecutor);
 			});
 	}
 }
