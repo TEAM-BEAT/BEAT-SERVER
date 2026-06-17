@@ -1067,28 +1067,28 @@ class SharedBoundaryContractTest {
 	@Test
 	void moduleContractsReadModelsAreExplicitlyMarked() throws Exception {
 		String readModelMarker = Files.readString(
-			Path.of("module-contracts/src/main/java/com/beat/contracts/common/ReadModel.java"));
+			Path.of("module-contracts/src/main/kotlin/com/beat/contracts/common/ReadModel.kt"));
 		String minPerformanceDate = Files.readString(
-			Path.of("module-contracts/src/main/java/com/beat/contracts/schedule/readmodel/MinPerformanceDateReadModel.java"));
+			Path.of("module-contracts/src/main/kotlin/com/beat/contracts/schedule/readmodel/MinPerformanceDateReadModel.kt"));
 		String makerTicketListItemReadModel = Files.readString(
-			Path.of("module-contracts/src/main/java/com/beat/contracts/booking/readmodel/MakerTicketListItemReadModel.java"));
+			Path.of("module-contracts/src/main/kotlin/com/beat/contracts/booking/readmodel/MakerTicketListItemReadModel.kt"));
 		String scheduleReadPort = Files.readString(
-			Path.of("module-contracts/src/main/java/com/beat/contracts/schedule/ScheduleReadPort.java"));
+			Path.of("module-contracts/src/main/kotlin/com/beat/contracts/schedule/ScheduleReadPort.kt"));
 		String makerTicketReadPort = Files.readString(
-			Path.of("module-contracts/src/main/java/com/beat/contracts/booking/MakerTicketReadPort.java"));
+			Path.of("module-contracts/src/main/kotlin/com/beat/contracts/booking/MakerTicketReadPort.kt"));
 
-		assertTrue(readModelMarker.contains("@Target(ElementType.TYPE)"));
-		assertTrue(readModelMarker.contains("@Retention(RetentionPolicy.RUNTIME)"));
-		assertTrue(readModelMarker.contains("public @interface ReadModel"));
-		assertTrue(minPerformanceDate.contains("import com.beat.contracts.common.ReadModel;"));
+		assertTrue(readModelMarker.contains("@Target(AnnotationTarget.CLASS)"));
+		assertTrue(readModelMarker.contains("@Retention(AnnotationRetention.RUNTIME)"));
+		assertTrue(readModelMarker.contains("annotation class ReadModel"));
+		assertTrue(minPerformanceDate.contains("import com.beat.contracts.common.ReadModel"));
 		assertTrue(minPerformanceDate.contains("@ReadModel"));
-		assertTrue(makerTicketListItemReadModel.contains("import com.beat.contracts.common.ReadModel;"));
+		assertTrue(makerTicketListItemReadModel.contains("import com.beat.contracts.common.ReadModel"));
 		assertTrue(makerTicketListItemReadModel.contains("@ReadModel"));
-		assertTrue(scheduleReadPort.contains("List<MinPerformanceDateReadModel> findMinPerformanceDateByPerformanceIds"));
-		assertTrue(makerTicketReadPort.contains("List<MakerTicketListItemReadModel> findTickets(Long performanceId"));
-		assertTrue(makerTicketReadPort.contains("List<MakerTicketListItemReadModel> searchTickets(Long performanceId"));
+		assertTrue(scheduleReadPort.contains("fun findMinPerformanceDateByPerformanceIds"));
+		assertTrue(makerTicketReadPort.contains("fun findTickets("));
+		assertTrue(makerTicketReadPort.contains("fun searchTickets("));
 		assertFalse(Files.exists(Path.of(
-			"module-contracts/src/main/java/com/beat/contracts/booking/MakerTicketSearchCondition.java")));
+			"module-contracts/src/main/kotlin/com/beat/contracts/booking/MakerTicketSearchCondition.kt")));
 	}
 
 	@Test

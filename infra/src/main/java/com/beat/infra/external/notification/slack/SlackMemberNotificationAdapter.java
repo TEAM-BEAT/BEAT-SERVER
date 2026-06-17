@@ -30,8 +30,8 @@ public class SlackMemberNotificationAdapter implements MemberNotificationPort {
 			List.of(
 				HeaderBlock.newInstance("🎉 BEAT 신규 회원 가입 🎉"),
 				SectionBlock.newInstanceWithFields(List.of(
-					MarkdownText.newInstance("*🙋 닉네임*\n" + notification.nickname()),
-					MarkdownText.newInstance("*👥 누적 회원 수*\n" + notification.memberCount() + "명")
+					MarkdownText.newInstance("*🙋 닉네임*\n" + notification.getNickname()),
+					MarkdownText.newInstance("*👥 누적 회원 수*\n" + notification.getMemberCount() + "명")
 				)),
 				DividerBlock.newInstance()
 			),

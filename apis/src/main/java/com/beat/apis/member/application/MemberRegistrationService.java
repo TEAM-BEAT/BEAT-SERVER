@@ -36,10 +36,10 @@ public class MemberRegistrationService {
 		log.info("Registering new user with role: {}", users.getRole());
 
 		Member member = Member.create(
-			socialMemberInfo.nickname(),
-			socialMemberInfo.email(),
+			socialMemberInfo.getNickname(),
+			socialMemberInfo.getEmail(),
 			users.getId(),
-			socialMemberInfo.socialId(),
+			socialMemberInfo.getSocialId(),
 			socialType
 		);
 

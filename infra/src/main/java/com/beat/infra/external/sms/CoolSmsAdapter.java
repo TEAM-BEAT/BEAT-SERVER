@@ -24,14 +24,14 @@ public class CoolSmsAdapter implements SmsPort {
 
 	@Override
 	public void sendSms(SmsMessage message) {
-		String cleanedPhoneNumber = message.to().replace("-", "");
+		String cleanedPhoneNumber = message.getTo().replace("-", "");
 		Message coolsms = new Message(apiKey, apiSecret);
 
 		HashMap<String, String> params = new HashMap<>();
 		params.put("to", cleanedPhoneNumber);
 		params.put("from", fromPhoneNumber);
 		params.put("type", "SMS");
-		params.put("text", message.text());
+		params.put("text", message.getText());
 
 		try {
 			coolsms.send(params);

@@ -65,8 +65,8 @@ public class ScheduleService {
 
 		Map<Long, LocalDateTime> performanceDateMap = minPerformanceDates.stream()
 			.collect(Collectors.toMap(
-				MinPerformanceDateReadModel::performanceId,
-				MinPerformanceDateReadModel::performanceDate,
+				MinPerformanceDateReadModel::getPerformanceId,
+				MinPerformanceDateReadModel::getPerformanceDate,
 				(existing, ignored) -> existing
 			));
 

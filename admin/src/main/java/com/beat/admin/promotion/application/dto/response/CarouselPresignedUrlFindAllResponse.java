@@ -12,6 +12,6 @@ public record CarouselPresignedUrlFindAllResponse(
 	}
 
 	public static CarouselPresignedUrlFindAllResponse from(CarouselPresignedUrls response) {
-		return CarouselPresignedUrlFindAllResponse.of(response.carouselPresignedUrls());
+		return CarouselPresignedUrlFindAllResponse.of(response.getCarouselPresignedUrls());
 	}
 }

@@ -38,7 +38,7 @@ public class AuthenticationService {
 	 */
 	public LoginSuccessResponse generateLoginSuccessResponse(final Long memberId, final String roleName,
 		final SocialMemberInfo socialMemberInfo) {
-		String nickname = socialMemberInfo.nickname();
+		String nickname = socialMemberInfo.getNickname();
 		Role role = mapRole(roleName);
 		String normalizedRoleName = role.getRoleName();
 
