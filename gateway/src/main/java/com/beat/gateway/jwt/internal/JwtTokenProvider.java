@@ -61,7 +61,7 @@ public class JwtTokenProvider implements JwtTokenPort {
 	}
 
 	@Override
-	public long getMemberId(String token, JwtTokenType expectedType) {
+	public Long getMemberId(String token, JwtTokenType expectedType) {
 		Claims claims = getBody(token, expectedType);
 		Object memberIdClaim = claims.get(MEMBER_ID);
 
