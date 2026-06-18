@@ -35,13 +35,13 @@ public class KakaoSocialLoginAdapter implements SocialLoginPort {
 
 	@Override
 	public SocialMemberInfo login(SocialLoginRequest request) {
-		if (request.socialType() != SocialLoginType.KAKAO) {
+		if (request.getSocialType() != SocialLoginType.KAKAO) {
 			throw SocialLoginFailure.unsupportedSocialType();
 		}
 
 		String accessToken;
 		try {
-			accessToken = getOAuth2Authentication(request.authorizationCode());
+			accessToken = getOAuth2Authentication(request.getAuthorizationCode());
 		} catch (FeignException exception) {
 			throw SocialLoginFailure.authenticationFailed(exception);
 		}

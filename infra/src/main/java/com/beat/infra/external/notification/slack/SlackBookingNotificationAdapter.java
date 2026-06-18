@@ -33,17 +33,17 @@ public class SlackBookingNotificationAdapter implements BookingNotificationPort 
 			List.of(
 				HeaderBlock.newInstance("🎟️ BEAT 예매 발생 🎟️"),
 				SectionBlock.newInstanceWithFields(List.of(
-					MarkdownText.newInstance("*📅 예매일시*\n" + notification.bookingDateTime().format(DATE_FORMATTER)),
-					MarkdownText.newInstance("*🎭 공연명*\n" + notification.performanceTitle())
+					MarkdownText.newInstance("*📅 예매일시*\n" + notification.getBookingDateTime().format(DATE_FORMATTER)),
+					MarkdownText.newInstance("*🎭 공연명*\n" + notification.getPerformanceTitle())
 				)),
 				SectionBlock.newInstanceWithFields(List.of(
-					MarkdownText.newInstance("*🔢 예매매수*\n" + notification.purchaseTicketCount() + "매"),
-					MarkdownText.newInstance("*🙋 예매자*\n" + notification.bookerName())
+					MarkdownText.newInstance("*🔢 예매매수*\n" + notification.getPurchaseTicketCount() + "매"),
+					MarkdownText.newInstance("*🙋 예매자*\n" + notification.getBookerName())
 				)),
 				SectionBlock.newInstanceWithFields(List.of(
-					MarkdownText.newInstance("*🎬 회차*\n" + notification.scheduleDisplayName()),
+					MarkdownText.newInstance("*🎬 회차*\n" + notification.getScheduleDisplayName()),
 					MarkdownText.newInstance(
-						"*🔔 예매현황*\n" + notification.currentSoldTicketCount() + "/" + notification.totalTicketCount() + "매")
+						"*🔔 예매현황*\n" + notification.getCurrentSoldTicketCount() + "/" + notification.getTotalTicketCount() + "매")
 				)),
 				DividerBlock.newInstance()
 			),

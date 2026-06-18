@@ -20,10 +20,10 @@ private object NoOpScheduleBookingCloseJobPort : ScheduleBookingCloseJobPort {
     private val log = LoggerFactory.getLogger(NoOpScheduleBookingCloseJobPort::class.java)
 
     override fun registerOrRefresh(target: ScheduleBookingCloseJobTarget) {
-        log.debug("Skipping schedule booking close job registration in apis runtime for scheduleId={}", target.scheduleId())
+        log.debug("Skipping schedule booking close job registration in apis runtime for scheduleId={}", target.scheduleId)
     }
 
     override fun cancel(target: ScheduleBookingCloseJobTarget) {
-        log.debug("Skipping schedule booking close job cancellation in apis runtime for scheduleId={}", target.scheduleId())
+        log.debug("Skipping schedule booking close job cancellation in apis runtime for scheduleId={}", target.scheduleId)
     }
 }

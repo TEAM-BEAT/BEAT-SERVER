@@ -55,13 +55,13 @@ public class JobSchedulerService implements ScheduleBookingCloseJobPort {
 			return;
 		}
 
-		ScheduledFuture<?> existingTask = scheduledTasks.get(target.scheduleId());
+		ScheduledFuture<?> existingTask = scheduledTasks.get(target.getScheduleId());
 		if (existingTask != null) {
 			if (!existingTask.isDone() && !existingTask.isCancelled()) {
-				log.debug("Schedule ID {} is already scheduled. Skipping duplicate registration.", target.scheduleId());
+				log.debug("Schedule ID {} is already scheduled. Skipping duplicate registration.", target.getScheduleId());
 				return;
 			}
-			scheduledTasks.remove(target.scheduleId());
+			scheduledTasks.remove(target.getScheduleId());
 		}
 
 		schedulePendingTask(target);
@@ -85,12 +85,12 @@ public class JobSchedulerService implements ScheduleBookingCloseJobPort {
 			return;
 		}
 
-		cancelScheduledTaskById(target.scheduleId());
+		cancelScheduledTaskById(target.getScheduleId());
 	}
 
 	private void schedulePendingTask(ScheduleBookingCloseJobTarget target) {
 		// 여기서 데이터베이스 X-Lock을 걸어 중복 실행 방지
-		jobSchedulerTransactionalService.lockScheduleBookingWindow(target.scheduleId())
+		jobSchedulerTransactionalService.lockScheduleBookingWindow(target.getScheduleId())
 			.ifPresentOrElse(
 				lockedSchedule -> {
 					log.info("Lock acquired for Schedule ID: {}", lockedSchedule.scheduleId());
@@ -112,7 +112,7 @@ public class JobSchedulerService implements ScheduleBookingCloseJobPort {
 					log.debug("Task added for Schedule ID: {}", lockedSchedule.scheduleId());
 					logScheduledTasks();
 				},
-				() -> log.warn("Failed to acquire lock for Schedule ID: {}", target.scheduleId())
+				() -> log.warn("Failed to acquire lock for Schedule ID: {}", target.getScheduleId())
 			);
 	}
 

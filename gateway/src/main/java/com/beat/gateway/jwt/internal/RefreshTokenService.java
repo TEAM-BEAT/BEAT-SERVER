@@ -17,12 +17,12 @@ public class RefreshTokenService implements RefreshTokenPort {
 	private final RefreshTokenRepository refreshTokenRepository;
 
 	@Override
-	public void saveRefreshToken(final Long memberId, final String refreshToken) {
+	public void saveRefreshToken(final long memberId, final String refreshToken) {
 		refreshTokenRepository.save(RefreshToken.of(memberId, refreshToken));
 	}
 
 	@Override
-	public Long findMemberIdByRefreshToken(final String refreshToken) {
+	public long findMemberIdByRefreshToken(final String refreshToken) {
 		RefreshToken token = refreshTokenRepository.findByRefreshToken(refreshToken)
 			.orElseThrow(() -> new NotFoundException(TokenErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
@@ -30,7 +30,7 @@ public class RefreshTokenService implements RefreshTokenPort {
 	}
 
 	@Override
-	public void deleteRefreshToken(final Long memberId) {
+	public void deleteRefreshToken(final long memberId) {
 		RefreshToken token = refreshTokenRepository.findById(memberId)
 			.orElseThrow(() -> new NotFoundException(TokenErrorCode.REFRESH_TOKEN_NOT_FOUND));
 

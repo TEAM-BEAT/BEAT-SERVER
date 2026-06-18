@@ -44,7 +44,7 @@ class FileFacadeTest {
 			null
 		);
 
-		assertEquals(presignedUrls.performanceMakerPresignedUrls(), response.performanceMakerPresignedUrls());
+		assertEquals(presignedUrls.getPerformanceMakerPresignedUrls(), response.performanceMakerPresignedUrls());
 		verify(fileService).issueAllPresignedUrlsForPerformanceMaker("poster.png", null, null, null);
 	}
 }

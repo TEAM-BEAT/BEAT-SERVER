@@ -28,6 +28,18 @@ log_format {{ nginx_access_log_format_name }} 'traceId=$request_id clientIp=$rem
     'status=$status bytes=$body_bytes_sent referer="$http_referer" userAgent="$http_user_agent" '
     'xForwardedFor="$http_x_forwarded_for" requestTime=$request_time';
 
+# W3C traceparent 합성: nginx $request_id(32 hex = 16 byte) 를 그대로 trace-id 로 사용해
+# nginx access log / app log(trace_id) / Tempo trace 를 단일 ID 로 묶는다.
+# 포맷: version(00) - traceId(32hex) - parentSpanId(16hex) - flags(2hex)
+#   - parentSpanId: request_id 앞 16자 재사용. nginx 는 자체 span 을 export 하지 않으므로
+#     이 부모 span 은 Tempo 에 실체가 없는 seed(phantom parent)일 뿐, 앱 span 은 정상 export 된다.
+#   - flags=01(sampled): 현재 앱은 head sampling 100% 라 무충돌. 추후 앱 head sampling 비율을
+#     낮추면 nginx 가 항상 01 을 강제해 불일치가 생기므로, 그때는 split_clients 등으로 01/00 을 분배할 것.
+map $request_id $trace_parent {
+    "~^(?<span_seed>.{16})" "00-$request_id-$span_seed-01";
+    default                 "00-$request_id-0000000000000001-01";
+}
+
 server {
     listen 80;
     server_name {{ nginx_server_name }};
@@ -89,5 +101,6 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Request-ID $request_id;
+        proxy_set_header traceparent $trace_parent;
     }
 }

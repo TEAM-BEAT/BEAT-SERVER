@@ -38,7 +38,7 @@ public class AuthenticationService {
 	 */
 	public LoginSuccessResponse generateLoginSuccessResponse(final Long memberId, final String roleName,
 		final SocialMemberInfo socialMemberInfo) {
-		String nickname = socialMemberInfo.nickname();
+		String nickname = socialMemberInfo.getNickname();
 		Role role = mapRole(roleName);
 		String normalizedRoleName = role.getRoleName();
 
@@ -72,8 +72,7 @@ public class AuthenticationService {
 	public AccessTokenGenerateResponse generateAccessTokenFromRefreshToken(final String refreshToken) {
 		validateRefreshToken(refreshToken);
 
-		Long memberId = jwtTokenPort.getMemberId(refreshToken, JwtTokenType.REFRESH);
-		validateMemberId(memberId);
+		long memberId = jwtTokenPort.getMemberId(refreshToken, JwtTokenType.REFRESH);
 		verifyMemberIdWithStoredToken(refreshToken, memberId);
 
 		Role role = mapRole(jwtTokenPort.getRoleName(refreshToken, JwtTokenType.REFRESH));
@@ -117,19 +116,12 @@ public class AuthenticationService {
 		}
 	}
 
-	private void verifyMemberIdWithStoredToken(String refreshToken, Long memberId) {
-		Long storedMemberId = refreshTokenPort.findMemberIdByRefreshToken(refreshToken);
+	private void verifyMemberIdWithStoredToken(String refreshToken, long memberId) {
+		long storedMemberId = refreshTokenPort.findMemberIdByRefreshToken(refreshToken);
 
-		if (!memberId.equals(storedMemberId)) {
+		if (memberId != storedMemberId) {
 			log.error("MemberId mismatch: token does not match the stored refresh token");
 			throw new BadRequestException(TokenErrorCode.REFRESH_TOKEN_MEMBER_ID_MISMATCH_ERROR);
-		}
-	}
-
-	private void validateMemberId(Long memberId) {
-		if (memberId == null) {
-			log.error("Refresh token memberId claim is missing");
-			throw new BadRequestException(TokenErrorCode.INVALID_REFRESH_TOKEN_ERROR);
 		}
 	}
 
