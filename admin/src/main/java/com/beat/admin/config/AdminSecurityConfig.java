@@ -26,7 +26,6 @@ public class AdminSecurityConfig {
 
 	private static final String ROLE_ADMIN = "ROLE_ADMIN";
 	private static final String[] SWAGGER_WHITELIST = {
-		"/v3/api-docs/**",
 		"/api/admin/v3/api-docs/**",
 		"/swagger-ui/**",
 		"/swagger-resources/**",
