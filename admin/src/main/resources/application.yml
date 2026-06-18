@@ -41,6 +41,11 @@ springdoc:
     operations-sorter: alpha
     display-request-duration: true
     urls-primary-name: admin
+  # Nginx가 /api/admin/ 만 admin 서버로 프록시하므로(다른 경로는 apis로 흐름), api-docs 도
+  # /api/admin 하위로 노출해야 통합 Swagger(apis)에서 도달 가능하다.
+  # 그룹("admin")이 base path 뒤에 붙어 최종 문서 경로는 /api/admin/v3/api-docs/admin 이 된다.
+  api-docs:
+    path: /api/admin/v3/api-docs
 
 ---
 spring:

@@ -71,7 +71,7 @@ class AdminModuleContextBootTest extends AbstractAdminIntegrationTest {
 
 	@Test
 	void servesGroupedSwaggerDocsForAdminApis() throws Exception {
-		mockMvc.perform(get("/v3/api-docs/admin"))
+		mockMvc.perform(get("/api/admin/v3/api-docs/admin"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.openapi").exists())
 			.andExpect(jsonPath("$.paths").exists());
