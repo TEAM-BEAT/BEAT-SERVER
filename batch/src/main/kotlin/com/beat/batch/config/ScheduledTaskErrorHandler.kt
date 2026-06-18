@@ -10,7 +10,7 @@ import org.springframework.util.ErrorHandler
  * `com.beat` 로거에만 연결된 SentryAppender 경로를 타지 못한다. 이 핸들러는 `com.beat.batch.*`
  * 로거로 ERROR 로그를 남겨 Sentry(SentryAppender) + stdout(→Loki) 양쪽 수집 경로를 복구한다.
  *
- * `@Scheduled` 메서드와 [org.springframework.scheduling.TaskScheduler] 동적 `schedule(...)` 작업의
+ * 스케줄 메서드와 [org.springframework.scheduling.TaskScheduler] 동적 `schedule(...)` 작업의
  * 예외가 모두 동일한 스케줄러 빈을 통해 이 핸들러로 전달된다.
  *
  * 예외를 재전파하지 않으므로(no-rethrow) 반복 작업(fixedDelay/fixedRate/cron)은 다음 주기에 계속
