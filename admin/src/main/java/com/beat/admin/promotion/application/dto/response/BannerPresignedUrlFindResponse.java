@@ -10,6 +10,6 @@ public record BannerPresignedUrlFindResponse(
 	}
 
 	public static BannerPresignedUrlFindResponse from(BannerPresignedUrl response) {
-		return BannerPresignedUrlFindResponse.of(response.bannerPresignedUrl());
+		return BannerPresignedUrlFindResponse.of(response.getBannerPresignedUrl());
 	}
 }

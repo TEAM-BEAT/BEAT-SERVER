@@ -63,7 +63,7 @@ class GatewayConfigGroupTest {
 	void jwtFilterEnrichesAlreadyInitializedMdcWithAuthenticatedUser() throws IOException {
 		String source = source("src/main/java/com/beat/gateway/security/internal/servlet/JwtAuthenticationFilter.java");
 
-		assertTrue(source.contains("MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, memberId.toString())"));
+		assertTrue(source.contains("MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, Long.toString(memberId))"));
 	}
 
 	@Test

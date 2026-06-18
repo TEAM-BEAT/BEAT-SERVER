@@ -86,7 +86,7 @@ class MakerTicketReadPortImpl(
 
     private fun toReadModel(entity: BookingJpaEntity): MakerTicketListItemReadModel =
         MakerTicketListItemReadModel(
-            entity.id,
+            entity.id!!,
             entity.bookerName,
             entity.bookerPhoneNumber,
             entity.scheduleId,

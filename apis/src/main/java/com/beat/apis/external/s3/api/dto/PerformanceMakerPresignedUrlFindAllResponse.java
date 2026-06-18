@@ -8,6 +8,6 @@ public record PerformanceMakerPresignedUrlFindAllResponse(
 ) {
 
 	public static PerformanceMakerPresignedUrlFindAllResponse from(PerformancePresignedUrls response) {
-		return new PerformanceMakerPresignedUrlFindAllResponse(response.performanceMakerPresignedUrls());
+		return new PerformanceMakerPresignedUrlFindAllResponse(response.getPerformanceMakerPresignedUrls());
 	}
 }

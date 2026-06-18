@@ -74,7 +74,7 @@ public class SocialLoginService {
 	private LoginSuccessResponse generateLoginResponseFromMemberInfo(final SocialMemberInfo socialMemberInfo,
 		final SocialType socialType) {
 		log.info("Attempting to find or register member for socialId: {}, socialType: {}",
-			socialMemberInfo.socialId(), socialType);
+			socialMemberInfo.getSocialId(), socialType);
 
 		Long memberId = findOrRegisterMember(socialMemberInfo, socialType);
 		log.info("Found or registered member with memberId: {}", memberId);
@@ -97,14 +97,14 @@ public class SocialLoginService {
 	 */
 	private Long findOrRegisterMember(final SocialMemberInfo socialMemberInfo, final SocialType socialType) {
 		boolean memberExists = memberService.checkMemberExistsBySocialIdAndSocialType(
-			socialMemberInfo.socialId(),
+			socialMemberInfo.getSocialId(),
 			socialType
 		);
 
 		if (memberExists) {
 			MemberAuthenticationResult existingMember =
 				memberService.findMemberAuthenticationResultBySocialIdAndSocialType(
-					socialMemberInfo.socialId(),
+					socialMemberInfo.getSocialId(),
 					socialType
 				);
 			UserAuthenticationResult user = findUserAuthenticationResult(existingMember.userId());

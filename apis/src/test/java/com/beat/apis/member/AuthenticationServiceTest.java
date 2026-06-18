@@ -70,11 +70,12 @@ class AuthenticationServiceTest {
 	}
 
 	@Test
-	void generateAccessTokenFromRefreshTokenShouldRejectMissingMemberIdClaim() {
+	void generateAccessTokenFromRefreshTokenShouldRejectWhenValidationFailsAtBoundary() {
 		String refreshToken = "refresh-token";
 
-		when(jwtTokenPort.validateRefreshToken(refreshToken)).thenReturn(TokenValidationResult.VALID);
-		when(jwtTokenPort.getMemberId(refreshToken, JwtTokenType.REFRESH)).thenReturn(null);
+		// Missing or malformed required claims (memberId, role) are rejected during token
+		// validation per RFC 8725 §3.3/§3.12, before any claim is extracted downstream.
+		when(jwtTokenPort.validateRefreshToken(refreshToken)).thenReturn(TokenValidationResult.INVALID_TOKEN);
 
 		BadRequestException exception = assertThrows(
 			BadRequestException.class,
@@ -82,7 +83,8 @@ class AuthenticationServiceTest {
 		);
 
 		assertEquals(TokenErrorCode.INVALID_REFRESH_TOKEN_ERROR, exception.getBaseErrorCode());
-		verify(refreshTokenPort, never()).findMemberIdByRefreshToken(refreshToken);
+		verify(jwtTokenPort, never()).getMemberId(refreshToken, JwtTokenType.REFRESH);
+		verifyNoInteractions(refreshTokenPort);
 	}
 
 	@Test
@@ -90,23 +92,5 @@ class AuthenticationServiceTest {
 		authenticationService.signOut(1L);
 
 		verify(refreshTokenPort).deleteRefreshToken(1L);
-	}
-
-	@Test
-	void generateAccessTokenFromRefreshTokenShouldRejectMissingRoleClaim() {
-		String refreshToken = "refresh-token";
-
-		when(jwtTokenPort.validateRefreshToken(refreshToken)).thenReturn(TokenValidationResult.VALID);
-		when(jwtTokenPort.getMemberId(refreshToken, JwtTokenType.REFRESH)).thenReturn(1L);
-		when(refreshTokenPort.findMemberIdByRefreshToken(refreshToken)).thenReturn(1L);
-		when(jwtTokenPort.getRoleName(refreshToken, JwtTokenType.REFRESH)).thenReturn(null);
-
-		BadRequestException exception = assertThrows(
-			BadRequestException.class,
-			() -> authenticationService.generateAccessTokenFromRefreshToken(refreshToken)
-		);
-
-		assertEquals(TokenErrorCode.INVALID_REFRESH_TOKEN_ERROR, exception.getBaseErrorCode());
-		verify(jwtTokenPort).getRoleName(refreshToken, JwtTokenType.REFRESH);
 	}
 }

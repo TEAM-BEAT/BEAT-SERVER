@@ -112,8 +112,8 @@ class SocialLoginServiceTest {
 
 		ArgumentCaptor<SocialLoginRequest> requestCaptor = ArgumentCaptor.forClass(SocialLoginRequest.class);
 		verify(socialLoginPort).login(requestCaptor.capture());
-		assertEquals("authorization-code", requestCaptor.getValue().authorizationCode());
-		assertEquals(SocialLoginType.KAKAO, requestCaptor.getValue().socialType());
+		assertEquals("authorization-code", requestCaptor.getValue().getAuthorizationCode());
+		assertEquals(SocialLoginType.KAKAO, requestCaptor.getValue().getSocialType());
 		verify(memberRegistrationService).registerMemberWithUserInfo(socialMemberInfo, SocialType.KAKAO);
 		assertEquals(expectedResponse, actual);
 	}

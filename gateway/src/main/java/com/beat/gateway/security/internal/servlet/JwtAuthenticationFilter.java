@@ -69,7 +69,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	}
 
 	private void setAuthentication(String token, HttpServletRequest request) {
-		Long memberId = jwtTokenPort.getMemberId(token, JwtTokenType.ACCESS);
+		long memberId = jwtTokenPort.getMemberId(token, JwtTokenType.ACCESS);
 		String roleName = jwtTokenPort.getRoleName(token, JwtTokenType.ACCESS);
 
 		Collection<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(roleName));
@@ -77,9 +77,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
 		SecurityContextHolder.getContext().setAuthentication(authentication);
-		if (memberId != null) {
-			MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, memberId.toString());
-		}
+		MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, Long.toString(memberId));
 	}
 
 	private void handleInvalidToken(TokenValidationResult validationResult, HttpServletResponse response) {

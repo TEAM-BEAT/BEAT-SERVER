@@ -40,7 +40,15 @@ springdoc:
     tags-sorter: alpha
     operations-sorter: alpha
     display-request-duration: true
-    urls-primary-name: general
+    urls-primary-name: "APIS (사용자용)"
+    # 통합 Swagger 드롭다운: apis(general) + admin 문서를 한 UI에서 조회.
+    # admin 문서는 동일 도메인에서 Nginx /api/admin/ 라우팅을 통해 admin 서버로 프록시된다.
+    # (swagger/api-docs는 비-prod에서만 활성 — prod application.yml에서 비활성화됨)
+    urls:
+      - name: "APIS (사용자용)"
+        url: /v3/api-docs/general
+      - name: "ADMIN (관리자용)"
+        url: /api/admin/v3/api-docs/admin
 
 ---
 spring:

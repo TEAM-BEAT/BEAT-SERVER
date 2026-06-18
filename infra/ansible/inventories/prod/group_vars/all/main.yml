@@ -70,7 +70,7 @@ modules:
     scheduler_owner: false
     nginx_route:
       upstream_name: admin_backend
-      external_path: /admin
+      external_path: /api/admin
       upstream_path: /api/admin
   batch:
     deploy_mode: stop_start

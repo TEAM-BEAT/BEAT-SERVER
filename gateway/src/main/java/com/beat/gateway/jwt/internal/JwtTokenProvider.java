@@ -61,7 +61,7 @@ public class JwtTokenProvider implements JwtTokenPort {
 	}
 
 	@Override
-	public Long getMemberId(String token, JwtTokenType expectedType) {
+	public long getMemberId(String token, JwtTokenType expectedType) {
 		Claims claims = getBody(token, expectedType);
 		Object memberIdClaim = claims.get(MEMBER_ID);
 
@@ -69,7 +69,7 @@ public class JwtTokenProvider implements JwtTokenPort {
 			throw new IllegalArgumentException("JWT does not contain memberId claim");
 		}
 
-		return Long.valueOf(memberIdClaim.toString());
+		return Long.parseLong(memberIdClaim.toString());
 	}
 
 	@Override
@@ -131,8 +131,8 @@ public class JwtTokenProvider implements JwtTokenPort {
 			.and()
 			.issuedAt(Date.from(now))
 			.expiration(Date.from(expiration))
-			.claim(MEMBER_ID, subject.memberId())
-			.claim(ROLE_KEY, subject.roleName())
+			.claim(MEMBER_ID, subject.getMemberId())
+			.claim(ROLE_KEY, subject.getRoleName())
 			.claim(TOKEN_TYPE, tokenType.name())
 			.signWith(getCurrentSigningKey())
 			.compact();

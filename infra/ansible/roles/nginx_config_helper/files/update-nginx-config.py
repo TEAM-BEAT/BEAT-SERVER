@@ -206,6 +206,7 @@ def ensure_route(path: Path, upstream_name: str, external_path: str, upstream_pa
         f"    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n"
         f"    proxy_set_header X-Forwarded-Proto $scheme;\n"
         f"    proxy_set_header X-Request-ID $request_id;\n"
+        f"    proxy_set_header traceparent $trace_parent;\n"
         f"}}"
     )
     text = upsert_managed_block(read_text_or_empty(path), marker, block_body)

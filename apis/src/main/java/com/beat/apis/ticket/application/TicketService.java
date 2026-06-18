@@ -174,17 +174,17 @@ public class TicketService {
 			.map(ticket -> {
 				Schedule schedule = findScheduleForTicket(scheduleMap, ticket);
 				return TicketDetail.of(
-					ticket.bookingId(),
-					ticket.bookerName(),
-					ticket.bookerPhoneNumber(),
-					ticket.scheduleId(),
-					ticket.purchaseTicketCount(),
-					ticket.createdAt(),
-					BookingStatusEnumConverter.toApi(ticket.bookingStatus()),
+					ticket.getBookingId(),
+					ticket.getBookerName(),
+					ticket.getBookerPhoneNumber(),
+					ticket.getScheduleId(),
+					ticket.getPurchaseTicketCount(),
+					ticket.getCreatedAt(),
+					BookingStatusEnumConverter.toApi(ticket.getBookingStatus()),
 					ScheduleNumberEnumConverter.toApiName(schedule.getScheduleNumber()),
-					ticket.bankName(),
-					ticket.accountNumber(),
-					ticket.accountHolder()
+					ticket.getBankName(),
+					ticket.getAccountNumber(),
+					ticket.getAccountHolder()
 				);
 			})
 			.collect(Collectors.toList());
@@ -201,7 +201,7 @@ public class TicketService {
 	}
 
 	private Schedule findScheduleForTicket(Map<Long, Schedule> scheduleMap, MakerTicketListItemReadModel ticket) {
-		Schedule schedule = scheduleMap.get(ticket.scheduleId());
+		Schedule schedule = scheduleMap.get(ticket.getScheduleId());
 		if (schedule == null) {
 			throw new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND);
 		}

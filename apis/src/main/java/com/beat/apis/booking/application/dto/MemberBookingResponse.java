@@ -1,6 +1,5 @@
 package com.beat.apis.booking.application.dto;
 
-import com.beat.apis.booking.application.dto.BookingStatusType;
 import com.beat.apis.performance.application.dto.BankNameType;
 import com.beat.apis.schedule.application.dto.ScheduleNumberType;
 
