@@ -85,9 +85,9 @@ management:
     web:
       base-path: ${DEV_ACTUATOR_PATH}
   tracing:
-    enabled: false
-    export:
-      enabled: false
+    enabled: true
+    sampling:
+      probability: 1.0
 
 sentry:
   environment: dev
