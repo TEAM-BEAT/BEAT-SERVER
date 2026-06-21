@@ -254,6 +254,14 @@ otelcol.processor.tail_sampling "policy" {
     }
   }
   policy {
+    name = "http_5xx_errors"
+    type = "string_attribute"
+    string_attribute {
+      key = "http.status_code"
+      values = ["500", "501", "502", "503", "504"]
+    }
+  }
+  policy {
     name = "slow"
     type = "latency"
     latency {
@@ -264,7 +272,7 @@ otelcol.processor.tail_sampling "policy" {
     name = "default_probabilistic"
     type = "probabilistic"
     probabilistic {
-      sampling_percentage = 10
+      sampling_percentage = 100
     }
   }
 
