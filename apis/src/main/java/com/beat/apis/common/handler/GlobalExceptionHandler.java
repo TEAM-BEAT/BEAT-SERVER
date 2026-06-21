@@ -2,6 +2,8 @@ package com.beat.apis.common.handler;
 
 import java.util.Optional;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.MissingRequestCookieException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.filter.ServerHttpObservationFilter;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -104,14 +107,20 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(Exception.class)
-	protected ResponseEntity<ErrorResponse> handleException(final Exception exception) {
+	protected ResponseEntity<ErrorResponse> handleException(final Exception exception, HttpServletRequest request) {
 		log.error("Unexpected server error: ", exception);
+		ServerHttpObservationFilter.findObservationContext(request)
+			.ifPresent(context -> context.setError(exception));
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 			.body(ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR.value(), "서버 내부 오류입니다."));
 	}
 
 	@ExceptionHandler(BeatException.class)
-	public ResponseEntity<ErrorResponse> handleBeatException(final BeatException exception) {
+	public ResponseEntity<ErrorResponse> handleBeatException(final BeatException exception, HttpServletRequest request) {
+		if (exception.getBaseErrorCode().getStatus() >= 500) {
+			ServerHttpObservationFilter.findObservationContext(request)
+				.ifPresent(context -> context.setError(exception));
+		}
 		return ResponseEntity.status(exception.getBaseErrorCode().getStatus())
 			.body(ErrorResponse.from(exception.getBaseErrorCode()));
 	}

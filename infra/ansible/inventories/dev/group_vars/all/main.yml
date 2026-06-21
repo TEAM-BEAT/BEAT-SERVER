@@ -79,13 +79,15 @@ modules:
     container_name: batch
     scheduler_owner: true
 
-# observability_alloy — dev는 metrics-only (t3.micro 1GB 메모리 절약)
-observability_alloy_mem_limit: "128m"
+# observability_alloy — dev는 이제 metrics+logs+traces 활성화 (t3.micro 1GB 환경, 메모리 주의)
+observability_alloy_mem_limit: "256m"
 observability_alloy_cpus: "0.5"
 observability_alloy_scrape_interval: "60s"
 observability_alloy_wal_truncate: "1h"
-observability_alloy_enable_logs: false
-observability_alloy_enable_traces: false
+observability_alloy_enable_logs: true
+observability_alloy_enable_traces: true
 observability_alloy_enable_cadvisor: false
 observability_alloy_published_ports:
   - "127.0.0.1:12345:12345"
+  - "127.0.0.1:4317:4317"
+  - "127.0.0.1:4318:4318"
