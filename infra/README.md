@@ -835,10 +835,11 @@ placeholder는 `app_bluegreen`(apis)이나 `app_stopstart/admin_nginx_route`(adm
 ### Nginx access log와 app port 노출 계약
 
 - HTTP request completion logging은 nginx `access.log`가 소유한다.
-- `nginx_base_config`의 `log_format`은 key=value로 `traceId=$request_id`, `clientIp=$remote_addr`,
-  `request="$request"`, `status=$status`, `bytes=$body_bytes_sent`, `referer="$http_referer"`,
-  `userAgent="$http_user_agent"`, `xForwardedFor="$http_x_forwarded_for"`, `requestTime=$request_time`을 기록한다.
-- application log는 business/domain event 중심이며, nginx access log와 같은 `traceId`로 join한다.
+- `nginx_base_config`의 `log_format`은 `escape=json` JSON 라인으로 `trace_id=$request_id`, `client_ip=$remote_addr`,
+  `request=$request`, `status`, `bytes`, `referer`, `user_agent`, `x_forwarded_for`, `request_time`을 기록한다.
+  앱 로그(JsonTemplateLayout)와 snake_case 필드·JSON 포맷을 통일해 Alloy `stage.json`이 동일하게 파싱한다.
+- application log는 business/domain event 중심이며, nginx access log와 같은 `trace_id`로 join한다.
+  (상관 설정 상세: `docs/observability/TRACE_LOG_CORRELATION.md`)
 - foundation compose에서 host publish는 nginx `80:80`, `443:443`만 공개 소유한다. MySQL은
   `127.0.0.1:3306:3306`으로 loopback에 한정하고 Redis는 host publish를 갖지 않는다.
 - app container(`apis`, `admin`, `batch`) run task에는 `ports:`를 추가하지 않는다. 앱은 Docker network 내부에서

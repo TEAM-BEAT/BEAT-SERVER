@@ -7,10 +7,24 @@
     </Properties>
 
     <Appenders>
+        <!--
+            ConsoleAppender: 레이아웃을 BEAT_LOG_FORMAT 환경변수로 전환한다(전환 로직은 여기 한 곳).
+              · 기본(로컬 IntelliJ Run, env 없음): PatternLayout 컬러 plain text — 개발자 무설정.
+              · BEAT_LOG_FORMAT=json(배포 컨테이너, ansible app_container_env 주입): JsonTemplateLayout.
+            dev·test 프로파일이 공용으로 참조한다. (Select: 첫 매칭 arbiter만 채택, 미매칭 시 DefaultArbiter)
+        -->
         <Console name="ConsoleAppender" target="SYSTEM_OUT">
-            <PatternLayout pattern="${LOG_PATTERN}" disableAnsi="${env:LOG_DISABLE_ANSI:-false}"/>
+            <Select>
+                <EnvironmentArbiter propertyName="BEAT_LOG_FORMAT" propertyValue="json">
+                    <JsonTemplateLayout eventTemplateUri="classpath:beat-log-event-template.json"/>
+                </EnvironmentArbiter>
+                <DefaultArbiter>
+                    <PatternLayout pattern="${LOG_PATTERN}" disableAnsi="${env:LOG_DISABLE_ANSI:-false}"/>
+                </DefaultArbiter>
+            </Select>
         </Console>
 
+        <!-- prod 전용: 항상 JSON. env 주입과 무관하게 관측 포맷을 보장(fail-safe). -->
         <Console name="JsonConsoleAppender" target="SYSTEM_OUT">
             <JsonTemplateLayout eventTemplateUri="classpath:beat-log-event-template.json"/>
         </Console>
@@ -36,6 +50,11 @@
             </Root>
         </springProfile>
 
+        <!--
+            dev 는 배포·로컬 공용 단일 프로파일. 콘솔 포맷 전환은 ConsoleAppender 가 BEAT_LOG_FORMAT 으로 처리하므로
+            여기서는 그냥 ConsoleAppender 만 참조한다(로컬=plain text, 배포 dev=JSON 자동 전환).
+            DB·앱 설정은 dev 그대로 두고 로그 표현만 바뀌므로 별도 local 프로파일 불필요.
+        -->
         <springProfile name="dev">
             <Logger name="com.beat.observability.logging.access" level="INFO" additivity="false">
                 <AppenderRef ref="ConsoleAppender"/>
