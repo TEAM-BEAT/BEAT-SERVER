@@ -24,9 +24,22 @@ include {{ nginx_generated_include_dir }}/upstreams/*.conf;
 {% endif %}
 {%- endmacro %}
 
-log_format {{ nginx_access_log_format_name }} 'traceId=$request_id clientIp=$remote_addr request="$request" '
-    'status=$status bytes=$body_bytes_sent referer="$http_referer" userAgent="$http_user_agent" '
-    'xForwardedFor="$http_x_forwarded_for" requestTime=$request_time';
+# JSON 라인 + snake_case 필드명으로 앱 로그(JsonTemplateLayout)와 스키마 통일.
+# Alloy stage.json 이 trace_id 를 동일하게 파싱 → 단일 derived field 로 nginx↔app↔Tempo 드릴다운.
+# escape=json: 값 내 따옴표/제어문자 이스케이프. bytes/request_time 은 항상 유효 수치라 unquoted.
+# status 는 응답 확정 전 연결 종료 시 "000" 으로 기록되어 leading-zero 가 invalid JSON 이 되므로 quoted.
+log_format {{ nginx_access_log_format_name }} escape=json
+    '{'
+        '"trace_id":"$request_id",'
+        '"client_ip":"$remote_addr",'
+        '"request":"$request",'
+        '"status":"$status",'
+        '"bytes":$body_bytes_sent,'
+        '"referer":"$http_referer",'
+        '"user_agent":"$http_user_agent",'
+        '"x_forwarded_for":"$http_x_forwarded_for",'
+        '"request_time":$request_time'
+    '}';
 
 # W3C traceparent 합성: nginx $request_id(32 hex = 16 byte) 를 그대로 trace-id 로 사용해
 # nginx access log / app log(trace_id) / Tempo trace 를 단일 ID 로 묶는다.

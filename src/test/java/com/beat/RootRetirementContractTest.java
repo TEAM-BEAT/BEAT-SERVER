@@ -436,7 +436,7 @@ class RootRetirementContractTest {
 		assertTrue(ciPr.contains("- admin"));
 		assertTrue(ciPr.contains("- batch"));
 		assertTrue(ciPr.contains("MODULE=${{ matrix.module }}"));
-		assertTrue(ciPr.contains("aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1"));
+		assertTrue(ciPr.contains("aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"));
 		assertTrue(ciPr.contains("scan-type: image"));
 		assertTrue(ciPr.contains("trivy-config: .trivy-image.yaml"));
 		assertTrue(trivyImageConfig.contains("ignore-unfixed: true"));
@@ -810,15 +810,16 @@ class RootRetirementContractTest {
 		assertFalse(defaultConfTemplate.contains("location /admin/"));
 		assertTrue(defaultConfTemplate.contains("BEAT MANAGED GENERATED UPSTREAM INCLUDES"));
 		assertTrue(defaultConfTemplate.contains("BEAT MANAGED GENERATED ROUTE INCLUDES"));
-		assertTrue(defaultConfTemplate.contains("traceId=$request_id"));
-		assertTrue(defaultConfTemplate.contains("clientIp=$remote_addr"));
-		assertTrue(defaultConfTemplate.contains("request=\"$request\""));
-		assertTrue(defaultConfTemplate.contains("status=$status"));
-		assertTrue(defaultConfTemplate.contains("bytes=$body_bytes_sent"));
-		assertTrue(defaultConfTemplate.contains("referer=\"$http_referer\""));
-		assertTrue(defaultConfTemplate.contains("userAgent=\"$http_user_agent\""));
-		assertTrue(defaultConfTemplate.contains("xForwardedFor=\"$http_x_forwarded_for\""));
-		assertTrue(defaultConfTemplate.contains("requestTime=$request_time"));
+		assertTrue(defaultConfTemplate.contains("escape=json"));
+		assertTrue(defaultConfTemplate.contains("\"trace_id\":\"$request_id\""));
+		assertTrue(defaultConfTemplate.contains("\"client_ip\":\"$remote_addr\""));
+		assertTrue(defaultConfTemplate.contains("\"request\":\"$request\""));
+		assertTrue(defaultConfTemplate.contains("\"status\":\"$status\""));
+		assertTrue(defaultConfTemplate.contains("\"bytes\":$body_bytes_sent"));
+		assertTrue(defaultConfTemplate.contains("\"referer\":\"$http_referer\""));
+		assertTrue(defaultConfTemplate.contains("\"user_agent\":\"$http_user_agent\""));
+		assertTrue(defaultConfTemplate.contains("\"x_forwarded_for\":\"$http_x_forwarded_for\""));
+		assertTrue(defaultConfTemplate.contains("\"request_time\":$request_time"));
 		assertEquals(
 			2,
 			countOccurrences(defaultConfTemplate, "access_log /var/log/nginx/access.log {{ nginx_access_log_format_name }}"));
