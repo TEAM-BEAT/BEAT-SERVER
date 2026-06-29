@@ -84,7 +84,7 @@ class Log4j2PatternContractTest {
     }
 
     @Test
-    fun `prod profile uses JsonConsoleAppender for all loggers`() {
+    fun `prod profile uses always-JSON JsonConsoleAppender for all loggers`() {
         listOf("com.beat.observability.logging.access", "com.beat").forEach { loggerName ->
             val refs = nodeList(
                 "//springProfile[contains(@name,'prod')]" +
@@ -100,17 +100,36 @@ class Log4j2PatternContractTest {
     }
 
     @Test
-    fun `non-prod profiles do not use JsonConsoleAppender`() {
-        listOf("dev", "test").forEach { profile ->
+    fun `dev profile uses env-switching ConsoleAppender for all loggers`() {
+        listOf("com.beat.observability.logging.access", "com.beat").forEach { loggerName ->
             val refs = nodeList(
-                "//springProfile[contains(@name,'$profile')]//AppenderRef[@ref='JsonConsoleAppender']",
+                "//springProfile[contains(@name,'dev')]" +
+                    "//Logger[@name='$loggerName']" +
+                    "//AppenderRef[@ref='ConsoleAppender']",
             )
-            assertEquals(
-                0,
-                refs.length,
-                "$profile profile must not use JsonConsoleAppender — PatternLayout is for human readability",
-            )
+            assertTrue(refs.length > 0, "$loggerName must use ConsoleAppender in dev profile")
         }
+        val rootRef = nodeList(
+            "//springProfile[contains(@name,'dev')]//Root//AppenderRef[@ref='ConsoleAppender']",
+        )
+        assertTrue(rootRef.length > 0, "Root must use ConsoleAppender in dev profile")
+    }
+
+    @Test
+    fun `ConsoleAppender defaults to PatternLayout and switches to JSON only when BEAT_LOG_FORMAT=json`() {
+        // 로컬 기본값(env 없음): DefaultArbiter 가 PatternLayout — 개발자 무설정.
+        val pretty = nodeList(
+            "//Appenders/Console[@name='ConsoleAppender']//DefaultArbiter//PatternLayout",
+        )
+        assertTrue(pretty.length > 0, "ConsoleAppender must default to PatternLayout (local plain text)")
+
+        // 배포(env=json): JsonTemplateLayout.
+        val json = nodeList(
+            "//Appenders/Console[@name='ConsoleAppender']" +
+                "//EnvironmentArbiter[@propertyName='BEAT_LOG_FORMAT'][@propertyValue='json']" +
+                "//JsonTemplateLayout",
+        )
+        assertTrue(json.length > 0, "ConsoleAppender must switch to JsonTemplateLayout under BEAT_LOG_FORMAT=json")
     }
 
     @Test

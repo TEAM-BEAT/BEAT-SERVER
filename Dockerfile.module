@@ -2,6 +2,9 @@ FROM eclipse-temurin:25-jre-alpine
 
 ARG MODULE
 
+# Trivy reports CVE-2026-2100 against the base image p11-kit 0.25.5-r2 baseline
+RUN apk upgrade --no-cache p11-kit p11-kit-trust
+
 RUN addgroup -g 10001 -S beat && adduser -S -u 10001 -G beat beat && mkdir -p /app && chown beat:beat /app
 
 WORKDIR /app

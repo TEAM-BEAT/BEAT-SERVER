@@ -8,9 +8,10 @@ kover = "0.9.7"
 spring-cloud = "2025.1.1"
 springdoc = "3.0.2"
 tomcat-embed = "11.0.22"
-jackson3 = "3.1.1"
+jackson3 = "3.1.4"
+jackson2 = "2.21.4"
 commons-fileupload = "1.6.0"
-netty = "4.2.13.Final"
+netty = "4.2.15.Final"
 bouncycastle = "1.84"
 jjwt = "0.13.0"
 aws-sdk-v1 = "1.12.797"
@@ -68,6 +69,7 @@ tomcat-embed-el = { module = "org.apache.tomcat.embed:tomcat-embed-el", version.
 tomcat-embed-websocket = { module = "org.apache.tomcat.embed:tomcat-embed-websocket", version.ref = "tomcat-embed" }
 jackson3-core = { module = "tools.jackson.core:jackson-core", version.ref = "jackson3" }
 jackson3-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson3" }
+jackson2-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson2" }
 commons-fileupload = { module = "commons-fileupload:commons-fileupload", version.ref = "commons-fileupload" }
 netty-codec-dns = { module = "io.netty:netty-codec-dns", version.ref = "netty" }
 netty-resolver-dns = { module = "io.netty:netty-resolver-dns", version.ref = "netty" }
