@@ -15,7 +15,7 @@ public abstract class AbstractIntegrationTest {
 
 	@ServiceConnection
 	static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0.39")
-		.withDatabaseName("beat_test")
+		.withDatabaseName("beat_apis_test")
 		.withCommand("--default-time-zone=+09:00");
 
 	@ServiceConnection
