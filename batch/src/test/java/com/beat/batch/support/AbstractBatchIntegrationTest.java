@@ -15,7 +15,8 @@ public abstract class AbstractBatchIntegrationTest {
 
 	@ServiceConnection
 	static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0.39")
-		.withDatabaseName("beat_batch_test");
+		.withDatabaseName("beat_batch_test")
+		.withCommand("--default-time-zone=+09:00");
 
 	static {
 		mysql.start();

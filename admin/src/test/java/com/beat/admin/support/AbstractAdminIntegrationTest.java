@@ -16,7 +16,8 @@ public abstract class AbstractAdminIntegrationTest {
 
 	@ServiceConnection
 	static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0.39")
-		.withDatabaseName("beat_admin_test");
+		.withDatabaseName("beat_admin_test")
+		.withCommand("--default-time-zone=+09:00");
 
 	@ServiceConnection
 	static RedisContainer redis =
