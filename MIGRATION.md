@@ -374,9 +374,9 @@ Schedule은 `Performance.Id` nested value class를 통해 `performance_id` colum
 Boundary rules:
 - `domain/src/main/kotlin/com/beat/domain/schedule/domain/Schedule.kt`는 JPA 의존성이 없는 순수 Kotlin data class입니다.
 - `domain/src/main/kotlin/com/beat/domain/schedule/repository/ScheduleRepository.kt`는 기술 중립적인 포트 인터페이스입니다.
-- 모든 mutation method(`update`, `decreaseSoldTicketCount`, `updateScheduleNumber`, `updateIsBooking`)는 new copy를 반환하며, dirty tracking을 사용하지 않습니다.
-- 최소 공연 일자 조회 read-model은 `module-contracts/src/main/java/com/beat/contracts/schedule/readmodel/MinPerformanceDateReadModel.java`와 `ScheduleReadPort.java`가 소유하며, domain repository/dto 패키지에는 두지 않습니다.
-- `infra.persistence.schedule` 패키지에서 `ScheduleJpaEntity`, `ScheduleJpaRepository`, `SchedulePersistenceMapper`, `ScheduleRepositoryImpl`, `ScheduleReadPortImpl`을 소유하며, `ScheduleReadPortImpl`은 `module-contracts`의 `ScheduleReadPort`를 구현합니다.
+- 모든 mutation method(`update`, `decreaseSoldTicketCount`, `updateScheduleNumber`, `updateBookingCloseAt`)는 new copy를 반환하며, dirty tracking을 사용하지 않습니다.
+- 회차 조회 read-model은 `module-contracts/src/main/kotlin/com/beat/contracts/schedule/readmodel`이 소유하며, domain repository/dto 패키지에는 두지 않습니다.
+- `infra.persistence.schedule` 패키지에서 JPA entity/repository/mapper와 `ScheduleReadPortImpl`, `PerformanceScheduleReadPortImpl`을 소유합니다.
 - Booking ticket query의 Schedule 조건 조인은 수동 `QScheduleJpaEntity`나 QueryDSL 없이
   `infra.persistence.booking.repository.query.MakerTicketReadPortImpl.kt`의 Kotlin JDSL `jpql { }` DSL로 수행합니다.
   `JpqlRenderContext`는 `JpaConfig`에서 단일 bean으로 등록해 재사용하며 generated Q-type을 source tree에 커밋하지 않습니다.
@@ -405,8 +405,8 @@ Boundary rules:
   실행 모듈의 infra adapter 인식은 별개로 `InfraConfig` 의 `@Import(InfraPersistenceConfig)` breadcrumb 이 담당하며,
   이는 IDE 회피가 아니라 실제 인식을 돕는 효과적 장치이므로 유지한다.
 - 실행 모듈(`apis`, `batch`)은 domain repository contract와 domain model만 import하며 `com.beat.infra.persistence.schedule.*` type을 직접 import하지 않습니다.
-- `JobSchedulerTransactionalService.closeBooking()`은 immutable domain object 반환값을 명시적으로 `scheduleRepository.save(schedule.updateIsBooking(false))`로 저장합니다.
-- DB schema, pessimistic lock 기술 세부사항, ScheduleNumber enum은 변경하지 않습니다.
+- Issue #428 이후 `is_booking` mutation과 `JobSchedulerTransactionalService`는 제거됐고, 예매 명령은 비관적 락 뒤 `booking_close_at`을 DB 시각으로 재검사합니다.
+- #415 당시 유지했던 DB schema 중 예매 상태 부분은 #428에서 `booking_close_at DATETIME(6)` 기반으로 변경합니다. ScheduleNumber enum은 유지합니다.
 
 ## #419 Booking persistence seam
 
@@ -500,7 +500,7 @@ Issue #378 기준 shared module closeout은 아래 결정을 고정한다.
 - `observability`는 AOP 로깅 source를 제거하고 `ObservabilityModuleConfig`가 logging/metrics/tracing bootstrap을 명시 import한다.
 - `infra`의 `RedisCacheConfig` / `InfraBaseConfigGroup.REDIS_CACHE`는 infra-owned dormant shared cache extension point로 유지하고, 실행 모듈은 아직 opt-in하지 않는다.
 - `infra` 안의 `com.beat.domain.*` package residue와 legacy `dao` package exception은 제거되었고, `SharedBoundaryContractTest`가 재도입을 막는다. 남은 infra query 정리는 #381에서 `infra.persistence.<context>.repository.query` / read-model 경계로 다룬다.
-- `module-contracts`는 implementation-free contract module로 guard한다. #426 이후 `domain` 직접 의존은 제거했고, social auth는 `SocialLoginRequest`/`SocialLoginType`, schedule booking close job은 `ScheduleBookingCloseJobTarget` contract-local type으로 domain enum/model 노출을 끊었다.
+- `module-contracts`는 implementation-free contract module로 guard한다. #426 이후 `domain` 직접 의존은 제거했고, #428 이후 사용하지 않는 schedule booking close 실행 계약도 제거했다.
 - `global-support`는 `com.beat.global.support.*` package를 public namespace로 사용하며, dependency-free support guard를 우선한다.
 
 ## #426 module-contracts domain type coupling removal
@@ -510,13 +510,28 @@ Issue `#426`은 `module-contracts`에 남아 있던 historical domain import를 
 | 이전 coupling | 현재 contract-local type | 변환 위치 |
 | --- | --- | --- |
 | `SocialLoginRequest` / `SocialMemberInfo`가 domain `SocialType`을 직접 노출 | `contracts.auth.social.SocialLoginRequest` + `SocialLoginType`; `SocialMemberInfo`는 provider profile 값만 보유 | `apis.member.application.SocialLoginService` private mapper |
-| `ScheduleBookingCloseJobPort` -> `domain.schedule.domain.Schedule` | `contracts.schedule.ScheduleBookingCloseJobTarget` | `apis.performance.application` / `batch.scheduler.application` mapper method |
 
 검증 기준:
 
 - `module-contracts/src/main`에는 `com.beat.domain.*` import/reference가 없어야 한다.
 - `module-contracts/build.gradle.kts`는 `project(":domain")` 의존을 갖지 않는다.
 - infra adapter는 contract-local type만 받아 구현하고, domain/application type 변환은 실행 모듈 application boundary에서 수행한다.
+
+## #428 DB 시각 기반 계산형 예매 상태
+
+Issue `#428`은 저장된 `schedule.is_booking`과 인메모리 마감 작업을 제거하고, 예매 가능 여부를 다음 데이터로 계산한다.
+
+```text
+isBooking = CURRENT_TIMESTAMP(6) < booking_close_at
+            AND sold_ticket_count < total_ticket_count
+```
+
+- `booking_close_at = performance_date + performance.running_time`을 `DATETIME(6)`으로 저장한다.
+- 회원·비회원 예매는 schedule 비관적 락을 얻은 뒤 별도 locking read를 시작해 마감 시각을 다시 판정한다.
+- 조회는 `PerformanceScheduleReadPort`의 단일 native SQL에서 DB 시각을 한 번 평가하고 모든 회차에 재사용한다.
+- 공연 시간 연장으로 `booking_close_at`이 미래가 되면 별도 상태 갱신 없이 즉시 다시 열린다.
+- batch에는 프로모션 관리와 티켓 정리 job만 남기고 예매 마감 scheduler와 contract를 제거한다.
+- 운영 반영 순서와 검증 SQL은 [`infra/db/migration/booking_close_at_a3_migration.sql`](infra/db/migration/booking_close_at_a3_migration.sql)을 따른다.
 
 
 ## #434 apis domain enum/value boundary removal

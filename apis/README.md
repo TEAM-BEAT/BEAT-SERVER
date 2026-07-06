@@ -7,7 +7,7 @@
 
 | Current | Target | Deferred-to-issue |
 | --- | --- | --- |
-| Detached user API executable lane with `ApisApplication`, module-local HTTP security policy, user-facing controllers/DTOs/Swagger, and a no-op `NoOpScheduleBookingCloseJobConfig` bridge while `batch` owns scheduler runtime. | Stable user API lane with cleaner internal package and CQRS boundaries under `com.beat.apis.<context>`. | Internal CQRS/package rules and `NoOpScheduleBookingCloseJobConfig` closeout -> #382. |
+| Detached user API lane with DB-clock-based booking availability. `PerformanceScheduleReadPort` calculates `isBooking`, and booking commands recheck `booking_close_at` after acquiring the schedule lock. | Stable user API lane with cleaner internal package and CQRS boundaries under `com.beat.apis.<context>`. | Internal CQRS/package rules -> #382. |
 
 ## 역할
 
@@ -54,7 +54,6 @@ apis/
   src/main/kotlin/com/beat/apis/
     ApisApplication.kt
     config/
-      NoOpScheduleBookingCloseJobConfig.kt  # module-local no-op ScheduleBookingCloseJobPort bridge
       InfraConfig.kt                # @EnableInfraBaseConfig(JPA, ASYNC, EXTERNAL_CLIENTS)
 
   src/main/java/com/beat/apis/
@@ -88,14 +87,14 @@ apis/
 - `ApisSecurityConfig`는 `gatewaySecurityMdcLoggingFilter`를 JWT보다 먼저 배치해 모든 응답에 trace/request MDC와 `X-Request-ID`를 보장하고, 이후 `gatewayJwtAuthenticationFilter`가 인증 성공 시 MDC `userId`를 갱신한다.
 - gateway 내부 `SecurityMdcLoggingFilter` 클래스는 직접 import하지 않고 qualifier + `OncePerRequestFilter` 타입으로만 주입한다.
 - observability 내부 config는 직접 import하지 않고 `ObservabilityModuleConfig`만 사용한다.
-- `NoOpScheduleBookingCloseJobConfig`는 `apis` 런타임에서 실제 스케줄러를 실행하지 않기 위한 no-op `ScheduleBookingCloseJobPort`를 제공한다.
-- active scheduler runtime owner는 `batch`이며, `apis`는 owner bean을 import/scan하지 않는다.
+- 예매 가능 여부는 `booking_close_at`, 재고, `CURRENT_TIMESTAMP(6)`으로 계산하며 `apis`는 예매 마감 스케줄러 계약에 의존하지 않는다.
+- 조회 API는 `PerformanceScheduleReadPort`의 단일 native SQL이 반환한 `evaluated_at`을 `isBooking`과 `dueDate`에 함께 사용한다.
 
 ## What changed in issue #360
 
 - `apis/build.gradle.kts`에서 `implementation(project(":"))`를 제거했다.
 - `apis`는 root project classpath 없이 build/boot/test 되는 방향으로 고정됐다.
-- scheduler handoff 이후에도 `NoOpScheduleBookingCloseJobConfig`는 module-local no-op bridge로 유지된다.
+- Issue #428에서 no-op 마감 스케줄러 bridge와 실행 계약을 제거했다.
 - 테스트 계약을 갱신해 root dependency 재도입, root bootstrap import, root scheduler owner 재연결을 막는다.
 
 ## Current / Target / Deferred-to-issue clarity for #384
@@ -110,7 +109,7 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
 | Gateway boundary | `@EnableGatewayServletSecurity`, `@EnableGatewayConfig(REFRESH_TOKEN_STORE)`, `gateway.security.servlet.CurrentMember` 공개 표면으로 인증/refresh-token 경계를 선택한다. | gateway 내부 패키지 직접 참조 없이 필요한 gateway group만 선택한다. | #437에서 guard 고정 |
 | Domain/persistence boundary | API DTO는 JPA Entity/QueryDSL Q type/Redis document를 직접 노출하지 않는 guard를 유지하고, user-facing promotion reads use the module-local `PromotionService`. | domain persistence 전략 정리 후에도 API boundary는 transfer DTO 중심으로 유지한다. | #380 |
 | Infra/query boundary | `InfraConfig`가 JPA, QueryDSL, async, external-client group을 명시적으로 import하고, `InfraPersistenceConfig`를 IDE static-analysis breadcrumb로 직접 import한다. Runtime persistence import는 여전히 `JpaConfig`가 보장한다. | QueryDSL/JDSL 전환과 scan 결정은 infra-owned boundary에서 정한다. | #381 |
-| Async/scheduler handoff | `apis`는 scheduler를 실행하지 않으며 no-op `ScheduleBookingCloseJobPort` bridge만 가진다. | async/coroutine 도입 범위가 결정될 때까지 HTTP lane의 비동기 경계를 넓히지 않는다. | #383 |
+| Async/scheduler handoff | `apis`는 scheduler를 실행하지 않는다. 예매 마감은 DB 시각 기반 계산으로 완결된다. | async/coroutine 도입 범위가 결정될 때까지 HTTP lane의 비동기 경계를 넓히지 않는다. | #383, #428 |
 
 ## Current ownership notes
 
@@ -130,12 +129,11 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
 - `domain`: repository/domain/exception/port contracts used by `apis`
 - `global-support`: shared response DTO and common exception hierarchy
 - `observability`: MDC logging base filter, metrics/actuator config, tracing placeholder
-- `batch`: active scheduler runtime ownership
+- `batch`: 프로모션 관리와 티켓 정리 등 정기 유지보수 작업
 
 ## Remaining transitional debt
 
 - owner namespace normalization은 끝났지만 `controller/application/dto` 내부 세분화는 문맥별로 완전히 통일되지 않았다.
-- `NoOpScheduleBookingCloseJobConfig`는 package normalization과 무관하게 no-op schedule booking close job bridge로 남아 있다.
 - root executable lane은 retire되었고, `apis`는 root bootstrap 없이 detached module contract를 유지한다.
 
 ## Guard rails
@@ -144,7 +142,6 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
     - `ApisApplication` import 집합 고정
     - broad app scan 금지
     - owner source package가 `com.beat.apis.*`로 정렬됐는지 확인
-    - no-op schedule booking close job bridge 계약 고정
     - test profile이 blanket bean override 없이 유지되는지 확인
 - `ApisArchitectureGuardTest`
     - `apis/build.gradle.kts`의 root dependency 재추가 금지
@@ -157,7 +154,7 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
     - Home response field name과 enum-string JSON 호환성 고정
 - `ApisModuleContextBootTest`
     - module context boot smoke test
-    - `ScheduleBookingCloseJobPort`가 module-local no-op bean으로 올라오는지 확인
+    - 예매 마감 scheduler bean 없이 기동하는지 확인
     - shared async import가 `TaskScheduler`를 함께 올리지 않는지 확인
 
 ## To-Be direction
@@ -264,5 +261,5 @@ Controller -> Facade -> QueryService A -> QueryResult A
 ## Follow-up after this issue
 
 1. `com.beat.apis.<context>` 내부 하위 계층(`controller`, `application/service`, `dto`)을 문맥별로 더 일관되게 정리
-2. `NoOpScheduleBookingCloseJobConfig` 같은 intentional bridge를 closeout 문서 기준으로 계속 최소화
+2. `PerformanceScheduleReadPort` 조회 계약과 DB 시각 기준을 회귀 테스트로 유지
 3. package normalization 이후 문맥별 하위 계층 정리를 별도 리팩터링 lane으로 진행
