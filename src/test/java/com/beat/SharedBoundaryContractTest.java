@@ -355,7 +355,8 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.java",
 			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.java",
-			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query/ScheduleReadPortImpl.kt"
+			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query/ScheduleReadPortImpl.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query/PerformanceScheduleReadPortImpl.kt"
 		));
 		allowedInfraPersistenceFiles.addAll(bookingInfraPersistenceSourcePathsIfPresent());
 

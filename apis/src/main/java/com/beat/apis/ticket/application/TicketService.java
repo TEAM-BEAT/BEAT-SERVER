@@ -259,9 +259,6 @@ public class TicketService {
 			Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
 				.orElseThrow(() -> new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND));
 			Schedule updated = schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
-			if (!updated.isBooking()) {
-				updated = updated.updateIsBooking(true);
-			}
 			scheduleRepository.save(updated);
 		}
 	}
@@ -284,9 +281,6 @@ public class TicketService {
 			Schedule schedule = scheduleRepository.lockById(booking.getScheduleId())
 				.orElseThrow(() -> new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND));
 			Schedule updated = schedule.decreaseSoldTicketCount(booking.getPurchaseTicketCount());
-			if (!updated.isBooking()) {
-				updated = updated.updateIsBooking(true);
-			}
 			scheduleRepository.save(updated);
 		}
 	}

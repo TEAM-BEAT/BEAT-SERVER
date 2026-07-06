@@ -19,6 +19,7 @@ import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.user.domain.Users;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.support.exception.BadRequestException;
+import com.beat.global.support.exception.ConflictException;
 import com.beat.global.support.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -39,16 +40,6 @@ public class GuestBookingService {
 
 	@Transactional
 	public GuestBookingResponse createGuestBooking(GuestBookingRequest guestBookingRequest) {
-		Schedule schedule = scheduleRepository.lockById(guestBookingRequest.scheduleId())
-			.orElseThrow(() -> new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND));
-
-		int availableTicketCount = schedule.getTotalTicketCount() - schedule.getSoldTicketCount();
-		if (availableTicketCount < guestBookingRequest.purchaseTicketCount()) {
-			throw new BadRequestException(ScheduleApplicationErrorCode.INSUFFICIENT_TICKETS);
-		}
-
-		schedule = updateSoldTicketCountAndIsBooking(schedule, guestBookingRequest.purchaseTicketCount());
-
 		Long userId = bookingRepository.findFirstByBookerNameAndBookerPhoneNumberAndBirthDateAndPassword(
 			guestBookingRequest.bookerName(),
 			guestBookingRequest.bookerPhoneNumber(),
@@ -59,6 +50,19 @@ public class GuestBookingService {
 			Users savedUser = userRepository.save(newUser);
 			return savedUser.getId();
 		});
+
+		Schedule schedule = scheduleRepository.lockById(guestBookingRequest.scheduleId())
+			.orElseThrow(() -> new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND));
+		if (!scheduleRepository.isBeforeBookingCloseAt(schedule.getId())) {
+			throw new ConflictException(ScheduleApplicationErrorCode.BOOKING_CLOSED);
+		}
+
+		int availableTicketCount = schedule.getTotalTicketCount() - schedule.getSoldTicketCount();
+		if (availableTicketCount < guestBookingRequest.purchaseTicketCount()) {
+			throw new BadRequestException(ScheduleApplicationErrorCode.INSUFFICIENT_TICKETS);
+		}
+
+		schedule = schedule.increaseSoldTicketCount(guestBookingRequest.purchaseTicketCount());
 
 		Performance performance = performanceRepository.findById(schedule.getPerformanceId())
 			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
@@ -108,11 +112,4 @@ public class GuestBookingService {
 		);
 	}
 
-	private Schedule updateSoldTicketCountAndIsBooking(Schedule schedule, int purchaseTicketCount) {
-		schedule = schedule.increaseSoldTicketCount(purchaseTicketCount);
-		if (schedule.getTotalTicketCount() == schedule.getSoldTicketCount()) {
-			schedule = schedule.updateIsBooking(false);
-		}
-		return schedule;
-	}
 }

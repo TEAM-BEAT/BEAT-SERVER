@@ -29,8 +29,6 @@ import com.beat.apis.performance.application.exception.PerformanceImageApplicati
 import com.beat.apis.performance.application.exception.StaffApplicationErrorCode;
 import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
 import com.beat.contracts.cdn.ImageCachePort;
-import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
-import com.beat.contracts.schedule.ScheduleBookingCloseJobTarget;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.cast.domain.Cast;
@@ -67,7 +65,6 @@ public class PerformanceModifyService {
 	private final StaffRepository staffRepository;
 	private final BookingRepository bookingRepository;
 	private final PerformanceImageRepository performanceImageRepository;
-	private final ScheduleBookingCloseJobPort scheduleBookingCloseJobPort;
 	private final ImageCachePort imageCachePort;
 	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 
@@ -107,10 +104,6 @@ public class PerformanceModifyService {
 
 		log.info("Successfully completed updatePerformance for performanceId: {}", request.performanceId());
 		return response;
-	}
-
-	private ScheduleBookingCloseJobTarget toScheduleBookingCloseJobTarget(Schedule schedule) {
-		return new ScheduleBookingCloseJobTarget(schedule.getId());
 	}
 
 	private Member validateMember(Long memberId) {
@@ -197,6 +190,8 @@ public class PerformanceModifyService {
 		deleteRemainingSchedules(schedulesToDelete);
 
 		List<Schedule> schedules = scheduleRequests.stream()
+			.sorted(java.util.Comparator.comparing(request ->
+				request.scheduleId() == null ? Long.MAX_VALUE : request.scheduleId()))
 			.map(request -> {
 				if (request.scheduleId() == null) {
 					return addSchedule(request, performance);
@@ -207,11 +202,6 @@ public class PerformanceModifyService {
 
 		assignScheduleNumbers(schedules);
 		schedules = scheduleRepository.saveAll(schedules);
-		schedules.stream()
-			.filter(Schedule::isBooking)
-			.map(this::toScheduleBookingCloseJobTarget)
-			.forEach(scheduleBookingCloseJobPort::registerOrRefresh);
-
 		LocalDate today = LocalDate.now();
 
 		return schedules.stream()
@@ -240,6 +230,7 @@ public class PerformanceModifyService {
 
 		Schedule schedule = Schedule.create(
 			request.performanceDate(),
+			calculateBookingCloseAt(request.performanceDate(), performance),
 			request.totalTicketCount(),
 			ScheduleNumber.FIRST, // 임시로 1회차
 			performance.getId()
@@ -270,8 +261,8 @@ public class PerformanceModifyService {
 				throw new BadRequestException(
 					PerformanceApplicationErrorCode.SCHEDULE_MODIFICATION_NOT_ALLOWED_FOR_ENDED_SCHEDULE);
 			}
-			// 날짜 변경이 없으면 그대로 반환
-			return schedule;
+			return scheduleRepository.save(
+				schedule.updateBookingCloseAt(calculateBookingCloseAt(request.performanceDate(), performance)));
 		}
 
 		// 종료되지 않은 스케줄을 과거 날짜로 수정 시 에러 발생
@@ -286,25 +277,19 @@ public class PerformanceModifyService {
 				throw new BadRequestException(PerformanceApplicationErrorCode.INVALID_TICKET_COUNT);
 			}
 
-			boolean wasSoldOut = schedule.getSoldTicketCount() == schedule.getTotalTicketCount();
-
-			// 매진 상태로 변경 (soldTicketCount와 totalTicketCount가 동일하고, 기존 isBooking이 true인 경우)
-			if (request.totalTicketCount() == schedule.getSoldTicketCount() && schedule.isBooking()) {
-				schedule = schedule.updateIsBooking(false);
-			} else if (request.totalTicketCount() > schedule.getTotalTicketCount()
-				&& wasSoldOut && !schedule.isBooking()) {
-				schedule = schedule.updateIsBooking(true);
-			}
 		}
-
-		scheduleBookingCloseJobPort.cancel(toScheduleBookingCloseJobTarget(schedule));
 
 		schedule = schedule.update(
 			request.performanceDate(),
+			calculateBookingCloseAt(request.performanceDate(), performance),
 			request.totalTicketCount(),
 			schedule.getScheduleNumber()
 		);
 		return scheduleRepository.save(schedule);
+	}
+
+	private LocalDateTime calculateBookingCloseAt(LocalDateTime performanceDate, Performance performance) {
+		return performanceDate.plusMinutes(performance.getRunningTime());
 	}
 
 	private void deleteRemainingSchedules(List<Long> scheduleIds) {
@@ -328,9 +313,6 @@ public class PerformanceModifyService {
 					log.error("Schedule not found: scheduleId: {}", scheduleId);
 					return new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND);
 				});
-
-			scheduleBookingCloseJobPort.cancel(toScheduleBookingCloseJobTarget(schedule));
-
 			scheduleRepository.delete(schedule);
 			log.debug("Deleted schedule with scheduleId: {}", scheduleId);
 		});

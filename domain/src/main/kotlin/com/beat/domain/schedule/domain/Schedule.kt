@@ -10,9 +10,9 @@ import java.time.LocalDateTime
 data class Schedule private constructor(
     private val scheduleId: Id?,
     private val performanceDate: LocalDateTime,
+    private val bookingCloseAt: LocalDateTime,
     private val totalTicketCount: Int,
     private val soldTicketCount: Int,
-    private val isBooking: Boolean,
     private val scheduleNumber: ScheduleNumber,
     private val linkedPerformanceId: Performance.Id,
 ) {
@@ -22,19 +22,26 @@ data class Schedule private constructor(
 
     fun getPerformanceDate(): LocalDateTime = performanceDate
 
+    fun getBookingCloseAt(): LocalDateTime = bookingCloseAt
+
     fun getTotalTicketCount(): Int = totalTicketCount
 
     fun getSoldTicketCount(): Int = soldTicketCount
 
-    fun isBooking(): Boolean = isBooking
-
     fun getScheduleNumber(): ScheduleNumber = scheduleNumber
 
-    fun update(performanceDate: LocalDateTime, totalTicketCount: Int, scheduleNumber: ScheduleNumber): Schedule {
+    fun update(
+        performanceDate: LocalDateTime,
+        bookingCloseAt: LocalDateTime,
+        totalTicketCount: Int,
+        scheduleNumber: ScheduleNumber,
+    ): Schedule {
         validateTicketCounts(totalTicketCount, soldTicketCount)
+        validateBookingWindow(performanceDate, bookingCloseAt)
 
         return copy(
             performanceDate = performanceDate,
+            bookingCloseAt = bookingCloseAt,
             totalTicketCount = totalTicketCount,
             scheduleNumber = scheduleNumber
         )
@@ -62,7 +69,10 @@ data class Schedule private constructor(
 
     fun updateScheduleNumber(scheduleNumber: ScheduleNumber): Schedule = copy(scheduleNumber = scheduleNumber)
 
-    fun updateIsBooking(isBooking: Boolean): Schedule = copy(isBooking = isBooking)
+    fun updateBookingCloseAt(bookingCloseAt: LocalDateTime): Schedule {
+        validateBookingWindow(performanceDate, bookingCloseAt)
+        return copy(bookingCloseAt = bookingCloseAt)
+    }
 
     private fun validatePositiveCount(count: Int) {
         if (count <= 0) {
@@ -85,18 +95,20 @@ data class Schedule private constructor(
         @JvmStatic
         fun create(
             performanceDate: LocalDateTime,
+            bookingCloseAt: LocalDateTime,
             totalTicketCount: Int,
             scheduleNumber: ScheduleNumber,
             performanceId: Long,
         ): Schedule {
             validateTicketCounts(totalTicketCount, 0)
+            validateBookingWindow(performanceDate, bookingCloseAt)
 
             return Schedule(
                 scheduleId = null,
                 performanceDate = performanceDate,
+                bookingCloseAt = bookingCloseAt,
                 totalTicketCount = totalTicketCount,
                 soldTicketCount = 0,
-                isBooking = true,
                 scheduleNumber = scheduleNumber,
                 linkedPerformanceId = Performance.Id.from(performanceId)
             )
@@ -106,20 +118,21 @@ data class Schedule private constructor(
         fun rehydrate(
             id: Long?,
             performanceDate: LocalDateTime,
+            bookingCloseAt: LocalDateTime,
             totalTicketCount: Int,
             soldTicketCount: Int,
-            isBooking: Boolean,
             scheduleNumber: ScheduleNumber,
             performanceId: Long,
         ): Schedule {
             validateTicketCounts(totalTicketCount, soldTicketCount)
+            validateBookingWindow(performanceDate, bookingCloseAt)
 
             return Schedule(
                 scheduleId = Id.fromNullable(id),
                 performanceDate = performanceDate,
+                bookingCloseAt = bookingCloseAt,
                 totalTicketCount = totalTicketCount,
                 soldTicketCount = soldTicketCount,
-                isBooking = isBooking,
                 scheduleNumber = scheduleNumber,
                 linkedPerformanceId = Performance.Id.from(performanceId)
             )
@@ -127,6 +140,12 @@ data class Schedule private constructor(
 
         private fun validateTicketCounts(totalTicketCount: Int, soldTicketCount: Int) {
             if (totalTicketCount < 0 || soldTicketCount < 0 || soldTicketCount > totalTicketCount) {
+                throw BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT)
+            }
+        }
+
+        private fun validateBookingWindow(performanceDate: LocalDateTime, bookingCloseAt: LocalDateTime) {
+            if (bookingCloseAt.isBefore(performanceDate)) {
                 throw BadRequestException(ScheduleErrorCode.INVALID_DATA_FORMAT)
             }
         }

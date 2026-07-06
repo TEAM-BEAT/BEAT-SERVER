@@ -1,7 +1,6 @@
 package com.beat.apis.booking;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.LocalDateTime;
@@ -131,8 +130,10 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 	}
 
 	private Schedule createSchedule(Performance performance, ScheduleNumber scheduleNumber, int remainingTicketCount) {
+		LocalDateTime performanceDate = LocalDateTime.now().plusDays(1);
 		Schedule schedule = Schedule.create(
-			LocalDateTime.now().plusDays(1),
+			performanceDate,
+			performanceDate.plusMinutes(performance.getRunningTime()),
 			remainingTicketCount,
 			scheduleNumber,
 			performance.getId()
@@ -226,8 +227,6 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 
 		assertEquals(10, firstSchedule.getSoldTicketCount());
 		assertEquals(1, secondSchedule.getSoldTicketCount());
-		assertFalse(firstSchedule.isBooking());
-		assertFalse(secondSchedule.isBooking());
 
 		long firstScheduleBookingCount = bookingRepository.findAll().stream()
 			.filter(booking -> Objects.equals(booking.getScheduleId(), firstSchedule.getId()))

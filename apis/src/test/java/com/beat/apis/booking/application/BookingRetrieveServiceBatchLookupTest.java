@@ -218,12 +218,13 @@ class BookingRetrieveServiceBatchLookupTest {
 	}
 
 	private Schedule schedule(Long id, Long performanceId, ScheduleNumber scheduleNumber) {
+		LocalDateTime performanceDate = LocalDateTime.now().plusDays(7);
 		return Schedule.rehydrate(
 			id,
-			LocalDateTime.now().plusDays(7),
+			performanceDate,
+			performanceDate.plusHours(2),
 			100,
 			0,
-			true,
 			scheduleNumber,
 			performanceId
 		);

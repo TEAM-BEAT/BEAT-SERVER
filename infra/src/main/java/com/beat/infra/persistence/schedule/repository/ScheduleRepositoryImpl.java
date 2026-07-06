@@ -36,6 +36,11 @@ public class ScheduleRepositoryImpl implements ScheduleRepository {
 	}
 
 	@Override
+	public boolean isBeforeBookingCloseAt(Long id) {
+		return scheduleJpaRepository.isBeforeBookingCloseAt(id) == 1L;
+	}
+
+	@Override
 	public List<Schedule> findAllByPerformanceId(Long performanceId) {
 		return scheduleJpaRepository.findAllByPerformanceId(performanceId).stream()
 			.map(schedulePersistenceMapper::toDomain)
@@ -86,13 +91,6 @@ public class ScheduleRepositoryImpl implements ScheduleRepository {
 	@Override
 	public void deleteByPerformanceId(Long performanceId) {
 		scheduleJpaRepository.deleteByPerformanceId(performanceId);
-	}
-
-	@Override
-	public List<Schedule> findPendingSchedules() {
-		return scheduleJpaRepository.findPendingSchedules().stream()
-			.map(schedulePersistenceMapper::toDomain)
-			.toList();
 	}
 
 }

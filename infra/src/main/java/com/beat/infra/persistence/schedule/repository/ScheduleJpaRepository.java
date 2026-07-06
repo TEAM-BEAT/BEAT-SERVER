@@ -19,6 +19,14 @@ public interface ScheduleJpaRepository extends JpaRepository<ScheduleJpaEntity, 
 	@Query("SELECT s FROM Schedule s WHERE s.id = :id")
 	Optional<ScheduleJpaEntity> lockById(@Param("id") Long id);
 
+	@Query(value = """
+		SELECT CURRENT_TIMESTAMP(6) < booking_close_at
+		FROM schedule
+		WHERE id = :id
+		FOR UPDATE
+		""", nativeQuery = true)
+	long isBeforeBookingCloseAt(@Param("id") Long id);
+
 	List<ScheduleJpaEntity> findAllByPerformanceId(Long performanceId);
 
 	@Query("SELECT s.id FROM Schedule s WHERE s.performanceId = :performanceId")
@@ -30,6 +38,4 @@ public interface ScheduleJpaRepository extends JpaRepository<ScheduleJpaEntity, 
 	@Query("DELETE FROM Schedule s WHERE s.performanceId = :performanceId")
 	void deleteByPerformanceId(@Param("performanceId") Long performanceId);
 
-	@Query("SELECT s FROM Schedule s WHERE s.isBooking = true")
-	List<ScheduleJpaEntity> findPendingSchedules();
 }
