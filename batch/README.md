@@ -6,7 +6,7 @@
 
 | Current | Target | Deferred-to-issue |
 | --- | --- | --- |
-| Batch owns scheduler runtime after detach/root dependency removal; `BatchApplication` imports required infra support and observability while `beat.scheduler.owner=true` in runtime resources. Scheduled entrypoints now call a batch Facade before ApplicationService. | Cleaner application service command/query package and DTO organization for scheduler, maintenance, and batch flows. | Internal package/CQRS cleanup for executable modules -> #382. |
+| Batch owns recurring maintenance jobs after detach/root dependency removal. Issue #428 removed the booking-close scheduler because availability is calculated from DB time. | Cleaner application service command/query package and DTO organization for maintenance and batch flows. | Internal package/CQRS cleanup for executable modules -> #382. |
 
 ## 역할
 
@@ -41,14 +41,11 @@ batch/
     config/
       InfraConfig.kt                 # @EnableInfraBaseConfig(JPA, ASYNC)
   src/main/java/com/beat/batch/
-    scheduler/job/
-    scheduler/application/
     booking/job/
     booking/application/
     promotion/job/
     promotion/application/
   src/main/kotlin/com/beat/batch/
-    scheduler/facade/
     booking/facade/
     promotion/facade/
   src/main/resources/
@@ -70,7 +67,7 @@ batch/
 - executable bootstrap resource는 module-local 값과 `spring.profiles.group`만 소유하고, batch는 `persistence`, `observability`, `thread-pool` concern만 활성화한다.
 - main resources는 `beat.scheduler.owner=true`를 기본값으로 유지한다.
 - external-client / Feign runtime은 batch bootstrap이 아니라 `infra`의 `EXTERNAL_CLIENTS` 경계와 web-app lane에서만 소유한다.
-- scheduler bean은 Spring Boot auto-configuration이 만들고, pool/thread 설정은 `spring.task.scheduling.*` profile property로 조정한다.
+- 스케줄 메서드는 Boot 자동생성 `taskScheduler`가 아니라 명명된 `maintenanceTaskScheduler`(`SchedulingConfig`, `ThreadPoolTaskSchedulerBuilder` 기반)를 `scheduler` qualifier(Spring Framework 6.1+)로 명시해 사용한다. 무거운 배치 작업이 추가되면 별도 스케줄러 빈(예: `batchTaskScheduler`)을 새로 두고 해당 작업의 `scheduler` 값만 바꾸면 되며, 기존 정리성 작업(`PromotionMaintenanceJob`, `TicketCleanupJob`)과 `maintenanceTaskScheduler`는 건드리지 않는다. 데이터 규모가 커져 재시도/청크/작업 이력 관리가 필요해지면 Spring Batch 도입은 별도 ADR로 검토한다.
 - test profile은 `beat.scheduler.owner=false`로 내려서 detached smoke boot를 검증하고, owner-enabled contract는 별도 테스트로 검증한다.
 - scheduler/service 코드는 `batch` owner namespace 기준으로 정렬됐다.
 - 이번 PR에서 batch는 servlet MDC filter를 자동 등록하지 않는다. 필요하면 후속 PR에서 batch-local `SimpleMdcLoggingFilter`를 명시 등록한다.
@@ -91,25 +88,24 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
 | --- | --- | --- | --- |
 | Executable lane ownership | scheduler/batch lane은 root bootstrap 없이 `BatchApplication`과 module-local config로 실행된다. | 계속 `batch`가 scheduler runtime, scheduled jobs, maintenance flows를 소유한다. | #384 gate baseline only |
 | Shared module ownership | `domain`, `module-contracts`, `global-support`, `observability`, `infra`의 현재 공개 계약을 사용하고 `gateway`는 직접 의존하지 않는다. | shared module ownership/package closeout 이후 batch가 필요한 공개 계약만 더 좁게 사용한다. | #378 |
-| CQRS/package normalization | `scheduler`, `booking`, `promotion`은 `Job -> Facade -> ApplicationService` 흐름으로 정렬됐고, application service는 아직 `application/` 바로 아래에 있다. | `com.beat.batch.<context>` 아래 application service command/query package와 dto 기준을 필요 시 더 세분화한다. | #382 |
+| CQRS/package normalization | `booking`, `promotion`은 `Job -> Facade -> ApplicationService` 흐름으로 정렬됐고, application service는 아직 `application/` 바로 아래에 있다. | `com.beat.batch.<context>` 아래 application service command/query package와 dto 기준을 필요 시 더 세분화한다. | #382 |
 | Gateway boundary | `batch`는 gateway에 직접 의존하지 않고 사용자/관리자 HTTP lane과 분리되어 있다. | scheduler lane은 gateway 인증 구현과 계속 분리한다. | #379 |
 | Domain/persistence boundary | batch job은 domain model contract와 infra bootstrap을 통해 persistence를 사용하고, promotion scheduler의 promotion repository access는 domain `PromotionRepository` contract를 주입받아 infra 구현으로 격리한다. 인접 `ScheduleRepository` 등은 아직 transitional domain persistence concern이다. | domain entity/persistence 전략 정리 후에도 batch는 domain contract 중심으로 접근한다. | #380 |
 | Infra/query boundary | `InfraConfig`가 JPA, QueryDSL, async group을 명시적으로 import하고, `InfraPersistenceConfig`를 IDE static-analysis breadcrumb로 직접 import한다. Runtime persistence import는 여전히 `JpaConfig`가 보장하며 scheduler bean은 Spring Boot auto-configuration이 소유한다. | QueryDSL/JDSL 전환과 `JpaConfig` scan 결정은 infra-owned boundary에서 정한다. | #381 |
-| Async/scheduler handoff | 실행 모듈 중 유일하게 `@EnableScheduling`을 유지하고 `ScheduleBookingCloseJobPort` owner를 제공한다. | coroutine/async 확장 여부가 결정될 때까지 scheduler owner 계약을 넓히지 않는다. | #383 |
+| Async/scheduler handoff | 실행 모듈 중 유일하게 `@EnableScheduling`을 유지하지만 예매 마감 작업은 소유하지 않는다. | 프로모션 관리와 티켓 정리 같은 실제 유지보수 작업만 scheduler에 둔다. | #383, #428 |
 
 ## Current ownership notes
 
 ### In `batch`
 
 - scheduler runtime ownership
-- `ScheduleBookingCloseJobPort` implementation for the active scheduler lane
 - scheduled maintenance jobs and batch execution entrypoints
 - batch-local scheduling bootstrap and owner flag defaults
 - module-local bootstrap config such as `beat.scheduler.owner`
 
 ### Outside `batch`
 
-- `module-contracts`: `ScheduleBookingCloseJobPort` 같은 cross-module execution contract
+- `module-contracts`: 유지보수 흐름에 필요한 cross-module 계약
 - `domain`: schedule/booking/promotion domain models and repository contracts
 - `infra`: JPA, QueryDSL, async/task-scheduler bootstrap
 - `global-support`: shared common types and exception base contracts
@@ -140,14 +136,11 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
 - `BatchModuleContextBootTest`
     - module context boot smoke test
     - test profile에서 `beat.scheduler.owner=false`가 실제로 적용되는지 확인
-    - batch-owned `ScheduleBookingCloseJobPort`가 detached classpath에서 그대로 올라오는지 확인
     - batch lane만 명시적으로 소유한 `taskScheduler`를 유지하는지 확인
 - `BatchSchedulerOwnerBootTest`
-    - owner-enabled runtime에서 `ScheduleBookingCloseJobPort -> JobSchedulerService` 해석 고정
+    - owner-enabled runtime에서 프로모션 관리와 티켓 정리 job이 기동하는지 확인
 - `AbstractBatchIntegrationTest`
     - batch 통합 테스트용 MySQL service connection bootstrap 공유
-- `JobSchedulerServiceTest`
-    - reconcile / registerOrRefresh owner behavior 회귀 방지
 
 ## To-Be direction
 
