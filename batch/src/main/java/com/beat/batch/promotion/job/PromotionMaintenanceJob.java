@@ -17,7 +17,7 @@ public class PromotionMaintenanceJob {
 	@Value("${beat.scheduler.owner:false}")
 	private boolean schedulerOwner;
 
-	@Scheduled(cron = "1 0 0 * * ?")
+	@Scheduled(cron = "1 0 0 * * ?", scheduler = "maintenanceTaskScheduler")
 	public void checkAndDeleteInvalidPromotions() {
 		if (!schedulerOwner) {
 			return;
