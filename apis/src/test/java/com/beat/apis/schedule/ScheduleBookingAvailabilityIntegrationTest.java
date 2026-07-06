@@ -22,8 +22,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.beat.apis.support.AbstractIntegrationTest;
-import com.beat.contracts.schedule.PerformanceScheduleReadPort;
-import com.beat.contracts.schedule.readmodel.PerformanceScheduleAvailabilityReadModel;
+import com.beat.contracts.schedule.ScheduleAvailabilityReadPort;
+import com.beat.contracts.schedule.readmodel.ScheduleAvailabilityReadModel;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 
 class ScheduleBookingAvailabilityIntegrationTest extends AbstractIntegrationTest {
@@ -34,7 +34,7 @@ class ScheduleBookingAvailabilityIntegrationTest extends AbstractIntegrationTest
 	private JdbcTemplate jdbcTemplate;
 
 	@Autowired
-	private PerformanceScheduleReadPort performanceScheduleReadPort;
+	private ScheduleAvailabilityReadPort scheduleAvailabilityReadPort;
 
 	@Autowired
 	private ScheduleRepository scheduleRepository;
@@ -54,11 +54,11 @@ class ScheduleBookingAvailabilityIntegrationTest extends AbstractIntegrationTest
 		insertSchedule(databaseNow.minusHours(2), databaseNow.minusSeconds(1), 10, 0, "SECOND");
 		insertSchedule(databaseNow.plusDays(1), databaseNow.plusDays(1).plusHours(2), 10, 10, "THIRD");
 
-		List<PerformanceScheduleAvailabilityReadModel> schedules =
-			performanceScheduleReadPort.findAllByPerformanceId(PERFORMANCE_ID);
-		Map<String, PerformanceScheduleAvailabilityReadModel> schedulesByNumber = schedules.stream()
+		List<ScheduleAvailabilityReadModel> schedules =
+			scheduleAvailabilityReadPort.findAllByPerformanceId(PERFORMANCE_ID);
+		Map<String, ScheduleAvailabilityReadModel> schedulesByNumber = schedules.stream()
 			.collect(Collectors.toMap(
-				PerformanceScheduleAvailabilityReadModel::getScheduleNumber,
+				ScheduleAvailabilityReadModel::getScheduleNumber,
 				schedule -> schedule));
 
 		assertEquals(3, schedules.size());
@@ -66,7 +66,7 @@ class ScheduleBookingAvailabilityIntegrationTest extends AbstractIntegrationTest
 		assertFalse(schedulesByNumber.get("SECOND").isBooking());
 		assertFalse(schedulesByNumber.get("THIRD").isBooking());
 		assertEquals(1,
-			schedules.stream().map(PerformanceScheduleAvailabilityReadModel::getEvaluatedAt).distinct().count());
+			schedules.stream().map(ScheduleAvailabilityReadModel::getEvaluatedAt).distinct().count());
 
 		jdbcTemplate.update("""
 			UPDATE schedule
@@ -74,10 +74,10 @@ class ScheduleBookingAvailabilityIntegrationTest extends AbstractIntegrationTest
 			WHERE performance_id = ? AND schedule_number = 'SECOND'
 			""", PERFORMANCE_ID);
 
-		Map<String, PerformanceScheduleAvailabilityReadModel> extendedSchedules = performanceScheduleReadPort
+		Map<String, ScheduleAvailabilityReadModel> extendedSchedules = scheduleAvailabilityReadPort
 			.findAllByPerformanceId(PERFORMANCE_ID).stream()
 			.collect(Collectors.toMap(
-				PerformanceScheduleAvailabilityReadModel::getScheduleNumber,
+				ScheduleAvailabilityReadModel::getScheduleNumber,
 				schedule -> schedule));
 		assertTrue(extendedSchedules.get("SECOND").isBooking());
 	}

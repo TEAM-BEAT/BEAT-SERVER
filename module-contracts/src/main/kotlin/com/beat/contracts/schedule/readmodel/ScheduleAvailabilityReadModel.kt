@@ -4,7 +4,7 @@ import com.beat.contracts.common.ReadModel
 import java.time.LocalDateTime
 
 @ReadModel
-data class PerformanceScheduleAvailabilityReadModel(
+data class ScheduleAvailabilityReadModel(
     val scheduleId: Long,
     val performanceDate: LocalDateTime,
     val scheduleNumber: String,
