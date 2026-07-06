@@ -376,7 +376,7 @@ Boundary rules:
 - `domain/src/main/kotlin/com/beat/domain/schedule/repository/ScheduleRepository.kt`는 기술 중립적인 포트 인터페이스입니다.
 - 모든 mutation method(`update`, `decreaseSoldTicketCount`, `updateScheduleNumber`, `updateBookingCloseAt`)는 new copy를 반환하며, dirty tracking을 사용하지 않습니다.
 - 회차 조회 read-model은 `module-contracts/src/main/kotlin/com/beat/contracts/schedule/readmodel`이 소유하며, domain repository/dto 패키지에는 두지 않습니다.
-- `infra.persistence.schedule` 패키지에서 JPA entity/repository/mapper와 `ScheduleReadPortImpl`, `PerformanceScheduleReadPortImpl`을 소유합니다.
+- `infra.persistence.schedule` 패키지에서 JPA entity/repository/mapper와 `ScheduleReadPortImpl`, `ScheduleAvailabilityReadPortImpl`을 소유합니다.
 - Booking ticket query의 Schedule 조건 조인은 수동 `QScheduleJpaEntity`나 QueryDSL 없이
   `infra.persistence.booking.repository.query.MakerTicketReadPortImpl.kt`의 Kotlin JDSL `jpql { }` DSL로 수행합니다.
   `JpqlRenderContext`는 `JpaConfig`에서 단일 bean으로 등록해 재사용하며 generated Q-type을 source tree에 커밋하지 않습니다.
@@ -528,7 +528,7 @@ isBooking = CURRENT_TIMESTAMP(6) < booking_close_at
 
 - `booking_close_at = performance_date + performance.running_time`을 `DATETIME(6)`으로 저장한다.
 - 회원·비회원 예매는 schedule 비관적 락을 얻은 뒤 별도 locking read를 시작해 마감 시각을 다시 판정한다.
-- 조회는 `PerformanceScheduleReadPort`의 단일 native SQL에서 DB 시각을 한 번 평가하고 모든 회차에 재사용한다.
+- 조회는 `ScheduleAvailabilityReadPort`의 단일 native SQL에서 DB 시각을 한 번 평가하고 모든 회차에 재사용한다.
 - 공연 시간 연장으로 `booking_close_at`이 미래가 되면 별도 상태 갱신 없이 즉시 다시 열린다.
 - batch에는 프로모션 관리와 티켓 정리 job만 남기고 예매 마감 scheduler와 contract를 제거한다.
 - 운영 반영 순서와 검증 SQL은 [`infra/db/migration/booking_close_at_a3_migration.sql`](infra/db/migration/booking_close_at_a3_migration.sql)을 따른다.

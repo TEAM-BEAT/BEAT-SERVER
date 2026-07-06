@@ -57,10 +57,10 @@ module-contracts/
       MemberNotification.java
       MemberNotificationPort.java
     schedule/
-      PerformanceScheduleReadPort.kt
+      ScheduleAvailabilityReadPort.kt
       ScheduleReadPort.java
       readmodel/
-        PerformanceScheduleAvailabilityReadModel.kt # DB 시각 기반 회차 예매 가능 상태
+        ScheduleAvailabilityReadModel.kt # DB 시각 기반 회차 예매 가능 상태
         MinPerformanceDateReadModel.java            # @ReadModel; Schedule 최소 공연 일자 query result
     sms/
       SmsMessage.java
@@ -114,10 +114,10 @@ com.beat.contracts/
     MemberNotification
     MemberNotificationPort
   schedule/
-    PerformanceScheduleReadPort
+    ScheduleAvailabilityReadPort
     ScheduleReadPort
     readmodel/
-      PerformanceScheduleAvailabilityReadModel
+      ScheduleAvailabilityReadModel
       MinPerformanceDateReadModel
   sms/
     SmsMessage
@@ -149,7 +149,7 @@ Facade/ApplicationService/DomainService 표준에서 `module-contracts`는 실�
 - 계약 타입은 Spring/JPA/QueryDSL/Redis/document 구현 세부사항을 포함하지 않는다.
 - 신규 계약 타입은 Domain model, JPA Entity, 실행 모듈 ResponseDTO를 필드나 반환 타입으로 담지 않는다.
 - 실행 모듈 전용 response DTO는 여기에 두지 않는다. read-model contract는 실행 모듈 query service와 infra query adapter 사이의 구현 없는 계약이 필요하거나 여러 실행 모듈에서 공유될 때만 둔다.
-- Issue #426 이후 `SocialLoginRequest`는 `SocialLoginType` contract enum만 받고, `SocialMemberInfo`는 외부 provider profile 결과(`socialId`, `nickname`, `email`)만 반환한다. `SocialLoginFailure`는 infra adapter-local failure를 application boundary에서 API-facing ErrorCode로 번역하기 위한 port-level failure다. Issue #428 이후 회차 조회는 `PerformanceScheduleReadPort`와 구현 독립적인 read model을 사용한다.
+- Issue #426 이후 `SocialLoginRequest`는 `SocialLoginType` contract enum만 받고, `SocialMemberInfo`는 외부 provider profile 결과(`socialId`, `nickname`, `email`)만 반환한다. `SocialLoginFailure`는 infra adapter-local failure를 application boundary에서 API-facing ErrorCode로 번역하기 위한 port-level failure다. Issue #428 이후 회차 조회는 `ScheduleAvailabilityReadPort`와 구현 독립적인 read model을 사용한다.
 
 
 ### Read-model contract rule

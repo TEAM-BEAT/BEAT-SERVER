@@ -7,7 +7,7 @@
 
 | Current | Target | Deferred-to-issue |
 | --- | --- | --- |
-| Detached user API lane with DB-clock-based booking availability. `PerformanceScheduleReadPort` calculates `isBooking`, and booking commands recheck `booking_close_at` after acquiring the schedule lock. | Stable user API lane with cleaner internal package and CQRS boundaries under `com.beat.apis.<context>`. | Internal CQRS/package rules -> #382. |
+| Detached user API lane with DB-clock-based booking availability. `ScheduleAvailabilityReadPort` calculates `isBooking`, and booking commands recheck `booking_close_at` after acquiring the schedule lock. | Stable user API lane with cleaner internal package and CQRS boundaries under `com.beat.apis.<context>`. | Internal CQRS/package rules -> #382. |
 
 ## 역할
 
@@ -88,7 +88,7 @@ apis/
 - gateway 내부 `SecurityMdcLoggingFilter` 클래스는 직접 import하지 않고 qualifier + `OncePerRequestFilter` 타입으로만 주입한다.
 - observability 내부 config는 직접 import하지 않고 `ObservabilityModuleConfig`만 사용한다.
 - 예매 가능 여부는 `booking_close_at`, 재고, `CURRENT_TIMESTAMP(6)`으로 계산하며 `apis`는 예매 마감 스케줄러 계약에 의존하지 않는다.
-- 조회 API는 `PerformanceScheduleReadPort`의 단일 native SQL이 반환한 `evaluated_at`을 `isBooking`과 `dueDate`에 함께 사용한다.
+- 조회 API는 `ScheduleAvailabilityReadPort`의 단일 native SQL이 반환한 `evaluated_at`을 `isBooking`과 `dueDate`에 함께 사용한다.
 
 ## What changed in issue #360
 
@@ -261,5 +261,5 @@ Controller -> Facade -> QueryService A -> QueryResult A
 ## Follow-up after this issue
 
 1. `com.beat.apis.<context>` 내부 하위 계층(`controller`, `application/service`, `dto`)을 문맥별로 더 일관되게 정리
-2. `PerformanceScheduleReadPort` 조회 계약과 DB 시각 기준을 회귀 테스트로 유지
+2. `ScheduleAvailabilityReadPort` 조회 계약과 DB 시각 기준을 회귀 테스트로 유지
 3. package normalization 이후 문맥별 하위 계층 정리를 별도 리팩터링 lane으로 진행
