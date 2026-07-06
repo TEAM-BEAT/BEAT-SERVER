@@ -9,24 +9,24 @@ import com.beat.infra.persistence.schedule.entity.ScheduleJpaEntity;
 public class SchedulePersistenceMapper {
 
 	public Schedule toDomain(ScheduleJpaEntity entity) {
-		return Schedule.rehydrate(
-			entity.getId(),
-			entity.getPerformanceDate(),
-			entity.getTotalTicketCount(),
-			entity.getSoldTicketCount(),
-			entity.isBooking(),
+			return Schedule.rehydrate(
+				entity.getId(),
+				entity.getPerformanceDate(),
+				entity.getBookingCloseAt(),
+				entity.getTotalTicketCount(),
+				entity.getSoldTicketCount(),
 			entity.getScheduleNumber(),
 			entity.getPerformanceId()
 		);
 	}
 
 	public ScheduleJpaEntity toEntity(Schedule schedule) {
-		return ScheduleJpaEntity.rehydrate(
-			schedule.getId(),
-			schedule.getPerformanceDate(),
-			schedule.getTotalTicketCount(),
-			schedule.getSoldTicketCount(),
-			schedule.isBooking(),
+			return ScheduleJpaEntity.rehydrate(
+				schedule.getId(),
+				schedule.getPerformanceDate(),
+				schedule.getBookingCloseAt(),
+				schedule.getTotalTicketCount(),
+				schedule.getSoldTicketCount(),
 			schedule.getScheduleNumber(),
 			schedule.getPerformanceId()
 		);

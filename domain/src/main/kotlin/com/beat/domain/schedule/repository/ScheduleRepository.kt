@@ -9,6 +9,8 @@ interface ScheduleRepository {
 
     fun lockById(id: Long?): Optional<Schedule>
 
+    fun isBeforeBookingCloseAt(id: Long?): Boolean
+
     fun findAllByPerformanceId(performanceId: Long?): List<Schedule>
 
     fun findAllById(ids: Collection<Long>): List<Schedule>
@@ -24,6 +26,4 @@ interface ScheduleRepository {
     fun delete(schedule: Schedule)
 
     fun deleteByPerformanceId(performanceId: Long?)
-
-    fun findPendingSchedules(): List<Schedule>
 }

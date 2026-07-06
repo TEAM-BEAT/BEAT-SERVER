@@ -18,7 +18,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
 import com.beat.apis.support.AbstractIntegrationTest;
 
 import io.swagger.v3.oas.models.OpenAPI;
@@ -35,9 +34,6 @@ class ApisModuleContextBootTest extends AbstractIntegrationTest {
 	private ApplicationContext applicationContext;
 
 	@Autowired
-	private ScheduleBookingCloseJobPort scheduleBookingCloseJobPort;
-
-	@Autowired
 	private WebApplicationContext webApplicationContext;
 
 	private MockMvc mockMvc;
@@ -48,16 +44,13 @@ class ApisModuleContextBootTest extends AbstractIntegrationTest {
 	}
 
 	@Test
-	void contextLoadsWithModuleLocalNoOpScheduleBookingCloseJobPort() {
-		assertNotNull(scheduleBookingCloseJobPort);
-		assertEquals(1, applicationContext.getBeansOfType(ScheduleBookingCloseJobPort.class).size());
+	void contextLoadsWithoutBatchScheduler() {
 		assertEquals(1, applicationContext.getBeansOfType(GroupedOpenApi.class).size());
 		assertEquals(1, applicationContext.getBeansOfType(OpenAPI.class).size());
 		assertTrue(applicationContext.containsBean("generalApi"));
 		assertFalse(applicationContext.containsBean("adminApi"));
 		assertFalse(applicationContext.containsBean("jobSchedulerService"));
 		assertTrue(applicationContext.getBeansOfType(TaskScheduler.class).isEmpty());
-		assertFalse(scheduleBookingCloseJobPort.getClass().getName().contains("JobSchedulerService"));
 		assertEquals(1, applicationContext.getBeansOfType(PerformanceRepository.class).size());
 		assertEquals(1, applicationContext.getBeansOfType(PromotionRepository.class).size());
 		assertEquals(1, applicationContext.getBeansOfType(ScheduleRepository.class).size());

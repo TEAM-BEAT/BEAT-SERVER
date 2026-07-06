@@ -30,6 +30,8 @@ import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.cast.domain.Cast;
 import com.beat.domain.cast.repository.CastRepository;
+import com.beat.contracts.schedule.ScheduleAvailabilityReadPort;
+import com.beat.contracts.schedule.readmodel.ScheduleAvailabilityReadModel;
 import com.beat.domain.member.domain.Member;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.domain.Performance;
@@ -64,23 +66,30 @@ public class PerformanceService {
 	private final UserRepository userRepository;
 	private final BookingRepository bookingRepository;
 	private final PerformanceImageRepository performanceImageRepository;
+	private final ScheduleAvailabilityReadPort scheduleAvailabilityReadPort;
 
 	@Transactional(readOnly = true)
 	public PerformanceDetailResponse getPerformanceDetail(Long performanceId) {
 		Performance performance = performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
 
-		LocalDate today = LocalDate.now();
-		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
+		List<ScheduleAvailabilityReadModel> schedules =
+			scheduleAvailabilityReadPort.findAllByPerformanceId(performanceId);
 		List<PerformanceDetailScheduleResponse> scheduleList = schedules.stream()
 			.map(schedule -> {
-				int dueDate = scheduleDomainService.calculateDueDate(today, schedule);
-				return PerformanceDetailScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
-					schedule.getScheduleNumber().name(), dueDate, schedule.isBooking());
+				int dueDate = scheduleDomainService.calculateDueDate(schedule.getEvaluatedAt().toLocalDate(),
+					schedule.getPerformanceDate());
+				return PerformanceDetailScheduleResponse.of(schedule.getScheduleId(), schedule.getPerformanceDate(),
+					schedule.getScheduleNumber(), dueDate, schedule.isBooking());
 			})
 			.toList();
 
-		int minDueDate = scheduleDomainService.getMinDueDate(today, schedules);
+		int minDueDate = Integer.MAX_VALUE;
+		if (!schedules.isEmpty()) {
+			LocalDate today = schedules.getFirst().getEvaluatedAt().toLocalDate();
+			minDueDate = scheduleDomainService.getMinDueDateByPerformanceDates(today,
+				schedules.stream().map(ScheduleAvailabilityReadModel::getPerformanceDate).toList());
+		}
 
 		List<PerformanceDetailCastResponse> castList = castRepository.findAllByPerformanceId(performanceId)
 			.stream()
@@ -115,13 +124,12 @@ public class PerformanceService {
 		Performance performance = performanceRepository.findById(performanceId)
 			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
 
-		LocalDate today = LocalDate.now();
-		List<BookingPerformanceDetailScheduleResponse> scheduleList = scheduleRepository.findAllByPerformanceId(
-			performanceId).stream().map(schedule -> {
-			int dueDate = scheduleDomainService.calculateDueDate(today, schedule);
-			return BookingPerformanceDetailScheduleResponse.of(schedule.getId(), schedule.getPerformanceDate(),
-				schedule.getScheduleNumber().name(), scheduleDomainService.getAvailableTicketCount(schedule),
-				schedule.isBooking(), dueDate);
+		List<BookingPerformanceDetailScheduleResponse> scheduleList = scheduleAvailabilityReadPort
+			.findAllByPerformanceId(performanceId).stream().map(schedule -> {
+			int dueDate = scheduleDomainService.calculateDueDate(schedule.getEvaluatedAt().toLocalDate(),
+				schedule.getPerformanceDate());
+			return BookingPerformanceDetailScheduleResponse.of(schedule.getScheduleId(), schedule.getPerformanceDate(),
+				schedule.getScheduleNumber(), schedule.getAvailableTicketCount(), schedule.isBooking(), dueDate);
 		}).toList();
 
 		return BookingPerformanceDetailResponse.of(performance.getId(), performance.getPerformanceTitle(),

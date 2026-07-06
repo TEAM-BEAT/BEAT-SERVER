@@ -372,7 +372,7 @@ class RootRetirementContractTest {
 	}
 
 	@Test
-	void batchRemainsTheSchedulerOwnerLaneAfterRootRetirement() throws Exception {
+	void batchKeepsOnlyRecurringMaintenanceJobsAfterBookingCloseSchedulerRemoval() throws Exception {
 		Path schedulerService = Path.of(
 			"batch/src/main/java/com/beat/batch/scheduler/application/JobSchedulerService.java");
 		Path schedulerTransactionalService = Path.of(
@@ -382,13 +382,10 @@ class RootRetirementContractTest {
 		Path promotionMaintenanceService = Path.of(
 			"batch/src/main/java/com/beat/batch/promotion/application/PromotionMaintenanceService.java");
 
-		assertTrue(Files.exists(schedulerService));
-		assertTrue(Files.exists(schedulerTransactionalService));
+		assertFalse(Files.exists(schedulerService));
+		assertFalse(Files.exists(schedulerTransactionalService));
 		assertTrue(Files.exists(ticketCleanupService));
 		assertTrue(Files.exists(promotionMaintenanceService));
-		assertTrue(Files.readString(schedulerService).startsWith("package com.beat.batch.scheduler.application;"));
-		assertTrue(Files.readString(schedulerTransactionalService)
-			.startsWith("package com.beat.batch.scheduler.application;"));
 		assertTrue(Files.readString(ticketCleanupService).startsWith("package com.beat.batch.booking.application;"));
 		assertTrue(
 			Files.readString(promotionMaintenanceService).startsWith("package com.beat.batch.promotion.application;"));

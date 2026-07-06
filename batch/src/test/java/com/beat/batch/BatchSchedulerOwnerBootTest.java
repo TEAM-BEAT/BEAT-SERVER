@@ -1,9 +1,7 @@
 package com.beat.batch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,8 +12,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.beat.batch.support.AbstractBatchIntegrationTest;
-import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
-import com.beat.batch.scheduler.application.JobSchedulerService;
+import com.beat.batch.booking.job.TicketCleanupJob;
+import com.beat.batch.promotion.job.PromotionMaintenanceJob;
 
 @TestPropertySource(properties = "beat.scheduler.owner=true")
 class BatchSchedulerOwnerBootTest extends AbstractBatchIntegrationTest {
@@ -26,22 +24,17 @@ class BatchSchedulerOwnerBootTest extends AbstractBatchIntegrationTest {
 	@Autowired
 	private Environment environment;
 
-	@Autowired
-	private ScheduleBookingCloseJobPort scheduleBookingCloseJobPort;
-
-	@Autowired
-	private JobSchedulerService jobSchedulerService;
-
 	@Test
 	void contextBootsWithSchedulerOwnerEnabled() {
 		assertEquals("true", environment.getProperty("beat.scheduler.owner"));
-		assertEquals(true, applicationContext.containsBean("taskScheduler"));
-		assertEquals(1, applicationContext.getBeansOfType(JobSchedulerService.class).size());
-		assertEquals(1, applicationContext.getBeansOfType(ScheduleBookingCloseJobPort.class).size());
+		assertEquals(false, applicationContext.containsBean("taskScheduler"));
+		assertEquals(true, applicationContext.containsBean("maintenanceTaskScheduler"));
 		assertEquals(1, applicationContext.getBeansOfType(TaskScheduler.class).size());
-		assertNotNull(scheduleBookingCloseJobPort);
-		assertInstanceOf(JobSchedulerService.class, scheduleBookingCloseJobPort);
-		assertSame(jobSchedulerService, scheduleBookingCloseJobPort);
-		assertEquals(true, ReflectionTestUtils.getField(jobSchedulerService, "schedulerOwner"));
+		TicketCleanupJob ticketCleanupJob = applicationContext.getBean(TicketCleanupJob.class);
+		PromotionMaintenanceJob promotionMaintenanceJob = applicationContext.getBean(PromotionMaintenanceJob.class);
+		assertNotNull(ticketCleanupJob);
+		assertNotNull(promotionMaintenanceJob);
+		assertEquals(true, ReflectionTestUtils.getField(ticketCleanupJob, "schedulerOwner"));
+		assertEquals(true, ReflectionTestUtils.getField(promotionMaintenanceJob, "schedulerOwner"));
 	}
 }

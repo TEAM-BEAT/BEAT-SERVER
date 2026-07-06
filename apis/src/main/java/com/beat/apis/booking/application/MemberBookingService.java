@@ -20,6 +20,7 @@ import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.domain.Schedule;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.global.support.exception.BadRequestException;
+import com.beat.global.support.exception.ConflictException;
 import com.beat.global.support.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -42,21 +43,24 @@ public class MemberBookingService {
 
 	@Transactional(timeout = 200)
 	public MemberBookingResponse createMemberBooking(Long memberId, MemberBookingRequest memberBookingRequest) {
+		Member member = memberRepository.findById(memberId).orElseThrow(
+			() -> new NotFoundException(MemberApplicationErrorCode.MEMBER_NOT_FOUND));
+
 		Schedule schedule = scheduleRepository.lockById(memberBookingRequest.scheduleId())
 			.orElseThrow(() -> new NotFoundException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND));
+		if (!scheduleRepository.isBeforeBookingCloseAt(schedule.getId())) {
+			throw new ConflictException(ScheduleApplicationErrorCode.BOOKING_CLOSED);
+		}
 
 		int availableTicketCount = schedule.getTotalTicketCount() - schedule.getSoldTicketCount();
 		if (availableTicketCount < memberBookingRequest.purchaseTicketCount()) {
 			throw new BadRequestException(ScheduleApplicationErrorCode.INSUFFICIENT_TICKETS);
 		}
 
-		schedule = updateSoldTicketCountAndIsBooking(schedule, memberBookingRequest.purchaseTicketCount());
+		schedule = schedule.increaseSoldTicketCount(memberBookingRequest.purchaseTicketCount());
 
 		Performance performance = performanceRepository.findById(schedule.getPerformanceId())
 			.orElseThrow(() -> new NotFoundException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND));
-
-		Member member = memberRepository.findById(memberId).orElseThrow(
-			() -> new NotFoundException(MemberApplicationErrorCode.MEMBER_NOT_FOUND));
 
 		Booking booking = Booking.create(
 			memberBookingRequest.purchaseTicketCount(),
@@ -101,11 +105,4 @@ public class MemberBookingService {
 		);
 	}
 
-	private Schedule updateSoldTicketCountAndIsBooking(Schedule schedule, int purchaseTicketCount) {
-		schedule = schedule.increaseSoldTicketCount(purchaseTicketCount);
-		if (schedule.getTotalTicketCount() == schedule.getSoldTicketCount()) {
-			schedule = schedule.updateIsBooking(false);
-		}
-		return schedule;
-	}
 }

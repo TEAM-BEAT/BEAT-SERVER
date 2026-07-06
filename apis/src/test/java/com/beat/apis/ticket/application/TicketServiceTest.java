@@ -106,12 +106,13 @@ class TicketServiceTest {
 			1,
 			10L
 		);
+		LocalDateTime performanceDate = LocalDateTime.of(2026, 1, 1, 19, 0);
 		Schedule schedule = Schedule.rehydrate(
 			200L,
-			LocalDateTime.of(2026, 1, 1, 19, 0),
+			performanceDate,
+			performanceDate.plusHours(2),
 			100,
 			1,
-			true,
 			ScheduleNumber.FIRST,
 			100L
 		);

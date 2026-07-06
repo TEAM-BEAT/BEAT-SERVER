@@ -12,8 +12,11 @@ class ScheduleDomainService {
     fun calculateDueDate(today: LocalDate, performanceDate: LocalDateTime): Int =
         ChronoUnit.DAYS.between(today, performanceDate.toLocalDate()).toInt()
 
-    fun getMinDueDate(today: LocalDate, schedules: List<Schedule>): Int {
-        val dueDates = schedules.map { calculateDueDate(today, it) }
+    fun getMinDueDate(today: LocalDate, schedules: List<Schedule>): Int =
+        getMinDueDateByPerformanceDates(today, schedules.map { it.getPerformanceDate() })
+
+    fun getMinDueDateByPerformanceDates(today: LocalDate, performanceDates: List<LocalDateTime>): Int {
+        val dueDates = performanceDates.map { calculateDueDate(today, it) }
         return dueDates.filter { it >= 0 }.minOrNull()
             ?: dueDates.minOrNull()
             ?: Int.MAX_VALUE

@@ -26,7 +26,6 @@ import com.beat.admin.user.api.AdminUserController;
 import com.beat.admin.user.application.service.query.AdminUserQueryService;
 import com.beat.admin.user.facade.AdminUserFacade;
 import com.beat.admin.support.AbstractAdminIntegrationTest;
-import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
 import com.beat.contracts.storage.FileStoragePort;
 import com.beat.domain.performance.repository.PerformanceRepository;
 import com.beat.domain.promotion.repository.PromotionRepository;
@@ -63,7 +62,6 @@ class AdminModuleContextBootTest extends AbstractAdminIntegrationTest {
 		assertEquals(1, applicationContext.getBeansOfType(AdminPromotionQueryService.class).size());
 		assertEquals(1, applicationContext.getBeansOfType(AdminPromotionCommandService.class).size());
 		assertFalse(applicationContext.containsBean("jobSchedulerService"));
-		assertTrue(applicationContext.getBeansOfType(ScheduleBookingCloseJobPort.class).isEmpty());
 		assertTrue(applicationContext.getBeansOfType(TaskScheduler.class).isEmpty());
 		assertEquals(1, applicationContext.getBeansOfType(PerformanceRepository.class).size());
 		assertEquals(1, applicationContext.getBeansOfType(PromotionRepository.class).size());

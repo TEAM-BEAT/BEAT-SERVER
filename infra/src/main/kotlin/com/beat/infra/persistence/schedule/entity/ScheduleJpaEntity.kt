@@ -1,14 +1,7 @@
 package com.beat.infra.persistence.schedule.entity
 
 import com.beat.domain.schedule.domain.ScheduleNumber
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import java.time.LocalDateTime
 
 @Entity(name = "Schedule")
@@ -16,9 +9,9 @@ import java.time.LocalDateTime
 class ScheduleJpaEntity private constructor(
     id: Long?,
     performanceDate: LocalDateTime,
+    bookingCloseAt: LocalDateTime,
     totalTicketCount: Int,
     soldTicketCount: Int,
-    isBooking: Boolean,
     scheduleNumber: ScheduleNumber,
     performanceId: Long,
 ) {
@@ -33,15 +26,15 @@ class ScheduleJpaEntity private constructor(
         protected set
 
     @Column(nullable = false)
+    var bookingCloseAt: LocalDateTime = bookingCloseAt
+        protected set
+
+    @Column(nullable = false)
     var totalTicketCount: Int = totalTicketCount
         protected set
 
     @Column(nullable = false)
     var soldTicketCount: Int = soldTicketCount
-        protected set
-
-    @Column(nullable = false)
-    var isBooking: Boolean = isBooking
         protected set
 
     @Enumerated(EnumType.STRING)
@@ -58,17 +51,17 @@ class ScheduleJpaEntity private constructor(
         fun rehydrate(
             id: Long?,
             performanceDate: LocalDateTime,
+            bookingCloseAt: LocalDateTime,
             totalTicketCount: Int,
             soldTicketCount: Int,
-            isBooking: Boolean,
             scheduleNumber: ScheduleNumber,
             performanceId: Long,
         ): ScheduleJpaEntity = ScheduleJpaEntity(
             id = id,
             performanceDate = performanceDate,
+            bookingCloseAt = bookingCloseAt,
             totalTicketCount = totalTicketCount,
             soldTicketCount = soldTicketCount,
-            isBooking = isBooking,
             scheduleNumber = scheduleNumber,
             performanceId = performanceId,
         )
