@@ -1,4 +1,5 @@
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.tasks.Exec
 import org.springframework.boot.gradle.tasks.run.BootRun
 
 plugins {
@@ -61,7 +62,28 @@ dependencies {
     }
 }
 
+val localDevSecretScript = rootDir.resolve("scripts/generate-local-dev-secret.sh")
+val localVarsScript = rootDir.resolve("scripts/lib/local-vars.sh")
+val localDevSecretSource = rootDir.resolve("infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml")
+val localDevSecretOutput = rootDir.resolve("secret/application-dev-secret.properties")
+
+fun localDevSecretHasRequiredKeys(): Boolean =
+    localDevSecretOutput.exists() &&
+        localDevSecretOutput.useLines { lines ->
+            lines.any { it.startsWith("DB_HIKARI_MAX_POOL_SIZE=") }
+        }
+
+val prepareLocalDevSecret = tasks.register<Exec>("prepareLocalDevSecret") {
+    description = "Generate the repo-local dev secret properties file used by bootRun."
+    group = "application"
+    commandLine(localDevSecretScript.absolutePath)
+    inputs.files(localDevSecretScript, localVarsScript, localDevSecretSource)
+    outputs.file(localDevSecretOutput)
+    outputs.upToDateWhen { localDevSecretHasRequiredKeys() }
+}
+
 tasks.withType<BootRun>().configureEach {
     // Secret imports resolve from the shared repo-level `secret/` directory.
     workingDir = rootDir
+    dependsOn(prepareLocalDevSecret)
 }
