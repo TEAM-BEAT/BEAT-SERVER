@@ -49,7 +49,5 @@ observability_alloy_spring_targets:
     color: green
   - name: admin
     module: admin
-    color: ""
   - name: batch
     module: batch
-    color: ""

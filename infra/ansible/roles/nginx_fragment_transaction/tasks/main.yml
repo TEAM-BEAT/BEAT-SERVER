@@ -24,7 +24,7 @@
     nginx_fragment_transaction_file_pre_state: {}
     nginx_fragment_transaction_changed: false
     nginx_fragment_transaction_reload_required: false
-    nginx_fragment_transaction_failed_operation: ""
+    nginx_fragment_transaction_failed_operation: not-run
 
 - name: Build nginx fragment transaction file map
   ansible.builtin.set_fact:

@@ -1,0 +1,106 @@
+---
+- name: Check swapfile
+  ansible.builtin.stat:
+    path: "{{ swapfile_path }}"
+  register: swapfile_stat
+  when: swapfile_enabled | bool
+
+- name: Create swapfile
+  ansible.builtin.command:
+    cmd: "fallocate -l {{ swapfile_size }} {{ swapfile_path }}"
+    creates: "{{ swapfile_path }}"
+  when:
+    - swapfile_enabled | bool
+    - not swapfile_stat.stat.exists
+
+# One-time cleanup: an earlier revision of this role added a second
+# swapfile (/swapfile-extra) to grow capacity without swapping off the
+# primary file under memory pressure. That file is no longer managed here.
+# Remove it only when it is safe to do so (i.e. nothing is currently
+# swapped onto it) so existing hosts converge back to a single swapfile
+# without ever requiring a risky swapoff under low memory.
+- name: Check for legacy extra swapfile
+  ansible.builtin.stat:
+    path: /swapfile-extra
+  register: swapfile_legacy_extra_stat
+  when: swapfile_enabled | bool
+
+- name: Retire legacy extra swapfile when unused
+  when:
+    - swapfile_enabled | bool
+    - swapfile_legacy_extra_stat.stat.exists
+  block:
+    - name: Check active swapfiles (legacy cleanup)
+      ansible.builtin.command:
+        cmd: swapon --show=NAME,USED --noheadings --bytes
+      register: swapfile_legacy_active_result
+      changed_when: false
+
+    - name: Disable legacy extra swapfile if fully unused
+      ansible.builtin.command:
+        cmd: swapoff /swapfile-extra
+      changed_when: true
+      when: >
+        swapfile_legacy_active_result.stdout_lines
+        | select('search', '^/swapfile-extra\s+0$')
+        | list | length > 0
+
+    - name: Remove legacy extra swapfile from fstab
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        line: "/swapfile-extra none swap sw 0 0"
+        state: absent
+
+    - name: Delete legacy extra swapfile if fully unused
+      ansible.builtin.file:
+        path: /swapfile-extra
+        state: absent
+      when: >
+        swapfile_legacy_active_result.stdout_lines
+        | select('search', '^/swapfile-extra\s+0$')
+        | list | length > 0
+
+- name: Set swapfile permissions
+  ansible.builtin.file:
+    path: "{{ swapfile_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: swapfile_enabled | bool
+
+- name: Check swapfile signature
+  ansible.builtin.command:
+    cmd: "file {{ swapfile_path }}"
+  register: swapfile_file_result
+  changed_when: false
+  when: swapfile_enabled | bool
+
+- name: Format swapfile
+  ansible.builtin.command:
+    cmd: "mkswap {{ swapfile_path }}"
+  changed_when: true
+  when:
+    - swapfile_enabled | bool
+    - "'swap file' not in swapfile_file_result.stdout"
+
+- name: Check active swapfiles
+  ansible.builtin.command:
+    cmd: swapon --show=NAME --noheadings
+  register: swapfile_active_result
+  changed_when: false
+  when: swapfile_enabled | bool
+
+- name: Enable swapfile now
+  ansible.builtin.command:
+    cmd: "swapon {{ swapfile_path }}"
+  changed_when: true
+  when:
+    - swapfile_enabled | bool
+    - swapfile_path not in swapfile_active_result.stdout_lines
+
+- name: Persist swapfile in fstab
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    line: "{{ swapfile_path }} none swap sw 0 0"
+    state: present
+  when: swapfile_enabled | bool
