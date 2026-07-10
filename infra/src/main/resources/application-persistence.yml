@@ -49,6 +49,9 @@ spring:
   config:
     activate:
       on-profile: test
+  datasource:
+    hikari:
+      maximum-pool-size: 10
   jpa:
     hibernate:
       ddl-auto: create-drop
