@@ -97,9 +97,9 @@ class AdminPromotionCommandServiceTest {
 		});
 
 		CarouselHandleRequest request = new CarouselHandleRequest(List.of(
-			new PromotionModifyRequest(1L, AdminCarouselNumber.THREE, "carousel/modified-image", true, "modified-url",
+			new PromotionModifyRequest(1L, AdminCarouselNumber.THREE, "prod/carousel/modified-image", true, "modified-url",
 				PERFORMANCE_ID),
-			new PromotionGenerateRequest(AdminCarouselNumber.ONE, "carousel/created-image", false, "created-url", null)
+			new PromotionGenerateRequest(AdminCarouselNumber.ONE, "prod/carousel/created-image", false, "created-url", null)
 		));
 
 		CarouselHandleAllResponse response =
@@ -113,10 +113,10 @@ class AdminPromotionCommandServiceTest {
 
 		assertEquals(2, response.modifiedPromotionResponses().size());
 		assertEquals(3L, response.modifiedPromotionResponses().get(0).promotionId());
-		assertEquals("carousel/created-image", response.modifiedPromotionResponses().get(0).newImageUrl());
+		assertEquals("prod/carousel/created-image", response.modifiedPromotionResponses().get(0).newImageUrl());
 		assertEquals("ONE", response.modifiedPromotionResponses().get(0).carouselNumber());
 		assertEquals(1L, response.modifiedPromotionResponses().get(1).promotionId());
-		assertEquals("carousel/modified-image", response.modifiedPromotionResponses().get(1).newImageUrl());
+		assertEquals("prod/carousel/modified-image", response.modifiedPromotionResponses().get(1).newImageUrl());
 		assertEquals("THREE", response.modifiedPromotionResponses().get(1).carouselNumber());
 	}
 

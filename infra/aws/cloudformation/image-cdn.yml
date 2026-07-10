@@ -38,6 +38,10 @@ Parameters:
   AlarmEmail:
     Type: String
     Description: SNS subscription email for image-cdn alarms.
+  TransformedImageBucketName:
+    Type: String
+    Default: ""
+    Description: Optional transformed image bucket name. Leave empty to use beat-image-cdn-transformed-${Environment}.
 
   LambdaMemoryMb:
     Type: Number
@@ -61,6 +65,7 @@ Parameters:
 
 Conditions:
   HasCustomDomain: !Not [!Equals [!Ref CustomDomainName, ""]]
+  HasCustomTransformedImageBucketName: !Not [!Equals [!Ref TransformedImageBucketName, ""]]
 
 Resources:
 
@@ -69,7 +74,10 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      BucketName: !Sub "beat-image-cdn-transformed-${Environment}"
+      BucketName: !If
+        - HasCustomTransformedImageBucketName
+        - !Ref TransformedImageBucketName
+        - !Sub "beat-image-cdn-transformed-${Environment}"
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
