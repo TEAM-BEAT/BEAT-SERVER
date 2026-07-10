@@ -1,0 +1,77 @@
+---
+- name: Ensure certbot directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ letsencrypt_bootstrap_conf_dir }}"
+    - "{{ letsencrypt_bootstrap_www_dir }}"
+
+- name: Check current Let's Encrypt certificate
+  ansible.builtin.stat:
+    path: "{{ letsencrypt_bootstrap_conf_dir }}/live/{{ letsencrypt_cert_name }}/fullchain.pem"
+  register: letsencrypt_bootstrap_cert_stat
+
+- name: Validate Let's Encrypt bootstrap inputs
+  ansible.builtin.assert:
+    that:
+      - letsencrypt_cert_name is defined
+      - letsencrypt_cert_name | length > 0
+      - letsencrypt_bootstrap_email | length > 0
+    fail_msg: "letsencrypt_cert_name and letsencrypt_email or image_cdn_alarm_email are required for first certificate issuance."
+  when:
+    - letsencrypt_bootstrap_enabled | bool
+    - not letsencrypt_bootstrap_cert_stat.stat.exists
+
+- name: Issue initial Let's Encrypt certificate with standalone certbot
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --rm
+      - -p
+      - "80:80"
+      - -v
+      - "{{ letsencrypt_bootstrap_conf_dir }}:/etc/letsencrypt"
+      - -v
+      - "{{ letsencrypt_bootstrap_www_dir }}:/var/www/certbot"
+      - "{{ letsencrypt_bootstrap_certbot_image }}"
+      - certonly
+      - --standalone
+      - --non-interactive
+      - --agree-tos
+      - --email
+      - "{{ letsencrypt_bootstrap_email }}"
+      - -d
+      - "{{ letsencrypt_cert_name }}"
+  register: letsencrypt_bootstrap_issue_result
+  when:
+    - letsencrypt_bootstrap_enabled | bool
+    - not letsencrypt_bootstrap_cert_stat.stat.exists
+  changed_when: true
+
+- name: Ensure Certbot nginx SSL options file exists
+  ansible.builtin.copy:
+    dest: "{{ letsencrypt_bootstrap_conf_dir }}/options-ssl-nginx.conf"
+    mode: "0644"
+    force: false
+    content: |
+      ssl_session_cache shared:le_nginx_SSL:10m;
+      ssl_session_timeout 1440m;
+      ssl_session_tickets off;
+
+      ssl_protocols TLSv1.2 TLSv1.3;
+      ssl_prefer_server_ciphers off;
+
+      ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384";
+
+- name: Generate Certbot DH params file
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - dhparam
+      - -out
+      - "{{ letsencrypt_bootstrap_conf_dir }}/ssl-dhparams.pem"
+      - "2048"
+    creates: "{{ letsencrypt_bootstrap_conf_dir }}/ssl-dhparams.pem"

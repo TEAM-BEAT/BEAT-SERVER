@@ -27,6 +27,15 @@
         - preflight
 
   roles:
+    - role: swapfile
+      tags:
+        - foundation
+        - swap
+    - role: letsencrypt_bootstrap
+      when: foundation_manage_nginx | default(false) | bool
+      tags:
+        - foundation
+        - letsencrypt
     - role: foundation_stack
       tags:
         - foundation

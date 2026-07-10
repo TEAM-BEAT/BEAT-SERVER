@@ -10,8 +10,10 @@ nginx_generated_source_dir: /home/ubuntu/deployment/nginx/generated-source
 nginx_generated_target_dir: /home/ubuntu/deployment/nginx/generated
 curl_image: curlimages/curl:8.12.1
 
-foundation_mysql_enabled: true
+foundation_mysql_enabled: false
 foundation_redis_enabled: true
+swapfile_enabled: true
+swapfile_size: 4G
 nginx_image: nginx:alpine
 nginx_legacy_config_volume_name: nginx-config-volume
 certbot_conf_dir: /home/ubuntu/data/certbot/conf
@@ -58,6 +60,10 @@ modules:
     deploy_mode: blue_green
     spring_profile: dev
     app_port: 4001
+    hikari_max_pool_size: 3
+    env:
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx256m -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=64m -Daws.java.v1.disableDeprecationAnnouncement=true"
+      MALLOC_ARENA_MAX: "2"
     public_smoke_url: "https://{{ nginx_server_name }}/api/main"
     blue_container_name: apis-blue
     green_container_name: apis-green
@@ -66,6 +72,10 @@ modules:
     deploy_mode: stop_start
     spring_profile: dev
     app_port: 4000
+    hikari_max_pool_size: 1
+    env:
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx256m -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=64m -Daws.java.v1.disableDeprecationAnnouncement=true"
+      MALLOC_ARENA_MAX: "2"
     container_name: admin
     scheduler_owner: false
     nginx_route:
@@ -76,6 +86,10 @@ modules:
     deploy_mode: stop_start
     spring_profile: dev
     app_port: 4002
+    hikari_max_pool_size: 1
+    env:
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx192m -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=64m -Daws.java.v1.disableDeprecationAnnouncement=true"
+      MALLOC_ARENA_MAX: "2"
     container_name: batch
     scheduler_owner: true
 
@@ -91,3 +105,5 @@ observability_alloy_published_ports:
   - "127.0.0.1:12345:12345"
   - "127.0.0.1:4317:4317"
   - "127.0.0.1:4318:4318"
+
+letsencrypt_cron_enabled: true

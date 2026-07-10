@@ -12,6 +12,8 @@ curl_image: curlimages/curl:8.12.1
 
 foundation_mysql_enabled: false
 foundation_redis_enabled: true
+swapfile_enabled: true
+swapfile_size: 2G
 nginx_image: nginx:alpine
 nginx_legacy_config_volume_name: nginx-config-volume
 certbot_conf_dir: /home/ubuntu/data/certbot/conf
@@ -58,6 +60,7 @@ modules:
     deploy_mode: blue_green
     spring_profile: prod
     app_port: 4001
+    hikari_max_pool_size: 10
     public_smoke_url: "https://{{ nginx_server_name }}/api/main"
     blue_container_name: apis-blue
     green_container_name: apis-green
@@ -66,6 +69,7 @@ modules:
     deploy_mode: stop_start
     spring_profile: prod
     app_port: 4000
+    hikari_max_pool_size: 2
     container_name: admin
     scheduler_owner: false
     nginx_route:
@@ -76,6 +80,7 @@ modules:
     deploy_mode: stop_start
     spring_profile: prod
     app_port: 4002
+    hikari_max_pool_size: 2
     container_name: batch
     scheduler_owner: true
 

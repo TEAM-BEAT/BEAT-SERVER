@@ -1,0 +1,6 @@
+---
+letsencrypt_bootstrap_enabled: true
+letsencrypt_bootstrap_certbot_image: "certbot/certbot"
+letsencrypt_bootstrap_conf_dir: "{{ certbot_conf_dir }}"
+letsencrypt_bootstrap_www_dir: "{{ certbot_www_dir }}"
+letsencrypt_bootstrap_email: "{{ letsencrypt_email | default(image_cdn_alarm_email | default(''), true) }}"
