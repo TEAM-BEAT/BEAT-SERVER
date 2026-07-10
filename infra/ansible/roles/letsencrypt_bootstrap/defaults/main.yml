@@ -1,0 +1,21 @@
+---
+letsencrypt_bootstrap_enabled: true
+letsencrypt_bootstrap_certbot_image: "certbot/certbot"
+letsencrypt_bootstrap_conf_dir: "{{ certbot_conf_dir }}"
+letsencrypt_bootstrap_www_dir: "{{ certbot_www_dir }}"
+letsencrypt_bootstrap_email: "{{ letsencrypt_email | default(image_cdn_alarm_email | default(''), true) }}"
+
+# Mozilla "intermediate" cipher suite recommendation for Certbot's
+# options-ssl-nginx.conf. Kept as a variable (rather than inline in the
+# task's content block) to avoid a single unbreakable long line in the
+# YAML task file.
+letsencrypt_bootstrap_ssl_cipher_list:
+  - "ECDHE-ECDSA-AES128-GCM-SHA256"
+  - "ECDHE-RSA-AES128-GCM-SHA256"
+  - "ECDHE-ECDSA-AES256-GCM-SHA384"
+  - "ECDHE-RSA-AES256-GCM-SHA384"
+  - "ECDHE-ECDSA-CHACHA20-POLY1305"
+  - "ECDHE-RSA-CHACHA20-POLY1305"
+  - "DHE-RSA-AES128-GCM-SHA256"
+  - "DHE-RSA-AES256-GCM-SHA384"
+letsencrypt_bootstrap_ssl_ciphers: "{{ letsencrypt_bootstrap_ssl_cipher_list | join(':') }}"

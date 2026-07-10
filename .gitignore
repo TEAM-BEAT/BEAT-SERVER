@@ -199,3 +199,7 @@ infra/ansible/inventories/**/group_vars/all.local.sops.yml
 
 # Kotlin compiler daemon/session files
 **/.kotlin/
+
+# Local agent/editor tooling state (not project source)
+.serena/
+.vscode/

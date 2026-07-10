@@ -75,7 +75,7 @@ prometheus.scrape "containers" {
 prometheus.scrape "spring_boot" {
   targets = [
 {% for t in observability_alloy_spring_targets %}
-    { __address__ = "{{ t.name }}:{{ actuator_port }}", job = "{{ t.module }}", module = "{{ t.module }}"{% if t.color %}, color = "{{ t.color }}"{% endif %} },
+    { __address__ = "{{ t.name }}:{{ actuator_port }}", job = "{{ t.module }}", module = "{{ t.module }}"{% if t.color | default('') %}, color = "{{ t.color }}"{% endif %} },
 {% endfor %}
   ]
   metrics_path    = "{{ actuator_path }}/prometheus"

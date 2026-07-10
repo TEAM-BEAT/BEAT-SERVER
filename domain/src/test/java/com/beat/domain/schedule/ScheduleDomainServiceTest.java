@@ -128,24 +128,26 @@ class ScheduleDomainServiceTest {
 	}
 
 	private Schedule scheduleOn(LocalDate performanceDate) {
+		LocalDateTime performanceDateTime = LocalDateTime.of(performanceDate, LocalTime.NOON);
 		return Schedule.rehydrate(
 			1L,
-			LocalDateTime.of(performanceDate, LocalTime.NOON),
+			performanceDateTime,
+			performanceDateTime.plusHours(1),
 			10,
 			0,
-			true,
 			ScheduleNumber.FIRST,
 			1L
 		);
 	}
 
 	private Schedule scheduleWithTicketCounts(int totalTicketCount, int soldTicketCount) {
+		LocalDateTime performanceDate = LocalDateTime.of(2026, 5, 1, 12, 0);
 		return Schedule.rehydrate(
 			1L,
-			LocalDateTime.of(2026, 5, 1, 12, 0),
+			performanceDate,
+			performanceDate.plusHours(1),
 			totalTicketCount,
 			soldTicketCount,
-			true,
 			ScheduleNumber.FIRST,
 			1L
 		);

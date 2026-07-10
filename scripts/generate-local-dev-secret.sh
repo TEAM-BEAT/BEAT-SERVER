@@ -75,12 +75,17 @@ if [ -z "$DEV_DB_URL" ]; then
   exit 1
 fi
 LOCAL_DEV_DB_URL=$(replace_jdbc_mysql_host "$DEV_DB_URL" "localhost")
+LOCAL_DEV_REDIS_HOST="localhost"
+LOCAL_DEV_KAKAO_REDIRECT_URI="http://localhost:4001/login/oauth2/code/kakao"
+LOCAL_DEV_HIKARI_MAX_POOL_SIZE="3"
 
 awk '
   $0 !~ "^DEV_DB_URL=" &&
   $0 !~ "^DEV_REDIS_HOST=" &&
   $0 !~ "^DEV_ACTUATOR_PORT=" &&
-  $0 !~ "^DEV_ACTUATOR_PATH="
+  $0 !~ "^DEV_ACTUATOR_PATH=" &&
+  $0 !~ "^DEV_KAKAO_REDIRECT_URI=" &&
+  $0 !~ "^DB_HIKARI_MAX_POOL_SIZE="
 ' "$TMP_DIR/app_secret_content.properties" > "$TMP_DIR/app_secret_content.filtered.properties"
 
 {
@@ -88,7 +93,9 @@ awk '
   printf '\nDEV_DB_URL=%s\n' "$LOCAL_DEV_DB_URL"
   printf 'DEV_ACTUATOR_PORT=%s\n' "$ACTUATOR_PORT"
   printf 'DEV_ACTUATOR_PATH=%s\n' "$ACTUATOR_PATH"
-  printf 'DEV_REDIS_HOST=%s\n' "localhost"
+  printf 'DEV_REDIS_HOST=%s\n' "$LOCAL_DEV_REDIS_HOST"
+  printf 'DEV_KAKAO_REDIRECT_URI=%s\n' "$LOCAL_DEV_KAKAO_REDIRECT_URI"
+  printf 'DB_HIKARI_MAX_POOL_SIZE=%s\n' "$LOCAL_DEV_HIKARI_MAX_POOL_SIZE"
 } > "$TMP_DIR/application-dev-secret.properties"
 
 mv "$TMP_DIR/application-dev-secret.properties" "$OUTPUT_FILE"

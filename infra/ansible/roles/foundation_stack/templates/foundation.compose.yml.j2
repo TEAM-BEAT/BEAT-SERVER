@@ -19,6 +19,7 @@ services:
     image: "{{ mysql_image | default('mysql:8.4.5') }}"
     container_name: "{{ mysql_container_name | default('mysql') }}"
     restart: unless-stopped
+    command: ["--default-time-zone=+09:00"]
     ports:
       - "127.0.0.1:3306:3306"
     environment:

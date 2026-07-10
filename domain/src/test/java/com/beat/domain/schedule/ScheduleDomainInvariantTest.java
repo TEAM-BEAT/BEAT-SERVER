@@ -65,9 +65,10 @@ class ScheduleDomainInvariantTest {
 
 	@Test
 	void createRejectsNegativeTotalTicketCount() {
+		LocalDateTime performanceDate = LocalDateTime.now().plusDays(1);
 		BadRequestException exception = assertThrows(
 			BadRequestException.class,
-			() -> Schedule.create(LocalDateTime.now().plusDays(1), -1, ScheduleNumber.FIRST, 1L)
+			() -> Schedule.create(performanceDate, performanceDate.plusHours(1), -1, ScheduleNumber.FIRST, 1L)
 		);
 
 		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
@@ -96,10 +97,11 @@ class ScheduleDomainInvariantTest {
 	@Test
 	void updateRejectsTotalTicketCountBelowSoldTicketCount() {
 		Schedule schedule = scheduleWithSoldTicketCount(10, 3);
+		LocalDateTime performanceDate = LocalDateTime.now().plusDays(1);
 
 		BadRequestException exception = assertThrows(
 			BadRequestException.class,
-			() -> schedule.update(LocalDateTime.now().plusDays(1), 2, ScheduleNumber.SECOND)
+			() -> schedule.update(performanceDate, performanceDate.plusHours(1), 2, ScheduleNumber.SECOND)
 		);
 
 		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
@@ -108,22 +110,46 @@ class ScheduleDomainInvariantTest {
 	@Test
 	void updateRejectsNegativeTotalTicketCount() {
 		Schedule schedule = scheduleWithSoldTicketCount(10, 3);
+		LocalDateTime performanceDate = LocalDateTime.now().plusDays(1);
 
 		BadRequestException exception = assertThrows(
 			BadRequestException.class,
-			() -> schedule.update(LocalDateTime.now().plusDays(1), -1, ScheduleNumber.SECOND)
+			() -> schedule.update(performanceDate, performanceDate.plusHours(1), -1, ScheduleNumber.SECOND)
+		);
+
+		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+	}
+
+	@Test
+	void updateBookingCloseAtAllowsPerformanceExtension() {
+		Schedule schedule = scheduleWithSoldTicketCount(10, 3);
+		LocalDateTime extendedCloseAt = schedule.getBookingCloseAt().plusHours(1);
+
+		Schedule extendedSchedule = schedule.updateBookingCloseAt(extendedCloseAt);
+
+		assertEquals(extendedCloseAt, extendedSchedule.getBookingCloseAt());
+	}
+
+	@Test
+	void updateBookingCloseAtRejectsTimeBeforePerformanceStart() {
+		Schedule schedule = scheduleWithSoldTicketCount(10, 3);
+
+		BadRequestException exception = assertThrows(
+			BadRequestException.class,
+			() -> schedule.updateBookingCloseAt(schedule.getPerformanceDate().minusNanos(1))
 		);
 
 		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
 	}
 
 	private Schedule scheduleWithSoldTicketCount(int totalTicketCount, int soldTicketCount) {
+		LocalDateTime performanceDate = LocalDateTime.now().plusDays(1);
 		return Schedule.rehydrate(
 			1L,
-			LocalDateTime.now().plusDays(1),
+			performanceDate,
+			performanceDate.plusHours(1),
 			totalTicketCount,
 			soldTicketCount,
-			true,
 			ScheduleNumber.FIRST,
 			1L
 		);

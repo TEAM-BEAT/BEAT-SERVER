@@ -4,9 +4,10 @@ import java.net.URI
 
 object ImageKeyExtractor {
 
-    // CloudFront viewer-request ALLOWED_PREFIXES 와 정확히 일치해야 함.
+    // CloudFront viewer-request ALLOWED_PREFIXES / ALLOWED_ENV_PREFIXES 와 정확히 일치해야 함.
     private val ALLOWED_PREFIXES: Set<String> =
         setOf("poster", "cast", "staff", "performance", "carousel", "banner")
+    private val ALLOWED_ENV_PREFIXES: Set<String> = setOf("dev", "prod")
 
     @JvmStatic
     fun extract(value: String?): String? {
@@ -30,7 +31,12 @@ object ImageKeyExtractor {
     }
 
     private fun requireAllowedPrefix(key: String) {
-        val prefix = key.substringBefore('/', missingDelimiterValue = "")
+        val segments = key.split("/", limit = 3)
+        val envPrefix = segments.getOrNull(0).orEmpty()
+        val prefix = segments.getOrNull(1).orEmpty()
+        require(envPrefix in ALLOWED_ENV_PREFIXES) {
+            "Invalid image key environment prefix: '$envPrefix' (allowed: $ALLOWED_ENV_PREFIXES)"
+        }
         require(prefix in ALLOWED_PREFIXES) {
             "Invalid image key prefix: '$prefix' (allowed: $ALLOWED_PREFIXES)"
         }

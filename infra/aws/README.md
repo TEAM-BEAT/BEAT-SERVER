@@ -96,8 +96,7 @@ infra/aws/
 #### ① Lambda 아티팩트 보관용 S3 버킷 생성
 
 ```bash
-aws s3 mb s3://beat-lambda-artifacts-dev  --region ap-northeast-2
-aws s3 mb s3://beat-lambda-artifacts-prod --region ap-northeast-2
+aws s3 mb s3://<deploy-artifacts-bucket-name> --region ap-northeast-2
 ```
 
 #### ② SOPS 시크릿에 알람 이메일 추가
@@ -151,18 +150,17 @@ credentials 를 OIDC role 또는 secrets 로 주입하고, runner 에서
 > `ansible.cfg` 의 `roles_path` 가 상대경로이므로 **반드시 `infra/ansible/`
 > 디렉토리에서 실행** 해야 합니다.
 
-dev/prod 는 **AWS 계정이 분리되어 있으므로** 환경변수로 profile 을 지정합니다.
-로컬 `~/.aws/config` 에 사전 구성된 profile 이름을 사용하세요 (예: `beat-dev`,
-`beat-prod`).
+dev/prod 는 같은 AWS 계정을 사용합니다. 옛 dev 계정 profile 은 사용하지 말고,
+로컬 `~/.aws/config` 에 사전 구성된 현재 운영 계정 profile 을 지정합니다.
+실제 버킷명과 계정별 값은 Ansible inventory 값을 기준으로 확인합니다.
 
 ```bash
 cd infra/ansible
 
 # dev
-AWS_PROFILE=beat-dev ansible-playbook \
+AWS_PROFILE=beat-prod ansible-playbook \
   -i inventories/dev \
-  playbooks/image_cdn.yml \
-  -e deploy_environment=dev
+  playbooks/image_cdn.yml
 
 # prod (dev 검증 통과 후)
 AWS_PROFILE=beat-prod ansible-playbook \
@@ -176,7 +174,7 @@ AWS_PROFILE=beat-prod ansible-playbook \
 1. `npm install --omit=dev --os=linux --cpu=arm64` 로 Linux/arm64 용
    `sharp` 바이너리를 포함한 Lambda 패키지 빌드
 2. 패키지 내용의 SHA 해시를 산출하여
-   `s3://beat-lambda-artifacts-<env>/image-cdn/<hash>/image-processing.zip`
+   `s3://<deploy-artifacts-bucket-name>/image-cdn/<hash>/image-processing.zip`
    경로로 업로드
 3. CloudFront Function 소스 (`image-cdn-viewer-request.js`) 를 읽어 들여
    CloudFormation 파라미터로 전달

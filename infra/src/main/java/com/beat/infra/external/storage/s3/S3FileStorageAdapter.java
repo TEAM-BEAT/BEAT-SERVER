@@ -24,6 +24,9 @@ public class S3FileStorageAdapter implements FileStoragePort {
 	@Value("${cloud.s3.bucket}")
 	private String bucket;
 
+	@Value("${cloud.s3.key-prefix:}")
+	private String keyPrefix;
+
 	private final AmazonS3 amazonS3;
 
 	@Override
@@ -104,6 +107,18 @@ public class S3FileStorageAdapter implements FileStoragePort {
 	}
 
 	private String generatePath(String prefix, String fileName) {
-		return String.format("%s/%s", prefix, UUID.randomUUID() + "-" + fileName);
+		String filePath = String.format("%s/%s", prefix, UUID.randomUUID() + "-" + fileName);
+		String normalizedKeyPrefix = normalizeKeyPrefix();
+		if (normalizedKeyPrefix.isEmpty()) {
+			return filePath;
+		}
+		return String.format("%s/%s", normalizedKeyPrefix, filePath);
+	}
+
+	private String normalizeKeyPrefix() {
+		if (keyPrefix == null || keyPrefix.isBlank()) {
+			return "";
+		}
+		return keyPrefix.replaceAll("^/+", "").replaceAll("/+$", "");
 	}
 }

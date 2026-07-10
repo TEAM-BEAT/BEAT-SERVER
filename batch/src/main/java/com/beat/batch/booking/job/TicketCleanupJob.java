@@ -17,7 +17,7 @@ public class TicketCleanupJob {
 	@Value("${beat.scheduler.owner:false}")
 	private boolean schedulerOwner;
 
-	@Scheduled(cron = "0 0 4 * * ?")
+	@Scheduled(cron = "0 0 4 * * ?", scheduler = "maintenanceTaskScheduler")
 	public void deleteOldCancelledBookings() {
 		if (!schedulerOwner) {
 			return;

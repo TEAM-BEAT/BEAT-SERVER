@@ -57,10 +57,10 @@ module-contracts/
       MemberNotification.java
       MemberNotificationPort.java
     schedule/
-      ScheduleBookingCloseJobPort.java
-      ScheduleBookingCloseJobTarget.java                    # scheduler job boundary target; domain Schedule 노출 없음
+      ScheduleAvailabilityReadPort.kt
       ScheduleReadPort.java
       readmodel/
+        ScheduleAvailabilityReadModel.kt # DB 시각 기반 회차 예매 가능 상태
         MinPerformanceDateReadModel.java            # @ReadModel; Schedule 최소 공연 일자 query result
     sms/
       SmsMessage.java
@@ -80,7 +80,7 @@ module-contracts/
 - 현재 `module-contracts`는 `auth`, `booking`, `notification`, `schedule`, `sms`, `storage` 계약을 모아두는 얇은 공유 모듈이다.
 - 구현체는 다른 모듈에 있고, 이 모듈은 계약 타입만 제공한다.
 - Issue #378 결정: contract surface는 cross Java/Kotlin consumer API 안정성이 우선이다. 대부분 Java source를 유지하되, `SocialLoginFailure.kt`처럼 port-level failure 표현에 한해 명시적으로 허용된 Kotlin contract가 있을 수 있다.
-- `build.gradle.kts`에서 `global-support`만 `compileOnly`로 참조한다. `SocialType`, `Schedule` 같은 domain-coupled contract type은 Issue #426에서 `SocialLoginType`, `ScheduleBookingCloseJobTarget`으로 치환했다.
+- `build.gradle.kts`에서 `global-support`만 `compileOnly`로 참조한다. domain-coupled contract type은 contract-local 값이나 read model로 치환한다.
 - `SharedBoundaryContractTest`는 Spring/JPA/Redis stereotype이나 infra/executable/gateway 구현 참조가 들어오지 않도록 guard한다.
 - `ReadModel`은 module-contracts query result임을 드러내는 marker annotation이다. Spring/JPA가 인식하는 annotation이 아니며, save 대상/도메인 모델/API 응답 DTO가 아니라는 architectural label로만 사용한다.
 
@@ -114,10 +114,10 @@ com.beat.contracts/
     MemberNotification
     MemberNotificationPort
   schedule/
-    ScheduleBookingCloseJobPort
-    ScheduleBookingCloseJobTarget
+    ScheduleAvailabilityReadPort
     ScheduleReadPort
     readmodel/
+      ScheduleAvailabilityReadModel
       MinPerformanceDateReadModel
   sms/
     SmsMessage
@@ -149,7 +149,7 @@ Facade/ApplicationService/DomainService 표준에서 `module-contracts`는 실�
 - 계약 타입은 Spring/JPA/QueryDSL/Redis/document 구현 세부사항을 포함하지 않는다.
 - 신규 계약 타입은 Domain model, JPA Entity, 실행 모듈 ResponseDTO를 필드나 반환 타입으로 담지 않는다.
 - 실행 모듈 전용 response DTO는 여기에 두지 않는다. read-model contract는 실행 모듈 query service와 infra query adapter 사이의 구현 없는 계약이 필요하거나 여러 실행 모듈에서 공유될 때만 둔다.
-- Issue #426 이후 `SocialLoginRequest`는 `SocialLoginType` contract enum만 받고, `SocialMemberInfo`는 외부 provider profile 결과(`socialId`, `nickname`, `email`)만 반환한다. `SocialLoginFailure`는 infra adapter-local failure를 application boundary에서 API-facing ErrorCode로 번역하기 위한 port-level failure다. `ScheduleBookingCloseJobPort`는 `ScheduleBookingCloseJobTarget` contract value만 노출한다. contract와 domain enum/model 사이 변환은 실행 모듈 application boundary가 담당한다.
+- Issue #426 이후 `SocialLoginRequest`는 `SocialLoginType` contract enum만 받고, `SocialMemberInfo`는 외부 provider profile 결과(`socialId`, `nickname`, `email`)만 반환한다. `SocialLoginFailure`는 infra adapter-local failure를 application boundary에서 API-facing ErrorCode로 번역하기 위한 port-level failure다. Issue #428 이후 회차 조회는 `ScheduleAvailabilityReadPort`와 구현 독립적인 read model을 사용한다.
 
 
 ### Read-model contract rule

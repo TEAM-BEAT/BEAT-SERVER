@@ -23,8 +23,6 @@ import com.beat.apis.performance.application.dto.create.ScheduleResponse;
 import com.beat.apis.performance.application.dto.create.StaffResponse;
 import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
 import com.beat.contracts.cdn.ImageCachePort;
-import com.beat.contracts.schedule.ScheduleBookingCloseJobPort;
-import com.beat.contracts.schedule.ScheduleBookingCloseJobTarget;
 import com.beat.domain.booking.domain.BookingStatus;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.cast.domain.Cast;
@@ -63,7 +61,6 @@ public class PerformanceManagementService {
 	private final MemberRepository memberRepository;
 	private final PerformanceImageRepository performanceImageRepository;
 	private final PromotionRepository promotionRepository;
-	private final ScheduleBookingCloseJobPort scheduleBookingCloseJobPort;
 	private final ImageCachePort imageCachePort;
 	private final ScheduleDomainService scheduleDomainService = new ScheduleDomainService();
 
@@ -96,6 +93,7 @@ public class PerformanceManagementService {
 		);
 		Performance savedPerformance = performanceRepository.save(performance);
 		final Long savedPerformanceId = savedPerformance.getId();
+		final int runningTime = savedPerformance.getRunningTime();
 
 		List<Schedule> schedules = request.scheduleList().stream()
 			.map(scheduleRequest -> {
@@ -104,6 +102,7 @@ public class PerformanceManagementService {
 				}
 				return Schedule.create(
 					scheduleRequest.performanceDate(),
+					scheduleRequest.performanceDate().plusMinutes(runningTime),
 					scheduleRequest.totalTicketCount(),
 					ScheduleNumberEnumConverter.toDomain(scheduleRequest.scheduleNumber()),
 					savedPerformanceId
@@ -113,10 +112,6 @@ public class PerformanceManagementService {
 
 		assignScheduleNumbers(schedules);
 		schedules = scheduleRepository.saveAll(schedules);
-
-		schedules.stream()
-			.map(this::toScheduleBookingCloseJobTarget)
-			.forEach(scheduleBookingCloseJobPort::registerOrRefresh);
 
 		List<LocalDateTime> performanceDates = schedules.stream()
 			.map(Schedule::getPerformanceDate)
@@ -157,10 +152,6 @@ public class PerformanceManagementService {
 		imageCachePort.preWarm(savedPerformance.getPosterImage());
 
 		return mapToPerformanceResponse(savedPerformance, schedules, casts, staffs, performanceImageList);
-	}
-
-	private ScheduleBookingCloseJobTarget toScheduleBookingCloseJobTarget(Schedule schedule) {
-		return new ScheduleBookingCloseJobTarget(schedule.getId());
 	}
 
 	private PerformanceResponse mapToPerformanceResponse(Performance performance, List<Schedule> schedules,
@@ -268,12 +259,6 @@ public class PerformanceManagementService {
 			int deletedInactiveBookingCount = bookingRepository.deleteInactiveBookingsByScheduleIds(scheduleIds,
 				inactiveStatuses);
 			log.debug("Deleted {} inactive bookings for performanceId={}", deletedInactiveBookingCount, performanceId);
-		}
-
-		// 모든 스케줄에 대해 등록된 TaskScheduler 작업을 취소
-		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
-		for (Schedule schedule : schedules) {
-			scheduleBookingCloseJobPort.cancel(toScheduleBookingCloseJobTarget(schedule));
 		}
 
 		scheduleRepository.deleteByPerformanceId(performanceId);
