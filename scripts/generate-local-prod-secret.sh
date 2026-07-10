@@ -32,20 +32,22 @@ mkdir -p "$(dirname -- "$OUTPUT_FILE")"
 sops -d --extract '["app_secret_content"]' "$SOPS_FILE" > "$TMP_DIR/app_secret_content.properties"
 ACTUATOR_PORT=$(sops -d --extract '["actuator_port"]' "$SOPS_FILE")
 ACTUATOR_PATH=$(sops -d --extract '["actuator_path"]' "$SOPS_FILE")
+LOCAL_PROD_HIKARI_MAX_POOL_SIZE="10"
 
 awk '
   $0 !~ "^PROD_ACTUATOR_PORT=" &&
-  $0 !~ "^PROD_ACTUATOR_PATH="
+  $0 !~ "^PROD_ACTUATOR_PATH=" &&
+  $0 !~ "^DB_HIKARI_MAX_POOL_SIZE="
 ' "$TMP_DIR/app_secret_content.properties" > "$TMP_DIR/app_secret_content.filtered.properties"
 
 {
   cat "$TMP_DIR/app_secret_content.filtered.properties"
   printf '\nPROD_ACTUATOR_PORT=%s\n' "$ACTUATOR_PORT"
   printf 'PROD_ACTUATOR_PATH=%s\n' "$ACTUATOR_PATH"
+  printf 'DB_HIKARI_MAX_POOL_SIZE=%s\n' "$LOCAL_PROD_HIKARI_MAX_POOL_SIZE"
 } > "$TMP_DIR/application-prod-secret.properties"
 
 mv "$TMP_DIR/application-prod-secret.properties" "$OUTPUT_FILE"
 chmod 400 "$OUTPUT_FILE"
 
 printf 'Generated %s from %s\n' "$OUTPUT_FILE" "$SOPS_FILE"
-

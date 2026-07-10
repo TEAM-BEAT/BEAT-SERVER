@@ -1309,6 +1309,12 @@ pipelining 호환성을 확인한다.
 ./gradlew :batch:bootRun
 ```
 
+`DB_HIKARI_MAX_POOL_SIZE`는 필수 런타임 설정입니다. `bootRun`은
+`secret/application-dev-secret.properties`가 없거나 필수값이 빠진 경우
+로컬 dev secret을 자동 생성합니다. 시크릿 원본을 갱신한 뒤 즉시 반영해야 할
+때만 `./gradlew :admin:prepareLocalDevSecret` 또는
+`./scripts/generate-local-dev-secret.sh`를 직접 실행하세요.
+
 ### 로컬 검증
 
 ```bash
