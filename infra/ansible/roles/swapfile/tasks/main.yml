@@ -39,6 +39,7 @@
     - name: Disable legacy extra swapfile if fully unused
       ansible.builtin.command:
         cmd: swapoff /swapfile-extra
+      changed_when: true
       when: >
         swapfile_legacy_active_result.stdout_lines
         | select('search', '^/swapfile-extra\s+0$')
@@ -77,6 +78,7 @@
 - name: Format swapfile
   ansible.builtin.command:
     cmd: "mkswap {{ swapfile_path }}"
+  changed_when: true
   when:
     - swapfile_enabled | bool
     - "'swap file' not in swapfile_file_result.stdout"
@@ -91,6 +93,7 @@
 - name: Enable swapfile now
   ansible.builtin.command:
     cmd: "swapon {{ swapfile_path }}"
+  changed_when: true
   when:
     - swapfile_enabled | bool
     - swapfile_path not in swapfile_active_result.stdout_lines
