@@ -78,6 +78,8 @@ LOCAL_DEV_DB_URL=$(replace_jdbc_mysql_host "$DEV_DB_URL" "localhost")
 LOCAL_DEV_REDIS_HOST="localhost"
 LOCAL_DEV_KAKAO_REDIRECT_URI="http://localhost:4001/login/oauth2/code/kakao"
 LOCAL_DEV_HIKARI_MAX_POOL_SIZE="3"
+LOCAL_DEV_APIS_SERVER_URL="http://localhost:4001"
+LOCAL_DEV_ADMIN_SERVER_URL="http://localhost:4000"
 
 awk '
   $0 !~ "^DEV_DB_URL=" &&
@@ -96,6 +98,8 @@ awk '
   printf 'DEV_REDIS_HOST=%s\n' "$LOCAL_DEV_REDIS_HOST"
   printf 'DEV_KAKAO_REDIRECT_URI=%s\n' "$LOCAL_DEV_KAKAO_REDIRECT_URI"
   printf 'DB_HIKARI_MAX_POOL_SIZE=%s\n' "$LOCAL_DEV_HIKARI_MAX_POOL_SIZE"
+  printf 'APIS_SERVER_URL=%s\n' "$LOCAL_DEV_APIS_SERVER_URL"
+  printf 'ADMIN_SERVER_URL=%s\n' "$LOCAL_DEV_ADMIN_SERVER_URL"
 } > "$TMP_DIR/application-dev-secret.properties"
 
 mv "$TMP_DIR/application-dev-secret.properties" "$OUTPUT_FILE"

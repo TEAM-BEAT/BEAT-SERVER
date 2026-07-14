@@ -59,7 +59,7 @@ cors:
 
 app:
   server:
-    url: ${DEV_SERVER_URL}
+    url: ${ADMIN_SERVER_URL:${DEV_SERVER_URL}}
 
 ---
 spring:

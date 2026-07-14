@@ -62,7 +62,7 @@ cors:
 
 app:
   server:
-    url: ${DEV_SERVER_URL}
+    url: ${APIS_SERVER_URL:${DEV_SERVER_URL}}
 
 ---
 spring:
