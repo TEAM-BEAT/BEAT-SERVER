@@ -1,5 +1,8 @@
 package com.beat.admin
 
+import com.beat.admin.promotion.exception.PromotionApplicationErrorCode
+import com.beat.admin.user.exception.UserApplicationErrorCode
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -118,9 +121,33 @@ class AdminArchitectureGuardTest {
     }
 
     @Test
-    fun `admin success code belongs to api response boundary`() {
-        assertTrue(Files.exists(Path.of("src/main/kotlin/com/beat/admin/api/response/AdminSuccessCode.kt")))
+    fun `admin response and application codes stay in their owning boundaries`() {
+        assertTrue(Files.exists(Path.of("src/main/kotlin/com/beat/admin/promotion/api/response/PromotionSuccessCode.kt")))
+        assertTrue(Files.exists(Path.of("src/main/kotlin/com/beat/admin/user/api/response/UserSuccessCode.kt")))
+        assertTrue(Files.exists(Path.of("src/main/kotlin/com/beat/admin/promotion/exception/PromotionApplicationErrorCode.kt")))
+        assertTrue(Files.exists(Path.of("src/main/kotlin/com/beat/admin/user/exception/UserApplicationErrorCode.kt")))
+        assertFalse(Files.exists(Path.of("src/main/kotlin/com/beat/admin/api/response/AdminSuccessCode.kt")))
+        assertFalse(Files.exists(Path.of("src/main/kotlin/com/beat/admin/application/exception/AdminApplicationErrorCode.kt")))
+        assertFalse(Files.exists(Path.of("src/main/kotlin/com/beat/admin/exception/AdminMemberApplicationErrorCode.kt")))
         assertFalse(Files.exists(Path.of("src/main/java/com/beat/admin/exception/AdminSuccessCode.java")))
+    }
+
+    @Test
+    fun `admin does not declare mapper packages`() {
+        val violations = findSourceFilesInMatchingPaths(Path.of("src/main"), "/mapper/")
+
+        assertTrue(
+            violations.isEmpty(),
+            "Found mapper files in admin module:\n${violations.joinToString("\n")}",
+        )
+    }
+
+    @Test
+    fun `admin application error codes are unique`() {
+        val codes = PromotionApplicationErrorCode.entries.map { it.getCode() } +
+            UserApplicationErrorCode.entries.map { it.getCode() }
+
+        assertEquals(codes.size, codes.distinct().size)
     }
 
     @Test
@@ -165,6 +192,21 @@ class AdminArchitectureGuardTest {
                             .map { match -> "$path:${lineNumberAt(source, match.range.first)}: $type" }
                     }
                 }
+        } finally {
+            paths.close()
+        }
+    }
+
+    private fun findSourceFilesInMatchingPaths(root: Path, pathSegment: String): List<String> {
+        val paths = Files.walk(root)
+
+        return try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { path -> path.toString().contains(pathSegment) }
+                .filter { path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt") }
+                .map(Path::toString)
+                .toList()
         } finally {
             paths.close()
         }

@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.beat.admin.user.application.dto.response.UserFindAllResponse;
 import com.beat.admin.user.application.service.query.AdminUserQueryService;
 import com.beat.domain.member.domain.Member;
+import com.beat.domain.member.vo.SocialIdentity;
 import com.beat.domain.member.domain.SocialType;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.user.domain.Role;
@@ -53,6 +54,6 @@ class AdminUserQueryServiceTest {
 	}
 
 	private static Member member() {
-		return Member.rehydrate(MEMBER_ID, "admin", "admin@example.com", null, 1L, 10L, SocialType.KAKAO);
+		return Member.rehydrate(MEMBER_ID, "admin", "admin@example.com", null, 1L, SocialIdentity.of(SocialType.KAKAO, 10L));
 	}
 }

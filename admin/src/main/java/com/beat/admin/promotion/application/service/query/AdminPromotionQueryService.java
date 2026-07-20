@@ -6,18 +6,18 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.admin.application.exception.AdminApplicationErrorCode;
-import com.beat.admin.common.application.converter.AdminCarouselNumberEnumConverter;
+import com.beat.admin.exception.AdminApplicationException;
 import com.beat.admin.promotion.application.dto.response.BannerPresignedUrlFindResponse;
 import com.beat.admin.promotion.application.dto.response.CarouselFindAllResponse;
 import com.beat.admin.promotion.application.dto.response.CarouselPresignedUrlFindAllResponse;
 import com.beat.admin.promotion.application.dto.result.AdminPromotionResults;
 import com.beat.admin.promotion.application.dto.result.AdminPromotionResults.AdminPromotionResult;
+import com.beat.admin.promotion.exception.PromotionApplicationErrorCode;
 import com.beat.contracts.storage.FileStoragePort;
 import com.beat.domain.member.repository.MemberRepository;
+import com.beat.domain.promotion.domain.CarouselNumber;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
-import com.beat.global.support.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -64,9 +64,10 @@ public class AdminPromotionQueryService {
 	}
 
 	private AdminPromotionResult toPromotionResult(Promotion domainPromotion) {
+		CarouselNumber carouselNumber = domainPromotion.getCarouselNumber();
 		return AdminPromotionResult.of(
 			domainPromotion.getId(),
-			AdminCarouselNumberEnumConverter.toApiName(domainPromotion.getCarouselNumber()),
+			carouselNumber == null ? null : carouselNumber.name(),
 			domainPromotion.getPromotionPhoto(),
 			domainPromotion.isExternal(),
 			domainPromotion.getRedirectUrl(),
@@ -76,6 +77,6 @@ public class AdminPromotionQueryService {
 
 	private void validateMemberExists(Long memberId) {
 		memberRepository.findById(memberId)
-			.orElseThrow(() -> new NotFoundException(AdminApplicationErrorCode.MEMBER_NOT_FOUND));
+			.orElseThrow(() -> new AdminApplicationException(PromotionApplicationErrorCode.MEMBER_NOT_FOUND));
 	}
 }

@@ -22,6 +22,7 @@ import com.beat.contracts.storage.BannerPresignedUrl;
 import com.beat.contracts.storage.CarouselPresignedUrls;
 import com.beat.contracts.storage.FileStoragePort;
 import com.beat.domain.member.domain.Member;
+import com.beat.domain.member.vo.SocialIdentity;
 import com.beat.domain.member.domain.SocialType;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.promotion.domain.CarouselNumber;
@@ -90,6 +91,6 @@ class AdminPromotionQueryServiceTest {
 	}
 
 	private static Member member() {
-		return Member.rehydrate(MEMBER_ID, "admin", "admin@example.com", null, 1L, 10L, SocialType.KAKAO);
+		return Member.rehydrate(MEMBER_ID, "admin", "admin@example.com", null, 1L, SocialIdentity.of(SocialType.KAKAO, 10L));
 	}
 }

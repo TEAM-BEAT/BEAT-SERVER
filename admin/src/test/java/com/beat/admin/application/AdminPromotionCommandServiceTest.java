@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +16,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,20 +27,23 @@ import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest.Pr
 import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
 import com.beat.admin.promotion.application.dto.request.PromotionHandleRequest;
 import com.beat.admin.promotion.application.dto.response.CarouselHandleAllResponse;
-import com.beat.admin.application.exception.AdminApplicationErrorCode;
+import com.beat.admin.promotion.exception.PromotionApplicationErrorCode;
 import com.beat.admin.promotion.application.service.command.AdminPromotionCommandService;
 import com.beat.domain.member.domain.Member;
+import com.beat.domain.member.vo.SocialIdentity;
 import com.beat.domain.member.domain.SocialType;
 import com.beat.contracts.cdn.ImageCachePort;
 import com.beat.domain.member.repository.MemberRepository;
-import com.beat.domain.performance.domain.BankName;
 import com.beat.domain.performance.domain.Genre;
 import com.beat.domain.performance.domain.Performance;
 import com.beat.domain.performance.repository.PerformanceRepository;
+import com.beat.domain.performance.vo.PerformancePeriod;
+import com.beat.domain.performance.vo.RunningTime;
+import com.beat.domain.performance.vo.TicketPrice;
 import com.beat.domain.promotion.domain.CarouselNumber;
 import com.beat.domain.promotion.domain.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
-import com.beat.global.support.exception.BadRequestException;
+import com.beat.admin.exception.AdminApplicationException;
 
 @ExtendWith(MockitoExtension.class)
 class AdminPromotionCommandServiceTest {
@@ -61,6 +66,9 @@ class AdminPromotionCommandServiceTest {
 	@InjectMocks
 	private AdminPromotionCommandService adminPromotionCommandService;
 
+	@Captor
+	private ArgumentCaptor<List<Long>> deleteIdsCaptor;
+
 	@Test
 	void processAllPromotionsRejectsInvalidCarouselItemBeforeMutation() {
 		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
@@ -68,13 +76,44 @@ class AdminPromotionCommandServiceTest {
 			Collections.<PromotionHandleRequest>singletonList(null)
 		);
 
-		BadRequestException exception = assertThrows(BadRequestException.class,
-			() -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, request));
+		AdminApplicationException exception = assertThrows(AdminApplicationException.class, () -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, request));
 
-		assertEquals(AdminApplicationErrorCode.INVALID_REQUEST_FORMAT, exception.getBaseErrorCode());
+		assertEquals(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT, exception.getErrorCode());
 		verify(promotionRepository, never()).findAll();
 		verify(promotionRepository, never()).deleteByPromotionIds(any());
 		verify(promotionRepository, never()).save(any());
+		verifyNoInteractions(performanceRepository);
+	}
+
+	@Test
+	void processAllPromotionsRejectsInvalidCarouselAssignmentsBeforeMutation() {
+		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
+		CarouselHandleRequest request = new CarouselHandleRequest(List.of(
+			new PromotionGenerateRequest(AdminCarouselNumber.ONE, "image-1", true, "url-1", null),
+			new PromotionGenerateRequest(AdminCarouselNumber.ONE, "image-2", true, "url-2", null)
+		));
+
+		AdminApplicationException exception = assertThrows(AdminApplicationException.class, () -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, request));
+
+		assertEquals(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT, exception.getErrorCode());
+		verify(promotionRepository, never()).findAll();
+		verify(promotionRepository, never()).deleteByPromotionIds(any());
+		verify(promotionRepository, never()).save(any());
+		verifyNoInteractions(performanceRepository);
+	}
+
+	@Test
+	void processAllPromotionsRejectsDuplicateModifyIdsBeforeMutation() {
+		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
+		CarouselHandleRequest request = new CarouselHandleRequest(List.of(
+			new PromotionModifyRequest(1L, AdminCarouselNumber.ONE, "image-1", true, "url-1", null),
+			new PromotionModifyRequest(1L, AdminCarouselNumber.TWO, "image-2", true, "url-2", null)
+		));
+
+		AdminApplicationException exception = assertThrows(AdminApplicationException.class, () -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, request));
+
+		assertEquals(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT, exception.getErrorCode());
+		verify(promotionRepository, never()).findAll();
 		verifyNoInteractions(performanceRepository);
 	}
 
@@ -105,8 +144,6 @@ class AdminPromotionCommandServiceTest {
 		CarouselHandleAllResponse response =
 			adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, request);
 
-		@SuppressWarnings("unchecked")
-		ArgumentCaptor<List<Long>> deleteIdsCaptor = ArgumentCaptor.forClass(List.class);
 		verify(promotionRepository).deleteByPromotionIds(deleteIdsCaptor.capture());
 		assertEquals(List.of(2L), deleteIdsCaptor.getValue());
 		verify(performanceRepository).findById(PERFORMANCE_ID);
@@ -126,7 +163,7 @@ class AdminPromotionCommandServiceTest {
 	}
 
 	private static Member member() {
-		return Member.rehydrate(MEMBER_ID, "admin", "admin@example.com", null, 1L, 10L, SocialType.KAKAO);
+		return Member.rehydrate(MEMBER_ID, "admin", "admin@example.com", null, 1L, SocialIdentity.of(SocialType.KAKAO, 10L));
 	}
 
 	private static Performance performance() {
@@ -134,11 +171,9 @@ class AdminPromotionCommandServiceTest {
 			PERFORMANCE_ID,
 			"title",
 			Genre.PLAY,
-			100,
+			RunningTime.of(100),
 			"description",
 			"attention",
-			BankName.NONE,
-			null,
 			null,
 			"poster",
 			"team",
@@ -148,8 +183,8 @@ class AdminPromotionCommandServiceTest {
 			"37.0",
 			"127.0",
 			"contact",
-			"2026.01.01",
-			0,
+			PerformancePeriod.of(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1)),
+			TicketPrice.of(0),
 			1,
 			1L
 		);

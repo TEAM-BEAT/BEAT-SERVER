@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.beat.admin.api.response.AdminSuccessCode;
+import com.beat.admin.promotion.api.response.PromotionSuccessCode;
 import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest;
 import com.beat.admin.promotion.application.dto.response.BannerPresignedUrlFindResponse;
 import com.beat.admin.promotion.application.dto.response.CarouselFindAllResponse;
@@ -36,7 +36,7 @@ public class AdminPromotionController implements AdminPromotionApi {
 		@CurrentMember Long memberId, @RequestParam List<String> carouselImages) {
 		CarouselPresignedUrlFindAllResponse response = adminPromotionFacade.checkMemberAndIssueAllPresignedUrlsForCarousel(
 			memberId, carouselImages);
-		return ResponseEntity.ok(SuccessResponse.of(AdminSuccessCode.CAROUSEL_PRESIGNED_URL_ISSUED, response));
+		return ResponseEntity.ok(SuccessResponse.of(PromotionSuccessCode.CAROUSEL_PRESIGNED_URL_ISSUED, response));
 	}
 
 	@Override
@@ -46,7 +46,7 @@ public class AdminPromotionController implements AdminPromotionApi {
 		BannerPresignedUrlFindResponse response = adminPromotionFacade.checkMemberAndIssuePresignedUrlForBanner(memberId,
 			bannerImage);
 		return ResponseEntity.status(HttpStatus.OK)
-			.body(SuccessResponse.of(AdminSuccessCode.BANNER_PRESIGNED_URL_ISSUED, response));
+			.body(SuccessResponse.of(PromotionSuccessCode.BANNER_PRESIGNED_URL_ISSUED, response));
 	}
 
 	@Override
@@ -56,7 +56,7 @@ public class AdminPromotionController implements AdminPromotionApi {
 		CarouselFindAllResponse response = adminPromotionFacade.checkMemberAndFindAllPromotionsSortedByCarouselNumber(
 			memberId);
 		return ResponseEntity.status(HttpStatus.OK)
-			.body(SuccessResponse.of(AdminSuccessCode.FETCH_ALL_CAROUSEL_PROMOTIONS_SUCCESS, response));
+			.body(SuccessResponse.of(PromotionSuccessCode.FETCH_ALL_CAROUSEL_PROMOTIONS_SUCCESS, response));
 	}
 
 	@Override
@@ -67,6 +67,6 @@ public class AdminPromotionController implements AdminPromotionApi {
 		CarouselHandleAllResponse response = adminPromotionFacade.checkMemberAndProcessAllPromotionsSortedByCarouselNumber(
 			memberId, request);
 		return ResponseEntity.status(HttpStatus.OK)
-			.body(SuccessResponse.of(AdminSuccessCode.UPDATE_ALL_CAROUSEL_PROMOTIONS_SUCCESS, response));
+			.body(SuccessResponse.of(PromotionSuccessCode.UPDATE_ALL_CAROUSEL_PROMOTIONS_SUCCESS, response));
 	}
 }

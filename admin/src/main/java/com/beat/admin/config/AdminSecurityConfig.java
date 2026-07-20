@@ -55,7 +55,8 @@ public class AdminSecurityConfig {
 	}
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+		// Admin authentication is stateless and accepts JWT only from the Authorization header.
 		http.csrf(AbstractHttpConfigurer::disable)
 			.cors(Customizer.withDefaults())
 			.formLogin(AbstractHttpConfigurer::disable)
