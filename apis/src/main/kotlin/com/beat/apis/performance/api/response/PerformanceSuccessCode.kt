@@ -1,11 +1,11 @@
 package com.beat.apis.performance.api.response
 
-import com.beat.global.support.exception.base.BaseSuccessCode
+import com.beat.global.support.response.SuccessCode
 
 enum class PerformanceSuccessCode(
     private val status: Int,
     private val message: String,
-) : BaseSuccessCode {
+) : SuccessCode {
     PERFORMANCE_UPDATE_SUCCESS(200, "공연이 성공적으로 수정되었습니다."),
     PERFORMANCE_RETRIEVE_SUCCESS(200, "공연 상세 정보 조회가 성공적으로 완료되었습니다."),
     PERFORMANCE_MODIFY_PAGE_SUCCESS(200, "공연 수정 페이지 조회가 성공적으로 완료되었습니다."),

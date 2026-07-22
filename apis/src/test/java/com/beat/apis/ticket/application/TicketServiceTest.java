@@ -2,11 +2,16 @@ package com.beat.apis.ticket.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,31 +19,49 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
-import com.beat.apis.ticket.application.exception.TicketApplicationErrorCode;
+import com.beat.apis.ticket.exception.TicketApplicationErrorCode;
+import com.beat.apis.ticket.application.command.TicketBookingStatus;
+import com.beat.apis.ticket.application.command.TicketStatusUpdate;
+import com.beat.apis.ticket.application.command.TicketUpdateCommand;
+import com.beat.apis.ticket.application.event.TicketPaymentConfirmedEvent;
+import com.beat.apis.schedule.exception.ScheduleApplicationErrorCode;
 import com.beat.contracts.booking.MakerTicketReadPort;
 import com.beat.contracts.booking.readmodel.MakerTicketBookingStatus;
 import com.beat.contracts.booking.readmodel.MakerTicketListItemReadModel;
 import com.beat.contracts.booking.readmodel.MakerTicketScheduleNumber;
-import com.beat.contracts.sms.SmsPort;
-import com.beat.apis.booking.application.dto.BookingStatusType;
+import com.beat.apis.booking.api.type.BookingStatusType;
+import com.beat.domain.booking.model.Booking;
+import com.beat.domain.booking.model.BookingStatus;
+import com.beat.domain.booking.exception.BookingErrorCode;
+import com.beat.domain.exception.DomainException;
 import com.beat.domain.booking.repository.BookingRepository;
-import com.beat.domain.member.domain.Member;
-import com.beat.domain.member.domain.SocialType;
+import com.beat.domain.member.model.Member;
+import com.beat.domain.member.vo.SocialIdentity;
+import com.beat.domain.member.model.SocialType;
 import com.beat.domain.member.repository.MemberRepository;
-import com.beat.domain.performance.domain.BankName;
-import com.beat.domain.performance.domain.Genre;
-import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.repository.PerformanceRepository;
-import com.beat.apis.schedule.application.dto.ScheduleNumberType;
-import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.domain.sharedkernel.vo.BankName;
+import com.beat.domain.performance.model.Genre;
+import com.beat.contracts.performance.PerformanceSummaryReadPort;
+import com.beat.contracts.performance.readmodel.PerformanceSummaryReadModel;
+import com.beat.contracts.schedule.ScheduleReadPort;
+import com.beat.contracts.schedule.readmodel.ScheduleSummaryReadModel;
+import com.beat.domain.performance.vo.PaymentAccount;
+import com.beat.domain.performance.vo.PerformancePeriod;
+import com.beat.domain.performance.vo.RunningTime;
+import com.beat.domain.performance.vo.TicketPrice;
+import com.beat.apis.schedule.api.type.ScheduleNumberType;
+import com.beat.domain.schedule.model.Schedule;
+import com.beat.domain.schedule.model.ScheduleNumber;
 import com.beat.domain.schedule.repository.ScheduleRepository;
-import com.beat.domain.user.domain.Role;
-import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.repository.UserRepository;
-import com.beat.global.support.exception.BadRequestException;
+import com.beat.apis.exception.ApiApplicationException;
+import com.beat.apis.ticket.application.command.TicketCommandService;
+import com.beat.apis.ticket.application.query.TicketQueryService;
+import com.beat.apis.ticket.application.query.TicketListQuery;
 
 @ExtendWith(MockitoExtension.class)
 class TicketServiceTest {
@@ -50,62 +73,45 @@ class TicketServiceTest {
 	private MakerTicketReadPort makerTicketReadPort;
 
 	@Mock
-	private PerformanceRepository performanceRepository;
+	private PerformanceSummaryReadPort performanceSummaryReadPort;
 
 	@Mock
 	private MemberRepository memberRepository;
 
 	@Mock
-	private UserRepository userRepository;
-
-	@Mock
 	private ScheduleRepository scheduleRepository;
 
 	@Mock
-	private SmsPort smsPort;
+	private ScheduleReadPort scheduleReadPort;
 
-	private TicketService ticketService;
+	@Mock
+	private ApplicationEventPublisher eventPublisher;
+
+	private TicketQueryService ticketQueryService;
+	private TicketCommandService ticketCommandService;
 
 	@BeforeEach
 	void setUp() {
-		ticketService = new TicketService(
-			bookingRepository,
+		ticketQueryService = new TicketQueryService(
 			makerTicketReadPort,
-			performanceRepository,
+			performanceSummaryReadPort,
 			memberRepository,
-			userRepository,
+			scheduleReadPort
+		);
+		ticketCommandService = new TicketCommandService(
+			bookingRepository,
+			performanceSummaryReadPort,
+			memberRepository,
 			scheduleRepository,
-			smsPort
+			eventPublisher,
+			Clock.systemUTC()
 		);
 	}
 
 	@Test
 	void findAllTicketsByConditionsUsesExplicitContractEnumsAndReturnsApiStatus() {
-		Member member = Member.rehydrate(1L, "maker", null, null, 10L, 123L, SocialType.KAKAO);
-		Users user = Users.rehydrate(10L, Role.USER);
-		Performance performance = Performance.rehydrate(
-			100L,
-			"title",
-			Genre.BAND,
-			120,
-			"description",
-			"attention",
-			BankName.KAKAOBANK,
-			"123",
-			"holder",
-			"poster",
-			"team",
-			"venue",
-			"road",
-			"detail",
-			"0",
-			"0",
-			"contact",
-			"period",
-			10000,
-			1,
-			10L
-		);
+		Member member = Member.rehydrate(1L, "maker", null, null, 10L, SocialIdentity.of(SocialType.KAKAO, 123L));
+		PerformanceSummaryReadModel performance = performance(100L, 10L);
 		LocalDateTime performanceDate = LocalDateTime.of(2026, 1, 1, 19, 0);
 		Schedule schedule = Schedule.rehydrate(
 			200L,
@@ -130,24 +136,23 @@ class TicketServiceTest {
 		);
 
 		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
-		when(userRepository.findById(10L)).thenReturn(Optional.of(user));
-		when(performanceRepository.findById(100L)).thenReturn(Optional.of(performance));
-		when(scheduleRepository.findAllByPerformanceId(100L)).thenReturn(List.of(schedule));
+		when(performanceSummaryReadPort.findById(100L)).thenReturn(Optional.of(performance));
+		when(scheduleReadPort.findAllByPerformanceId(100L)).thenReturn(List.of(
+			new ScheduleSummaryReadModel(200L, performanceDate, 100, 99, "FIRST")
+		));
 		when(makerTicketReadPort.findTickets(
 			100L,
 			List.of(MakerTicketScheduleNumber.FIRST),
 			List.of(MakerTicketBookingStatus.CHECKING_PAYMENT)
 		)).thenReturn(List.of(ticket));
 
-		var response = ticketService.findAllTicketsByConditions(
-			1L,
+		var response = ticketQueryService.findAllTicketsByConditions(1L,
 			100L,
-			List.of(ScheduleNumberType.FIRST),
-			List.of(BookingStatusType.CHECKING_PAYMENT)
-		);
+			new TicketListQuery(null, List.of("FIRST"), List.of("CHECKING_PAYMENT")));
 
-		assertEquals(BookingStatusType.CHECKING_PAYMENT, response.bookingList().get(0).bookingStatus());
-		assertEquals("FIRST", response.bookingList().get(0).scheduleNumber());
+		assertEquals("CHECKING_PAYMENT", response.getBookingList().get(0).getBookingStatus());
+		assertEquals("FIRST", response.getBookingList().get(0).getScheduleNumber());
+		assertEquals(99, response.getTotalPerformanceSoldTicketCount());
 		verify(makerTicketReadPort).findTickets(
 			100L,
 			List.of(MakerTicketScheduleNumber.FIRST),
@@ -156,69 +161,123 @@ class TicketServiceTest {
 	}
 
 	@Test
-	void searchAllTicketsByConditionsRejectsNullSearchWord() {
-		BadRequestException exception = assertThrows(BadRequestException.class, () ->
-			ticketService.searchAllTicketsByConditions(1L, 100L, null, null, null)
-		);
+	void updateTicketsRejectsBookingFromAnotherPerformance() {
+		Member member = Member.rehydrate(1L, "maker", null, null, 10L,
+			SocialIdentity.of(SocialType.KAKAO, 123L));
+		PerformanceSummaryReadModel performance = performance(100L, 10L);
+		LocalDateTime performanceDate = LocalDateTime.of(2026, 1, 1, 19, 0);
+		Schedule foreignSchedule = Schedule.rehydrate(
+			200L, performanceDate, performanceDate.plusHours(2), 100, 1, ScheduleNumber.FIRST, 999L);
+		Booking booking = Booking.rehydrate(
+			300L, 1, "booker", "010-0000-0000", BookingStatus.CHECKING_PAYMENT,
+			LocalDateTime.of(2026, 1, 1, 12, 0), null, null, null, null, 200L, 20L);
+		TicketStatusUpdate detail = ticketDetail(BookingStatusType.BOOKING_CONFIRMED);
 
-		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getBaseErrorCode());
+		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+		when(performanceSummaryReadPort.findById(100L)).thenReturn(Optional.of(performance));
+		when(bookingRepository.findAllById(List.of(300L))).thenReturn(List.of(booking));
+		when(scheduleRepository.lockById(200L)).thenReturn(Optional.of(foreignSchedule));
+
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () ->
+			ticketCommandService.updateTickets(1L, new TicketUpdateCommand(100L, List.of(detail))));
+
+		assertEquals(ScheduleApplicationErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE,
+			exception.getErrorCode());
+		verifyNoInteractions(eventPublisher);
+	}
+
+	@Test
+	void updateTicketsRejectsUnsupportedStatusTransition() {
+		Booking booking = booking(BookingStatus.CHECKING_PAYMENT);
+		stubOwnedTicketUpdate(booking);
+		TicketStatusUpdate detail = ticketDetail(BookingStatusType.BOOKING_CANCELLED);
+
+		DomainException exception = assertThrows(DomainException.class, () ->
+			ticketCommandService.updateTickets(1L, new TicketUpdateCommand(100L, List.of(detail))));
+
+		assertEquals(BookingErrorCode.STATUS_TRANSITION_NOT_ALLOWED, exception.getErrorCode());
+		verify(bookingRepository, never()).save(any());
+		verifyNoInteractions(eventPublisher);
+	}
+
+	@Test
+	void updateTicketsPublishesConfirmationAfterStateChange() {
+		Booking booking = booking(BookingStatus.CHECKING_PAYMENT);
+		stubOwnedTicketUpdate(booking);
+
+		ticketCommandService.updateTickets(1L,
+			new TicketUpdateCommand(100L, List.of(ticketDetail(BookingStatusType.BOOKING_CONFIRMED))));
+
+		InOrder inOrder = inOrder(bookingRepository, eventPublisher);
+		inOrder.verify(bookingRepository).save(booking.confirmPayment());
+		ArgumentCaptor<TicketPaymentConfirmedEvent> eventCaptor =
+			ArgumentCaptor.forClass(TicketPaymentConfirmedEvent.class);
+		inOrder.verify(eventPublisher).publishEvent(eventCaptor.capture());
+		assertEquals(300L, eventCaptor.getValue().getBookingId());
+		assertEquals("booker", eventCaptor.getValue().getBookerName());
+		assertEquals("010-0000-0000", eventCaptor.getValue().getBookerPhoneNumber());
+		assertEquals("title", eventCaptor.getValue().getPerformanceTitle());
+	}
+
+	@Test
+	void updateTicketsRejectsDuplicateBookingIdsBeforeMutation() {
+		TicketStatusUpdate detail = ticketDetail(BookingStatusType.BOOKING_CONFIRMED);
+
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () ->
+			ticketCommandService.updateTickets(1L, new TicketUpdateCommand(100L, List.of(detail, detail))));
+
+		assertEquals(TicketApplicationErrorCode.DUPLICATE_BOOKING_ID, exception.getErrorCode());
+		verifyNoDependencyInteractions();
+	}
+
+	@Test
+	void searchAllTicketsByConditionsRejectsNullSearchWord() {
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () ->
+			ticketQueryService.searchAllTicketsByConditions(1L, 100L, new TicketListQuery(null, List.of(), List.of())));
+
+		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getErrorCode());
 		verifyNoDependencyInteractions();
 	}
 
 	@Test
 	void searchAllTicketsByConditionsRejectsBlankSearchWord() {
-		BadRequestException exception = assertThrows(BadRequestException.class, () ->
-			ticketService.searchAllTicketsByConditions(
-				1L,
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () ->
+			ticketQueryService.searchAllTicketsByConditions(1L,
 				100L,
-				"",
-				List.of(ScheduleNumberType.FIRST),
-				List.of(BookingStatusType.CHECKING_PAYMENT)
-			)
-		);
+				new TicketListQuery("", List.of("FIRST"), List.of("CHECKING_PAYMENT"))));
 
-		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getBaseErrorCode());
+		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getErrorCode());
 		verifyNoDependencyInteractions();
 	}
 
 	@Test
 	void searchAllTicketsByConditionsRejectsSingleCharacterSearchWord() {
-		BadRequestException exception = assertThrows(BadRequestException.class, () ->
-			ticketService.searchAllTicketsByConditions(1L, 100L, "a", null, null)
-		);
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () ->
+			ticketQueryService.searchAllTicketsByConditions(1L, 100L, new TicketListQuery("a", List.of(), List.of())));
 
-		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getBaseErrorCode());
+		assertEquals(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT, exception.getErrorCode());
 		verifyNoDependencyInteractions();
 	}
 
 	@Test
 	void searchAllTicketsByConditionsRejectsDeletedBookingStatus() {
-		BadRequestException exception = assertThrows(BadRequestException.class, () ->
-			ticketService.searchAllTicketsByConditions(
-				1L,
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () ->
+			ticketQueryService.searchAllTicketsByConditions(1L,
 				100L,
-				"ab",
-				null,
-				List.of(BookingStatusType.BOOKING_DELETED)
-			)
-		);
+				new TicketListQuery("ab", List.of(), List.of("BOOKING_DELETED"))));
 
-		assertEquals(TicketApplicationErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED, exception.getBaseErrorCode());
+		assertEquals(TicketApplicationErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED, exception.getErrorCode());
 		verifyNoDependencyInteractions();
 	}
 
 	@Test
 	void findAllTicketsByConditionsRejectsDeletedBookingStatus() {
-		BadRequestException exception = assertThrows(BadRequestException.class, () ->
-			ticketService.findAllTicketsByConditions(
-				1L,
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () ->
+			ticketQueryService.findAllTicketsByConditions(1L,
 				100L,
-				null,
-				List.of(BookingStatusType.BOOKING_DELETED)
-			)
-		);
+				new TicketListQuery(null, List.of(), List.of("BOOKING_DELETED"))));
 
-		assertEquals(TicketApplicationErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED, exception.getBaseErrorCode());
+		assertEquals(TicketApplicationErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED, exception.getErrorCode());
 		verifyNoDependencyInteractions();
 	}
 
@@ -226,11 +285,40 @@ class TicketServiceTest {
 		verifyNoInteractions(
 			bookingRepository,
 			makerTicketReadPort,
-			performanceRepository,
+			performanceSummaryReadPort,
 			memberRepository,
-			userRepository,
 			scheduleRepository,
-			smsPort
+			eventPublisher
 		);
+	}
+
+	private void stubOwnedTicketUpdate(Booking booking) {
+		Member member = Member.rehydrate(1L, "maker", null, null, 10L,
+			SocialIdentity.of(SocialType.KAKAO, 123L));
+		LocalDateTime performanceDate = LocalDateTime.of(2026, 1, 1, 19, 0);
+		Schedule schedule = Schedule.rehydrate(
+			200L, performanceDate, performanceDate.plusHours(2), 100, 1, ScheduleNumber.FIRST, 100L);
+		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+		when(performanceSummaryReadPort.findById(100L)).thenReturn(Optional.of(performance(100L, 10L)));
+		when(bookingRepository.findAllById(List.of(300L))).thenReturn(List.of(booking));
+		when(bookingRepository.lockById(300L)).thenReturn(Optional.of(booking));
+		when(scheduleRepository.lockById(200L)).thenReturn(Optional.of(schedule));
+	}
+
+	private Booking booking(BookingStatus status) {
+		return Booking.rehydrate(
+			300L, 1, "booker", "010-0000-0000", status,
+			LocalDateTime.of(2026, 1, 1, 12, 0), null, null, null, null, 200L, 20L);
+	}
+
+	private TicketStatusUpdate ticketDetail(BookingStatusType status) {
+		return new TicketStatusUpdate(300L, TicketBookingStatus.valueOf(status.name()));
+	}
+
+	private PerformanceSummaryReadModel performance(Long id, Long userId) {
+		return new PerformanceSummaryReadModel(
+			id, userId, "title", "BAND", 10000, "KAKAOBANK", "123", "holder",
+			"poster", "team", "venue", "contact", 1,
+			LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1));
 	}
 }

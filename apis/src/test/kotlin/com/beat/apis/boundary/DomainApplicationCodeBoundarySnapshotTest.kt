@@ -2,31 +2,61 @@ package com.beat.apis.boundary
 
 import com.beat.apis.booking.api.response.BookingSuccessCode
 import com.beat.apis.ticket.api.response.TicketSuccessCode
-import com.beat.apis.booking.application.exception.BookingApplicationErrorCode
-import com.beat.apis.ticket.application.exception.TicketApplicationErrorCode
-import com.beat.apis.external.s3.exception.FileSuccessCode
+import com.beat.apis.booking.exception.BookingApplicationErrorCode
+import com.beat.apis.exception.ApiGlobalExceptionHandler
+import com.beat.apis.ticket.exception.TicketApplicationErrorCode
+import com.beat.apis.file.api.response.FileSuccessCode
 import com.beat.apis.home.api.response.HomeSuccessCode
 import com.beat.apis.member.api.response.MemberSuccessCode
-import com.beat.apis.member.application.exception.MemberApplicationErrorCode
+import com.beat.apis.member.exception.MemberApplicationErrorCode
 import com.beat.apis.performance.api.response.PerformanceSuccessCode
-import com.beat.apis.performance.application.exception.CastApplicationErrorCode
-import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode
-import com.beat.apis.performance.application.exception.PerformanceImageApplicationErrorCode
-import com.beat.apis.performance.application.exception.StaffApplicationErrorCode
+import com.beat.apis.performance.exception.CastApplicationErrorCode
+import com.beat.apis.performance.exception.PerformanceApplicationErrorCode
+import com.beat.apis.performance.exception.PerformanceImageApplicationErrorCode
+import com.beat.apis.performance.exception.StaffApplicationErrorCode
 import com.beat.apis.schedule.api.response.ScheduleSuccessCode
-import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode
-import com.beat.apis.user.application.exception.UserApplicationErrorCode
-import com.beat.global.support.exception.base.BaseErrorCode
+import com.beat.apis.schedule.exception.ScheduleApplicationErrorCode
+import com.beat.apis.user.exception.UserApplicationErrorCode
+import com.beat.apis.exception.ApplicationErrorCode
 import com.beat.domain.booking.exception.BookingErrorCode
+import com.beat.domain.exception.DomainErrorType
 import com.beat.domain.performance.exception.PerformanceErrorCode
+import com.beat.domain.promotion.exception.PromotionErrorCode
 import com.beat.domain.schedule.exception.ScheduleErrorCode
-import com.beat.global.support.exception.base.BaseSuccessCode
+import com.beat.apis.member.exception.TokenApplicationErrorCode
+import com.beat.global.support.response.SuccessCode
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.function.Executable
 
 class DomainApplicationCodeBoundarySnapshotTest {
+    @Test
+    fun errorCodesAreExplicitAndUniqueWithinTheirLayer() {
+        val applicationCodes: List<ApplicationErrorCode> =
+            BookingApplicationErrorCode.entries +
+                TicketApplicationErrorCode.entries +
+                MemberApplicationErrorCode.entries +
+                CastApplicationErrorCode.entries +
+                PerformanceApplicationErrorCode.entries +
+                PerformanceImageApplicationErrorCode.entries +
+                StaffApplicationErrorCode.entries +
+                ScheduleApplicationErrorCode.entries +
+                UserApplicationErrorCode.entries +
+                TokenApplicationErrorCode.entries
+        val domainCodes =
+            BookingErrorCode.entries.map { it.code } +
+                PerformanceErrorCode.entries.map { it.code } +
+                PromotionErrorCode.entries.map { it.code } +
+                ScheduleErrorCode.entries.map { it.code }
+
+        assertEquals(applicationCodes.size, applicationCodes.map { it.getCode() }.distinct().size)
+        assertEquals(domainCodes.size, domainCodes.distinct().size)
+        assertTrue(applicationCodes.all { it.getCode().matches(Regex("[A-Z][A-Z0-9_]+")) })
+        assertTrue(domainCodes.all { it.matches(Regex("[A-Z][A-Z0-9_]+")) })
+    }
+
     @Test
     fun successCodeStatusAndMessagesStayStableAcrossResponseBoundaryMove() {
         val snapshots = listOf(
@@ -71,7 +101,7 @@ class DomainApplicationCodeBoundarySnapshotTest {
             error(CastApplicationErrorCode.CAST_NOT_FOUND, 404, "등장인물이 존재하지 않습니다."),
             error(MemberApplicationErrorCode.MEMBER_NOT_FOUND, 404, "회원이 없습니다"),
             error(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND, 404, "해당 공연 정보를 찾을 수 없습니다."),
-            error(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND, 404, "스케쥴 리스트에 스케쥴이 없습니다."),
+            error(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND, 400, "스케쥴 리스트에 스케쥴이 없습니다."),
             error(PerformanceImageApplicationErrorCode.PERFORMANCE_IMAGE_NOT_FOUND, 404, "해당 공연 상세이미지를 찾을 수 없습니다."),
             error(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND, 404, "해당 회차를 찾을 수 없습니다."),
             error(StaffApplicationErrorCode.STAFF_NOT_FOUND, 404, "스태프가 존재하지 않습니다."),
@@ -86,21 +116,27 @@ class DomainApplicationCodeBoundarySnapshotTest {
         val snapshots = listOf(
             error(BookingApplicationErrorCode.REQUIRED_DATA_MISSING, 400, "필수 데이터가 누락되었습니다."),
             error(BookingApplicationErrorCode.INVALID_REQUEST_FORMAT, 400, "잘못된 요청 형식입니다."),
+            error(
+                BookingApplicationErrorCode.INSUFFICIENT_TICKETS,
+                400,
+                "요청한 티켓 수량이 잔여 티켓 수를 초과했습니다. 다른 수량을 선택해 주세요.",
+            ),
             error(MemberApplicationErrorCode.SOCIAL_TYPE_BAD_REQUEST, 400, "로그인 요청이 유효하지 않습니다."),
             error(MemberApplicationErrorCode.AUTHENTICATION_CODE_EXPIRED, 401, "인가코드가 만료되었습니다"),
             error(PerformanceApplicationErrorCode.PRICE_UPDATE_NOT_ALLOWED, 400, "예매자가 존재하여 가격을 수정할 수 없습니다."),
-            error(PerformanceApplicationErrorCode.MAX_SCHEDULE_LIMIT_EXCEEDED, 400, "공연 회차는 최대 10개까지 추가할 수 있습니다."),
             error(PerformanceApplicationErrorCode.PAST_SCHEDULE_NOT_ALLOWED, 400, "과거 날짜 회차를 포함한 공연을 생성할 수 없습니다."),
             error(PerformanceApplicationErrorCode.SCHEDULE_MODIFICATION_NOT_ALLOWED_FOR_ENDED_SCHEDULE, 400, "종료된 회차를 수정할 수 없습니다."),
-            error(PerformanceApplicationErrorCode.INVALID_TICKET_COUNT, 400, "판매된 티켓 수보다 적은 수로 판매할 티켓 매수를 수정할 수 없습니다."),
             error(PerformanceApplicationErrorCode.PERFORMANCE_DELETE_FAILED, 403, "예매자가 1명 이상 있을 경우, 공연을 삭제할 수 없습니다."),
             error(PerformanceApplicationErrorCode.NOT_PERFORMANCE_OWNER, 403, "해당 공연의 메이커가 아닙니다."),
             error(CastApplicationErrorCode.CAST_NOT_BELONG_TO_PERFORMANCE, 403, "해당 등장인물은 해당 공연에 속해 있지 않습니다."),
             error(PerformanceImageApplicationErrorCode.PERFORMANCE_IMAGE_NOT_BELONG_TO_PERFORMANCE, 403, "해당 싱세이미지는 해당 공연에 속해 있지 않습니다."),
-            error(ScheduleApplicationErrorCode.INVALID_DATA_FORMAT, 400, "잘못된 데이터 형식입니다."),
+            error(ScheduleApplicationErrorCode.INVALID_TICKET_AVAILABILITY_REQUEST, 400, "잘못된 데이터 형식입니다."),
             error(ScheduleApplicationErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE, 403, "해당 스케줄은 해당 공연에 속해 있지 않습니다."),
             error(ScheduleApplicationErrorCode.INSUFFICIENT_TICKETS, 409, "요청한 티켓 수량이 잔여 티켓 수를 초과했습니다. 다른 수량을 선택해 주세요."),
             error(StaffApplicationErrorCode.STAFF_NOT_BELONG_TO_PERFORMANCE, 403, "해당 스태프는 해당 공연에 속해있지 않습니다."),
+            error(TicketApplicationErrorCode.PAYMENT_COMPLETED_TICKET_UPDATE_NOT_ALLOWED, 400, "이미 결제가 완료된 티켓의 상태는 변경할 수 없습니다."),
+            error(TicketApplicationErrorCode.INVALID_BOOKING_STATUS_TRANSITION, 400, "지원하지 않는 예매 상태 변경입니다."),
+            error(TicketApplicationErrorCode.DELETED_TICKET_RETRIEVE_NOT_ALLOWED, 400, "삭제된 예매자를 조회할 수 없습니다."),
         )
 
         assertAll(snapshots.map { snapshot -> Executable { assertErrorSnapshot(snapshot) } })
@@ -108,18 +144,57 @@ class DomainApplicationCodeBoundarySnapshotTest {
 
     @Test
     fun domainErrorCodesOnlyExposeDomainInvariantAllowlist() {
-        assertEquals(listOf("INVALID_DATA_FORMAT"), BookingErrorCode.entries.map { it.name })
-        assertEquals(listOf("INVALID_DATA_FORMAT", "NEGATIVE_TICKET_PRICE"), PerformanceErrorCode.entries.map { it.name })
         assertEquals(
-            listOf("INVALID_DATA_FORMAT", "INSUFFICIENT_TICKETS", "EXCESS_TICKET_DELETE"),
+            listOf(
+                "INVALID_PURCHASE_TICKET_COUNT",
+                "NEGATIVE_TOTAL_PAYMENT_AMOUNT",
+                "INVALID_REFUND_ACCOUNT",
+                "PAYMENT_CONFIRMATION_NOT_ALLOWED",
+                "CONFIRMED_STATUS_CHANGE_NOT_ALLOWED",
+                "STATUS_TRANSITION_NOT_ALLOWED",
+                "REFUND_REQUEST_NOT_ALLOWED",
+            ),
+            BookingErrorCode.entries.map { it.name },
+        )
+        assertEquals(DomainErrorType.INVALID_INPUT, BookingErrorCode.INVALID_PURCHASE_TICKET_COUNT.type)
+        assertEquals(DomainErrorType.STATE_CONFLICT, BookingErrorCode.PAYMENT_CONFIRMATION_NOT_ALLOWED.type)
+        assertEquals(
+            listOf(
+                "NON_POSITIVE_RUNNING_TIME",
+                "NEGATIVE_SCHEDULE_COUNT",
+                "INVALID_PERFORMANCE_PERIOD",
+                "NEGATIVE_TICKET_PRICE",
+                "PRICE_UPDATE_NOT_ALLOWED",
+                "DELETE_NOT_ALLOWED",
+                "NEGATIVE_TICKET_QUANTITY",
+                "INCOMPLETE_PAYMENT_ACCOUNT",
+            ),
+            PerformanceErrorCode.entries.map { it.name },
+        )
+        assertEquals(listOf("TOO_MANY_CAROUSEL_PROMOTIONS"), PromotionErrorCode.entries.map { it.name })
+        assertEquals(
+            listOf(
+                "INVALID_BOOKING_WINDOW",
+                "NEGATIVE_TICKET_COUNT",
+                "NON_POSITIVE_TICKET_COUNT",
+                "MIXED_PERFORMANCE_SCHEDULES",
+                "TOO_MANY_SCHEDULES",
+                "PAST_SCHEDULE_NOT_ALLOWED",
+                "ENDED_SCHEDULE_MODIFICATION_NOT_ALLOWED",
+                "ALLOCATED_TICKETS_EXCEED_TOTAL",
+                "INSUFFICIENT_TICKETS",
+                "EXCESS_TICKET_DELETE",
+            ),
             ScheduleErrorCode.entries.map { it.name },
         )
+        assertEquals(DomainErrorType.INVALID_INPUT, ScheduleErrorCode.NON_POSITIVE_TICKET_COUNT.type)
+        assertEquals(DomainErrorType.STATE_CONFLICT, ScheduleErrorCode.INSUFFICIENT_TICKETS.type)
     }
 
-    private fun success(code: BaseSuccessCode, status: Int, message: String): SuccessSnapshot =
+    private fun success(code: SuccessCode, status: Int, message: String): SuccessSnapshot =
         SuccessSnapshot(code, status, message)
 
-    private fun error(code: BaseErrorCode, status: Int, message: String): ErrorSnapshot =
+    private fun error(code: ApplicationErrorCode, status: Int, message: String): ErrorSnapshot =
         ErrorSnapshot(code, status, message)
 
     private fun assertSuccessSnapshot(snapshot: SuccessSnapshot) {
@@ -128,18 +203,21 @@ class DomainApplicationCodeBoundarySnapshotTest {
     }
 
     private fun assertErrorSnapshot(snapshot: ErrorSnapshot) {
-        assertEquals(snapshot.status, snapshot.code.getStatus(), "${snapshot.code} status")
+        assertEquals(snapshot.status, statusOf(snapshot.code), "${snapshot.code} status")
+        assertTrue(snapshot.code.getCode().matches(Regex("[A-Z][A-Z0-9_]+")))
         assertEquals(snapshot.message, snapshot.code.getMessage(), "${snapshot.code} message")
     }
 
+    private fun statusOf(code: ApplicationErrorCode): Int = ApiGlobalExceptionHandler.toHttpStatus(code).value()
+
     private data class SuccessSnapshot(
-        val code: BaseSuccessCode,
+        val code: SuccessCode,
         val status: Int,
         val message: String,
     )
 
     private data class ErrorSnapshot(
-        val code: BaseErrorCode,
+        val code: ApplicationErrorCode,
         val status: Int,
         val message: String,
     )

@@ -3,6 +3,7 @@ package com.beat.apis.booking;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,31 +22,33 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.apis.booking.application.GuestBookingService;
-import com.beat.apis.booking.application.dto.GuestBookingRequest;
-import com.beat.apis.booking.application.dto.GuestBookingResponse;
-import com.beat.apis.booking.application.dto.BookingStatusType;
+import com.beat.apis.booking.application.command.GuestBookingCommandService;
+import com.beat.apis.booking.application.command.GuestBookingCommand;
+import com.beat.apis.booking.application.result.BookingCreationResult;
 import com.beat.apis.support.AbstractIntegrationTest;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.performance.repository.PerformanceRepository;
-import com.beat.domain.performance.domain.BankName;
-import com.beat.domain.performance.domain.Genre;
-import com.beat.domain.performance.domain.Performance;
+import com.beat.domain.sharedkernel.vo.BankName;
+import com.beat.domain.performance.model.Genre;
+import com.beat.domain.performance.model.Performance;
+import com.beat.domain.performance.vo.PaymentAccount;
+import com.beat.domain.performance.vo.PerformancePeriod;
+import com.beat.domain.performance.vo.RunningTime;
+import com.beat.domain.performance.vo.TicketPrice;
 import com.beat.domain.schedule.repository.ScheduleRepository;
-import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.schedule.domain.ScheduleNumber;
-import com.beat.apis.schedule.application.dto.ScheduleNumberType;
-import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
-import com.beat.domain.user.domain.Users;
+import com.beat.domain.schedule.model.Schedule;
+import com.beat.domain.schedule.model.ScheduleNumber;
+import com.beat.apis.booking.exception.BookingApplicationErrorCode;
+import com.beat.apis.exception.ApiApplicationException;
+import com.beat.domain.user.model.Users;
 import com.beat.domain.user.repository.UserRepository;
-import com.beat.global.support.exception.BadRequestException;
 
 class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 
 	private static final Logger logger = LoggerFactory.getLogger(GuestBookingServiceConcurrencyTest.class);
 
 	@Autowired
-	private GuestBookingService guestBookingService;
+	private GuestBookingCommandService guestBookingService;
 
 	@Autowired
 	private ScheduleRepository scheduleRepository;
@@ -107,12 +110,10 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 		Performance performance = Performance.create(
 			"Performance Title",
 			Genre.BAND,
-			120,
+			RunningTime.of(120),
 			"Performance Description",
 			"Performance Attention Note",
-			BankName.BUSAN,
-			"2342-234234-2344",
-			"이동훈",
+			PaymentAccount.of(BankName.BUSAN, "2342-234234-2344", "이동훈"),
 			"poster.jpg",
 			"Performance Team",
 			"Performance Venue",
@@ -121,8 +122,8 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 			"123.1111",
 			"12.1234",
 			"010-1111-1111",
-			"2024-01-01 to 2024-12-31",
-			10000,
+			PerformancePeriod.of(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31)),
+			TicketPrice.of(10000),
 			30,
 			maker.getId()
 		);
@@ -158,34 +159,31 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 
 	private boolean createGuestBooking(Schedule schedule, int purchaseTicketCount, ScheduleNumber scheduleNumber) {
 		try {
-			GuestBookingResponse response =
+			BookingCreationResult response =
 				guestBookingService.createGuestBooking(
 					createGuestBookingRequest(schedule, purchaseTicketCount, scheduleNumber));
 			assertNotNull(response);
 			return true;
-		} catch (BadRequestException e) {
-			if (e.getBaseErrorCode() == ScheduleApplicationErrorCode.INSUFFICIENT_TICKETS) {
+		} catch (ApiApplicationException e) {
+			if (e.getErrorCode() == BookingApplicationErrorCode.INSUFFICIENT_TICKETS) {
 				return false;
 			}
 			throw e;
 		}
 	}
 
-	private GuestBookingRequest createGuestBookingRequest(
+	private GuestBookingCommand createGuestBookingRequest(
 		Schedule schedule,
 		int purchaseTicketCount,
 		ScheduleNumber scheduleNumber
 	) {
-		return GuestBookingRequest.of(
+		return new GuestBookingCommand(
 			schedule.getId(),
 			purchaseTicketCount,
-			ScheduleNumberType.valueOf(scheduleNumber.name()),
 			"서지우",
 			"010-2222-7196",
-			"1990-01-01",
-			generateRandomPassword(),
-			35000,
-			BookingStatusType.CHECKING_PAYMENT
+			"900101",
+			generateRandomPassword()
 		);
 	}
 
@@ -225,8 +223,8 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 		Schedule firstSchedule = scheduleRepository.findById(schedule1.getId()).orElseThrow();
 		Schedule secondSchedule = scheduleRepository.findById(schedule2.getId()).orElseThrow();
 
-		assertEquals(10, firstSchedule.getSoldTicketCount());
-		assertEquals(1, secondSchedule.getSoldTicketCount());
+		assertEquals(10, firstSchedule.getAllocatedTicketCount());
+		assertEquals(1, secondSchedule.getAllocatedTicketCount());
 
 		long firstScheduleBookingCount = bookingRepository.findAll().stream()
 			.filter(booking -> Objects.equals(booking.getScheduleId(), firstSchedule.getId()))

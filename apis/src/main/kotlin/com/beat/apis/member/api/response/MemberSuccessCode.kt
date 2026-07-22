@@ -1,11 +1,11 @@
 package com.beat.apis.member.api.response
 
-import com.beat.global.support.exception.base.BaseSuccessCode
+import com.beat.global.support.response.SuccessCode
 
 enum class MemberSuccessCode(
     private val status: Int,
     private val message: String,
-) : BaseSuccessCode {
+) : SuccessCode {
     SIGN_UP_SUCCESS(200, "로그인 성공"),
     ISSUE_ACCESS_TOKEN_SUCCESS(200, "엑세스토큰 발급 성공"),
     ISSUE_ACCESS_TOKEN_USING_REFRESH_TOKEN(200, "리프레쉬 토큰으로 액세스 토큰 재발급 성공"),

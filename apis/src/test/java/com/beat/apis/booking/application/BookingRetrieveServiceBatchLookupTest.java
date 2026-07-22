@@ -1,5 +1,8 @@
 package com.beat.apis.booking.application;
 
+import com.beat.apis.booking.application.query.GuestBookingQueryService;
+import com.beat.apis.booking.application.query.MemberBookingQueryService;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -7,7 +10,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,28 +22,28 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.beat.apis.booking.application.dto.GuestBookingRetrieveRequest;
-import com.beat.apis.booking.application.dto.GuestBookingRetrieveResponse;
-import com.beat.apis.booking.application.dto.MemberBookingRetrieveResponse;
-import com.beat.apis.schedule.application.dto.ScheduleNumberType;
+import com.beat.apis.booking.application.result.BookingRetrieveResult;
+import com.beat.apis.schedule.api.type.ScheduleNumberType;
 import com.beat.domain.booking.repository.BookingRepository;
-import com.beat.domain.booking.domain.Booking;
-import com.beat.domain.member.domain.Member;
-import com.beat.domain.member.domain.SocialType;
+import com.beat.domain.booking.model.Booking;
+import com.beat.domain.member.model.Member;
+import com.beat.domain.member.vo.SocialIdentity;
+import com.beat.domain.member.model.SocialType;
 import com.beat.domain.member.repository.MemberRepository;
-import com.beat.domain.performance.domain.BankName;
-import com.beat.domain.performance.domain.Genre;
-import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.repository.PerformanceRepository;
-import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.domain.sharedkernel.vo.BankName;
+import com.beat.domain.performance.model.Genre;
+import com.beat.contracts.performance.PerformanceSummaryReadPort;
+import com.beat.contracts.performance.readmodel.PerformanceSummaryReadModel;
+import com.beat.domain.performance.vo.PaymentAccount;
+import com.beat.domain.performance.vo.PerformancePeriod;
+import com.beat.domain.performance.vo.RunningTime;
+import com.beat.domain.performance.vo.TicketPrice;
+import com.beat.domain.schedule.model.Schedule;
+import com.beat.domain.schedule.model.ScheduleNumber;
 import com.beat.domain.schedule.repository.ScheduleRepository;
-import com.beat.domain.user.domain.Role;
-import com.beat.domain.user.domain.Users;
-import com.beat.domain.user.repository.UserRepository;
-import com.beat.global.support.exception.NotFoundException;
-import com.beat.apis.performance.application.exception.PerformanceApplicationErrorCode;
-import com.beat.apis.schedule.application.exception.ScheduleApplicationErrorCode;
+import com.beat.apis.exception.ApiApplicationException;
+import com.beat.apis.performance.exception.PerformanceApplicationErrorCode;
+import com.beat.apis.schedule.exception.ScheduleApplicationErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class BookingRetrieveServiceBatchLookupTest {
@@ -47,7 +52,7 @@ class BookingRetrieveServiceBatchLookupTest {
 	private BookingRepository bookingRepository;
 
 	@Mock
-	private PerformanceRepository performanceRepository;
+	private PerformanceSummaryReadPort performanceSummaryReadPort;
 
 	@Mock
 	private ScheduleRepository scheduleRepository;
@@ -55,127 +60,112 @@ class BookingRetrieveServiceBatchLookupTest {
 	@Mock
 	private MemberRepository memberRepository;
 
-	@Mock
-	private UserRepository userRepository;
-
-	private GuestBookingRetrieveService guestBookingRetrieveService;
-	private MemberBookingRetrieveService memberBookingRetrieveService;
+	private GuestBookingQueryService guestBookingRetrieveService;
+	private MemberBookingQueryService memberBookingRetrieveService;
 
 	@BeforeEach
 	void setUp() {
-		guestBookingRetrieveService = new GuestBookingRetrieveService(
+		guestBookingRetrieveService = new GuestBookingQueryService(
 			bookingRepository,
-			performanceRepository,
-			scheduleRepository
+			performanceSummaryReadPort,
+			scheduleRepository,
+			Clock.systemUTC()
 		);
-		memberBookingRetrieveService = new MemberBookingRetrieveService(
+		memberBookingRetrieveService = new MemberBookingQueryService(
 			bookingRepository,
 			memberRepository,
-			userRepository,
-			performanceRepository,
-			scheduleRepository
+			performanceSummaryReadPort,
+			scheduleRepository,
+			Clock.systemUTC()
 		);
 	}
 
 	@Test
 	void guestRetrieveUsesBatchScheduleAndPerformanceLookupWithoutChangingResponse() {
-		Booking booking = booking(2, 10L, 1L);
+		Booking booking = booking(2, 10L, 1L, 24_000);
 		Schedule schedule = schedule(10L, 100L, ScheduleNumber.FIRST);
-		Performance performance = performance(100L, 15_000);
+		PerformanceSummaryReadModel performance = performance(100L, 15_000);
 
-		when(bookingRepository.findByBookerNameAndBookerPhoneNumberAndPasswordAndBirthDate(
-			"홍길동", "010-1234-5678", "1234", "990101"
-		)).thenReturn(Optional.of(List.of(booking)));
+		when(bookingRepository.findByUserId(1L)).thenReturn(List.of(booking));
 		when(scheduleRepository.findAllById(List.of(10L))).thenReturn(List.of(schedule));
-		when(performanceRepository.findAllById(List.of(100L))).thenReturn(List.of(performance));
+		when(performanceSummaryReadPort.findAllByIds(List.of(100L))).thenReturn(List.of(performance));
 
-		List<GuestBookingRetrieveResponse> responses = guestBookingRetrieveService.findGuestBookings(
-			new GuestBookingRetrieveRequest("홍길동", "990101", "010-1234-5678", "1234")
-		);
+		List<BookingRetrieveResult> responses = guestBookingRetrieveService.findGuestBookings(1L);
 
 		assertEquals(1, responses.size());
-		GuestBookingRetrieveResponse response = responses.getFirst();
-		assertEquals(10L, response.scheduleId());
-		assertEquals(100L, response.performanceId());
-		assertEquals(30_000, response.totalPaymentAmount());
+		BookingRetrieveResult response = responses.getFirst();
+		assertEquals(10L, response.getScheduleId());
+		assertEquals(100L, response.getPerformanceId());
+		assertEquals(24_000, response.getTotalPaymentAmount());
 		verify(scheduleRepository).findAllById(List.of(10L));
-		verify(performanceRepository).findAllById(List.of(100L));
+		verify(performanceSummaryReadPort).findAllByIds(List.of(100L));
 		verify(scheduleRepository, never()).findById(anyLong());
-		verify(performanceRepository, never()).findById(anyLong());
+		verify(performanceSummaryReadPort, never()).findById(anyLong());
 	}
 
 	@Test
 	void memberRetrieveDeduplicatesBatchLookupInputsAndPreservesBookingOrder() {
-		Member member = Member.rehydrate(1L, "member", "member@example.com", null, 7L, 123L, SocialType.KAKAO);
-		Users user = Users.rehydrate(7L, Role.USER);
+		Member member = Member.rehydrate(1L, "member", "member@example.com", null, 7L, SocialIdentity.of(SocialType.KAKAO, 123L));
 		Booking firstBooking = booking(1, 10L, 7L);
 		Booking secondBooking = booking(3, 11L, 7L);
 		Schedule firstSchedule = schedule(10L, 100L, ScheduleNumber.FIRST);
 		Schedule secondSchedule = schedule(11L, 100L, ScheduleNumber.SECOND);
-		Performance performance = performance(100L, 20_000);
+		PerformanceSummaryReadModel performance = performance(100L, 20_000);
 
 		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
-		when(userRepository.findById(7L)).thenReturn(Optional.of(user));
 		when(bookingRepository.findByUserId(7L)).thenReturn(List.of(firstBooking, secondBooking));
 		when(scheduleRepository.findAllById(List.of(10L, 11L))).thenReturn(List.of(secondSchedule, firstSchedule));
-		when(performanceRepository.findAllById(List.of(100L))).thenReturn(List.of(performance));
+		when(performanceSummaryReadPort.findAllByIds(List.of(100L))).thenReturn(List.of(performance));
 
-		List<MemberBookingRetrieveResponse> responses = memberBookingRetrieveService.findMemberBookings(1L);
+		List<BookingRetrieveResult> responses = memberBookingRetrieveService.findMemberBookings(1L);
 
 		assertEquals(2, responses.size());
-		assertEquals(10L, responses.get(0).scheduleId());
-		assertEquals(ScheduleNumberType.FIRST, responses.get(0).scheduleNumber());
-		assertEquals(20_000, responses.get(0).totalPaymentAmount());
-		assertEquals(11L, responses.get(1).scheduleId());
-		assertEquals(ScheduleNumberType.SECOND, responses.get(1).scheduleNumber());
-		assertEquals(60_000, responses.get(1).totalPaymentAmount());
+		assertEquals(10L, responses.get(0).getScheduleId());
+		assertEquals(ScheduleNumberType.FIRST.name(), responses.get(0).getScheduleNumber());
+		assertEquals(20_000, responses.get(0).getTotalPaymentAmount());
+		assertEquals(11L, responses.get(1).getScheduleId());
+		assertEquals(ScheduleNumberType.SECOND.name(), responses.get(1).getScheduleNumber());
+		assertEquals(60_000, responses.get(1).getTotalPaymentAmount());
 		verify(scheduleRepository).findAllById(List.of(10L, 11L));
-		verify(performanceRepository).findAllById(List.of(100L));
+		verify(performanceSummaryReadPort).findAllByIds(List.of(100L));
 		verify(scheduleRepository, never()).findById(anyLong());
-		verify(performanceRepository, never()).findById(anyLong());
+		verify(performanceSummaryReadPort, never()).findById(anyLong());
 	}
 
 	@Test
 	void memberRetrieveReturnsEmptyResponseWithoutPerBookingLookupWhenBookingsAreEmpty() {
-		Member member = Member.rehydrate(1L, "member", "member@example.com", null, 7L, 123L, SocialType.KAKAO);
-		Users user = Users.rehydrate(7L, Role.USER);
+		Member member = Member.rehydrate(1L, "member", "member@example.com", null, 7L, SocialIdentity.of(SocialType.KAKAO, 123L));
 
 		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
-		when(userRepository.findById(7L)).thenReturn(Optional.of(user));
 		when(bookingRepository.findByUserId(7L)).thenReturn(List.of());
 		when(scheduleRepository.findAllById(List.of())).thenReturn(List.of());
-		when(performanceRepository.findAllById(List.of())).thenReturn(List.of());
+		when(performanceSummaryReadPort.findAllByIds(List.of())).thenReturn(List.of());
 
-		List<MemberBookingRetrieveResponse> responses = memberBookingRetrieveService.findMemberBookings(1L);
+		List<BookingRetrieveResult> responses = memberBookingRetrieveService.findMemberBookings(1L);
 
 		assertEquals(List.of(), responses);
 		verify(scheduleRepository).findAllById(List.of());
-		verify(performanceRepository).findAllById(List.of());
+		verify(performanceSummaryReadPort).findAllByIds(List.of());
 		verify(scheduleRepository, never()).findById(anyLong());
-		verify(performanceRepository, never()).findById(anyLong());
+		verify(performanceSummaryReadPort, never()).findById(anyLong());
 	}
 
 	@Test
 	void guestRetrieveThrowsSameScheduleNotFoundWhenBatchResultMissesBookingSchedule() {
 		Booking booking = booking(2, 10L, 1L);
 
-		when(bookingRepository.findByBookerNameAndBookerPhoneNumberAndPasswordAndBirthDate(
-			"홍길동", "010-1234-5678", "1234", "990101"
-		)).thenReturn(Optional.of(List.of(booking)));
+		when(bookingRepository.findByUserId(1L)).thenReturn(List.of(booking));
 		when(scheduleRepository.findAllById(List.of(10L))).thenReturn(List.of());
-		when(performanceRepository.findAllById(List.of())).thenReturn(List.of());
+		when(performanceSummaryReadPort.findAllByIds(List.of())).thenReturn(List.of());
 
-		NotFoundException exception = assertThrows(NotFoundException.class, () ->
-			guestBookingRetrieveService.findGuestBookings(
-				new GuestBookingRetrieveRequest("홍길동", "990101", "010-1234-5678", "1234")
-			)
-		);
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () ->
+				guestBookingRetrieveService.findGuestBookings(1L));
 
-		assertEquals(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND, exception.getBaseErrorCode());
+		assertEquals(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND, exception.getErrorCode());
 		verify(scheduleRepository).findAllById(List.of(10L));
-		verify(performanceRepository).findAllById(List.of());
+		verify(performanceSummaryReadPort).findAllByIds(List.of());
 		verify(scheduleRepository, never()).findById(anyLong());
-		verify(performanceRepository, never()).findById(anyLong());
+		verify(performanceSummaryReadPort, never()).findById(anyLong());
 	}
 
 	@Test
@@ -183,37 +173,35 @@ class BookingRetrieveServiceBatchLookupTest {
 		Booking booking = booking(2, 10L, 1L);
 		Schedule schedule = schedule(10L, 100L, ScheduleNumber.FIRST);
 
-		when(bookingRepository.findByBookerNameAndBookerPhoneNumberAndPasswordAndBirthDate(
-			"홍길동", "010-1234-5678", "1234", "990101"
-		)).thenReturn(Optional.of(List.of(booking)));
+		when(bookingRepository.findByUserId(1L)).thenReturn(List.of(booking));
 		when(scheduleRepository.findAllById(List.of(10L))).thenReturn(List.of(schedule));
-		when(performanceRepository.findAllById(List.of(100L))).thenReturn(List.of());
+		when(performanceSummaryReadPort.findAllByIds(List.of(100L))).thenReturn(List.of());
 
-		NotFoundException exception = assertThrows(NotFoundException.class, () ->
-			guestBookingRetrieveService.findGuestBookings(
-				new GuestBookingRetrieveRequest("홍길동", "990101", "010-1234-5678", "1234")
-			)
-		);
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () ->
+				guestBookingRetrieveService.findGuestBookings(1L));
 
-		assertEquals(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND, exception.getBaseErrorCode());
+		assertEquals(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND, exception.getErrorCode());
 		verify(scheduleRepository).findAllById(List.of(10L));
-		verify(performanceRepository).findAllById(List.of(100L));
+		verify(performanceSummaryReadPort).findAllByIds(List.of(100L));
 		verify(scheduleRepository, never()).findById(anyLong());
-		verify(performanceRepository, never()).findById(anyLong());
+		verify(performanceSummaryReadPort, never()).findById(anyLong());
 	}
 
 	private Booking booking(int purchaseTicketCount, Long scheduleId, Long userId) {
+		return booking(purchaseTicketCount, scheduleId, userId, null);
+	}
+
+	private Booking booking(int purchaseTicketCount, Long scheduleId, Long userId, Integer totalPaymentAmount) {
 		return Booking.create(
 			purchaseTicketCount,
 			"홍길동",
 			"010-1234-5678",
 			"990101",
 			"1234",
-			BankName.NONE,
-			"",
-			"",
 			scheduleId,
-			userId
+			userId,
+			LocalDateTime.of(2026, 1, 1, 12, 0),
+			totalPaymentAmount
 		);
 	}
 
@@ -230,29 +218,23 @@ class BookingRetrieveServiceBatchLookupTest {
 		);
 	}
 
-	private Performance performance(Long id, int ticketPrice) {
-		return Performance.rehydrate(
+	private PerformanceSummaryReadModel performance(Long id, int ticketPrice) {
+		return new PerformanceSummaryReadModel(
 			id,
+			7L,
 			"공연",
-			Genre.PLAY,
-			120,
-			"설명",
-			"주의",
-			BankName.NONE,
+			"PLAY",
+			ticketPrice,
+			"KAKAOBANK",
 			"계좌",
 			"예금주",
 			"poster.png",
 			"팀",
 			"공연장",
-			"도로명",
-			"상세",
-			"37.0",
-			"127.0",
 			"010-0000-0000",
-			"2026.01.01",
-			ticketPrice,
 			2,
-			7L
+			LocalDate.of(2026, 1, 1),
+			LocalDate.of(2026, 1, 1)
 		);
 	}
 }

@@ -2,6 +2,7 @@ package com.beat.apis
 
 import com.beat.apis.config.ApisSecurityConfig
 import com.beat.apis.config.GatewayConfig
+import com.beat.apis.config.GuestSessionOriginFilter
 import com.beat.apis.config.InfraConfig
 import com.beat.gateway.EnableGatewayConfig
 import com.beat.gateway.GatewayConfigGroup
@@ -9,6 +10,11 @@ import com.beat.gateway.security.servlet.EnableGatewayServletSecurity
 import com.beat.observability.ObservabilityModuleConfig
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpStatus
+import org.springframework.mock.web.MockFilterChain
+import org.springframework.mock.web.MockHttpServletRequest
+import org.springframework.mock.web.MockHttpServletResponse
+import org.springframework.security.web.access.AccessDeniedHandler
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
@@ -16,6 +22,7 @@ import org.springframework.context.annotation.Import
 import org.springframework.scheduling.annotation.EnableScheduling
 import java.nio.file.Files
 import java.nio.file.Path
+import jakarta.servlet.http.Cookie
 
 class ApisApplicationTest {
 
@@ -53,7 +60,10 @@ class ApisApplicationTest {
         assertNotNull(enableGatewayServletSecurity, "apis GatewayConfig must declare @EnableGatewayServletSecurity")
         assertNotNull(enableGatewayConfig, "apis GatewayConfig must declare @EnableGatewayConfig for refresh-token store")
         assertEquals(
-            setOf(GatewayConfigGroup.REFRESH_TOKEN_STORE),
+            setOf(
+                GatewayConfigGroup.REFRESH_TOKEN_STORE,
+                GatewayConfigGroup.GUEST_ACCESS,
+            ),
             enableGatewayConfig!!.value.toSet(),
         )
     }
@@ -66,7 +76,7 @@ class ApisApplicationTest {
 
     @Test
     fun `apis swagger config keeps only general grouped docs ownership`() {
-        val source = Files.readString(Path.of("src/main/java/com/beat/apis/swagger/config/SwaggerConfig.java"))
+        val source = Files.readString(Path.of("src/main/kotlin/com/beat/apis/swagger/config/SwaggerConfig.kt"))
 
         assertTrue(source.contains("@Profile(\"!prod\")"))
         assertTrue(source.contains(".group(\"general\")"))
@@ -138,11 +148,43 @@ class ApisApplicationTest {
         assertTrue(config.contains("application-dev-secret.properties"))
         assertTrue(config.contains("application-prod-secret.properties"))
         assertTrue(config.contains("port: 4001"))
+        assertTrue(config.contains("forward-headers-strategy: native"))
         assertFalse(config.contains("BEAT_SERVER_PORT"))
         assertFalse(config.contains("management:"))
         assertFalse(config.contains("../secret/application-dev-secret.properties"))
         assertFalse(config.contains("../secret/application-prod-secret.properties"))
     }
+
+    @Test
+    fun `guest cookie mutation requires an allowed origin`() {
+        val filter = GuestSessionOriginFilter(
+            arrayOf("https://client.example"),
+            AccessDeniedHandler { _, response, _ -> response.sendError(HttpStatus.FORBIDDEN.value()) },
+        )
+
+        val missingOrigin = guestMutationRequest()
+        val missingOriginResponse = MockHttpServletResponse()
+        filter.doFilter(missingOrigin, missingOriginResponse, MockFilterChain())
+        assertEquals(HttpStatus.FORBIDDEN.value(), missingOriginResponse.status)
+
+        val disallowedOrigin = guestMutationRequest("https://attacker.example")
+        val disallowedOriginResponse = MockHttpServletResponse()
+        filter.doFilter(disallowedOrigin, disallowedOriginResponse, MockFilterChain())
+        assertEquals(HttpStatus.FORBIDDEN.value(), disallowedOriginResponse.status)
+
+        val allowedOrigin = guestMutationRequest("https://client.example")
+        val allowedOriginResponse = MockHttpServletResponse()
+        val allowedChain = MockFilterChain()
+        filter.doFilter(allowedOrigin, allowedOriginResponse, allowedChain)
+        assertEquals(HttpStatus.OK.value(), allowedOriginResponse.status)
+        assertNotNull(allowedChain.request)
+    }
+
+    private fun guestMutationRequest(origin: String? = null): MockHttpServletRequest =
+        MockHttpServletRequest("PATCH", "/api/bookings/refund").apply {
+            setCookies(Cookie("guestSession", "token"))
+            origin?.let { addHeader("Origin", it) }
+        }
 
     @Test
     fun `apis test bootstrap does not rely on blanket bean overriding`() {
@@ -160,15 +202,15 @@ class ApisApplicationTest {
 
     @Test
     fun `apis security chain registers gateway mdc filter through public filter contract`() {
-        val source = Files.readString(Path.of("src/main/java/com/beat/apis/config/ApisSecurityConfig.java"))
+        val source = Files.readString(Path.of("src/main/kotlin/com/beat/apis/config/ApisSecurityConfig.kt"))
 
-        assertTrue(source.contains("@Qualifier(\"gatewayJwtAuthenticationFilter\") OncePerRequestFilter jwtAuthenticationFilter"))
-        assertTrue(source.contains("@Qualifier(\"gatewaySecurityMdcLoggingFilter\") OncePerRequestFilter securityMdcLoggingFilter"))
-        assertTrue(source.contains(".addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter.class)"))
-        assertTrue(source.contains(".addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.getClass())"))
-        assertTrue(source.contains("private static final String[] SWAGGER_WHITELIST"))
+        assertTrue(source.contains("@param:Qualifier(\"gatewayJwtAuthenticationFilter\")"))
+        assertTrue(source.contains("@param:Qualifier(\"gatewaySecurityMdcLoggingFilter\")"))
+        assertTrue(source.contains(".addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter::class.java)"))
+        assertTrue(source.contains(".addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.javaClass)"))
+        assertTrue(source.contains("val SWAGGER_WHITELIST"))
         assertTrue(source.contains("if (!environment.acceptsProfiles(Profiles.of(\"prod\")))"))
-        assertTrue(source.contains("Collections.addAll(whitelist, SWAGGER_WHITELIST)"))
+        assertTrue(source.contains("addAll(SWAGGER_WHITELIST)"))
         assertFalse(source.contains("import com.beat.gateway.security.internal.servlet.SecurityMdcLoggingFilter"))
     }
 

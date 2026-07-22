@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration
 @EnableGatewayConfig(
     value = [
         GatewayConfigGroup.REFRESH_TOKEN_STORE,
+        GatewayConfigGroup.GUEST_ACCESS,
     ],
 )
 class GatewayConfig

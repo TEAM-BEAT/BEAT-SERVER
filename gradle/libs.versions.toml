@@ -2,6 +2,7 @@
 spring-boot = "4.0.6"
 dependency-management = "1.1.7"
 kotlin = "2.3.20"
+kotlin-logging = "8.0.4"
 kotlinx-coroutines = "1.10.2"
 sonarqube = "7.2.3.7755"
 kover = "0.9.7"
@@ -37,6 +38,7 @@ junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlin-logging" }
 kotlinx-coroutines-slf4j = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-slf4j", version.ref = "kotlinx-coroutines" }
 lombok = { module = "org.projectlombok:lombok", version = "1.18.44" }
 sentry-spring-boot-starter = { module = "io.sentry:sentry-spring-boot-4-starter", version.ref = "sentry" }
