@@ -1,11 +1,10 @@
 package com.beat.apis.performance.api.request
 
-import jakarta.validation.constraints.NotBlank
-import jakarta.validation.constraints.Positive
+import jakarta.validation.constraints.NotNull
 
 data class CastModifyRequest(
-    @field:Positive val castId: Long?,
-    @field:NotBlank val castName: String?,
-    @field:NotBlank val castRole: String?,
-    @field:NotBlank val castPhoto: String?,
+    val castId: Long?,
+    @field:NotNull val castName: String?,
+    @field:NotNull val castRole: String?,
+    @field:NotNull val castPhoto: String?,
 )

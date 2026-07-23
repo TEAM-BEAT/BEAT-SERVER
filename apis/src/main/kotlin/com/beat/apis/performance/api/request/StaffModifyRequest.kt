@@ -1,11 +1,10 @@
 package com.beat.apis.performance.api.request
 
-import jakarta.validation.constraints.NotBlank
-import jakarta.validation.constraints.Positive
+import jakarta.validation.constraints.NotNull
 
 data class StaffModifyRequest(
-    @field:Positive val staffId: Long?,
-    @field:NotBlank val staffName: String?,
-    @field:NotBlank val staffRole: String?,
-    @field:NotBlank val staffPhoto: String?,
+    val staffId: Long?,
+    @field:NotNull val staffName: String?,
+    @field:NotNull val staffRole: String?,
+    @field:NotNull val staffPhoto: String?,
 )
