@@ -1,4 +1,4 @@
-package com.beat.admin.promotion.application.service.query;
+package com.beat.admin.promotion.application.query;
 
 import java.util.Comparator;
 import java.util.List;
@@ -7,16 +7,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.admin.exception.AdminApplicationException;
-import com.beat.admin.promotion.application.dto.response.BannerPresignedUrlFindResponse;
-import com.beat.admin.promotion.application.dto.response.CarouselFindAllResponse;
-import com.beat.admin.promotion.application.dto.response.CarouselPresignedUrlFindAllResponse;
-import com.beat.admin.promotion.application.dto.result.AdminPromotionResults;
-import com.beat.admin.promotion.application.dto.result.AdminPromotionResults.AdminPromotionResult;
+import com.beat.admin.promotion.application.result.AdminPromotionPresignedUrlResults.BannerPresignedUrlResult;
+import com.beat.admin.promotion.application.result.AdminPromotionPresignedUrlResults.CarouselPresignedUrlsResult;
+import com.beat.admin.promotion.application.result.AdminPromotionResults;
+import com.beat.admin.promotion.application.result.AdminPromotionResults.AdminPromotionResult;
 import com.beat.admin.promotion.exception.PromotionApplicationErrorCode;
 import com.beat.contracts.storage.FileStoragePort;
 import com.beat.domain.member.repository.MemberRepository;
-import com.beat.domain.promotion.domain.CarouselNumber;
-import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.promotion.model.CarouselNumber;
+import com.beat.domain.promotion.model.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -35,24 +34,22 @@ public class AdminPromotionQueryService {
 	private final MemberRepository memberRepository;
 	private final PromotionRepository promotionRepository;
 
-	public CarouselPresignedUrlFindAllResponse issueAllPresignedUrlsForCarousel(Long memberId,
+	public CarouselPresignedUrlsResult issueAllPresignedUrlsForCarousel(Long memberId,
 		List<String> carouselImages) {
 		validateMemberExists(memberId);
-		return CarouselPresignedUrlFindAllResponse.from(
-			fileStoragePort.issueAllPresignedUrlsForCarousel(carouselImages)
-		);
+		return new CarouselPresignedUrlsResult(
+			fileStoragePort.issueAllPresignedUrlsForCarousel(carouselImages).getCarouselPresignedUrls());
 	}
 
-	public BannerPresignedUrlFindResponse issuePresignedUrlForBanner(Long memberId, String bannerImage) {
+	public BannerPresignedUrlResult issuePresignedUrlForBanner(Long memberId, String bannerImage) {
 		validateMemberExists(memberId);
-		return BannerPresignedUrlFindResponse.from(fileStoragePort.issuePresignedUrlForBanner(bannerImage));
+		return new BannerPresignedUrlResult(
+			fileStoragePort.issuePresignedUrlForBanner(bannerImage).getBannerPresignedUrl());
 	}
 
-	public CarouselFindAllResponse findAllPromotionsSortedByCarouselNumber(Long memberId) {
+	public AdminPromotionResults findAllPromotionsSortedByCarouselNumber(Long memberId) {
 		validateMemberExists(memberId);
-		return CarouselFindAllResponse.from(
-			toPromotionResults(promotionRepository.findAll())
-		);
+		return toPromotionResults(promotionRepository.findAll());
 	}
 
 	private AdminPromotionResults toPromotionResults(List<Promotion> domainPromotions) {
@@ -67,7 +64,7 @@ public class AdminPromotionQueryService {
 		CarouselNumber carouselNumber = domainPromotion.getCarouselNumber();
 		return AdminPromotionResult.of(
 			domainPromotion.getId(),
-			carouselNumber == null ? null : carouselNumber.name(),
+			carouselNumber.name(),
 			domainPromotion.getPromotionPhoto(),
 			domainPromotion.isExternal(),
 			domainPromotion.getRedirectUrl(),

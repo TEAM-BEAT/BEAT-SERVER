@@ -12,16 +12,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.beat.admin.promotion.api.response.PromotionSuccessCode;
-import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest;
-import com.beat.admin.promotion.application.dto.response.BannerPresignedUrlFindResponse;
-import com.beat.admin.promotion.application.dto.response.CarouselFindAllResponse;
-import com.beat.admin.promotion.application.dto.response.CarouselHandleAllResponse;
-import com.beat.admin.promotion.application.dto.response.CarouselPresignedUrlFindAllResponse;
+import com.beat.admin.promotion.api.request.CarouselHandleRequest;
+import com.beat.admin.promotion.api.response.BannerPresignedUrlFindResponse;
+import com.beat.admin.promotion.api.response.CarouselFindAllResponse;
+import com.beat.admin.promotion.api.response.CarouselHandleAllResponse;
+import com.beat.admin.promotion.api.response.CarouselPresignedUrlFindAllResponse;
 import com.beat.admin.promotion.facade.AdminPromotionFacade;
 import com.beat.gateway.CurrentMember;
 import com.beat.global.support.response.SuccessResponse;
 
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -63,7 +64,7 @@ public class AdminPromotionController implements AdminPromotionApi {
 	@PutMapping("/carousels")
 	public ResponseEntity<SuccessResponse<CarouselHandleAllResponse>> processCarouselImages(
 		@CurrentMember Long memberId,
-		@RequestBody CarouselHandleRequest request) {
+		@Valid @RequestBody CarouselHandleRequest request) {
 		CarouselHandleAllResponse response = adminPromotionFacade.checkMemberAndProcessAllPromotionsSortedByCarouselNumber(
 			memberId, request);
 		return ResponseEntity.status(HttpStatus.OK)

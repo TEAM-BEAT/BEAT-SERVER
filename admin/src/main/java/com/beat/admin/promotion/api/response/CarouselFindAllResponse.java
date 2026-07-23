@@ -1,9 +1,9 @@
-package com.beat.admin.promotion.application.dto.response;
+package com.beat.admin.promotion.api.response;
 
 import java.util.List;
 
-import com.beat.admin.promotion.application.dto.result.AdminPromotionResults;
-import com.beat.admin.promotion.application.dto.result.AdminPromotionResults.AdminPromotionResult;
+import com.beat.admin.promotion.application.result.AdminPromotionResults;
+import com.beat.admin.promotion.application.result.AdminPromotionResults.AdminPromotionResult;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record CarouselFindAllResponse(

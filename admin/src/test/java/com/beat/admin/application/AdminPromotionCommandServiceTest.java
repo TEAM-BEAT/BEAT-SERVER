@@ -19,30 +19,31 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.beat.admin.promotion.application.dto.request.AdminCarouselNumber;
-import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest;
-import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
-import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
-import com.beat.admin.promotion.application.dto.request.PromotionHandleRequest;
-import com.beat.admin.promotion.application.dto.response.CarouselHandleAllResponse;
+import com.beat.admin.promotion.application.command.CarouselHandleCommand;
+import com.beat.admin.promotion.application.command.CarouselHandleCommand.PromotionGenerateCommand;
+import com.beat.admin.promotion.application.command.CarouselHandleCommand.PromotionModifyCommand;
+import com.beat.admin.promotion.application.command.PromotionHandleCommand;
+import com.beat.admin.promotion.application.result.AdminPromotionResults;
 import com.beat.admin.promotion.exception.PromotionApplicationErrorCode;
-import com.beat.admin.promotion.application.service.command.AdminPromotionCommandService;
-import com.beat.domain.member.domain.Member;
+import com.beat.admin.promotion.application.command.AdminPromotionCommandService;
+import com.beat.domain.member.model.Member;
 import com.beat.domain.member.vo.SocialIdentity;
-import com.beat.domain.member.domain.SocialType;
+import com.beat.domain.member.model.SocialType;
 import com.beat.contracts.cdn.ImageCachePort;
 import com.beat.domain.member.repository.MemberRepository;
-import com.beat.domain.performance.domain.Genre;
-import com.beat.domain.performance.domain.Performance;
-import com.beat.domain.performance.repository.PerformanceRepository;
+import com.beat.domain.performance.model.Genre;
+import com.beat.contracts.performance.PerformanceSummaryReadPort;
+import com.beat.contracts.performance.readmodel.PerformanceSummaryReadModel;
 import com.beat.domain.performance.vo.PerformancePeriod;
 import com.beat.domain.performance.vo.RunningTime;
 import com.beat.domain.performance.vo.TicketPrice;
-import com.beat.domain.promotion.domain.CarouselNumber;
-import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.promotion.model.CarouselNumber;
+import com.beat.domain.promotion.model.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
+import com.beat.domain.promotion.service.PromotionCarouselDomainService;
 import com.beat.admin.exception.AdminApplicationException;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,7 +62,10 @@ class AdminPromotionCommandServiceTest {
 	private PromotionRepository promotionRepository;
 
 	@Mock
-	private PerformanceRepository performanceRepository;
+	private PerformanceSummaryReadPort performanceSummaryReadPort;
+
+	@Spy
+	private PromotionCarouselDomainService promotionCarouselDomainService = new PromotionCarouselDomainService();
 
 	@InjectMocks
 	private AdminPromotionCommandService adminPromotionCommandService;
@@ -72,49 +76,49 @@ class AdminPromotionCommandServiceTest {
 	@Test
 	void processAllPromotionsRejectsInvalidCarouselItemBeforeMutation() {
 		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
-		CarouselHandleRequest request = new CarouselHandleRequest(
-			Collections.<PromotionHandleRequest>singletonList(null)
+		CarouselHandleCommand command = new CarouselHandleCommand(
+			Collections.<PromotionHandleCommand>singletonList(null)
 		);
 
-		AdminApplicationException exception = assertThrows(AdminApplicationException.class, () -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, request));
+		AdminApplicationException exception = assertThrows(AdminApplicationException.class, () -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, command));
 
 		assertEquals(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT, exception.getErrorCode());
 		verify(promotionRepository, never()).findAll();
 		verify(promotionRepository, never()).deleteByPromotionIds(any());
 		verify(promotionRepository, never()).save(any());
-		verifyNoInteractions(performanceRepository);
+		verifyNoInteractions(performanceSummaryReadPort);
 	}
 
 	@Test
 	void processAllPromotionsRejectsInvalidCarouselAssignmentsBeforeMutation() {
 		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
-		CarouselHandleRequest request = new CarouselHandleRequest(List.of(
-			new PromotionGenerateRequest(AdminCarouselNumber.ONE, "image-1", true, "url-1", null),
-			new PromotionGenerateRequest(AdminCarouselNumber.ONE, "image-2", true, "url-2", null)
+		CarouselHandleCommand command = new CarouselHandleCommand(List.of(
+			new PromotionGenerateCommand("ONE", "image-1", true, "url-1", null),
+			new PromotionGenerateCommand("ONE", "image-2", true, "url-2", null)
 		));
 
-		AdminApplicationException exception = assertThrows(AdminApplicationException.class, () -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, request));
+		AdminApplicationException exception = assertThrows(AdminApplicationException.class, () -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, command));
 
 		assertEquals(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT, exception.getErrorCode());
 		verify(promotionRepository, never()).findAll();
 		verify(promotionRepository, never()).deleteByPromotionIds(any());
 		verify(promotionRepository, never()).save(any());
-		verifyNoInteractions(performanceRepository);
+		verifyNoInteractions(performanceSummaryReadPort);
 	}
 
 	@Test
 	void processAllPromotionsRejectsDuplicateModifyIdsBeforeMutation() {
 		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
-		CarouselHandleRequest request = new CarouselHandleRequest(List.of(
-			new PromotionModifyRequest(1L, AdminCarouselNumber.ONE, "image-1", true, "url-1", null),
-			new PromotionModifyRequest(1L, AdminCarouselNumber.TWO, "image-2", true, "url-2", null)
+		CarouselHandleCommand command = new CarouselHandleCommand(List.of(
+			new PromotionModifyCommand(1L, "ONE", "image-1", true, "url-1", null),
+			new PromotionModifyCommand(1L, "TWO", "image-2", true, "url-2", null)
 		));
 
-		AdminApplicationException exception = assertThrows(AdminApplicationException.class, () -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, request));
+		AdminApplicationException exception = assertThrows(AdminApplicationException.class, () -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, command));
 
 		assertEquals(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT, exception.getErrorCode());
 		verify(promotionRepository, never()).findAll();
-		verifyNoInteractions(performanceRepository);
+		verifyNoInteractions(performanceSummaryReadPort);
 	}
 
 	@Test
@@ -125,7 +129,7 @@ class AdminPromotionCommandServiceTest {
 		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
 		when(promotionRepository.findAll()).thenReturn(List.of(existingPromotion, omittedPromotion));
 		when(promotionRepository.findById(1L)).thenReturn(Optional.of(existingPromotion));
-		when(performanceRepository.findById(PERFORMANCE_ID)).thenReturn(Optional.of(performance()));
+		when(performanceSummaryReadPort.findById(PERFORMANCE_ID)).thenReturn(Optional.of(performance()));
 		when(promotionRepository.save(any(Promotion.class))).thenAnswer(invocation -> {
 			Promotion savedPromotion = invocation.getArgument(0);
 			if (savedPromotion.getId() == null) {
@@ -135,26 +139,26 @@ class AdminPromotionCommandServiceTest {
 			return savedPromotion;
 		});
 
-		CarouselHandleRequest request = new CarouselHandleRequest(List.of(
-			new PromotionModifyRequest(1L, AdminCarouselNumber.THREE, "prod/carousel/modified-image", true, "modified-url",
+		CarouselHandleCommand command = new CarouselHandleCommand(List.of(
+			new PromotionModifyCommand(1L, "THREE", "prod/carousel/modified-image", true, "modified-url",
 				PERFORMANCE_ID),
-			new PromotionGenerateRequest(AdminCarouselNumber.ONE, "prod/carousel/created-image", false, "created-url", null)
+			new PromotionGenerateCommand("ONE", "prod/carousel/created-image", false, "created-url", null)
 		));
 
-		CarouselHandleAllResponse response =
-			adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, request);
+		AdminPromotionResults response =
+			adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, command);
 
 		verify(promotionRepository).deleteByPromotionIds(deleteIdsCaptor.capture());
 		assertEquals(List.of(2L), deleteIdsCaptor.getValue());
-		verify(performanceRepository).findById(PERFORMANCE_ID);
+		verify(performanceSummaryReadPort).findById(PERFORMANCE_ID);
 
-		assertEquals(2, response.modifiedPromotionResponses().size());
-		assertEquals(3L, response.modifiedPromotionResponses().get(0).promotionId());
-		assertEquals("prod/carousel/created-image", response.modifiedPromotionResponses().get(0).newImageUrl());
-		assertEquals("ONE", response.modifiedPromotionResponses().get(0).carouselNumber());
-		assertEquals(1L, response.modifiedPromotionResponses().get(1).promotionId());
-		assertEquals("prod/carousel/modified-image", response.modifiedPromotionResponses().get(1).newImageUrl());
-		assertEquals("THREE", response.modifiedPromotionResponses().get(1).carouselNumber());
+		assertEquals(2, response.promotionResults().size());
+		assertEquals(3L, response.promotionResults().get(0).promotionId());
+		assertEquals("prod/carousel/created-image", response.promotionResults().get(0).newImageUrl());
+		assertEquals("ONE", response.promotionResults().get(0).carouselNumber());
+		assertEquals(1L, response.promotionResults().get(1).promotionId());
+		assertEquals("prod/carousel/modified-image", response.promotionResults().get(1).newImageUrl());
+		assertEquals("THREE", response.promotionResults().get(1).carouselNumber());
 	}
 
 	private static Promotion promotion(Long id, String imageUrl, Long performanceId, String redirectUrl,
@@ -166,27 +170,23 @@ class AdminPromotionCommandServiceTest {
 		return Member.rehydrate(MEMBER_ID, "admin", "admin@example.com", null, 1L, SocialIdentity.of(SocialType.KAKAO, 10L));
 	}
 
-	private static Performance performance() {
-		return Performance.rehydrate(
+	private static PerformanceSummaryReadModel performance() {
+		return new PerformanceSummaryReadModel(
 			PERFORMANCE_ID,
+			1L,
 			"title",
-			Genre.PLAY,
-			RunningTime.of(100),
-			"description",
-			"attention",
+			"PLAY",
+			0,
+			null,
+			null,
 			null,
 			"poster",
 			"team",
 			"venue",
-			"road",
-			"detail",
-			"37.0",
-			"127.0",
 			"contact",
-			PerformancePeriod.of(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1)),
-			TicketPrice.of(0),
 			1,
-			1L
+			LocalDate.of(2026, 1, 1),
+			LocalDate.of(2026, 1, 1)
 		);
 	}
 }

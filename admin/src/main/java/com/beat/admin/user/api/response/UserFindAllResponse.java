@@ -1,4 +1,6 @@
-package com.beat.admin.user.application.dto.response;
+package com.beat.admin.user.api.response;
+
+import com.beat.admin.user.application.result.AdminUserResults;
 
 import java.util.List;
 
@@ -10,6 +12,12 @@ public record UserFindAllResponse(
 ) {
 	public static UserFindAllResponse from(List<UserFindResponse> userResponses) {
 		return new UserFindAllResponse(userResponses);
+	}
+
+	public static UserFindAllResponse from(AdminUserResults results) {
+		return new UserFindAllResponse(results.users().stream()
+			.map(user -> UserFindResponse.of(user.id(), user.role()))
+			.toList());
 	}
 
 	public record UserFindResponse(

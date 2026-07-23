@@ -1,4 +1,4 @@
-package com.beat.admin.promotion.application.service.command;
+package com.beat.admin.promotion.application.command;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -11,20 +11,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.admin.exception.AdminApplicationException;
-import com.beat.admin.promotion.application.dto.request.AdminCarouselNumber;
-import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest;
-import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest.PromotionGenerateRequest;
-import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
-import com.beat.admin.promotion.application.dto.request.PromotionHandleRequest;
-import com.beat.admin.promotion.application.dto.response.CarouselHandleAllResponse;
-import com.beat.admin.promotion.application.dto.result.AdminPromotionResults;
-import com.beat.admin.promotion.application.dto.result.AdminPromotionResults.AdminPromotionResult;
+import com.beat.admin.promotion.application.command.CarouselHandleCommand.PromotionGenerateCommand;
+import com.beat.admin.promotion.application.command.CarouselHandleCommand.PromotionModifyCommand;
+import com.beat.admin.promotion.application.result.AdminPromotionResults;
+import com.beat.admin.promotion.application.result.AdminPromotionResults.AdminPromotionResult;
 import com.beat.admin.promotion.exception.PromotionApplicationErrorCode;
 import com.beat.contracts.cdn.ImageCachePort;
+import com.beat.contracts.performance.PerformanceSummaryReadPort;
 import com.beat.domain.member.repository.MemberRepository;
-import com.beat.domain.performance.repository.PerformanceRepository;
-import com.beat.domain.promotion.domain.CarouselNumber;
-import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.promotion.model.CarouselNumber;
+import com.beat.domain.promotion.model.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
 import com.beat.domain.promotion.service.PromotionCarouselDomainService;
 import com.beat.global.support.utils.ImageKeyExtractor;
@@ -42,16 +38,16 @@ public class AdminPromotionCommandService {
 
 	private final MemberRepository memberRepository;
 	private final PromotionRepository promotionRepository;
-	private final PerformanceRepository performanceRepository;
+	private final PerformanceSummaryReadPort performanceSummaryReadPort;
 	private final ImageCachePort imageCachePort;
-	private final PromotionCarouselDomainService promotionCarouselDomainService = new PromotionCarouselDomainService();
+	private final PromotionCarouselDomainService promotionCarouselDomainService;
 
 	@Transactional
-	public CarouselHandleAllResponse processAllPromotionsSortedByCarouselNumber(Long memberId,
-		CarouselHandleRequest request) {
+	public AdminPromotionResults processAllPromotionsSortedByCarouselNumber(Long memberId,
+		CarouselHandleCommand command) {
 		validateMemberExists(memberId);
 
-		ClassifiedCarouselPromotions classifiedPromotions = classifyCarouselPromotions(request);
+		ClassifiedCarouselPromotions classifiedPromotions = classifyCarouselPromotions(command);
 		validateCarouselAssignments(classifiedPromotions);
 
 		List<Promotion> allExistingPromotions = promotionRepository.findAll();
@@ -60,9 +56,7 @@ public class AdminPromotionCommandService {
 		List<Promotion> changedPromotions = processPromotions(classifiedPromotions.modifyRequests(),
 			classifiedPromotions.generateRequests(), deletePromotionIds);
 
-		return CarouselHandleAllResponse.from(
-			toPromotionResults(changedPromotions)
-		);
+		return toPromotionResults(changedPromotions);
 	}
 
 	private AdminPromotionResults toPromotionResults(List<Promotion> domainPromotions) {
@@ -77,7 +71,7 @@ public class AdminPromotionCommandService {
 		CarouselNumber carouselNumber = domainPromotion.getCarouselNumber();
 		return AdminPromotionResult.of(
 			domainPromotion.getId(),
-			carouselNumber == null ? null : carouselNumber.name(),
+			carouselNumber.name(),
 			domainPromotion.getPromotionPhoto(),
 			domainPromotion.isExternal(),
 			domainPromotion.getRedirectUrl(),
@@ -85,29 +79,22 @@ public class AdminPromotionCommandService {
 		);
 	}
 
-	private void validateCarouselHandleRequest(CarouselHandleRequest request) {
-		if (request == null || request.carousels() == null) {
-			throw new AdminApplicationException(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT);
-		}
-	}
-
-	private ClassifiedCarouselPromotions classifyCarouselPromotions(CarouselHandleRequest request) {
-		validateCarouselHandleRequest(request);
-
-		List<PromotionModifyRequest> modifyRequests = new ArrayList<>();
-		List<PromotionGenerateRequest> generateRequests = new ArrayList<>();
+	private ClassifiedCarouselPromotions classifyCarouselPromotions(CarouselHandleCommand command) {
+		List<PromotionModifyCommand> modifyRequests = new ArrayList<>();
+		List<PromotionGenerateCommand> generateRequests = new ArrayList<>();
 		Set<Long> requestPromotionIds = new HashSet<>();
 
-		for (PromotionHandleRequest promotionRequest : request.carousels()) {
-			switch (promotionRequest) {
-				case PromotionModifyRequest modifyRequest -> {
-					if (modifyRequest.promotionId() == null || !requestPromotionIds.add(modifyRequest.promotionId())) {
+		for (PromotionHandleCommand promotionCommand : command.carousels()) {
+			switch (promotionCommand) {
+				case PromotionModifyCommand modifyCommand -> {
+					if (!requestPromotionIds.add(modifyCommand.promotionId())) {
 						throw new AdminApplicationException(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT);
 					}
-					modifyRequests.add(modifyRequest);
+					modifyRequests.add(modifyCommand);
 				}
-				case PromotionGenerateRequest generateRequest -> generateRequests.add(generateRequest);
-				case null, default -> throw new AdminApplicationException(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT);
+				case PromotionGenerateCommand generateCommand -> generateRequests.add(generateCommand);
+				case null, default ->
+					throw new AdminApplicationException(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT);
 			}
 		}
 
@@ -121,11 +108,11 @@ public class AdminPromotionCommandService {
 	private void validateCarouselAssignments(ClassifiedCarouselPromotions promotions) {
 		List<CarouselNumber> carouselNumbers = new ArrayList<>();
 		promotions.modifyRequests().stream()
-			.map(PromotionModifyRequest::carouselNumber)
+			.map(PromotionModifyCommand::carouselNumber)
 			.map(this::toCarouselNumber)
 			.forEach(carouselNumbers::add);
 		promotions.generateRequests().stream()
-			.map(PromotionGenerateRequest::carouselNumber)
+			.map(PromotionGenerateCommand::carouselNumber)
 			.map(this::toCarouselNumber)
 			.forEach(carouselNumbers::add);
 
@@ -144,8 +131,8 @@ public class AdminPromotionCommandService {
 			.toList();
 	}
 
-	private List<Promotion> processPromotions(List<PromotionModifyRequest> modifyRequests,
-		List<PromotionGenerateRequest> generateRequests, List<Long> deletePromotionIds) {
+	private List<Promotion> processPromotions(List<PromotionModifyCommand> modifyRequests,
+		List<PromotionGenerateCommand> generateRequests, List<Long> deletePromotionIds) {
 		handlePromotionDeletion(deletePromotionIds);
 		List<Promotion> modifiedDomainPromotions = handlePromotionModification(modifyRequests);
 		List<Promotion> addedPromotions = handlePromotionGeneration(generateRequests);
@@ -162,7 +149,7 @@ public class AdminPromotionCommandService {
 		}
 	}
 
-	private List<Promotion> handlePromotionModification(List<PromotionModifyRequest> modifyRequests) {
+	private List<Promotion> handlePromotionModification(List<PromotionModifyCommand> modifyRequests) {
 		return modifyRequests.stream()
 			.map(modifyRequest -> {
 				Promotion promotion = findPromotionById(modifyRequest.promotionId());
@@ -181,7 +168,7 @@ public class AdminPromotionCommandService {
 			.toList();
 	}
 
-	private List<Promotion> handlePromotionGeneration(List<PromotionGenerateRequest> generateRequests) {
+	private List<Promotion> handlePromotionGeneration(List<PromotionGenerateCommand> generateRequests) {
 		return generateRequests.stream()
 			.map(generateRequest -> {
 				Long performanceId = validatePerformanceId(generateRequest.performanceId());
@@ -198,11 +185,8 @@ public class AdminPromotionCommandService {
 			.toList();
 	}
 
-	private CarouselNumber toCarouselNumber(AdminCarouselNumber carouselNumber) {
-		if (carouselNumber == null) {
-			return null;
-		}
-		return CarouselNumber.valueOf(carouselNumber.name());
+	private CarouselNumber toCarouselNumber(String carouselNumber) {
+		return CarouselNumber.valueOf(carouselNumber);
 	}
 
 	private Promotion findPromotionById(Long promotionId) {
@@ -214,7 +198,7 @@ public class AdminPromotionCommandService {
 		if (performanceId == null) {
 			return null;
 		}
-		performanceRepository.findById(performanceId)
+		performanceSummaryReadPort.findById(performanceId)
 			.orElseThrow(() -> new AdminApplicationException(PromotionApplicationErrorCode.PERFORMANCE_NOT_FOUND));
 		return performanceId;
 	}
@@ -225,8 +209,8 @@ public class AdminPromotionCommandService {
 	}
 
 	private record ClassifiedCarouselPromotions(
-		List<PromotionModifyRequest> modifyRequests,
-		List<PromotionGenerateRequest> generateRequests,
+		List<PromotionModifyCommand> modifyRequests,
+		List<PromotionGenerateCommand> generateRequests,
 		Set<Long> requestPromotionIds
 	) {
 	}

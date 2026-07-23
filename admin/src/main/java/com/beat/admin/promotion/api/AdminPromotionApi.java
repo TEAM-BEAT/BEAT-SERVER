@@ -6,11 +6,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest;
-import com.beat.admin.promotion.application.dto.response.BannerPresignedUrlFindResponse;
-import com.beat.admin.promotion.application.dto.response.CarouselFindAllResponse;
-import com.beat.admin.promotion.application.dto.response.CarouselHandleAllResponse;
-import com.beat.admin.promotion.application.dto.response.CarouselPresignedUrlFindAllResponse;
+import com.beat.admin.promotion.api.request.CarouselHandleRequest;
+import com.beat.admin.promotion.api.response.BannerPresignedUrlFindResponse;
+import com.beat.admin.promotion.api.response.CarouselFindAllResponse;
+import com.beat.admin.promotion.api.response.CarouselHandleAllResponse;
+import com.beat.admin.promotion.api.response.CarouselPresignedUrlFindAllResponse;
 import com.beat.gateway.CurrentMember;
 import com.beat.global.support.response.ErrorResponse;
 import com.beat.global.support.response.SuccessResponse;
@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @Tag(name = "Admin", description = "관리자 제어 API")
 public interface AdminPromotionApi {
@@ -107,6 +108,6 @@ public interface AdminPromotionApi {
 	)
 	ResponseEntity<SuccessResponse<CarouselHandleAllResponse>> processCarouselImages(
 		@CurrentMember Long memberId,
-		@RequestBody CarouselHandleRequest request
+		@Valid @RequestBody CarouselHandleRequest request
 	);
 }

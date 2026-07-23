@@ -1,4 +1,4 @@
-package com.beat.admin.user.application.service.query;
+package com.beat.admin.user.application.query;
 
 import java.util.List;
 
@@ -6,10 +6,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.beat.admin.exception.AdminApplicationException;
-import com.beat.admin.user.application.dto.response.UserFindAllResponse;
+import com.beat.admin.user.application.result.AdminUserResults;
+import com.beat.admin.user.application.result.AdminUserResults.AdminUserResult;
 import com.beat.admin.user.exception.UserApplicationErrorCode;
 import com.beat.domain.member.repository.MemberRepository;
-import com.beat.domain.user.domain.Users;
+import com.beat.domain.user.model.Users;
 import com.beat.domain.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -22,16 +23,16 @@ public class AdminUserQueryService {
 	private final MemberRepository memberRepository;
 	private final UserRepository userRepository;
 
-	public UserFindAllResponse findAllUsers(Long memberId) {
+	public AdminUserResults findAllUsers(Long memberId) {
 		validateMemberExists(memberId);
-		List<UserFindAllResponse.UserFindResponse> userResponses = userRepository.findAll().stream()
-			.map(this::toUserFindResponse)
+		List<AdminUserResult> users = userRepository.findAll().stream()
+			.map(this::toUserResult)
 			.toList();
-		return UserFindAllResponse.from(userResponses);
+		return new AdminUserResults(users);
 	}
 
-	private UserFindAllResponse.UserFindResponse toUserFindResponse(Users user) {
-		return UserFindAllResponse.UserFindResponse.of(
+	private AdminUserResult toUserResult(Users user) {
+		return new AdminUserResult(
 			user.getId(),
 			user.getRole().getRoleName()
 		);

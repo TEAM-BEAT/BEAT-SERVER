@@ -2,7 +2,7 @@ package com.beat.admin.user.api;
 
 import org.springframework.http.ResponseEntity;
 
-import com.beat.admin.user.application.dto.response.UserFindAllResponse;
+import com.beat.admin.user.api.response.UserFindAllResponse;
 import com.beat.gateway.CurrentMember;
 import com.beat.global.support.response.ErrorResponse;
 import com.beat.global.support.response.SuccessResponse;

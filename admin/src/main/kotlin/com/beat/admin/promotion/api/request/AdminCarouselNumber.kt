@@ -1,4 +1,4 @@
-package com.beat.admin.promotion.application.dto.request
+package com.beat.admin.promotion.api.request
 
 import io.swagger.v3.oas.annotations.media.Schema
 

@@ -101,12 +101,12 @@ implementation(project(":observability"))
   - `infra.*.repository.jpa`
   - `infra.external.*`
 - gateway internal 구현 직접 import 금지
-  - `gateway.annotation.*`
   - `gateway.jwt.internal.*`
-  - `gateway.security.internal.*`
-  - `gateway.filter.*`
-  - `gateway.config.*`
-- 허용되는 gateway 공개 표면은 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember`로 제한하고 JWT/refresh token 계약은 `module-contracts`의 `com.beat.contracts.auth.*`를 사용
+  - `gateway.refreshtoken.internal.*`
+  - `gateway.guest.internal.*`
+  - `gateway.authentication.internal.*`
+  - `gateway.shared.internal.*`
+- 허용되는 gateway 공개 표면은 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.CurrentMember`로 제한하고 JWT/refresh token 계약은 `module-contracts`의 `com.beat.contracts.auth.*`를 사용
 - transitional package 재도입 금지
   - `adapter/`
   - `controller/`
@@ -173,13 +173,16 @@ admin/
       GatewayConfig.kt
       InfraConfig.kt
     user/
-      api/response/UserSuccessCode.kt
+      api/
+        request/
+        response/UserSuccessCode.kt
       exception/UserApplicationErrorCode.kt
     promotion/
-      api/response/PromotionSuccessCode.kt
+      api/
+        request/
+        response/PromotionSuccessCode.kt
       exception/PromotionApplicationErrorCode.kt
-      application/
-        dto/request/AdminCarouselNumber.kt
+      application/command/
 
   src/main/java/com/beat/admin/
     exception/
@@ -217,12 +220,14 @@ com.beat.admin.user/
   api/
     AdminUserApi
     AdminUserController
-    response/UserSuccessCode
+    response/
+      UserSuccessCode
+      UserFindAllResponse
   facade/
     AdminUserFacade
   application/
-    service/query/AdminUserQueryService
-    dto/response/UserFindAllResponse
+    query/AdminUserQueryService
+    result/AdminUserResults
   exception/
     UserApplicationErrorCode
 ```
@@ -246,15 +251,15 @@ com.beat.admin.promotion/
   api/
     AdminPromotionApi
     AdminPromotionController
+    request/*
+    response/*
     response/PromotionSuccessCode
   facade/
     AdminPromotionFacade
   application/
-    service/command/AdminPromotionCommandService
-    service/query/AdminPromotionQueryService
-    dto/request/*
-    dto/response/*
-    dto/result/AdminPromotionResults
+    command/AdminPromotionCommandService
+    query/AdminPromotionQueryService
+    result/*
   exception/
     PromotionApplicationErrorCode
 ```
@@ -264,7 +269,7 @@ com.beat.admin.promotion/
 - 캐러셀/배너 presigned URL 발급
 - 캐러셀 promotion 조회
 - 캐러셀 promotion 생성/수정/삭제 orchestration
-- `AdminCarouselNumber`와 domain `CarouselNumber`의 단순 변환은 application service 사용처 가까이에서 처리
+- HTTP request는 Facade에서 non-null command/query로 변환하고 application service는 HTTP DTO에 의존하지 않음
 
 현재 endpoints:
 
@@ -298,7 +303,7 @@ sequenceDiagram
     P-->>A: result
     A->>D: invariant / policy / state primitive
     D-->>A: domain result
-    A-->>F: response DTO or application result
+    A-->>F: application result / read model
     F-->>C: response DTO
 ```
 
@@ -339,7 +344,7 @@ flowchart TB
     Controller[Controller]
     Facade[Facade]
     Command[CommandService<br/>state change + transaction]
-    Query[QueryService<br/>read + response assembly]
+    Query[QueryService<br/>read + result assembly]
     DomainRepo[Domain RepositoryPort]
     ReadPort[ReadPort / external port]
 
@@ -354,7 +359,7 @@ flowchart TB
 규칙:
 
 - command service는 상태 변경 흐름과 transaction을 소유합니다.
-- query service는 admin-facing 조회와 response 조립을 소유합니다.
+- query service는 admin application read model/result 조립을 소유하고 HTTP response 조립은 Facade에 맡깁니다.
 - command/query service 간 공유가 필요하면 raw Domain model이 아니라 primitive/value/result/read model을 반환합니다.
 - 단순 조회는 domain repository contract를 사용할 수 있습니다.
 - 목록/검색/정렬/통계/projection 조회가 커지면 domain repository를 키우지 않고 `module-contracts` read port/read model과 infra query adapter를 검토합니다.
@@ -368,16 +373,18 @@ flowchart TB
 flowchart LR
     Domain[Domain model]
     App[ApplicationService]
-    Result[Application Result<br/>optional internal DTO]
+    Result[Application Result / ReadModel]
+    Facade[Facade]
     Response[Admin ResponseDTO]
     Controller[Controller]
 
     Domain --> App
-    App --> Response
-    App -. only when scenario composition needs it .-> Result
-    Result --> Response
+    App --> Result
+    Result --> Facade
+    Facade --> Response
     Response --> Controller
 
+    App -. forbidden .-> Response
     Domain -. forbidden .-> Response
     Domain -. forbidden .-> Result
     Domain -. forbidden .-> Controller
@@ -386,10 +393,10 @@ flowchart LR
 기본값:
 
 ```text
-Controller -> Facade -> QueryService -> ResponseDTO
+Controller -> Facade -> QueryService -> QueryResult -> ResponseDTO
 ```
 
-복합 scenario에서만 optional Result를 둡니다.
+단일/복합 scenario 모두 ApplicationService는 HTTP 비의존 Result/ReadModel을 반환하고 Facade가 ResponseDTO를 만듭니다.
 
 ```text
 Controller -> Facade -> QueryService A -> QueryResult A
@@ -400,9 +407,14 @@ Controller -> Facade -> QueryService A -> QueryResult A
 규칙:
 
 - RequestDTO, ResponseDTO, CommandResult, QueryResult는 Domain model을 필드로 담지 않습니다.
+- HTTP RequestDTO와 ResponseDTO는 `<context>/api/request`, `<context>/api/response`가 소유합니다.
+- 모든 JSON request의 필수 필드는 nullable immutable property와 `jakarta.validation` field constraint로 선언하고 Controller의 `@RequestBody`에는 `@Valid`를 적용합니다.
+- Facade는 검증된 request를 non-null application command 또는 query/search condition으로 변환합니다. 단순 path variable이나 query parameter 한두 개는 별도 객체로 감싸지 않습니다.
+- ApplicationService는 HTTP RequestDTO를 입력으로 받지 않습니다.
+- ApplicationService는 HTTP ResponseDTO를 반환하지 않습니다.
 - DTO/Result public factory method는 Domain model을 인자로 받지 않습니다.
 - Domain model에서 필요한 primitive/value 추출은 ApplicationService 내부 private method나 내부 assembler에서 끝냅니다.
-- Result는 기본 계층이 아닙니다. Facade 조합이 필요하거나 같은 service output을 여러 response shape로 재사용할 때만 둡니다.
+- Result/ReadModel은 ApplicationService의 HTTP 비의존 출력 경계이며, 유스케이스당 필요한 최소 shape만 둡니다.
 - Result도 raw Domain model, JPA Entity, infra projection row를 필드로 담지 않습니다.
 - 다른 ApplicationService가 재사용해야 하는 출력이면 raw Domain model을 반환하지 말고 목적이 드러나는 Result 또는 ReadModel을 먼저 정의합니다.
 - DTO 이름은 API/관리자 응답 shape임이 드러나야 합니다. 도메인 이름만 단독으로 쓰지 않습니다.
@@ -512,7 +524,7 @@ admin.user.api.response.UserSuccessCode
 
 규칙:
 
-- gateway 내부 security 구현을 직접 import하지 않고 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember` 같은 공개 contract만 사용합니다.
+- gateway 내부 security 구현을 직접 import하지 않고 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.CurrentMember` 같은 공개 contract만 사용합니다.
 - admin route 정책은 admin config에서 관리합니다.
 - 공용 String-to-enum MVC converter는 등록하지 않습니다. `AdminCarouselNumber`와 domain `CarouselNumber`의 단순 변환은 application service 사용처 가까이에서 처리합니다.
 - `Mapper`는 infra persistence entity와 domain model 변환에만 사용하며 admin에는 mapper package를 두지 않습니다.

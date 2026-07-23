@@ -81,7 +81,7 @@ class AdminArchitectureGuardTest {
     @Test
     fun `admin facades must not own transaction repository or raw domain model dependencies`() {
         val violations = findSourceViolationsInMatchingPaths(
-            Path.of("src/main/java/com/beat/admin"),
+            Path.of("src/main"),
             pathSegment = "/facade/",
             "@Transactional",
             "com.beat.domain.",
@@ -152,11 +152,14 @@ class AdminArchitectureGuardTest {
 
     @Test
     fun `admin dto layer must not import domain types`() {
-        val violations = findForbiddenImportsInMatchingPaths(
-            Path.of("src/main/java/com/beat/admin"),
-            pathSegment = "/dto/",
-            "com.beat.domain."
-        )
+        val violations = listOf("/api/request/", "/api/response/", "/application/result/")
+            .flatMap { pathSegment ->
+                findForbiddenImportsInMatchingPaths(
+                    Path.of("src/main"),
+                    pathSegment = pathSegment,
+                    "com.beat.domain.",
+                )
+            }
 
         assertTrue(
             violations.isEmpty(),
@@ -165,9 +168,33 @@ class AdminArchitectureGuardTest {
     }
 
     @Test
+    fun `admin application must not depend on http dto`() {
+        val violations = findForbiddenImportsInMatchingPaths(
+            Path.of("src/main"),
+            pathSegment = "/application/",
+            ".api.request.",
+            ".api.response.",
+        )
+
+        assertTrue(violations.isEmpty(), "Admin application must not import HTTP DTOs:\n${violations.joinToString("\n")}")
+    }
+
+    @Test
+    fun `admin controllers must enter use cases through facades`() {
+        val violations = findControllerForbiddenImports(
+            Path.of("src/main"),
+            ".application.",
+            "com.beat.domain.",
+            "com.beat.contracts.",
+        )
+
+        assertTrue(violations.isEmpty(), "Admin controllers must depend on facades only:\n${violations.joinToString("\n")}")
+    }
+
+    @Test
     fun `admin application services do not return raw domain models`() {
         val violations = findMethodSignatureViolations(
-            Path.of("src/main/java/com/beat/admin"),
+            Path.of("src/main"),
             listOf("Promotion", "Users")
         )
 
@@ -243,6 +270,30 @@ class AdminArchitectureGuardTest {
                 .filter(Files::isRegularFile)
                 .filter { path -> path.toString().contains(pathSegment) }
                 .filter { path -> path.toString().endsWith(".java") || path.toString().endsWith(".kt") }
+                .toList()
+                .flatMap { path ->
+                    Files.readAllLines(path)
+                        .asSequence()
+                        .filter { it.trimStart().startsWith("import ") }
+                        .flatMap { line ->
+                            forbiddenReferences
+                                .filter(line::contains)
+                                .map { pattern -> "$path: $pattern" }
+                        }
+                        .toList()
+                }
+        } finally {
+            paths.close()
+        }
+    }
+
+    private fun findControllerForbiddenImports(root: Path, vararg forbiddenReferences: String): List<String> {
+        val paths = Files.walk(root)
+
+        return try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { path -> path.fileName.toString().matches(Regex(""".*Controller\.(java|kt)""")) }
                 .toList()
                 .flatMap { path ->
                     Files.readAllLines(path)
