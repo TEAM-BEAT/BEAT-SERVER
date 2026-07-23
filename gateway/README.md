@@ -14,6 +14,38 @@ JWT 발급/검증, refresh token 저장, 인증 필터, 인가 실패 처리, �
 > 핵심 원칙: 실행 모듈은 `gateway`의 내부 구현 패키지를 직접 import하지 않습니다.
 > 공개 표면 (`EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `CurrentMember`, `module-contracts auth port`) 만을 통해 인증 경계를 사용합니다.
 
+### 패키지 구조 규칙 (G1~G5)
+
+`gateway`는 기술 레이어가 아니라 **인증 capability**로 패키지를 나눕니다. Spring Modulith 컨벤션(모듈
+base package = API, 하위 package = internal)을 모듈 내부에 적용한 형태입니다.
+
+- **G1 · Public surface 단일화** — 실행 모듈이 import 가능한 것은 `com.beat.gateway` 루트의 bootstrap/annotation
+  타입(`@EnableGatewayServletSecurity`, `@EnableGatewayConfig`, `GatewayConfigGroup`, `@CurrentMember`)뿐입니다.
+  행위 계약은 `gateway`가 아니라 `module-contracts`의 port로 노출합니다.
+- **G2 · Capability-first** — 내부는 인증 capability로 1차 분할합니다: `jwt`, `refreshtoken`, `guest`,
+  `authentication`(servlet 필터/인가/principal).
+- **G3 · Internal 경계 단일 규칙** — 각 capability 구현은 예외 없이 `<capability>.internal` 아래에 둡니다. 실행
+  모듈은 물론 다른 capability도 이를 직접 import하지 않습니다.
+- **G4 · Config·store 동거** — capability를 구성하는 `@Configuration`과 Redis `store`는 그 capability의
+  `internal` 하위(`<capability>.internal.config`, `<capability>.internal.store`)에 함께 둡니다. 전역 config
+  버킷을 두지 않습니다.
+- **G5 · 공유 기술 인프라만 예외** — 여러 capability가 공유하는 순수 기술 설정(`@EnableRedisRepositories`,
+  `GatewayConfigImportSelector`)만 `gateway.shared.internal`에 둡니다. 이것이 유일하게 허용되는 non-capability
+  패키지입니다.
+
+```text
+com.beat.gateway
+├─ (root, public)          EnableGatewayServletSecurity · EnableGatewayConfig · GatewayConfigGroup · CurrentMember
+├─ jwt.internal            JwtTokenProvider · JwtProperties            (+ config/JwtConfig)
+├─ refreshtoken.internal   RefreshTokenService                        (+ store/·, config/RefreshTokenConfig)
+├─ guest.internal          GuestSessionService · GuestAccessThrottleService · GuestPasswordHashService
+│                                                                     (+ store/·, config/GuestAccessConfig)
+├─ authentication.internal JwtAuthenticationFilter · SecurityMdcLoggingFilter · Custom*Handler
+│                          CurrentMemberArgumentResolver · MemberAuthentication · AdminAuthentication
+│                                                                     (+ config/ServletSecurityConfig·SecurityFilterConfig·WebMvcConfig)
+└─ shared.internal         GatewayConfigImportSelector                (+ config/RedisConfig)
+```
+
 ---
 
 ## 1. 이 문서를 읽는 방법
@@ -25,17 +57,22 @@ JWT 발급/검증, refresh token 저장, 인증 필터, 인가 실패 처리, �
 2. 이것은 인증 필터 또는 인가 실패 처리인가?
 3. 이것은 현재 사용자 identity를 controller에 전달하기 위한 것인가?
 4. 이것은 refresh token 저장소인가?
-5. 이것은 route whitelist 또는 역할 기반 라우팅 정책인가?
+5. 이것은 guest 세션/스로틀/비밀번호 해시 같은 guest 인증 primitive인가?
+6. 이것은 route whitelist 또는 역할 기반 라우팅 정책인가?
 ```
 
 | 질문 | 위치 |
 | --- | --- |
 | JWT 발급/검증 구현 | `gateway.jwt.internal` |
-| 인증 필터, 인가 핸들러, principal resolver | `gateway.security.internal.servlet` |
-| Refresh token Redis store | `gateway.jwt.internal.store` |
-| JWT/refresh token 계약 정의 | `module-contracts.contracts.auth` |
+| 인증 필터, 인가 핸들러, principal resolver | `gateway.authentication.internal` |
+| Refresh token 서비스 | `gateway.refreshtoken.internal` |
+| Refresh token Redis store | `gateway.refreshtoken.internal.store` |
+| Guest 세션/스로틀/비밀번호 해시 primitive | `gateway.guest.internal` |
+| Guest 세션 Redis store | `gateway.guest.internal.store` |
+| 여러 capability가 공유하는 기술 설정(Redis 활성화, import selector) | `gateway.shared.internal` |
+| JWT/refresh token/guest 계약 정의 | `com.beat.contracts.auth` (`module-contracts`) |
 | Route whitelist, 역할 기반 접근 정책 | 각 실행 모듈 security config (`apis`, `admin`) |
-| SecurityContext 기반 MDC userId 추출 | `gateway.security.internal.servlet.SecurityMdcLoggingFilter` |
+| SecurityContext 기반 MDC userId 추출 | `gateway.authentication.internal.SecurityMdcLoggingFilter` |
 | 비즈니스 로그인/로그아웃 흐름 | 실행 모듈 application service |
 
 ---
@@ -85,18 +122,18 @@ flowchart TB
     ModuleGatewayConfig["모듈별 GatewayConfig<br/>@EnableGatewayServletSecurity<br/>@EnableGatewayConfig(optional groups)"]
     Selector["GatewayConfigImportSelector<br/>DeferredImportSelector<br/>(optional groups)"]
 
-    ServletBootstrap["@EnableGatewayServletSecurity<br/>→ GatewayServletSecurityConfig"]
+    ServletBootstrap["@EnableGatewayServletSecurity<br/>→ ServletSecurityConfig"]
 
     subgraph SERVLET_BOOTSTRAP["Servlet security static bootstrap"]
-        ServletSecurityConfig["GatewayServletSecurityConfig"]
-        JwtConfig["GatewayJwtConfig<br/>→ JwtTokenProvider"]
-        SecurityConfig["GatewaySecurityServletConfig<br/>→ JwtAuthenticationFilter<br/>→ SecurityMdcLoggingFilter<br/>→ CustomAccessDeniedHandler<br/>→ CustomJwtAuthenticationEntryPoint"]
-        WebMvcConfig["GatewayWebMvcConfig<br/>→ CurrentMemberArgumentResolver (직접 생성)<br/>→ ArgumentResolver 등록"]
+        ServletSecurityConfig["ServletSecurityConfig"]
+        JwtConfig["JwtConfig<br/>→ JwtTokenProvider"]
+        SecurityConfig["SecurityFilterConfig<br/>→ JwtAuthenticationFilter<br/>→ SecurityMdcLoggingFilter<br/>→ CustomAccessDeniedHandler<br/>→ CustomJwtAuthenticationEntryPoint"]
+        WebMvcConfig["WebMvcConfig<br/>→ CurrentMemberArgumentResolver (직접 생성)<br/>→ ArgumentResolver 등록"]
     end
 
     subgraph REFRESH_TOKEN_STORE["Optional GatewayConfigGroup.REFRESH_TOKEN_STORE"]
-        RefreshTokenConfig["GatewayRefreshTokenConfig"]
-        RedisConfig["GatewayRedisConfig<br/>@EnableRedisRepositories"]
+        RefreshTokenConfig["RefreshTokenConfig"]
+        RedisConfig["RedisConfig<br/>@EnableRedisRepositories"]
         RefreshTokenService["RefreshTokenService<br/>implements RefreshTokenPort"]
     end
 
@@ -138,17 +175,17 @@ class GatewayConfig
 
 | 공개 타입 | 위치 | 용도 |
 | --- | --- | --- |
-| `@EnableGatewayServletSecurity` | `com.beat.gateway.security.servlet` | servlet security static bootstrap annotation |
+| `@EnableGatewayServletSecurity` | `com.beat.gateway` | servlet security static bootstrap annotation |
 | `@EnableGatewayConfig` | `com.beat.gateway` | optional config group 선택 annotation |
 | `GatewayConfigGroup` | `com.beat.gateway` | optional `REFRESH_TOKEN_STORE` group enum |
-| `@CurrentMember` | `com.beat.gateway.security.servlet` | controller 파라미터에서 현재 사용자 memberId 추출 |
+| `@CurrentMember` | `com.beat.gateway` | controller 파라미터에서 현재 사용자 memberId 추출 |
 
 JWT/refresh token 계약은 `gateway`가 아니라 `module-contracts`에서 주입받습니다.
 
 | 계약 | 위치 | 구현체 |
 | --- | --- | --- |
 | `JwtTokenPort` | `com.beat.contracts.auth` | `gateway.jwt.internal.JwtTokenProvider` |
-| `RefreshTokenPort` | `com.beat.contracts.auth` | `gateway.jwt.internal.RefreshTokenService` |
+| `RefreshTokenPort` | `com.beat.contracts.auth` | `gateway.refreshtoken.internal.RefreshTokenService` |
 
 ---
 
@@ -158,7 +195,7 @@ JWT/refresh token 계약은 `gateway`가 아니라 `module-contracts`에서 주�
 - `SecurityMdcLoggingFilter`가 JWT보다 먼저 실행되어 모든 요청/인증 실패 응답에도 trace/request MDC와 `X-Request-ID`를 보장합니다.
 - `JwtAuthenticationFilter`는 토큰 검증 성공 후 `SecurityContextHolder`에 `Authentication`을 저장하고 MDC `userId`를 인증 사용자 id로 갱신합니다.
 - 실행 모듈은 gateway 내부 클래스를 직접 import하지 않고 `@Qualifier("gatewaySecurityMdcLoggingFilter") OncePerRequestFilter`로 주입받습니다.
-- `GatewaySecurityServletConfig`는 `gatewaySecurityMdcLoggingFilter` bean과 disabled `FilterRegistrationBean`을 함께 제공해 Spring Boot servlet 자동 등록 중복을 방지합니다.
+- `SecurityFilterConfig`는 `gatewaySecurityMdcLoggingFilter` bean과 disabled `FilterRegistrationBean`을 함께 제공해 Spring Boot servlet 자동 등록 중복을 방지합니다.
 
 
 ```mermaid
@@ -190,6 +227,8 @@ sequenceDiagram
     end
 ```
 
+`EXPIRED -> 401`, `INVALID -> 400`은 현재 클라이언트 호환 계약을 기록한 것이며 보편적 인증 Best Practice를 뜻하지 않습니다. 신규/버전업 API에서는 인증할 수 없는 credential을 일관되게 `401`로 매핑할지 ADR과 소비자 영향 분석 후 결정합니다.
+
 ### 인증 객체
 
 | 클래스 | 조건 | 설명 |
@@ -218,16 +257,18 @@ sequenceDiagram
     App->>Port: findMemberIdByRefreshToken(refreshToken)
     Port->>Svc: findMemberIdByRefreshToken(refreshToken)
     Svc->>Redis: findByRefreshToken(refreshToken)
-    Redis-->>Svc: RefreshToken
-    Svc-->>App: memberId
+    Redis-->>Svc: RefreshToken?
+    Svc-->>App: OptionalLong
 
     Note over App,Redis: 로그아웃 — refresh token 삭제
     App->>Port: deleteRefreshToken(memberId)
     Port->>Svc: deleteRefreshToken(memberId)
     Svc->>Redis: delete(RefreshToken)
+    Svc-->>App: deleted 여부
 ```
 
 - `RefreshToken`은 `memberId`를 `@Id`로, `refreshToken` 문자열을 `@Indexed`로 저장합니다.
+- 조회 실패와 삭제 실패는 port의 값(`OptionalLong.empty`, `false`)으로 반환하고, application service가 기존 client 오류 계약으로 변환합니다.
 - TTL은 14일 (1,209,600초)로 고정됩니다.
 - `admin`은 `REFRESH_TOKEN_STORE` group을 선택하지 않으므로 Redis store bean이 올라오지 않습니다.
 
@@ -245,12 +286,12 @@ gateway/
       EnableGatewayServletSecurity.java   # 공개: servlet security static bootstrap annotation
       CurrentMember.java                  # 공개: controller 파라미터 annotation
     internal/config/
-      GatewayServletSecurityConfig.java   # servlet security static bootstrap entrypoint
-      GatewayJwtConfig.java               # JwtTokenProvider import
-      GatewaySecurityServletConfig.java   # JWT 필터 / 핸들러 / MDC filter bean + 자동 등록 방지
-      GatewayWebMvcConfig.java            # ArgumentResolver 등록
-      GatewayRefreshTokenConfig.java      # REFRESH_TOKEN_STORE group entrypoint
-      GatewayRedisConfig.java             # @EnableRedisRepositories
+      ServletSecurityConfig.java   # servlet security static bootstrap entrypoint
+      JwtConfig.java               # JwtTokenProvider import
+      SecurityFilterConfig.java   # JWT 필터 / 핸들러 / MDC filter bean + 자동 등록 방지
+      WebMvcConfig.java            # ArgumentResolver 등록
+      RefreshTokenConfig.java      # REFRESH_TOKEN_STORE group entrypoint
+      RedisConfig.java             # @EnableRedisRepositories
     jwt/internal/
       JwtTokenProvider.java               # implements JwtTokenPort
       RefreshTokenService.java            # implements RefreshTokenPort
@@ -316,7 +357,7 @@ observability           # BaseMdcLoggingFilter 확장
 ### `ApisArchitectureGuardTest` / `AdminArchitectureGuardTest`
 
 - `gateway.internal.*` import allowlist 위반 감지
-- 허용 표면은 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember`로 제한
+- 허용 표면은 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.CurrentMember`로 제한
 
 ### `BatchApplicationTest`
 
@@ -324,7 +365,7 @@ observability           # BaseMdcLoggingFilter 확장
 
 ### `SharedBoundaryContractTest`
 
-- `gateway.internal.config.GatewayRedisConfig`가 `@Primary` 없이 narrow Redis repository만 활성화하는지 확인
+- `gateway.internal.config.RedisConfig`가 `@Primary` 없이 narrow Redis repository만 활성화하는지 확인
 - `RefreshToken`이 `@RedisHash + @Indexed`를 올바르게 선언하는지 확인
 
 ---

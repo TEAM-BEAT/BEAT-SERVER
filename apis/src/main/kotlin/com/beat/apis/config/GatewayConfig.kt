@@ -2,7 +2,7 @@ package com.beat.apis.config
 
 import com.beat.gateway.EnableGatewayConfig
 import com.beat.gateway.GatewayConfigGroup
-import com.beat.gateway.security.servlet.EnableGatewayServletSecurity
+import com.beat.gateway.EnableGatewayServletSecurity
 import org.springframework.context.annotation.Configuration
 
 @Configuration(proxyBeanMethods = false)

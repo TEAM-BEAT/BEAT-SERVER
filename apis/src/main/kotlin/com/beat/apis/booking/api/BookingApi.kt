@@ -12,7 +12,7 @@ import com.beat.apis.booking.api.response.GuestBookingRetrieveResponse
 import com.beat.apis.booking.api.response.MemberBookingResponse
 import com.beat.apis.booking.api.response.MemberBookingRetrieveResponse
 import com.beat.apis.swagger.annotation.DisableSwaggerSecurity
-import com.beat.gateway.security.servlet.CurrentMember
+import com.beat.gateway.CurrentMember
 import com.beat.global.support.response.ErrorResponse
 import com.beat.global.support.response.SuccessResponse
 import io.swagger.v3.oas.annotations.Operation

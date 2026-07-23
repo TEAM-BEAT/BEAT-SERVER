@@ -10,7 +10,7 @@ import com.beat.apis.performance.api.response.PerformanceModifyResponse
 import com.beat.apis.performance.api.response.PerformanceResponse
 import com.beat.apis.performance.api.response.PerformanceSuccessCode
 import com.beat.apis.performance.facade.PerformanceFacade
-import com.beat.gateway.security.servlet.CurrentMember
+import com.beat.gateway.CurrentMember
 import com.beat.global.support.response.SuccessResponse
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus

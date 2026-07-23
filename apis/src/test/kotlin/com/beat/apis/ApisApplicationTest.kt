@@ -6,7 +6,7 @@ import com.beat.apis.config.GuestSessionOriginFilter
 import com.beat.apis.config.InfraConfig
 import com.beat.gateway.EnableGatewayConfig
 import com.beat.gateway.GatewayConfigGroup
-import com.beat.gateway.security.servlet.EnableGatewayServletSecurity
+import com.beat.gateway.EnableGatewayServletSecurity
 import com.beat.observability.ObservabilityModuleConfig
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -211,7 +211,7 @@ class ApisApplicationTest {
         assertTrue(source.contains("val SWAGGER_WHITELIST"))
         assertTrue(source.contains("if (!environment.acceptsProfiles(Profiles.of(\"prod\")))"))
         assertTrue(source.contains("addAll(SWAGGER_WHITELIST)"))
-        assertFalse(source.contains("import com.beat.gateway.security.internal.servlet.SecurityMdcLoggingFilter"))
+        assertFalse(source.contains("import com.beat.gateway.authentication.internal.SecurityMdcLoggingFilter"))
     }
 
     @Test

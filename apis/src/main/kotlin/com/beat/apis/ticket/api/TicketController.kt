@@ -8,7 +8,7 @@ import com.beat.apis.ticket.api.request.TicketUpdateRequest
 import com.beat.apis.ticket.api.response.TicketRetrieveResponse
 import com.beat.apis.ticket.api.response.TicketSuccessCode
 import com.beat.apis.ticket.facade.TicketFacade
-import com.beat.gateway.security.servlet.CurrentMember
+import com.beat.gateway.CurrentMember
 import com.beat.global.support.response.SuccessResponse
 import jakarta.validation.Valid
 import org.springframework.http.CacheControl

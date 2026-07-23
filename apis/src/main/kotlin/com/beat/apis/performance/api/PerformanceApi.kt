@@ -9,7 +9,7 @@ import com.beat.apis.performance.api.response.PerformanceModifyDetailResponse
 import com.beat.apis.performance.api.response.PerformanceModifyResponse
 import com.beat.apis.performance.api.response.PerformanceResponse
 import com.beat.apis.swagger.annotation.DisableSwaggerSecurity
-import com.beat.gateway.security.servlet.CurrentMember
+import com.beat.gateway.CurrentMember
 import com.beat.global.support.response.ErrorResponse
 import com.beat.global.support.response.SuccessResponse
 import io.swagger.v3.oas.annotations.Operation

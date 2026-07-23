@@ -6,7 +6,7 @@ import com.beat.apis.ticket.api.request.TicketDeleteRequest
 import com.beat.apis.ticket.api.request.TicketRefundRequest
 import com.beat.apis.ticket.api.request.TicketUpdateRequest
 import com.beat.apis.ticket.api.response.TicketRetrieveResponse
-import com.beat.gateway.security.servlet.CurrentMember
+import com.beat.gateway.CurrentMember
 import com.beat.global.support.response.ErrorResponse
 import com.beat.global.support.response.SuccessResponse
 import io.swagger.v3.oas.annotations.Operation

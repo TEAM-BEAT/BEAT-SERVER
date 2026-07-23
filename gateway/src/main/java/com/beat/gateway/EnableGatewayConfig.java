@@ -8,6 +8,8 @@ import java.lang.annotation.Target;
 
 import org.springframework.context.annotation.Import;
 
+import com.beat.gateway.shared.internal.GatewayConfigImportSelector;
+
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented

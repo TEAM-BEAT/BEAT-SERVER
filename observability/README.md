@@ -17,9 +17,9 @@ HTTP 요청 correlation은 MDC 기반으로 처리하고, actuator 설정 소유
 | 실행 모듈이 observability를 켜는 진입점인가? | `ObservabilityModuleConfig` |
 | log4j2 pattern, MDC helper, async/coroutine MDC 전파인가? | `logging` |
 | HTTP request MDC key를 채우는 servlet filter base인가? | `logging.filter` |
-| 인증 사용자 식별이 필요한 MDC filter인가? | `gateway.security.internal.servlet` |
+| 인증 사용자 식별이 필요한 MDC filter인가? | `gateway.authentication.internal` |
 | actuator base path 같은 management endpoint property인가? | `metrics.config` |
-| vendor/exporter 없는 tracing placeholder인가? | `tracing` |
+| Micrometer trace context/HTTP error observation 정책인가? | `tracing` |
 | controller/service/tx 실행 시간 AOP logging인가? | 추가 금지 — #460에서 제거됨 |
 
 ---
@@ -84,7 +84,7 @@ flowchart TB
     end
 
     subgraph TRACING[tracing]
-        TracingConfig["TracingConfig<br/>vendor/exporter 없음"]
+        TracingConfig["TracingConfig<br/>Micrometer bridge / error observation"]
     end
 
     Module --> Entry
@@ -138,10 +138,10 @@ scanner/404 요청은 `NO_ROUTE` 또는 route 미기록이 정상입니다.
 
 ### 운영 로그 책임 분리
 
-- Request completion logging은 nginx `access.log`가 소유합니다.
+- nginx `access.log`와 application `AccessLogEmitter`가 서로 다른 목적의 request completion log를 남깁니다.
 - nginx access log는 `traceId`, `clientIp`, `request`, `status`, `bytes`, `referer`, `userAgent`, `xForwardedFor`,
   `requestTime` 같은 HTTP 완료 사실을 기록합니다.
-- Application log는 request completion log를 중복으로 남기지 않고 business event/domain flow 메시지에 집중합니다.
+- Application `AccessLogEmitter`는 Spring route, status, elapsed와 5xx exception을 남기고, nginx는 edge 관점의 bytes/client/request time을 남깁니다.
 - Application log context는 MDC key-value(`traceId`, `userId`, `clientIp`, `request`, `route`)로 붙입니다.
 - nginx access log와 application log는 같은 `traceId`로 join합니다.
 - raw URI(`requestInfo`)는 디버깅용이고, route-level aggregation은 가능한 경우 `routePattern`을 사용합니다.
@@ -284,16 +284,9 @@ management:
 
 ## 9. Tracing
 
-`TracingConfig`는 현재 vendor/exporter 없는 placeholder입니다.
+`observability`는 Spring Boot OpenTelemetry starter를 public runtime dependency로 제공하고, `TracingConfig`는 Micrometer `Tracer`가 있으면 trace context를 MDC/correlation에 연결합니다. dev/prod에서는 `management.tracing.enabled=true`, W3C propagation, OTLP HTTP export(`alloy:4318`)를 사용하고 Alloy가 tail sampling 후 Tempo로 전달합니다. local/test 기본값은 tracing off입니다. Sentry tracing/profile은 별도로 비활성 상태입니다.
 
-이번 PR에서 하지 않습니다.
-
-- OpenTelemetry/Zipkin/Jaeger exporter 도입
-- Micrometer tracing propagation policy 확대
-- tracing vendor dependency 추가
-- actuator exposure policy 확대
-
-추후 tracing 도입 시에도 public entrypoint는 `ObservabilityModuleConfig`로 유지합니다.
+vendor/export endpoint와 sampling 값은 `application-observability.yml` 및 environment inventory가 source of truth입니다. 실행 모듈의 public entrypoint는 `ObservabilityModuleConfig`로 유지합니다.
 
 ---
 
@@ -431,8 +424,8 @@ apis/admin/batch -> ObservabilityModuleConfig import
 ```bash
 GRADLE_USER_HOME=$PWD/.gradle-local ./gradlew \
   :observability:test \
-  :gateway:test --tests com.beat.gateway.security.internal.servlet.JwtAuthenticationFilterTest \
-  :gateway:test --tests com.beat.gateway.security.internal.servlet.SecurityMdcLoggingFilterTest \
+  :gateway:test --tests com.beat.gateway.authentication.internal.JwtAuthenticationFilterTest \
+  :gateway:test --tests com.beat.gateway.authentication.internal.SecurityMdcLoggingFilterTest \
   :infra:test --tests com.beat.infra.config.TaskExecutorConfigTest \
   transitionBoundaryTest \
   --no-parallel \
@@ -452,16 +445,16 @@ rg -n "ConfigurationPropertiesScan" apis admin batch infra gateway observability
 
 ---
 
-## 9. Sentry full observability 계약
+## 15. Sentry error/logging 계약
 
 Sentry는 `observability` 모듈이 소유하는 vendor observability bootstrap입니다. 실행 모듈(`apis`, `admin`, `batch`)은 계속 `ObservabilityModuleConfig`만 import하고, Sentry 세부 설정을 직접 import하지 않습니다.
 
 ### 책임 분리
 
-- nginx `access.log`는 HTTP completion source-of-truth입니다. `status`, `requestTime`, `request`, `clientIp`, `userAgent` 분석은 nginx access log에서 봅니다.
-- Application log는 business/domain event와 MDC context(`traceId`, `userId`, `clientIp`, `requestInfo`, `routePattern`)를 남깁니다.
-- Sentry는 error event, Sentry Logs, trace/profile context, 제한된 application metrics를 담당합니다.
-- Sentry 도입으로도 app request completion log는 추가하지 않습니다.
+- nginx `access.log`는 edge HTTP completion의 source-of-truth입니다. `bytes`, `requestTime`, raw edge request, `clientIp`, `userAgent` 분석은 nginx에서 봅니다.
+- Application `AccessLogEmitter`는 Spring route/status/elapsed/5xx exception completion을, 일반 application log는 business/domain event와 MDC context를 남깁니다.
+- Sentry는 error event와 Sentry Logs를 담당합니다. Sentry trace/profile/metrics는 현재 비활성이고 trace/metrics는 OTLP/Tempo와 Prometheus가 담당합니다.
+- Sentry integration은 기존 `AccessLogEmitter` 외에 별도 request completion log를 추가하지 않습니다.
 - OpenTelemetry/javaagent/collector는 이번 계약 범위가 아닙니다.
 
 ### Runtime 기능
@@ -498,7 +491,7 @@ Sentry는 `observability` 모듈이 소유하는 vendor observability bootstrap�
 - `batch.ticket-cleanup.deleted.count`
 - `batch.promotion-maintenance.expired.count`
 
-금지 tag 예시: `userId`, `clientIp`, raw URI, URL, token/secret/password 계열. Prometheus/Actuator는 system metrics source-of-truth로 유지합니다. Prometheus registry runtime은 `beat.prometheus-runtime` convention으로 운영상 pull 대상인 `apis`, `batch`에만 적용하고, `admin`에는 적용하지 않습니다.
+금지 tag 예시: `userId`, `clientIp`, raw URI, URL, token/secret/password 계열. Prometheus/Actuator는 system metrics source-of-truth로 유지합니다. Prometheus registry runtime은 `beat.prometheus-runtime` convention으로 `apis`, `admin`, `batch`에 적용합니다.
 
 ### Source Context / release alignment
 
@@ -516,5 +509,5 @@ Source Context는 `build-logic`의 `beat.sentry-source-context` convention이 Se
 1. `SENTRY_DSN`을 SOPS secret의 `app_secret_content`에 추가합니다. dev/prod 구분은 `sentry.environment` 값으로 처리합니다.
 2. dev 배포 후 intentional exception을 한 번 발생시켜 issue 생성을 확인합니다.
 3. source context, tag(`module`, `environment`, `traceId`, `routePattern`), scrubbed headers를 확인합니다.
-4. Sentry Logs, transaction, profile, metrics test signal을 각각 확인합니다.
-5. nginx `access.log`의 `traceId`와 Sentry event trace id join 가능 여부를 확인합니다.
+4. Sentry Logs와 error event를 확인합니다. 비활성인 Sentry transaction/profile/metrics signal을 완료 조건으로 요구하지 않습니다.
+5. nginx/application log의 `traceId`와 Sentry error event correlation을 확인합니다. OTLP trace는 Tempo에서 별도로 확인합니다.

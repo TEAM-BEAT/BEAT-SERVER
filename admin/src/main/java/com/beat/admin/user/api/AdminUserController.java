@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.beat.admin.user.api.response.UserSuccessCode;
 import com.beat.admin.user.application.dto.response.UserFindAllResponse;
 import com.beat.admin.user.facade.AdminUserFacade;
-import com.beat.gateway.security.servlet.CurrentMember;
+import com.beat.gateway.CurrentMember;
 import com.beat.global.support.response.SuccessResponse;
 
 import lombok.RequiredArgsConstructor;

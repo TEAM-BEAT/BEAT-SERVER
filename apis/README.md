@@ -32,12 +32,12 @@
 - `admin`, `batch` 직접 의존 금지
 - `infra.external.*`, `infra.*.entity`, `infra.*.repository.impl` 직접 import 금지
 - gateway 내부 구현 직접 import 금지
-    - `com.beat.gateway.annotation.*`
     - `com.beat.gateway.jwt.internal.*`
-    - `com.beat.gateway.security.internal.*`
-    - `com.beat.gateway.filter.*`
-    - `com.beat.gateway.config.*`
-- 허용되는 gateway 공개 표면은 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember`로 제한하고 JWT/refresh token 계약은 `module-contracts`의 `com.beat.contracts.auth.*`를 사용
+    - `com.beat.gateway.refreshtoken.internal.*`
+    - `com.beat.gateway.guest.internal.*`
+    - `com.beat.gateway.authentication.internal.*`
+    - `com.beat.gateway.shared.internal.*`
+- 허용되는 gateway 공개 표면은 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.CurrentMember`로 제한하고 JWT/refresh token 계약은 `module-contracts`의 `com.beat.contracts.auth.*`를 사용
 - root legacy bootstrap lane import 금지
     - `com.beat.BeatApplication`
     - `com.beat.legacyroot.*`
@@ -110,7 +110,7 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
 | Executable lane ownership | 사용자 API lane은 root bootstrap 없이 `ApisApplication`과 module-local config로 실행된다. | 계속 `apis`가 user-facing controller/DTO/security/OpenAPI를 소유한다. | #384 gate baseline only |
 | Shared module ownership | `domain`, `module-contracts`, `global-support`, `observability`, `gateway`, `infra`의 현재 공개 계약을 사용한다. | shared module ownership/package closeout 이후 공개 계약만 더 좁게 사용한다. | #378 |
 | CQRS/package normalization | context별 `api/request`, `api/response`, `facade`, `application/command`, `application/query`, `application/result` 경계를 적용했다. 조회·변경 중 한쪽만 있는 context에는 불필요한 빈 package를 만들지 않는다. | 응집된 변경 이유와 transaction 경계를 기준으로 service를 나누며 endpoint마다 기계적으로 클래스를 만들지 않는다. | architecture guard로 지속 검증 |
-| Gateway boundary | `@EnableGatewayServletSecurity`, `@EnableGatewayConfig(REFRESH_TOKEN_STORE)`, `gateway.security.servlet.CurrentMember` 공개 표면으로 인증/refresh-token 경계를 선택한다. | gateway 내부 패키지 직접 참조 없이 필요한 gateway group만 선택한다. | #437에서 guard 고정 |
+| Gateway boundary | `@EnableGatewayServletSecurity`, `@EnableGatewayConfig(REFRESH_TOKEN_STORE)`, `gateway.CurrentMember` 공개 표면으로 인증/refresh-token 경계를 선택한다. | gateway 내부 패키지 직접 참조 없이 필요한 gateway group만 선택한다. | #437에서 guard 고정 |
 | Domain/persistence boundary | API DTO는 JPA Entity/QueryDSL Q type/Redis document를 직접 노출하지 않는 guard를 유지하고, 홈 화면의 공연·프로모션 조회는 단일 `HomeQueryService` read-only transaction에서 조합한다. | domain persistence 전략 정리 후에도 API boundary는 transfer DTO 중심으로 유지한다. | #380 |
 | Infra/query boundary | `InfraConfig`가 JPA, QueryDSL, async, external-client group을 명시적으로 import하고, `InfraPersistenceConfig`를 IDE static-analysis breadcrumb로 직접 import한다. Runtime persistence import는 여전히 `JpaConfig`가 보장한다. | QueryDSL/JDSL 전환과 scan 결정은 infra-owned boundary에서 정한다. | #381 |
 | Async/scheduler handoff | `apis`는 scheduler를 실행하지 않는다. 예매 마감은 DB 시각 기반 계산으로 완결된다. | async/coroutine 도입 범위가 결정될 때까지 HTTP lane의 비동기 경계를 넓히지 않는다. | #383, #428 |
