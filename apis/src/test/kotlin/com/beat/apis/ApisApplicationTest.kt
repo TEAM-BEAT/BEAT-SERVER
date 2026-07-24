@@ -182,7 +182,7 @@ class ApisApplicationTest {
 
     private fun guestMutationRequest(origin: String? = null): MockHttpServletRequest =
         MockHttpServletRequest("PATCH", "/api/bookings/refund").apply {
-            setCookies(Cookie("guestSession", "token"))
+            setCookies(Cookie("__Host-guestSession", "token"))
             origin?.let { addHeader("Origin", it) }
         }
 

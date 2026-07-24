@@ -108,14 +108,14 @@ class BookingController(
             .maxAge(GUEST_SESSION_MAX_AGE.toLong())
             .path("/")
             .secure(true)
-            .sameSite("Lax")
+            .sameSite("Strict")
             .httpOnly(true)
             .build()
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString())
     }
 
     private companion object {
-        const val GUEST_SESSION = "guestSession"
+        const val GUEST_SESSION = "__Host-guestSession"
         const val GUEST_SESSION_MAX_AGE = 30 * 60
     }
 }

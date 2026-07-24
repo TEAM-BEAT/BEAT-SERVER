@@ -37,7 +37,7 @@ class GuestSessionOriginFilter(
 
     private companion object {
         const val ORIGIN_HEADER = "Origin"
-        const val GUEST_SESSION_COOKIE = "guestSession"
+        const val GUEST_SESSION_COOKIE = "__Host-guestSession"
         val GUEST_MUTATION_PATHS = setOf("/api/bookings/refund", "/api/bookings/cancel")
     }
 }

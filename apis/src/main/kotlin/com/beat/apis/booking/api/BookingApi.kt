@@ -120,7 +120,7 @@ interface BookingApi {
     )
     fun refundBookings(
         @CurrentMember memberId: Long?,
-        @CookieValue(value = "guestSession", required = false) guestSessionToken: String?,
+        @CookieValue(value = "__Host-guestSession", required = false) guestSessionToken: String?,
         @RequestBody bookingRefundRequest: BookingRefundRequest,
     ): ResponseEntity<SuccessResponse<BookingRefundResponse>>
 
@@ -138,7 +138,7 @@ interface BookingApi {
     )
     fun cancelBookings(
         @CurrentMember memberId: Long?,
-        @CookieValue(value = "guestSession", required = false) guestSessionToken: String?,
+        @CookieValue(value = "__Host-guestSession", required = false) guestSessionToken: String?,
         @RequestBody bookingCancelRequest: BookingCancelRequest,
     ): ResponseEntity<SuccessResponse<BookingCancelResponse>>
 }
