@@ -76,7 +76,7 @@ class AdminPromotionCommandServiceTest {
 	@Test
 	void processAllPromotionsRejectsInvalidCarouselItemBeforeMutation() {
 		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
-		CarouselHandleCommand command = new CarouselHandleCommand(
+		CarouselHandleCommand command = CarouselHandleCommand.from(
 			Collections.<PromotionHandleCommand>singletonList(null)
 		);
 
@@ -92,9 +92,9 @@ class AdminPromotionCommandServiceTest {
 	@Test
 	void processAllPromotionsRejectsInvalidCarouselAssignmentsBeforeMutation() {
 		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
-		CarouselHandleCommand command = new CarouselHandleCommand(List.of(
-			new PromotionGenerateCommand("ONE", "image-1", true, "url-1", null),
-			new PromotionGenerateCommand("ONE", "image-2", true, "url-2", null)
+		CarouselHandleCommand command = CarouselHandleCommand.from(List.of(
+			PromotionGenerateCommand.of("ONE", "image-1", true, "url-1", null),
+			PromotionGenerateCommand.of("ONE", "image-2", true, "url-2", null)
 		));
 
 		AdminApplicationException exception = assertThrows(AdminApplicationException.class, () -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, command));
@@ -109,9 +109,9 @@ class AdminPromotionCommandServiceTest {
 	@Test
 	void processAllPromotionsRejectsDuplicateModifyIdsBeforeMutation() {
 		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
-		CarouselHandleCommand command = new CarouselHandleCommand(List.of(
-			new PromotionModifyCommand(1L, "ONE", "image-1", true, "url-1", null),
-			new PromotionModifyCommand(1L, "TWO", "image-2", true, "url-2", null)
+		CarouselHandleCommand command = CarouselHandleCommand.from(List.of(
+			PromotionModifyCommand.of(1L, "ONE", "image-1", true, "url-1", null),
+			PromotionModifyCommand.of(1L, "TWO", "image-2", true, "url-2", null)
 		));
 
 		AdminApplicationException exception = assertThrows(AdminApplicationException.class, () -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, command));
@@ -139,10 +139,10 @@ class AdminPromotionCommandServiceTest {
 			return savedPromotion;
 		});
 
-		CarouselHandleCommand command = new CarouselHandleCommand(List.of(
-			new PromotionModifyCommand(1L, "THREE", "prod/carousel/modified-image", true, "modified-url",
+		CarouselHandleCommand command = CarouselHandleCommand.from(List.of(
+			PromotionModifyCommand.of(1L, "THREE", "prod/carousel/modified-image", true, "modified-url",
 				PERFORMANCE_ID),
-			new PromotionGenerateCommand("ONE", "prod/carousel/created-image", false, "created-url", null)
+			PromotionGenerateCommand.of("ONE", "prod/carousel/created-image", false, "created-url", null)
 		));
 
 		AdminPromotionResults response =

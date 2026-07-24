@@ -1,5 +1,8 @@
 # Phase 1 — Image CDN 배포 노트 (운영 컨텍스트)
 
+> [!WARNING]
+> 2026-05-24 최초 배포의 historical snapshot입니다. 계정 ID, profile, bucket, 명령은 현재 운영 기준이 아니며 그대로 실행하지 않습니다. 현재 source of truth는 [`README.md`](README.md), environment inventory와 SOPS secret입니다.
+
 본 문서는 BEAT 의 Image CDN(Phase 1) 첫 배포 과정에서 발견된 함정과
 해결 방식을 시간순으로 정리한 운영 노트입니다. 향후 prod 배포, 다른
 환경 재현, 다른 작업자(또는 다른 AI 에이전트)가 맥락을 빠르게 파악할 수
@@ -32,7 +35,7 @@
 
 ---
 
-## 2. 운영 환경 (확정 사실)
+## 2. 당시 운영 환경 snapshot
 
 | 항목 | 값 |
 | --- | --- |

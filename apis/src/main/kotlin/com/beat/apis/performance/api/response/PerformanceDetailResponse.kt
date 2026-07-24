@@ -1,8 +1,10 @@
 package com.beat.apis.performance.api.response
 
+import com.beat.apis.performance.application.result.PerformanceDetailResult
 import com.beat.global.support.jackson.CdnImageUrl
 
-data class PerformanceDetailResponse(
+@ConsistentCopyVisibility
+data class PerformanceDetailResponse private constructor(
     val performanceId: Long?,
     val performanceTitle: String?,
     val performancePeriod: String?,
@@ -24,4 +26,30 @@ data class PerformanceDetailResponse(
     val staffList: List<PerformanceDetailStaffResponse>,
     val minDueDate: Int,
     val performanceImageList: List<PerformanceDetailImageResponse>,
-)
+) {
+    companion object {
+        fun from(result: PerformanceDetailResult): PerformanceDetailResponse = PerformanceDetailResponse(
+            performanceId = result.performanceId,
+            performanceTitle = result.performanceTitle,
+            performancePeriod = result.performancePeriod,
+            scheduleList = result.schedules.map(PerformanceDetailScheduleResponse::from),
+            ticketPrice = result.ticketPrice,
+            genre = result.genre,
+            posterImage = result.posterImage,
+            runningTime = result.runningTime,
+            performanceVenue = result.performanceVenue,
+            roadAddressName = result.roadAddressName,
+            placeDetailAddress = result.placeDetailAddress,
+            latitude = result.latitude,
+            longitude = result.longitude,
+            performanceDescription = result.performanceDescription,
+            performanceAttentionNote = result.performanceAttentionNote,
+            performanceContact = result.performanceContact,
+            performanceTeamName = result.performanceTeamName,
+            castList = result.casts.map(PerformanceDetailCastResponse::from),
+            staffList = result.staffs.map(PerformanceDetailStaffResponse::from),
+            minDueDate = result.minDueDate,
+            performanceImageList = result.images.map(PerformanceDetailImageResponse::from),
+        )
+    }
+}

@@ -5,8 +5,8 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.beat.domain.promotion.domain.CarouselNumber;
-import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.promotion.model.CarouselNumber;
+import com.beat.domain.promotion.model.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
 import com.beat.infra.persistence.promotion.entity.PromotionJpaEntity;
 import com.beat.infra.persistence.promotion.mapper.PromotionPersistenceMapper;

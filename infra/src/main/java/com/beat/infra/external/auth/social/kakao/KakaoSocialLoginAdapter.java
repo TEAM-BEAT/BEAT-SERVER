@@ -1,5 +1,8 @@
 package com.beat.infra.external.auth.social.kakao;
 
+import java.net.SocketTimeoutException;
+import java.util.regex.Pattern;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +17,7 @@ import com.beat.infra.external.auth.social.kakao.response.KakaoAccessTokenRespon
 import com.beat.infra.external.auth.social.kakao.response.KakaoUserResponse;
 
 import feign.FeignException;
+import feign.RetryableException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,6 +25,8 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class KakaoSocialLoginAdapter implements SocialLoginPort {
+	private static final Pattern REJECTED_AUTHORIZATION_CODE =
+		Pattern.compile("\\\"error_code\\\"\\s*:\\s*\\\"?KOE320\\\"?");
 
 	private static final String AUTH_CODE = "authorization_code";
 
@@ -42,15 +48,18 @@ public class KakaoSocialLoginAdapter implements SocialLoginPort {
 		String accessToken;
 		try {
 			accessToken = getOAuth2Authentication(request.getAuthorizationCode());
+		} catch (RetryableException exception) {
+			throw translateRetryableFailure(exception);
 		} catch (FeignException exception) {
-			throw SocialLoginFailure.authenticationFailed(exception);
+			throw translateTokenFeignFailure(exception);
 		}
 
 		try {
 			return mapToSocialMemberInfo(getUserInfo(accessToken));
+		} catch (RetryableException exception) {
+			throw translateRetryableFailure(exception);
 		} catch (FeignException exception) {
-			log.error("Failed to fetch Kakao user info with access token", exception);
-			throw SocialLoginFailure.authenticationFailed(exception);
+			throw translateUserInfoFeignFailure(exception);
 		}
 	}
 
@@ -63,7 +72,7 @@ public class KakaoSocialLoginAdapter implements SocialLoginPort {
 		);
 		if (response == null) {
 			log.error("Kakao OAuth token response is null.");
-			throw SocialLoginFailure.authenticationFailed(null);
+			throw SocialLoginFailure.providerFailure();
 		}
 
 		log.info("Received OAuth2 authentication response: tokenType={}, hasAccessToken={}, hasRefreshToken={}",
@@ -73,20 +82,20 @@ public class KakaoSocialLoginAdapter implements SocialLoginPort {
 
 		String accessToken = response.accessToken();
 		if (accessToken == null || accessToken.isBlank()) {
-			log.error("Kakao OAuth token response does not contain access token. response={}", response);
-			throw SocialLoginFailure.authenticationFailed(null);
+			log.error("Kakao OAuth token response does not contain access token.");
+			throw SocialLoginFailure.providerFailure();
 		}
 		return accessToken;
 	}
 
 	private KakaoUserResponse getUserInfo(String accessToken) {
 		if (accessToken == null || accessToken.isBlank()) {
-			throw SocialLoginFailure.authenticationFailed(null);
+			throw SocialLoginFailure.providerFailure();
 		}
 
 		KakaoUserResponse kakaoUserResponse = kakaoApiClient.getUserInformation("Bearer " + accessToken);
-		log.info("Kakao user response summary: id={}, hasKakaoAccount={}, hasProfile={}",
-			kakaoUserResponse != null ? kakaoUserResponse.id() : null,
+		log.info("Kakao user response summary: hasId={}, hasKakaoAccount={}, hasProfile={}",
+			kakaoUserResponse != null && kakaoUserResponse.id() != null,
 			kakaoUserResponse != null && kakaoUserResponse.kakaoAccount() != null,
 			kakaoUserResponse != null
 				&& kakaoUserResponse.kakaoAccount() != null
@@ -96,26 +105,26 @@ public class KakaoSocialLoginAdapter implements SocialLoginPort {
 
 	private SocialMemberInfo mapToSocialMemberInfo(KakaoUserResponse kakaoUserResponse) {
 		if (kakaoUserResponse == null) {
-			throw SocialLoginFailure.authenticationFailed(null);
+			throw SocialLoginFailure.providerFailure();
 		}
 		if (kakaoUserResponse.id() == null) {
 			log.error("Kakao user response does not contain id.");
-			throw SocialLoginFailure.authenticationFailed(null);
+			throw SocialLoginFailure.providerFailure();
 		}
 		if (kakaoUserResponse.kakaoAccount() == null) {
-			log.error("Kakao user response does not contain kakao_account. id={}", kakaoUserResponse.id());
-			throw SocialLoginFailure.authenticationFailed(null);
+			log.error("Kakao user response does not contain kakao_account.");
+			throw SocialLoginFailure.providerFailure();
 		}
 		if (kakaoUserResponse.kakaoAccount().profile() == null) {
-			log.error("Kakao user response does not contain profile. id={}", kakaoUserResponse.id());
-			throw SocialLoginFailure.authenticationFailed(null);
+			log.error("Kakao user response does not contain profile.");
+			throw SocialLoginFailure.providerFailure();
 		}
 
 		String nickname = kakaoUserResponse.kakaoAccount().profile().nickname();
 		String email = kakaoUserResponse.kakaoAccount().email();
 		if (nickname == null || nickname.isBlank()) {
-			log.error("Kakao user response does not contain nickname. id={}", kakaoUserResponse.id());
-			throw SocialLoginFailure.authenticationFailed(null);
+			log.error("Kakao user response does not contain nickname.");
+			throw SocialLoginFailure.providerFailure();
 		}
 
 		return new SocialMemberInfo(
@@ -123,5 +132,39 @@ public class KakaoSocialLoginAdapter implements SocialLoginPort {
 			nickname,
 			email
 		);
+	}
+
+	private SocialLoginFailure translateTokenFeignFailure(FeignException exception) {
+		log.warn("Kakao OAuth token request failed: status={}", exception.status());
+		if ((exception.status() == 400 || exception.status() == 401)
+			&& REJECTED_AUTHORIZATION_CODE.matcher(exception.contentUTF8()).find()) {
+			return SocialLoginFailure.authenticationFailed(exception);
+		}
+		return translateProviderFeignFailure(exception);
+	}
+
+	private SocialLoginFailure translateUserInfoFeignFailure(FeignException exception) {
+		log.warn("Kakao user-info request failed: status={}", exception.status());
+		return translateProviderFeignFailure(exception);
+	}
+
+	private SocialLoginFailure translateProviderFeignFailure(FeignException exception) {
+		if (exception.status() == 429 || exception.status() >= 500 || exception.status() < 0) {
+			return SocialLoginFailure.providerUnavailable(exception);
+		}
+		return SocialLoginFailure.providerFailure(exception);
+	}
+
+	private SocialLoginFailure translateRetryableFailure(RetryableException exception) {
+		Throwable cause = exception;
+		while (cause != null) {
+			if (cause instanceof SocketTimeoutException) {
+				log.warn("Kakao request timed out: status={}", exception.status());
+				return SocialLoginFailure.providerTimeout(exception);
+			}
+			cause = cause.getCause();
+		}
+		log.warn("Kakao retryable request failed: status={}", exception.status());
+		return SocialLoginFailure.providerUnavailable(exception);
 	}
 }

@@ -1,8 +1,10 @@
 package com.beat.apis.performance.api.response
 
+import com.beat.apis.performance.application.result.BookingPerformanceDetailResult
 import com.beat.global.support.jackson.CdnImageUrl
 
-data class BookingPerformanceDetailResponse(
+@ConsistentCopyVisibility
+data class BookingPerformanceDetailResponse private constructor(
     val performanceId: Long?,
     val performanceTitle: String?,
     val performancePeriod: String?,
@@ -14,4 +16,21 @@ data class BookingPerformanceDetailResponse(
     val bankName: String?,
     val accountNumber: String?,
     val accountHolder: String?,
-)
+) {
+    companion object {
+        fun from(result: BookingPerformanceDetailResult): BookingPerformanceDetailResponse = BookingPerformanceDetailResponse(
+            performanceId = result.performanceId,
+            performanceTitle = result.performanceTitle,
+            performancePeriod = result.performancePeriod,
+            scheduleList = result.schedules.map(BookingPerformanceDetailScheduleResponse::from),
+            ticketPrice = result.ticketPrice,
+            genre = result.genre,
+            posterImage = result.posterImage,
+            performanceVenue = result.performanceVenue,
+            performanceTeamName = result.performanceTeamName,
+            bankName = result.bankName,
+            accountNumber = result.accountNumber,
+            accountHolder = result.accountHolder,
+        )
+    }
+}

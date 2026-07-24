@@ -16,6 +16,7 @@ public interface StaffJpaRepository extends JpaRepository<StaffJpaEntity, Long> 
 	@Query("SELECT s.id FROM Staff s WHERE s.performanceId = :performanceId")
 	List<Long> findIdsByPerformanceId(@Param("performanceId") Long performanceId);
 
+
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("DELETE FROM Staff s WHERE s.performanceId = :performanceId")
 	void deleteByPerformanceId(@Param("performanceId") Long performanceId);

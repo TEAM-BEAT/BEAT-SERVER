@@ -31,7 +31,7 @@ class AdminPromotionFacadeTest {
 			.thenReturn(new BannerPresignedUrlResult("banner-url"));
 		when(queryService.findAllPromotionsSortedByCarouselNumber(1L))
 			.thenReturn(new AdminPromotionResults(List.of()));
-		when(commandService.processAllPromotionsSortedByCarouselNumber(1L, new CarouselHandleCommand(List.of())))
+		when(commandService.processAllPromotionsSortedByCarouselNumber(1L, CarouselHandleCommand.from(List.of())))
 			.thenReturn(new AdminPromotionResults(List.of()));
 
 		adminPromotionFacade.checkMemberAndIssueAllPresignedUrlsForCarousel(1L, List.of("carousel.png"));
@@ -42,6 +42,6 @@ class AdminPromotionFacadeTest {
 		verify(queryService).issueAllPresignedUrlsForCarousel(1L, List.of("carousel.png"));
 		verify(queryService).issuePresignedUrlForBanner(1L, "banner.png");
 		verify(queryService).findAllPromotionsSortedByCarouselNumber(1L);
-		verify(commandService).processAllPromotionsSortedByCarouselNumber(1L, new CarouselHandleCommand(List.of()));
+		verify(commandService).processAllPromotionsSortedByCarouselNumber(1L, CarouselHandleCommand.from(List.of()));
 	}
 }

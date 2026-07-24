@@ -177,7 +177,7 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 		int purchaseTicketCount,
 		ScheduleNumber scheduleNumber
 	) {
-		return new GuestBookingCommand(
+		return GuestBookingCommand.of(
 			schedule.getId(),
 			purchaseTicketCount,
 			"서지우",

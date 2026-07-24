@@ -23,5 +23,6 @@ tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_25)
         freeCompilerArgs.add("-Xjsr305=strict")
+        freeCompilerArgs.add("-Xemit-jvm-type-annotations")
     }
 }

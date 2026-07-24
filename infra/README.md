@@ -261,6 +261,10 @@ flowchart LR
   등록합니다.
 - 외부 API 응답 DTO (response 패키지)는 해당 provider 패키지 아래에 둡니다.
 - 새 외부 서비스가 추가될 때는 `external.<concern>.<provider>` 경로로 추가합니다.
+- provider 예외를 그대로 노출하지 않고 adapter-local exception 또는 port가 정의한 실패 언어로 번역합니다.
+- Kotlin `Result<T>`는 호출자가 재시도/무시/전파를 선택해야 하는 복구 가능한 실패에만 사용할 수 있습니다. 모든 external port의 기본 반환형으로 강제하지 않습니다.
+- `runCatching`으로 모든 `Throwable`을 삼키지 않습니다. 예상 가능한 client exception만 처리하고 코루틴 `CancellationException`은 재전파합니다.
+- 현재 Slack·SMS listener는 유실 가능한 best-effort 연동입니다. 결제·정산 또는 알림 전달 보장이 요구되는 use-case는 같은 방식으로 처리하지 않고 outbox, idempotency, retry/DLQ를 갖추는 별도 migration으로 전환합니다.
 
 ### RedisCacheConfig (dormant)
 
@@ -279,7 +283,7 @@ gateway-owned Redis refresh token store와 shared cache bootstrap은 별도 경�
 
 | 하위 패키지              | 소유 대상                                           | 생성 기준                                  |
 |---------------------|-------------------------------------------------|----------------------------------------|
-| `.entity`           | Kotlin JPA entity (`@Entity`, `@Table`)         | 항상                                     |
+| `.entity`           | Kotlin JPA entity와 persistence `@Embeddable`   | 항상                                     |
 | `.repository`       | JpaRepository, RepositoryPort 구현체               | 항상                                     |
 | `.mapper`           | JPA entity ↔ domain model 변환                    | entity와 domain model이 실제로 분리된 slice에서만 |
 | `.repository.query` | module-contracts ReadPort 구현체, query projection | 화면/검색/통계 조회가 복잡해질 때만                   |
@@ -289,13 +293,13 @@ gateway-owned Redis refresh token store와 shared cache bootstrap은 별도 경�
 | Context            | entity | repository | mapper | query                           |
 |--------------------|--------|------------|--------|---------------------------------|
 | `booking`          | ✅      | ✅          | ✅      | ✅ (MakerTicketReadPortImpl)     |
-| `cast`             | ✅      | ✅          | ✅      | -                               |
+| `cast`             | ✅      | JPA 내부 전용 | ✅      | -                               |
 | `member`           | ✅      | ✅          | ✅      | -                               |
-| `performance`      | ✅      | ✅          | ✅      | -                               |
-| `performanceimage` | ✅      | ✅          | ✅      | -                               |
+| `performance`      | ✅      | ✅          | ✅      | ✅ (Summary/Ownership/List ReadPort) |
+| `performanceimage` | ✅      | JPA 내부 전용 | ✅      | -                               |
 | `promotion`        | ✅      | ✅          | ✅      | -                               |
 | `schedule`         | ✅      | ✅          | ✅      | ✅ (ScheduleReadPortImpl) |
-| `staff`            | ✅      | ✅          | ✅      | -                               |
+| `staff`            | ✅      | JPA 내부 전용 | ✅      | -                               |
 | `user`             | ✅      | ✅          | ✅      | -                               |
 
 ### 영속성 어댑터 규칙
@@ -306,11 +310,21 @@ gateway-owned Redis refresh token store와 shared cache bootstrap은 별도 경�
 - infra는 실행 모듈 내부 DTO/ResponseDTO를 반환하지 않습니다.
 - mapper는 persistence entity와 domain model 사이의 변환만 담당합니다. query projection 조립, lazy reference 획득, API 응답 조립은 mapper 책임이
   아닙니다.
+- domain VO와 persistence `@Embeddable`은 서로 다른 타입입니다. Embeddable은 부모 entity에 생명주기가 종속되고 독립 identity/repository를 갖지 않습니다.
+- nullable embedded component는 모든 column이 함께 null이거나 함께 채워지는 all-or-none 규칙을 mapper와 DB `CHECK` 제약으로 함께 보장합니다.
+- 도메인 불변식은 Domain VO factory가 소유합니다. Embeddable은 JPA mapping과 DB 재구성 계약만 담당합니다.
+- DB row를 domain으로 재구성하다 불변식이 깨지면 mapper는 `PersistenceMappingException`으로 번역합니다. 저장 데이터 훼손을 client 400 DomainException으로 노출하지 않고, generic 500/관측 경로로 보냅니다.
+- 동시성 제어는 Aggregate별 실제 충돌률과 정합성 요구를 측정해 낙관적 lock, 비관적 lock, 원자적 조건부 update 중 가장 작은 전략을 선택합니다. lock 선택과 transaction orchestration은 ApplicationService에서 드러내고 infra repository가 기술 구현을 담당합니다.
+- 중복 불가 값과 all-or-none 값은 application 검증만 믿지 않고 DB `UNIQUE`, `NOT NULL`, `CHECK` 제약으로 최종 보강합니다.
+- 운영 schema 변경은 add nullable column → dual read/write 또는 backfill → 검증 → read 전환 → 제약 강화 → legacy 제거의 expand/contract 순서를 따릅니다. destructive 변경은 rollback window 뒤의 별도 migration으로 분리합니다.
+- `booking_payment_snapshot_migration.sql`은 과거 예매 금액이 이후 공연 가격 변경에 따라 달라지지 않도록 `booking.total_payment_amount`를 nullable로 확장하고 기존 데이터를 backfill합니다. 기존 이력이 따로 없으므로 backfill 값은 실행 시점의 공연 가격이며, 이미 가격이 변경된 공연의 원래 결제 금액은 운영 자료로 별도 대조해야 합니다. 애플리케이션은 신규 행에 snapshot을 기록하고 legacy null만 현재 가격으로 fallback합니다. `NOT NULL` contract는 구버전 binary rollback window가 끝난 뒤 별도로 적용합니다.
 
 ### Kotlin JPA entity 규칙
 
 JPA entity 작성 규약의 canonical source of truth는 루트 [`MIGRATION.md`](../MIGRATION.md)의 `Canonical Kotlin JPA entity rules`
 절입니다.
+
+Hibernate의 공식 기준은 [Hibernate ORM Introduction — Embeddable types](https://docs.jboss.org/hibernate/orm/7.2/introduction/pdf/Hibernate_Introduction.pdf)를 따릅니다. Embeddable은 persistent identity가 없고 부모가 lifecycle을 소유하며, Kotlin JPA plugin이 no-arg 생성 계약을 제공해야 합니다.
 
 ---
 
@@ -368,8 +382,8 @@ infra/
         mapper/   <Context>PersistenceMapper.java
         repository/
           <Context>JpaRepository.java
-          <Context>RepositoryImpl.java
-          query/  <Query>ReadPortImpl.kt          # Kotlin JDSL. booking: MakerTicketReadPortImpl
+          <Aggregate>RepositoryImpl.java           # Aggregate Root에만 공개 Domain adapter
+          query/  <Query>ReadPortImpl.kt          # 새 query adapter는 Kotlin
                                                   # schedule: ScheduleReadPortImpl
 
   src/main/kotlin/com/beat/infra/
@@ -411,6 +425,8 @@ global-support
 
 ### `SharedBoundaryContractTest`
 
+- 모든 `*Mapper`가 `infra.persistence.<aggregate>.mapper`에만 존재하는지 확인
+- Domain RepositoryPort가 명시된 Aggregate Root에만 대응하는지 확인
 - `InfraBaseConfig` marker javadoc이 `Marker for top-level infra bootstrap configurations`를 포함하는지 확인
 - top-level group config 4개가 `InfraBaseConfig`를 구현하는지 확인
 - support config 4개가 `InfraBaseConfig`를 구현하지 않는지 확인
@@ -447,6 +463,9 @@ global-support
 - [ ] Kotlin JPA entity 작성 규약을 `MIGRATION.md` canonical guide를 따랐는가?
 - [ ] mapper는 entity ↔ domain 변환만 담당하고 query projection 조립을 담당하지 않는가?
 - [ ] query adapter라면 `module-contracts` ReadPort를 구현하고 API ResponseDTO를 반환하지 않는가?
+- [ ] external adapter가 예상 가능한 provider exception만 번역하고 치명적 오류나 cancellation을 삼키지 않는가?
+- [ ] DB constraint와 lock 전략이 Aggregate invariant 및 concurrency test로 검증됐는가?
+- [ ] schema 변경이 expand/contract와 rollback 호환성을 지키는가?
 
 ---
 
@@ -633,7 +652,7 @@ flowchart TB
 - deploy 단계는 `max-parallel: 1` 로 모듈을 순차 배포
 - `release-drafter.yml` 은 draft release 갱신용이며, **실제 prod deploy trigger는 published release** 뿐이다
 - `rollback-prod.yml` 은 계속 **수동 workflow_dispatch** 로 유지
-- foundation/deploy/rollback은 모두 `concurrency: prod-runtime` + `queue: max` — prod 런타임 변경은 동시에 1개만 실행하고 pending deploy/rollback은 취소하지 않고 큐잉한다
+- foundation/deploy는 `concurrency: prod-runtime` + `queue: max`를 사용한다. 현재 `rollback-prod.yml`은 같은 group과 `cancel-in-progress: false`만 있고 `queue: max`가 없어 두 번째 pending rollback이 기존 pending run을 대체할 수 있다. workflow 수정 전에는 pending runtime 작업이 없을 때만 rollback을 dispatch한다.
 - resolver는 `ansible-inventory`로 대상 host/group를 선택하고, `community.sops` 환경에서 `ansible-inventory --host` 결과에 `ENC[...]` 가
   남을 수 있기 때문에 평문이 필요한 `ssh_host / ssh_port / ssh_host_fingerprint`만 임시 `ansible-playbook`으로 materialize 한다
 - `_ansible-exec.yml` 은 inventory resolver 성공을 전제로 하며, prod caller 쪽 legacy SSH fallback은 두지 않는다
@@ -681,7 +700,7 @@ v1.3.0 release 전에는 dev에서 `N → N+1 → rollback to N` 경로를 실�
 #### 2. N+1 forward 배포
 
 1. 다음 후보 commit `N+1`을 같은 방식으로 `deploy-dev.yml` `workflow_dispatch` + `deploy_ref`에 입력한다.
-2. dev deploy concurrency는 branch/tag/SHA 같은 source ref가 아니라 dev runtime target 기준으로 잠겨야 한다. 같은 dev 환경의 foundation/deploy/rollback이 동시에 실행되면 rehearsal 증거가 무효가 되므로 `queue: max`로 pending job을 큐잉한다.
+2. dev deploy/foundation은 source ref가 아니라 `dev-runtime` 기준 `queue: max`로 직렬화된다. 현재 `rollback-dev.yml`은 `queue: max`가 없으므로 pending runtime 작업이 없을 때만 dispatch한다.
 3. 배포 완료 후 원격 release metadata를 확인한다.
     - `current.json`: `N+1`
     - `previous.json`: `N`
@@ -815,7 +834,7 @@ infra/ansible/
   `module: foundation`을 전달하되, SSH metadata resolver는 현재 단일 host inventory contract를 재사용하기 위해 `connection_module`을 조회한다.
   기본값은 `apis`이며, inventory 대표 호스트가 바뀌면 GitHub environment/repository variable `DEV_FOUNDATION_CONNECTION_MODULE` /
   `PROD_FOUNDATION_CONNECTION_MODULE`로 `${connection_module}_servers` 조회 대상을 바꾼다.
-- foundation job과 deploy/rollback job은 각각 dev runtime target group / `prod-runtime` concurrency group을 공유하므로 foundation, deploy, rollback이 같은 런타임에서 겹치지 않는다. 각 runtime concurrency block은 `queue: max`를 사용해 matrix/pending job이 취소되지 않고 순차 실행되게 한다. dev key는 branch/tag/SHA 같은 source ref가 아니라 dev 환경 런타임 target 기준이어야 한다.
+- foundation/deploy/rollback은 환경별 runtime concurrency group을 공유해 동시에 실행되지는 않는다. foundation/deploy는 `queue: max`지만 rollback workflow는 아직 기본 single pending queue이므로 대기 작업 대체 위험이 남아 있다. dev key는 source ref가 아니라 dev runtime target 기준이다.
 
 ### Seed placeholder upstreams
 
@@ -884,8 +903,9 @@ curl -Ik https://<host>/favicon.ico
 `nginx_base_config` transaction이 검증과 reload를 수행하므로, 아래 `nginx -t`는 적용 후 확인용이다.
 
 ```bash
-ansible-playbook infra/ansible/playbooks/foundation.yml \
-  -i infra/ansible/inventories/prod/hosts.yml \
+cd infra/ansible
+ansible-playbook playbooks/foundation.yml \
+  -i inventories/prod/hosts.yml \
   --tags nginx \
   -e deploy_environment=prod \
   -e foundation_manage_nginx=true \
@@ -897,8 +917,9 @@ docker exec nginx nginx -t
 재활성화:
 
 ```bash
-ansible-playbook infra/ansible/playbooks/foundation.yml \
-  -i infra/ansible/inventories/prod/hosts.yml \
+cd infra/ansible
+ansible-playbook playbooks/foundation.yml \
+  -i inventories/prod/hosts.yml \
   --tags nginx \
   -e deploy_environment=prod \
   -e foundation_manage_nginx=true \
@@ -1054,8 +1075,8 @@ flowchart TD
 
 `app_secret` 역할(Role)이 `app_secret_content`를 복호화하여 타겟 서버의 물리적 파일로 쓸 때, 매우 정교한 방어적 보안이 적용됩니다.
 
-1. **파일 권한 통제 (0640 & UID 10001)**: 호스트의 `/opt/beat/secret` 경로에 생성되는 시크릿 파일은 `root:10001` 소유권과 `0640` 파일 권한을 강제합니다. 컨테이너가 루트 권한 없이 `UID 10001` 계정으로 실행되므로 파일을 합법적으로 읽을 수 있지만, 호스트에 침투한 다른 권한 없는 사용자나 스크립트는 시크릿을 절대 탈취할 수 없습니다.
-2. **읽기 전용(RO) 마운트**: 애플리케이션 컨테이너를 구동할 때 `-v /opt/beat/secret:/app/secret:ro` 형태로 볼륨을 마운트합니다. Spring Boot는 `/app/secret` 경로에서 프로퍼티를 안전하게 로드하며, 컨테이너 내부에서 시크릿 파일을 임의로 수정/삭제하는 것을 원천 차단합니다.
+1. **파일 권한 통제 (0640 & UID 10001)**: `/opt/beat/secret`의 `root:10001`, `0640`은 권한 없는 host user의 접근을 줄이는 defense-in-depth입니다. root/Docker daemon/동일 UID 또는 탈취된 application process의 data-in-use 접근까지 막지는 못하므로 rotation과 revocation 절차를 함께 유지합니다.
+2. **읽기 전용(RO) 마운트**: `-v /opt/beat/secret:/app/secret:ro`는 container 내부의 우발적 수정을 막지만 읽기 권한이 있는 process의 유출을 막는 보안 경계는 아닙니다.
 
 ### 팀원 추가 절차
 
@@ -1102,12 +1123,12 @@ Ansible의 `community.docker` 모듈이 타겟 EC2 서버에서 정상 동작하
 3. **Nginx Helper 스크립트 종속성**
    - `update-nginx-config.py`는 외부 의존성 없이 표준 파이썬 라이브러리만 사용하므로 추가 pip 패키지 설치는 필요 없습니다.
 
-또한, Ansible Playbook이 정상 동작하려면 아래 **파일 시스템 구조**가 타겟 서버에 미리 존재해야 합니다 (Ansible이 자동으로 생성해주지 않는 Out-of-band 관리 대상입니다).
+또한, Ansible Playbook 실행 전 아래 계약을 확인합니다.
 
-4. **SSL 인증서 (Certbot)**
-   - Nginx가 HTTPS 설정으로 구동되기 위해 Let's Encrypt 인증서가 필수입니다.
-   - `/home/ubuntu/data/certbot/conf/live/<letsencrypt_cert_name>/fullchain.pem` 및 `privkey.pem`
-   - 위 파일들이 사전에 발급되어 있지 않으면 `foundation_stack` 실행 시 Nginx 컨테이너가 볼륨 마운트 및 설정 파일 파싱 오류로 즉시 종료(Exit 1)됩니다.
+4. **SSL 인증서 bootstrap**
+   - `letsencrypt_bootstrap` role이 최초 인증서를 발급합니다.
+   - 대상 DNS가 host를 가리키고 80/443 port가 열려 있으며 `letsencrypt_email`/certificate name이 올바른지 확인합니다.
+   - 발급 후 `/home/ubuntu/data/certbot/conf/live/<letsencrypt_cert_name>/fullchain.pem`과 `privkey.pem`을 foundation/nginx가 사용합니다.
 5. **Redis 설정 파일**
    - `/home/ubuntu/redis.conf`
    - 이 파일이 호스트에 없으면 Docker 엔진이 이를 디렉토리로 간주하여 빈 폴더를 생성해버리고, 결과적으로 Redis 컨테이너가 `Fatal error, can't open config file` 에러와 함께 구동에 실패합니다.
@@ -1348,7 +1369,7 @@ ansible-playbook playbooks/rollback.yml -i inventories/prod/hosts.yml --syntax-c
 | Redis 컨테이너명 | `redis`                                    | `redis`                                         |
 | 도메인         | `secrets.sops.yml`의 `nginx_server_name` 참조 | 동일                                              |
 | 롤백          | rollback-dev.yml (수동 rehearsal/복구)           | rollback-prod.yml (수동)                          |
-| concurrency | dev runtime target lock + `queue: max` (source ref와 무관) | `prod-runtime` + `queue: max` (전역 락)             |
+| concurrency | `dev-runtime`; deploy/foundation은 `queue: max`, rollback은 현재 미적용 | `prod-runtime`; deploy/foundation은 `queue: max`, rollback은 현재 미적용 |
 
 ## Rollback
 
@@ -1402,7 +1423,7 @@ flowchart TB
 
 - `previous.json`이 없으면 롤백 불가 (assert 실패)
 - `release_ref`는 "롤백을 실행할 Ansible 코드 checkout 기준"이며, 실제 복원 대상 이미지는 원격 호스트의 `previous.json`에서 읽는다.
-- `rollback-dev.yml`은 rehearsal 편의를 위해 branch/tag/full SHA를 허용하되, workflow 초기에 checkout commit SHA로 고정하고 `dev-runtime` concurrency lock + `queue: max`를 사용한다.
+- `rollback-dev.yml`은 branch/tag/full SHA를 허용하고 workflow 초기에 checkout commit SHA로 고정하며 `dev-runtime` lock을 사용한다. 현재 `queue: max`는 없어 pending run 대체 위험이 남아 있다.
 - `rollback-prod.yml`은 `vX.Y.Z` release tag 또는 full 40-character commit SHA만 허용하고, 해당 commit이 `origin/main` 계열에 포함된 경우에만 `_ansible-exec.yml`의 `checkout_ref`로 전달한다.
 - 롤백 후 `app_healthcheck`와 nginx route 갱신이 모두 성공해야 `current.json`을 live 상태로 복원한다
 - `admin`/`batch`처럼 `stop_start`인 모듈은 롤백 중 실패하면 사전에 archive/read한 `current.json` 이미지로 컨테이너 복원을 시도한 뒤 실패를 보고한다

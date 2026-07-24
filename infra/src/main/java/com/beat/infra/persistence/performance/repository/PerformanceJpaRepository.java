@@ -1,14 +1,19 @@
 package com.beat.infra.persistence.performance.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-import com.beat.domain.performance.domain.Genre;
 import com.beat.infra.persistence.performance.entity.PerformanceJpaEntity;
 
-public interface PerformanceJpaRepository extends JpaRepository<PerformanceJpaEntity, Long> {
-	List<PerformanceJpaEntity> findByGenre(Genre genre);
+import jakarta.persistence.LockModeType;
 
-	List<PerformanceJpaEntity> findByUserId(Long userId);
+public interface PerformanceJpaRepository extends JpaRepository<PerformanceJpaEntity, Long> {
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("SELECT p FROM PerformanceJpaEntity p WHERE p.id = :id")
+	Optional<PerformanceJpaEntity> lockById(@Param("id") Long id);
 }

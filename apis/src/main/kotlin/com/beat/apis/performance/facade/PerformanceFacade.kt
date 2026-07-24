@@ -8,12 +8,6 @@ import com.beat.apis.performance.api.response.PerformanceDetailResponse
 import com.beat.apis.performance.api.response.PerformanceModifyDetailResponse
 import com.beat.apis.performance.api.response.PerformanceModifyResponse
 import com.beat.apis.performance.api.response.PerformanceResponse
-import com.beat.apis.performance.api.response.toBookingPerformanceDetailResponse
-import com.beat.apis.performance.api.response.toMakerPerformanceResponse
-import com.beat.apis.performance.api.response.toPerformanceDetailResponse
-import com.beat.apis.performance.api.response.toPerformanceModifyDetailResponse
-import com.beat.apis.performance.api.response.toPerformanceModifyResponse
-import com.beat.apis.performance.api.response.toPerformanceResponse
 import com.beat.apis.performance.application.command.CastCreateCommand
 import com.beat.apis.performance.application.command.CastModifyCommand
 import com.beat.apis.performance.application.command.PerformanceBankName
@@ -45,29 +39,29 @@ class PerformanceFacade(
     private val modifyCommandService: PerformanceModifyCommandService,
 ) {
     fun createPerformance(memberId: Long, request: PerformanceRequest): PerformanceResponse =
-        createCommandService.createPerformance(memberId, request.toCommand()).toPerformanceResponse()
+        PerformanceResponse.from(createCommandService.createPerformance(memberId, request.toCommand()))
 
     fun modifyPerformance(memberId: Long, request: PerformanceModifyRequest): PerformanceModifyResponse =
-        modifyCommandService.modifyPerformance(memberId, request.toCommand()).toPerformanceModifyResponse()
+        PerformanceModifyResponse.from(modifyCommandService.modifyPerformance(memberId, request.toCommand()))
 
     fun getPerformanceEdit(memberId: Long, performanceId: Long): PerformanceModifyDetailResponse =
-        editFormQueryService.getPerformanceEdit(memberId, performanceId).toPerformanceModifyDetailResponse()
+        PerformanceModifyDetailResponse.from(editFormQueryService.getPerformanceEdit(memberId, performanceId))
 
     fun getPerformanceDetail(performanceId: Long): PerformanceDetailResponse =
-        detailQueryService.getPerformanceDetail(performanceId).toPerformanceDetailResponse()
+        PerformanceDetailResponse.from(detailQueryService.getPerformanceDetail(performanceId))
 
     fun getBookingPerformanceDetail(performanceId: Long): BookingPerformanceDetailResponse =
-        detailQueryService.getBookingPerformanceDetail(performanceId).toBookingPerformanceDetailResponse()
+        BookingPerformanceDetailResponse.from(detailQueryService.getBookingPerformanceDetail(performanceId))
 
     fun getMemberPerformances(memberId: Long): MakerPerformanceResponse =
-        makerPerformanceListQueryService.getMemberPerformances(memberId).toMakerPerformanceResponse()
+        MakerPerformanceResponse.from(makerPerformanceListQueryService.getMemberPerformances(memberId))
 
     fun deletePerformance(memberId: Long, performanceId: Long) {
         deleteCommandService.deletePerformance(memberId, performanceId)
     }
 }
 
-private fun PerformanceRequest.toCommand(): PerformanceCreateCommand = PerformanceCreateCommand(
+private fun PerformanceRequest.toCommand(): PerformanceCreateCommand = PerformanceCreateCommand.of(
     performanceTitle = requireNotNull(performanceTitle),
     genre = PerformanceGenre.valueOf(requireNotNull(genre).name),
     runningTime = requireNotNull(runningTime),
@@ -86,24 +80,24 @@ private fun PerformanceRequest.toCommand(): PerformanceCreateCommand = Performan
     performanceContact = requireNotNull(performanceContact),
     ticketPrice = requireNotNull(ticketPrice),
     schedules = requireNotNull(scheduleList).map {
-        ScheduleCreateCommand(
+        ScheduleCreateCommand.of(
             requireNotNull(it.performanceDate),
             requireNotNull(it.totalTicketCount),
             PerformanceScheduleNumber.valueOf(requireNotNull(it.scheduleNumber).name),
         )
     },
     casts = requireNotNull(castList).map {
-        CastCreateCommand(requireNotNull(it.castName), requireNotNull(it.castRole), requireNotNull(it.castPhoto))
+        CastCreateCommand.of(requireNotNull(it.castName), requireNotNull(it.castRole), requireNotNull(it.castPhoto))
     },
     staffs = requireNotNull(staffList).map {
-        StaffCreateCommand(requireNotNull(it.staffName), requireNotNull(it.staffRole), requireNotNull(it.staffPhoto))
+        StaffCreateCommand.of(requireNotNull(it.staffName), requireNotNull(it.staffRole), requireNotNull(it.staffPhoto))
     },
     images = requireNotNull(performanceImageList).map {
-        PerformanceImageCreateCommand(requireNotNull(it.performanceImage))
+        PerformanceImageCreateCommand.from(requireNotNull(it.performanceImage))
     },
 )
 
-private fun PerformanceModifyRequest.toCommand(): PerformanceModifyCommand = PerformanceModifyCommand(
+private fun PerformanceModifyRequest.toCommand(): PerformanceModifyCommand = PerformanceModifyCommand.of(
     performanceId = requireNotNull(performanceId),
     performanceTitle = requireNotNull(performanceTitle),
     genre = PerformanceGenre.valueOf(requireNotNull(genre).name),
@@ -123,15 +117,15 @@ private fun PerformanceModifyRequest.toCommand(): PerformanceModifyCommand = Per
     performanceContact = requireNotNull(performanceContact),
     ticketPrice = requireNotNull(ticketPrice),
     schedules = requireNotNull(scheduleModifyRequests).map {
-        ScheduleModifyCommand(it.scheduleId, requireNotNull(it.performanceDate), requireNotNull(it.totalTicketCount))
+        ScheduleModifyCommand.of(it.scheduleId, requireNotNull(it.performanceDate), requireNotNull(it.totalTicketCount))
     },
     casts = requireNotNull(castModifyRequests).map {
-        CastModifyCommand(it.castId, requireNotNull(it.castName), requireNotNull(it.castRole), requireNotNull(it.castPhoto))
+        CastModifyCommand.of(it.castId, requireNotNull(it.castName), requireNotNull(it.castRole), requireNotNull(it.castPhoto))
     },
     staffs = requireNotNull(staffModifyRequests).map {
-        StaffModifyCommand(it.staffId, requireNotNull(it.staffName), requireNotNull(it.staffRole), requireNotNull(it.staffPhoto))
+        StaffModifyCommand.of(it.staffId, requireNotNull(it.staffName), requireNotNull(it.staffRole), requireNotNull(it.staffPhoto))
     },
     images = requireNotNull(performanceImageModifyRequests).map {
-        PerformanceImageModifyCommand(it.performanceImageId, requireNotNull(it.performanceImage))
+        PerformanceImageModifyCommand.of(it.performanceImageId, requireNotNull(it.performanceImage))
     },
 )

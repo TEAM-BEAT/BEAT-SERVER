@@ -53,17 +53,21 @@ public class AdminPromotionFacade {
 	}
 
 	private CarouselHandleCommand toCommand(CarouselHandleRequest request) {
-		if (request == null || request.carousels() == null) {
+		if (request == null) {
 			throw invalidRequest();
 		}
-		return new CarouselHandleCommand(request.carousels().stream()
+		List<PromotionHandleRequest> carousels = request.carousels();
+		if (carousels == null) {
+			throw invalidRequest();
+		}
+		return CarouselHandleCommand.from(carousels.stream()
 			.map(this::toCommand)
 			.toList());
 	}
 
 	private PromotionHandleCommand toCommand(PromotionHandleRequest request) {
 		return switch (request) {
-			case PromotionModifyRequest modifyRequest -> new PromotionModifyCommand(
+			case PromotionModifyRequest modifyRequest -> PromotionModifyCommand.of(
 				requireNonNull(modifyRequest.promotionId()),
 				requireNonNull(modifyRequest.carouselNumber()).name(),
 				requireNonNull(modifyRequest.newImageUrl()),
@@ -71,7 +75,7 @@ public class AdminPromotionFacade {
 				requireNonNull(modifyRequest.redirectUrl()),
 				modifyRequest.performanceId()
 			);
-			case PromotionGenerateRequest generateRequest -> new PromotionGenerateCommand(
+			case PromotionGenerateRequest generateRequest -> PromotionGenerateCommand.of(
 				requireNonNull(generateRequest.carouselNumber()).name(),
 				requireNonNull(generateRequest.newImageUrl()),
 				requireNonNull(generateRequest.isExternal()),

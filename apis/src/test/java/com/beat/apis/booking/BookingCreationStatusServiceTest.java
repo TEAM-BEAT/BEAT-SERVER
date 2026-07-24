@@ -105,7 +105,7 @@ class BookingCreationStatusServiceTest {
 		Schedule schedule = schedule();
 		PerformanceSummaryReadModel performance = performance();
 		Users user = Users.rehydrate(30L, Role.USER);
-		GuestBookingCommand request = new GuestBookingCommand(
+		GuestBookingCommand request = GuestBookingCommand.of(
 			1L,
 			1,
 			"booker",
@@ -137,7 +137,7 @@ class BookingCreationStatusServiceTest {
 		Schedule schedule = schedule();
 		PerformanceSummaryReadModel performance = performance();
 		Member member = Member.rehydrate(10L, "nickname", "email@test.com", null, 30L, SocialIdentity.of(SocialType.KAKAO, 123L));
-		MemberBookingCommand request = new MemberBookingCommand(
+		MemberBookingCommand request = MemberBookingCommand.of(
 			1L,
 			1,
 			"booker",
@@ -163,7 +163,7 @@ class BookingCreationStatusServiceTest {
 	void createMemberBookingRejectsRequestWhenDatabaseCloseTimeHasPassed() {
 		Schedule schedule = schedule();
 		Member member = Member.rehydrate(10L, "nickname", "email@test.com", null, 30L, SocialIdentity.of(SocialType.KAKAO, 123L));
-		MemberBookingCommand request = new MemberBookingCommand(
+		MemberBookingCommand request = MemberBookingCommand.of(
 			1L,
 			1,
 			"booker",
@@ -186,7 +186,7 @@ class BookingCreationStatusServiceTest {
 			1L, performanceDate, performanceDate.plusHours(2), 10, 10, ScheduleNumber.FIRST, 20L);
 		Member member = Member.rehydrate(
 			10L, "nickname", "email@test.com", null, 30L, SocialIdentity.of(SocialType.KAKAO, 123L));
-		MemberBookingCommand request = new MemberBookingCommand(
+		MemberBookingCommand request = MemberBookingCommand.of(
 			1L, 1, "booker", "010-0000-0000");
 
 		when(memberRepository.findById(10L)).thenReturn(Optional.of(member));
@@ -203,7 +203,7 @@ class BookingCreationStatusServiceTest {
 	void createMemberBookingLeavesZeroTicketValidationToDomain() {
 		Member member = Member.rehydrate(
 			10L, "nickname", "email@test.com", null, 30L, SocialIdentity.of(SocialType.KAKAO, 123L));
-		MemberBookingCommand request = new MemberBookingCommand(
+		MemberBookingCommand request = MemberBookingCommand.of(
 			1L, 0, "booker", "010-0000-0000");
 
 		when(memberRepository.findById(10L)).thenReturn(Optional.of(member));
@@ -218,7 +218,7 @@ class BookingCreationStatusServiceTest {
 
 	@Test
 	void createGuestBookingLeavesNegativeTicketValidationToDomain() {
-		GuestBookingCommand request = new GuestBookingCommand(
+		GuestBookingCommand request = GuestBookingCommand.of(
 			1L, -1, "booker", "010-0000-0000", "990101", "1234");
 
 		when(credentialAuthenticator.findUserId("booker", "010-0000-0000", "990101", "1234")).thenReturn(null);
@@ -236,7 +236,7 @@ class BookingCreationStatusServiceTest {
 	void createGuestBookingRejectsRequestWhenDatabaseCloseTimeHasPassed() {
 		Schedule schedule = schedule();
 		Users user = Users.rehydrate(30L, Role.USER);
-		GuestBookingCommand request = new GuestBookingCommand(
+		GuestBookingCommand request = GuestBookingCommand.of(
 			1L,
 			1,
 			"booker",

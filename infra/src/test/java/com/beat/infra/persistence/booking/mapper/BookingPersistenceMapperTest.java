@@ -8,10 +8,12 @@ import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
 
-import com.beat.domain.booking.domain.Booking;
-import com.beat.domain.booking.domain.BookingStatus;
-import com.beat.domain.performance.domain.BankName;
+import com.beat.domain.booking.model.Booking;
+import com.beat.domain.booking.model.BookingStatus;
+import com.beat.domain.booking.vo.RefundAccount;
+import com.beat.domain.sharedkernel.vo.BankName;
 import com.beat.infra.persistence.booking.entity.BookingJpaEntity;
+import com.beat.infra.persistence.booking.entity.RefundAccountJpaValue;
 
 class BookingPersistenceMapperTest {
 
@@ -31,11 +33,10 @@ class BookingPersistenceMapperTest {
 			cancellationDate,
 			"990101",
 			"1234",
-			BankName.KAKAOBANK,
-			"111-222",
-			"holder",
+			new RefundAccountJpaValue(BankName.KAKAOBANK, "111-222", "holder"),
 			22L,
-			33L
+			33L,
+			30_000
 		);
 
 		Booking booking = mapper.toDomain(entity);
@@ -51,6 +52,7 @@ class BookingPersistenceMapperTest {
 			() -> assertEquals(BankName.KAKAOBANK, booking.getBankName()),
 			() -> assertEquals("111-222", booking.getAccountNumber()),
 			() -> assertEquals("holder", booking.getAccountHolder()),
+			() -> assertEquals(30_000, booking.getTotalPaymentAmount()),
 			() -> assertEquals(22L, booking.getScheduleId()),
 			() -> assertEquals(33L, booking.getUserId())
 		);
@@ -64,11 +66,10 @@ class BookingPersistenceMapperTest {
 			"010-0000-0000",
 			"000101",
 			"pw",
-			null,
-			null,
-			null,
 			44L,
-			55L
+			55L,
+			LocalDateTime.of(2026, 4, 29, 19, 10),
+			20_000
 		);
 
 		BookingJpaEntity entity = mapper.toEntity(booking);
@@ -78,6 +79,7 @@ class BookingPersistenceMapperTest {
 			() -> assertEquals(1, entity.getPurchaseTicketCount()),
 			() -> assertEquals("new-booker", entity.getBookerName()),
 			() -> assertEquals(BookingStatus.CHECKING_PAYMENT, entity.getBookingStatus()),
+			() -> assertEquals(20_000, entity.getTotalPaymentAmount()),
 			() -> assertEquals(44L, entity.getScheduleId()),
 			() -> assertEquals(55L, entity.getUserId())
 		);
@@ -96,11 +98,10 @@ class BookingPersistenceMapperTest {
 			null,
 			"991231",
 			"pw",
-			BankName.TOSSBANK,
-			"999-888",
-			"refund-holder",
+			RefundAccount.of(BankName.TOSSBANK, "999-888", "refund-holder"),
 			41L,
-			51L
+			51L,
+			45_000
 		);
 
 		Booking roundTrip = mapper.toDomain(mapper.toEntity(booking));
@@ -112,6 +113,7 @@ class BookingPersistenceMapperTest {
 			() -> assertEquals(booking.getBankName(), roundTrip.getBankName()),
 			() -> assertEquals(booking.getAccountNumber(), roundTrip.getAccountNumber()),
 			() -> assertEquals(booking.getAccountHolder(), roundTrip.getAccountHolder()),
+			() -> assertEquals(booking.getTotalPaymentAmount(), roundTrip.getTotalPaymentAmount()),
 			() -> assertEquals(booking.getScheduleId(), roundTrip.getScheduleId()),
 			() -> assertEquals(booking.getUserId(), roundTrip.getUserId())
 		);

@@ -8,7 +8,6 @@ import com.beat.contracts.auth.social.SocialLoginFailure
 import com.beat.contracts.auth.social.SocialLoginPort
 import com.beat.contracts.auth.social.SocialLoginRequest
 import com.beat.contracts.auth.social.SocialLoginType
-import com.beat.contracts.auth.social.SocialMemberInfo
 import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.vo.SocialIdentity
 import com.beat.domain.user.repository.UserRepository

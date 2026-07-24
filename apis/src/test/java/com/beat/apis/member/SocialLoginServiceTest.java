@@ -67,7 +67,7 @@ class SocialLoginServiceTest {
 		when(socialLoginPort.login(any()))
 			.thenThrow(SocialLoginFailure.unsupportedSocialType());
 
-		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () -> socialLoginService.handleSocialLogin("code", new SocialLoginCommand(SocialLoginProvider.KAKAO)));
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () -> socialLoginService.handleSocialLogin("code", SocialLoginCommand.from(SocialLoginProvider.KAKAO)));
 
 		assertEquals(MemberApplicationErrorCode.SOCIAL_TYPE_BAD_REQUEST, exception.getErrorCode());
 	}
@@ -78,7 +78,7 @@ class SocialLoginServiceTest {
 		when(socialLoginPort.login(any()))
 			.thenThrow(failure);
 
-		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () -> socialLoginService.handleSocialLogin("code", new SocialLoginCommand(SocialLoginProvider.KAKAO)));
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () -> socialLoginService.handleSocialLogin("code", SocialLoginCommand.from(SocialLoginProvider.KAKAO)));
 
 		assertEquals(MemberApplicationErrorCode.AUTHENTICATION_CODE_EXPIRED, exception.getErrorCode());
 		assertSame(failure, exception.getCause());
@@ -92,7 +92,7 @@ class SocialLoginServiceTest {
 			.thenThrow(failure);
 
 		ApiApplicationException exception = assertThrows(ApiApplicationException.class,
-			() -> socialLoginService.handleSocialLogin("code", new SocialLoginCommand(SocialLoginProvider.KAKAO)));
+			() -> socialLoginService.handleSocialLogin("code", SocialLoginCommand.from(SocialLoginProvider.KAKAO)));
 
 		assertEquals(MemberApplicationErrorCode.SOCIAL_LOGIN_PROVIDER_FAILURE, exception.getErrorCode());
 		assertSame(failure, exception.getCause());
@@ -106,7 +106,7 @@ class SocialLoginServiceTest {
 			.thenThrow(failure);
 
 		ApiApplicationException exception = assertThrows(ApiApplicationException.class,
-			() -> socialLoginService.handleSocialLogin("code", new SocialLoginCommand(SocialLoginProvider.KAKAO)));
+			() -> socialLoginService.handleSocialLogin("code", SocialLoginCommand.from(SocialLoginProvider.KAKAO)));
 
 		assertEquals(MemberApplicationErrorCode.SOCIAL_LOGIN_PROVIDER_UNAVAILABLE, exception.getErrorCode());
 		assertSame(failure, exception.getCause());
@@ -119,7 +119,7 @@ class SocialLoginServiceTest {
 			.thenThrow(failure);
 
 		ApiApplicationException exception = assertThrows(ApiApplicationException.class,
-			() -> socialLoginService.handleSocialLogin("code", new SocialLoginCommand(SocialLoginProvider.KAKAO)));
+			() -> socialLoginService.handleSocialLogin("code", SocialLoginCommand.from(SocialLoginProvider.KAKAO)));
 
 		assertEquals(MemberApplicationErrorCode.SOCIAL_LOGIN_PROVIDER_TIMEOUT, exception.getErrorCode());
 		assertSame(failure, exception.getCause());
@@ -141,7 +141,7 @@ class SocialLoginServiceTest {
 
 		LoginSuccessResult actual = socialLoginService.handleSocialLogin(
 			"authorization-code",
-			new SocialLoginCommand(SocialLoginProvider.KAKAO)
+			SocialLoginCommand.from(SocialLoginProvider.KAKAO)
 		);
 
 		ArgumentCaptor<SocialLoginRequest> requestCaptor = ArgumentCaptor.forClass(SocialLoginRequest.class);
@@ -168,7 +168,7 @@ class SocialLoginServiceTest {
 
 		LoginSuccessResult actual = socialLoginService.handleSocialLogin(
 			"authorization-code",
-			new SocialLoginCommand(SocialLoginProvider.KAKAO)
+			SocialLoginCommand.from(SocialLoginProvider.KAKAO)
 		);
 
 		assertEquals(expectedResponse, actual);

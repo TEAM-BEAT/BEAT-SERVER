@@ -1,14 +1,28 @@
 package com.beat.apis.ticket.application.command
 
-data class TicketUpdateCommand(
+@ConsistentCopyVisibility
+data class TicketUpdateCommand private constructor(
     val performanceId: Long,
     val bookingList: List<TicketStatusUpdate>,
-)
+) {
+    companion object {
+        @JvmStatic
+        fun of(performanceId: Long, bookingList: List<TicketStatusUpdate>): TicketUpdateCommand =
+            TicketUpdateCommand(performanceId, bookingList)
+    }
+}
 
-data class TicketStatusUpdate(
+@ConsistentCopyVisibility
+data class TicketStatusUpdate private constructor(
     val bookingId: Long,
     val bookingStatus: TicketBookingStatus,
-)
+) {
+    companion object {
+        @JvmStatic
+        fun of(bookingId: Long, bookingStatus: TicketBookingStatus): TicketStatusUpdate =
+            TicketStatusUpdate(bookingId, bookingStatus)
+    }
+}
 
 enum class TicketBookingStatus {
     CHECKING_PAYMENT,
@@ -18,7 +32,14 @@ enum class TicketBookingStatus {
     BOOKING_DELETED,
 }
 
-data class TicketBookingIdsCommand(
+@ConsistentCopyVisibility
+data class TicketBookingIdsCommand private constructor(
     val performanceId: Long,
     val bookingIds: List<Long>,
-)
+) {
+    companion object {
+        @JvmStatic
+        fun of(performanceId: Long, bookingIds: List<Long>): TicketBookingIdsCommand =
+            TicketBookingIdsCommand(performanceId, bookingIds)
+    }
+}

@@ -16,6 +16,7 @@ public interface CastJpaRepository extends JpaRepository<CastJpaEntity, Long> {
 	@Query("SELECT c.id FROM Cast c WHERE c.performanceId = :performanceId")
 	List<Long> findIdsByPerformanceId(@Param("performanceId") Long performanceId);
 
+
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("DELETE FROM Cast c WHERE c.performanceId = :performanceId")
 	void deleteByPerformanceId(@Param("performanceId") Long performanceId);

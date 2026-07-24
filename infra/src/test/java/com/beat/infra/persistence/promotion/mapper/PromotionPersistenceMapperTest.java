@@ -8,8 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-import com.beat.domain.promotion.domain.CarouselNumber;
-import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.promotion.model.CarouselNumber;
+import com.beat.domain.promotion.model.Promotion;
 import com.beat.infra.persistence.promotion.entity.PromotionJpaEntity;
 
 class PromotionPersistenceMapperTest {

@@ -40,7 +40,7 @@ class BookingFacade(
         MemberBookingResponse.from(
             memberBookingCommandService.createMemberBooking(
                 memberId,
-                MemberBookingCommand(
+                MemberBookingCommand.of(
                     scheduleId = requireNotNull(request.scheduleId),
                     purchaseTicketCount = requireNotNull(request.purchaseTicketCount),
                     bookerName = requireNotNull(request.bookerName),
@@ -55,7 +55,7 @@ class BookingFacade(
     fun createGuestBooking(request: GuestBookingRequest): GuestBookingSessionOutcome<GuestBookingResponse> {
         val response = GuestBookingResponse.from(
             guestBookingCommandService.createGuestBooking(
-                GuestBookingCommand(
+                GuestBookingCommand.of(
                     scheduleId = requireNotNull(request.scheduleId),
                     purchaseTicketCount = requireNotNull(request.purchaseTicketCount),
                     bookerName = requireNotNull(request.bookerName),
@@ -76,7 +76,7 @@ class BookingFacade(
         clientAddress: String,
     ): GuestBookingSessionOutcome<List<GuestBookingRetrieveResponse>> {
         val userId = guestBookingAuthenticationCommandService.authenticate(
-            GuestBookingAuthenticationCommand(
+            GuestBookingAuthenticationCommand.of(
                 bookerName = requireNotNull(request.bookerName),
                 birthDate = requireNotNull(request.birthDate),
                 bookerPhoneNumber = requireNotNull(request.bookerPhoneNumber),
@@ -97,7 +97,7 @@ class BookingFacade(
     ): BookingRefundResponse = BookingRefundResponse.from(
         bookingCancellationCommandService.refundBooking(
             guestBookingSessionCommandService.resolveActorUserId(memberId, guestSessionToken),
-            BookingRefundCommand(
+            BookingRefundCommand.of(
                 bookingId = requireNotNull(request.bookingId),
                 bankName = request.bankName?.name,
                 accountNumber = request.accountNumber,
@@ -113,7 +113,7 @@ class BookingFacade(
     ): BookingCancelResponse = BookingCancelResponse.from(
         bookingCancellationCommandService.cancelBooking(
             guestBookingSessionCommandService.resolveActorUserId(memberId, guestSessionToken),
-            BookingCancelCommand(requireNotNull(request.bookingId)),
+            BookingCancelCommand.from(requireNotNull(request.bookingId)),
         ),
     )
 

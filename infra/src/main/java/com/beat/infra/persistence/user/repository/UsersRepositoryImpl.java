@@ -5,7 +5,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.beat.domain.user.domain.Users;
+import com.beat.domain.user.model.Users;
 import com.beat.domain.user.repository.UserRepository;
 import com.beat.infra.persistence.user.entity.UsersJpaEntity;
 import com.beat.infra.persistence.user.mapper.UsersPersistenceMapper;

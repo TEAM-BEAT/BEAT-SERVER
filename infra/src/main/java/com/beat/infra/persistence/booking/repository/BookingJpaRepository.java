@@ -4,32 +4,27 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.domain.booking.model.BookingStatus;
 import com.beat.infra.persistence.booking.entity.BookingJpaEntity;
+
+import jakarta.persistence.LockModeType;
 
 public interface BookingJpaRepository extends JpaRepository<BookingJpaEntity, Long> {
 
-	@Query("SELECT b FROM Booking b " +
-		"WHERE b.bookerName = :bookerName " +
-		"AND b.bookerPhoneNumber = :bookerPhoneNumber " +
-		"AND b.password = :password " +
-		"AND b.birthDate = :birthDate")
-	Optional<List<BookingJpaEntity>> findByBookerNameAndBookerPhoneNumberAndPasswordAndBirthDate(
-		@Param("bookerName") String bookerName,
-		@Param("bookerPhoneNumber") String bookerPhoneNumber,
-		@Param("password") String password,
-		@Param("birthDate") String birthDate
-	);
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("SELECT b FROM Booking b WHERE b.id = :id")
+	Optional<BookingJpaEntity> lockById(@Param("id") Long id);
 
-	Optional<BookingJpaEntity> findFirstByBookerNameAndBookerPhoneNumberAndBirthDateAndPassword(
-		String bookerName,
-		String bookerPhoneNumber,
-		String birthDate,
-		String password
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("UPDATE Booking b SET b.password = :encodedPassword WHERE b.userId = :userId AND b.birthDate IS NOT NULL")
+	int replaceGuestPassword(
+		@Param("userId") Long userId,
+		@Param("encodedPassword") String encodedPassword
 	);
 
 	List<BookingJpaEntity> findByUserId(Long userId);

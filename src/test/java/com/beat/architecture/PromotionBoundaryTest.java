@@ -13,11 +13,11 @@ class PromotionBoundaryTest {
 	@Test
 	void promotionApplicationServiceStaysModuleLocalAndDomainPortInIsRetired() throws Exception {
 		String service = Files.readString(
-			Path.of("apis/src/main/java/com/beat/apis/promotion/application/PromotionService.java"));
+			Path.of("apis/src/main/kotlin/com/beat/apis/home/application/query/HomeQueryService.kt"));
 
 		assertFalse(service.contains("com.beat.admin.application.dto"));
 		assertFalse(service.contains("PromotionUseCase"));
-		assertTrue(service.startsWith("package com.beat.apis.promotion.application;"));
+		assertTrue(service.startsWith("package com.beat.apis.home.application.query"));
 		assertFalse(Files.exists(Path.of("domain/src/main/kotlin/com/beat/domain/promotion/port/in")));
 		assertFalse(Files.exists(Path.of("apis/src/main/java/com/beat/apis/promotion/application/port/in")));
 	}
@@ -25,15 +25,15 @@ class PromotionBoundaryTest {
 	@Test
 	void executablePromotionFlowsUseDomainRepositoryContractInsteadOfSpringDataRepository() throws Exception {
 		String apiPromotionService = Files.readString(
-			Path.of("apis/src/main/java/com/beat/apis/promotion/application/PromotionService.java"));
+			Path.of("apis/src/main/kotlin/com/beat/apis/home/application/query/HomeQueryService.kt"));
 		String adminPromotionCommandService = Files.readString(
-			Path.of("admin/src/main/java/com/beat/admin/promotion/application/service/command/AdminPromotionCommandService.java"));
+			Path.of("admin/src/main/java/com/beat/admin/promotion/application/command/AdminPromotionCommandService.java"));
 		String adminPromotionQueryService = Files.readString(
-			Path.of("admin/src/main/java/com/beat/admin/promotion/application/service/query/AdminPromotionQueryService.java"));
+			Path.of("admin/src/main/java/com/beat/admin/promotion/application/query/AdminPromotionQueryService.java"));
 		String batchSchedulerService = Files.readString(
 			Path.of("batch/src/main/java/com/beat/batch/promotion/application/PromotionMaintenanceService.java"));
 
-		assertTrue(apiPromotionService.contains("import com.beat.domain.promotion.repository.PromotionRepository;"));
+		assertTrue(apiPromotionService.contains("import com.beat.domain.promotion.repository.PromotionRepository"));
 		assertTrue(adminPromotionCommandService.contains("import com.beat.domain.promotion.repository.PromotionRepository;"));
 		assertTrue(adminPromotionQueryService.contains("import com.beat.domain.promotion.repository.PromotionRepository;"));
 		assertTrue(batchSchedulerService.contains("import com.beat.domain.promotion.repository.PromotionRepository;"));

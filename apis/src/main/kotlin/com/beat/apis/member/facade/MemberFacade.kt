@@ -17,7 +17,7 @@ class MemberFacade(
     fun handleSocialLogin(authorizationCode: String, request: MemberLoginRequest): MemberLoginSession =
         socialLoginCommandService.handleSocialLogin(
             authorizationCode,
-            SocialLoginCommand(
+            SocialLoginCommand.from(
                 socialType = SocialLoginProvider.valueOf(requireNotNull(request.socialType).name),
             ),
         ).let { result ->

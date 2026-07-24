@@ -1,8 +1,14 @@
 package com.beat.apis.member.application.command
 
-data class SocialLoginCommand(
+@ConsistentCopyVisibility
+data class SocialLoginCommand private constructor(
     val socialType: SocialLoginProvider,
-)
+) {
+    companion object {
+        @JvmStatic
+        fun from(socialType: SocialLoginProvider): SocialLoginCommand = SocialLoginCommand(socialType)
+    }
+}
 
 enum class SocialLoginProvider {
     KAKAO,

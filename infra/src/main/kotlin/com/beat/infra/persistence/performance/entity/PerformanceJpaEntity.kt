@@ -1,8 +1,7 @@
 package com.beat.infra.persistence.performance.entity
 
 import com.beat.infra.persistence.common.BaseTimeEntity
-import com.beat.domain.performance.domain.BankName
-import com.beat.domain.performance.domain.Genre
+import com.beat.domain.performance.model.Genre
 import jakarta.persistence.*
 
 @Entity(name = "Performance")
@@ -14,9 +13,7 @@ class PerformanceJpaEntity private constructor(
     runningTime: Int,
     performanceDescription: String,
     performanceAttentionNote: String,
-    bankName: BankName?,
-    accountNumber: String?,
-    accountHolder: String?,
+    paymentAccount: PaymentAccountJpaValue?,
     posterImage: String,
     performanceTeamName: String,
     performanceVenue: String,
@@ -25,7 +22,8 @@ class PerformanceJpaEntity private constructor(
     latitude: String,
     longitude: String,
     performanceContact: String,
-    performancePeriod: String,
+    performancePeriodValue: PerformancePeriodJpaValue?,
+    legacyPerformancePeriod: String,
     ticketPrice: Int,
     totalScheduleCount: Int,
     userId: Long,
@@ -58,17 +56,8 @@ class PerformanceJpaEntity private constructor(
     var performanceAttentionNote: String = performanceAttentionNote
         protected set
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = true)
-    var bankName: BankName? = bankName
-        protected set
-
-    @Column(nullable = true)
-    var accountNumber: String? = accountNumber
-        protected set
-
-    @Column(nullable = true)
-    var accountHolder: String? = accountHolder
+    @Embedded
+    var paymentAccount: PaymentAccountJpaValue? = paymentAccount
         protected set
 
     @Column(nullable = false)
@@ -103,8 +92,12 @@ class PerformanceJpaEntity private constructor(
     var performanceContact: String = performanceContact
         protected set
 
-    @Column(nullable = false)
-    var performancePeriod: String = performancePeriod
+    @Embedded
+    var performancePeriodValue: PerformancePeriodJpaValue? = performancePeriodValue
+        protected set
+
+    @Column(name = "performance_period", nullable = false)
+    var legacyPerformancePeriod: String = legacyPerformancePeriod
         protected set
 
     @Column(nullable = false)
@@ -128,9 +121,7 @@ class PerformanceJpaEntity private constructor(
             runningTime: Int,
             performanceDescription: String,
             performanceAttentionNote: String,
-            bankName: BankName?,
-            accountNumber: String?,
-            accountHolder: String?,
+            paymentAccount: PaymentAccountJpaValue?,
             posterImage: String,
             performanceTeamName: String,
             performanceVenue: String,
@@ -139,7 +130,8 @@ class PerformanceJpaEntity private constructor(
             latitude: String,
             longitude: String,
             performanceContact: String,
-            performancePeriod: String,
+            performancePeriodValue: PerformancePeriodJpaValue?,
+            legacyPerformancePeriod: String,
             ticketPrice: Int,
             totalScheduleCount: Int,
             userId: Long,
@@ -150,9 +142,7 @@ class PerformanceJpaEntity private constructor(
             runningTime = runningTime,
             performanceDescription = performanceDescription,
             performanceAttentionNote = performanceAttentionNote,
-            bankName = bankName,
-            accountNumber = accountNumber,
-            accountHolder = accountHolder,
+            paymentAccount = paymentAccount,
             posterImage = posterImage,
             performanceTeamName = performanceTeamName,
             performanceVenue = performanceVenue,
@@ -161,7 +151,8 @@ class PerformanceJpaEntity private constructor(
             latitude = latitude,
             longitude = longitude,
             performanceContact = performanceContact,
-            performancePeriod = performancePeriod,
+            performancePeriodValue = performancePeriodValue,
+            legacyPerformancePeriod = legacyPerformancePeriod,
             ticketPrice = ticketPrice,
             totalScheduleCount = totalScheduleCount,
             userId = userId,

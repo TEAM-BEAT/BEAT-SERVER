@@ -108,9 +108,9 @@ aws s3 mb s3://<deploy-artifacts-bucket-name> --region ap-northeast-2
 image_cdn_alarm_email: alerts@example.com
 ```
 
-#### ③ (선택) ACM 인증서 + Route 53 — 커스텀 도메인 사용 시
+#### ③ ACM 인증서 + Route 53 — 현재 role의 필수 입력
 
-`image_cdn_custom_domain` 을 설정할 때만 필요합니다.
+현재 `image_cdn` role은 `image_cdn_custom_domain`과 `image_cdn_acm_cert_arn`을 필수로 assert합니다. optional custom domain을 지원하려면 role/template에 명시적 분기를 먼저 구현해야 합니다.
 
 - ACM 인증서는 **반드시 us-east-1 리전** 에 있어야 합니다. CloudFront 가 이 리전만 인식합니다.
 - 발급된 인증서 ARN 을 SOPS 시크릿에 추가:
@@ -171,7 +171,7 @@ AWS_PROFILE=beat-prod ansible-playbook \
 
 #### 역할 내부 동작 순서
 
-1. `npm install --omit=dev --os=linux --cpu=arm64` 로 Linux/arm64 용
+1. `npm ci --omit=dev --include=optional --os=linux --cpu=arm64 --libc=glibc --no-audit --no-fund`로 Linux/arm64용
    `sharp` 바이너리를 포함한 Lambda 패키지 빌드
 2. 패키지 내용의 SHA 해시를 산출하여
    `s3://<deploy-artifacts-bucket-name>/image-cdn/<hash>/image-processing.zip`
@@ -267,7 +267,9 @@ Phase 4 에서 JSON-as-code 패턴 정착 시 코드화 예정입니다.
 
 ---
 
-## 6. 롤백
+## 6. Teardown (파괴 작업)
+
+이 명령은 이전 버전 복원이 아니라 CloudFormation stack 삭제입니다. rollback은 검증된 이전 template/artifact를 같은 stack에 재배포하는 방식으로 수행합니다. 아래 teardown은 명시적으로 서비스를 제거할 때만 실행합니다.
 
 ```bash
 aws cloudformation delete-stack \

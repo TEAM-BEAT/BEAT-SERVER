@@ -211,7 +211,7 @@ flowchart TB
 
 | Plugin | 제공하는 것 | 주의 |
 | --- | --- | --- |
-| `beat.kotlin-base` | Kotlin JVM, Java 25 toolchain, JVM 25 bytecode, `-Xjsr305=strict` | 단독으로 쓰기보다 `beat.library`, `beat.spring-boot-app`을 통해 사용 |
+| `beat.kotlin-base` | Kotlin JVM, Java 25 toolchain, JVM 25 bytecode, `-Xjsr305=strict`, JVM type-use annotation 방출 | 단독으로 쓰기보다 `beat.library`, `beat.spring-boot-app`을 통해 사용 |
 | `beat.library` | `java-library` + `beat.kotlin-base` | 순수 library 기본값 |
 | `beat.spring-library` | `beat.library`, `beat.test`, Spring dependency-management, Kotlin Spring plugin | Spring bean/type compile surface가 있는 library용 |
 | `beat.spring-boot-app` | Spring Boot app, dependency-management, Kotlin Spring, Log4j2, Lombok, test starter, CVE constraints | 실행 모듈 기본값. Web/Security/OpenAPI/Feign은 별도 선택 |
@@ -314,14 +314,14 @@ flowchart LR
 | Module | 적용 plugin |
 | --- | --- |
 | `apis` | `beat.spring-boot-app`, `beat.web-mvc`, `beat.web-security`, `beat.openapi`, `beat.feign-runtime`, `beat.sentry-source-context`, `beat.prometheus-runtime` |
-| `admin` | `beat.spring-boot-app`, `beat.web-mvc`, `beat.web-security`, `beat.openapi`, `beat.feign-runtime`, `beat.sentry-source-context` |
+| `admin` | `beat.spring-boot-app`, `beat.web-mvc`, `beat.web-security`, `beat.openapi`, `beat.feign-runtime`, `beat.sentry-source-context`, `beat.prometheus-runtime` |
 | `batch` | `beat.spring-boot-app`, `beat.actuator-http-runtime`, `beat.sentry-source-context`, `beat.prometheus-runtime` |
 | `domain` | `beat.library`, `beat.test`, `beat.sentry-source-context` |
 | `gateway` | `beat.spring-library`, `beat.sentry-source-context` |
 | `infra` | `beat.jpa-adapter`, `beat.external-client`, `beat.sentry-source-context` |
 | `module-contracts` | `beat.library`, `beat.sentry-source-context` |
 | `observability` | `beat.spring-library`, `beat.sentry-source-context` |
-| `global-support` | `beat.library`, `beat.sentry-source-context` |
+| `global-support` | `beat.library`, `beat.test`, `beat.sentry-source-context` |
 
 ---
 
@@ -342,7 +342,7 @@ plugins {
 }
 ```
 
-`apis`만 Prometheus scrape 대상이므로 `beat.prometheus-runtime`을 추가합니다.
+`apis`와 `admin`은 Prometheus scrape 대상이므로 `beat.prometheus-runtime`을 추가합니다. `batch`도 actuator HTTP와 Prometheus runtime을 함께 사용합니다.
 
 ### `batch`
 

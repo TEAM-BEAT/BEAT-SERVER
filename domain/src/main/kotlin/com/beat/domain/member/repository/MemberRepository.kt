@@ -1,7 +1,7 @@
 package com.beat.domain.member.repository
 
-import com.beat.domain.member.domain.Member
-import com.beat.domain.member.domain.SocialType
+import com.beat.domain.member.model.Member
+import com.beat.domain.member.vo.SocialIdentity
 import java.util.*
 
 @JvmSuppressWildcards
@@ -10,10 +10,7 @@ interface MemberRepository {
 
     fun save(member: Member): Member
 
-    fun findBySocialTypeAndSocialId(
-        socialId: Long?,
-        socialType: SocialType,
-    ): Optional<Member>
+    fun findBySocialIdentity(socialIdentity: SocialIdentity): Optional<Member>
 
     fun count(): Long
 }

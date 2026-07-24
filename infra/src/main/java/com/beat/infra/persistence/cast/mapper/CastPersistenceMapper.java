@@ -2,7 +2,7 @@ package com.beat.infra.persistence.cast.mapper;
 
 import org.springframework.stereotype.Component;
 
-import com.beat.domain.cast.domain.Cast;
+import com.beat.domain.performance.model.Cast;
 import com.beat.infra.persistence.cast.entity.CastJpaEntity;
 
 @Component
@@ -13,18 +13,17 @@ public class CastPersistenceMapper {
 			entity.getId(),
 			entity.getCastName(),
 			entity.getCastRole(),
-			entity.getCastPhoto(),
-			entity.getPerformanceId()
+			entity.getCastPhoto()
 		);
 	}
 
-	public CastJpaEntity toEntity(Cast cast) {
+	public CastJpaEntity toEntity(Cast cast, long performanceId) {
 		return CastJpaEntity.rehydrate(
 			cast.getId(),
 			cast.getCastName(),
 			cast.getCastRole(),
 			cast.getCastPhoto(),
-			cast.getPerformanceId()
+			performanceId
 		);
 	}
 }

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class S3FileStorageAdapter implements FileStoragePort {
+	private static final long PRESIGNED_URL_VALIDITY_MILLIS = 15L * 60 * 1000;
 
 	@Value("${cloud.s3.bucket}")
 	private String bucket;
@@ -101,7 +102,7 @@ public class S3FileStorageAdapter implements FileStoragePort {
 
 	private Date generatePresignedUrlExpiration() {
 		Date expiration = new Date();
-		long expTimeMillis = expiration.getTime() + 1000L * 60 * 60 * 2;
+		long expTimeMillis = expiration.getTime() + PRESIGNED_URL_VALIDITY_MILLIS;
 		expiration.setTime(expTimeMillis);
 		return expiration;
 	}

@@ -179,7 +179,7 @@ class TicketServiceTest {
 		when(scheduleRepository.lockById(200L)).thenReturn(Optional.of(foreignSchedule));
 
 		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () ->
-			ticketCommandService.updateTickets(1L, new TicketUpdateCommand(100L, List.of(detail))));
+			ticketCommandService.updateTickets(1L, TicketUpdateCommand.of(100L, List.of(detail))));
 
 		assertEquals(ScheduleApplicationErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE,
 			exception.getErrorCode());
@@ -193,7 +193,7 @@ class TicketServiceTest {
 		TicketStatusUpdate detail = ticketDetail(BookingStatusType.BOOKING_CANCELLED);
 
 		DomainException exception = assertThrows(DomainException.class, () ->
-			ticketCommandService.updateTickets(1L, new TicketUpdateCommand(100L, List.of(detail))));
+			ticketCommandService.updateTickets(1L, TicketUpdateCommand.of(100L, List.of(detail))));
 
 		assertEquals(BookingErrorCode.STATUS_TRANSITION_NOT_ALLOWED, exception.getErrorCode());
 		verify(bookingRepository, never()).save(any());
@@ -206,7 +206,7 @@ class TicketServiceTest {
 		stubOwnedTicketUpdate(booking);
 
 		ticketCommandService.updateTickets(1L,
-			new TicketUpdateCommand(100L, List.of(ticketDetail(BookingStatusType.BOOKING_CONFIRMED))));
+			TicketUpdateCommand.of(100L, List.of(ticketDetail(BookingStatusType.BOOKING_CONFIRMED))));
 
 		InOrder inOrder = inOrder(bookingRepository, eventPublisher);
 		inOrder.verify(bookingRepository).save(booking.confirmPayment());
@@ -224,7 +224,7 @@ class TicketServiceTest {
 		TicketStatusUpdate detail = ticketDetail(BookingStatusType.BOOKING_CONFIRMED);
 
 		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () ->
-			ticketCommandService.updateTickets(1L, new TicketUpdateCommand(100L, List.of(detail, detail))));
+			ticketCommandService.updateTickets(1L, TicketUpdateCommand.of(100L, List.of(detail, detail))));
 
 		assertEquals(TicketApplicationErrorCode.DUPLICATE_BOOKING_ID, exception.getErrorCode());
 		verifyNoDependencyInteractions();
@@ -312,7 +312,7 @@ class TicketServiceTest {
 	}
 
 	private TicketStatusUpdate ticketDetail(BookingStatusType status) {
-		return new TicketStatusUpdate(300L, TicketBookingStatus.valueOf(status.name()));
+		return TicketStatusUpdate.of(300L, TicketBookingStatus.valueOf(status.name()));
 	}
 
 	private PerformanceSummaryReadModel performance(Long id, Long userId) {

@@ -1,6 +1,6 @@
 package com.beat.infra.persistence.user.entity
 
-import com.beat.domain.user.domain.Role
+import com.beat.domain.user.model.Role
 import jakarta.persistence.*
 
 @Entity(name = "Users")

@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
 
-import com.beat.domain.cast.domain.Cast;
+import com.beat.domain.performance.model.Cast;
 import com.beat.infra.persistence.cast.entity.CastJpaEntity;
 
 class CastPersistenceMapperTest {
@@ -29,8 +29,7 @@ class CastPersistenceMapperTest {
 			() -> assertEquals(11L, cast.getId()),
 			() -> assertEquals("cast-name", cast.getCastName()),
 			() -> assertEquals("cast-role", cast.getCastRole()),
-			() -> assertEquals("https://example.com/cast.png", cast.getCastPhoto()),
-			() -> assertEquals(22L, cast.getPerformanceId())
+			() -> assertEquals("https://example.com/cast.png", cast.getCastPhoto())
 		);
 	}
 
@@ -39,11 +38,10 @@ class CastPersistenceMapperTest {
 		Cast cast = Cast.create(
 			"new-cast",
 			"new-role",
-			"https://example.com/new-cast.png",
-			44L
+			"https://example.com/new-cast.png"
 		);
 
-		CastJpaEntity entity = mapper.toEntity(cast);
+		CastJpaEntity entity = mapper.toEntity(cast, 44L);
 
 		assertAll(
 			() -> assertNull(cast.getId()),
@@ -61,11 +59,10 @@ class CastPersistenceMapperTest {
 			31L,
 			"existing-cast",
 			"existing-role",
-			"https://example.com/existing-cast.png",
-			41L
+			"https://example.com/existing-cast.png"
 		);
 
-		CastJpaEntity entity = mapper.toEntity(cast);
+		CastJpaEntity entity = mapper.toEntity(cast, 41L);
 
 		assertAll(
 			() -> assertEquals(31L, entity.getId()),

@@ -2,7 +2,7 @@ package com.beat.infra.persistence.user.mapper;
 
 import org.springframework.stereotype.Component;
 
-import com.beat.domain.user.domain.Users;
+import com.beat.domain.user.model.Users;
 import com.beat.infra.persistence.user.entity.UsersJpaEntity;
 
 @Component

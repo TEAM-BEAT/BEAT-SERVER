@@ -16,6 +16,7 @@ public interface PerformanceImageJpaRepository extends JpaRepository<Performance
 	@Query("SELECT p.id FROM PerformanceImage p WHERE p.performanceId = :performanceId")
 	List<Long> findIdsByPerformanceId(@Param("performanceId") Long performanceId);
 
+
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("DELETE FROM PerformanceImage p WHERE p.performanceId = :performanceId")
 	void deleteByPerformanceId(@Param("performanceId") Long performanceId);

@@ -83,6 +83,13 @@ create only fragments that are still missing.
 
 ## Transaction sequence
 
+This role does not currently acquire a host-wide transaction lock. Its fixed
+`.bak` names are safe only under a single-writer contract: GitHub environment
+concurrency must be held and no manual Ansible/nginx mutation may overlap the
+transaction. File-level helper locks do not protect the complete
+backup→mutate→validate→reload sequence. If manual and automated writers must
+coexist, add a host-wide lock around the entire role before allowing that use.
+
 1. Validate input shape and operation references.
 2. Stat every declared file and store independent pre-state per file id.
 3. Back up existing files to `<path>.bak`; clear stale backups for files that

@@ -1,11 +1,12 @@
 # Domain/Application ErrorCode Inventory
 
-Issue #421 final inventory and status/message snapshot. Commit 1 captured the original baseline; later commits moved ownership while preserving the values recorded here.
+Issue #421 당시의 inventory와 status/message migration snapshot입니다. 이후 ownership과 상수는 변경됐으므로 이 문서는 현재 source of truth가 아닙니다. 현재 기준은 [error handling guide](../architecture/error-handling.md)이며 아래의 `Current` 표기는 snapshot 작성 시점을 뜻합니다.
 
-## Scope and source of truth
+## Historical snapshot scope
 
-- Inventory source: `*ErrorCode` enums implementing `BaseErrorCode` and `*SuccessCode` enums implementing `BaseSuccessCode` under `domain/src/main/kotlin/**/exception`, plus the existing auth contract `module-contracts/src/main/java/com/beat/contracts/auth/TokenErrorCode.java`.
-- `BaseErrorCode` contract: `global-support/src/main/kotlin/com/beat/global/support/exception/base/BaseErrorCode.kt` exposes `getStatus()` and `getMessage()`.
+- 현재 소유권은 [`../../domain/README.md`](../../domain/README.md)와 실제 enum/handler 코드를 기준으로 판단합니다. 이 표를 신규 변경의 allowlist로 사용하지 않습니다.
+- Snapshot source: 당시 domain/application/success ErrorCode와 auth contract를 대상으로 수집했습니다.
+- Snapshot 당시 `BaseErrorCode` contract는 `global-support/src/main/kotlin/com/beat/global/support/exception/base/BaseErrorCode.kt`에 있었고 `getStatus()`와 `getMessage()`를 노출했습니다. 현재 global-support는 이 오류 계약을 소유하지 않습니다.
 - Usage scan command shape: `rg "<Enum>\.<CODE>" apis admin batch domain gateway infra module-contracts src`, excluding the enum declaration line.
 - Success-code enums are included because #421 moved API response success messages out of `domain` and into executable response boundaries.
 
@@ -41,17 +42,15 @@ Issue #421 final inventory and status/message snapshot. Commit 1 captured the or
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
-| `REQUIRED_DATA_MISSING` | 400 | 필수 데이터가 누락되었습니다. | application use-case | prod 1 (apis:1); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
-| `INVALID_DATA_FORMAT` | 400 | 잘못된 데이터 형식입니다. | domain invariant | prod 1 (domain:1); test 1 | Thrown from domain model; should stay domain-owned or move with domain exception abstraction only. |
-| `INVALID_REQUEST_FORMAT` | 400 | 잘못된 요청 형식입니다. | application use-case | prod 4 (apis:4); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
-| `NO_BOOKING_FOUND` | 404 | 입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요. | application use-case | prod 7 (apis:7); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
-| `NO_PERFORMANCE_FOUND` | 404 | 공연을 찾을 수 없습니다. | unused / reserved | none | No non-declaration references found; confirm before moving or deleting. |
-| `NO_SCHEDULE_FOUND` | 404 | 회차를 찾을 수 없습니다. | unused / reserved | none | No non-declaration references found; confirm before moving or deleting. |
+| `INVALID_PURCHASE_TICKET_COUNT` | 400 | 구매 티켓 수량은 0보다 커야 합니다. | domain invariant | booking creation | Domain-owned aggregate invariant. The v1 handler preserves the former public message. |
+| `INVALID_REFUND_ACCOUNT` | 400 | 환불 계좌 정보는 모두 입력하거나 모두 비워야 합니다. | domain invariant | refund request | Domain-owned value-object invariant. The v1 handler preserves the former public message. |
+| `PAYMENT_CONFIRMATION_NOT_ALLOWED` | 409 (public v1: 400) | 현재 예매 상태에서는 결제를 확정할 수 없습니다. | domain state transition | payment confirmation | Domain owns the transition; the HTTP adapter preserves the v1 response contract. |
+| `REFUND_REQUEST_NOT_ALLOWED` | 409 (public v1: 400) | 현재 예매 상태에서는 환불을 요청할 수 없습니다. | domain state transition | refund request | Domain owns the transition; the HTTP adapter preserves the v1 response contract. |
 
 ### `TicketApplicationErrorCode`
 
-- Current file: `apis/src/main/kotlin/com/beat/apis/ticket/application/exception/TicketApplicationErrorCode.kt`
-- Current package: `com.beat.apis.ticket.application.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/ticket/exception/TicketApplicationErrorCode.kt`
+- Current package: `com.beat.apis.ticket.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
@@ -62,8 +61,8 @@ Issue #421 final inventory and status/message snapshot. Commit 1 captured the or
 
 ### `CastApplicationErrorCode`
 
-- Current file: `apis/src/main/kotlin/com/beat/apis/performance/application/exception/CastApplicationErrorCode.kt`
-- Current package: `com.beat.apis.performance.application.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/performance/exception/CastApplicationErrorCode.kt`
+- Current package: `com.beat.apis.performance.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
@@ -72,8 +71,8 @@ Issue #421 final inventory and status/message snapshot. Commit 1 captured the or
 
 ### `MemberApplicationErrorCode`
 
-- Current file: `apis/src/main/kotlin/com/beat/apis/member/application/exception/MemberApplicationErrorCode.kt`
-- Current package: `com.beat.apis.member.application.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/member/exception/MemberApplicationErrorCode.kt`
+- Current package: `com.beat.apis.member.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
@@ -87,35 +86,34 @@ Issue #421 final inventory and status/message snapshot. Commit 1 captured the or
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
-| `REQUIRED_DATA_MISSING` | 400 | 필수 데이터가 누락되었습니다. | unused / reserved | none | No non-declaration references found; confirm before moving or deleting. |
-| `INVALID_DATA_FORMAT` | 400 | 잘못된 데이터 형식입니다. | domain invariant | prod 2 (domain:2); test 4 | Thrown from domain model; should stay domain-owned or move with domain exception abstraction only. |
-| `INVALID_REQUEST_FORMAT` | 400 | 잘못된 요청 형식입니다. | unused / reserved | none | No non-declaration references found; confirm before moving or deleting. |
-| `PRICE_UPDATE_NOT_ALLOWED` | 400 | 예매자가 존재하여 가격을 수정할 수 없습니다. | application use-case | prod 1 (apis:1); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
+| `NON_POSITIVE_RUNNING_TIME` | 400 | 러닝타임은 0보다 커야 합니다. | domain invariant | `RunningTime` creation | Domain-owned value-object invariant. The v1 handler preserves the existing public message. |
+| `NEGATIVE_SCHEDULE_COUNT` | 400 | 공연 회차 수는 음수일 수 없습니다. | domain invariant | `Performance` creation and rehydration | Domain-owned aggregate invariant. The v1 handler preserves the existing public message. |
+| `INVALID_PERFORMANCE_PERIOD` | 400 | 공연 종료일은 시작일보다 빠를 수 없습니다. | domain invariant | `PerformancePeriod` creation | Domain-owned value-object invariant. |
 | `NEGATIVE_TICKET_PRICE` | 400 | 티켓 가격은 음수일 수 없습니다. | domain invariant | prod 1 (domain:1); test 2 | Thrown from domain model; should stay domain-owned or move with domain exception abstraction only. |
-| `MAX_SCHEDULE_LIMIT_EXCEEDED` | 400 | 공연 회차는 최대 10개까지 추가할 수 있습니다. | application use-case | prod 3 (apis:3); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
+| `NEGATIVE_TICKET_QUANTITY` | 400 | 티켓 수량은 음수일 수 없습니다. | domain invariant | `TicketPrice` total-price calculation | Domain-owned value-object invariant. |
+| `INCOMPLETE_PAYMENT_ACCOUNT` | 400 | 정산 계좌 정보는 은행, 계좌번호, 예금주를 모두 입력해야 합니다. | domain invariant | `PaymentAccount` creation | Domain-owned value-object invariant. |
+| `PRICE_UPDATE_NOT_ALLOWED` | 400 | 예매자가 존재하여 가격을 수정할 수 없습니다. | application use-case | application service | Application-owned orchestration rule. |
 | `PAST_SCHEDULE_NOT_ALLOWED` | 400 | 과거 날짜 회차를 포함한 공연을 생성할 수 없습니다. | application use-case | prod 3 (apis:3); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 | `SCHEDULE_MODIFICATION_NOT_ALLOWED_FOR_ENDED_SCHEDULE` | 400 | 종료된 회차를 수정할 수 없습니다. | application use-case | prod 1 (apis:1); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
-| `INVALID_TICKET_COUNT` | 400 | 판매된 티켓 수보다 적은 수로 판매할 티켓 매수를 수정할 수 없습니다. | application use-case | prod 1 (apis:1); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 | `PERFORMANCE_DELETE_FAILED` | 403 | 예매자가 1명 이상 있을 경우, 공연을 삭제할 수 없습니다. | application use-case | prod 2 (apis:2); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 | `NOT_PERFORMANCE_OWNER` | 403 | 해당 공연의 메이커가 아닙니다. | application actor validation | prod application only | Moved to `PerformanceApplicationErrorCode`; domain exposes `isOwnedBy` boolean only. |
 | `PERFORMANCE_NOT_FOUND` | 404 | 해당 공연 정보를 찾을 수 없습니다. | application use-case | prod 12 (admin:1, apis:11); test 1 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
-| `SCHEDULE_LIST_NOT_FOUND` | 404 | 스케쥴 리스트에 스케쥴이 없습니다. | application flow | prod application only | Application services guard empty schedule lists before calling domain period formatting. |
-| `INTERNAL_SERVER_ERROR` | 500 | 서버 내부 오류입니다. | unused / reserved | none | No non-declaration references found; confirm before moving or deleting. |
+| `SCHEDULE_LIST_NOT_FOUND` | 400 | 스케쥴 리스트에 스케쥴이 없습니다. | application flow | prod application only | Empty schedule input is rejected as a bad request before calling domain period formatting. |
 
 ### `PerformanceImageApplicationErrorCode`
 
-- Current file: `apis/src/main/kotlin/com/beat/apis/performance/application/exception/PerformanceImageApplicationErrorCode.kt`
-- Current package: `com.beat.apis.performance.application.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/performance/exception/PerformanceImageApplicationErrorCode.kt`
+- Current package: `com.beat.apis.performance.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
 | `PERFORMANCE_IMAGE_NOT_BELONG_TO_PERFORMANCE` | 403 | 해당 싱세이미지는 해당 공연에 속해 있지 않습니다. | application use-case | prod 1 (apis:1); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 | `PERFORMANCE_IMAGE_NOT_FOUND` | 404 | 해당 공연 상세이미지를 찾을 수 없습니다. | application use-case | prod 2 (apis:2); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 
-### `AdminApplicationErrorCode` promotion lookup slice
+### `PromotionApplicationErrorCode` promotion lookup slice
 
-- Current file: `admin/src/main/kotlin/com/beat/admin/application/exception/AdminApplicationErrorCode.kt`
-- Current package: `com.beat.admin.application.exception`
+- Current file: `admin/src/main/kotlin/com/beat/admin/promotion/exception/PromotionApplicationErrorCode.kt`
+- Current package: `com.beat.admin.promotion.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
@@ -128,16 +126,23 @@ Issue #421 final inventory and status/message snapshot. Commit 1 captured the or
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
-| `INVALID_DATA_FORMAT` | 400 | 잘못된 데이터 형식입니다. | domain invariant + application input alias | domain keeps invariant; apis uses `ScheduleApplicationErrorCode.INVALID_DATA_FORMAT` for request validation | Split completed with value unchanged at both boundaries. |
+| `INVALID_BOOKING_WINDOW` | 400 | 예매 마감 시각은 공연 시작 시각보다 빠를 수 없습니다. | domain invariant | `Schedule` creation and rehydration | Domain-owned aggregate invariant. The v1 handler preserves the existing public message. |
+| `NEGATIVE_TICKET_COUNT` | 400 | 티켓 수량은 음수일 수 없습니다. | domain invariant | `Schedule` creation and rehydration | Domain-owned aggregate invariant. The v1 handler preserves the existing public message. |
+| `NON_POSITIVE_TICKET_COUNT` | 400 | 예매 티켓 수량은 0보다 커야 합니다. | domain invariant | ticket allocation and cancellation | Domain-owned aggregate invariant. The v1 handler preserves the existing public message. |
+| `MIXED_PERFORMANCE_SCHEDULES` | 400 | 서로 다른 공연의 회차를 함께 배정할 수 없습니다. | domain service invariant | schedule sequence assignment | Domain-owned cross-entity invariant. |
+| `TOO_MANY_SCHEDULES` | 400 | 지원 가능한 회차 수를 초과했습니다. | domain service invariant | schedule sequence assignment | Domain-owned cross-entity invariant. |
+| `ALLOCATED_TICKETS_EXCEED_TOTAL` | 400 | 예매된 티켓 수는 전체 티켓 수를 초과할 수 없습니다. | domain invariant | `Schedule` creation, rehydration, and resize | Owned by the aggregate because allocated tickets cannot exceed its total capacity. |
 | `SCHEDULE_NOT_BELONG_TO_PERFORMANCE` | 403 | 해당 스케줄은 해당 공연에 속해 있지 않습니다. | application use-case | prod 1 (apis:1); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 | `NO_SCHEDULE_FOUND` | 404 | 해당 회차를 찾을 수 없습니다. | application use-case | prod 11 (apis:11); test 2 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
-| `INSUFFICIENT_TICKETS` | 409 | 요청한 티켓 수량이 잔여 티켓 수를 초과했습니다. 다른 수량을 선택해 주세요. | domain invariant + application availability alias | domain keeps inventory invariant; apis uses `ScheduleApplicationErrorCode.INSUFFICIENT_TICKETS` for query/precheck response | Split completed with value unchanged at both boundaries. |
+| `INSUFFICIENT_TICKETS` | 409 | 요청한 티켓 수량이 잔여 티켓 수를 초과했습니다. 다른 수량을 선택해 주세요. | domain invariant + application availability alias | domain keeps allocation invariant; apis uses `ScheduleApplicationErrorCode.INSUFFICIENT_TICKETS` for availability response | Split completed with value unchanged at both boundaries. |
 | `EXCESS_TICKET_DELETE` | 409 | 예매된 티켓 수 이상을 삭제할 수 없습니다. | domain invariant | prod 1 (domain:1); test 1 | Thrown from domain model; should stay domain-owned or move with domain exception abstraction only. |
+
+Request-shape validation uses `ScheduleApplicationErrorCode.INVALID_TICKET_AVAILABILITY_REQUEST`; its HTTP status and public message remain unchanged from the former generic application code.
 
 ### `StaffApplicationErrorCode`
 
-- Current file: `apis/src/main/kotlin/com/beat/apis/performance/application/exception/StaffApplicationErrorCode.kt`
-- Current package: `com.beat.apis.performance.application.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/performance/exception/StaffApplicationErrorCode.kt`
+- Current package: `com.beat.apis.performance.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
@@ -146,29 +151,28 @@ Issue #421 final inventory and status/message snapshot. Commit 1 captured the or
 
 ### `UserApplicationErrorCode`
 
-- Current file: `apis/src/main/kotlin/com/beat/apis/user/application/exception/UserApplicationErrorCode.kt`
-- Current package: `com.beat.apis.user.application.exception`
+- Current file: `apis/src/main/kotlin/com/beat/apis/user/exception/UserApplicationErrorCode.kt`
+- Current package: `com.beat.apis.user.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
 | `USER_NOT_FOUND` | 404 | 유저가 없습니다 | application use-case | prod 6 (apis:6); test 0 | Declared in domain but only executable/application layer uses it; candidate for application-owned ErrorCode. |
 
-### `TokenErrorCode`
+### `TokenApplicationErrorCode`
 
-- Current file: `module-contracts/src/main/java/com/beat/contracts/auth/TokenErrorCode.java`
-- Current package: `com.beat.contracts.auth`
+- Current file: `apis/src/main/kotlin/com/beat/apis/member/exception/TokenApplicationErrorCode.kt`
+- Current package: `com.beat.apis.member.exception`
 
 | Code | Status | Message | Classification | Current usage | Migration note |
 | --- | ---: | --- | --- | --- | --- |
-| `AUTHENTICATION_CODE_EXPIRED` | 401 | 인가코드가 만료되었습니다 | application external-failure translation | prod 1 (apis:1); test 2 | Kakao adapter throws port-level authentication failure; application service preserves the existing API error message. |
-| `REFRESH_TOKEN_NOT_FOUND` | 404 | 리프레쉬 토큰이 존재하지 않습니다 | shared contract / adapter auth | prod 2 (gateway:2); test 2 | Auth-related code already lives outside domain; keep out of domain/application split unless contract is redesigned. |
-| `INVALID_REFRESH_TOKEN_ERROR` | 400 | 잘못된 리프레쉬 토큰입니다 | shared contract / application auth | prod 3 (apis:3); test 2 | Auth application flow consumes contract-level code; not a domain-owned candidate. |
-| `REFRESH_TOKEN_MEMBER_ID_MISMATCH_ERROR` | 400 | 리프레쉬 토큰의 사용자 정보가 일치하지 않습니다 | shared contract / application auth | prod 1 (apis:1); test 0 | Auth application flow consumes contract-level code; not a domain-owned candidate. |
-| `REFRESH_TOKEN_EXPIRED_ERROR` | 401 | 리프레쉬 토큰이 만료되었습니다 | shared contract / application auth | prod 1 (apis:1); test 0 | Auth application flow consumes contract-level code; not a domain-owned candidate. |
-| `REFRESH_TOKEN_SIGNATURE_ERROR` | 400 | 리프레쉬 토큰의 서명의 잘못 되었습니다 | shared contract / application auth | prod 1 (apis:1); test 0 | Auth application flow consumes contract-level code; not a domain-owned candidate. |
-| `UNSUPPORTED_REFRESH_TOKEN_ERROR` | 400 | 지원하지 않는 리프레쉬 토큰입니다 | shared contract / application auth | prod 1 (apis:1); test 0 | Auth application flow consumes contract-level code; not a domain-owned candidate. |
-| `REFRESH_TOKEN_EMPTY_ERROR` | 400 | 리프레쉬 토큰이 비어있습니다 | shared contract / application auth | prod 1 (apis:1); test 0 | Auth application flow consumes contract-level code; not a domain-owned candidate. |
-| `UNKNOWN_REFRESH_TOKEN_ERROR` | 500 | 알 수 없는 리프레쉬 토큰 오류가 발생했습니다 | shared contract / application auth | prod 1 (apis:1); test 0 | Auth application flow consumes contract-level code; not a domain-owned candidate. |
+| `REFRESH_TOKEN_NOT_FOUND` | 404(v1) | 리프레쉬 토큰이 존재하지 않습니다 | application auth | internal semantic type is `UNAUTHENTICATED`; web adapter preserves legacy 404. |
+| `INVALID_REFRESH_TOKEN_ERROR` | 400(v1) | 잘못된 리프레쉬 토큰입니다 | application auth | internal semantic type is `UNAUTHENTICATED`; web adapter preserves legacy 400. |
+| `REFRESH_TOKEN_MEMBER_ID_MISMATCH_ERROR` | 400(v1) | 리프레쉬 토큰의 사용자 정보가 일치하지 않습니다 | application auth | internal semantic type is `UNAUTHENTICATED`; web adapter preserves legacy 400. |
+| `REFRESH_TOKEN_EXPIRED_ERROR` | 401 | 리프레쉬 토큰이 만료되었습니다 | application auth | semantic and HTTP contracts already agree. |
+| `REFRESH_TOKEN_SIGNATURE_ERROR` | 400(v1) | 리프레쉬 토큰의 서명의 잘못 되었습니다 | application auth | internal semantic type is `UNAUTHENTICATED`; web adapter preserves legacy 400. |
+| `UNSUPPORTED_REFRESH_TOKEN_ERROR` | 400(v1) | 지원하지 않는 리프레쉬 토큰입니다 | application auth | internal semantic type is `UNAUTHENTICATED`; web adapter preserves legacy 400. |
+| `REFRESH_TOKEN_EMPTY_ERROR` | 400(v1) | 리프레쉬 토큰이 비어있습니다 | application auth | internal semantic type is `UNAUTHENTICATED`; web adapter preserves legacy 400. |
+| `UNKNOWN_REFRESH_TOKEN_ERROR` | 500 | 알 수 없는 리프레쉬 토큰 오류가 발생했습니다 | application auth | unexpected token processing failure. |
 
 ## SuccessCode inventory
 
@@ -242,7 +246,7 @@ All current domain `*SuccessCode` constants are response-boundary messages. They
 ## Cross-cutting hazards to preserve
 
 - Do not move source or rewrite imports in the inventory commit; later commits should use this file as the source list for split candidates.
-- Duplicate generic codes/messages exist across `BookingErrorCode`, `PerformanceErrorCode`, and `ScheduleErrorCode` (`INVALID_DATA_FORMAT`, request/data missing/format variants). Split work should avoid changing client-visible messages unless explicitly planned.
+- Generic domain codes were replaced with invariant-specific codes. The API/admin v1 handlers keep the previous status and message where the public contract differed.
 - `BookingApplicationErrorCode.NO_PERFORMANCE_FOUND` and `BookingApplicationErrorCode.NO_SCHEDULE_FOUND` are preserved for booking-context compatibility, while active performance/schedule lookups use their context-local application codes.
-- `TokenErrorCode` is already outside `domain`; it still depends on `BaseErrorCode` from `global-support`, so a future split should decide whether auth codes stay contract-level or become application/support-level.
-- Domain model Kotlin files currently throw `BadRequestException`, `ForbiddenException`, or `ConflictException` with domain ErrorCodes. If future work makes domain independent from `global-support`, replace exception/error boundaries atomically with tests.
+- `TokenApplicationErrorCode` is owned by the `apis` authentication use case; `module-contracts` no longer depends on `global-support` for an executable-only error enum.
+- Domain model Kotlin files now throw HTTP/framework-neutral `DomainException` with domain ErrorCodes. API/admin handlers map `INVALID_INPUT` to 400 and `STATE_CONFLICT` to 409; the domain module no longer depends on `global-support`.
