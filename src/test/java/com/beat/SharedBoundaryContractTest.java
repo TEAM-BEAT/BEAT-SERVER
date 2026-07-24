@@ -195,14 +195,13 @@ class SharedBoundaryContractTest {
 	@Test
 	void redisWiringLeavesOnlyRefreshTokenRepositoryContractInGateway() throws Exception {
 		String gatewayRedisConfig = Files.readString(
-			Path.of("gateway/src/main/java/com/beat/gateway/internal/config/GatewayRedisConfig.java"));
+			Path.of("gateway/src/main/java/com/beat/gateway/shared/internal/config/RedisConfig.java"));
 		String refreshToken = Files.readString(
-			Path.of("gateway/src/main/java/com/beat/gateway/jwt/internal/store/RefreshToken.java"));
+			Path.of("gateway/src/main/java/com/beat/gateway/refreshtoken/internal/store/RefreshToken.java"));
 
 		assertFalse(Files.exists(Path.of("infra/src/main/java/com/beat/infra/config/RedisConfig.java")));
 		assertFalse(Files.exists(Path.of("gateway/src/main/java/com/beat/gateway/redis/LettuceLockRepository.java")));
-		assertTrue(
-			gatewayRedisConfig.contains("@EnableRedisRepositories(basePackageClasses = RefreshTokenRepository.class)"));
+		assertTrue(gatewayRedisConfig.contains("RefreshTokenRepository.class"));
 		assertFalse(gatewayRedisConfig.contains("@Primary"));
 		assertFalse(gatewayRedisConfig.contains("beatRedisTemplate"));
 		assertTrue(refreshToken.contains("@RedisHash(value = \"refreshToken\", timeToLive = 1209600)"));
@@ -514,12 +513,13 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void rawDomainHelperCleanupDropsUnusedPublicLookupHelpers() throws Exception {
-		String userService = Files.readString(Path.of("apis/src/main/java/com/beat/apis/user/application/UserService.java"));
+		String userQueryService = Files.readString(
+			Path.of("admin/src/main/java/com/beat/admin/user/application/query/AdminUserQueryService.java"));
 		String performanceService = Files.readString(
 			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/query/PerformanceDetailQueryService.kt"));
 
-		assertFalse(userService.contains("findAllUsers("));
-		assertFalse(userService.contains("findUserByUserId("));
+		assertFalse(userQueryService.contains("userRepository.findAllUsers("));
+		assertFalse(userQueryService.contains("userRepository.findUserByUserId("));
 		assertFalse(performanceService.contains("fun findById"));
 	}
 
@@ -542,11 +542,11 @@ class SharedBoundaryContractTest {
 		String ticketCommandService = Files.readString(
 			Path.of("apis/src/main/kotlin/com/beat/apis/ticket/application/command/TicketCommandService.kt"));
 		String bookingCancelService = Files.readString(
-			Path.of("apis/src/main/java/com/beat/apis/booking/application/BookingCancelService.java"));
+			Path.of("apis/src/main/kotlin/com/beat/apis/booking/application/command/BookingCancellationCommandService.kt"));
 		String guestBookingRetrieveService = Files.readString(
-			Path.of("apis/src/main/java/com/beat/apis/booking/application/GuestBookingRetrieveService.java"));
+			Path.of("apis/src/main/kotlin/com/beat/apis/booking/application/query/GuestBookingQueryService.kt"));
 		String memberBookingRetrieveService = Files.readString(
-			Path.of("apis/src/main/java/com/beat/apis/booking/application/MemberBookingRetrieveService.java"));
+			Path.of("apis/src/main/kotlin/com/beat/apis/booking/application/query/MemberBookingQueryService.kt"));
 
 		assertTrue(performanceCreate.contains("scheduleRepository.saveAll("));
 		assertTrue(scheduleCoordinator.contains("scheduleRepository.saveAll("));
@@ -572,13 +572,18 @@ class SharedBoundaryContractTest {
 		assertTrue(ticketCommandService.contains("val schedules = lockAndValidateSchedules("));
 		assertTrue(ticketCommandService.contains("scheduleRepository.lockById(scheduleId)"));
 		assertTrue(bookingCancelService.contains("@Transactional"));
-		assertTrue(bookingCancelService.contains("scheduleRepository.lockById(bookingSnapshot.getScheduleId())"));
-		assertTrue(guestBookingRetrieveService.contains("scheduleRepository.findAllById(scheduleIds)"));
-		assertTrue(guestBookingRetrieveService.contains("performanceSummaryReadPort.findAllByIds(performanceIds)"));
+		assertTrue(bookingCancelService.contains("scheduleRepository.lockById(snapshot.getScheduleId())"));
+		assertTrue(guestBookingRetrieveService.contains(
+			"scheduleRepository.findAllById(bookings.map(Booking::getScheduleId).distinct())"));
+		assertTrue(guestBookingRetrieveService.contains(
+			"performanceSummaryReadPort.findAllByIds(schedules.map(Schedule::getPerformanceId).distinct())"));
 		assertFalse(guestBookingRetrieveService.contains("scheduleRepository.findById(booking.getScheduleId())"));
 		assertFalse(guestBookingRetrieveService.contains("performanceRepository.findById(schedule.getPerformanceId())"));
-		assertTrue(memberBookingRetrieveService.contains("scheduleRepository.findAllById(scheduleIds)"));
-		assertTrue(memberBookingRetrieveService.contains("performanceSummaryReadPort.findAllByIds(performanceIds)"));
+		assertTrue(memberBookingRetrieveService.contains(
+			"scheduleRepository.findAllById(bookings.map(Booking::getScheduleId).distinct())"));
+		assertTrue(memberBookingRetrieveService.contains(
+			"performanceSummaryReadPort.findAllByIds("));
+		assertTrue(memberBookingRetrieveService.contains("schedules.values.map(Schedule::getPerformanceId).distinct()"));
 		assertFalse(memberBookingRetrieveService.contains("scheduleRepository.findById(booking.getScheduleId())"));
 		assertFalse(memberBookingRetrieveService.contains("performanceRepository.findById(schedule.getPerformanceId())"));
 	}

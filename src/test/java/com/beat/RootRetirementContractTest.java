@@ -1184,7 +1184,7 @@ class RootRetirementContractTest {
 		String localDevSecretScript = read("scripts/generate-local-dev-secret.sh");
 		String localProdSecretScript = read("scripts/generate-local-prod-secret.sh");
 		String localVarsHelper = read("scripts/lib/local-vars.sh");
-		String apisSecurity = read("apis/src/main/java/com/beat/apis/config/ApisSecurityConfig.java");
+		String apisSecurity = read("apis/src/main/kotlin/com/beat/apis/config/ApisSecurityConfig.kt");
 		String adminSecurity = read("admin/src/main/java/com/beat/admin/config/AdminSecurityConfig.java");
 		String ansibleConfig = read("infra/ansible/ansible.cfg");
 		String sopsConfig = read(".sops.yaml");
@@ -1251,7 +1251,7 @@ class RootRetirementContractTest {
 		assertFalse(adminSecurity.contains("\"/health-check\""));
 		assertFalse(apisSecurity.contains("\"/actuator/health\""));
 		assertFalse(adminSecurity.contains("\"/actuator/health\""));
-		assertTrue(apisSecurity.contains("actuatorEndPoint + \"/health\""));
+		assertTrue(apisSecurity.contains("\"$actuatorEndpoint/health\""));
 		assertTrue(adminSecurity.contains("actuatorEndPoint + \"/health\""));
 	}
 

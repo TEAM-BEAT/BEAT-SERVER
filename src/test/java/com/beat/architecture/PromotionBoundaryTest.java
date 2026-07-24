@@ -33,7 +33,7 @@ class PromotionBoundaryTest {
 		String batchSchedulerService = Files.readString(
 			Path.of("batch/src/main/java/com/beat/batch/promotion/application/PromotionMaintenanceService.java"));
 
-		assertTrue(apiPromotionService.contains("import com.beat.domain.promotion.repository.PromotionRepository"));
+		assertTrue(apiPromotionService.contains("import com.beat.contracts.promotion.HomePromotionReadPort"));
 		assertTrue(adminPromotionCommandService.contains("import com.beat.domain.promotion.repository.PromotionRepository;"));
 		assertTrue(adminPromotionQueryService.contains("import com.beat.domain.promotion.repository.PromotionRepository;"));
 		assertTrue(batchSchedulerService.contains("import com.beat.domain.promotion.repository.PromotionRepository;"));
