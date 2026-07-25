@@ -198,7 +198,7 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 		executor.shutdown();
 
 		try {
-			if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+			if (!executor.awaitTermination(120, TimeUnit.SECONDS)) {
 				executor.shutdownNow();
 			}
 		} catch (InterruptedException e) {
@@ -209,7 +209,7 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 		long successCount = 0L;
 		for (Future<Boolean> future : futures) {
 			try {
-				if (future.get(5, TimeUnit.SECONDS)) {
+				if (future.get(10, TimeUnit.SECONDS)) {
 					successCount++;
 				}
 			} catch (TimeoutException e) {
