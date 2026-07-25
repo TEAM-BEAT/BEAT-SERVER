@@ -40,6 +40,8 @@ import com.beat.domain.schedule.model.Schedule;
 import com.beat.domain.schedule.model.ScheduleNumber;
 import com.beat.apis.booking.exception.BookingApplicationErrorCode;
 import com.beat.apis.exception.ApiApplicationException;
+import com.beat.domain.exception.DomainException;
+import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.user.model.Users;
 import com.beat.domain.user.repository.UserRepository;
 
@@ -166,6 +168,11 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 			return true;
 		} catch (ApiApplicationException e) {
 			if (e.getErrorCode() == BookingApplicationErrorCode.INSUFFICIENT_TICKETS) {
+				return false;
+			}
+			throw e;
+		} catch (DomainException e) {
+			if (e.getErrorCode() == ScheduleErrorCode.INSUFFICIENT_TICKETS) {
 				return false;
 			}
 			throw e;
