@@ -2,7 +2,7 @@ package com.beat.infra.persistence.promotion.mapper;
 
 import org.springframework.stereotype.Component;
 
-import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.promotion.model.Promotion;
 import com.beat.infra.persistence.promotion.entity.PromotionJpaEntity;
 
 @Component

@@ -6,10 +6,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.beat.admin.api.response.AdminSuccessCode;
-import com.beat.admin.user.application.dto.response.UserFindAllResponse;
+import com.beat.admin.user.api.response.UserSuccessCode;
+import com.beat.admin.user.api.response.UserFindAllResponse;
 import com.beat.admin.user.facade.AdminUserFacade;
-import com.beat.gateway.security.servlet.CurrentMember;
+import com.beat.gateway.CurrentMember;
 import com.beat.global.support.response.SuccessResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -26,6 +26,6 @@ public class AdminUserController implements AdminUserApi {
 	public ResponseEntity<SuccessResponse<UserFindAllResponse>> readAllUsers(@CurrentMember Long memberId) {
 		UserFindAllResponse response = adminUserFacade.checkMemberAndFindAllUsers(memberId);
 		return ResponseEntity.status(HttpStatus.OK)
-			.body(SuccessResponse.of(AdminSuccessCode.FETCH_ALL_USERS_SUCCESS, response));
+			.body(SuccessResponse.of(UserSuccessCode.FETCH_ALL_USERS_SUCCESS, response));
 	}
 }

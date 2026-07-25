@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
 
-import com.beat.domain.staff.domain.Staff;
+import com.beat.domain.performance.model.Staff;
 import com.beat.infra.persistence.staff.entity.StaffJpaEntity;
 
 class StaffPersistenceMapperTest {
@@ -29,8 +29,7 @@ class StaffPersistenceMapperTest {
 			() -> assertEquals(11L, staff.getId()),
 			() -> assertEquals("staff-name", staff.getStaffName()),
 			() -> assertEquals("staff-role", staff.getStaffRole()),
-			() -> assertEquals("https://example.com/staff.png", staff.getStaffPhoto()),
-			() -> assertEquals(22L, staff.getPerformanceId())
+			() -> assertEquals("https://example.com/staff.png", staff.getStaffPhoto())
 		);
 	}
 
@@ -39,11 +38,10 @@ class StaffPersistenceMapperTest {
 		Staff staff = Staff.create(
 			"new-staff",
 			"new-role",
-			"https://example.com/new-staff.png",
-			44L
+			"https://example.com/new-staff.png"
 		);
 
-		StaffJpaEntity entity = mapper.toEntity(staff);
+		StaffJpaEntity entity = mapper.toEntity(staff, 44L);
 
 		assertAll(
 			() -> assertNull(staff.getId()),
@@ -61,11 +59,10 @@ class StaffPersistenceMapperTest {
 			31L,
 			"existing-staff",
 			"existing-role",
-			"https://example.com/existing-staff.png",
-			41L
+			"https://example.com/existing-staff.png"
 		);
 
-		StaffJpaEntity entity = mapper.toEntity(staff);
+		StaffJpaEntity entity = mapper.toEntity(staff, 41L);
 
 		assertAll(
 			() -> assertEquals(31L, entity.getId()),

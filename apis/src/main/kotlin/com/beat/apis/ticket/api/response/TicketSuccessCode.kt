@@ -1,11 +1,11 @@
 package com.beat.apis.ticket.api.response
 
-import com.beat.global.support.exception.base.BaseSuccessCode
+import com.beat.global.support.response.SuccessCode
 
 enum class TicketSuccessCode(
     private val status: Int,
     private val message: String,
-) : BaseSuccessCode {
+) : SuccessCode {
     TICKET_RETRIEVE_SUCCESS(200, "예매자 목록 조회가 성공적으로 완료되었습니다."),
     TICKET_UPDATE_SUCCESS(200, "예매자 입금여부 수정이 성공적으로 완료되었습니다."),
     TICKET_REFUND_SUCCESS(200, "예매 환불처리 요청이 성공했습니다."),

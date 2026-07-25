@@ -42,12 +42,12 @@ flowchart TB
 | 영역 | 현재 계약 |
 | --- | --- |
 | 실행 형태 | Spring Boot 관리자 HTTP executable module |
-| Bootstrap | `AdminApplication`이 `@EnableGatewayServletSecurity`로 gateway 인증 bootstrap을 선택하고 `InfraConfig`, `ObservabilityModuleConfig`만 명시 import |
+| Bootstrap | `AdminApplication`이 module-local `GatewayConfig`, `InfraConfig`와 공개 `ObservabilityModuleConfig`를 명시 import |
 | Package | context 기준 `admin.user`, `admin.promotion` 분리 |
 | Layer | `Controller -> Facade -> ApplicationService(command/query)` |
 | DTO | admin 전용 request/response/result DTO 소유, domain/JPA type 직접 노출 금지 |
-| SuccessCode | `admin.api.response.AdminSuccessCode`가 response boundary에서 소유 |
-| ErrorCode | `admin.application.exception.AdminApplicationErrorCode`가 admin use-case 실패를 소유 |
+| SuccessCode | `admin.<feature>.api.response` 가 feature별 성공 응답 언어를 소유 |
+| ErrorCode | `admin.<feature>.exception` 이 feature별 use-case 실패를 소유 |
 | Persistence | domain repository contract / module-contract port를 사용하고, infra 구현 타입은 직접 노출하지 않음 |
 | Scheduler | admin은 scheduler owner가 아니며 scheduling bridge를 소유하지 않음 |
 
@@ -58,7 +58,7 @@ flowchart TB
 `admin`이 소유하는 것:
 
 - 관리자/백오피스 HTTP API entrypoint
-- 관리자 전용 security, CORS, converter, Swagger/OpenAPI 정책
+- 관리자 전용 security, CORS, Swagger/OpenAPI 정책
 - 관리자 request/response DTO
 - 관리자 use-case orchestration
 - 관리자 application error/success response language
@@ -101,12 +101,12 @@ implementation(project(":observability"))
   - `infra.*.repository.jpa`
   - `infra.external.*`
 - gateway internal 구현 직접 import 금지
-  - `gateway.annotation.*`
   - `gateway.jwt.internal.*`
-  - `gateway.security.internal.*`
-  - `gateway.filter.*`
-  - `gateway.config.*`
-- 허용되는 gateway 공개 표면은 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember`로 제한하고 JWT/refresh token 계약은 `module-contracts`의 `com.beat.contracts.auth.*`를 사용
+  - `gateway.refreshtoken.internal.*`
+  - `gateway.guest.internal.*`
+  - `gateway.authentication.internal.*`
+  - `gateway.shared.internal.*`
+- 허용되는 gateway 공개 표면은 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.CurrentMember`로 제한하고 JWT/refresh token 계약은 `module-contracts`의 `com.beat.contracts.auth.*`를 사용
 - transitional package 재도입 금지
   - `adapter/`
   - `controller/`
@@ -122,12 +122,12 @@ implementation(project(":observability"))
 ```mermaid
 flowchart LR
     AdminApplication[AdminApplication]
-    EnableGatewayConfig["@EnableGatewayServletSecurity"]
+    GatewayConfig[Admin GatewayConfig<br/>@EnableGatewayServletSecurity]
     InfraConfig[Admin InfraConfig]
     InfraBase[InfraBaseConfig<br/>JPA / EXTERNAL_CLIENTS]
     ObservabilityModuleConfig[ObservabilityModuleConfig]
 
-    AdminApplication --> EnableGatewayConfig
+    AdminApplication --> GatewayConfig
     AdminApplication --> InfraConfig
     AdminApplication --> ObservabilityModuleConfig
     InfraConfig --> InfraBase
@@ -137,8 +137,8 @@ flowchart LR
 
 ```kotlin
 @SpringBootApplication(scanBasePackageClasses = [AdminApplication::class])
-@EnableGatewayServletSecurity
 @Import(
+    GatewayConfig::class,
     InfraConfig::class,
     ObservabilityModuleConfig::class,
 )
@@ -149,7 +149,7 @@ class AdminApplication
 
 - broad `@ComponentScan`을 사용하지 않습니다.
 - `AdminApplication` 자신의 package 아래만 component scan합니다.
-- `EnableGatewayServletSecurity`는 공개 gateway servlet security bootstrap 경계이며 broad `com.beat.gateway` scan에 의존하지 않고 admin에는 refresh token store를 import하지 않습니다.
+- module-local `GatewayConfig`가 공개 `@EnableGatewayServletSecurity` 경계를 선택합니다. broad `com.beat.gateway` scan에 의존하지 않고 refresh token store를 import하지 않습니다.
 - `InfraConfig`는 admin이 필요한 infra group만 명시합니다.
 - `ObservabilityModuleConfig`는 관측성 공개 bootstrap 경계입니다.
 - `AdminSecurityConfig`는 `gatewaySecurityMdcLoggingFilter`를 JWT보다 먼저 배치해 모든 응답에 trace/request MDC와 `X-Request-ID`를 보장하고, 이후 `gatewayJwtAuthenticationFilter`가 인증 성공 시 MDC `userId`를 갱신합니다.
@@ -165,21 +165,31 @@ class AdminApplication
 admin/
   src/main/kotlin/com/beat/admin/
     AdminApplication.kt
-    api/response/
-      AdminSuccessCode.kt
-    application/exception/
-      AdminApplicationErrorCode.kt
+    exception/
+      AdminApplicationException.kt
+      ApplicationErrorCode.kt
+      ApplicationErrorType.kt
     config/
+      GatewayConfig.kt
       InfraConfig.kt
+    user/
+      api/
+        request/
+        response/UserSuccessCode.kt
+      exception/UserApplicationErrorCode.kt
+    promotion/
+      api/
+        request/
+        response/PromotionSuccessCode.kt
+      exception/PromotionApplicationErrorCode.kt
+      application/command/
 
   src/main/java/com/beat/admin/
+    exception/
+      AdminGlobalExceptionHandler
     config/
       AdminCorsConfig
       AdminSecurityConfig
-      AdminWebConverterConfig
-      converter/StringToEnumCustomConverterFactory
-    handler/
-      AdminGlobalExceptionHandler
     swagger/config/
       AdminSwaggerConfig
     user/
@@ -210,11 +220,16 @@ com.beat.admin.user/
   api/
     AdminUserApi
     AdminUserController
+    response/
+      UserSuccessCode
+      UserFindAllResponse
   facade/
     AdminUserFacade
   application/
-    service/query/AdminUserQueryService
-    dto/response/UserFindAllResponse
+    query/AdminUserQueryService
+    result/AdminUserResults
+  exception/
+    UserApplicationErrorCode
 ```
 
 역할:
@@ -236,14 +251,17 @@ com.beat.admin.promotion/
   api/
     AdminPromotionApi
     AdminPromotionController
+    request/*
+    response/*
+    response/PromotionSuccessCode
   facade/
     AdminPromotionFacade
   application/
-    service/command/AdminPromotionCommandService
-    service/query/AdminPromotionQueryService
-    dto/request/*
-    dto/response/*
-    dto/result/AdminPromotionResults
+    command/AdminPromotionCommandService
+    query/AdminPromotionQueryService
+    result/*
+  exception/
+    PromotionApplicationErrorCode
 ```
 
 역할:
@@ -251,6 +269,7 @@ com.beat.admin.promotion/
 - 캐러셀/배너 presigned URL 발급
 - 캐러셀 promotion 조회
 - 캐러셀 promotion 생성/수정/삭제 orchestration
+- HTTP request는 Facade에서 non-null command/query로 변환하고 application service는 HTTP DTO에 의존하지 않음
 
 현재 endpoints:
 
@@ -284,7 +303,7 @@ sequenceDiagram
     P-->>A: result
     A->>D: invariant / policy / state primitive
     D-->>A: domain result
-    A-->>F: response DTO or application result
+    A-->>F: application result / read model
     F-->>C: response DTO
 ```
 
@@ -293,7 +312,7 @@ sequenceDiagram
 - HTTP endpoint와 Swagger interface를 소유합니다.
 - Facade만 호출합니다.
 - ApplicationService, Repository, Domain model을 직접 호출하지 않습니다.
-- `SuccessResponse`와 `AdminSuccessCode`로 HTTP response를 조립합니다.
+- `SuccessResponse`와 해당 feature의 SuccessCode로 HTTP response를 조립합니다.
 - JSON field name과 기존 endpoint 호환성을 최우선으로 유지합니다.
 
 ### Facade
@@ -325,7 +344,7 @@ flowchart TB
     Controller[Controller]
     Facade[Facade]
     Command[CommandService<br/>state change + transaction]
-    Query[QueryService<br/>read + response assembly]
+    Query[QueryService<br/>read + result assembly]
     DomainRepo[Domain RepositoryPort]
     ReadPort[ReadPort / external port]
 
@@ -340,7 +359,7 @@ flowchart TB
 규칙:
 
 - command service는 상태 변경 흐름과 transaction을 소유합니다.
-- query service는 admin-facing 조회와 response 조립을 소유합니다.
+- query service는 admin application read model/result 조립을 소유하고 HTTP response 조립은 Facade에 맡깁니다.
 - command/query service 간 공유가 필요하면 raw Domain model이 아니라 primitive/value/result/read model을 반환합니다.
 - 단순 조회는 domain repository contract를 사용할 수 있습니다.
 - 목록/검색/정렬/통계/projection 조회가 커지면 domain repository를 키우지 않고 `module-contracts` read port/read model과 infra query adapter를 검토합니다.
@@ -354,16 +373,18 @@ flowchart TB
 flowchart LR
     Domain[Domain model]
     App[ApplicationService]
-    Result[Application Result<br/>optional internal DTO]
+    Result[Application Result / ReadModel]
+    Facade[Facade]
     Response[Admin ResponseDTO]
     Controller[Controller]
 
     Domain --> App
-    App --> Response
-    App -. only when scenario composition needs it .-> Result
-    Result --> Response
+    App --> Result
+    Result --> Facade
+    Facade --> Response
     Response --> Controller
 
+    App -. forbidden .-> Response
     Domain -. forbidden .-> Response
     Domain -. forbidden .-> Result
     Domain -. forbidden .-> Controller
@@ -372,10 +393,10 @@ flowchart LR
 기본값:
 
 ```text
-Controller -> Facade -> QueryService -> ResponseDTO
+Controller -> Facade -> QueryService -> QueryResult -> ResponseDTO
 ```
 
-복합 scenario에서만 optional Result를 둡니다.
+단일/복합 scenario 모두 ApplicationService는 HTTP 비의존 Result/ReadModel을 반환하고 Facade가 ResponseDTO를 만듭니다.
 
 ```text
 Controller -> Facade -> QueryService A -> QueryResult A
@@ -386,9 +407,14 @@ Controller -> Facade -> QueryService A -> QueryResult A
 규칙:
 
 - RequestDTO, ResponseDTO, CommandResult, QueryResult는 Domain model을 필드로 담지 않습니다.
+- HTTP RequestDTO와 ResponseDTO는 `<context>/api/request`, `<context>/api/response`가 소유합니다.
+- 모든 JSON request의 필수 필드는 nullable immutable property와 `jakarta.validation` field constraint로 선언하고 Controller의 `@RequestBody`에는 `@Valid`를 적용합니다.
+- Facade는 검증된 request를 non-null application command 또는 query/search condition으로 변환합니다. 단순 path variable이나 query parameter 한두 개는 별도 객체로 감싸지 않습니다.
+- ApplicationService는 HTTP RequestDTO를 입력으로 받지 않습니다.
+- ApplicationService는 HTTP ResponseDTO를 반환하지 않습니다.
 - DTO/Result public factory method는 Domain model을 인자로 받지 않습니다.
 - Domain model에서 필요한 primitive/value 추출은 ApplicationService 내부 private method나 내부 assembler에서 끝냅니다.
-- Result는 기본 계층이 아닙니다. Facade 조합이 필요하거나 같은 service output을 여러 response shape로 재사용할 때만 둡니다.
+- Result/ReadModel은 ApplicationService의 HTTP 비의존 출력 경계이며, 유스케이스당 필요한 최소 shape만 둡니다.
 - Result도 raw Domain model, JPA Entity, infra projection row를 필드로 담지 않습니다.
 - 다른 ApplicationService가 재사용해야 하는 출력이면 raw Domain model을 반환하지 말고 목적이 드러나는 Result 또는 ReadModel을 먼저 정의합니다.
 - DTO 이름은 API/관리자 응답 shape임이 드러나야 합니다. 도메인 이름만 단독으로 쓰지 않습니다.
@@ -417,21 +443,34 @@ PromotionResult  # context/용도 없이 너무 넓은 이름
 ```mermaid
 flowchart LR
     DomainError[domain ErrorCode<br/>pure invariant]
-    AdminError[AdminApplicationErrorCode<br/>admin use-case failure]
-    AdminSuccess[AdminSuccessCode<br/>admin response success]
-    Exception[global-support exception classes]
+    FeatureError[Promotion/User ApplicationErrorCode<br/>use-case failure]
+    FeatureSuccess[Promotion/UserSuccessCode<br/>feature response success]
+    DomainException[DomainException]
+    Handler[AdminGlobalExceptionHandler]
+    AdminException[AdminApplicationException<br/>use-case failure]
 
-    DomainError --> Exception
-    AdminError --> Exception
-    AdminSuccess --> Response[SuccessResponse]
+    DomainError --> DomainException --> Handler
+    FeatureError --> AdminException --> Handler
+    FeatureSuccess --> Response[SuccessResponse]
 ```
 
 ### ErrorCode
 
+admin의 application 오류 공통 shape와 wrapper는 아래 module-local contract가 소유합니다.
+
+```text
+admin.exception.ApplicationErrorCode
+admin.exception.ApplicationErrorType
+admin.exception.AdminApplicationException
+```
+
+`AdminGlobalExceptionHandler`는 `AdminApplicationException`과 `DomainException`을 각각 admin HTTP 응답으로 변환합니다. `global-support`는 이 예외 계약이나 HTTP 매핑을 소유하지 않습니다.
+
 위치:
 
 ```text
-admin.application.exception.AdminApplicationErrorCode
+admin.promotion.exception.PromotionApplicationErrorCode
+admin.user.exception.UserApplicationErrorCode
 ```
 
 소유 대상:
@@ -442,16 +481,19 @@ admin.application.exception.AdminApplicationErrorCode
 - 관리자 flow 실패
 
 Domain invariant 실패를 새로 만들 때는 domain ErrorCode를 검토합니다. admin application flow 실패를 domain ErrorCode로 표현하지 않습니다.
+모든 feature가 공유하는 admin-wide ErrorCode enum은 두지 않습니다.
 
 ### SuccessCode
 
 위치:
 
 ```text
-admin.api.response.AdminSuccessCode
+admin.promotion.api.response.PromotionSuccessCode
+admin.user.api.response.UserSuccessCode
 ```
 
-성공 응답 문구는 API response boundary가 소유합니다. Domain에는 SuccessCode를 추가하지 않습니다.
+성공 응답 문구는 각 feature의 API response boundary가 소유합니다. Domain에는 SuccessCode를 추가하지 않습니다.
+모든 feature가 공유하는 admin-wide SuccessCode enum은 두지 않습니다.
 
 ---
 
@@ -477,15 +519,15 @@ admin.api.response.AdminSuccessCode
 | --- | --- |
 | `AdminSecurityConfig` | 관리자 route whitelist, 인증/인가 filter chain |
 | `AdminCorsConfig` | admin CORS 정책 |
-| `AdminWebConverterConfig` | admin request converter 등록 |
-| `StringToEnumCustomConverterFactory` | request enum 문자열 변환 |
 | `AdminSwaggerConfig` | admin Swagger/OpenAPI 노출 정책 |
-| `AdminGlobalExceptionHandler` | admin exception response handling |
+| `exception.AdminGlobalExceptionHandler` | admin exception response handling |
 
 규칙:
 
-- gateway 내부 security 구현을 직접 import하지 않고 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.security.servlet.CurrentMember` 같은 공개 contract만 사용합니다.
+- gateway 내부 security 구현을 직접 import하지 않고 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.CurrentMember` 같은 공개 contract만 사용합니다.
 - admin route 정책은 admin config에서 관리합니다.
+- 공용 String-to-enum MVC converter는 등록하지 않습니다. `AdminCarouselNumber`와 domain `CarouselNumber`의 단순 변환은 application service 사용처 가까이에서 처리합니다.
+- `Mapper`는 infra persistence entity와 domain model 변환에만 사용하며 admin에는 mapper package를 두지 않습니다.
 - Swagger/OpenAPI는 admin 실행 모듈의 문서화 경계입니다.
 
 ---
@@ -495,7 +537,7 @@ admin.api.response.AdminSuccessCode
 | Test | 고정하는 계약 |
 | --- | --- |
 | `AdminApplicationTest` | bootstrap import, broad component scan 금지, scheduler owner disabled |
-| `AdminArchitectureGuardTest` | root dependency 금지, gateway public import allowlist, infra forbidden import 금지, transitional package 금지, DTO/domain boundary, SuccessCode 위치 |
+| `AdminArchitectureGuardTest` | root dependency 금지, gateway public import allowlist, infra forbidden import 금지, transitional/mapper package 금지, DTO/domain boundary, feature별 ErrorCode/SuccessCode 위치 |
 | `AdminModuleContextBootTest` | context controller/facade/service bean boot smoke, scheduler bridge 미소유 |
 | `AdminDtoJsonContractTest` | request enum 문자열, response JSON field 호환성 |
 | `PromotionBoundaryTest` | promotion 경계에서 admin DTO coupling 재발 방지 |
@@ -519,7 +561,7 @@ Kotlin migration 전에 아래 조건을 유지합니다.
 - [x] command/query service 분리
 - [x] DTO domain import 제거
 - [x] Domain model이 Facade/Controller/DTO/Result 밖으로 노출되지 않음
-- [x] `AdminSuccessCode`가 API response boundary에 위치
+- [x] feature별 SuccessCode가 각 API response boundary에 위치
 - [x] architecture guard와 JSON compatibility test 존재
 - [x] admin compile/test 통과
 
@@ -544,5 +586,5 @@ Kotlin migration 시 추가 규칙:
 - [ ] DTO/Result가 domain/JPA/infra type을 필드나 public factory 인자로 받지 않는가?
 - [ ] JSON field name과 enum value 호환성을 테스트로 고정했는가?
 - [ ] ErrorCode는 admin application flow와 domain invariant 중 올바른 위치에 있는가?
-- [ ] SuccessCode는 `admin.api.response`에 있는가?
+- [ ] SuccessCode는 `admin.<feature>.api.response`에 있는가?
 - [ ] architecture guard를 우회하는 package/import를 만들지 않았는가?

@@ -12,7 +12,7 @@ import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
 
-import com.beat.domain.promotion.domain.CarouselNumber;
+import com.beat.domain.promotion.model.CarouselNumber;
 
 class PromotionJpaEntityContractTest {
 

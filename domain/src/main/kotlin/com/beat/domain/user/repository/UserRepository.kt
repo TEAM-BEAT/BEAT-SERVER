@@ -1,6 +1,6 @@
 package com.beat.domain.user.repository
 
-import com.beat.domain.user.domain.Users
+import com.beat.domain.user.model.Users
 import java.util.*
 
 @JvmSuppressWildcards

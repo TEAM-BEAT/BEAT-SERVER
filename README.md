@@ -2,7 +2,7 @@
 
 > 백엔드 Java → Kotlin 마이그레이션 기준과 CI gate 정리는 [`MIGRATION.md`](MIGRATION.md)를 참고하세요.
 
-# BEAT <a href="https://www.beatlive.kr"><img src="https://github.com/user-attachments/assets/49b52b5a-1859-486e-aaf5-e8bee25f64ca" align="left" width="100" alt="BEAT logo"></a>
+## BEAT <a href="https://www.beatlive.kr"><img src="https://github.com/user-attachments/assets/49b52b5a-1859-486e-aaf5-e8bee25f64ca" align="left" width="100" alt="BEAT logo"></a>
 
 <a href="https://hits.seeyoufarm.com">
   <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FTEAM-BEAT%2FBEAT-SERVER&count_bg=%23FD28C0&title_bg=%230F0F0F&icon=beatport.svg&icon_color=%23E7E7E7&title=hits&edge_flat=false" alt="Hits">
@@ -134,10 +134,38 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 
 <img src="https://github.com/user-attachments/assets/7b1f3833-f2b0-40fb-970e-e9f8becc9a6d" alt="BEAT server architecture diagram">
 
+현재 Gradle project module과 canonical guide:
+
+| 구분 | 모듈 | 책임 / 기준서 |
+| --- | --- | --- |
+| Executable | `apis`, `admin`, `batch` | public API, 관리자 API, scheduler/job ([apis](apis/README.md), [admin](admin/README.md), [batch](batch/README.md)) |
+| Core | `domain` | JPA-free aggregate, Entity, VO, DomainService, repository port ([domain](domain/README.md)) |
+| Contract | `module-contracts` | implementation-free inter-module read/external port ([module-contracts](module-contracts/README.md)) |
+| Adapter | `infra` | JPA entity/mapper/repository, query/external adapter, bootstrap ([infra](infra/README.md)) |
+| Cross-cutting | `gateway`, `observability`, `global-support` | auth/security, logging/metrics/tracing, legacy response/error compatibility ([gateway](gateway/README.md), [observability](observability/README.md), [global-support](global-support/README.md)) |
+
+`build-logic`는 Gradle included build이며 application project module은 아닙니다.
+
+### BEAT backend best practice
+
+- `domain`은 Spring/JPA/HTTP를 모르는 순수 모델이며, Aggregate Root가 상태 전이와 불변식을 보호합니다.
+- `ApplicationService`는 transaction, 권한, idempotency, repository 호출 순서와 여러 Aggregate 조율을 소유합니다.
+- `infra`는 JPA entity와 domain model을 분리하고 mapper로 변환합니다. Domain VO와 persistence `@Embeddable`도 서로 다른 타입입니다.
+- `DomainService`는 Entity/VO 하나에 둘 수 없는 순수 정책에만 사용하며 repository와 transaction을 소유하지 않습니다.
+- application/domain 오류는 stable code와 의미 기반 type을 소유하고 HTTP status는 실행 모듈 handler가 결정합니다. 기존 `{status, message}` 응답은 client 계약으로 유지합니다. 자세한 기준은 [error handling guide](docs/architecture/error-handling.md)를 따릅니다.
+- Kotlin `Result`는 외부 연동의 복구 가능한 실패에만 제한적으로 사용합니다. Domain 규칙과 transactional command의 기본 실패 모델은 예외입니다.
+- 같은 transaction에서 지켜야 하는 규칙은 명시적 domain method 호출로 처리합니다. 이벤트는 commit 이후 부수 효과에만 사용합니다.
+- DB 제약, lock, idempotency, expand/contract migration과 contract/concurrency test로 애플리케이션 규칙을 보강합니다.
+
+세부 기준의 정본은 [domain guide](domain/README.md), [infra guide](infra/README.md), [API guide](apis/README.md),
+[global-support guide](global-support/README.md), [error handling guide](docs/architecture/error-handling.md)입니다.
+
 ### Backend migration baseline
 
 Backend module boundary and migration guardrails are maintained in [MIGRATION.md](MIGRATION.md).
-For ErrorCode work, #421 starts with documentation and inventory only: domain-owned codes remain for domain invariants, while application/use-case-specific failures are classified before any package or import movement.
+Domain invariant failures use HTTP/framework-neutral `DomainException`/`DomainErrorCode`; API and admin adapters map them to HTTP responses. User-facing message ownership is still a documented migration debt.
+Application/use-case failures remain owned by each executable module. See the [domain guide](domain/README.md) and
+[ErrorCode migration inventory](docs/migration/domain-application-errorcode-inventory.md) for the historical #421 snapshot. Current ownership is defined by the domain guide and source code.
 
 ### Environment configuration
 

@@ -1,7 +1,7 @@
 package com.beat.apis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -9,8 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.beat.apis.support.AbstractIntegrationTest;
 import com.beat.contracts.auth.RefreshTokenPort;
-import com.beat.contracts.auth.TokenErrorCode;
-import com.beat.global.support.exception.NotFoundException;
 
 class RefreshTokenRepositoryIntegrationTest extends AbstractIntegrationTest {
 
@@ -22,27 +20,19 @@ class RefreshTokenRepositoryIntegrationTest extends AbstractIntegrationTest {
 
 	@AfterEach
 	void tearDown() {
-		try {
-			refreshTokenPort.deleteRefreshToken(MEMBER_ID);
-		} catch (NotFoundException ignored) {
-			// Already deleted by the test path.
-		}
+		refreshTokenPort.deleteRefreshToken(MEMBER_ID);
 	}
 
 	@Test
 	void refreshTokenPortRoundTripWorksWithRedisBackedGatewayImplementation() {
 		refreshTokenPort.saveRefreshToken(MEMBER_ID, REFRESH_TOKEN);
 
-		Long loadedMemberId = refreshTokenPort.findMemberIdByRefreshToken(REFRESH_TOKEN);
+		long loadedMemberId = refreshTokenPort.findMemberIdByRefreshToken(REFRESH_TOKEN).orElseThrow();
 
 		assertEquals(MEMBER_ID, loadedMemberId);
 
 		refreshTokenPort.deleteRefreshToken(MEMBER_ID);
 
-		NotFoundException exception = assertThrows(
-			NotFoundException.class,
-			() -> refreshTokenPort.findMemberIdByRefreshToken(REFRESH_TOKEN)
-		);
-		assertEquals(TokenErrorCode.REFRESH_TOKEN_NOT_FOUND, exception.getBaseErrorCode());
+		assertFalse(refreshTokenPort.findMemberIdByRefreshToken(REFRESH_TOKEN).isPresent());
 	}
 }

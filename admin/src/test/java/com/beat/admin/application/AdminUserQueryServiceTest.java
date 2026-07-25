@@ -12,13 +12,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.beat.admin.user.application.dto.response.UserFindAllResponse;
-import com.beat.admin.user.application.service.query.AdminUserQueryService;
-import com.beat.domain.member.domain.Member;
-import com.beat.domain.member.domain.SocialType;
+import com.beat.admin.user.application.result.AdminUserResults;
+import com.beat.admin.user.application.query.AdminUserQueryService;
+import com.beat.domain.member.model.Member;
+import com.beat.domain.member.vo.SocialIdentity;
+import com.beat.domain.member.model.SocialType;
 import com.beat.domain.member.repository.MemberRepository;
-import com.beat.domain.user.domain.Role;
-import com.beat.domain.user.domain.Users;
+import com.beat.domain.user.model.Role;
+import com.beat.domain.user.model.Users;
 import com.beat.domain.user.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,16 +44,16 @@ class AdminUserQueryServiceTest {
 			Users.rehydrate(2L, Role.ADMIN)
 		));
 
-		UserFindAllResponse response = adminUserQueryService.findAllUsers(MEMBER_ID);
+		AdminUserResults response = adminUserQueryService.findAllUsers(MEMBER_ID);
 
-		assertEquals(2, response.userResponses().size());
-		assertEquals(1L, response.userResponses().get(0).id());
-		assertEquals("ROLE_USER", response.userResponses().get(0).role());
-		assertEquals(2L, response.userResponses().get(1).id());
-		assertEquals("ROLE_ADMIN", response.userResponses().get(1).role());
+		assertEquals(2, response.users().size());
+		assertEquals(1L, response.users().get(0).id());
+		assertEquals("ROLE_USER", response.users().get(0).role());
+		assertEquals(2L, response.users().get(1).id());
+		assertEquals("ROLE_ADMIN", response.users().get(1).role());
 	}
 
 	private static Member member() {
-		return Member.rehydrate(MEMBER_ID, "admin", "admin@example.com", null, 1L, 10L, SocialType.KAKAO);
+		return Member.rehydrate(MEMBER_ID, "admin", "admin@example.com", null, 1L, SocialIdentity.of(SocialType.KAKAO, 10L));
 	}
 }

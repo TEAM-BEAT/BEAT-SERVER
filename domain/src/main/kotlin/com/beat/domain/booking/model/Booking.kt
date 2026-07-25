@@ -1,0 +1,232 @@
+package com.beat.domain.booking.model
+
+import com.beat.domain.booking.exception.BookingErrorCode
+import com.beat.domain.booking.vo.RefundAccount
+import com.beat.domain.exception.DomainException
+import com.beat.domain.sharedkernel.vo.BankName
+import com.beat.domain.schedule.model.Schedule
+import com.beat.domain.sharedkernel.model.AggregateRoot
+import com.beat.domain.user.model.Users
+import java.time.LocalDateTime
+
+class Booking private constructor(
+    private val bookingId: Id?,
+    private val purchaseTicketCount: Int,
+    private val bookerName: String,
+    private val bookerPhoneNumber: String,
+    private val bookingStatus: BookingStatus,
+    private val createdAt: LocalDateTime,
+    private val cancellationDate: LocalDateTime?,
+    private val birthDate: String?,
+    private val password: String?,
+    private val refundAccount: RefundAccount?,
+    private val totalPaymentAmount: Int?,
+    private val linkedScheduleId: Schedule.Id,
+    private val linkedUserId: Users.Id,
+) : AggregateRoot {
+    fun getId(): Long? = bookingId?.value
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Booking) return false
+        return bookingId != null && bookingId == other.bookingId
+    }
+
+    override fun hashCode(): Int = bookingId?.hashCode() ?: System.identityHashCode(this)
+
+    override fun toString(): String =
+        "Booking(id=${bookingId?.value}, status=$bookingStatus)"
+
+    fun getPurchaseTicketCount(): Int = purchaseTicketCount
+
+    fun getBookerName(): String = bookerName
+
+    fun getBookerPhoneNumber(): String = bookerPhoneNumber
+
+    fun getBookingStatus(): BookingStatus = bookingStatus
+
+    fun getCreatedAt(): LocalDateTime = createdAt
+
+    fun getCancellationDate(): LocalDateTime? = cancellationDate
+
+    fun getBirthDate(): String? = birthDate
+
+    fun getPassword(): String? = password
+
+    fun getBankName(): BankName? = refundAccount?.bankName
+
+    fun getAccountNumber(): String? = refundAccount?.accountNumber
+
+    fun getAccountHolder(): String? = refundAccount?.accountHolder
+
+    fun getRefundAccount(): RefundAccount? = refundAccount
+
+    fun getTotalPaymentAmount(): Int? = totalPaymentAmount
+
+    fun getScheduleId(): Long = linkedScheduleId.value
+
+    fun getUserId(): Long = linkedUserId.value
+
+    fun hasActiveTicketAllocation(): Boolean = !bookingStatus.isInactiveForTicketAllocation()
+
+    fun transitionTo(requestedStatus: BookingStatus): Booking {
+        if (bookingStatus == requestedStatus) return this
+        if (bookingStatus == BookingStatus.BOOKING_CONFIRMED) {
+            throw DomainException(BookingErrorCode.CONFIRMED_STATUS_CHANGE_NOT_ALLOWED)
+        }
+        if (bookingStatus != BookingStatus.CHECKING_PAYMENT || requestedStatus != BookingStatus.BOOKING_CONFIRMED) {
+            throw DomainException(BookingErrorCode.STATUS_TRANSITION_NOT_ALLOWED)
+        }
+        return confirmPayment()
+    }
+
+    fun confirmPayment(): Booking = when (bookingStatus) {
+        BookingStatus.CHECKING_PAYMENT -> withState(bookingStatus = BookingStatus.BOOKING_CONFIRMED)
+        BookingStatus.BOOKING_CONFIRMED -> this
+        else -> throw DomainException(BookingErrorCode.PAYMENT_CONFIRMATION_NOT_ALLOWED)
+    }
+
+    fun requestRefund(refundAccount: RefundAccount): Booking = when (bookingStatus) {
+        BookingStatus.BOOKING_CONFIRMED ->
+            withState(refundAccount = refundAccount, bookingStatus = BookingStatus.REFUND_REQUESTED)
+        BookingStatus.REFUND_REQUESTED -> {
+            if (this.refundAccount == refundAccount) {
+                this
+            } else {
+                throw DomainException(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED)
+            }
+        }
+        else -> throw DomainException(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED)
+    }
+
+    fun cancel(cancelledAt: LocalDateTime): Booking {
+        if (!hasActiveTicketAllocation()) {
+            return this
+        }
+        return withState(bookingStatus = BookingStatus.BOOKING_CANCELLED, cancellationDate = cancelledAt)
+    }
+
+    fun delete(deletedAt: LocalDateTime): Booking = when (bookingStatus) {
+        BookingStatus.BOOKING_DELETED -> this
+        BookingStatus.BOOKING_CANCELLED -> withState(bookingStatus = BookingStatus.BOOKING_DELETED)
+        else -> withState(bookingStatus = BookingStatus.BOOKING_DELETED, cancellationDate = deletedAt)
+    }
+
+    private fun withState(
+        bookingStatus: BookingStatus = this.bookingStatus,
+        cancellationDate: LocalDateTime? = this.cancellationDate,
+        refundAccount: RefundAccount? = this.refundAccount,
+    ): Booking = Booking(
+        bookingId = bookingId,
+        purchaseTicketCount = purchaseTicketCount,
+        bookerName = bookerName,
+        bookerPhoneNumber = bookerPhoneNumber,
+        bookingStatus = bookingStatus,
+        createdAt = createdAt,
+        cancellationDate = cancellationDate,
+        birthDate = birthDate,
+        password = password,
+        refundAccount = refundAccount,
+        totalPaymentAmount = totalPaymentAmount,
+        linkedScheduleId = linkedScheduleId,
+        linkedUserId = linkedUserId,
+    )
+
+    @JvmInline
+    value class Id private constructor(val value: Long) {
+        companion object {
+            @JvmStatic
+            fun from(value: Long): Id = Id(value)
+
+            @JvmStatic
+            fun fromNullable(value: Long?): Id? = value?.let(::from)
+        }
+    }
+
+    companion object {
+        @JvmStatic
+        @JvmOverloads
+        fun create(
+            purchaseTicketCount: Int,
+            bookerName: String,
+            bookerPhoneNumber: String,
+            birthDate: String?,
+            password: String?,
+            scheduleId: Long?,
+            userId: Long?,
+            createdAt: LocalDateTime,
+            totalPaymentAmount: Int? = null,
+        ): Booking {
+            validatePurchaseTicketCount(purchaseTicketCount)
+            validateTotalPaymentAmount(totalPaymentAmount)
+            requireNotNull(scheduleId) { "scheduleId must not be null" }
+            requireNotNull(userId) { "userId must not be null" }
+
+            return Booking(
+                bookingId = null,
+                purchaseTicketCount = purchaseTicketCount,
+                bookerName = bookerName,
+                bookerPhoneNumber = bookerPhoneNumber,
+                bookingStatus = BookingStatus.CHECKING_PAYMENT,
+                createdAt = createdAt,
+                cancellationDate = null,
+                birthDate = birthDate,
+                password = password,
+                refundAccount = null,
+                totalPaymentAmount = totalPaymentAmount,
+                linkedScheduleId = Schedule.Id.from(scheduleId),
+                linkedUserId = Users.Id.from(userId),
+            )
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun rehydrate(
+            id: Long?,
+            purchaseTicketCount: Int,
+            bookerName: String,
+            bookerPhoneNumber: String,
+            bookingStatus: BookingStatus,
+            createdAt: LocalDateTime,
+            cancellationDate: LocalDateTime?,
+            birthDate: String?,
+            password: String?,
+            refundAccount: RefundAccount?,
+            scheduleId: Long?,
+            userId: Long?,
+            totalPaymentAmount: Int? = null,
+        ): Booking {
+            requireNotNull(scheduleId) { "scheduleId must not be null" }
+            requireNotNull(userId) { "userId must not be null" }
+            validateTotalPaymentAmount(totalPaymentAmount)
+
+            return Booking(
+                bookingId = Id.fromNullable(id),
+                purchaseTicketCount = purchaseTicketCount,
+                bookerName = bookerName,
+                bookerPhoneNumber = bookerPhoneNumber,
+                bookingStatus = bookingStatus,
+                createdAt = createdAt,
+                cancellationDate = cancellationDate,
+                birthDate = birthDate,
+                password = password,
+                refundAccount = refundAccount,
+                totalPaymentAmount = totalPaymentAmount,
+                linkedScheduleId = Schedule.Id.from(scheduleId),
+                linkedUserId = Users.Id.from(userId),
+            )
+        }
+
+        private fun validatePurchaseTicketCount(purchaseTicketCount: Int) {
+            if (purchaseTicketCount <= 0) {
+                throw DomainException(BookingErrorCode.INVALID_PURCHASE_TICKET_COUNT)
+            }
+        }
+
+        private fun validateTotalPaymentAmount(totalPaymentAmount: Int?) {
+            if (totalPaymentAmount != null && totalPaymentAmount < 0) {
+                throw DomainException(BookingErrorCode.NEGATIVE_TOTAL_PAYMENT_AMOUNT)
+            }
+        }
+    }
+}

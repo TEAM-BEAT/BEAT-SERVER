@@ -9,10 +9,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.domain.promotion.domain.CarouselNumber;
+import com.beat.domain.promotion.model.CarouselNumber;
 import com.beat.infra.persistence.promotion.entity.PromotionJpaEntity;
 
 public interface PromotionJpaRepository extends JpaRepository<PromotionJpaEntity, Long> {
+
 
 	@Modifying(clearAutomatically = true)
 	@Transactional

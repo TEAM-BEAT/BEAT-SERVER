@@ -6,7 +6,7 @@
 
 | Current | Target | Deferred-to-issue |
 | --- | --- | --- |
-| Contract surface intentionally remains mostly Java with an explicitly allowed Kotlin port-failure type and exposes auth, booking read-model, notification, schedule, SMS, and storage ports/transfer models. Issue #426 이후 `domain` 직접 의존은 제거되었고, 공유 계약은 contract-local enum/value/read model만 노출한다. | Stable implementation-free API; domain model / domain enum / JPA entity / API ResponseDTO를 직접 노출하지 않는다. | 추가 contract 세분화와 언어 전환은 별도 이슈에서 검토한다. |
+| Contract surface는 Kotlin이며 auth, booking read-model, CDN, notification, schedule, SMS, storage port/transfer model을 노출한다. 다른 project module 직접 의존은 없고 공유 계약은 contract-local enum/value/read model만 사용한다. | Stable implementation-free API; domain model / domain enum / JPA entity / API ResponseDTO를 직접 노출하지 않는다. | 계약 세분화는 실제 소비 모듈이 둘 이상이거나 infra 구현 경계가 필요할 때만 검토한다. |
 
 ## 역할
 
@@ -16,7 +16,6 @@
 
 ## 허용 의존성
 
-- `global-support`
 - Kotlin/JDK 표준 라이브러리
 
 ## 금지 규칙
@@ -31,56 +30,63 @@
 
 ```text
 module-contracts/
-  src/main/java/com/beat/contracts/
+  src/main/kotlin/com/beat/contracts/
     common/
-      ReadModel.java                       # read/query contract marker; Spring/JPA behavior 없음
+      ReadModel.kt                         # read/query contract marker; Spring/JPA behavior 없음
     auth/
-      JwtSubject.java
-      JwtTokenPort.java
-      RefreshTokenPort.java
-      TokenErrorCode.java                 # contract-local token error enum; global-support BaseErrorCode contract만 구현
-      TokenValidationResult.java           # contract-local token validation result enum
+      JwtSubject.kt
+      JwtTokenPort.kt
+      JwtTokenType.kt
+      RefreshTokenPort.kt
+      TokenValidationResult.kt
       social/
-        SocialLoginRequest.java
-        SocialLoginPort.java
-        SocialLoginType.java                    # contract-local social provider enum
-        SocialMemberInfo.java
+        SocialLoginRequest.kt
+        SocialLoginPort.kt
+        SocialLoginType.kt
+        SocialMemberInfo.kt
+        SocialLoginFailure.kt              # adapter 실패를 application이 번역
     booking/
-      MakerTicketReadPort.java
+      MakerTicketReadPort.kt
       readmodel/
-        MakerTicketBookingStatus.java       # contract-local booking status enum; domain BookingStatus 노출 없음
-        MakerTicketListItemReadModel.java        # @ReadModel; maker ticket list/search query result
-        MakerTicketScheduleNumber.java      # contract-local schedule number enum; domain ScheduleNumber 노출 없음
+        MakerTicketBookingStatus.kt
+        MakerTicketListItemReadModel.kt
+        MakerTicketScheduleNumber.kt
+    performance/
+      MakerPerformanceListReadPort.kt
+      PerformanceContentOwnershipReadPort.kt
+      PerformanceSummaryReadPort.kt
+      readmodel/
+        MakerPerformanceListItemReadModel.kt
+        PerformanceSummaryReadModel.kt
+    cdn/
+      ImageCachePort.kt
     notification/
-      BookingNotification.java
-      BookingNotificationPort.java
-      MemberNotification.java
-      MemberNotificationPort.java
+      BookingNotification.kt
+      BookingNotificationPort.kt
+      MemberNotification.kt
+      MemberNotificationPort.kt
     schedule/
       ScheduleAvailabilityReadPort.kt
-      ScheduleReadPort.java
+      ScheduleReadPort.kt
       readmodel/
         ScheduleAvailabilityReadModel.kt # DB 시각 기반 회차 예매 가능 상태
-        MinPerformanceDateReadModel.java            # @ReadModel; Schedule 최소 공연 일자 query result
+        MinPerformanceDateReadModel.kt
     sms/
-      SmsMessage.java
-      SmsPort.java
+      SmsMessage.kt
+      SmsPort.kt
     storage/
-      BannerPresignedUrl.java
-      CarouselPresignedUrls.java
-      FileStoragePort.java
-      PerformancePresignedUrls.java
-  src/main/kotlin/com/beat/contracts/
-    auth/social/
-      SocialLoginFailure.kt                 # port-level social login failure; nested Reason enum을 application boundary가 API ErrorCode로 번역
+      BannerPresignedUrl.kt
+      CarouselPresignedUrls.kt
+      FileStoragePort.kt
+      PerformancePresignedUrls.kt
 ```
 
 설명:
 
-- 현재 `module-contracts`는 `auth`, `booking`, `notification`, `schedule`, `sms`, `storage` 계약을 모아두는 얇은 공유 모듈이다.
+- 현재 `module-contracts`는 `auth`, `booking`, `cdn`, `notification`, `schedule`, `sms`, `storage` 계약을 모아두는 얇은 공유 모듈이다.
 - 구현체는 다른 모듈에 있고, 이 모듈은 계약 타입만 제공한다.
-- Issue #378 결정: contract surface는 cross Java/Kotlin consumer API 안정성이 우선이다. 대부분 Java source를 유지하되, `SocialLoginFailure.kt`처럼 port-level failure 표현에 한해 명시적으로 허용된 Kotlin contract가 있을 수 있다.
-- `build.gradle.kts`에서 `global-support`만 `compileOnly`로 참조한다. domain-coupled contract type은 contract-local 값이나 read model로 치환한다.
+- contract surface는 Kotlin으로 통일되어 있으며 Java 실행 모듈과의 호출 호환성은 compile test로 보호한다.
+- 다른 project module을 노출하지 않는다. 인증 use-case 오류는 `apis.member.exception`이 소유한다.
 - `SharedBoundaryContractTest`는 Spring/JPA/Redis stereotype이나 infra/executable/gateway 구현 참조가 들어오지 않도록 guard한다.
 - `ReadModel`은 module-contracts query result임을 드러내는 marker annotation이다. Spring/JPA가 인식하는 annotation이 아니며, save 대상/도메인 모델/API 응답 DTO가 아니라는 architectural label로만 사용한다.
 
@@ -93,8 +99,8 @@ com.beat.contracts/
   auth/
     JwtSubject
     JwtTokenPort
+    JwtTokenType
     RefreshTokenPort
-    TokenErrorCode
     TokenValidationResult
     social/
       SocialLoginRequest
@@ -108,6 +114,15 @@ com.beat.contracts/
       MakerTicketBookingStatus
       MakerTicketListItemReadModel
       MakerTicketScheduleNumber
+  performance/
+    MakerPerformanceListReadPort
+    PerformanceContentOwnershipReadPort
+    PerformanceSummaryReadPort
+    readmodel/
+      MakerPerformanceListItemReadModel
+      PerformanceSummaryReadModel
+  cdn/
+    ImageCachePort
   notification/
     BookingNotification
     BookingNotificationPort
@@ -128,6 +143,8 @@ com.beat.contracts/
     FileStoragePort
     PerformancePresignedUrls
 ```
+
+`RefreshTokenPort`는 저장소 부재를 HTTP 예외로 바꾸지 않고 `OptionalLong`으로 돌려줍니다. 재발급 유스케이스가 이를 인증 오류로 번역하며 삭제는 로그아웃 재시도에 안전하도록 멱등입니다. `SocialLoginFailure`는 사용자 인증 실패와 provider failure/unavailable/timeout을 구분해 실행 모듈이 401/502/503/504 정책을 결정하게 합니다.
 
 설명:
 

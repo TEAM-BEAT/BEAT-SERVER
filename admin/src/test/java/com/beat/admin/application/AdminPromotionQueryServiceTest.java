@@ -14,18 +14,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.beat.admin.promotion.application.dto.response.BannerPresignedUrlFindResponse;
-import com.beat.admin.promotion.application.dto.response.CarouselFindAllResponse;
-import com.beat.admin.promotion.application.dto.response.CarouselPresignedUrlFindAllResponse;
-import com.beat.admin.promotion.application.service.query.AdminPromotionQueryService;
+import com.beat.admin.promotion.application.result.AdminPromotionPresignedUrlResults.BannerPresignedUrlResult;
+import com.beat.admin.promotion.application.result.AdminPromotionPresignedUrlResults.CarouselPresignedUrlsResult;
+import com.beat.admin.promotion.application.result.AdminPromotionResults;
+import com.beat.admin.promotion.application.query.AdminPromotionQueryService;
 import com.beat.contracts.storage.BannerPresignedUrl;
 import com.beat.contracts.storage.CarouselPresignedUrls;
 import com.beat.contracts.storage.FileStoragePort;
-import com.beat.domain.member.domain.Member;
-import com.beat.domain.member.domain.SocialType;
+import com.beat.domain.member.model.Member;
+import com.beat.domain.member.vo.SocialIdentity;
+import com.beat.domain.member.model.SocialType;
 import com.beat.domain.member.repository.MemberRepository;
-import com.beat.domain.promotion.domain.CarouselNumber;
-import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.promotion.model.CarouselNumber;
+import com.beat.domain.promotion.model.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,16 +54,16 @@ class AdminPromotionQueryServiceTest {
 			promotion(1L, "image-one", 11L, "url-one", false, CarouselNumber.ONE)
 		));
 
-		CarouselFindAllResponse response = adminPromotionQueryService.findAllPromotionsSortedByCarouselNumber(MEMBER_ID);
+		AdminPromotionResults response = adminPromotionQueryService.findAllPromotionsSortedByCarouselNumber(MEMBER_ID);
 
-		assertEquals(2, response.carouselResponses().size());
-		assertEquals(1L, response.carouselResponses().get(0).promotionId());
-		assertEquals("ONE", response.carouselResponses().get(0).carouselNumber());
-		assertEquals("image-one", response.carouselResponses().get(0).newImageUrl());
-		assertEquals(11L, response.carouselResponses().get(0).performanceId());
-		assertEquals(2L, response.carouselResponses().get(1).promotionId());
-		assertEquals("TWO", response.carouselResponses().get(1).carouselNumber());
-		assertEquals("image-two", response.carouselResponses().get(1).newImageUrl());
+		assertEquals(2, response.promotionResults().size());
+		assertEquals(1L, response.promotionResults().get(0).promotionId());
+		assertEquals("ONE", response.promotionResults().get(0).carouselNumber());
+		assertEquals("image-one", response.promotionResults().get(0).newImageUrl());
+		assertEquals(11L, response.promotionResults().get(0).performanceId());
+		assertEquals(2L, response.promotionResults().get(1).promotionId());
+		assertEquals("TWO", response.promotionResults().get(1).carouselNumber());
+		assertEquals("image-two", response.promotionResults().get(1).newImageUrl());
 	}
 
 	@Test
@@ -73,9 +74,9 @@ class AdminPromotionQueryServiceTest {
 		when(fileStoragePort.issuePresignedUrlForBanner("banner.png"))
 			.thenReturn(new BannerPresignedUrl("banner-url"));
 
-		CarouselPresignedUrlFindAllResponse carouselResponse =
+		CarouselPresignedUrlsResult carouselResponse =
 			adminPromotionQueryService.issueAllPresignedUrlsForCarousel(MEMBER_ID, List.of("carousel.png"));
-		BannerPresignedUrlFindResponse bannerResponse =
+		BannerPresignedUrlResult bannerResponse =
 			adminPromotionQueryService.issuePresignedUrlForBanner(MEMBER_ID, "banner.png");
 
 		assertEquals(Map.of("carousel.png", "carousel-url"), carouselResponse.carouselPresignedUrls());
@@ -90,6 +91,6 @@ class AdminPromotionQueryServiceTest {
 	}
 
 	private static Member member() {
-		return Member.rehydrate(MEMBER_ID, "admin", "admin@example.com", null, 1L, 10L, SocialType.KAKAO);
+		return Member.rehydrate(MEMBER_ID, "admin", "admin@example.com", null, 1L, SocialIdentity.of(SocialType.KAKAO, 10L));
 	}
 }

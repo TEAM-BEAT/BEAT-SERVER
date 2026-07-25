@@ -6,7 +6,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.beat.domain.schedule.domain.Schedule;
+import com.beat.domain.schedule.model.Schedule;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.infra.persistence.schedule.entity.ScheduleJpaEntity;
 import com.beat.infra.persistence.schedule.mapper.SchedulePersistenceMapper;

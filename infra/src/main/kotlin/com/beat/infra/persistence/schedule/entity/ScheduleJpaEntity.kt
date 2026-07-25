@@ -1,6 +1,6 @@
 package com.beat.infra.persistence.schedule.entity
 
-import com.beat.domain.schedule.domain.ScheduleNumber
+import com.beat.domain.schedule.model.ScheduleNumber
 import jakarta.persistence.*
 import java.time.LocalDateTime
 

@@ -1,21 +1,16 @@
 package com.beat.batch.promotion.application;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
-import java.util.OptionalInt;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.domain.promotion.domain.CarouselNumber;
-import com.beat.domain.promotion.domain.Promotion;
+import com.beat.domain.promotion.model.Promotion;
 import com.beat.domain.promotion.repository.PromotionRepository;
-import com.beat.domain.schedule.domain.Schedule;
+import com.beat.domain.promotion.service.PromotionCarouselDomainService;
+import com.beat.domain.promotion.service.PromotionEligibilityDomainService;
+import com.beat.domain.schedule.model.Schedule;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -28,6 +23,8 @@ public class PromotionMaintenanceService {
 
 	private final PromotionRepository promotionRepository;
 	private final ScheduleRepository scheduleRepository;
+	private final PromotionCarouselDomainService promotionCarouselDomainService;
+	private final PromotionEligibilityDomainService promotionEligibilityDomainService;
 
 	@Transactional
 	public void checkAndDeleteInvalidPromotions() {
@@ -47,42 +44,20 @@ public class PromotionMaintenanceService {
 	}
 
 	private boolean isInvalidPromotion(Promotion promotion) {
-		return Optional.ofNullable(promotion.getPerformanceId())
-			.map(performanceId -> {
-				List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(performanceId);
-				return getMinDueDate(schedules) < 0;
-			})
-			.orElse(false);
-	}
-
-	private int getMinDueDate(List<Schedule> schedules) {
-		OptionalInt minPositiveDueDate = schedules.stream()
-			.mapToInt(schedule -> (int)ChronoUnit.DAYS.between(LocalDate.now(),
-				schedule.getPerformanceDate().toLocalDate()))
-			.filter(dueDate -> dueDate >= 0)
-			.min();
-
-		if (minPositiveDueDate.isPresent()) {
-			return minPositiveDueDate.getAsInt();
+		if (promotion.getPerformanceId() == null) {
+			return false;
 		}
-		return schedules.stream()
-			.mapToInt(schedule -> (int)ChronoUnit.DAYS.between(LocalDate.now(),
-				schedule.getPerformanceDate().toLocalDate()))
-			.min()
-			.orElse(Integer.MAX_VALUE);
+
+		List<Schedule> schedules = scheduleRepository.findAllByPerformanceId(promotion.getPerformanceId());
+		return !promotionEligibilityDomainService.isEligible(
+			promotion,
+			schedules.stream().map(Schedule::getPerformanceDate).toList(),
+			LocalDate.now()
+		);
 	}
 
 	private void reassignCarouselNumbers() {
 		List<Promotion> remainingPromotions = promotionRepository.findAll();
-		remainingPromotions.sort(Comparator.comparing(promotion -> promotion.getCarouselNumber().getNumber()));
-
-		List<CarouselNumber> carouselNumbers = Arrays.asList(CarouselNumber.values());
-		List<Promotion> reassignedPromotions = new ArrayList<>();
-		for (int i = 0; i < remainingPromotions.size(); i++) {
-			Promotion promotion = remainingPromotions.get(i);
-			reassignedPromotions.add(promotion.updateCarouselNumber(carouselNumbers.get(i)));
-		}
-
-		promotionRepository.saveAll(reassignedPromotions);
+		promotionRepository.saveAll(promotionCarouselDomainService.arrangeCarouselNumbers(remainingPromotions));
 	}
 }

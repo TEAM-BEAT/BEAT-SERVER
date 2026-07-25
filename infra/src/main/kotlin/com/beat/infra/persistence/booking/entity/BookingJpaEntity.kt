@@ -1,8 +1,8 @@
 package com.beat.infra.persistence.booking.entity
 
-import com.beat.domain.booking.domain.BookingStatus
-import com.beat.domain.performance.domain.BankName
+import com.beat.domain.booking.model.BookingStatus
 import jakarta.persistence.Column
+import jakarta.persistence.Embedded
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
@@ -24,9 +24,8 @@ class BookingJpaEntity private constructor(
     cancellationDate: LocalDateTime?,
     birthDate: String?,
     password: String?,
-    bankName: BankName?,
-    accountNumber: String?,
-    accountHolder: String?,
+    refundAccount: RefundAccountJpaValue?,
+    totalPaymentAmount: Int?,
     scheduleId: Long,
     userId: Long,
 ) {
@@ -69,17 +68,12 @@ class BookingJpaEntity private constructor(
     var password: String? = password
         protected set
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = true)
-    var bankName: BankName? = bankName
+    @Embedded
+    var refundAccount: RefundAccountJpaValue? = refundAccount
         protected set
 
-    @Column(nullable = true)
-    var accountNumber: String? = accountNumber
-        protected set
-
-    @Column(nullable = true)
-    var accountHolder: String? = accountHolder
+    @Column(name = "total_payment_amount")
+    var totalPaymentAmount: Int? = totalPaymentAmount
         protected set
 
     @Column(name = "schedule_id", nullable = false)
@@ -92,6 +86,7 @@ class BookingJpaEntity private constructor(
 
     companion object {
         @JvmStatic
+        @JvmOverloads
         fun rehydrate(
             id: Long?,
             purchaseTicketCount: Int,
@@ -102,11 +97,10 @@ class BookingJpaEntity private constructor(
             cancellationDate: LocalDateTime?,
             birthDate: String?,
             password: String?,
-            bankName: BankName?,
-            accountNumber: String?,
-            accountHolder: String?,
+            refundAccount: RefundAccountJpaValue?,
             scheduleId: Long,
             userId: Long,
+            totalPaymentAmount: Int? = null,
         ): BookingJpaEntity = BookingJpaEntity(
             id = id,
             purchaseTicketCount = purchaseTicketCount,
@@ -117,9 +111,8 @@ class BookingJpaEntity private constructor(
             cancellationDate = cancellationDate,
             birthDate = birthDate,
             password = password,
-            bankName = bankName,
-            accountNumber = accountNumber,
-            accountHolder = accountHolder,
+            refundAccount = refundAccount,
+            totalPaymentAmount = totalPaymentAmount,
             scheduleId = scheduleId,
             userId = userId,
         )

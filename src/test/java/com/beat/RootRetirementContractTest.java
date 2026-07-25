@@ -180,8 +180,10 @@ class RootRetirementContractTest {
 		// finally, which runs AFTER interceptor afterCompletion) can read routePattern directly.
 		assertFalse(routeInterceptor.contains("MDC.remove(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY)"));
 		assertTrue(loggingConfig.contains("registry.addInterceptor(routePatternMdcInterceptor)"));
-		assertTrue(observabilityReadme.contains("Request completion logging은 nginx `access.log`가 소유합니다"));
-		assertTrue(observabilityReadme.contains("Application log는 request completion log를 중복으로 남기지 않고"));
+		assertTrue(observabilityReadme.contains(
+			"nginx `access.log`와 application `AccessLogEmitter`가 서로 다른 목적의 request completion log를 남깁니다"));
+		assertTrue(observabilityReadme.contains(
+			"Application `AccessLogEmitter`는 Spring route, status, elapsed와 5xx exception을 남기고"));
 		assertTrue(observabilityReadme.contains("route-level aggregation은 가능한 경우 `routePattern`을 사용합니다"));
 	}
 
@@ -364,7 +366,8 @@ class RootRetirementContractTest {
 		assertTrue(deployProd.contains("SENTRY_RELEASE: beat-server@${{ needs.resolve-release.outputs.commit_sha }}"));
 		assertFalse(appContainerEnv.contains("SENTRY_AUTH_TOKEN"));
 		assertTrue(observabilityReadme.contains("Sentry는 `observability` 모듈이 소유"));
-		assertTrue(observabilityReadme.contains("app request completion log는 추가하지 않습니다"));
+		assertTrue(observabilityReadme.contains(
+			"Sentry integration은 기존 `AccessLogEmitter` 외에 별도 request completion log를 추가하지 않습니다"));
 		assertTrue(infraReadme.contains("SENTRY_DSN=https://public@example.ingest.sentry.io/project-id"));
 		assertFalse(infraReadme.contains("DEV_SENTRY_DSN="));
 		assertFalse(infraReadme.contains("PROD_SENTRY_DSN="));
@@ -808,7 +811,11 @@ class RootRetirementContractTest {
 		assertTrue(defaultConfTemplate.contains("BEAT MANAGED GENERATED UPSTREAM INCLUDES"));
 		assertTrue(defaultConfTemplate.contains("BEAT MANAGED GENERATED ROUTE INCLUDES"));
 		assertTrue(defaultConfTemplate.contains("escape=json"));
-		assertTrue(defaultConfTemplate.contains("\"trace_id\":\"$request_id\""));
+		assertTrue(defaultConfTemplate.contains("\"trace_id\":\"$effective_trace_id\""));
+		assertTrue(defaultConfTemplate.contains("\"request_id\":\"$request_id\""));
+		assertTrue(defaultConfTemplate.contains("map $http_traceparent $trace_parent"));
+		assertFalse(defaultConfTemplate.contains("~*^00-"));
+		assertTrue(defaultConfTemplate.contains("default $generated_trace_parent"));
 		assertTrue(defaultConfTemplate.contains("\"client_ip\":\"$remote_addr\""));
 		assertTrue(defaultConfTemplate.contains("\"request\":\"$request\""));
 		assertTrue(defaultConfTemplate.contains("\"status\":\"$status\""));
@@ -1177,7 +1184,7 @@ class RootRetirementContractTest {
 		String localDevSecretScript = read("scripts/generate-local-dev-secret.sh");
 		String localProdSecretScript = read("scripts/generate-local-prod-secret.sh");
 		String localVarsHelper = read("scripts/lib/local-vars.sh");
-		String apisSecurity = read("apis/src/main/java/com/beat/apis/config/ApisSecurityConfig.java");
+		String apisSecurity = read("apis/src/main/kotlin/com/beat/apis/config/ApisSecurityConfig.kt");
 		String adminSecurity = read("admin/src/main/java/com/beat/admin/config/AdminSecurityConfig.java");
 		String ansibleConfig = read("infra/ansible/ansible.cfg");
 		String sopsConfig = read(".sops.yaml");
@@ -1244,7 +1251,7 @@ class RootRetirementContractTest {
 		assertFalse(adminSecurity.contains("\"/health-check\""));
 		assertFalse(apisSecurity.contains("\"/actuator/health\""));
 		assertFalse(adminSecurity.contains("\"/actuator/health\""));
-		assertTrue(apisSecurity.contains("actuatorEndPoint + \"/health\""));
+		assertTrue(apisSecurity.contains("\"$actuatorEndpoint/health\""));
 		assertTrue(adminSecurity.contains("actuatorEndPoint + \"/health\""));
 	}
 

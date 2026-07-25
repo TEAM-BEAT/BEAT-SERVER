@@ -90,7 +90,7 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
 | Shared module ownership | `domain`, `module-contracts`, `global-support`, `observability`, `infra`의 현재 공개 계약을 사용하고 `gateway`는 직접 의존하지 않는다. | shared module ownership/package closeout 이후 batch가 필요한 공개 계약만 더 좁게 사용한다. | #378 |
 | CQRS/package normalization | `booking`, `promotion`은 `Job -> Facade -> ApplicationService` 흐름으로 정렬됐고, application service는 아직 `application/` 바로 아래에 있다. | `com.beat.batch.<context>` 아래 application service command/query package와 dto 기준을 필요 시 더 세분화한다. | #382 |
 | Gateway boundary | `batch`는 gateway에 직접 의존하지 않고 사용자/관리자 HTTP lane과 분리되어 있다. | scheduler lane은 gateway 인증 구현과 계속 분리한다. | #379 |
-| Domain/persistence boundary | batch job은 domain model contract와 infra bootstrap을 통해 persistence를 사용하고, promotion scheduler의 promotion repository access는 domain `PromotionRepository` contract를 주입받아 infra 구현으로 격리한다. 인접 `ScheduleRepository` 등은 아직 transitional domain persistence concern이다. | domain entity/persistence 전략 정리 후에도 batch는 domain contract 중심으로 접근한다. | #380 |
+| Domain/persistence boundary | batch job은 순수 domain model/repository port와 infra bootstrap을 통해 persistence를 사용한다. promotion과 schedule repository 구현은 infra에 격리돼 있다. | batch는 domain port 중심 접근과 JPA-free domain 경계를 유지한다. | boundary guard로 지속 검증 |
 | Infra/query boundary | `InfraConfig`가 JPA, QueryDSL, async group을 명시적으로 import하고, `InfraPersistenceConfig`를 IDE static-analysis breadcrumb로 직접 import한다. Runtime persistence import는 여전히 `JpaConfig`가 보장하며 scheduler bean은 Spring Boot auto-configuration이 소유한다. | QueryDSL/JDSL 전환과 `JpaConfig` scan 결정은 infra-owned boundary에서 정한다. | #381 |
 | Async/scheduler handoff | 실행 모듈 중 유일하게 `@EnableScheduling`을 유지하지만 예매 마감 작업은 소유하지 않는다. | 프로모션 관리와 티켓 정리 같은 실제 유지보수 작업만 scheduler에 둔다. | #383, #428 |
 
@@ -108,13 +108,13 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
 - `module-contracts`: 유지보수 흐름에 필요한 cross-module 계약
 - `domain`: schedule/booking/promotion domain models and repository contracts
 - `infra`: JPA, QueryDSL, async/task-scheduler bootstrap
-- `global-support`: shared common types and exception base contracts
+- `global-support`: shared response compatibility types and framework-neutral support utilities
 - `observability`: MDC logging base filter, metrics/actuator config, tracing placeholder
 
 ## Remaining transitional debt
 
-- owner namespace normalization과 `Job -> Facade -> ApplicationService` 흐름은 정렬됐지만, `application/service/command|query` 내부 세분화는 아직 최소 수준으로만 남겨 둔다.
-- `domain` 모듈은 아직 JPA entity/repository 같은 persistence concern을 포함하는 transitional state이며, `Role`은 현재 `ROLE_*` 문자열만 소유하고 Spring Security `GrantedAuthority` bridge는 갖지 않는다. domain persistence 전략은 #380에서 다룬다.
+- owner namespace normalization과 `Job -> Facade -> ApplicationService` 흐름은 정렬됐지만, `application/command|query` 내부 세분화는 아직 최소 수준으로만 남겨 둔다.
+- `domain` 모듈은 JPA-free이며 기술 중립 repository port만 소유한다. `Role`은 `ROLE_*` 문자열만 소유하고 Spring Security `GrantedAuthority` bridge는 갖지 않는다.
 - root executable lane은 retire되었고, scheduler runtime owner는 `batch`로 고정됐다.
 - CQRS/service layer normalization과 batch 전용 package 정리는 다음 단계에서 다룬다.
 
@@ -160,11 +160,11 @@ com.beat.batch.<context>/
 ## 서비스 / CQRS 규칙
 
 - `Facade`는 batch context/job scenario의 공식 진입점이며 실행 시나리오 조합을 맡는다. Job/Runner는 facade만 호출하고, facade는 필요한 ApplicationService를 호출한다. 단, raw Domain model을 받거나 반환하지 않는다.
-- 실제 잡 실행은 대부분 command 성격이므로 `application/service/command`를 기본으로 둔다.
-- 배치 조회/리포트/통계가 필요할 때만 `application/service/query`를 추가한다.
+- 실제 잡 실행은 대부분 command 성격이므로 `application/command`를 기본으로 둔다.
+- 배치 조회/리포트/통계가 필요할 때만 `application/query`를 추가한다.
 - DTO는 command/query로 나누지 않고 `application/dto` 아래에서 관리한다. Facade 조합용 내부 결과가 필요할 때만 `application/dto/result`를 추가한다.
 - command job/service는 domain repository contract와 infra 구현을 통해 저장/수정 흐름과 transaction을 수행한다. 단순 조회는 domain repository contract를 사용할 수 있지만, 배치 리포트/통계 조회가 필요해질 때는 infra persistence mapper를 직접 재사용하지 않고 query 전용 read model/projection을 둔다. infra adapter가 필요하면 실행 모듈 타입을 infra가 import하지 않고 module-contracts read contract를 먼저 둔다.
-- 배치 애플리케이션 문맥의 에러 코드는 `application/exception`에 둔다. repository lookup 실패, batch flow 실패, 외부 adapter 실패 번역을 domain ErrorCode로 표현하지 않는다.
+- 배치 애플리케이션 문맥의 에러 코드는 `<context>/exception`에 둔다. repository lookup 실패, batch flow 실패, 외부 adapter 실패 번역을 domain ErrorCode로 표현하지 않는다.
 - batch는 HTTP response success code가 기본적으로 필요하지 않다. 배치 결과 메시지가 필요해질 때는 batch-local result/response boundary가 소유하고 domain에는 `SuccessCode`를 추가하지 않는다.
 - `adapter`, `port` 패키지는 BEAT 기본 가이드로 강제하지 않는다.
 - Repository는 지금 즉시 분리하지 않고, 복잡한 조회 전용 구현이 필요할 때만 infra `repository.query` 레이어를 추가한다. 이 레이어는 batch 리포트/통계용 read projection을 소유하고 JPA entity와 domain model을 번역하는 mapper를 재사용하지 않는다.
@@ -239,6 +239,6 @@ Job/Runner -> Facade -> CommandService A -> CommandResult A
 
 ## Follow-up after this issue
 
-1. `com.beat.batch.<context>` 내부 하위 계층(`job`, `application/service`, `dto`)을 문맥별로 정리
+1. `com.beat.batch.<context>` 내부 하위 계층(`job`, `application`, `dto`)을 문맥별로 정리
 2. scheduler-related closeout docs를 batch ownership 기준으로 더 축소
 3. shared test bootstrap convergence가 필요해지면 실행 모듈 간 중복 test container setup 정리

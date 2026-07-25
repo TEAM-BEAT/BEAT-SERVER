@@ -1,10 +1,10 @@
 # Domain/Application Boundary Verification Snapshot
 
-Scope: Issue #421 commit 2/3 verification aid. This document records the status/message values and review checks that must stay stable while response success codes and lookup not-found error codes move out of domain packages.
+Scope: Issue #421 commit 2/3 당시 verification snapshot입니다. 현재 application 오류 계약과 HTTP 매핑은 [error handling guide](../architecture/error-handling.md)를 따르며, 아래 status/message는 당시 migration 기록입니다.
 
 ## Success response snapshot
 
-These `BaseSuccessCode` values are API response messages. Package names may change during commit 2, but status/message values must not.
+These `SuccessCode` values are API response messages. Package names may change during commit 2, but status/message values must not.
 
 | Code | Status | Message | Target owner |
 | --- | ---: | --- | --- |
@@ -47,18 +47,18 @@ Commit 3 may move lookup `*_NOT_FOUND` and `NO_*_FOUND` constants to application
 | `CastApplicationErrorCode.CAST_NOT_FOUND` | 404 | 등장인물이 존재하지 않습니다. | Performance modification lookup flow |
 | `MemberApplicationErrorCode.MEMBER_NOT_FOUND` | 404 | 회원이 없습니다 | API/admin member lookup flow |
 | `PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND` | 404 | 해당 공연 정보를 찾을 수 없습니다. | API/admin performance lookup flow |
-| `PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND` | 404 | 스케쥴 리스트에 스케쥴이 없습니다. | Application services guard empty schedule lists before calling domain period formatting |
+| `PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND` | 400 | 스케쥴 리스트에 스케쥴이 없습니다. | Application services reject an empty schedule input before calling domain period formatting |
 | `PerformanceImageApplicationErrorCode.PERFORMANCE_IMAGE_NOT_FOUND` | 404 | 해당 공연 상세이미지를 찾을 수 없습니다. | Performance image lookup flow |
-| `AdminApplicationErrorCode.PROMOTION_NOT_FOUND` | 404 | 해당 홍보 정보를 찾을 수 없습니다. | Admin promotion lookup flow |
+| `PromotionApplicationErrorCode.PROMOTION_NOT_FOUND` | 404 | 해당 홍보 정보를 찾을 수 없습니다. | Admin promotion lookup flow |
 | `ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND` | 404 | 해당 회차를 찾을 수 없습니다. | API schedule lookup flow |
 | `StaffApplicationErrorCode.STAFF_NOT_FOUND` | 404 | 스태프가 존재하지 않습니다. | Performance modification lookup flow |
 | `UserApplicationErrorCode.USER_NOT_FOUND` | 404 | 유저가 없습니다 | API user lookup flow |
 
 ## Boundary review checks
 
-- Controller response wiring should remain `SuccessResponse.of/from(code, ...)`; moving packages only is safe when the same enum constants still implement `BaseSuccessCode`.
-- `GlobalExceptionHandler` and `AdminGlobalExceptionHandler` should keep exception-type handlers unchanged. Package moves must not change the `BadRequestException`, `NotFoundException`, `ForbiddenException`, or `ConflictException` hierarchy.
-- `PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND` is special: the current domain path throws `BadRequestException` with a code whose own status is `404`. Application services now guard empty schedule lists before calling `Performance.updatePerformancePeriod(...)`; the domain method keeps a domain-neutral non-empty precondition.
+- Controller response wiring should remain `SuccessResponse.of/from(code, ...)`; moving packages only is safe when the same enum constants still implement `SuccessCode`.
+- `GlobalExceptionHandler` handles `ApiApplicationException` and `DomainException`; `AdminGlobalExceptionHandler` handles `AdminApplicationException` and `DomainException`. 각 실행 모듈의 HTTP status는 자신의 `ApplicationErrorType`과 domain의 `DomainErrorType`에서 변환하며, API v1 handler는 `GlobalExceptionHandler.toHttpStatus(ApplicationErrorCode)`에 기록된 명시적 legacy code override만 유지합니다.
+- `PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND` is an application input failure. `ApiApplicationException` carries its `INVALID_INPUT` type and the v1 mapping consistently produces HTTP/body status 400; the domain method keeps a domain-neutral non-empty precondition.
 - After commit 2, no `*SuccessCode.java` or `*SuccessCode.kt` file should remain under `domain/src/main`; new response code enums should be Kotlin files under `apis/src/main/kotlin/.../api/response`, and controller imports should point at those packages.
 - After commit 3, lookup not-found constants should no longer be imported from domain by executable application lookup flows; domain-owned invariant codes must remain available to domain models.
 

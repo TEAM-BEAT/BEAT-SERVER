@@ -19,11 +19,11 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.beat.admin.promotion.api.AdminPromotionController;
-import com.beat.admin.promotion.application.service.command.AdminPromotionCommandService;
-import com.beat.admin.promotion.application.service.query.AdminPromotionQueryService;
+import com.beat.admin.promotion.application.command.AdminPromotionCommandService;
+import com.beat.admin.promotion.application.query.AdminPromotionQueryService;
 import com.beat.admin.promotion.facade.AdminPromotionFacade;
 import com.beat.admin.user.api.AdminUserController;
-import com.beat.admin.user.application.service.query.AdminUserQueryService;
+import com.beat.admin.user.application.query.AdminUserQueryService;
 import com.beat.admin.user.facade.AdminUserFacade;
 import com.beat.admin.support.AbstractAdminIntegrationTest;
 import com.beat.contracts.storage.FileStoragePort;

@@ -1,5 +1,6 @@
 server:
   port: 4001
+  forward-headers-strategy: native
 
 spring:
   application:

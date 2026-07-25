@@ -1,6 +1,6 @@
 package com.beat.infra.persistence.promotion.entity
 
-import com.beat.domain.promotion.domain.CarouselNumber
+import com.beat.domain.promotion.model.CarouselNumber
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType

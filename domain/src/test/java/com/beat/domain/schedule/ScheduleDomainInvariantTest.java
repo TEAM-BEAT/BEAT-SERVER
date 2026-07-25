@@ -7,122 +7,106 @@ import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
 
-import com.beat.domain.schedule.domain.Schedule;
-import com.beat.domain.schedule.domain.ScheduleNumber;
+import com.beat.domain.schedule.model.Schedule;
+import com.beat.domain.schedule.model.ScheduleNumber;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
-import com.beat.global.support.exception.BadRequestException;
-import com.beat.global.support.exception.ConflictException;
+import com.beat.domain.exception.DomainException;
 
 class ScheduleDomainInvariantTest {
-
 	@Test
-	void increaseSoldTicketCountRejectsNonPositiveCount() {
-		Schedule schedule = scheduleWithSoldTicketCount(10, 0);
+	void reserveAndReleaseTicketsPreserveAllocationInvariant() {
+		Schedule schedule = scheduleWithAllocatedTicketCount(10, 3);
 
-		BadRequestException exception = assertThrows(
-			BadRequestException.class,
-			() -> schedule.increaseSoldTicketCount(0)
-		);
+		Schedule reserved = schedule.reserveTickets(2);
+		Schedule released = reserved.releaseTickets(1);
 
-		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+		assertEquals(3, schedule.getAllocatedTicketCount());
+		assertEquals(5, reserved.getAllocatedTicketCount());
+		assertEquals(4, released.getAllocatedTicketCount());
+		assertEquals(6, released.getAvailableTicketCount());
 	}
 
 	@Test
-	void increaseSoldTicketCountRejectsTotalTicketOverflow() {
-		Schedule schedule = scheduleWithSoldTicketCount(5, 4);
+	void reserveTicketsRejectsNonPositiveCount() {
+		Schedule schedule = scheduleWithAllocatedTicketCount(10, 0);
 
-		ConflictException exception = assertThrows(
-			ConflictException.class,
-			() -> schedule.increaseSoldTicketCount(2)
-		);
+		DomainException exception = assertThrows(DomainException.class, () -> schedule.reserveTickets(0));
 
-		assertEquals(ScheduleErrorCode.INSUFFICIENT_TICKETS, exception.getBaseErrorCode());
+		assertEquals(ScheduleErrorCode.NON_POSITIVE_TICKET_COUNT, exception.getErrorCode());
 	}
 
 	@Test
-	void decreaseSoldTicketCountRejectsNonPositiveCount() {
-		Schedule schedule = scheduleWithSoldTicketCount(10, 3);
+	void reserveTicketsRejectsTotalTicketOverflow() {
+		Schedule schedule = scheduleWithAllocatedTicketCount(5, 4);
 
-		BadRequestException exception = assertThrows(
-			BadRequestException.class,
-			() -> schedule.decreaseSoldTicketCount(0)
-		);
+		DomainException exception = assertThrows(DomainException.class, () -> schedule.reserveTickets(2));
 
-		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+		assertEquals(ScheduleErrorCode.INSUFFICIENT_TICKETS, exception.getErrorCode());
 	}
 
 	@Test
-	void decreaseSoldTicketCountRejectsUnderflow() {
-		Schedule schedule = scheduleWithSoldTicketCount(10, 3);
+	void releaseTicketsRejectsNonPositiveCount() {
+		Schedule schedule = scheduleWithAllocatedTicketCount(10, 3);
 
-		ConflictException exception = assertThrows(
-			ConflictException.class,
-			() -> schedule.decreaseSoldTicketCount(4)
-		);
+		DomainException exception = assertThrows(DomainException.class, () -> schedule.releaseTickets(0));
 
-		assertEquals(ScheduleErrorCode.EXCESS_TICKET_DELETE, exception.getBaseErrorCode());
+		assertEquals(ScheduleErrorCode.NON_POSITIVE_TICKET_COUNT, exception.getErrorCode());
+	}
+
+	@Test
+	void releaseTicketsRejectsUnderflow() {
+		Schedule schedule = scheduleWithAllocatedTicketCount(10, 3);
+
+		DomainException exception = assertThrows(DomainException.class, () -> schedule.releaseTickets(4));
+
+		assertEquals(ScheduleErrorCode.EXCESS_TICKET_DELETE, exception.getErrorCode());
 	}
 
 	@Test
 	void createRejectsNegativeTotalTicketCount() {
 		LocalDateTime performanceDate = LocalDateTime.now().plusDays(1);
-		BadRequestException exception = assertThrows(
-			BadRequestException.class,
-			() -> Schedule.create(performanceDate, performanceDate.plusHours(1), -1, ScheduleNumber.FIRST, 1L)
-		);
+		DomainException exception = assertThrows(DomainException.class, () -> Schedule.create(performanceDate, performanceDate.plusHours(1), -1, ScheduleNumber.FIRST, 1L));
 
-		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+		assertEquals(ScheduleErrorCode.NEGATIVE_TICKET_COUNT, exception.getErrorCode());
 	}
 
 	@Test
-	void rehydrateRejectsNegativeSoldTicketCount() {
-		BadRequestException exception = assertThrows(
-			BadRequestException.class,
-			() -> scheduleWithSoldTicketCount(10, -1)
-		);
+	void rehydrateRejectsNegativeAllocatedTicketCount() {
+		DomainException exception = assertThrows(DomainException.class, () -> scheduleWithAllocatedTicketCount(10, -1));
 
-		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+		assertEquals(ScheduleErrorCode.NEGATIVE_TICKET_COUNT, exception.getErrorCode());
 	}
 
 	@Test
-	void rehydrateRejectsSoldTicketCountAboveTotalTicketCount() {
-		BadRequestException exception = assertThrows(
-			BadRequestException.class,
-			() -> scheduleWithSoldTicketCount(3, 4)
-		);
+	void rehydrateRejectsAllocatedTicketCountAboveTotalTicketCount() {
+		DomainException exception = assertThrows(DomainException.class, () -> scheduleWithAllocatedTicketCount(3, 4));
 
-		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+		assertEquals(ScheduleErrorCode.ALLOCATED_TICKETS_EXCEED_TOTAL, exception.getErrorCode());
 	}
 
 	@Test
-	void updateRejectsTotalTicketCountBelowSoldTicketCount() {
-		Schedule schedule = scheduleWithSoldTicketCount(10, 3);
+	void updateRejectsTotalTicketCountBelowAllocatedTicketCount() {
+		Schedule schedule = scheduleWithAllocatedTicketCount(10, 3);
 		LocalDateTime performanceDate = LocalDateTime.now().plusDays(1);
 
-		BadRequestException exception = assertThrows(
-			BadRequestException.class,
-			() -> schedule.update(performanceDate, performanceDate.plusHours(1), 2, ScheduleNumber.SECOND)
-		);
+		DomainException exception = assertThrows(DomainException.class, () -> schedule.update(performanceDate, performanceDate.plusHours(1), 2, ScheduleNumber.SECOND));
 
-		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+		assertEquals(ScheduleErrorCode.ALLOCATED_TICKETS_EXCEED_TOTAL, exception.getErrorCode());
 	}
 
 	@Test
 	void updateRejectsNegativeTotalTicketCount() {
-		Schedule schedule = scheduleWithSoldTicketCount(10, 3);
+		Schedule schedule = scheduleWithAllocatedTicketCount(10, 3);
 		LocalDateTime performanceDate = LocalDateTime.now().plusDays(1);
 
-		BadRequestException exception = assertThrows(
-			BadRequestException.class,
-			() -> schedule.update(performanceDate, performanceDate.plusHours(1), -1, ScheduleNumber.SECOND)
-		);
+		DomainException exception = assertThrows(DomainException.class, () -> schedule.update(performanceDate, performanceDate.plusHours(1), -1, ScheduleNumber.SECOND));
 
-		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+		assertEquals(ScheduleErrorCode.NEGATIVE_TICKET_COUNT, exception.getErrorCode());
 	}
 
 	@Test
 	void updateBookingCloseAtAllowsPerformanceExtension() {
-		Schedule schedule = scheduleWithSoldTicketCount(10, 3);
+		Schedule schedule = scheduleWithAllocatedTicketCount(10, 3);
 		LocalDateTime extendedCloseAt = schedule.getBookingCloseAt().plusHours(1);
 
 		Schedule extendedSchedule = schedule.updateBookingCloseAt(extendedCloseAt);
@@ -132,24 +116,52 @@ class ScheduleDomainInvariantTest {
 
 	@Test
 	void updateBookingCloseAtRejectsTimeBeforePerformanceStart() {
-		Schedule schedule = scheduleWithSoldTicketCount(10, 3);
+		Schedule schedule = scheduleWithAllocatedTicketCount(10, 3);
 
-		BadRequestException exception = assertThrows(
-			BadRequestException.class,
-			() -> schedule.updateBookingCloseAt(schedule.getPerformanceDate().minusNanos(1))
-		);
+		DomainException exception = assertThrows(DomainException.class, () -> schedule.updateBookingCloseAt(schedule.getPerformanceDate().minusNanos(1)));
 
-		assertEquals(ScheduleErrorCode.INVALID_DATA_FORMAT, exception.getBaseErrorCode());
+		assertEquals(ScheduleErrorCode.INVALID_BOOKING_WINDOW, exception.getErrorCode());
 	}
 
-	private Schedule scheduleWithSoldTicketCount(int totalTicketCount, int soldTicketCount) {
+	@Test
+	void createUpcomingRejectsPastPerformanceDate() {
+		LocalDateTime now = LocalDateTime.of(2026, 1, 2, 12, 0);
+
+		DomainException exception = assertThrows(DomainException.class, () -> Schedule.createUpcoming(
+			now.minusMinutes(1), now.plusHours(1), 10, ScheduleNumber.FIRST, 1L, now));
+
+		assertEquals(ScheduleErrorCode.PAST_SCHEDULE_NOT_ALLOWED, exception.getErrorCode());
+	}
+
+	@Test
+	void rescheduleRejectsModifyingEndedSchedule() {
+		LocalDateTime performanceDate = LocalDateTime.of(2026, 1, 1, 12, 0);
+		Schedule schedule = Schedule.rehydrate(1L, performanceDate, performanceDate.plusHours(1), 10, 0,
+			ScheduleNumber.FIRST, 7L);
+
+		DomainException exception = assertThrows(DomainException.class, () -> schedule.reschedule(
+			performanceDate, performanceDate.plusHours(1), 10, ScheduleNumber.FIRST,
+			performanceDate.plusHours(2)));
+
+		assertEquals(ScheduleErrorCode.ENDED_SCHEDULE_MODIFICATION_NOT_ALLOWED, exception.getErrorCode());
+	}
+
+	@Test
+	void belongsToUsesPerformanceIdentity() {
+		Schedule schedule = scheduleWithAllocatedTicketCount(10, 0);
+
+		assertEquals(true, schedule.belongsTo(1L));
+		assertEquals(false, schedule.belongsTo(2L));
+	}
+
+	private Schedule scheduleWithAllocatedTicketCount(int totalTicketCount, int allocatedTicketCount) {
 		LocalDateTime performanceDate = LocalDateTime.now().plusDays(1);
 		return Schedule.rehydrate(
 			1L,
 			performanceDate,
 			performanceDate.plusHours(1),
 			totalTicketCount,
-			soldTicketCount,
+			allocatedTicketCount,
 			ScheduleNumber.FIRST,
 			1L
 		);

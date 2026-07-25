@@ -1,7 +1,5 @@
 package com.beat.global.support.response
 
-import com.beat.global.support.exception.base.BaseSuccessCode
-
 data class SuccessResponse<T>(
     val status: Int,
     val message: String,
@@ -10,13 +8,13 @@ data class SuccessResponse<T>(
     companion object {
         @JvmStatic
         fun <T> of(
-            baseSuccessCode: BaseSuccessCode,
+            successCode: SuccessCode,
             data: T,
         ): SuccessResponse<T> =
-            SuccessResponse(baseSuccessCode.getStatus(), baseSuccessCode.getMessage(), data)
+            SuccessResponse(successCode.getStatus(), successCode.getMessage(), data)
 
         @JvmStatic
-        fun <T> from(baseSuccessCode: BaseSuccessCode): SuccessResponse<T> =
-            SuccessResponse(baseSuccessCode.getStatus(), baseSuccessCode.getMessage(), null)
+        fun <T> from(successCode: SuccessCode): SuccessResponse<T> =
+            SuccessResponse(successCode.getStatus(), successCode.getMessage(), null)
     }
 }

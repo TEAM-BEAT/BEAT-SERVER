@@ -83,7 +83,7 @@ Application code
 
 Do **not** add `log.error` in individual service methods for the same exception — it creates duplicate Sentry events.
 
-For expected domain errors (`BadRequestException`, `NotFoundException`, etc.), log at `log.warn` or not at all in the handler — the access log already records the HTTP status.
+For expected client/application/domain failures (`DomainException`, non-5xx module-local application exception), log the stable code at `log.warn` or do not log — the access log already records the HTTP status. Do not use the user-facing message as the machine identifier.
 
 ```java
 // ✓ Correct: unexpected server error → Sentry
@@ -93,11 +93,11 @@ protected ResponseEntity<ErrorResponse> handleException(Exception exception) {
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)...;
 }
 
-// ✓ Correct: domain error → warn only, access log records status
-@ExceptionHandler(NotFoundException.class)
-protected ResponseEntity<ErrorResponse> handleNotFoundException(NotFoundException exception) {
-    // No log here — access log records 404 at INFO level automatically
-    return ResponseEntity.status(HttpStatus.NOT_FOUND)...;
+// ✓ Correct: expected application error → stable code only
+@ExceptionHandler(ApiApplicationException.class)
+protected ResponseEntity<ErrorResponse> handleApplicationException(ApiApplicationException exception) {
+    log.warn("Application failure: code={}", exception.getErrorCode().getCode());
+    return mapByType(exception.getErrorCode());
 }
 ```
 
@@ -110,17 +110,21 @@ System.out.println("debug: " + value);
 // ✗ Bypasses logging pipeline — caught by SharedBoundaryContractTest
 exception.printStackTrace();
 
-// ✗ Loses stack trace — always pass Throwable as last argument
+// ✗ Unexpected failure를 message만 기록하면 stack trace를 잃음
 log.error("Failed: " + exception.getMessage());   // string concat loses trace
 log.error("Failed: {}", exception.getMessage());  // {} substitution also loses trace
 
-// ✓ Correct
+// ✓ Unexpected technical failure: Throwable을 마지막 argument로 전달
 log.error("Failed processing booking id={}", bookingId, exception);
 ```
+
+Throwable은 **예상하지 못한 기술 실패**를 단 한 번 기록할 때만 포함한다. 예상 가능한 domain/application 실패는 stable code로만 분류하고 Throwable을 반복 기록하지 않는다. provider/DB 예외의 raw message·body·header는 비밀값이나 개인정보를 포함할 수 있으므로 global log field에 복사하지 않는다.
 
 ### 3.4 PII (Personally Identifiable Information) Rules
 
 **Never log raw PII.** PII includes: phone number, email, real name, payment card number, social security number.
+
+현재 전수 검사에서 Kakao token response 전체, 예매자명, nickname을 기록하는 기존 log가 발견됐습니다. 이들은 허용 예가 아니라 제거 대상 보안 부채입니다. 해당 값은 삭제하거나 opaque ID/고정 상태값으로 바꾸고, token/PII 문자열이 log argument에 들어오지 않는 회귀 검사를 추가해야 합니다.
 
 ```kotlin
 // ✗ Never
@@ -133,9 +137,9 @@ log.info("User registered: userId={}", member.id)
 log.debug("SMS sent to: {}", maskPhone(phoneNumber))  // maskPhone: "010-****-5678"
 ```
 
-`userId` in MDC is the internal Long ID, not any PII. It is safe to expose in logs.
+MDC `userId`는 전화번호·이메일 같은 raw 식별정보는 아니지만 계정과 결합되는 pseudonymous identifier이다. 운영 correlation에 필요한 로그에만 사용하고, 로그 접근 권한·보존 기간·외부 공유 정책을 적용한다. public response, metric label, 불필요한 business log에는 노출하지 않는다.
 
-**URI path PII risk**: `requestInfo` / `request` field contains `method + requestURI`. Path-parameter values flow into this field. Standard BEAT routes use opaque IDs (`/api/performances/19`) so this is safe. **Do not introduce routes that embed PII in the path** (e.g. `/api/users/email/{email}` or `/api/customers/{phoneNumber}`) — use route bodies or query parameters with explicit scrubbing instead.
+**URI/query PII risk**: application `requestInfo`는 `method + requestURI`를, nginx `request`는 현재 `$request`를 기록하므로 query string까지 Loki로 전송합니다. path/query에 PII, token, password를 넣지 않습니다. nginx가 `$request_method $uri` 또는 검증된 redaction으로 바뀌기 전까지 “query parameter가 scrub된다”고 가정하지 않습니다. route-level 집계는 `routePattern`을 사용합니다.
 
 ---
 
@@ -213,7 +217,7 @@ fun createPerformance(userId: Long, request: PerformanceRequest): Performance {
 fun validateMakerOwnership(userId: Long, performanceId: Long) {
     if (!performance.isOwnedBy(userId)) {
         log.warn("Ownership check failed: userId={}, performanceId={}", userId, performanceId)
-        throw ForbiddenException(...)
+        throw ApiApplicationException(PerformanceApplicationErrorCode.NOT_PERFORMANCE_OWNER)
     }
 }
 ```
@@ -253,14 +257,17 @@ fun runNotificationBatch() {
 
 ## 8. Emergency Access Log Kill-Switch
 
-If Loki ingest spikes — monitored manually via the Grafana Cloud Loki dashboard — disable access log emission without redeployment:
+If Loki ingest spikes, `BEAT_ACCESS_LOG_ENABLED`로 application access log를 끌 수 있습니다. 이 값은 JVM 시작 시 한 번 읽으므로 running container의 shell에서 값을 지정하는 것만으로는 바뀌지 않습니다.
 
 ```bash
-# Set env var on the running container and restart
-BEAT_ACCESS_LOG_ENABLED=false
+# inventories/<env>/group_vars/all/main.yml
+modules:
+  <module>:
+    env:
+      BEAT_ACCESS_LOG_ENABLED: "false"
 ```
 
-Access log (structured HTTP trace) is suppressed. Business logs and Sentry error reporting continue normally. Re-enable once the flood is identified and mitigated.
+변경 후 표준 deploy/rollback 경로로 해당 container를 recreate하고 실제 environment와 log 감소를 확인합니다. application access log만 억제되며 nginx access log, business log, Sentry error는 계속 남습니다. 원인 완화 후 같은 절차로 다시 활성화합니다. 따라서 이것은 동적 무배포 kill-switch가 아닙니다.
 
 ---
 

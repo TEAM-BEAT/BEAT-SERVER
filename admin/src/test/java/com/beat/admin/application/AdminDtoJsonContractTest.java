@@ -6,22 +6,24 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import com.beat.admin.common.application.converter.AdminCarouselNumberEnumConverter;
-import com.beat.admin.promotion.application.dto.request.AdminCarouselNumber;
-import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest;
-import com.beat.admin.promotion.application.dto.request.CarouselHandleRequest.PromotionModifyRequest;
-import com.beat.admin.promotion.application.dto.response.CarouselFindAllResponse;
-import com.beat.admin.promotion.application.dto.response.CarouselHandleAllResponse;
-import com.beat.admin.user.application.dto.response.UserFindAllResponse;
-import com.beat.admin.promotion.application.dto.result.AdminPromotionResults;
-import com.beat.admin.promotion.application.dto.result.AdminPromotionResults.AdminPromotionResult;
-import com.beat.domain.promotion.domain.CarouselNumber;
+import com.beat.admin.promotion.api.request.AdminCarouselNumber;
+import com.beat.admin.promotion.api.request.CarouselHandleRequest;
+import com.beat.admin.promotion.api.request.CarouselHandleRequest.PromotionModifyRequest;
+import com.beat.admin.promotion.api.request.CarouselHandleRequest.PromotionGenerateRequest;
+import com.beat.admin.promotion.api.response.CarouselFindAllResponse;
+import com.beat.admin.promotion.api.response.CarouselHandleAllResponse;
+import com.beat.admin.user.api.response.UserFindAllResponse;
+import com.beat.admin.promotion.application.result.AdminPromotionResults;
+import com.beat.admin.promotion.application.result.AdminPromotionResults.AdminPromotionResult;
+import com.beat.domain.promotion.model.CarouselNumber;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.Validation;
 
 class AdminDtoJsonContractTest {
 
@@ -37,9 +39,6 @@ class AdminDtoJsonContractTest {
 			.toList();
 
 		assertEquals(domainEnumNames, requestEnumNames);
-		assertEquals(CarouselNumber.ONE, AdminCarouselNumberEnumConverter.toDomain(AdminCarouselNumber.ONE));
-		assertEquals(AdminCarouselNumber.ONE, AdminCarouselNumberEnumConverter.toApi(CarouselNumber.ONE));
-		assertEquals("ONE", AdminCarouselNumberEnumConverter.toApiName(CarouselNumber.ONE));
 	}
 
 	@Test
@@ -66,6 +65,23 @@ class AdminDtoJsonContractTest {
 		PromotionModifyRequest modifyRequest = assertInstanceOf(PromotionModifyRequest.class,
 			request.carousels().get(0));
 		assertEquals(AdminCarouselNumber.THREE, modifyRequest.carouselNumber());
+	}
+
+	@Test
+	void carouselHandleRequestValidatesNullableHttpFields() {
+		var validator = Validation.buildDefaultValidatorFactory().getValidator();
+		var missingCarousels = validator.validate(new CarouselHandleRequest(null));
+		var missingRequiredItemFields = validator.validate(new CarouselHandleRequest(List.of(
+			new PromotionGenerateRequest(null, null, null, null, null)
+		)));
+		var nullCarousel = validator.validate(new CarouselHandleRequest(Collections.singletonList(null)));
+
+		assertEquals(1, missingCarousels.size());
+		assertEquals(4, missingRequiredItemFields.size());
+		assertEquals(1, nullCarousel.size());
+		assertTrue(missingCarousels.stream().allMatch(violation -> "잘못된 요청 형식입니다.".equals(violation.getMessage())));
+		assertTrue(missingRequiredItemFields.stream()
+			.allMatch(violation -> "잘못된 요청 형식입니다.".equals(violation.getMessage())));
 	}
 
 	@Test

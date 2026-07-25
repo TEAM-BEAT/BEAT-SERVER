@@ -62,7 +62,7 @@ Jenkins 관련 내용은 과거 운영 이력으로는 의미가 있을 수 있�
 | `domain` | 도메인 모델, 도메인 규칙, repository interface의 최종 소유자. `domain/src/main`의 JPA entity / Spring Data repository / QueryDSL concern은 제거되었고, persistence concern allowlist는 비어 있다. | [`domain/README.md`](domain/README.md) |
 | `gateway` | 실행 모듈이 사용하는 security/JWT/bootstrap public surface. public/internal surface tightening은 아직 후속 작업이다. | [`gateway/README.md`](gateway/README.md) |
 | `infra` | JPA entity / persistence model, Spring Data adapter, `repository.query` read/query adapter(Kotlin JDSL 3.8.2 기반 `*ReadPortImpl`, QueryDSL 미사용), domain repository interface 구현체, 외부 adapter와 기술 bootstrap을 소유한다. | [`infra/README.md`](infra/README.md) |
-| `global-support` | 전역 공통 response, exception, base contract, 순수 utility를 담당한다. | [`global-support/README.md`](global-support/README.md) |
+| `global-support` | 전역 공통 response envelope, `SuccessCode`, 순수 utility와 승인된 Jackson 직렬화 확장을 담당한다. | [`global-support/README.md`](global-support/README.md) |
 | `module-contracts` | auth, notification, schedule, SMS, storage 등 cross-module port/transfer contract를 담당한다. | [`module-contracts/README.md`](module-contracts/README.md) |
 | `observability` | logging, metrics, tracing, actuator 관련 shared observability 설정을 담당한다. | [`observability/README.md`](observability/README.md) |
 
@@ -92,9 +92,9 @@ Issue #380 baseline은 `domain` 모듈에 persistence concern을 다시 추가�
 | --- | --- | --- | --- |
 | Persistence auditing base | `infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt` | `@MappedSuperclass`, auditing listener, created/modified timestamps | `infra.persistence.common` persistence base |
 | JPA entity / relation mapping | No JPA entity remains under `domain/src/main`. `Promotion`, #404 `Cast`/`Staff`, #409 `Users`, #412 `Member`, #414 `Performance`/`PerformanceImage`, #415 `Schedule`, and #419 `Booking` table mapping belong under `infra.persistence.<context>.entity`. | DB identity, column/enum mapping, relation/cascade/delete mapping | `infra.persistence.<context>.entity` |
-| Spring Data repository adapter | No Spring Data repository remains under `domain/src/main`; `domain/**/dao` is not allowed. Repository contracts such as `BookingRepository`, `MemberRepository`, `PerformanceImageRepository`, `PerformanceRepository`, and `ScheduleRepository` live under `domain/**/repository` as technology-neutral ports, while Spring Data adapters live under `infra.persistence.<context>.repository`. | domain-facing repository contract language only; no `JpaRepository`, JPQL `@Query`, locking/modifying annotation, or Spring Data type exposure | `domain` owns the port, `infra.persistence.<context>.repository` owns adapter/implementation |
-| Mixed custom/query contracts | No `*RepositoryCustom` or `TicketRepository` query contract remains under `domain/src/main`. Schedule query boundary lives under `infra.persistence.schedule.repository.query`; maker ticket search is exposed through `module-contracts` `MakerTicketReadPort` and implemented by `infra.persistence.booking.repository.query.MakerTicketReadPortImpl`. | business contract이면 domain port, query/read-model adapter이면 module-contracts read port + infra adapter | #420 기준 TicketRepository command/query split 완료 |
-| Query/read-model contract | `module-contracts/src/main/java/com/beat/contracts/schedule/readmodel/MinPerformanceDateReadModel.java`, `ScheduleReadPort.java`, `module-contracts/src/main/java/com/beat/contracts/booking/readmodel/MakerTicketListItemReadModel.java`, `MakerTicketReadPort.java` | #420 기준 최소 공연 일자 조회와 maker ticket 조회 read-model contract이며 신규 contract는 domain type을 import하지 않는다. maker ticket 조건은 아직 단순하므로 별도 `*SearchCondition` wrapper 없이 port 파라미터로 직접 전달한다 | query/projection 구현은 `infra`, 실행 모듈은 `module-contracts` read port 사용 |
+| Spring Data repository adapter | No Spring Data repository remains under `domain/src/main`; `domain/**/dao` is not allowed. Repository contracts such as `BookingRepository`, `MemberRepository`, `PerformanceRepository`, and `ScheduleRepository` live under `domain/**/repository` as technology-neutral aggregate ports, while Spring Data adapters live under `infra.persistence.<context>.repository`. Cast, Staff, PerformanceImage는 Performance의 child entity이므로 별도 domain repository를 갖지 않는다. | domain-facing repository contract language only; no `JpaRepository`, JPQL `@Query`, locking/modifying annotation, or Spring Data type exposure | `domain` owns aggregate-root ports, `infra.persistence.<context>.repository` owns adapter/implementation |
+| Mixed custom/query contracts | No `*RepositoryCustom` or `TicketRepository` query contract remains under `domain/src/main`. Schedule query boundary lives under `infra.persistence.schedule.repository.query`; maker ticket search and Performance 조회 전용 계약은 `module-contracts` read port로 노출하고 `infra.persistence.*.repository.query`가 구현한다. | business contract이면 domain aggregate port, query/read-model adapter이면 module-contracts read port + infra adapter | aggregate repository를 화면 조회 DAO로 확장하지 않는다 |
+| Query/read-model contract | `module-contracts/src/main/kotlin/com/beat/contracts/schedule`, `module-contracts/src/main/kotlin/com/beat/contracts/booking`, `module-contracts/src/main/kotlin/com/beat/contracts/performance` | schedule availability, maker ticket, maker performance list, performance summary/child ownership 조회 계약이며 신규 contract는 domain type을 import하지 않는다. | query/projection 구현은 `infra`, 실행 모듈은 `module-contracts` read port 사용 |
 | QueryDSL/JPA build config | `domain/build.gradle.kts` | Spring/JPA/QueryDSL APT/Lombok 설정 없음 | infra build ownership |
 | JPA scan/auditing glue | `infra/src/main/java/com/beat/infra/config/JpaConfig.java`, `infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java` | `@EnableJpaAuditing`, infra persistence marker scan and narrow infra persistence component scan through infra persistence config | auditing/bootstrap과 infra persistence config import는 infra 유지 |
 
@@ -150,7 +150,7 @@ Mapper는 아래처럼 단순하게 생각한다.
 4. 화면/목록/통계처럼 **조회 결과만 빠르게 만들고 싶은 흐름**은 이 mapper를 재사용하지 않는다. 그런 경우에는 나중에 `infra.persistence.<context>.repository.query` 아래에 query 전용 repository와 read row/projection을 따로 둔다.
 5. domain repository에 화면 조회용 요구를 계속 추가하지 않는다. `Page`, `Pageable`, `Sort`, QueryDSL/JDSL projection, API response DTO가 필요해지면 domain repository가 아니라 query/read-model adapter 후보로 본다.
 6. MapStruct 같은 mapper library는 기본값이 아니다. 필드가 많고 비슷한 객체 변환이 반복될 때만 검토한다. 단순히 boilerplate를 줄이기 위해 새 dependency를 추가하지 않는다.
-7. Promotion slice는 `PromotionJpaEntity`와 immutable Kotlin data class `Promotion`이 분리되었고, `PromotionPersistenceMapper`가 직접 작성한 가벼운 번역기로 `PromotionJpaEntity <-> Promotion` 변환만 담당한다. MapStruct 같은 mapper library는 사용하지 않는다.
+7. Promotion slice는 `PromotionJpaEntity`와 immutable Kotlin Aggregate Root `Promotion`이 분리되었고, `PromotionPersistenceMapper`가 직접 작성한 가벼운 번역기로 `PromotionJpaEntity <-> Promotion` 변환만 담당한다. MapStruct 같은 mapper library는 사용하지 않는다.
 
 Promotion 기준 현재 흐름:
 
@@ -170,6 +170,8 @@ Promotion 기준 현재 흐름:
 ```
 
 ### Kotlin migration order and forbidden rules
+
+신규 production source는 Kotlin으로 작성한다. 기존 Java 파일은 기능 단위로 수정할 때 Kotlin 전환 비용과 HTTP/JPA 호환성을 함께 검증해 점진적으로 옮기며, 단순히 언어 통일만을 위해 무관한 Java 파일을 일괄 변환하지 않는다. 기존 테스트 파일은 회귀 계약을 보존하는 범위에서 원래 언어를 유지할 수 있다.
 
 Kotlin 전환 순서:
 
@@ -200,17 +202,17 @@ Issue #380의 첫 concrete slice는 "작아 보이는 entity 하나"가 아니�
 
 | Rank | Candidate | Current coupling | Decision |
 | --- | --- | --- | --- |
-| 1 | `Promotion` | `PromotionService`가 user-facing promotion read flow에서 이미 사용되고, admin/batch carousel flow가 같은 repository seam을 사용한다. `Promotion`은 pure domain model로 분리되었고 JPA relation/mapping은 `PromotionJpaEntity`가 소유한다. | Promotion slice 완료: Kotlin data class `domain.promotion.domain.Promotion`, `infra.persistence.promotion.entity.PromotionJpaEntity`, handwritten `PromotionPersistenceMapper`, `PromotionJpaRepository`, `PromotionRepositoryImpl` 기준으로 고정한다. |
+| 1 | `Promotion` | `PromotionService`가 user-facing promotion read flow에서 이미 사용되고, admin/batch carousel flow가 같은 repository seam을 사용한다. `Promotion`은 pure domain model로 분리되었고 JPA relation/mapping은 `PromotionJpaEntity`가 소유한다. | Promotion slice 완료: Kotlin Aggregate Root `domain.promotion.model.Promotion`, `infra.persistence.promotion.entity.PromotionJpaEntity`, handwritten `PromotionPersistenceMapper`, `PromotionJpaRepository`, `PromotionRepositoryImpl` 기준으로 고정한다. |
 | 2 | `Cast` + `Staff` pair | 두 타입 모두 `PerformanceManagementService`, `PerformanceService`, `PerformanceModifyService`의 생성/조회/수정 응답 흐름에 같이 등장한다. #404 이전에는 둘 다 `Performance` JPA entity를 생성자/관계로 직접 받았다. | #404에서 Staff-only가 아니라 pair로 분리한다. domain model은 scalar `performanceId`만 들고, infra JPA entity/repository adapter가 `performance_id` column과 bulk delete를 소유한다. |
 | 3 | `Staff` only | #404 이전 Staff는 `Cast`와 같은 lifecycle을 공유하면서 JPA `Performance` relation과 Spring Data repository에 묶여 있었다. #404 이후에도 단독 Staff 확장은 pair boundary를 깨뜨릴 수 있다. | 단독 slice로는 계속 defer. Staff 관련 후속 작업은 Cast와 함께 또는 Performance seam 기준을 갱신한 뒤 진행한다. |
 
 ### Promotion pure domain / persistence split
 
-Issue #380 concrete slice에서 Promotion은 repository ownership뿐 아니라 JPA entity와 pure domain model까지 분리되었다. `domain.promotion.domain.Promotion`은 JPA annotation을 갖지 않고 `performanceId`만 보유하며, DB FK column mapping은 `PromotionJpaEntity`가 소유한다. application/admin/batch 서비스는 technology-neutral domain contract만 주입받고 infra persistence type을 직접 보지 않는다.
+Issue #380 concrete slice에서 Promotion은 repository ownership뿐 아니라 JPA entity와 pure domain model까지 분리되었다. `domain.promotion.model.Promotion`은 JPA annotation을 갖지 않고 `performanceId`만 보유하며, DB FK column mapping은 `PromotionJpaEntity`가 소유한다. application/admin/batch 서비스는 technology-neutral domain contract만 주입받고 infra persistence type을 직접 보지 않는다.
 
 | Layer | Canonical name | Responsibility |
 | --- | --- | --- |
-| Domain model | `domain/src/main/kotlin/com/beat/domain/promotion/domain/Promotion.kt` | JPA annotation 없는 immutable Kotlin data class domain model. 내부에서는 nested value class `Id`와 `performance.domain.Performance.Id`로 식별자를 감싸고, Java callers에는 Long getter를 제공한다. |
+| Domain model | `domain/src/main/kotlin/com/beat/domain/promotion/model/Promotion.kt` | JPA annotation 없는 immutable Kotlin Aggregate Root. 내부에서는 nested value class `Id`와 `performance.model.Performance.Id`로 식별자를 감싸고, Java callers에는 Long getter를 제공한다. |
 | Domain contract | `domain/src/main/kotlin/com/beat/domain/promotion/repository/PromotionRepository.kt` | `Promotion` 저장/조회/삭제에 필요한 interface. Spring Data/JPA annotation과 type을 노출하지 않는다. |
 | Infra JPA entity | `infra/src/main/kotlin/com/beat/infra/persistence/promotion/entity/PromotionJpaEntity.kt` | `promotion` table, `performance_id` FK column, column/enum mapping을 소유한다. `Performance` 객체 연관관계는 두지 않는다. Kotlin JPA plugin의 no-arg/all-open preset을 검증하되, JPA mapped property는 body에 `var ... protected set`으로 선언해 외부 setter를 막는다. |
 | Infra Spring Data | `infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java` | `JpaRepository<PromotionJpaEntity, Long>`, JPQL delete/carousel query 등 Spring Data adapter 세부사항. |
@@ -223,7 +225,7 @@ Issue #380 concrete slice에서 Promotion은 repository ownership뿐 아니라 J
 
 왜 별도 규약이 필요한가:
 
-- Kotlin의 `data class`, value-object, immutable constructor 기본값은 pure domain model에는 잘 맞지만 JPA proxy/no-arg/lifecycle과 바로 같지 않다.
+- Kotlin의 `data class`와 immutable constructor는 값 기반 pure domain VO에는 잘 맞지만 JPA proxy/no-arg/lifecycle과 바로 같지 않다. BEAT의 identity 기반 Aggregate Root는 일반 `class`를 사용한다.
 - Java caller, mapper, Spring Data/JPA reflection contract를 함께 지켜야 하므로 source shape를 의도적으로 고정해야 한다.
 - pure domain model과 infra persistence entity를 같은 규칙으로 쓰면 domain/infra 경계가 다시 흐려질 수 있다.
 
@@ -243,7 +245,7 @@ Issue #380 concrete slice에서 Promotion은 repository ownership뿐 아니라 J
 - constructor property(`class XxxEntity(val id: Long, ...)`)로 JPA mapped state를 바로 노출하는 것
 - public setter로 persistence state를 임의 변경하게 두는 것
 - generated id entity에 placeholder id를 미리 채워 넣거나, `create(...)`/`rehydrate(...)` 의미를 섞는 것
-- pure domain package 규칙과 JPA entity 규칙을 혼용해서 "domain model도 JPA처럼 mutable해야 한다" 또는 "JPA entity도 domain data class처럼 immutable해야 한다"고 일반화하는 것
+- pure domain package 규칙과 JPA entity 규칙을 혼용해서 "domain model도 JPA처럼 mutable해야 한다" 또는 "JPA entity도 domain VO처럼 immutable해야 한다"고 일반화하는 것
 
 #### Generated id vs. `val`
 
@@ -270,15 +272,26 @@ application-assigned immutable id entity는 미래 concrete exemplar가 생기�
 
 현재 규약의 증거는 `PromotionJpaEntityContractTest`, `PromotionPersistenceMapperTest`, `SharedBoundaryContractTest`가 제공한다. 새 규칙을 추가할 때도 먼저 concrete exemplar와 guard 근거를 같이 제시해야 한다.
 
+#### Canonical Kotlin `@Embeddable` rules
 
-### Future Promotion Kotlin JPA entity experiment slice
+1. `@Embeddable`은 persistence value type이며 순수 Domain VO와 같은 타입으로 공유하지 않는다. 변환은 persistence mapper가 담당한다.
+2. 독립 ID, repository, aggregate lifecycle을 만들지 않는다. 생명주기는 embedding JPA entity가 소유한다.
+3. 현재 baseline은 일반 `class`, body mapped property, `var ... protected set`, 명시적 `@Column`이다. Kotlin JPA plugin의 no-arg 계약을 유지한다.
+4. nullable component는 부분 값이 저장되지 않도록 mapper 검증과 DB `CHECK` constraint를 같이 둔다.
+5. 도메인 값 검증을 Embeddable setter에 복제하지 않는다. DB row를 Domain VO로 변환할 때 Domain factory를 통과시킨다.
+6. JPA provider 또는 collection key가 실제로 equality를 요구하지 않는 단일 embedded component에는 관성적으로 `data class`나 custom `equals`/`hashCode`를 추가하지 않는다.
 
-현재 baseline은 순수 domain `Promotion.kt`와 Kotlin `PromotionJpaEntity.kt`를 최종 상태로 유지한다. `PromotionJpaEntity` Kotlin 변환은 Kotlin 2.3.20 toolchain baseline 위에서 검증되었고, 아래 기준을 유지한다.
+이 규칙은 Hibernate ORM 7.2의 "embeddable은 persistent identity가 없고 부모 entity가 lifecycle을 소유한다"는 기준과 현재 `RefundAccountJpaValue`, `PaymentAccountJpaValue`, `PerformancePeriodJpaValue` 구현을 근거로 한다.
+
+
+### Completed Promotion Kotlin JPA entity migration record
+
+현재 baseline은 순수 domain `Promotion.kt`와 Kotlin `PromotionJpaEntity.kt`다. 아래 내용은 Kotlin 2.3.20 기준으로 완료된 최초 전환의 범위와 검증 기록이며 신규 작업 지시가 아니다.
 
 Scope:
 
-- 변환 대상은 `infra/src/main/java/com/beat/infra/persistence/promotion/entity/PromotionJpaEntity.java`에서 `infra/src/main/kotlin/com/beat/infra/persistence/promotion/entity/PromotionJpaEntity.kt`로 옮기는 것 하나로 제한한다. `SharedBoundaryContractTest`는 두 source가 동시에 존재하지 않는지도 확인한다.
-- `domain/src/main/kotlin/com/beat/domain/promotion/domain/Promotion.kt`, `PromotionRepository`, `PromotionPersistenceMapper`, `PromotionRepositoryImpl`, 실행 모듈 service/API 흐름은 동작 보존 목적의 최소 컴파일 수정 외에는 변경하지 않는다.
+- 변환 대상은 Java `PromotionJpaEntity`에서 `infra/src/main/kotlin/com/beat/infra/persistence/promotion/entity/PromotionJpaEntity.kt`로 옮기는 것 하나로 제한했다. `SharedBoundaryContractTest`는 두 source가 동시에 존재하지 않는지도 확인한다.
+- `domain/src/main/kotlin/com/beat/domain/promotion/model/Promotion.kt`, `PromotionRepository`, `PromotionPersistenceMapper`, `PromotionRepositoryImpl`, 실행 모듈 service/API 흐름은 동작 보존 목적의 최소 컴파일 수정 외에는 변경하지 않는다.
 - 새 dependency는 추가하지 않는다. Kotlin JPA/noarg/all-open plugin을 되돌려야 한다면 먼저 Java entity 유지 baseline에서 필요한 이유와 컴파일/런타임 증거를 남긴다.
 - entity name, table/column mapping, nullable `performance_id`, `CarouselNumber` enum string mapping, Kotlin JPA plugin이 제공하는 no-arg/all-open semantics, `rehydrate(...)` factory contract를 보존한다.
 - entity constructor parameter는 `val`/`var` 없는 plain parameter로 받고, JPA mapped property는 body에서 `var ... protected set`으로 선언한다. 이렇게 해야 생성 경로는 `private constructor`/factory로 제한하면서도 외부 임의 setter 호출을 막을 수 있다.
@@ -326,7 +339,7 @@ Rollback rule: 위 명령 중 Kotlin JPA proxy/constructor/visibility 이슈가 
 | Candidate | Why risky as first slice | Decision |
 | --- | --- | --- |
 | `Performance` | 중심 aggregate로 `Promotion`, `PerformanceImage`, `Cast`, `Staff`, `Schedule`, `Booking` 흐름과 relation/cascade/read DTO가 함께 얽혀 있다. | 첫 slice로 금지. 먼저 adapter seam과 repository ownership 기준을 세운 뒤 다룬다. |
-| `Booking` | 예매/티켓/스케줄/사용자 관계와 예약 상태, count/query, payment-adjacent flow가 얽혀 있어 Schedule/ticket query boundary 이후에 다룬다. | #419에서 순수 `domain.booking.domain.Booking`, `domain.booking.repository` command port, `infra.persistence.booking` JPA entity/mapper/repository adapter로 분리했고, #420에서 `TicketRepository` command/query 책임을 제거했다. |
+| `Booking` | 예매/티켓/스케줄/사용자 관계와 예약 상태, count/query, payment-adjacent flow가 얽혀 있어 Schedule/ticket query boundary 이후에 다룬다. | #419에서 순수 `domain.booking.model.Booking`, `domain.booking.repository` command port, `infra.persistence.booking` JPA entity/mapper/repository adapter로 분리했고, #420에서 `TicketRepository` command/query 책임을 제거했다. |
 | `Schedule` | inventory/seat count, pessimistic lock, read-model contract `MinPerformanceDateReadModel`, custom repository implementation, `JpaConfig` scan 변경과 직접 결합된다. | 첫 slice로는 금지했으며, #415에서 pure domain + infra persistence/query adapter seam으로 분리했다. |
 
 #### ADR: defer the Staff-only split
@@ -347,7 +360,7 @@ Follow-up guard:
 Issue #404는 위 ADR의 follow-up으로 Staff-only split이 아니라 `Cast` + `Staff` pair를 같은 slice에서 이동한다. 목표는 Performance aggregate 전체를 이동하지 않고, Cast/Staff domain model이 scalar `performanceId`만 들고 infra persistence entity가 기존 `performance_id` column을 매핑하는 것이다.
 
 Boundary rules:
-- `domain/src/main/kotlin/com/beat/domain/{cast,staff}/domain`은 pure domain model이다. `jakarta.persistence`, Hibernate, Spring Data, QueryDSL/JDSL, `Performance` entity reference를 다시 들이면 안 된다.
+- `domain/src/main/kotlin/com/beat/domain/{cast,staff}/model`은 pure domain model이다. `jakarta.persistence`, Hibernate, Spring Data, QueryDSL/JDSL, `Performance` entity reference를 다시 들이면 안 된다.
 - `domain/src/main/kotlin/com/beat/domain/{cast,staff}/repository`는 technology-neutral repository contract만 둔다. Spring Data adapter hook이나 `dao` package를 되살리지 않는다.
 - `infra.persistence.cast`와 `infra.persistence.staff`는 entity/mapper/repository implementation을 함께 추가·변경한다. 둘 중 하나만 존재하는 Staff-only/Cast-only split은 금지한다.
 - `Performance` 삭제 시에는 JPA relation cascade에 기대지 않고 Cast/Staff repository adapter가 `performanceId` 기준 bulk delete를 명시적으로 수행한다.
@@ -359,7 +372,7 @@ Boundary rules:
 Issue #409에서는 `Users` 엔티티를 Kotlin 순수 도메인 모델로 마이그레이션하고 영속성 경계를 `infra` 레이어로 분리했습니다. `Users`는 `Booking`, `Member`, `Performance`에서 공통으로 참조되는 핵심 엔티티이므로 **전략 A(스칼라 ID 교체)**를 적용했습니다.
 
 Boundary rules:
-- `domain/src/main/kotlin/com/beat/domain/user/domain/Users.kt`는 JPA 의존성이 없는 순수 Kotlin data class입니다.
+- `domain/src/main/kotlin/com/beat/domain/user/model/Users.kt`는 JPA 의존성이 없는 순수 Kotlin Aggregate Root입니다.
 - `Booking`, `Member`, `Performance` 도메인 모델은 더 이상 `Users` JPA 엔티티를 직접 참조하지 않고 `Long userId` 스칼라 값을 가집니다.
 - `domain/src/main/kotlin/com/beat/domain/user/repository/UserRepository.kt`는 기술 중립적인 포트 인터페이스입니다.
 - `infra.persistence.user` 패키지에서 `UsersJpaEntity`, `UsersJpaRepository`, `UsersPersistenceMapper`, `UsersRepositoryImpl`을 소유합니다.
@@ -372,9 +385,9 @@ Issue #415에서는 `Schedule` 엔티티를 Kotlin 순수 도메인 모델로 �
 Schedule은 `Performance.Id` nested value class를 통해 `performance_id` column을 추상화합니다.
 
 Boundary rules:
-- `domain/src/main/kotlin/com/beat/domain/schedule/domain/Schedule.kt`는 JPA 의존성이 없는 순수 Kotlin data class입니다.
+- `domain/src/main/kotlin/com/beat/domain/schedule/model/Schedule.kt`는 JPA 의존성이 없는 순수 Kotlin Aggregate Root입니다.
 - `domain/src/main/kotlin/com/beat/domain/schedule/repository/ScheduleRepository.kt`는 기술 중립적인 포트 인터페이스입니다.
-- 모든 mutation method(`update`, `decreaseSoldTicketCount`, `updateScheduleNumber`, `updateBookingCloseAt`)는 new copy를 반환하며, dirty tracking을 사용하지 않습니다.
+- 모든 mutation method(`update`, `reserveTickets`, `releaseTickets`, `updateScheduleNumber`, `updateBookingCloseAt`)는 새 instance를 반환하며, domain model의 JPA dirty tracking을 사용하지 않습니다.
 - 회차 조회 read-model은 `module-contracts/src/main/kotlin/com/beat/contracts/schedule/readmodel`이 소유하며, domain repository/dto 패키지에는 두지 않습니다.
 - `infra.persistence.schedule` 패키지에서 JPA entity/repository/mapper와 `ScheduleReadPortImpl`, `ScheduleAvailabilityReadPortImpl`을 소유합니다.
 - Booking ticket query의 Schedule 조건 조인은 수동 `QScheduleJpaEntity`나 QueryDSL 없이
@@ -415,7 +428,7 @@ Issue #419에서는 `Booking` 엔티티를 Kotlin 순수 도메인 모델로 마
 Booking은 `scheduleId`, `userId` scalar를 들고, DB table/column mapping은 `BookingJpaEntity`가 소유합니다.
 
 Boundary rules:
-- `domain/src/main/kotlin/com/beat/domain/booking/domain/Booking.kt`는 JPA 의존성이 없는 순수 Kotlin data class입니다.
+- `domain/src/main/kotlin/com/beat/domain/booking/model/Booking.kt`는 JPA 의존성이 없는 순수 Kotlin Aggregate Root입니다.
 - `domain/src/main/kotlin/com/beat/domain/booking/repository/BookingRepository.kt`는 command-side repository port로 남고, `TicketRepository.kt`는 제거되었습니다. maker ticket 조회는 module-contracts read port가 소유합니다.
 - `domain/src/main/kotlin/com/beat/domain/booking/dao`와 `TicketRepositoryCustom`은 존재하지 않아야 합니다.
 - `infra.persistence.booking` 패키지에서 `BookingJpaEntity`, `BookingPersistenceMapper`,
@@ -430,19 +443,20 @@ Boundary rules:
 
 ## #421 domain/application ErrorCode split baseline
 
-Issue #421은 domain/application ErrorCode와 response SuccessCode의 소유권을 분리한다. 예외 클래스 hierarchy와 `BaseErrorCode`/`BaseSuccessCode` 공통 contract는 그대로 유지하고, enum의 위치와 책임만 정리한다.
+Issue #421은 domain/application ErrorCode와 response SuccessCode의 소유권을 분리했다. 이후 `apis`는 `ApplicationErrorCode(code, type, message)`와 `ApiApplicationException`, `admin`은 동일 shape의 로컬 계약과 `AdminApplicationException`을 소유한다. HTTP status는 각 실행 모듈 handler만 결정하며, domain은 HTTP/framework-neutral `DomainErrorCode`/`DomainException`을 유지한다.
 
-상세 inventory는 [`docs/migration/domain-application-errorcode-inventory.md`](docs/migration/domain-application-errorcode-inventory.md)를 기준으로 한다. review checklist는 [`docs/migration/domain-application-errorcode-review-checklist.md`](docs/migration/domain-application-errorcode-review-checklist.md)에 둔다. status/message snapshot과 검증 절차는 [`docs/migration/domain-application-boundary-verification.md`](docs/migration/domain-application-boundary-verification.md)에 둔다.
+현재 소유권 기준은 [`domain/README.md`](domain/README.md)와 실제 enum/handler 코드다. [`domain-application-errorcode-inventory.md`](docs/migration/domain-application-errorcode-inventory.md)와 [`domain-application-errorcode-review-checklist.md`](docs/migration/domain-application-errorcode-review-checklist.md)는 #421 당시 migration snapshot이며 현재 source of truth가 아니다. status/message 검증 기록은 [`domain-application-boundary-verification.md`](docs/migration/domain-application-boundary-verification.md)에 둔다.
 
 현재 기준:
 
 - `domain/src/main/java`는 퇴역했다. domain model, enum, repository contract, ErrorCode는 `domain/src/main/kotlin`이 소유한다.
-- `domain/src/main`에는 순수 domain invariant ErrorCode만 남긴다. 현재 allowlist는 `BookingErrorCode`, `PerformanceErrorCode`, `ScheduleErrorCode`이다.
+- `domain/src/main`에는 순수 domain invariant ErrorCode만 남긴다. 현재 allowlist는 `BookingErrorCode`, `PerformanceErrorCode`, `PromotionErrorCode`, `ScheduleErrorCode`이다.
 - `domain/src/main`에는 `*SuccessCode`를 두지 않는다. API response 성공 문구는 실행 모듈 `api/response` 경계가 소유한다.
-- repository lookup, request/use-case input validation, actor/owner/belongs-to validation, external adapter failure translation은 실행 모듈 `application/exception/*ApplicationErrorCode`가 소유한다.
+- repository lookup, request/use-case input validation, actor/owner/belongs-to validation, external adapter failure translation은 실행 모듈 `<context>/exception/*ApplicationErrorCode`가 소유한다.
 - `KakaoSocialLoginAdapter` 같은 infra adapter는 domain/application ErrorCode를 직접 import하지 않고, port-level failure(`SocialLoginFailure`)를 던진다. API application service가 이를 기존 response code로 번역한다.
-- `module-contracts/src/main/java/com/beat/contracts/auth/TokenErrorCode.java`는 auth/token cross-module contract로 남아 있다.
-- `global-support/src/main/kotlin/com/beat/global/support/exception/base/BaseErrorCode.kt`와 공통 exception/response type은 global support contract로 유지한다.
+- `module-contracts/src/main/kotlin/com/beat/contracts/auth/TokenErrorCode.kt`는 auth/token cross-module compatibility contract로 남아 있다.
+- `domain`은 `global-support`에 의존하지 않는다. `DomainErrorType`을 HTTP status로 매핑하는 책임은 실행 모듈 handler가 소유한다.
+- `global-support`는 `ErrorResponse`, `SuccessResponse`, `SuccessCode`를 공통 contract로 유지한다. application error code/type/exception은 `apis`와 `admin`의 module-local contract이며 HTTP status를 소유하지 않는다.
 
 분리 판단 기준:
 
@@ -451,15 +465,15 @@ Issue #421은 domain/application ErrorCode와 response SuccessCode의 소유권�
 | Domain ErrorCode | `domain/<context>/exception` | aggregate/value object/domain service가 자체 invariant나 lifecycle rule을 표현할 때 사용한다. HTTP 요청 모양, 인증 주체, 화면 조회 조립, 외부 adapter 실패를 전제로 하지 않는다. |
 | Application ErrorCode | 실행 모듈 또는 후속 application-contract 위치 | use-case orchestration, ownership/authorization decision, request resource lookup, DTO/application result 조립, external adapter interaction처럼 실행 흐름이 있어야 의미가 생기는 실패를 표현한다. |
 | SuccessCode | 실행 모듈 response boundary | API/admin/batch 응답 메시지이며 domain model은 성공 응답 문구를 알지 않는다. |
-| Shared contract ErrorCode | `module-contracts` 또는 `global-support` | 여러 실행 모듈이 같은 contract로 소비해야 하고 특정 domain aggregate에 귀속되지 않는다. |
+| Shared contract ErrorCode | `module-contracts` | 여러 실행 모듈이 같은 contract로 소비해야 하고 특정 domain aggregate에 귀속되지 않는다. `global-support`에는 application ErrorCode를 추가하지 않는다. |
 
 재발 방지 guardrail:
 
 1. domain에 `*SuccessCode`를 다시 만들지 않는다.
 2. domain ErrorCode는 allowlist 외 enum/file/constant를 추가하지 않는다. 새 domain ErrorCode는 pure invariant throw site와 테스트가 있을 때만 추가한다.
 3. `infra`는 `apis`/`admin`/`batch` `*ApplicationErrorCode`를 import하지 않는다. external adapter 실패는 adapter-local 또는 port-level failure로 올리고 application service가 번역한다.
-4. moved ErrorCode / SuccessCode의 status/message는 snapshot test로 유지한다.
-5. `BaseErrorCode`, `BeatException`, `ErrorResponse`의 공통 contract 변경은 #421의 기본 작업이 아니며 별도 이슈/테스트가 필요하다.
+4. application ErrorCode의 code/type/message와 SuccessCode의 status/message는 contract test로 유지한다.
+5. module-local `ApplicationErrorCode`/`ApplicationErrorType`/`ApiApplicationException`/`AdminApplicationException` 변경은 해당 실행 모듈 handler를 검증하고, 공통 `ErrorResponse` 변경은 모든 실행 모듈과 소비자 계약을 함께 검증한다.
 6. 단순히 service에서 사용된다는 이유만으로 domain code를 application code로 옮기지 않는다. domain model이나 domain repository port가 같은 실패를 직접 표현해야 하면 domain 소유로 남긴다.
 
 ## root project 계약
@@ -501,7 +515,7 @@ Issue #378 기준 shared module closeout은 아래 결정을 고정한다.
 - `infra`의 `RedisCacheConfig` / `InfraBaseConfigGroup.REDIS_CACHE`는 infra-owned dormant shared cache extension point로 유지하고, 실행 모듈은 아직 opt-in하지 않는다.
 - `infra` 안의 `com.beat.domain.*` package residue와 legacy `dao` package exception은 제거되었고, `SharedBoundaryContractTest`가 재도입을 막는다. 남은 infra query 정리는 #381에서 `infra.persistence.<context>.repository.query` / read-model 경계로 다룬다.
 - `module-contracts`는 implementation-free contract module로 guard한다. #426 이후 `domain` 직접 의존은 제거했고, #428 이후 사용하지 않는 schedule booking close 실행 계약도 제거했다.
-- `global-support`는 `com.beat.global.support.*` package를 public namespace로 사용하며, dependency-free support guard를 우선한다.
+- `global-support`는 `com.beat.global.support.*` package를 public namespace로 사용하며 project-module/Spring runtime 의존 금지를 우선한다. Jackson 3 `compileOnly`는 현재 CDN 직렬화 호환 확장에 한정한다.
 
 ## #426 module-contracts domain type coupling removal
 
@@ -531,8 +545,6 @@ isBooking = CURRENT_TIMESTAMP(6) < booking_close_at
 - 조회는 `ScheduleAvailabilityReadPort`의 단일 native SQL에서 DB 시각을 한 번 평가하고 모든 회차에 재사용한다.
 - 공연 시간 연장으로 `booking_close_at`이 미래가 되면 별도 상태 갱신 없이 즉시 다시 열린다.
 - batch에는 프로모션 관리와 티켓 정리 job만 남기고 예매 마감 scheduler와 contract를 제거한다.
-- 운영 반영 순서와 검증 SQL은 [`infra/db/migration/booking_close_at_a3_migration.sql`](infra/db/migration/booking_close_at_a3_migration.sql)을 따른다.
-
 
 ## #434 apis domain enum/value boundary removal
 
@@ -540,11 +552,11 @@ Issue `#434`의 실행 경계 정리 후속으로 `apis` client boundary에서 d
 
 | 이전 coupling | 현재 API-local type | 변환 위치 |
 | --- | --- | --- |
-| `member.domain.SocialType` | `apis.member.application.dto.request.SocialTypeRequest` | `SocialLoginService` |
-| `performance.domain.Genre` | `apis.performance.application.dto.GenreType` | `HomeService`, `PerformanceManagementService`, `PerformanceModifyService` |
-| `schedule.domain.ScheduleNumber` | `apis.schedule.application.dto.ScheduleNumberType` | booking/performance/ticket application services |
-| `performance.domain.BankName` | `apis.performance.application.dto.BankNameType` | booking/performance application services |
-| `booking.domain.BookingStatus` | `apis.booking.application.dto.BookingStatusType` | booking/ticket application services |
+| `member.model.SocialType` | `apis.member.application.dto.request.SocialTypeRequest` | `SocialLoginService` |
+| `performance.model.Genre` | `apis.performance.application.dto.GenreType` | `HomeService`, `PerformanceManagementService`, `PerformanceModifyService` |
+| `schedule.model.ScheduleNumber` | `apis.schedule.application.dto.ScheduleNumberType` | booking/performance/ticket application services |
+| `sharedkernel.vo.BankName` | `apis.performance.application.dto.BankNameType` | booking/performance application services |
+| `booking.model.BookingStatus` | `apis.booking.application.dto.BookingStatusType` | booking/ticket application services |
 
 검증 기준:
 

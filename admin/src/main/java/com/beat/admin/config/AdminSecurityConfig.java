@@ -20,7 +20,6 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-
 @Configuration(proxyBeanMethods = false)
 public class AdminSecurityConfig {
 
@@ -55,7 +54,8 @@ public class AdminSecurityConfig {
 	}
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+		// Admin authentication is stateless and accepts JWT only from the Authorization header.
 		http.csrf(AbstractHttpConfigurer::disable)
 			.cors(Customizer.withDefaults())
 			.formLogin(AbstractHttpConfigurer::disable)

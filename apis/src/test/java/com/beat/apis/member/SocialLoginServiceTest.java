@@ -1,10 +1,13 @@
 package com.beat.apis.member;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,55 +15,50 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.beat.apis.member.application.AuthenticationService;
-import com.beat.apis.member.application.MemberRegistrationService;
-import com.beat.apis.member.application.MemberService;
-import com.beat.apis.member.application.SocialLoginService;
-import com.beat.apis.member.application.dto.request.MemberLoginRequest;
-import com.beat.apis.member.application.dto.request.SocialTypeRequest;
-import com.beat.apis.member.application.dto.response.LoginSuccessResponse;
-import com.beat.apis.member.application.exception.MemberApplicationErrorCode;
+import com.beat.apis.member.application.command.LoginTokenIssuer;
+import com.beat.apis.member.application.command.SocialLoginMemberResolver;
+import com.beat.apis.member.application.command.SocialLoginCommandService;
+import com.beat.apis.member.application.command.SocialLoginCommand;
+import com.beat.apis.member.application.command.SocialLoginProvider;
+import com.beat.apis.member.application.result.LoginSuccessResult;
+import com.beat.apis.member.exception.MemberApplicationErrorCode;
 import com.beat.apis.member.application.result.MemberAuthenticationResult;
-import com.beat.apis.user.application.UserService;
-import com.beat.apis.user.application.result.UserAuthenticationResult;
 import com.beat.contracts.auth.social.SocialLoginFailure;
 import com.beat.contracts.auth.social.SocialLoginPort;
 import com.beat.contracts.auth.social.SocialLoginRequest;
 import com.beat.contracts.auth.social.SocialLoginType;
 import com.beat.contracts.auth.social.SocialMemberInfo;
-import com.beat.domain.member.domain.SocialType;
-import com.beat.global.support.exception.BadRequestException;
-import com.beat.global.support.exception.UnauthorizedException;
+import com.beat.domain.member.vo.SocialIdentity;
+import com.beat.domain.member.model.SocialType;
+import com.beat.domain.user.model.Role;
+import com.beat.domain.user.model.Users;
+import com.beat.domain.user.repository.UserRepository;
+import com.beat.apis.exception.ApiApplicationException;
 
 @ExtendWith(MockitoExtension.class)
 class SocialLoginServiceTest {
 
 	@Mock
-	private MemberRegistrationService memberRegistrationService;
+	private SocialLoginMemberResolver socialLoginMemberResolver;
 
 	@Mock
-	private AuthenticationService authenticationService;
+	private LoginTokenIssuer loginTokenIssuer;
 
 	@Mock
 	private SocialLoginPort socialLoginPort;
 
 	@Mock
-	private MemberService memberService;
+	private UserRepository userRepository;
 
-	@Mock
-	private UserService userService;
-
-	private SocialLoginService socialLoginService;
+	private SocialLoginCommandService socialLoginService;
 
 	@BeforeEach
 	void setUp() {
-		socialLoginService = new SocialLoginService(
-			memberRegistrationService,
-			authenticationService,
+		socialLoginService = new SocialLoginCommandService(
 			socialLoginPort,
-			memberService,
-			userService
+			socialLoginMemberResolver,
+			loginTokenIssuer,
+			userRepository
 		);
 	}
 
@@ -69,52 +67,111 @@ class SocialLoginServiceTest {
 		when(socialLoginPort.login(any()))
 			.thenThrow(SocialLoginFailure.unsupportedSocialType());
 
-		BadRequestException exception = assertThrows(
-			BadRequestException.class,
-			() -> socialLoginService.handleSocialLogin("code", new MemberLoginRequest(SocialTypeRequest.KAKAO))
-		);
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () -> socialLoginService.handleSocialLogin("code", SocialLoginCommand.from(SocialLoginProvider.KAKAO)));
 
-		assertEquals(MemberApplicationErrorCode.SOCIAL_TYPE_BAD_REQUEST, exception.getBaseErrorCode());
+		assertEquals(MemberApplicationErrorCode.SOCIAL_TYPE_BAD_REQUEST, exception.getErrorCode());
 	}
 
 	@Test
 	void handleSocialLoginTranslatesAuthenticationFailureToMemberApplicationCode() {
+		SocialLoginFailure failure = SocialLoginFailure.authenticationFailed();
 		when(socialLoginPort.login(any()))
-			.thenThrow(SocialLoginFailure.authenticationFailed());
+			.thenThrow(failure);
 
-		UnauthorizedException exception = assertThrows(
-			UnauthorizedException.class,
-			() -> socialLoginService.handleSocialLogin("code", new MemberLoginRequest(SocialTypeRequest.KAKAO))
-		);
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () -> socialLoginService.handleSocialLogin("code", SocialLoginCommand.from(SocialLoginProvider.KAKAO)));
 
-		assertEquals(MemberApplicationErrorCode.AUTHENTICATION_CODE_EXPIRED, exception.getBaseErrorCode());
+		assertEquals(MemberApplicationErrorCode.AUTHENTICATION_CODE_EXPIRED, exception.getErrorCode());
+		assertSame(failure, exception.getCause());
+	}
+
+	@Test
+	void handleSocialLoginTranslatesMalformedProviderResponseToBadGateway() {
+		RuntimeException providerCause = new RuntimeException("malformed response");
+		SocialLoginFailure failure = SocialLoginFailure.providerFailure(providerCause);
+		when(socialLoginPort.login(any()))
+			.thenThrow(failure);
+
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class,
+			() -> socialLoginService.handleSocialLogin("code", SocialLoginCommand.from(SocialLoginProvider.KAKAO)));
+
+		assertEquals(MemberApplicationErrorCode.SOCIAL_LOGIN_PROVIDER_FAILURE, exception.getErrorCode());
+		assertSame(failure, exception.getCause());
+		assertSame(providerCause, exception.getCause().getCause());
+	}
+
+	@Test
+	void handleSocialLoginTranslatesProviderAvailabilityFailureToServiceUnavailable() {
+		SocialLoginFailure failure = SocialLoginFailure.providerUnavailable(new RuntimeException("unavailable"));
+		when(socialLoginPort.login(any()))
+			.thenThrow(failure);
+
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class,
+			() -> socialLoginService.handleSocialLogin("code", SocialLoginCommand.from(SocialLoginProvider.KAKAO)));
+
+		assertEquals(MemberApplicationErrorCode.SOCIAL_LOGIN_PROVIDER_UNAVAILABLE, exception.getErrorCode());
+		assertSame(failure, exception.getCause());
+	}
+
+	@Test
+	void handleSocialLoginTranslatesProviderTimeoutToGatewayTimeout() {
+		SocialLoginFailure failure = SocialLoginFailure.providerTimeout(new RuntimeException("timeout"));
+		when(socialLoginPort.login(any()))
+			.thenThrow(failure);
+
+		ApiApplicationException exception = assertThrows(ApiApplicationException.class,
+			() -> socialLoginService.handleSocialLogin("code", SocialLoginCommand.from(SocialLoginProvider.KAKAO)));
+
+		assertEquals(MemberApplicationErrorCode.SOCIAL_LOGIN_PROVIDER_TIMEOUT, exception.getErrorCode());
+		assertSame(failure, exception.getCause());
 	}
 
 	@Test
 	void handleSocialLoginKeepsRequestedSocialTypeAcrossContractBoundaryWhenRegisteringNewMember() {
 		SocialMemberInfo socialMemberInfo = new SocialMemberInfo(123L, "nickname", "email@test.com");
-		MemberAuthenticationResult member = MemberAuthenticationResult.of(1L, 2L);
-		UserAuthenticationResult user = UserAuthenticationResult.of(2L, "ROLE_MEMBER");
-		LoginSuccessResponse expectedResponse = LoginSuccessResponse.of("access", "refresh", "nickname", "ROLE_MEMBER");
+		SocialIdentity socialIdentity = SocialIdentity.of(SocialType.KAKAO, 123L);
+		MemberAuthenticationResult member = new MemberAuthenticationResult(1L, 2L);
+		Users user = Users.rehydrate(2L, Role.MEMBER);
+		LoginSuccessResult expectedResponse = new LoginSuccessResult("access", "refresh", "nickname", "ROLE_MEMBER");
 
 		when(socialLoginPort.login(any())).thenReturn(socialMemberInfo);
-		when(memberService.checkMemberExistsBySocialIdAndSocialType(123L, SocialType.KAKAO)).thenReturn(false);
-		when(memberRegistrationService.registerMemberWithUserInfo(socialMemberInfo, SocialType.KAKAO)).thenReturn(1L);
-		when(memberService.findMemberAuthenticationResultByMemberId(1L)).thenReturn(member);
-		when(userService.findUserAuthenticationByUserId(2L)).thenReturn(user);
-		when(authenticationService.generateLoginSuccessResponse(1L, "ROLE_MEMBER", socialMemberInfo))
+		when(socialLoginMemberResolver.findOrRegister(socialMemberInfo, socialIdentity)).thenReturn(member);
+		when(userRepository.findById(2L)).thenReturn(Optional.of(user));
+		when(loginTokenIssuer.issue(1L, Role.MEMBER, socialMemberInfo))
 			.thenReturn(expectedResponse);
 
-		LoginSuccessResponse actual = socialLoginService.handleSocialLogin(
+		LoginSuccessResult actual = socialLoginService.handleSocialLogin(
 			"authorization-code",
-			new MemberLoginRequest(SocialTypeRequest.KAKAO)
+			SocialLoginCommand.from(SocialLoginProvider.KAKAO)
 		);
 
 		ArgumentCaptor<SocialLoginRequest> requestCaptor = ArgumentCaptor.forClass(SocialLoginRequest.class);
 		verify(socialLoginPort).login(requestCaptor.capture());
 		assertEquals("authorization-code", requestCaptor.getValue().getAuthorizationCode());
 		assertEquals(SocialLoginType.KAKAO, requestCaptor.getValue().getSocialType());
-		verify(memberRegistrationService).registerMemberWithUserInfo(socialMemberInfo, SocialType.KAKAO);
+		verify(socialLoginMemberResolver).findOrRegister(socialMemberInfo, socialIdentity);
 		assertEquals(expectedResponse, actual);
+	}
+
+	@Test
+	void handleSocialLoginReloadsConcurrentRegistrationWinnerAfterUniqueConstraintConflict() {
+		SocialMemberInfo socialMemberInfo = new SocialMemberInfo(123L, "nickname", "email@test.com");
+		SocialIdentity socialIdentity = SocialIdentity.of(SocialType.KAKAO, 123L);
+		MemberAuthenticationResult winner = new MemberAuthenticationResult(1L, 2L);
+		Users user = Users.rehydrate(2L, Role.MEMBER);
+		LoginSuccessResult expectedResponse = new LoginSuccessResult("access", "refresh", "nickname", "ROLE_MEMBER");
+
+		when(socialLoginPort.login(any())).thenReturn(socialMemberInfo);
+		when(socialLoginMemberResolver.findOrRegister(socialMemberInfo, socialIdentity)).thenReturn(winner);
+		when(userRepository.findById(2L)).thenReturn(Optional.of(user));
+		when(loginTokenIssuer.issue(1L, Role.MEMBER, socialMemberInfo))
+			.thenReturn(expectedResponse);
+
+		LoginSuccessResult actual = socialLoginService.handleSocialLogin(
+			"authorization-code",
+			SocialLoginCommand.from(SocialLoginProvider.KAKAO)
+		);
+
+		assertEquals(expectedResponse, actual);
+		verify(socialLoginMemberResolver).findOrRegister(socialMemberInfo, socialIdentity);
 	}
 }

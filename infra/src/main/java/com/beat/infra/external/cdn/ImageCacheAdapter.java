@@ -10,7 +10,6 @@ import java.util.concurrent.Executors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -61,7 +60,6 @@ public class ImageCacheAdapter implements ImageCachePort {
         return domain.endsWith("/") ? domain.substring(0, domain.length() - 1) : domain;
     }
 
-    @Async("beatAsyncExecutor")
     @Override
     public void preWarm(String imageKey) {
         if (imageKey == null || imageKey.isBlank() || cdnBase.isEmpty()) {

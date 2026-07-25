@@ -9,6 +9,8 @@ plugins {
 }
 
 dependencies {
+    implementation(libs.kotlin.logging.jvm)
+
     implementation(project(":module-contracts"))
     implementation(project(":gateway"))
     implementation(project(":domain"))

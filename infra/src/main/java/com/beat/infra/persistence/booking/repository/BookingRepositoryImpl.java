@@ -1,14 +1,15 @@
 package com.beat.infra.persistence.booking.repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
 import com.beat.domain.booking.repository.BookingRepository;
-import com.beat.domain.booking.domain.Booking;
-import com.beat.domain.booking.domain.BookingStatus;
+import com.beat.domain.booking.model.Booking;
+import com.beat.domain.booking.model.BookingStatus;
 import com.beat.infra.persistence.booking.entity.BookingJpaEntity;
 import com.beat.infra.persistence.booking.mapper.BookingPersistenceMapper;
 
@@ -36,6 +37,18 @@ public class BookingRepositoryImpl implements BookingRepository {
 	}
 
 	@Override
+	public List<Booking> findAllById(Collection<Long> ids) {
+		return bookingJpaRepository.findAllById(ids).stream()
+			.map(bookingPersistenceMapper::toDomain)
+			.toList();
+	}
+
+	@Override
+	public Optional<Booking> lockById(Long id) {
+		return bookingJpaRepository.lockById(id).map(bookingPersistenceMapper::toDomain);
+	}
+
+	@Override
 	public List<Booking> findAll() {
 		return bookingJpaRepository.findAll().stream()
 			.map(bookingPersistenceMapper::toDomain)
@@ -59,35 +72,8 @@ public class BookingRepositoryImpl implements BookingRepository {
 	}
 
 	@Override
-	public Optional<List<Booking>> findByBookerNameAndBookerPhoneNumberAndPasswordAndBirthDate(
-		String bookerName,
-		String bookerPhoneNumber,
-		String password,
-		String birthDate
-	) {
-		return bookingJpaRepository.findByBookerNameAndBookerPhoneNumberAndPasswordAndBirthDate(
-			bookerName,
-			bookerPhoneNumber,
-			password,
-			birthDate
-		).map(entities -> entities.stream()
-			.map(bookingPersistenceMapper::toDomain)
-			.toList());
-	}
-
-	@Override
-	public Optional<Booking> findFirstByBookerNameAndBookerPhoneNumberAndBirthDateAndPassword(
-		String bookerName,
-		String bookerPhoneNumber,
-		String birthDate,
-		String password
-	) {
-		return bookingJpaRepository.findFirstByBookerNameAndBookerPhoneNumberAndBirthDateAndPassword(
-			bookerName,
-			bookerPhoneNumber,
-			birthDate,
-			password
-		).map(bookingPersistenceMapper::toDomain);
+	public int replaceGuestPassword(long userId, String encodedPassword) {
+		return bookingJpaRepository.replaceGuestPassword(userId, encodedPassword);
 	}
 
 	@Override

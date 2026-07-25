@@ -1,6 +1,6 @@
 package com.beat.domain.schedule.repository
 
-import com.beat.domain.schedule.domain.Schedule
+import com.beat.domain.schedule.model.Schedule
 import java.util.*
 
 @JvmSuppressWildcards

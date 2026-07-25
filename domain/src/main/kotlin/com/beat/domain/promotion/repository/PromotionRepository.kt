@@ -1,7 +1,7 @@
 package com.beat.domain.promotion.repository
 
-import com.beat.domain.promotion.domain.CarouselNumber
-import com.beat.domain.promotion.domain.Promotion
+import com.beat.domain.promotion.model.CarouselNumber
+import com.beat.domain.promotion.model.Promotion
 import java.util.*
 
 @JvmSuppressWildcards

@@ -12,15 +12,14 @@ class ApisArchitectureGuardTest {
     private val apiClientBoundaryPathSegments = listOf(
         "/api/",
         "/facade/",
-        "/application/dto/",
         "/application/result/",
     )
     private val domainEnumValueImports = arrayOf(
-        "com.beat.domain.booking.domain.BookingStatus",
-        "com.beat.domain.member.domain.SocialType",
-        "com.beat.domain.performance.domain.BankName",
-        "com.beat.domain.performance.domain.Genre",
-        "com.beat.domain.schedule.domain.ScheduleNumber",
+        "com.beat.domain.booking.model.BookingStatus",
+        "com.beat.domain.member.model.SocialType",
+        "com.beat.domain.sharedkernel.vo.BankName",
+        "com.beat.domain.performance.model.Genre",
+        "com.beat.domain.schedule.model.ScheduleNumber",
     )
     @Test
     fun `apis build file must not depend on root project`() {
@@ -64,8 +63,8 @@ class ApisArchitectureGuardTest {
             setOf(
                 "com.beat.gateway.EnableGatewayConfig",
                 "com.beat.gateway.GatewayConfigGroup",
-                "com.beat.gateway.security.servlet.CurrentMember",
-                "com.beat.gateway.security.servlet.EnableGatewayServletSecurity",
+                "com.beat.gateway.CurrentMember",
+                "com.beat.gateway.EnableGatewayServletSecurity",
             )
         )
         val infraViolations = findForbiddenImports(
@@ -83,23 +82,77 @@ class ApisArchitectureGuardTest {
     }
 
     @Test
-    fun `apis dto and event boundaries must not import raw domain models`() {
+    fun `apis transport result and event boundaries must not import raw domain models`() {
         val violations = findForbiddenImportsInPaths(
-            listOf("/application/dto/"),
-            "com.beat.domain.booking.domain.Booking",
-            "com.beat.domain.cast.domain.Cast",
-            "com.beat.domain.member.domain.Member",
-            "com.beat.domain.performance.domain.Performance",
-            "com.beat.domain.performanceimage.domain.PerformanceImage",
-            "com.beat.domain.promotion.domain.Promotion",
-            "com.beat.domain.schedule.domain.Schedule",
-            "com.beat.domain.staff.domain.Staff",
-            "com.beat.domain.user.domain.Users",
+            listOf("/api/request/", "/api/response/", "/application/result/", "/application/event/"),
+            "com.beat.domain.booking.model.Booking",
+            "com.beat.domain.performance.model.Cast",
+            "com.beat.domain.member.model.Member",
+            "com.beat.domain.performance.model.Performance",
+            "com.beat.domain.performance.model.PerformanceImage",
+            "com.beat.domain.promotion.model.Promotion",
+            "com.beat.domain.schedule.model.Schedule",
+            "com.beat.domain.performance.model.Staff",
+            "com.beat.domain.user.model.Users",
         )
 
         assertTrue(
             violations.isEmpty(),
             "Found raw domain model imports in apis DTO/event boundaries:\n${violations.joinToString("\n")}"
+        )
+    }
+
+    @Test
+    fun `apis http dto packages belong to api adapters`() {
+        val paths = Files.walk(Path.of("src/main"))
+        val violations = try {
+            paths
+                .filter(Files::isRegularFile)
+                .map { it.toString().replace('\\', '/') }
+                .filter { "/application/dto/" in it }
+                .toList()
+        } finally {
+            paths.close()
+        }
+
+        assertTrue(
+            violations.isEmpty(),
+            "HTTP DTOs must be placed under api/request or api/response, never application/dto:\n${
+                violations.joinToString("\n")
+            }",
+        )
+    }
+
+    @Test
+    fun `apis application code must not depend on http request or response dto`() {
+        val violations = findSourceViolations(
+            pathPredicate = { path -> path.toString().replace('\\', '/').contains("/application/") },
+            forbiddenReferencePatterns = listOf(
+                Regex("""com\.beat\.apis\.[\w.]+\.api\.request\."""),
+                Regex("""com\.beat\.apis\.[\w.]+\.api\.response\."""),
+            ),
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Application code must expose Command, Query, and Result models instead of HTTP DTOs:\n${
+                violations.joinToString("\n")
+            }",
+        )
+    }
+
+    @Test
+    fun `apis controllers validate every request body`() {
+        val violations = findSourceViolations(
+            pathPredicate = { path ->
+                path.fileName.toString().matches(Regex(""".*Controller\.(java|kt)"""))
+            },
+            forbiddenReferencePatterns = listOf(Regex("""(?m)^(?!.*@Valid).*@RequestBody.*$""")),
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Every controller RequestBody parameter must use @Valid:\n${violations.joinToString("\n")}",
         )
     }
 
@@ -132,12 +185,41 @@ class ApisArchitectureGuardTest {
     }
 
     @Test
+    fun `apis java production sources contain only v1 controllers and api interfaces`() {
+        val javaRoot = Path.of("src/main/java")
+        if (!Files.exists(javaRoot)) {
+            return
+        }
+        val paths = Files.walk(javaRoot)
+        val violations = try {
+            paths
+                .filter(Files::isRegularFile)
+                .filter { it.fileName.toString().endsWith(".java") }
+                .filter {
+                    val name = it.fileName.toString()
+                    !name.endsWith("Controller.java") && !name.endsWith("Api.java")
+                }
+                .toList()
+        } finally {
+            paths.close()
+        }
+
+        assertTrue(
+            violations.isEmpty(),
+            "Java production sources are limited to legacy V1 controllers and API interfaces:\n${
+                violations.joinToString("\n")
+            }",
+        )
+    }
+
+    @Test
     fun `apis controllers must enter use cases through facades`() {
         val violations = findSourceViolations(
             pathPredicate = { path ->
                 path.fileName.toString().matches(Regex(""".*Controller\.(java|kt)"""))
             },
             forbiddenReferencePatterns = listOf(
+                Regex("""import\s+com\.beat\.apis\.[^\r\n]+\.application(?:\.|;)"""),
                 Regex("""com\.beat\.apis(?:\.[A-Za-z0-9_]+)+\.application(?:\.[A-Za-z0-9_]+)*\.[A-Za-z0-9_]+Service"""),
                 Regex("""com\.beat\.contracts\.(?:[A-Za-z0-9_]+\.)*[A-Za-z0-9_]+Port"""),
             ),
@@ -159,6 +241,9 @@ class ApisArchitectureGuardTest {
             },
             forbiddenReferencePatterns = listOf(
                 Regex("""com\.beat\.contracts\.(?:[A-Za-z0-9_]+\.)*[A-Za-z0-9_]+Port"""),
+                Regex("""com\.beat\.domain\.(?:[A-Za-z0-9_]+\.)*repository\."""),
+                Regex("""com\.beat\.domain\.(?:[A-Za-z0-9_]+\.)*service\.[A-Za-z0-9_]+DomainService"""),
+                Regex("""org\.springframework\.transaction\.annotation\.Transactional"""),
             ),
         )
 
@@ -168,6 +253,65 @@ class ApisArchitectureGuardTest {
                 violations.joinToString("\n")
             }"
         )
+    }
+
+    @Test
+    fun `apis application services receive domain services through dependency injection`() {
+        val violations = findSourceViolations(
+            pathPredicate = { path -> path.toString().replace('\\', '/').contains("/application/") },
+            forbiddenReferencePatterns = listOf(
+                Regex("""\bnew\s+[A-Za-z0-9_]+DomainService\s*\("""),
+                Regex("""(?m)(?<!fun\s)\b[A-Za-z0-9_]+DomainService\s*\(\s*\)"""),
+            ),
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Application services must receive DomainService instances from the composition root:\n${
+                violations.joinToString("\n")
+            }",
+        )
+    }
+
+    @Test
+    fun `apis application services do not call other application services`() {
+        val violations = findSourceViolations(
+            pathPredicate = { path -> path.toString().replace('\\', '/').contains("/application/") },
+            forbiddenReferencePatterns = listOf(
+                Regex("""import\s+com\.beat\.apis\.[\w.]+\.application\.(?:command|query)\.[A-Za-z0-9_]+Service"""),
+            ),
+        )
+
+        assertTrue(
+            violations.isEmpty(),
+            "Application services must use ports, repositories, or internal collaborators instead of other services:\n${
+                violations.joinToString("\n")
+            }",
+        )
+    }
+
+    @Test
+    fun `apis application code receives time through Clock`() {
+        val violations = findSourceViolations(
+            pathPredicate = { path -> path.toString().replace('\\', '/').contains("/application/") },
+            forbiddenReferencePatterns = listOf(
+                Regex("""\b(?:LocalDate|LocalDateTime|Instant)\.now\(\s*\)"""),
+            ),
+        )
+
+        assertTrue(violations.isEmpty(), "Application code must not read the system clock directly:\n${violations.joinToString("\n")}")
+    }
+
+    @Test
+    fun `apis packages use business capability names instead of adapter technology names`() {
+        val violations = findForbiddenReferences(
+            "package com.beat.apis.external.s3",
+            "package com.beat.apis.external.sms",
+            "package com.beat.apis.external.image",
+            "package com.beat.apis.external.notification.slack",
+        )
+
+        assertTrue(violations.isEmpty(), "Provider-specific packages belong to infra adapters:\n${violations.joinToString("\n")}")
     }
 
     @Test

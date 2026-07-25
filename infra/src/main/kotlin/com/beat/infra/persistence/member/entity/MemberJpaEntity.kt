@@ -1,12 +1,18 @@
 package com.beat.infra.persistence.member.entity
 
 import com.beat.infra.persistence.common.BaseTimeEntity
-import com.beat.domain.member.domain.SocialType
+import com.beat.domain.member.model.SocialType
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
 @Entity(name = "Member")
-@Table(name = "member")
+@Table(
+    name = "member",
+    uniqueConstraints = [
+        UniqueConstraint(name = "uk_member_user_id", columnNames = ["user_id"]),
+        UniqueConstraint(name = "uk_member_social_identity", columnNames = ["social_type", "social_id"]),
+    ],
+)
 class MemberJpaEntity private constructor(
     id: Long?,
     nickname: String,
@@ -39,11 +45,12 @@ class MemberJpaEntity private constructor(
     var userId: Long = userId
         protected set
 
-    @Column(nullable = false)
+    @Column(name = "social_id", nullable = false)
     var socialId: Long = socialId
         protected set
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "social_type", nullable = false)
     var socialType: SocialType = socialType
         protected set
 
