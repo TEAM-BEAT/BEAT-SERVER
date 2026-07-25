@@ -14,6 +14,6 @@ import jakarta.persistence.LockModeType;
 
 public interface PerformanceJpaRepository extends JpaRepository<PerformanceJpaEntity, Long> {
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
-	@Query("SELECT p FROM PerformanceJpaEntity p WHERE p.id = :id")
+	@Query("SELECT p FROM Performance p WHERE p.id = :id")
 	Optional<PerformanceJpaEntity> lockById(@Param("id") Long id);
 }
