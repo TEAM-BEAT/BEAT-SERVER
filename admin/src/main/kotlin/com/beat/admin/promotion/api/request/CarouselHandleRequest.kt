@@ -1,5 +1,6 @@
 package com.beat.admin.promotion.api.request
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import jakarta.validation.Valid
@@ -21,6 +22,7 @@ data class CarouselHandleRequest(
         val carouselNumber: AdminCarouselNumber?,
         @field:NotNull(message = INVALID_REQUEST_MESSAGE)
         val newImageUrl: String?,
+        @param:JsonProperty("external")
         @field:NotNull(message = INVALID_REQUEST_MESSAGE)
         val isExternal: Boolean?,
         @field:NotNull(message = INVALID_REQUEST_MESSAGE)
@@ -34,6 +36,7 @@ data class CarouselHandleRequest(
         val carouselNumber: AdminCarouselNumber?,
         @field:NotNull(message = INVALID_REQUEST_MESSAGE)
         val newImageUrl: String?,
+        @param:JsonProperty("external")
         @field:NotNull(message = INVALID_REQUEST_MESSAGE)
         val isExternal: Boolean?,
         @field:NotNull(message = INVALID_REQUEST_MESSAGE)

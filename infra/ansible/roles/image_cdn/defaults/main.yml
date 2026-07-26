@@ -18,3 +18,7 @@ image_cdn_lambda_memory_mb: 1500
 image_cdn_lambda_timeout_seconds: 30
 image_cdn_lambda_log_retention_days: 14
 image_cdn_transformed_retention_days: 90
+
+# The original-image bucket is shared by dev and prod and is not created by
+# the CloudFormation stack. Keep its baseline security controls declarative.
+image_cdn_source_bucket_encryption: "AES256"

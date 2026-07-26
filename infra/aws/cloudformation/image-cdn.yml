@@ -86,6 +86,10 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
       LifecycleConfiguration:
         Rules:
           - Id: expire-transformed
@@ -110,7 +114,14 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: s3:GetObject
-                Resource: !Sub "arn:aws:s3:::${OriginalImageBucketName}/*"
+                Resource: !Sub "arn:aws:s3:::${OriginalImageBucketName}/${Environment}/*"
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub "arn:aws:s3:::${OriginalImageBucketName}"
+                Condition:
+                  StringLike:
+                    s3:prefix:
+                      - !Sub "${Environment}/*"
               - Effect: Allow
                 Action: s3:PutObject
                 Resource: !Sub "${TransformedImageBucket.Arn}/*"
@@ -311,6 +322,16 @@ Resources:
             Condition:
               StringEquals:
                 AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource:
+              - !GetAtt TransformedImageBucket.Arn
+              - !Sub "${TransformedImageBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
 
   AlarmTopic:
     Type: AWS::SNS::Topic

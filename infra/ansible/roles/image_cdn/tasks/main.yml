@@ -25,6 +25,20 @@
   ansible.builtin.set_fact:
     image_cdn_repo_root: "{{ ((playbook_dir | dirname) | dirname) | dirname }}"
 
+- name: Enforce original image bucket security baseline
+  amazon.aws.s3_bucket:
+    name: "{{ image_cdn_source_bucket }}"
+    state: present
+    encryption: "{{ image_cdn_source_bucket_encryption }}"
+    object_ownership: BucketOwnerEnforced
+    public_access:
+      block_public_acls: true
+      block_public_policy: true
+      ignore_public_acls: true
+      restrict_public_buckets: true
+    policy: "{{ lookup('template', 'source_bucket_policy.json.j2') }}"
+    region: "{{ image_cdn_region }}"
+
 - name: Build Lambda deployment package
   ansible.builtin.command:
     cmd: >

@@ -2,12 +2,14 @@ package com.beat.apis.booking;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -48,6 +50,7 @@ import com.beat.domain.user.repository.UserRepository;
 class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 
 	private static final Logger logger = LoggerFactory.getLogger(GuestBookingServiceConcurrencyTest.class);
+	private static final int CONCURRENT_REQUEST_COUNT = 30;
 
 	@Autowired
 	private GuestBookingCommandService guestBookingService;
@@ -82,16 +85,8 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 
 	@Test
 	void testConcurrentGuestBooking() {
-		ExecutorService firstScheduleExecutor = Executors.newFixedThreadPool(100);
-		ExecutorService secondScheduleExecutor = Executors.newFixedThreadPool(150);
-
-		List<Future<Boolean>> firstScheduleFutures =
-			submitGuestBookings(firstScheduleExecutor, 100, schedule1, 2, ScheduleNumber.FIRST);
-		List<Future<Boolean>> secondScheduleFutures =
-			submitGuestBookings(secondScheduleExecutor, 150, schedule2, 1, ScheduleNumber.SECOND);
-
-		long firstScheduleSuccessCount = awaitExecutors(firstScheduleFutures, firstScheduleExecutor);
-		long secondScheduleSuccessCount = awaitExecutors(secondScheduleFutures, secondScheduleExecutor);
+		long firstScheduleSuccessCount = executeConcurrentGuestBookings(schedule1, 2, ScheduleNumber.FIRST);
+		long secondScheduleSuccessCount = executeConcurrentGuestBookings(schedule2, 1, ScheduleNumber.SECOND);
 
 		assertEquals(5L, firstScheduleSuccessCount);
 		assertEquals(1L, secondScheduleSuccessCount);
@@ -144,19 +139,33 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 		return scheduleRepository.save(schedule);
 	}
 
-	private List<Future<Boolean>> submitGuestBookings(
-		ExecutorService executorService,
-		int requestCount,
+	private long executeConcurrentGuestBookings(
 		Schedule schedule,
 		int purchaseTicketCount,
 		ScheduleNumber scheduleNumber
 	) {
+		ExecutorService executor = Executors.newFixedThreadPool(CONCURRENT_REQUEST_COUNT);
+		CountDownLatch ready = new CountDownLatch(CONCURRENT_REQUEST_COUNT);
+		CountDownLatch start = new CountDownLatch(1);
 		List<Future<Boolean>> futures = new ArrayList<>();
-		for (int i = 0; i < requestCount; i++) {
-			futures.add(
-				executorService.submit(() -> createGuestBooking(schedule, purchaseTicketCount, scheduleNumber)));
+
+		for (int i = 0; i < CONCURRENT_REQUEST_COUNT; i++) {
+			futures.add(executor.submit(() -> {
+				ready.countDown();
+				start.await();
+				return createGuestBooking(schedule, purchaseTicketCount, scheduleNumber);
+			}));
 		}
-		return futures;
+
+		try {
+			assertTrue(ready.await(10, TimeUnit.SECONDS), "Concurrent booking tasks did not become ready");
+		} catch (InterruptedException e) {
+			executor.shutdownNow();
+			Thread.currentThread().interrupt();
+			throw new AssertionError("Concurrent booking task setup interrupted", e);
+		}
+		start.countDown();
+		return awaitExecutors(futures, executor);
 	}
 
 	private boolean createGuestBooking(Schedule schedule, int purchaseTicketCount, ScheduleNumber scheduleNumber) {

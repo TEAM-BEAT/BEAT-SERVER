@@ -51,7 +51,7 @@ class AdminDtoJsonContractTest {
 			      "promotionId": 1,
 			      "carouselNumber": "THREE",
 			      "newImageUrl": "image",
-			      "isExternal": true,
+			      "external": true,
 			      "redirectUrl": "redirect",
 			      "performanceId": 11
 			    }
@@ -65,6 +65,7 @@ class AdminDtoJsonContractTest {
 		PromotionModifyRequest modifyRequest = assertInstanceOf(PromotionModifyRequest.class,
 			request.carousels().get(0));
 		assertEquals(AdminCarouselNumber.THREE, modifyRequest.carouselNumber());
+		assertTrue(modifyRequest.isExternal());
 	}
 
 	@Test
