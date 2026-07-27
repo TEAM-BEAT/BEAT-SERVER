@@ -1,4 +1,4 @@
-FROM eclipse-temurin:25.0.3_9-jre-alpine-3.23@sha256:28db6fdf60e38945e43d840c0333aeaec66c15943070104f7586fd3c9d1665b0
+FROM eclipse-temurin:25-jre-alpine-3.22@sha256:0a1ea0a7ceb4ff5f466582fec653e2893d75357b9252f3c38fc3e456d7293400
 
 ARG MODULE
 
