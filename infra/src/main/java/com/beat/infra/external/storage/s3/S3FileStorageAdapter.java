@@ -86,7 +86,7 @@ public class S3FileStorageAdapter implements FileStoragePort {
 			URL carouselPresignedUrl = amazonS3.generatePresignedUrl(
 				buildPresignedUrlRequest(bucket, carouselFilePath));
 			carouselPresignedUploads.put(carouselImage,
-				new CarouselPresignedUpload(carouselPresignedUrl.toString(), carouselFilePath));
+				CarouselPresignedUpload.of(carouselPresignedUrl.toString(), carouselFilePath));
 		}
 
 		return new CarouselPresignedUrls(carouselPresignedUploads);
@@ -99,7 +99,7 @@ public class S3FileStorageAdapter implements FileStoragePort {
 		}
 		try {
 			ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(bucket, imageKey);
-			return new ImageObjectMetadata(objectMetadata.getContentType(), objectMetadata.getContentLength());
+			return ImageObjectMetadata.of(objectMetadata.getContentType(), objectMetadata.getContentLength());
 		} catch (AmazonS3Exception exception) {
 			if (exception.getStatusCode() == 404) {
 				return null;

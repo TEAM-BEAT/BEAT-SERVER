@@ -1,6 +1,15 @@
 package com.beat.contracts.storage
 
-data class ImageObjectMetadata(
+import kotlin.ConsistentCopyVisibility
+
+@ConsistentCopyVisibility
+data class ImageObjectMetadata private constructor(
     val contentType: String?,
     val contentLength: Long,
-)
+) {
+    companion object {
+        @JvmStatic
+        fun of(contentType: String?, contentLength: Long): ImageObjectMetadata =
+            ImageObjectMetadata(contentType, contentLength)
+    }
+}

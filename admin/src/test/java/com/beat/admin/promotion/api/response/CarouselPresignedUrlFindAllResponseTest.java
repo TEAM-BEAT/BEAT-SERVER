@@ -15,7 +15,7 @@ class CarouselPresignedUrlFindAllResponseTest {
 	void responsePreservesLegacyUrlsAndAddsExplicitUploadMetadata() {
 		CarouselPresignedUrlFindAllResponse response = CarouselPresignedUrlFindAllResponse.from(
 			new CarouselPresignedUrlsResult(Map.of("carousel.png",
-				new CarouselPresignedUpload("signed-upload-url", "dev/carousel/carousel.png")))
+				CarouselPresignedUpload.of("signed-upload-url", "dev/carousel/carousel.png")))
 		);
 
 		assertEquals(Map.of("carousel.png", "signed-upload-url"), response.carouselPresignedUrls());

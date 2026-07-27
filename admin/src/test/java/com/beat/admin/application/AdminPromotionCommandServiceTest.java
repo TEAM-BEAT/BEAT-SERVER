@@ -192,7 +192,7 @@ class AdminPromotionCommandServiceTest {
 	void processAllPromotionsRejectsUnsupportedImageMetadataBeforeMutation() {
 		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
 		when(fileStoragePort.findCarouselImageObjectMetadata("prod/carousel/invalid-image"))
-			.thenReturn(new ImageObjectMetadata("application/pdf", 1024L));
+			.thenReturn(ImageObjectMetadata.of("application/pdf", 1024L));
 
 		CarouselHandleCommand command = CarouselHandleCommand.from(List.of(
 			PromotionGenerateCommand.of("ONE", "prod/carousel/invalid-image", false, "created-url", null)
@@ -209,7 +209,7 @@ class AdminPromotionCommandServiceTest {
 	void processAllPromotionsRejectsOversizedImageBeforeMutation() {
 		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
 		when(fileStoragePort.findCarouselImageObjectMetadata("prod/carousel/oversized-image"))
-			.thenReturn(new ImageObjectMetadata("image/png", 11L * 1024 * 1024));
+			.thenReturn(ImageObjectMetadata.of("image/png", 11L * 1024 * 1024));
 
 		CarouselHandleCommand command = CarouselHandleCommand.from(List.of(
 			PromotionGenerateCommand.of("ONE", "prod/carousel/oversized-image", false, "created-url", null)
@@ -223,7 +223,7 @@ class AdminPromotionCommandServiceTest {
 	}
 
 	private static ImageObjectMetadata validImage() {
-		return new ImageObjectMetadata("image/png", 1024L);
+		return ImageObjectMetadata.of("image/png", 1024L);
 	}
 
 	private static Promotion promotion(Long id, String imageUrl, Long performanceId, String redirectUrl,

@@ -72,7 +72,7 @@ class AdminPromotionQueryServiceTest {
 		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
 		when(fileStoragePort.issueAllPresignedUrlsForCarousel(List.of("carousel.png")))
 			.thenReturn(new CarouselPresignedUrls(Map.of("carousel.png",
-				new CarouselPresignedUpload("carousel-upload-url", "dev/carousel/carousel.png"))));
+				CarouselPresignedUpload.of("carousel-upload-url", "dev/carousel/carousel.png"))));
 		when(fileStoragePort.issuePresignedUrlForBanner("banner.png"))
 			.thenReturn(new BannerPresignedUrl("banner-url"));
 
@@ -82,7 +82,7 @@ class AdminPromotionQueryServiceTest {
 			adminPromotionQueryService.issuePresignedUrlForBanner(MEMBER_ID, "banner.png");
 
 		assertEquals(Map.of("carousel.png",
-			new CarouselPresignedUpload("carousel-upload-url", "dev/carousel/carousel.png")),
+			CarouselPresignedUpload.of("carousel-upload-url", "dev/carousel/carousel.png")),
 			carouselResponse.carouselPresignedUploads());
 		assertEquals("banner-url", bannerResponse.bannerPresignedUrl());
 		verify(fileStoragePort).issueAllPresignedUrlsForCarousel(List.of("carousel.png"));
