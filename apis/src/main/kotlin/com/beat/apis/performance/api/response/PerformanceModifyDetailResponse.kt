@@ -4,6 +4,7 @@ import com.beat.apis.performance.api.type.BankNameType
 import com.beat.apis.performance.api.type.GenreType
 import com.beat.apis.performance.application.result.PerformanceEditResult
 import com.beat.global.support.jackson.CdnImageUrl
+import com.fasterxml.jackson.annotation.JsonProperty
 
 @ConsistentCopyVisibility
 data class PerformanceModifyDetailResponse private constructor(
@@ -28,6 +29,7 @@ data class PerformanceModifyDetailResponse private constructor(
     val performancePeriod: String?,
     val ticketPrice: Int,
     val totalScheduleCount: Int,
+    @get:JsonProperty("isBookerExist")
     val isBookerExist: Boolean,
     val scheduleList: List<ScheduleResponse>,
     val castList: List<CastResponse>,

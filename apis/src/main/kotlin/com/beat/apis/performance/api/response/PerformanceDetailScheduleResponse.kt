@@ -1,6 +1,7 @@
 package com.beat.apis.performance.api.response
 
 import com.beat.apis.performance.application.result.PerformanceDetailScheduleResult
+import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility
@@ -9,6 +10,7 @@ data class PerformanceDetailScheduleResponse private constructor(
     val performanceDate: LocalDateTime?,
     val scheduleNumber: String?,
     val dueDate: Int,
+    @get:JsonProperty("isBooking")
     val isBooking: Boolean,
 ) {
     companion object {

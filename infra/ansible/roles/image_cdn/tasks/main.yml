@@ -4,6 +4,7 @@
     that:
       - deploy_environment in ["dev", "prod"]
       - image_cdn_source_bucket | length > 0
+      - image_cdn_cloudformation_role_arn | length > 0
       - image_cdn_alarm_email | length > 0
       - image_cdn_lambda_code_bucket | length > 0
       - image_cdn_transformed_bucket_name is defined
@@ -14,6 +15,7 @@
       - image_cdn_acm_cert_arn | length > 0
     fail_msg: >
       image_cdn role requires deploy_environment, image_cdn_source_bucket,
+      image_cdn_cloudformation_role_arn,
       image_cdn_alarm_email, image_cdn_lambda_code_bucket,
       image_cdn_transformed_bucket_name, image_cdn_custom_domain, and
       image_cdn_acm_cert_arn.
@@ -92,6 +94,7 @@
     template: "{{ image_cdn_repo_root }}/{{ image_cdn_template_relpath }}"
     capabilities:
       - CAPABILITY_IAM
+    role_arn: "{{ image_cdn_cloudformation_role_arn }}"
     template_parameters:
       Environment: "{{ deploy_environment }}"
       OriginalImageBucketName: "{{ image_cdn_source_bucket }}"

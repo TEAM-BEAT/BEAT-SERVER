@@ -42,7 +42,7 @@ class AdminDtoJsonContractTest {
 	}
 
 	@Test
-	void carouselHandleRequestDeserializesLegacyCarouselNumberValue() throws Exception {
+	void carouselHandleRequestAcceptsCanonicalAndTemporaryExternalFieldNames() throws Exception {
 		String json = """
 			{
 			  "carousels": [
@@ -51,7 +51,7 @@ class AdminDtoJsonContractTest {
 			      "promotionId": 1,
 			      "carouselNumber": "THREE",
 			      "newImageUrl": "image",
-			      "external": true,
+			      "isExternal": true,
 			      "redirectUrl": "redirect",
 			      "performanceId": 11
 			    }
@@ -66,6 +66,12 @@ class AdminDtoJsonContractTest {
 			request.carousels().get(0));
 		assertEquals(AdminCarouselNumber.THREE, modifyRequest.carouselNumber());
 		assertTrue(modifyRequest.isExternal());
+
+		CarouselHandleRequest aliasRequest = objectMapper.readValue(json.replace("\"isExternal\"", "\"external\""),
+			CarouselHandleRequest.class);
+		PromotionModifyRequest aliasModifyRequest = assertInstanceOf(PromotionModifyRequest.class,
+			aliasRequest.carousels().get(0));
+		assertTrue(aliasModifyRequest.isExternal());
 	}
 
 	@Test

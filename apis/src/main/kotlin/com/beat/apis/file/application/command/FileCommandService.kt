@@ -16,16 +16,19 @@ class FileCommandService(
         staffImages: List<String>?,
         performanceImages: List<String>?,
     ): PerformancePresignedUrls {
-        val fileNames = listOf(posterImage) + castImages.orEmpty() + staffImages.orEmpty() + performanceImages.orEmpty()
+        val normalizedCastImages = castImages.orEmpty().filter(String::isNotBlank)
+        val normalizedStaffImages = staffImages.orEmpty().filter(String::isNotBlank)
+        val normalizedPerformanceImages = performanceImages.orEmpty().filter(String::isNotBlank)
+        val fileNames = listOf(posterImage) + normalizedCastImages + normalizedStaffImages + normalizedPerformanceImages
         if (fileNames.any { !isValidFileName(it) }) {
             throw ApiApplicationException(FileApplicationErrorCode.INVALID_FILE_NAME)
         }
 
         return fileStoragePort.issueAllPresignedUrlsForPerformanceMaker(
             posterImage,
-            castImages.orEmpty(),
-            staffImages.orEmpty(),
-            performanceImages.orEmpty(),
+            normalizedCastImages,
+            normalizedStaffImages,
+            normalizedPerformanceImages,
         )
     }
 

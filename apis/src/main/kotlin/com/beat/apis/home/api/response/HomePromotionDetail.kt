@@ -2,6 +2,7 @@ package com.beat.apis.home.api.response
 
 import com.beat.apis.home.application.result.HomePromotionResult
 import com.beat.global.support.jackson.CdnImageUrl
+import com.fasterxml.jackson.annotation.JsonProperty
 
 @ConsistentCopyVisibility
 data class HomePromotionDetail private constructor(
@@ -9,6 +10,7 @@ data class HomePromotionDetail private constructor(
     @field:CdnImageUrl val promotionPhoto: String?,
     val performanceId: Long?,
     val redirectUrl: String?,
+    @get:JsonProperty("isExternal")
     val isExternal: Boolean,
     val carouselNumber: String?,
 ) {

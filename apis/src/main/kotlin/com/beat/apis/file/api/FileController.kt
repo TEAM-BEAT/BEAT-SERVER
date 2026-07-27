@@ -22,12 +22,13 @@ class FileController(
         @RequestParam(required = false) castImages: List<String>?,
         @RequestParam(required = false) staffImages: List<String>?,
         @RequestParam(required = false) performanceImages: List<String>?,
+        @RequestParam(name = "performImages", required = false) legacyPerformanceImages: List<String>?,
     ): ResponseEntity<SuccessResponse<PerformanceMakerPresignedUrlFindAllResponse>> {
         val response = fileFacade.issueAllPresignedUrlsForPerformanceMaker(
             posterImage,
             castImages,
             staffImages,
-            performanceImages,
+            performanceImages ?: legacyPerformanceImages,
         )
         return ResponseEntity.ok(SuccessResponse.of(FileSuccessCode.PERFORMANCE_MAKER_PRESIGNED_URL_ISSUED, response))
     }

@@ -1,6 +1,7 @@
 package com.beat.apis.schedule.api.response
 
 import com.beat.apis.schedule.application.result.TicketAvailabilityResult
+import com.fasterxml.jackson.annotation.JsonProperty
 
 @ConsistentCopyVisibility
 data class TicketAvailabilityResponse private constructor(
@@ -10,6 +11,7 @@ data class TicketAvailabilityResponse private constructor(
     val soldTicketCount: Int,
     val availableTicketCount: Int,
     val requestedTicketCount: Int,
+    @get:JsonProperty("isAvailable")
     val isAvailable: Boolean,
 ) {
     companion object {
