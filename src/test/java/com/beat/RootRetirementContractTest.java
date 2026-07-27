@@ -505,7 +505,7 @@ class RootRetirementContractTest {
 		assertFalse(ansibleExecWorkflow.contains(
 			"inputs.environment_name == 'dev' && secrets.DEV_SSH_HOST || secrets.PROD_SSH_HOST"));
 		assertFalse(ansibleExecWorkflow.contains("PROD_DOCKER_LOGIN_USERNAME"));
-		assertTrue(setupAnsibleTooling.contains("sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003"));
+		assertTrue(setupAnsibleTooling.contains("sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6"));
 		assertTrue(setupAnsibleTooling.contains("Install verified age"));
 		assertTrue(setupAnsibleTooling.contains("cosign verify-blob"));
 		assertTrue(setupAnsibleTooling.contains("sha256sum -c"));

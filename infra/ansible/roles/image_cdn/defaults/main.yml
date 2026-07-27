@@ -4,6 +4,7 @@
 
 image_cdn_stack_name: "beat-image-cdn-{{ deploy_environment }}"
 image_cdn_region: "ap-northeast-2"
+image_cdn_cloudformation_role_arn: "arn:aws:iam::637423615550:role/beat-image-cdn-cloudformation-execution"
 
 # Paths (relative to repo root) of source artifacts.
 image_cdn_template_relpath: "infra/aws/cloudformation/image-cdn.yml"

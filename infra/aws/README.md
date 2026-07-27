@@ -134,15 +134,24 @@ image_cdn_alarm_email: alerts@example.com
 
 BEAT 의 표준 배포 경로는 **GitHub Actions + Ansible** 입니다
 ([[project_infra_deploy_strategy]]). GHA workflow 가 dev/prod 환경별 AWS
-credentials 를 OIDC role 또는 secrets 로 주입하고, runner 에서
-`ansible-playbook` 을 실행하는 형태입니다. 본 role 도 동일 패턴을
-전제로 합니다 — `amazon.aws` 모듈은 환경변수
+OIDC role 로 임시 자격증명을 주입하고, runner 에서
+`ansible-playbook` 을 실행하는 형태입니다. `deploy-image-cdn-dev.yml`은
+관련 경로가 `develop`에 병합될 때만 실행되고, prod는 `main` 이력의 ref만
+수동 실행합니다. 본 role 은 환경변수
 (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN`
 또는 `AWS_PROFILE`) 를 자동 인식합니다.
 
 > [!NOTE]
-> Phase 1 의 GHA 워크플로우 정의는 별도 PR scope. 본 PR 은 role/CFN/JS
-> 만 포함하며, 첫 실 배포까지의 GHA 추가는 후속 작업입니다.
+> OIDC provider와 역할은 최초 1회 AWS에서 만들어야 합니다. GitHub 환경
+> 변수 `AWS_IMAGE_CDN_DEPLOY_ROLE_ARN`에 각 환경 역할 ARN을 설정하세요.
+> 신뢰 정책은 `token.actions.githubusercontent.com:aud=sts.amazonaws.com`과
+> `sub=repo:TEAM-BEAT/BEAT-SERVER:environment:dev|prod`로 각각 제한하고,
+> GitHub `prod` 환경에는 승인·배포 브랜치 보호를 적용합니다.
+
+> [!IMPORTANT]
+> 역할 권한은 image CDN의 원본/변환/아티팩트 버킷, 해당 CloudFormation
+> 스택 및 그 스택이 생성하는 리소스만 허용해야 합니다. 장기 AWS access key를
+> GitHub Secrets에 저장하지 않습니다.
 
 ### 로컬 디버깅 실행
 
@@ -160,7 +169,8 @@ cd infra/ansible
 # dev
 AWS_PROFILE=beat-prod ansible-playbook \
   -i inventories/dev \
-  playbooks/image_cdn.yml
+  playbooks/image_cdn.yml \
+  -e deploy_environment=dev
 
 # prod (dev 검증 통과 후)
 AWS_PROFILE=beat-prod ansible-playbook \

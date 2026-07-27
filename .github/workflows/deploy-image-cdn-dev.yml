@@ -1,0 +1,84 @@
+name: deploy-image-cdn-dev
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'infra/aws/**'
+      - '.sops.yaml'
+      - 'infra/ansible/ansible.cfg'
+      - 'infra/ansible/collections/requirements.yml'
+      - 'infra/ansible/playbooks/image_cdn.yml'
+      - 'infra/ansible/roles/image_cdn/**'
+      - 'infra/ansible/inventories/dev/hosts.yml'
+      - 'infra/ansible/inventories/dev/group_vars/all/image_cdn.yml'
+      - 'infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml'
+      - '.github/actions/setup-ansible-tooling/**'
+      - '.github/workflows/_ansible-aws-exec.yml'
+      - '.github/workflows/deploy-image-cdn-dev.yml'
+  workflow_dispatch:
+    inputs:
+      deploy_ref:
+        description: "Optional branch, tag, or SHA to deploy (defaults to the triggering commit)"
+        type: string
+        required: false
+        default: ""
+
+jobs:
+  resolve-ref:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      commit_sha: ${{ steps.resolve.outputs.commit_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Resolve deploy ref
+        id: resolve
+        env:
+          DEPLOY_REF: ${{ github.event.inputs.deploy_ref }}
+          DEFAULT_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested="${DEPLOY_REF:-$DEFAULT_SHA}"
+          git fetch --force --prune origin \
+            '+refs/heads/*:refs/remotes/origin/*' \
+            '+refs/tags/*:refs/tags/*'
+          candidates=("$requested")
+          if [[ "$requested" == refs/heads/* ]]; then
+            candidates+=("refs/remotes/origin/${requested#refs/heads/}")
+          elif [[ "$requested" != refs/* ]]; then
+            candidates+=("refs/remotes/origin/$requested" "refs/tags/$requested")
+          fi
+          for candidate in "${candidates[@]}"; do
+            if commit_sha="$(git rev-parse --verify --quiet "${candidate}^{commit}")"; then
+              echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "Invalid deploy_ref: $requested" >&2
+          exit 1
+
+  deploy:
+    needs: resolve-ref
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: dev-image-cdn
+      cancel-in-progress: false
+    uses: ./.github/workflows/_ansible-aws-exec.yml
+    with:
+      environment_name: dev
+      playbook: playbooks/image_cdn.yml
+      inventory_path: inventories/dev/hosts.yml
+      aws_region: ap-northeast-2
+      checkout_ref: ${{ needs.resolve-ref.outputs.commit_sha }}
+    secrets:
+      sops_age_key: ${{ secrets.AGE_SECRET_KEY }}
