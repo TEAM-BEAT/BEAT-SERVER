@@ -29,7 +29,7 @@
 | Java bytecode target | root `build.gradle.kts`와 `build-logic/build.gradle.kts`의 `options.release.set(25)` | release `25` |
 | Kotlin JVM target | `build-logic/build.gradle.kts`와 Kotlin convention plugin의 `JvmTarget.JVM_25` (root project는 Kotlin plugin을 적용하지 않음) | JVM `25` |
 | SDKMAN local JDK | `.sdkmanrc`의 `java=25.0.2-tem` 및 BEAT team standard 주석 | JDK `25` |
-| Docker runtime | `Dockerfile.module`의 `eclipse-temurin:25-jre-alpine` | Java `25` |
+| Docker runtime | `Dockerfile.module`의 digest 고정 `eclipse-temurin:25.0.3_9-jre-alpine-3.23` | Java `25` |
 
 확인 명령:
 
