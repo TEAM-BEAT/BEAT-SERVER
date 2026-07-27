@@ -17,7 +17,7 @@
       "matchDatasources": ["docker"],
       "matchPackageNames": ["eclipse-temurin"],
       "enabled": true,
-      "allowedVersions": "/^25\\./"
+      "allowedVersions": "/^25[.-]/"
     }
   ]
 }
