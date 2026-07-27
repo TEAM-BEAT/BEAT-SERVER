@@ -188,40 +188,6 @@ class AdminPromotionCommandServiceTest {
 		verify(promotionRepository, never()).save(any());
 	}
 
-	@Test
-	void processAllPromotionsRejectsUnsupportedImageMetadataBeforeMutation() {
-		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
-		when(fileStoragePort.findCarouselImageObjectMetadata("prod/carousel/invalid-image"))
-			.thenReturn(ImageObjectMetadata.of("application/pdf", 1024L));
-
-		CarouselHandleCommand command = CarouselHandleCommand.from(List.of(
-			PromotionGenerateCommand.of("ONE", "prod/carousel/invalid-image", false, "created-url", null)
-		));
-
-		AdminApplicationException exception = assertThrows(AdminApplicationException.class,
-			() -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, command));
-
-		assertEquals(PromotionApplicationErrorCode.INVALID_IMAGE_UPLOAD, exception.getErrorCode());
-		verify(promotionRepository, never()).findAll();
-	}
-
-	@Test
-	void processAllPromotionsRejectsOversizedImageBeforeMutation() {
-		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
-		when(fileStoragePort.findCarouselImageObjectMetadata("prod/carousel/oversized-image"))
-			.thenReturn(ImageObjectMetadata.of("image/png", 11L * 1024 * 1024));
-
-		CarouselHandleCommand command = CarouselHandleCommand.from(List.of(
-			PromotionGenerateCommand.of("ONE", "prod/carousel/oversized-image", false, "created-url", null)
-		));
-
-		AdminApplicationException exception = assertThrows(AdminApplicationException.class,
-			() -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, command));
-
-		assertEquals(PromotionApplicationErrorCode.INVALID_IMAGE_UPLOAD, exception.getErrorCode());
-		verify(promotionRepository, never()).findAll();
-	}
-
 	private static ImageObjectMetadata validImage() {
 		return ImageObjectMetadata.of("image/png", 1024L);
 	}

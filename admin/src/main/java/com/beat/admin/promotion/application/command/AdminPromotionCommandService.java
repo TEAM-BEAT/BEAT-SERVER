@@ -37,11 +37,6 @@ public class AdminPromotionCommandService {
 		Promotion::getCarouselNumber,
 		Comparator.comparingInt(Enum::ordinal)
 	);
-	private static final long MAX_CAROUSEL_IMAGE_SIZE_BYTES = 10L * 1024 * 1024;
-	private static final Set<String> ALLOWED_CAROUSEL_IMAGE_CONTENT_TYPES = Set.of(
-		"image/jpeg", "image/png", "image/webp", "image/avif"
-	);
-
 	private final MemberRepository memberRepository;
 	private final PromotionRepository promotionRepository;
 	private final PerformanceSummaryReadPort performanceSummaryReadPort;
@@ -79,10 +74,7 @@ public class AdminPromotionCommandService {
 	private void validateCarouselImageObject(String imageUrl) {
 		String imageKey = ImageKeyExtractor.extract(imageUrl);
 		ImageObjectMetadata metadata = fileStoragePort.findCarouselImageObjectMetadata(imageKey);
-		if (metadata == null
-			|| metadata.getContentLength() <= 0
-			|| metadata.getContentLength() > MAX_CAROUSEL_IMAGE_SIZE_BYTES
-			|| !ALLOWED_CAROUSEL_IMAGE_CONTENT_TYPES.contains(metadata.getContentType())) {
+		if (metadata == null) {
 			throw new AdminApplicationException(PromotionApplicationErrorCode.INVALID_IMAGE_UPLOAD);
 		}
 	}
