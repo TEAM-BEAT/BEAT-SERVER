@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "enabledManagers": ["dockerfile"],
+  "vulnerabilityAlerts": {
+    "enabled": false
+  },
+  "packageRules": [
+    {
+      "description": "Only manage the Eclipse Temurin runtime image.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["*"],
+      "enabled": false
+    },
+    {
+      "description": "Keep the Java 25 and Alpine 3.23 runtime compatibility contract.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["eclipse-temurin"],
+      "enabled": true,
+      "versioning": "regex:^(?<major>25)\\.(?<minor>\\d+)\\.(?<patch>\\d+)_(?<build>\\d+)-jre-alpine-(?<compatibility>3\\.23)$"
+    }
+  ]
+}
