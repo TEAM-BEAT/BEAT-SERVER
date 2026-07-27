@@ -6,9 +6,12 @@ on:
       - develop
     paths:
       - 'infra/aws/**'
+      - '.sops.yaml'
+      - 'infra/ansible/ansible.cfg'
       - 'infra/ansible/collections/requirements.yml'
       - 'infra/ansible/playbooks/image_cdn.yml'
       - 'infra/ansible/roles/image_cdn/**'
+      - 'infra/ansible/inventories/dev/hosts.yml'
       - 'infra/ansible/inventories/dev/group_vars/all/image_cdn.yml'
       - 'infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml'
       - '.github/actions/setup-ansible-tooling/**'

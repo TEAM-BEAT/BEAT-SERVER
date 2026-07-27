@@ -3,6 +3,7 @@ package com.beat.apis.file.application;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -71,5 +72,6 @@ class FileCommandServiceTest {
 		);
 
 		assertEquals(FileApplicationErrorCode.INVALID_FILE_NAME, exception.getErrorCode());
+		verifyNoInteractions(fileStoragePort);
 	}
 }
