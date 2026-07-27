@@ -38,13 +38,13 @@ public class AdminPromotionQueryService {
 		List<String> carouselImages) {
 		validateMemberExists(memberId);
 		return new CarouselPresignedUrlsResult(
-			fileStoragePort.issueAllPresignedUrlsForCarousel(carouselImages).getCarouselPresignedUrls());
+			fileStoragePort.issueAllPresignedUrlsForCarousel(carouselImages).getCarouselPresignedUploads());
 	}
 
 	public BannerPresignedUrlResult issuePresignedUrlForBanner(Long memberId, String bannerImage) {
 		validateMemberExists(memberId);
-		return new BannerPresignedUrlResult(
-			fileStoragePort.issuePresignedUrlForBanner(bannerImage).getBannerPresignedUrl());
+		var upload = fileStoragePort.issuePresignedUrlForBanner(bannerImage);
+		return new BannerPresignedUrlResult(upload.getBannerPresignedUrl(), upload.getBannerImageKey());
 	}
 
 	public AdminPromotionResults findAllPromotionsSortedByCarouselNumber(Long memberId) {

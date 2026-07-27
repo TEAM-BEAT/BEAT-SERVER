@@ -18,6 +18,8 @@ import com.beat.admin.promotion.application.result.AdminPromotionResults.AdminPr
 import com.beat.admin.promotion.exception.PromotionApplicationErrorCode;
 import com.beat.contracts.cdn.ImageCachePort;
 import com.beat.contracts.performance.PerformanceSummaryReadPort;
+import com.beat.contracts.storage.FileStoragePort;
+import com.beat.contracts.storage.ImageObjectMetadata;
 import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.promotion.model.CarouselNumber;
 import com.beat.domain.promotion.model.Promotion;
@@ -35,11 +37,11 @@ public class AdminPromotionCommandService {
 		Promotion::getCarouselNumber,
 		Comparator.comparingInt(Enum::ordinal)
 	);
-
 	private final MemberRepository memberRepository;
 	private final PromotionRepository promotionRepository;
 	private final PerformanceSummaryReadPort performanceSummaryReadPort;
 	private final ImageCachePort imageCachePort;
+	private final FileStoragePort fileStoragePort;
 	private final PromotionCarouselDomainService promotionCarouselDomainService;
 
 	@Transactional
@@ -49,6 +51,7 @@ public class AdminPromotionCommandService {
 
 		ClassifiedCarouselPromotions classifiedPromotions = classifyCarouselPromotions(command);
 		validateCarouselAssignments(classifiedPromotions);
+		validateCarouselImageObjects(classifiedPromotions);
 
 		List<Promotion> allExistingPromotions = promotionRepository.findAll();
 		List<Long> deletePromotionIds = extractDeletePromotionIds(allExistingPromotions,
@@ -57,6 +60,23 @@ public class AdminPromotionCommandService {
 			classifiedPromotions.generateRequests(), deletePromotionIds);
 
 		return toPromotionResults(changedPromotions);
+	}
+
+	private void validateCarouselImageObjects(ClassifiedCarouselPromotions promotions) {
+		promotions.modifyRequests().stream()
+			.map(PromotionModifyCommand::newImageUrl)
+			.forEach(this::validateCarouselImageObject);
+		promotions.generateRequests().stream()
+			.map(PromotionGenerateCommand::newImageUrl)
+			.forEach(this::validateCarouselImageObject);
+	}
+
+	private void validateCarouselImageObject(String imageUrl) {
+		String imageKey = ImageKeyExtractor.extract(imageUrl);
+		ImageObjectMetadata metadata = fileStoragePort.findImageObjectMetadata(imageKey);
+		if (metadata == null) {
+			throw new AdminApplicationException(PromotionApplicationErrorCode.INVALID_IMAGE_UPLOAD);
+		}
 	}
 
 	private AdminPromotionResults toPromotionResults(List<Promotion> domainPromotions) {

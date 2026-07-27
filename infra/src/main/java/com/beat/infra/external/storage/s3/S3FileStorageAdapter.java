@@ -3,9 +3,14 @@ package com.beat.infra.external.storage.s3;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.beat.contracts.storage.BannerPresignedUrl;
+import com.beat.contracts.storage.CarouselPresignedUpload;
 import com.beat.contracts.storage.CarouselPresignedUrls;
 import com.beat.contracts.storage.FileStoragePort;
+import com.beat.contracts.storage.ImageObjectMetadata;
+import com.beat.contracts.storage.ImagePresignedUpload;
 import com.beat.contracts.storage.PerformancePresignedUrls;
 import java.net.URL;
 import java.util.Date;
@@ -37,61 +42,79 @@ public class S3FileStorageAdapter implements FileStoragePort {
 		List<String> staffImages,
 		List<String> performanceImages
 	) {
-		Map<String, Map<String, String>> performanceMakerPresignedUrls = new HashMap<>();
+		Map<String, Map<String, ImagePresignedUpload>> performanceMakerPresignedUploads = new HashMap<>();
 
-		Map<String, String> posterUrl = new HashMap<>();
+		Map<String, ImagePresignedUpload> posterUrl = new HashMap<>();
 		String posterFilePath = generatePath("poster", posterImage);
 		URL posterPresignedUrl = amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, posterFilePath));
-		posterUrl.put(posterImage, posterPresignedUrl.toString());
-		performanceMakerPresignedUrls.put("poster", posterUrl);
+		posterUrl.put(posterImage, ImagePresignedUpload.of(posterPresignedUrl.toString(), posterFilePath));
+		performanceMakerPresignedUploads.put("poster", posterUrl);
 
-		Map<String, String> castUrls = new HashMap<>();
+		Map<String, ImagePresignedUpload> castUrls = new HashMap<>();
 		for (String castImage : castImages) {
 			String castFilePath = generatePath("cast", castImage);
 			URL castPresignedUrl = amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, castFilePath));
-			castUrls.put(castImage, castPresignedUrl.toString());
+			castUrls.put(castImage, ImagePresignedUpload.of(castPresignedUrl.toString(), castFilePath));
 		}
-		performanceMakerPresignedUrls.put("cast", castUrls);
+		performanceMakerPresignedUploads.put("cast", castUrls);
 
-		Map<String, String> staffUrls = new HashMap<>();
+		Map<String, ImagePresignedUpload> staffUrls = new HashMap<>();
 		for (String staffImage : staffImages) {
 			String staffFilePath = generatePath("staff", staffImage);
 			URL staffPresignedUrl = amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, staffFilePath));
-			staffUrls.put(staffImage, staffPresignedUrl.toString());
+			staffUrls.put(staffImage, ImagePresignedUpload.of(staffPresignedUrl.toString(), staffFilePath));
 		}
-		performanceMakerPresignedUrls.put("staff", staffUrls);
+		performanceMakerPresignedUploads.put("staff", staffUrls);
 
-		Map<String, String> performanceImageUrls = new HashMap<>();
+		Map<String, ImagePresignedUpload> performanceImageUrls = new HashMap<>();
 		for (String performanceImage : performanceImages) {
 			String performanceImageFilePath = generatePath("performance", performanceImage);
 			URL performanceImagePresignedUrl = amazonS3.generatePresignedUrl(
 				buildPresignedUrlRequest(bucket, performanceImageFilePath));
-			performanceImageUrls.put(performanceImage, performanceImagePresignedUrl.toString());
+			performanceImageUrls.put(performanceImage,
+				ImagePresignedUpload.of(performanceImagePresignedUrl.toString(), performanceImageFilePath));
 		}
-		performanceMakerPresignedUrls.put("performance", performanceImageUrls);
+		performanceMakerPresignedUploads.put("performance", performanceImageUrls);
 
-		return new PerformancePresignedUrls(performanceMakerPresignedUrls);
+		return new PerformancePresignedUrls(performanceMakerPresignedUploads);
 	}
 
 	@Override
 	public CarouselPresignedUrls issueAllPresignedUrlsForCarousel(List<String> carouselImages) {
-		Map<String, String> carouselPresignedUrls = new HashMap<>();
+		Map<String, CarouselPresignedUpload> carouselPresignedUploads = new HashMap<>();
 
 		for (String carouselImage : carouselImages) {
 			String carouselFilePath = generatePath("carousel", carouselImage);
 			URL carouselPresignedUrl = amazonS3.generatePresignedUrl(
 				buildPresignedUrlRequest(bucket, carouselFilePath));
-			carouselPresignedUrls.put(carouselImage, carouselPresignedUrl.toString());
+			carouselPresignedUploads.put(carouselImage,
+				CarouselPresignedUpload.of(carouselPresignedUrl.toString(), carouselFilePath));
 		}
 
-		return new CarouselPresignedUrls(carouselPresignedUrls);
+		return new CarouselPresignedUrls(carouselPresignedUploads);
+	}
+
+	@Override
+	public ImageObjectMetadata findImageObjectMetadata(String imageKey) {
+		if (!imageKey.startsWith(imageKeyPrefix())) {
+			return null;
+		}
+		try {
+			ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(bucket, imageKey);
+			return ImageObjectMetadata.of(objectMetadata.getContentType(), objectMetadata.getContentLength());
+		} catch (AmazonS3Exception exception) {
+			if (exception.getStatusCode() == 404) {
+				return null;
+			}
+			throw exception;
+		}
 	}
 
 	@Override
 	public BannerPresignedUrl issuePresignedUrlForBanner(String bannerImage) {
 		String bannerFilePath = generatePath("banner", bannerImage);
 		URL bannerPresignedUrl = amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, bannerFilePath));
-		return new BannerPresignedUrl(bannerPresignedUrl.toString());
+		return new BannerPresignedUrl(bannerPresignedUrl.toString(), bannerFilePath);
 	}
 
 	private GeneratePresignedUrlRequest buildPresignedUrlRequest(String bucket, String fileName) {
@@ -121,5 +144,10 @@ public class S3FileStorageAdapter implements FileStoragePort {
 			return "";
 		}
 		return keyPrefix.replaceAll("^/+", "").replaceAll("/+$", "");
+	}
+
+	private String imageKeyPrefix() {
+		String normalizedKeyPrefix = normalizeKeyPrefix();
+		return normalizedKeyPrefix.isEmpty() ? "" : normalizedKeyPrefix + "/";
 	}
 }

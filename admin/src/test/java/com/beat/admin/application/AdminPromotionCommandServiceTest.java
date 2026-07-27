@@ -37,6 +37,8 @@ import com.beat.domain.member.repository.MemberRepository;
 import com.beat.domain.performance.model.Genre;
 import com.beat.contracts.performance.PerformanceSummaryReadPort;
 import com.beat.contracts.performance.readmodel.PerformanceSummaryReadModel;
+import com.beat.contracts.storage.FileStoragePort;
+import com.beat.contracts.storage.ImageObjectMetadata;
 import com.beat.domain.performance.vo.PerformancePeriod;
 import com.beat.domain.performance.vo.RunningTime;
 import com.beat.domain.performance.vo.TicketPrice;
@@ -54,6 +56,9 @@ class AdminPromotionCommandServiceTest {
 
 	@Mock
 	private ImageCachePort imageCachePort;
+
+	@Mock
+	private FileStoragePort fileStoragePort;
 
 	@Mock
 	private MemberRepository memberRepository;
@@ -130,6 +135,10 @@ class AdminPromotionCommandServiceTest {
 		when(promotionRepository.findAll()).thenReturn(List.of(existingPromotion, omittedPromotion));
 		when(promotionRepository.findById(1L)).thenReturn(Optional.of(existingPromotion));
 		when(performanceSummaryReadPort.findById(PERFORMANCE_ID)).thenReturn(Optional.of(performance()));
+		when(fileStoragePort.findImageObjectMetadata("prod/carousel/modified-image"))
+			.thenReturn(validImage());
+		when(fileStoragePort.findImageObjectMetadata("prod/carousel/created-image"))
+			.thenReturn(validImage());
 		when(promotionRepository.save(any(Promotion.class))).thenAnswer(invocation -> {
 			Promotion savedPromotion = invocation.getArgument(0);
 			if (savedPromotion.getId() == null) {
@@ -159,6 +168,28 @@ class AdminPromotionCommandServiceTest {
 		assertEquals(1L, response.promotionResults().get(1).promotionId());
 		assertEquals("prod/carousel/modified-image", response.promotionResults().get(1).newImageUrl());
 		assertEquals("THREE", response.promotionResults().get(1).carouselNumber());
+	}
+
+	@Test
+	void processAllPromotionsRejectsMissingUploadedImageBeforeMutation() {
+		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
+		when(fileStoragePort.findImageObjectMetadata("prod/carousel/missing-image")).thenReturn(null);
+
+		CarouselHandleCommand command = CarouselHandleCommand.from(List.of(
+			PromotionGenerateCommand.of("ONE", "prod/carousel/missing-image", false, "created-url", null)
+		));
+
+		AdminApplicationException exception = assertThrows(AdminApplicationException.class,
+			() -> adminPromotionCommandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, command));
+
+		assertEquals(PromotionApplicationErrorCode.INVALID_IMAGE_UPLOAD, exception.getErrorCode());
+		verify(promotionRepository, never()).findAll();
+		verify(promotionRepository, never()).deleteByPromotionIds(any());
+		verify(promotionRepository, never()).save(any());
+	}
+
+	private static ImageObjectMetadata validImage() {
+		return ImageObjectMetadata.of("image/png", 1024L);
 	}
 
 	private static Promotion promotion(Long id, String imageUrl, Long performanceId, String redirectUrl,
