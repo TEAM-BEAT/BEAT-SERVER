@@ -4,3 +4,9 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    commit-message:
+      prefix: "build(deps)"
+    assignees:
+      - move-hoon
+      - hyerinhwang-sailin
+      - imddoy
