@@ -16,7 +16,8 @@
       "description": "Keep the Eclipse Temurin JRE Alpine runtime variant.",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["eclipse-temurin"],
-      "enabled": true
+      "enabled": true,
+      "allowedVersions": "/^25\\./"
     }
   ]
 }
