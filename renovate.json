@@ -13,11 +13,10 @@
       "enabled": false
     },
     {
-      "description": "Keep the Java 25 and Alpine 3.23 runtime compatibility contract.",
+      "description": "Keep the Eclipse Temurin JRE Alpine runtime variant.",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["eclipse-temurin"],
-      "enabled": true,
-      "versioning": "regex:^(?<major>25)\\.(?<minor>\\d+)\\.(?<patch>\\d+)_(?<build>\\d+)-jre-alpine-(?<compatibility>3\\.23)$"
+      "enabled": true
     }
   ]
 }
