@@ -73,7 +73,7 @@ public class AdminPromotionCommandService {
 
 	private void validateCarouselImageObject(String imageUrl) {
 		String imageKey = ImageKeyExtractor.extract(imageUrl);
-		ImageObjectMetadata metadata = fileStoragePort.findCarouselImageObjectMetadata(imageKey);
+		ImageObjectMetadata metadata = fileStoragePort.findImageObjectMetadata(imageKey);
 		if (metadata == null) {
 			throw new AdminApplicationException(PromotionApplicationErrorCode.INVALID_IMAGE_UPLOAD);
 		}

@@ -8,10 +8,11 @@ import com.beat.apis.performance.application.result.PerformanceMutationResult
 import com.beat.apis.performance.application.result.ScheduleResult
 import com.beat.apis.performance.application.result.StaffResult
 import com.beat.apis.performance.application.formatPerformancePeriod
-import com.beat.apis.performance.application.extractRequiredPerformanceImageKey
+import com.beat.apis.performance.application.validateStoredPerformanceImage
 import com.beat.apis.performance.application.event.PerformancePosterChangedEvent
 import com.beat.apis.performance.exception.PerformanceApplicationErrorCode
 import com.beat.apis.schedule.application.calculateDueDate
+import com.beat.contracts.storage.FileStoragePort
 import com.beat.domain.performance.model.Cast
 import com.beat.domain.member.repository.MemberRepository
 import com.beat.domain.performance.model.Performance
@@ -43,6 +44,7 @@ class PerformanceCreateCommandService(
     private val eventPublisher: ApplicationEventPublisher,
     private val scheduleSequenceDomainService: ScheduleSequenceDomainService,
     private val clock: Clock,
+    private val fileStoragePort: FileStoragePort,
 ) {
     @Transactional
     fun createPerformance(memberId: Long, command: PerformanceCreateCommand): PerformanceMutationResult {
@@ -56,18 +58,18 @@ class PerformanceCreateCommandService(
             Cast.create(
                 castCommand.name,
                 castCommand.role,
-                extractRequiredPerformanceImageKey(castCommand.photo),
+                validateStoredPerformanceImage(fileStoragePort, castCommand.photo, "cast", required = false),
             )
         }
         val staffs = command.staffs.map { staffCommand ->
             Staff.create(
                 staffCommand.name,
                 staffCommand.role,
-                extractRequiredPerformanceImageKey(staffCommand.photo),
+                validateStoredPerformanceImage(fileStoragePort, staffCommand.photo, "staff", required = false),
             )
         }
         val images = command.images.map { imageCommand ->
-            PerformanceImage.create(extractRequiredPerformanceImageKey(imageCommand.image))
+            PerformanceImage.create(validateStoredPerformanceImage(fileStoragePort, imageCommand.image, "performance"))
         }
         val performance = Performance.create(
             command.performanceTitle,
@@ -80,7 +82,7 @@ class PerformanceCreateCommandService(
                 command.accountNumber,
                 command.accountHolder,
             ),
-            extractRequiredPerformanceImageKey(command.posterImage),
+            validateStoredPerformanceImage(fileStoragePort, command.posterImage, "poster"),
             command.performanceTeamName,
             command.performanceVenue,
             command.roadAddressName,

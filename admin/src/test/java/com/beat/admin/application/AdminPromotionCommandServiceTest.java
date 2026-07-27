@@ -135,9 +135,9 @@ class AdminPromotionCommandServiceTest {
 		when(promotionRepository.findAll()).thenReturn(List.of(existingPromotion, omittedPromotion));
 		when(promotionRepository.findById(1L)).thenReturn(Optional.of(existingPromotion));
 		when(performanceSummaryReadPort.findById(PERFORMANCE_ID)).thenReturn(Optional.of(performance()));
-		when(fileStoragePort.findCarouselImageObjectMetadata("prod/carousel/modified-image"))
+		when(fileStoragePort.findImageObjectMetadata("prod/carousel/modified-image"))
 			.thenReturn(validImage());
-		when(fileStoragePort.findCarouselImageObjectMetadata("prod/carousel/created-image"))
+		when(fileStoragePort.findImageObjectMetadata("prod/carousel/created-image"))
 			.thenReturn(validImage());
 		when(promotionRepository.save(any(Promotion.class))).thenAnswer(invocation -> {
 			Promotion savedPromotion = invocation.getArgument(0);
@@ -173,7 +173,7 @@ class AdminPromotionCommandServiceTest {
 	@Test
 	void processAllPromotionsRejectsMissingUploadedImageBeforeMutation() {
 		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
-		when(fileStoragePort.findCarouselImageObjectMetadata("prod/carousel/missing-image")).thenReturn(null);
+		when(fileStoragePort.findImageObjectMetadata("prod/carousel/missing-image")).thenReturn(null);
 
 		CarouselHandleCommand command = CarouselHandleCommand.from(List.of(
 			PromotionGenerateCommand.of("ONE", "prod/carousel/missing-image", false, "created-url", null)

@@ -15,6 +15,6 @@ public final class AdminPromotionPresignedUrlResults {
 		}
 	}
 
-	public record BannerPresignedUrlResult(String bannerPresignedUrl) {
+	public record BannerPresignedUrlResult(String bannerPresignedUrl, String bannerImageKey) {
 	}
 }

@@ -14,11 +14,11 @@ class FileFacade(
         staffImages: List<String>?,
         performanceImages: List<String>?,
     ): PerformanceMakerPresignedUrlFindAllResponse = PerformanceMakerPresignedUrlFindAllResponse.from(
-        performanceMakerPresignedUrls = fileCommandService.issueAllPresignedUrlsForPerformanceMaker(
+        performanceMakerPresignedUploads = fileCommandService.issueAllPresignedUrlsForPerformanceMaker(
             posterImage,
             castImages,
             staffImages,
             performanceImages,
-        ).performanceMakerPresignedUrls,
+        ).performanceMakerPresignedUploads,
     )
 }

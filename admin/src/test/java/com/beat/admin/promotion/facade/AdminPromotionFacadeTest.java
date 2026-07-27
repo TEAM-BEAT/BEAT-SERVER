@@ -28,7 +28,7 @@ class AdminPromotionFacadeTest {
 		when(queryService.issueAllPresignedUrlsForCarousel(1L, List.of("carousel.png")))
 			.thenReturn(new CarouselPresignedUrlsResult(Map.of()));
 		when(queryService.issuePresignedUrlForBanner(1L, "banner.png"))
-			.thenReturn(new BannerPresignedUrlResult("banner-url"));
+			.thenReturn(new BannerPresignedUrlResult("banner-url", "prod/banner/banner.png"));
 		when(queryService.findAllPromotionsSortedByCarouselNumber(1L))
 			.thenReturn(new AdminPromotionResults(List.of()));
 		when(commandService.processAllPromotionsSortedByCarouselNumber(1L, CarouselHandleCommand.from(List.of())))

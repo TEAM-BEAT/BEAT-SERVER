@@ -20,6 +20,7 @@ import com.beat.apis.file.application.command.FileCommandService;
 import com.beat.apis.file.exception.FileApplicationErrorCode;
 import com.beat.contracts.storage.FileStoragePort;
 import com.beat.contracts.storage.PerformancePresignedUrls;
+import com.beat.contracts.storage.ImagePresignedUpload;
 
 @ExtendWith(MockitoExtension.class)
 class FileCommandServiceTest {
@@ -37,7 +38,8 @@ class FileCommandServiceTest {
 	@Test
 	void issueAllPresignedUrlsNormalizesNullableListsBeforeCallingStoragePort() {
 		PerformancePresignedUrls presignedUrls = new PerformancePresignedUrls(
-			Map.of("poster", Map.of("poster.png", "https://example.com/poster.png"))
+			Map.of("poster", Map.of("poster.png",
+				ImagePresignedUpload.of("https://example.com/poster.png", "dev/poster/poster.png")))
 		);
 		when(fileStoragePort.issueAllPresignedUrlsForPerformanceMaker("poster.png", List.of(), List.of(), List.of()))
 			.thenReturn(presignedUrls);

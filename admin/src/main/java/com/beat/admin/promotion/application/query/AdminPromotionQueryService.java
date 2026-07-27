@@ -43,8 +43,8 @@ public class AdminPromotionQueryService {
 
 	public BannerPresignedUrlResult issuePresignedUrlForBanner(Long memberId, String bannerImage) {
 		validateMemberExists(memberId);
-		return new BannerPresignedUrlResult(
-			fileStoragePort.issuePresignedUrlForBanner(bannerImage).getBannerPresignedUrl());
+		var upload = fileStoragePort.issuePresignedUrlForBanner(bannerImage);
+		return new BannerPresignedUrlResult(upload.getBannerPresignedUrl(), upload.getBannerImageKey());
 	}
 
 	public AdminPromotionResults findAllPromotionsSortedByCarouselNumber(Long memberId) {

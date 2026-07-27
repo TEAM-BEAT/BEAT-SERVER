@@ -29,7 +29,7 @@ class S3FileStorageAdapterTest {
 		metadata.setContentLength(1024L);
 		when(amazonS3.getObjectMetadata("bucket", "dev/carousel/image.png")).thenReturn(metadata);
 
-		ImageObjectMetadata result = adapter.findCarouselImageObjectMetadata("dev/carousel/image.png");
+		ImageObjectMetadata result = adapter.findImageObjectMetadata("dev/carousel/image.png");
 
 		assertEquals("image/png", result.getContentType());
 		assertEquals(1024L, result.getContentLength());
@@ -42,14 +42,14 @@ class S3FileStorageAdapterTest {
 		exception.setStatusCode(404);
 		when(amazonS3.getObjectMetadata("bucket", "dev/carousel/missing.png")).thenThrow(exception);
 
-		assertNull(adapter.findCarouselImageObjectMetadata("dev/carousel/missing.png"));
+		assertNull(adapter.findImageObjectMetadata("dev/carousel/missing.png"));
 	}
 
 	@Test
-	void findCarouselImageObjectMetadataRejectsOtherImageCategoriesWithoutHeadObject() {
+	void findImageObjectMetadataRejectsOtherEnvironmentsWithoutHeadObject() {
 		S3FileStorageAdapter adapter = adapter();
 
-		assertNull(adapter.findCarouselImageObjectMetadata("dev/poster/poster.png"));
+		assertNull(adapter.findImageObjectMetadata("prod/poster/poster.png"));
 
 		verifyNoInteractions(amazonS3);
 	}

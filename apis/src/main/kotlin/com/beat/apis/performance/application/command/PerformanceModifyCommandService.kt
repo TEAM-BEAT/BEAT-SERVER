@@ -8,13 +8,14 @@ import com.beat.apis.performance.application.result.PerformanceMutationResult
 import com.beat.apis.performance.application.result.ScheduleResult
 import com.beat.apis.performance.application.result.StaffResult
 import com.beat.apis.performance.application.formatPerformancePeriod
-import com.beat.apis.performance.application.extractRequiredPerformanceImageKey
+import com.beat.apis.performance.application.validateStoredPerformanceImage
 import com.beat.apis.performance.application.event.PerformancePosterChangedEvent
 import com.beat.apis.performance.exception.PerformanceApplicationErrorCode
 import com.beat.apis.performance.exception.CastApplicationErrorCode
 import com.beat.apis.performance.exception.PerformanceImageApplicationErrorCode
 import com.beat.apis.performance.exception.StaffApplicationErrorCode
 import com.beat.contracts.performance.PerformanceContentOwnershipReadPort
+import com.beat.contracts.storage.FileStoragePort
 import com.beat.domain.member.model.Member
 import com.beat.domain.member.repository.MemberRepository
 import com.beat.domain.performance.model.Cast
@@ -39,6 +40,7 @@ class PerformanceModifyCommandService internal constructor(
     private val eventPublisher: ApplicationEventPublisher,
     private val scheduleSynchronizer: ScheduleSynchronizer,
     private val contentOwnershipReadPort: PerformanceContentOwnershipReadPort,
+    private val fileStoragePort: FileStoragePort,
 ) {
 
     @Transactional
@@ -115,7 +117,7 @@ class PerformanceModifyCommandService internal constructor(
                 command.accountNumber,
                 command.accountHolder,
             ),
-            extractRequiredPerformanceImageKey(command.posterImage),
+            validateStoredPerformanceImage(fileStoragePort, command.posterImage, "poster"),
             command.performanceTeamName,
             command.performanceVenue,
             command.roadAddressName,
@@ -137,14 +139,14 @@ class PerformanceModifyCommandService internal constructor(
                 Cast.create(
                     command.name,
                     command.role,
-                    extractRequiredPerformanceImageKey(command.photo),
+                    validateStoredPerformanceImage(fileStoragePort, command.photo, "cast", required = false),
                 )
             } else {
                 val cast = existing[castId] ?: throwInvalidCast(castId)
                 cast.update(
                     command.name,
                     command.role,
-                    extractRequiredPerformanceImageKey(command.photo),
+                    validateStoredPerformanceImage(fileStoragePort, command.photo, "cast", required = false),
                 )
             }
         }
@@ -158,14 +160,14 @@ class PerformanceModifyCommandService internal constructor(
                 Staff.create(
                     command.name,
                     command.role,
-                    extractRequiredPerformanceImageKey(command.photo),
+                    validateStoredPerformanceImage(fileStoragePort, command.photo, "staff", required = false),
                 )
             } else {
                 val staff = existing[staffId] ?: throwInvalidStaff(staffId)
                 staff.update(
                     command.name,
                     command.role,
-                    extractRequiredPerformanceImageKey(command.photo),
+                    validateStoredPerformanceImage(fileStoragePort, command.photo, "staff", required = false),
                 )
             }
         }
@@ -178,7 +180,7 @@ class PerformanceModifyCommandService internal constructor(
         val existing = performance.getImages().associateBy { it.getId() }
         return commands.map { command ->
             val imageId = command.id
-            val imageKey = extractRequiredPerformanceImageKey(command.image)
+            val imageKey = validateStoredPerformanceImage(fileStoragePort, command.image, "performance")
             if (imageId == null) {
                 PerformanceImage.create(imageKey)
             } else {

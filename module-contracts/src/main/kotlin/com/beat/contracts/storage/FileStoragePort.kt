@@ -12,7 +12,7 @@ interface FileStoragePort {
 
     fun issueAllPresignedUrlsForCarousel(carouselImages: List<String>): CarouselPresignedUrls
 
-    fun findCarouselImageObjectMetadata(imageKey: String): ImageObjectMetadata?
+    fun findImageObjectMetadata(imageKey: String): ImageObjectMetadata?
 
     fun issuePresignedUrlForBanner(bannerImage: String): BannerPresignedUrl
 }
