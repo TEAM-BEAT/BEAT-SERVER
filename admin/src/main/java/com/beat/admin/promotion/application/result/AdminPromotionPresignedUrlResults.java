@@ -2,14 +2,16 @@ package com.beat.admin.promotion.application.result;
 
 import java.util.Map;
 
+import com.beat.contracts.storage.CarouselPresignedUpload;
+
 public final class AdminPromotionPresignedUrlResults {
 
 	private AdminPromotionPresignedUrlResults() {
 	}
 
-	public record CarouselPresignedUrlsResult(Map<String, String> carouselPresignedUrls) {
+	public record CarouselPresignedUrlsResult(Map<String, CarouselPresignedUpload> carouselPresignedUploads) {
 		public CarouselPresignedUrlsResult {
-			carouselPresignedUrls = Map.copyOf(carouselPresignedUrls);
+			carouselPresignedUploads = Map.copyOf(carouselPresignedUploads);
 		}
 	}
 

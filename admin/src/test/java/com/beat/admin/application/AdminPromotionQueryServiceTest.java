@@ -19,6 +19,7 @@ import com.beat.admin.promotion.application.result.AdminPromotionPresignedUrlRes
 import com.beat.admin.promotion.application.result.AdminPromotionResults;
 import com.beat.admin.promotion.application.query.AdminPromotionQueryService;
 import com.beat.contracts.storage.BannerPresignedUrl;
+import com.beat.contracts.storage.CarouselPresignedUpload;
 import com.beat.contracts.storage.CarouselPresignedUrls;
 import com.beat.contracts.storage.FileStoragePort;
 import com.beat.domain.member.model.Member;
@@ -70,7 +71,8 @@ class AdminPromotionQueryServiceTest {
 	void presignedUrlQueriesStillValidateMemberAndDelegateToStoragePort() {
 		when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member()));
 		when(fileStoragePort.issueAllPresignedUrlsForCarousel(List.of("carousel.png")))
-			.thenReturn(new CarouselPresignedUrls(Map.of("carousel.png", "carousel-url")));
+			.thenReturn(new CarouselPresignedUrls(Map.of("carousel.png",
+				new CarouselPresignedUpload("carousel-upload-url", "dev/carousel/carousel.png"))));
 		when(fileStoragePort.issuePresignedUrlForBanner("banner.png"))
 			.thenReturn(new BannerPresignedUrl("banner-url"));
 
@@ -79,7 +81,9 @@ class AdminPromotionQueryServiceTest {
 		BannerPresignedUrlResult bannerResponse =
 			adminPromotionQueryService.issuePresignedUrlForBanner(MEMBER_ID, "banner.png");
 
-		assertEquals(Map.of("carousel.png", "carousel-url"), carouselResponse.carouselPresignedUrls());
+		assertEquals(Map.of("carousel.png",
+			new CarouselPresignedUpload("carousel-upload-url", "dev/carousel/carousel.png")),
+			carouselResponse.carouselPresignedUploads());
 		assertEquals("banner-url", bannerResponse.bannerPresignedUrl());
 		verify(fileStoragePort).issueAllPresignedUrlsForCarousel(List.of("carousel.png"));
 		verify(fileStoragePort).issuePresignedUrlForBanner("banner.png");

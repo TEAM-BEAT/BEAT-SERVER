@@ -38,7 +38,7 @@ public class AdminPromotionQueryService {
 		List<String> carouselImages) {
 		validateMemberExists(memberId);
 		return new CarouselPresignedUrlsResult(
-			fileStoragePort.issueAllPresignedUrlsForCarousel(carouselImages).getCarouselPresignedUrls());
+			fileStoragePort.issueAllPresignedUrlsForCarousel(carouselImages).getCarouselPresignedUploads());
 	}
 
 	public BannerPresignedUrlResult issuePresignedUrlForBanner(Long memberId, String bannerImage) {

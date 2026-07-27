@@ -3,9 +3,13 @@ package com.beat.infra.external.storage.s3;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.beat.contracts.storage.BannerPresignedUrl;
+import com.beat.contracts.storage.CarouselPresignedUpload;
 import com.beat.contracts.storage.CarouselPresignedUrls;
 import com.beat.contracts.storage.FileStoragePort;
+import com.beat.contracts.storage.ImageObjectMetadata;
 import com.beat.contracts.storage.PerformancePresignedUrls;
 import java.net.URL;
 import java.util.Date;
@@ -75,16 +79,33 @@ public class S3FileStorageAdapter implements FileStoragePort {
 
 	@Override
 	public CarouselPresignedUrls issueAllPresignedUrlsForCarousel(List<String> carouselImages) {
-		Map<String, String> carouselPresignedUrls = new HashMap<>();
+		Map<String, CarouselPresignedUpload> carouselPresignedUploads = new HashMap<>();
 
 		for (String carouselImage : carouselImages) {
 			String carouselFilePath = generatePath("carousel", carouselImage);
 			URL carouselPresignedUrl = amazonS3.generatePresignedUrl(
 				buildPresignedUrlRequest(bucket, carouselFilePath));
-			carouselPresignedUrls.put(carouselImage, carouselPresignedUrl.toString());
+			carouselPresignedUploads.put(carouselImage,
+				new CarouselPresignedUpload(carouselPresignedUrl.toString(), carouselFilePath));
 		}
 
-		return new CarouselPresignedUrls(carouselPresignedUrls);
+		return new CarouselPresignedUrls(carouselPresignedUploads);
+	}
+
+	@Override
+	public ImageObjectMetadata findCarouselImageObjectMetadata(String imageKey) {
+		if (!imageKey.startsWith(carouselKeyPrefix())) {
+			return null;
+		}
+		try {
+			ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(bucket, imageKey);
+			return new ImageObjectMetadata(objectMetadata.getContentType(), objectMetadata.getContentLength());
+		} catch (AmazonS3Exception exception) {
+			if (exception.getStatusCode() == 404) {
+				return null;
+			}
+			throw exception;
+		}
 	}
 
 	@Override
@@ -121,5 +142,10 @@ public class S3FileStorageAdapter implements FileStoragePort {
 			return "";
 		}
 		return keyPrefix.replaceAll("^/+", "").replaceAll("/+$", "");
+	}
+
+	private String carouselKeyPrefix() {
+		String normalizedKeyPrefix = normalizeKeyPrefix();
+		return normalizedKeyPrefix.isEmpty() ? "carousel/" : normalizedKeyPrefix + "/carousel/";
 	}
 }
