@@ -10,3 +10,8 @@ updates:
       - move-hoon
       - hyerinhwang-sailin
       - imddoy
+    # Java runtime major upgrades require a coordinated JDK migration.
+    ignore:
+      - dependency-name: eclipse-temurin
+        versions:
+          - ">= 26"
