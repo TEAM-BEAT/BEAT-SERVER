@@ -198,11 +198,11 @@ class SharedBoundaryContractTest {
 	@Test
 	void authRedisAdaptersAreOwnedByInfraAndPreserveStoredTypeCompatibility() throws Exception {
 		String authRedisConfig = Files.readString(
-			Path.of("infra/src/main/java/com/beat/infra/config/AuthRedisConfig.java"));
+			Path.of("infra/src/main/java/com/beat/infra/redis/auth/AuthRedisConfig.java"));
 		String refreshToken = Files.readString(
-			Path.of("infra/src/main/kotlin/com/beat/infra/auth/redis/refreshtoken/RefreshTokenRedisHash.kt"));
+			Path.of("infra/src/main/kotlin/com/beat/infra/redis/auth/refreshtoken/RefreshTokenRedisHash.kt"));
 		String guestSession = Files.readString(
-			Path.of("infra/src/main/kotlin/com/beat/infra/auth/redis/guest/GuestSessionRedisHash.kt"));
+			Path.of("infra/src/main/kotlin/com/beat/infra/redis/auth/guest/GuestSessionRedisHash.kt"));
 		String gatewayBuild = Files.readString(Path.of("gateway/build.gradle.kts"));
 		String infraBuild = Files.readString(Path.of("infra/build.gradle.kts"));
 
@@ -239,10 +239,10 @@ class SharedBoundaryContractTest {
 
 		List<String> topLevelConfigSources = List.of(
 			"infra/src/main/java/com/beat/infra/config/AsyncConfig.java",
-			"infra/src/main/java/com/beat/infra/config/AuthRedisConfig.java",
 			"infra/src/main/java/com/beat/infra/config/ExternalClientConfig.java",
 			"infra/src/main/java/com/beat/infra/config/JpaConfig.java",
-			"infra/src/main/java/com/beat/infra/config/RedisCacheConfig.java"
+			"infra/src/main/java/com/beat/infra/config/RedisCacheConfig.java",
+			"infra/src/main/java/com/beat/infra/redis/auth/AuthRedisConfig.java"
 		);
 		List<String> supportConfigSources = List.of(
 			"infra/src/main/java/com/beat/infra/config/TaskExecutorConfig.java",

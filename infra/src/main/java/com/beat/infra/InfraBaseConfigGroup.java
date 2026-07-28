@@ -1,10 +1,10 @@
 package com.beat.infra;
 
 import com.beat.infra.config.AsyncConfig;
-import com.beat.infra.config.AuthRedisConfig;
 import com.beat.infra.config.ExternalClientConfig;
 import com.beat.infra.config.JpaConfig;
 import com.beat.infra.config.RedisCacheConfig;
+import com.beat.infra.redis.auth.AuthRedisConfig;
 
 /**
  * Selectable top-level infra slices for {@link EnableInfraBaseConfig}.

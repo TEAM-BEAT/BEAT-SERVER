@@ -283,7 +283,7 @@ flowchart LR
 ### AUTH_REDIS
 
 `InfraBaseConfigGroup.AUTH_REDIS`는 `RefreshTokenPort`, `GuestSessionPort`, `GuestAccessThrottlePort`의 Redis adapter를 활성화합니다.
-Redis hash, Spring Data repository는 `infra.auth.redis`에 두고 Lua throttle script는 infra classpath resource로 관리합니다. 실행 모듈에는 `module-contracts` port만 노출합니다.
+Redis hash, Spring Data repository는 `infra.redis.auth`에 두고 Lua throttle script는 infra classpath resource로 관리합니다. 실행 모듈에는 `module-contracts` port만 노출합니다.
 기존 운영 hash의 `_class`에는 gateway 시절 FQCN이 저장되어 있으므로 `@TypeAlias`로 그 값을 유지합니다. keyspace, property path, TTL과 secondary index도 변경하지 않습니다.
 
 ---
@@ -352,15 +352,16 @@ infra/
     InfraBaseConfigImportSelector.java            # DeferredImportSelector — enum → config class 매핑
     config/
       AsyncConfig.java                            # ASYNC group owner, @Import(TaskExecutorConfig)
-      AuthRedisConfig.java                        # AUTH_REDIS group owner, auth Redis repository/adapter 등록
       ExternalClientConfig.java                   # EXTERNAL_CLIENTS group owner, @Import(S3InfraConfig)
       JpaConfig.java                              # JPA group owner, @Import(InfraPersistenceConfig)
       RedisCacheConfig.java                       # REDIS_CACHE group owner (dormant)
       TaskExecutorConfig.java                     # support config; beatApplicationTaskExecutor 빈
       MysqlCustomDialect.java                     # support config
       ThreadPoolProperties.java                   # support config
+    redis/auth/
+      AuthRedisConfig.java                        # AUTH_REDIS group owner, auth Redis repository/adapter 등록
   src/main/kotlin/com/beat/infra/
-    auth/redis/
+    redis/auth/
       refreshtoken/
         RedisRefreshTokenAdapter.kt               # implements RefreshTokenPort
         RefreshTokenRedisHash.kt                  # @RedisHash, legacy @TypeAlias
@@ -372,7 +373,7 @@ infra/
         GuestSessionRedisRepository.kt
         Sha256Hasher.kt
     external/
-      auth/social/kakao/
+      social/kakao/
         KakaoSocialLoginAdapter.java              # implements SocialLoginPort
         client/
           KakaoApiClient.java                     # @FeignClient
@@ -393,7 +394,7 @@ infra/
           block/  Block.java DividerBlock.java HeaderBlock.java SectionBlock.java
           message/ SlackMessage.java
           text/   MarkdownText.java PlainText.java Text.java
-      sms/
+      notification/sms/
         CoolSmsAdapter.java                       # implements SmsPort
       storage/s3/
         S3FileStorageAdapter.java                 # implements FileStoragePort

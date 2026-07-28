@@ -27,7 +27,7 @@ base package = API, 하위 package = internal)을 모듈 내부에 적용한 형
 - **G3 · Internal 경계 단일 규칙** — 각 capability 구현은 예외 없이 `<capability>.internal` 아래에 둡니다. 실행
   모듈은 물론 다른 capability도 이를 직접 import하지 않습니다.
 - **G4 · Config 동거** — capability를 구성하는 `@Configuration`은 그 capability의
-  `internal.config`에 둡니다. Redis 저장 구현은 `infra.auth.redis`가 소유합니다.
+  `internal.config`에 둡니다. Redis 저장 구현은 `infra.redis.auth`가 소유합니다.
 - **G5 · Bootstrap 공유만 예외** — optional capability selector인 `GatewayConfigImportSelector`만
   `gateway.shared.internal`에 둡니다. 이것이 유일하게 허용되는 non-capability
   패키지입니다.
@@ -63,7 +63,7 @@ com.beat.gateway
 | --- | --- |
 | JWT 발급/검증 구현 | `gateway.jwt.internal` |
 | 인증 필터, 인가 핸들러, principal resolver | `gateway.authentication.internal` |
-| Refresh token/guest session/throttle Redis adapter | `infra.auth.redis` |
+| Refresh token/guest session/throttle Redis adapter | `infra.redis.auth` |
 | Guest 비밀번호 해시 primitive | `gateway.guest.internal` |
 | Optional gateway import selector | `gateway.shared.internal` |
 | JWT/refresh token/guest 계약 정의 | `com.beat.contracts.auth` (`module-contracts`) |
@@ -191,9 +191,9 @@ JWT/refresh token 계약은 `gateway`가 아니라 `module-contracts`에서 주�
 | 계약 | 위치 | 구현체 |
 | --- | --- | --- |
 | `JwtTokenPort` | `com.beat.contracts.auth` | `gateway.jwt.internal.JwtTokenProvider` |
-| `RefreshTokenPort` | `com.beat.contracts.auth` | `infra.auth.redis.refreshtoken.RedisRefreshTokenAdapter` |
-| `GuestSessionPort` | `com.beat.contracts.auth.guest` | `infra.auth.redis.guest.RedisGuestSessionAdapter` |
-| `GuestAccessThrottlePort` | `com.beat.contracts.auth.guest` | `infra.auth.redis.guest.RedisGuestAccessThrottleAdapter` |
+| `RefreshTokenPort` | `com.beat.contracts.auth` | `infra.redis.auth.refreshtoken.RedisRefreshTokenAdapter` |
+| `GuestSessionPort` | `com.beat.contracts.auth.guest` | `infra.redis.auth.guest.RedisGuestSessionAdapter` |
+| `GuestAccessThrottlePort` | `com.beat.contracts.auth.guest` | `infra.redis.auth.guest.RedisGuestAccessThrottleAdapter` |
 
 ---
 
