@@ -11,6 +11,7 @@ dependencies {
     runtimeOnly(libs.jjwt.impl)
     runtimeOnly(libs.jjwt.jackson)
     implementation(libs.spring.boot.starter.data.redis)
+    implementation(libs.spring.boot.starter.validation)
     compileOnly(libs.springdoc.openapi.starter.webmvc.ui)
     compileOnly(libs.spring.boot.starter.security)
     compileOnly(libs.spring.boot.starter.web)

@@ -278,37 +278,48 @@ sequenceDiagram
 
 ```text
 gateway/
-  src/main/java/com/beat/gateway/
-    EnableGatewayConfig.java              # 공개: optional group 선택 annotation
-    GatewayConfigGroup.java               # 공개: optional REFRESH_TOKEN_STORE group enum
-    GatewayConfigImportSelector.java      # DeferredImportSelector — optional group → internal config
-    security/servlet/
-      EnableGatewayServletSecurity.java   # 공개: servlet security static bootstrap annotation
-      CurrentMember.java                  # 공개: controller 파라미터 annotation
-    internal/config/
-      ServletSecurityConfig.java   # servlet security static bootstrap entrypoint
-      JwtConfig.java               # JwtTokenProvider import
-      SecurityFilterConfig.java   # JWT 필터 / 핸들러 / MDC filter bean + 자동 등록 방지
-      WebMvcConfig.java            # ArgumentResolver 등록
-      RefreshTokenConfig.java      # REFRESH_TOKEN_STORE group entrypoint
-      RedisConfig.java             # @EnableRedisRepositories
-    jwt/internal/
-      JwtTokenProvider.java               # implements JwtTokenPort
-      RefreshTokenService.java            # implements RefreshTokenPort
-      store/
-        RefreshToken.java                 # @RedisHash document
-        RefreshTokenRepository.java       # Spring Data Redis repository
-    security/internal/servlet/
-      JwtAuthenticationFilter.java        # OncePerRequestFilter
-      SecurityMdcLoggingFilter.java       # observability BaseMdcLoggingFilter 확장
-      CurrentMemberArgumentResolver.java  # @CurrentMember → memberId 변환
-      MemberAuthentication.java           # ROLE_MEMBER 인증 토큰
-      AdminAuthentication.java            # ROLE_ADMIN 인증 토큰
-      CustomAccessDeniedHandler.java      # 403 처리
-      CustomJwtAuthenticationEntryPoint.java  # 401 처리
-
   src/main/kotlin/com/beat/gateway/
-    # (Kotlin 변환 진행 예정)
+    EnableGatewayConfig.kt                # 공개: optional group 선택 annotation
+    EnableGatewayServletSecurity.kt        # 공개: servlet security static bootstrap annotation
+    GatewayConfigGroup.kt                  # 공개: optional REFRESH_TOKEN_STORE / GUEST_ACCESS group enum
+    CurrentMember.kt                       # 공개: controller 파라미터 annotation
+    jwt/internal/
+      JwtTokenProvider.kt                  # implements JwtTokenPort
+      JwtProperties.kt                     # @ConfigurationProperties(prefix = "jwt")
+      config/
+        JwtConfig.kt                       # JwtTokenProvider bean 등록
+    refreshtoken/internal/
+      RefreshTokenService.kt               # implements RefreshTokenPort
+      store/
+        RefreshToken.kt                    # @RedisHash document
+        RefreshTokenRepository.kt          # Spring Data Redis repository
+      config/
+        RefreshTokenConfig.kt              # REFRESH_TOKEN_STORE group entrypoint
+    guest/internal/
+      GuestSessionService.kt               # implements GuestSessionPort
+      GuestAccessThrottleService.kt        # implements GuestAccessThrottlePort (Redis Lua script)
+      GuestPasswordHashService.kt          # implements GuestPasswordHashPort (BCrypt)
+      store/
+        GuestSession.kt                    # @RedisHash document
+        GuestSessionRepository.kt          # Spring Data Redis repository
+      config/
+        GuestAccessConfig.kt               # GUEST_ACCESS group entrypoint
+    authentication/internal/
+      JwtAuthenticationFilter.kt           # OncePerRequestFilter
+      SecurityMdcLoggingFilter.kt          # observability BaseMdcLoggingFilter 확장
+      CurrentMemberArgumentResolver.kt     # @CurrentMember → memberId 변환
+      MemberAuthentication.kt              # ROLE_MEMBER 인증 토큰
+      AdminAuthentication.kt               # ROLE_ADMIN 인증 토큰
+      CustomAccessDeniedHandler.kt         # 403 처리
+      CustomJwtAuthenticationEntryPoint.kt # 401 처리
+      config/
+        ServletSecurityConfig.kt           # servlet security static bootstrap entrypoint
+        SecurityFilterConfig.kt            # JWT 필터 / 핸들러 / MDC filter bean + 자동 등록 방지
+        WebMvcConfig.kt                    # ArgumentResolver 등록
+    shared/internal/
+      GatewayConfigImportSelector.kt       # DeferredImportSelector — optional group → internal config
+      config/
+        RedisConfig.kt                     # @EnableRedisRepositories
 
   src/main/resources/
     application-jwt.yml                   # JWT secret / expire time property
@@ -316,11 +327,11 @@ gateway/
 
 ### 패키지 경계 규칙
 
-- `security/servlet/` — 실행 모듈이 import하는 공개 annotation만 둡니다.
-- `security/internal/servlet/` — 필터, 핸들러, resolver 구현체. 실행 모듈이 직접 import 금지.
-- `jwt/internal/` — JWT 구현체, refresh token service. 실행 모듈이 직접 import 금지.
-- `jwt/internal/store/` — Redis document, Spring Data repository. 실행 모듈이 직접 import 금지.
-- `internal/config/` — group entrypoint config. 실행 모듈이 직접 import 금지.
+- `(root)` — 실행 모듈이 import하는 공개 annotation/enum만 둡니다 (G1).
+- `<capability>.internal` — 각 capability 구현체. 실행 모듈은 물론 다른 capability도 직접 import 금지 (G3).
+- `<capability>.internal.store` — Redis document, Spring Data repository (G4).
+- `<capability>.internal.config` — 그 capability를 구성하는 `@Configuration` (G4).
+- `shared.internal` — 여러 capability가 공유하는 순수 기술 설정만 예외적으로 허용 (G5).
 
 ---
 
