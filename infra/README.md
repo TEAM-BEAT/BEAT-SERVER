@@ -113,7 +113,7 @@ flowchart TB
         RedisCacheConfig["RedisCacheConfig<br/>Redis Cache 대표 설정<br/>현재 미활성<br/>shared cache 설계 확정 후 활성화"]
     end
 
-    subgraph AUTH_REDIS_GROUP["AUTH_REDIS group"]
+    subgraph AUTH_REDIS_CONFIG["APIs explicit import"]
         AuthRedisConfig["AuthRedisConfig<br/>auth Redis repository 활성화"]
         AuthRedisAdapters["Refresh token · guest session · throttle adapters"]
         AuthRedisConfig --> AuthRedisAdapters
@@ -122,8 +122,8 @@ flowchart TB
     Selector --> JpaConfig
     Selector --> AsyncConfig
     Selector --> ExternalClientConfig
-    Selector --> AuthRedisConfig
     Selector --> RedisCacheConfig
+    ApisInfraConfig["apis InfraConfig"] --> AuthRedisConfig
 ```
 
 
@@ -138,16 +138,16 @@ flowchart TB
 
 ### 실행 모듈별 group 선택
 
-| 모듈      | JPA | AUTH_REDIS | ASYNC | EXTERNAL_CLIENTS | REDIS_CACHE | 이유 |
-|---------|-----|------------|-------|------------------|-------------|------|
-| `apis`  | ✅   | ✅          | ✅     | ✅                | ❌           | 사용자 API + 인증 상태 저장 + 비동기 알림 + 외부 연동 |
-| `admin` | ✅   | ❌          | ❌     | ✅                | ❌           | 관리자 JWT 인증은 gateway만 사용 |
-| `batch` | ✅   | ❌          | ✅     | ❌                | ❌           | 스케줄/배치 + 비동기 |
+| 모듈      | JPA | AuthRedisConfig | ASYNC | EXTERNAL_CLIENTS | REDIS_CACHE | 이유 |
+|---------|-----|-----------------|-------|------------------|-------------|------|
+| `apis`  | ✅   | 직접 import       | ✅     | ✅                | ❌           | 사용자 API + 인증 상태 저장 + 비동기 알림 + 외부 연동 |
+| `admin` | ✅   | ❌               | ❌     | ✅                | ❌           | 관리자 JWT 인증은 gateway만 사용 |
+| `batch` | ✅   | ❌               | ✅     | ❌                | ❌           | 스케줄/배치 + 비동기 |
 
 ```kotlin
 // apis/config/InfraConfig.kt
-@EnableInfraBaseConfig(value = [JPA, AUTH_REDIS, ASYNC, EXTERNAL_CLIENTS])
-@Import(InfraPersistenceConfig::class)
+@EnableInfraBaseConfig(value = [JPA, ASYNC, EXTERNAL_CLIENTS])
+@Import(InfraPersistenceConfig::class, AuthRedisConfig::class)
 class InfraConfig
 
 // admin/config/InfraConfig.kt
@@ -163,8 +163,8 @@ class InfraConfig
 
 ### Support config 규칙
 
-top-level group config(`AsyncConfig`, `AuthRedisConfig`, `ExternalClientConfig`, `JpaConfig`, `RedisCacheConfig`)만 `InfraBaseConfig`를
-구현합니다.
+top-level group config(`AsyncConfig`, `ExternalClientConfig`, `JpaConfig`, `RedisCacheConfig`)만 `InfraBaseConfig`를 구현합니다.
+`AuthRedisConfig`는 APIs composition root가 직접 import하는 독립 config이므로 marker를 구현하지 않습니다.
 그 아래에서 `@Import`로 전이 로드되는 support config(`TaskExecutorConfig`, `ThreadPoolProperties`, `InfraPersistenceConfig`,
 `S3InfraConfig`)는
 `InfraBaseConfig`를 구현하지 않습니다. 실행 모듈은 support config를 직접 import하지 않는 것이 원칙이나, `InfraPersistenceConfig`는 IDE
@@ -200,8 +200,9 @@ flowchart TB
 | 공개 타입                    | 위치                           | 용도                                                                |
 |--------------------------|------------------------------|-------------------------------------------------------------------|
 | `@EnableInfraBaseConfig` | `com.beat.infra`             | group 선택 annotation                                               |
-| `InfraBaseConfigGroup`   | `com.beat.infra`             | JPA / AUTH_REDIS / ASYNC / EXTERNAL_CLIENTS / REDIS_CACHE enum    |
+| `InfraBaseConfigGroup`   | `com.beat.infra`             | JPA / ASYNC / EXTERNAL_CLIENTS / REDIS_CACHE enum                 |
 | `InfraPersistenceConfig` | `com.beat.infra.persistence` | IDE static-analysis breadcrumb (IDE only, runtime은 JpaConfig가 보장) |
+| `AuthRedisConfig`        | `com.beat.infra.redis.auth`  | APIs composition root가 명시적으로 선택하는 인증 Redis 설정          |
 
 `infra.external.*`, `infra.persistence.*` 구현 패키지를 실행 모듈이 직접 import하면 안 됩니다.
 외부 어댑터 주입은 `module-contracts` port interface를 통해서만 받습니다.
@@ -278,11 +279,12 @@ flowchart LR
 `InfraBaseConfigGroup.REDIS_CACHE`는 shared cache가 필요해질 때를 위한 확장 점입니다.
 `RedisCacheConfig`는 `@Bean`, `@EnableCaching`, `CacheManager`를 포함하지 않은 상태로 유지합니다.
 활성화 전에 cache name, TTL, serializer, namespace, invalidation policy, owner module, runtime opt-in을 먼저 정해야 합니다.
-`AUTH_REDIS`의 인증 상태 저장소와 `REDIS_CACHE`의 shared cache 정책은 별도 경계입니다.
+인증 상태 저장소와 `REDIS_CACHE`의 shared cache 정책은 별도 경계입니다.
 
-### AUTH_REDIS
+### AuthRedisConfig
 
-`InfraBaseConfigGroup.AUTH_REDIS`는 `RefreshTokenPort`, `GuestSessionPort`, `GuestAccessThrottlePort`의 Redis adapter를 활성화합니다.
+APIs의 composition root가 `AuthRedisConfig`를 직접 import해 `RefreshTokenPort`, `GuestSessionPort`, `GuestAccessThrottlePort`의 Redis adapter를 활성화합니다.
+Redis starter runtime dependency도 APIs만 소유하므로 Admin과 Batch에는 Redis auto-configuration이 유입되지 않습니다.
 Redis hash, Spring Data repository는 `infra.redis.auth`에 두고 Lua throttle script는 infra classpath resource로 관리합니다. 실행 모듈에는 `module-contracts` port만 노출합니다.
 기존 운영 hash의 `_class`에는 gateway 시절 FQCN이 저장되어 있으므로 `@TypeAlias`로 그 값을 유지합니다. keyspace, property path, TTL과 secondary index도 변경하지 않습니다.
 
@@ -348,7 +350,7 @@ infra/
   src/main/java/com/beat/infra/
     EnableInfraBaseConfig.java                    # 공개: group 선택 annotation
     InfraBaseConfig.java                          # 공개: top-level group marker interface
-    InfraBaseConfigGroup.java                     # 공개: JPA / AUTH_REDIS / ASYNC / EXTERNAL_CLIENTS / REDIS_CACHE
+    InfraBaseConfigGroup.java                     # 공개: JPA / ASYNC / EXTERNAL_CLIENTS / REDIS_CACHE
     InfraBaseConfigImportSelector.java            # DeferredImportSelector — enum → config class 매핑
     config/
       AsyncConfig.java                            # ASYNC group owner, @Import(TaskExecutorConfig)
@@ -359,7 +361,7 @@ infra/
       MysqlCustomDialect.java                     # support config
       ThreadPoolProperties.java                   # support config
     redis/auth/
-      AuthRedisConfig.java                        # AUTH_REDIS group owner, auth Redis repository/adapter 등록
+      AuthRedisConfig.java                        # APIs가 직접 import하는 auth Redis repository/adapter 설정
   src/main/kotlin/com/beat/infra/
     redis/auth/
       refreshtoken/

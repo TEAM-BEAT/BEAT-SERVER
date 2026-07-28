@@ -19,8 +19,10 @@ class RefreshTokenRepositoryIntegrationTest extends AbstractIntegrationTest {
 	private static final Long MEMBER_ID = 1L;
 	private static final String REFRESH_TOKEN = "refresh-token";
 	private static final String LEGACY_TYPE = "com.beat.gateway.refreshtoken.internal.store.RefreshToken";
+	private static final String REDIS_KEYSPACE_KEY = "refreshToken";
 	private static final String REDIS_KEY = "refreshToken:" + MEMBER_ID;
 	private static final String REDIS_INDEX_KEY = "refreshToken:refreshToken:" + REFRESH_TOKEN;
+	private static final String REDIS_INDEX_METADATA_KEY = REDIS_KEY + ":idx";
 
 	@Autowired
 	private RefreshTokenPort refreshTokenPort;
@@ -32,7 +34,9 @@ class RefreshTokenRepositoryIntegrationTest extends AbstractIntegrationTest {
 	void tearDown() {
 		refreshTokenPort.deleteRefreshToken(MEMBER_ID);
 		redisTemplate.delete(REDIS_KEY);
+		redisTemplate.delete(REDIS_KEYSPACE_KEY);
 		redisTemplate.delete(REDIS_INDEX_KEY);
+		redisTemplate.delete(REDIS_INDEX_METADATA_KEY);
 	}
 
 	@Test
@@ -56,7 +60,9 @@ class RefreshTokenRepositoryIntegrationTest extends AbstractIntegrationTest {
 			"id", MEMBER_ID.toString(),
 			"refreshToken", REFRESH_TOKEN
 		));
-		redisTemplate.opsForSet().add(REDIS_INDEX_KEY, REDIS_KEY);
+		redisTemplate.opsForSet().add(REDIS_KEYSPACE_KEY, MEMBER_ID.toString());
+		redisTemplate.opsForSet().add(REDIS_INDEX_KEY, MEMBER_ID.toString());
+		redisTemplate.opsForSet().add(REDIS_INDEX_METADATA_KEY, REDIS_INDEX_KEY);
 
 		assertEquals(MEMBER_ID, refreshTokenPort.findMemberIdByRefreshToken(REFRESH_TOKEN).orElseThrow());
 		assertTrue(refreshTokenPort.deleteRefreshToken(MEMBER_ID));

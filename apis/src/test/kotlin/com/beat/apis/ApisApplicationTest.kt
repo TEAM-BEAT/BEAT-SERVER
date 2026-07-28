@@ -11,6 +11,7 @@ import com.beat.gateway.EnableGatewayConfig
 import com.beat.gateway.GatewayConfigGroup
 import com.beat.gateway.EnableGatewayServletSecurity
 import com.beat.infra.InfraBaseConfigGroup
+import com.beat.infra.redis.auth.AuthRedisConfig
 import com.beat.observability.ObservabilityModuleConfig
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -77,11 +78,11 @@ class ApisApplicationTest {
     }
 
     @Test
-    fun `AUTH_REDIS group이 gateway refresh token requirement를 충족한다`() {
+    fun `auth Redis config가 gateway refresh token requirement를 충족한다`() {
         ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(DataRedisAutoConfiguration::class.java))
             .withUserConfiguration(
-                InfraBaseConfigGroup.AUTH_REDIS.configClass,
+                AuthRedisConfig::class.java,
                 GatewayConfigGroup.REFRESH_TOKEN_STORE.configClass,
             )
             .run { context ->
@@ -147,7 +148,8 @@ class ApisApplicationTest {
         val configSource = Files.readString(Path.of("src/main/kotlin/com/beat/apis/config/InfraConfig.kt"))
 
         assertTrue(configSource.contains("InfraBaseConfigGroup.JPA"))
-        assertTrue(configSource.contains("InfraBaseConfigGroup.AUTH_REDIS"))
+        assertFalse(configSource.contains("InfraBaseConfigGroup.AUTH_REDIS"))
+        assertTrue(configSource.contains("AuthRedisConfig::class"))
         assertFalse(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
         assertFalse(configSource.contains("InfraBaseConfigGroup.REDIS"))
         assertTrue(configSource.contains("InfraBaseConfigGroup.ASYNC"))

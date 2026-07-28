@@ -9,7 +9,7 @@ dependencies {
     implementation(project(":module-contracts"))
     implementation(project(":domain"))
     implementation(project(":global-support"))
-    implementation(libs.spring.boot.starter.data.redis)
+    compileOnly(libs.spring.boot.starter.data.redis)
     implementation(libs.aws.java.sdk.s3)
     implementation(libs.kotlin.jdsl.jpql.dsl)
     implementation(libs.kotlin.jdsl.jpql.render)
@@ -25,6 +25,7 @@ dependencies {
     annotationProcessor(libs.lombok)
 
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.spring.boot.starter.data.redis)
     testImplementation(platform(libs.spring.cloud.dependencies))
     testImplementation(libs.spring.cloud.starter.openfeign)
     testRuntimeOnly(libs.junit.platform.launcher)

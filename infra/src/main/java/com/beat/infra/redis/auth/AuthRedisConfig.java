@@ -7,7 +7,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
 
-import com.beat.infra.InfraBaseConfig;
 import com.beat.infra.redis.auth.guest.GuestSessionRedisRepository;
 import com.beat.infra.redis.auth.guest.RedisGuestAccessThrottleAdapter;
 import com.beat.infra.redis.auth.guest.RedisGuestSessionAdapter;
@@ -24,7 +23,7 @@ import com.beat.infra.redis.auth.refreshtoken.RefreshTokenRedisRepository;
 	RedisGuestSessionAdapter.class,
 	RedisGuestAccessThrottleAdapter.class
 })
-public class AuthRedisConfig implements InfraBaseConfig {
+public class AuthRedisConfig {
 
 	@Bean
 	public RedisScript<Long> recordGuestAccessFailureScript() {

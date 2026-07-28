@@ -17,6 +17,7 @@ dependencies {
     implementation(project(":infra"))
     implementation(project(":global-support"))
     implementation(project(":observability"))
+    runtimeOnly(libs.spring.boot.starter.data.redis)
 
     testImplementation(libs.bundles.integration.testcontainers)
     testImplementation(libs.spring.boot.starter.data.redis)

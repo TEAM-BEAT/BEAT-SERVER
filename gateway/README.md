@@ -103,7 +103,7 @@ flowchart TB
 
 | Layer | 책임 | 금지 |
 | --- | --- | --- |
-| 실행 모듈 | `@EnableGatewayServletSecurity`와 optional gateway primitive 선택, `@EnableInfraBaseConfig(AUTH_REDIS)`로 Redis adapter 선택, route/role 정책 소유 | gateway/infra internal 직접 import |
+| 실행 모듈 | `@EnableGatewayServletSecurity`와 optional gateway primitive 선택, APIs에서 `AuthRedisConfig`로 Redis adapter 조립, route/role 정책 소유 | gateway/infra internal 직접 import |
 | gateway 공개 표면 | 선택 가능한 config group, `@CurrentMember` annotation | 내부 구현 노출 |
 | module-contracts | JWT/refresh token 계약 정의 | 실행 모듈 DTO, domain model 포함 |
 | gateway 내부 구현 | JWT 구현, 인증 필터, guest 비밀번호 해시 | 비즈니스 정책, repository, Redis adapter |
@@ -151,7 +151,7 @@ flowchart TB
 
 ### 실행 모듈별 선택
 
-| 모듈 | Servlet security bootstrap | Gateway optional group | Infra `AUTH_REDIS` | 이유 |
+| 모듈 | Servlet security bootstrap | Gateway optional group | `AuthRedisConfig` | 이유 |
 | --- | --- | --- | --- | --- |
 | `apis` | `@EnableGatewayServletSecurity` | `REFRESH_TOKEN_STORE`, `GUEST_ACCESS` | ✅ | 사용자/guest 인증 + refresh token 저장 |
 | `admin` | `@EnableGatewayServletSecurity` | ❌ | ❌ | 관리자 JWT 인증만 |
@@ -279,7 +279,7 @@ sequenceDiagram
 - 기존 운영 hash의 `_class` 호환을 위해 gateway 시절 FQCN을 `@TypeAlias`로 유지합니다.
 - 조회 실패와 삭제 실패는 port의 값(`OptionalLong.empty`, `false`)으로 반환하고, application service가 기존 client 오류 계약으로 변환합니다.
 - TTL은 14일 (1,209,600초)로 고정됩니다.
-- `admin`은 infra `AUTH_REDIS` group을 선택하지 않으므로 Redis adapter bean이 올라오지 않습니다.
+- `admin`은 `AuthRedisConfig`를 import하지 않고 Redis runtime dependency도 없으므로 Redis adapter와 auto-configuration이 올라오지 않습니다.
 
 ---
 
@@ -358,8 +358,8 @@ observability           # BaseMdcLoggingFilter 확장
 ### `ApisApplicationTest` / `AdminApplicationTest`
 
 - 모듈 import 집합 고정 (`GatewayConfig`, `InfraConfig`, `ObservabilityModuleConfig`)
-- `apis`가 `@EnableGatewayServletSecurity + REFRESH_TOKEN_STORE + GUEST_ACCESS`를 선택하고 infra `AUTH_REDIS`를 함께 제공하는지 확인
-- `admin`이 optional gateway group과 infra `AUTH_REDIS`를 가져가지 않는지 확인
+- `apis`가 `@EnableGatewayServletSecurity + REFRESH_TOKEN_STORE + GUEST_ACCESS`를 선택하고 `AuthRedisConfig`를 함께 제공하는지 확인
+- `admin`이 optional gateway group과 Redis runtime/config를 가져가지 않는지 확인
 
 ### `ApisArchitectureGuardTest` / `AdminArchitectureGuardTest`
 

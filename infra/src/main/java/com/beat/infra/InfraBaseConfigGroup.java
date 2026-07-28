@@ -4,7 +4,6 @@ import com.beat.infra.config.AsyncConfig;
 import com.beat.infra.config.ExternalClientConfig;
 import com.beat.infra.config.JpaConfig;
 import com.beat.infra.config.RedisCacheConfig;
-import com.beat.infra.redis.auth.AuthRedisConfig;
 
 /**
  * Selectable top-level infra slices for {@link EnableInfraBaseConfig}.
@@ -18,8 +17,7 @@ public enum InfraBaseConfigGroup {
 	ASYNC(AsyncConfig.class),
 	EXTERNAL_CLIENTS(ExternalClientConfig.class),
 	JPA(JpaConfig.class),
-	REDIS_CACHE(RedisCacheConfig.class),
-	AUTH_REDIS(AuthRedisConfig.class);
+	REDIS_CACHE(RedisCacheConfig.class);
 
 	private final Class<? extends InfraBaseConfig> configClass;
 
