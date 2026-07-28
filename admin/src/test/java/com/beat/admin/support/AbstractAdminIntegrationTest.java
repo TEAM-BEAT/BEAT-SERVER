@@ -7,7 +7,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.MySQLContainer;
 
 import com.beat.admin.AdminApplication;
-import com.redis.testcontainers.RedisContainer;
 
 @SpringBootTest(classes = AdminApplication.class)
 @ActiveProfiles("test")
@@ -19,12 +18,7 @@ public abstract class AbstractAdminIntegrationTest {
 		.withDatabaseName("beat_admin_test")
 		.withCommand("--default-time-zone=+09:00");
 
-	@ServiceConnection
-	static RedisContainer redis =
-		new RedisContainer(RedisContainer.DEFAULT_IMAGE_NAME.withTag(RedisContainer.DEFAULT_TAG));
-
 	static {
 		mysql.start();
-		redis.start();
 	}
 }

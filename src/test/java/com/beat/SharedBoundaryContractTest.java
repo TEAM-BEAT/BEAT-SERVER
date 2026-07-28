@@ -196,19 +196,47 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
-	void redisWiringLeavesOnlyRefreshTokenRepositoryContractInGateway() throws Exception {
-		String gatewayRedisConfig = Files.readString(
-			Path.of("gateway/src/main/java/com/beat/gateway/shared/internal/config/RedisConfig.java"));
+	void authRedisAdaptersAreOwnedByInfraAndPreserveStoredTypeCompatibility() throws Exception {
+		String authRedisConfig = Files.readString(
+			Path.of("infra/src/main/java/com/beat/infra/redis/auth/AuthRedisConfig.java"));
 		String refreshToken = Files.readString(
-			Path.of("gateway/src/main/java/com/beat/gateway/refreshtoken/internal/store/RefreshToken.java"));
+			Path.of("infra/src/main/kotlin/com/beat/infra/redis/auth/refreshtoken/RefreshTokenRedisHash.kt"));
+		String guestSession = Files.readString(
+			Path.of("infra/src/main/kotlin/com/beat/infra/redis/auth/guest/GuestSessionRedisHash.kt"));
+		String gatewayBuild = Files.readString(Path.of("gateway/build.gradle.kts"));
+		String infraBuild = Files.readString(Path.of("infra/build.gradle.kts"));
+		String apisBuild = Files.readString(Path.of("apis/build.gradle.kts"));
+		String adminBuild = Files.readString(Path.of("admin/build.gradle.kts"));
+		String batchBuild = Files.readString(Path.of("batch/build.gradle.kts"));
 
-		assertFalse(Files.exists(Path.of("infra/src/main/java/com/beat/infra/config/RedisConfig.java")));
-		assertFalse(Files.exists(Path.of("gateway/src/main/java/com/beat/gateway/redis/LettuceLockRepository.java")));
-		assertTrue(gatewayRedisConfig.contains("RefreshTokenRepository.class"));
-		assertFalse(gatewayRedisConfig.contains("@Primary"));
-		assertFalse(gatewayRedisConfig.contains("beatRedisTemplate"));
+		assertTrue(authRedisConfig.contains("RefreshTokenRedisRepository.class"));
+		assertTrue(authRedisConfig.contains("GuestSessionRedisRepository.class"));
+		assertFalse(authRedisConfig.contains("@Primary"));
+		assertFalse(gatewayBuild.contains("starter.data.redis"));
+		assertTrue(infraBuild.contains("compileOnly(libs.spring.boot.starter.data.redis)"));
+		assertFalse(infraBuild.contains("implementation(libs.spring.boot.starter.data.redis)"));
+		assertTrue(apisBuild.contains("runtimeOnly(libs.spring.boot.starter.data.redis)"));
+		assertFalse(adminBuild.contains("starter.data.redis"));
+		assertFalse(batchBuild.contains("starter.data.redis"));
 		assertTrue(refreshToken.contains("@RedisHash(value = \"refreshToken\", timeToLive = 1209600)"));
+		assertTrue(refreshToken.contains("@TypeAlias(\"com.beat.gateway.refreshtoken.internal.store.RefreshToken\")"));
 		assertTrue(refreshToken.contains("@Indexed"));
+		assertTrue(guestSession.contains("@RedisHash(value = \"guestSession\", timeToLive = 1800)"));
+		assertTrue(guestSession.contains("@TypeAlias(\"com.beat.gateway.guest.internal.store.GuestSession\")"));
+
+		List<String> gatewayRedisReferences = sourceFiles(Path.of("gateway/src/main")).stream()
+			.filter(path -> contains(path, "org.springframework.data.redis"))
+			.map(Path::toString)
+			.toList();
+		List<String> infraGatewayImports = sourceFiles(Path.of("infra/src/main")).stream()
+			.filter(path -> contains(path, "import com.beat.gateway"))
+			.map(Path::toString)
+			.toList();
+
+		assertTrue(gatewayRedisReferences.isEmpty(),
+			"gateway must not own Redis infrastructure:\n" + String.join("\n", gatewayRedisReferences));
+		assertTrue(infraGatewayImports.isEmpty(),
+			"infra must not depend on gateway:\n" + String.join("\n", infraGatewayImports));
 	}
 
 	@Test
@@ -226,7 +254,8 @@ class SharedBoundaryContractTest {
 			"infra/src/main/java/com/beat/infra/config/TaskExecutorConfig.java",
 			"infra/src/main/java/com/beat/infra/config/ThreadPoolProperties.java",
 			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
-			"infra/src/main/java/com/beat/infra/external/storage/s3/S3InfraConfig.java"
+			"infra/src/main/java/com/beat/infra/external/storage/s3/S3InfraConfig.java",
+			"infra/src/main/java/com/beat/infra/redis/auth/AuthRedisConfig.java"
 		);
 
 		assertTrue(infraBaseConfig.contains("Marker for top-level infra bootstrap configurations"));
@@ -1521,6 +1550,8 @@ class SharedBoundaryContractTest {
 		assertTrue(infraBuild.contains("id(\"beat.external-client\")"));
 		assertTrue(infraBuild.contains("implementation(libs.aws.java.sdk.s3)"), "S3 remains explicit in infra/build.gradle.kts");
 		assertTrue(infraBuild.contains("implementation(libs.nurigo.java.sdk)"), "SMS remains explicit in infra/build.gradle.kts");
+		assertTrue(infraBuild.contains("compileOnly(libs.spring.boot.starter.data.redis)"),
+			"auth Redis adapter compile dependency remains explicit in infra/build.gradle.kts");
 
 		String infraLibrary = Files.readString(infraLibraryConvention);
 		String jpaAdapter = Files.readString(jpaAdapterConvention);

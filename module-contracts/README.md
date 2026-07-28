@@ -35,6 +35,7 @@ module-contracts/
       ReadModel.kt                         # read/query contract marker; Spring/JPA behavior 없음
     auth/
       JwtSubject.kt
+      AccessTokenAuthenticator.kt
       JwtTokenPort.kt
       JwtTokenType.kt
       RefreshTokenPort.kt
@@ -98,6 +99,7 @@ com.beat.contracts/
     ReadModel
   auth/
     JwtSubject
+    AccessTokenAuthenticator
     JwtTokenPort
     JwtTokenType
     RefreshTokenPort

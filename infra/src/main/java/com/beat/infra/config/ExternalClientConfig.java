@@ -7,15 +7,15 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 
 import com.beat.infra.InfraBaseConfig;
-import com.beat.infra.external.auth.social.kakao.KakaoSocialLoginAdapter;
-import com.beat.infra.external.auth.social.kakao.client.KakaoApiClient;
-import com.beat.infra.external.auth.social.kakao.client.KakaoAuthApiClient;
+import com.beat.infra.external.social.kakao.KakaoSocialLoginAdapter;
+import com.beat.infra.external.social.kakao.client.KakaoApiClient;
+import com.beat.infra.external.social.kakao.client.KakaoAuthApiClient;
 import com.beat.infra.external.cdn.ImageCacheAdapter;
 import com.beat.infra.external.notification.slack.SlackBookingNotificationAdapter;
 import com.beat.infra.external.notification.slack.SlackMemberNotificationAdapter;
 import com.beat.infra.external.notification.slack.client.BookingSlackClient;
 import com.beat.infra.external.notification.slack.client.MemberSlackClient;
-import com.beat.infra.external.sms.CoolSmsAdapter;
+import com.beat.infra.external.notification.sms.CoolSmsAdapter;
 import com.beat.infra.external.storage.s3.S3FileStorageAdapter;
 import com.beat.infra.external.storage.s3.S3InfraConfig;
 
