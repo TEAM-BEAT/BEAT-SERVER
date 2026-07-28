@@ -1,7 +1,7 @@
 package com.beat.gateway.authentication.internal
 
-import com.beat.contracts.auth.JwtTokenPort
-import com.beat.contracts.auth.JwtTokenType
+import com.beat.contracts.auth.AccessTokenAuthenticationResult
+import com.beat.contracts.auth.AccessTokenAuthenticator
 import com.beat.contracts.auth.TokenValidationResult
 import com.beat.observability.logging.filter.BaseMdcLoggingFilter
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -19,7 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 
 @Component("gatewayJwtAuthenticationFilter")
 class JwtAuthenticationFilter(
-    private val jwtTokenPort: JwtTokenPort,
+    private val accessTokenAuthenticator: AccessTokenAuthenticator,
 ) : OncePerRequestFilter() {
 
     private val authenticationDetailsSource = WebAuthenticationDetailsSource()
@@ -37,15 +37,16 @@ class JwtAuthenticationFilter(
         }
 
         try {
-            val validationResult = jwtTokenPort.validateAccessToken(token)
+            when (val result = accessTokenAuthenticator.authenticateAccessToken(token)) {
+                is AccessTokenAuthenticationResult.Authenticated -> {
+                    authenticate(result, request)
+                    filterChain.doFilter(request, response)
+                }
 
-            if (validationResult != TokenValidationResult.VALID) {
-                response.status = validationResult.toHttpStatus()
-                return
+                is AccessTokenAuthenticationResult.Rejected -> {
+                    response.status = result.validationResult.toHttpStatus()
+                }
             }
-
-            authenticate(token, request)
-            filterChain.doFilter(request, response)
         } catch (_: IllegalArgumentException) {
             response.status = HttpServletResponse.SC_UNAUTHORIZED
         } catch (exception: Exception) {
@@ -54,16 +55,13 @@ class JwtAuthenticationFilter(
         }
     }
 
-    private fun authenticate(token: String, request: HttpServletRequest) {
-        val memberId = jwtTokenPort.getMemberId(token, JwtTokenType.ACCESS)
-        val roleName = jwtTokenPort.getRoleName(token, JwtTokenType.ACCESS)
-
-        val authentication = createAuthentication(memberId, roleName).apply {
+    private fun authenticate(result: AccessTokenAuthenticationResult.Authenticated, request: HttpServletRequest) {
+        val authentication = createAuthentication(result.memberId, result.roleName).apply {
             details = authenticationDetailsSource.buildDetails(request)
         }
 
         SecurityContextHolder.getContext().authentication = authentication
-        MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, memberId.toString())
+        MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, result.memberId.toString())
     }
 
     private fun createAuthentication(memberId: Long, roleName: String): UsernamePasswordAuthenticationToken {

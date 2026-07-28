@@ -1,5 +1,6 @@
 package com.beat.gateway.jwt.internal
 
+import com.beat.contracts.auth.AccessTokenAuthenticationResult
 import com.beat.contracts.auth.JwtSubject
 import com.beat.contracts.auth.JwtTokenType
 import com.beat.contracts.auth.TokenValidationResult
@@ -17,6 +18,9 @@ import java.util.Base64
 import java.util.Date
 import javax.crypto.SecretKey
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when` as given
 
 class JwtTokenProviderTest {
 
@@ -35,6 +39,23 @@ class JwtTokenProviderTest {
             { assertEquals(1L, jwtTokenProvider.getMemberId(accessToken, JwtTokenType.ACCESS)) },
             { assertEquals("ROLE_MEMBER", jwtTokenProvider.getRoleName(accessToken, JwtTokenType.ACCESS)) },
         )
+    }
+
+    @Test
+    fun `access token 인증은 한 번 파싱한 claims에서 사용자 정보를 추출한다`() {
+        val properties = JwtProperties(STRONG_BASE64_SECRET, ACCESS_TTL_MILLIS, REFRESH_TTL_MILLIS, KEY_ID)
+        val signingKeyHolder = JwtSigningKeyHolder(properties)
+        val parser = mock(JwtTokenParser::class.java)
+        val claims = mock(Claims::class.java)
+        val provider = JwtTokenProvider(properties, JwtTokenIssuer(signingKeyHolder), parser)
+        given(parser.parse("access-token", JwtTokenType.ACCESS)).thenReturn(claims)
+        given(claims[JwtClaimNames.MEMBER_ID]).thenReturn(1L)
+        given(claims.get(JwtClaimNames.ROLE, String::class.java)).thenReturn("ROLE_MEMBER")
+
+        val result = provider.authenticateAccessToken("access-token")
+
+        assertEquals(AccessTokenAuthenticationResult.Authenticated(1L, "ROLE_MEMBER"), result)
+        verify(parser).parse("access-token", JwtTokenType.ACCESS)
     }
 
     @Test

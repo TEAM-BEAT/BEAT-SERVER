@@ -86,7 +86,7 @@ class GatewayConfigGroupTest {
     fun `JWT filter가 이미 초기화된 MDC에 인증 사용자 id를 채운다`() {
         val source = source("authentication/internal/JwtAuthenticationFilter.kt")
 
-        assertTrue(source.contains("MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, memberId.toString())"))
+        assertTrue(source.contains("MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, result.memberId.toString())"))
     }
 
     @Test

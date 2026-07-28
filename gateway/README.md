@@ -35,7 +35,8 @@ base package = API, 하위 package = internal)을 모듈 내부에 적용한 형
 ```text
 com.beat.gateway
 ├─ (root, public)          EnableGatewayServletSecurity · EnableGatewayConfig · GatewayConfigGroup · CurrentMember
-├─ jwt.internal            JwtTokenProvider · JwtProperties            (+ config/JwtConfig)
+├─ jwt.internal            JwtTokenProvider · JwtTokenParser · JwtTokenIssuer
+│                          JwtSigningKeyHolder · JwtProperties (+ config/JwtConfig)
 ├─ refreshtoken.internal   config/RefreshTokenConfig                   (RefreshTokenPort fail-fast requirement)
 ├─ guest.internal          GuestPasswordHashService                   (+ config/GuestAccessConfig)
 ├─ authentication.internal JwtAuthenticationFilter · SecurityMdcLoggingFilter · Custom*Handler
@@ -190,6 +191,7 @@ JWT/refresh token 계약은 `gateway`가 아니라 `module-contracts`에서 주�
 
 | 계약 | 위치 | 구현체 |
 | --- | --- | --- |
+| `AccessTokenAuthenticator` | `com.beat.contracts.auth` | `gateway.jwt.internal.JwtTokenProvider` |
 | `JwtTokenPort` | `com.beat.contracts.auth` | `gateway.jwt.internal.JwtTokenProvider` |
 | `RefreshTokenPort` | `com.beat.contracts.auth` | `infra.redis.auth.refreshtoken.RedisRefreshTokenAdapter` |
 | `GuestSessionPort` | `com.beat.contracts.auth.guest` | `infra.redis.auth.guest.RedisGuestSessionAdapter` |
@@ -210,27 +212,25 @@ JWT/refresh token 계약은 `gateway`가 아니라 `module-contracts`에서 주�
 sequenceDiagram
     participant C as HTTP Request
     participant F as JwtAuthenticationFilter
-    participant J as JwtTokenPort
+    participant A as AccessTokenAuthenticator
     participant SC as SecurityContextHolder
     participant R as CurrentMemberArgumentResolver
     participant Ctrl as Controller
 
     C->>F: Authorization: Bearer <token>
-    F->>J: validateAccessToken(token)
-    J-->>F: TokenValidationResult
+    F->>A: authenticateAccessToken(token)
+    A-->>F: Authenticated(memberId, roleName) / Rejected(validationResult)
 
-    alt VALID
-        F->>J: getMemberId(token, ACCESS)
-        F->>J: getRoleName(token, ACCESS)
+    alt Authenticated
         F->>SC: setAuthentication(MemberAuthentication / AdminAuthentication)
         F->>C: filterChain.doFilter()
         C->>Ctrl: @CurrentMember Long memberId 파라미터
         Ctrl->>R: resolveArgument()
         R->>SC: getAuthentication().getPrincipal()
         R-->>Ctrl: memberId (Long)
-    else EXPIRED
+    else Rejected(EXPIRED)
         F-->>C: 401 Unauthorized
-    else INVALID / 기타
+    else Rejected(INVALID / 기타)
         F-->>C: 400 Bad Request
     end
 ```
@@ -294,6 +294,9 @@ gateway/
     CurrentMember.kt                       # 공개: controller 파라미터 annotation
     jwt/internal/
       JwtTokenProvider.kt                  # implements JwtTokenPort
+      JwtTokenParser.kt                    # 서명 및 tokenType 검증
+      JwtTokenIssuer.kt                    # access/refresh token 발급
+      JwtSigningKeyHolder.kt               # 서명 키 1회 파생 및 보관
       JwtProperties.kt                     # @ConfigurationProperties(prefix = "jwt")
       config/
         JwtConfig.kt                       # JwtTokenProvider bean 등록

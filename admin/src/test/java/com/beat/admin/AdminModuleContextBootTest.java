@@ -63,6 +63,12 @@ class AdminModuleContextBootTest extends AbstractAdminIntegrationTest {
 		assertEquals(1, applicationContext.getBeansOfType(AdminPromotionCommandService.class).size());
 		assertFalse(applicationContext.containsBean("jobSchedulerService"));
 		assertTrue(applicationContext.getBeansOfType(TaskScheduler.class).isEmpty());
+		assertFalse(applicationContext.containsBean("redisConnectionFactory"));
+		assertFalse(applicationContext.containsBean("refreshTokenRedisRepository"));
+		assertFalse(applicationContext.containsBean("guestSessionRedisRepository"));
+		assertFalse(applicationContext.containsBean("redisRefreshTokenAdapter"));
+		assertFalse(applicationContext.containsBean("redisGuestSessionAdapter"));
+		assertFalse(applicationContext.containsBean("redisGuestAccessThrottleAdapter"));
 		assertEquals(1, applicationContext.getBeansOfType(PerformanceRepository.class).size());
 		assertEquals(1, applicationContext.getBeansOfType(PromotionRepository.class).size());
 	}

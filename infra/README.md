@@ -229,7 +229,7 @@ flowchart LR
 
     subgraph ADAPTERS["External Adapters"]
         direction TB
-        Kakao["KakaoSocialLoginAdapter<br/>external.auth.social.kakao"]:::adapter
+        Kakao["KakaoSocialLoginAdapter<br/>external.social.kakao"]:::adapter
         Slack["Slack Notification Adapters<br/>external.notification.slack"]:::adapter
         Sms["CoolSmsAdapter<br/>external.sms"]:::adapter
         S3["S3FileStorageAdapter<br/>external.storage.s3"]:::adapter
@@ -459,7 +459,7 @@ global-support
 - 모든 `*Mapper`가 `infra.persistence.<aggregate>.mapper`에만 존재하는지 확인
 - Domain RepositoryPort가 명시된 Aggregate Root에만 대응하는지 확인
 - `InfraBaseConfig` marker javadoc이 `Marker for top-level infra bootstrap configurations`를 포함하는지 확인
-- top-level group config 5개가 `InfraBaseConfig`를 구현하는지 확인
+- top-level group config 4개가 `InfraBaseConfig`를 구현하는지 확인
 - support config 4개가 `InfraBaseConfig`를 구현하지 않는지 확인
 - `InfraModuleConfig.kt`가 존재하지 않는지 확인
 - `RedisCacheConfig`가 `@EnableCaching`, `CacheManager`, `@Bean`을 포함하지 않는지 확인

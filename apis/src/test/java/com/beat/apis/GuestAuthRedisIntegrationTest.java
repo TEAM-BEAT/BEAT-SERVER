@@ -45,11 +45,12 @@ class GuestAuthRedisIntegrationTest extends AbstractIntegrationTest {
 	void issuedGuestSessionKeepsLegacyTypeAliasAndRoundTrips() {
 		String token = guestSessionPort.issue(USER_ID);
 		String redisKey = guestSessionKey(token);
-
-		assertEquals(USER_ID, guestSessionPort.findUserId(token).orElseThrow());
-		assertEquals(LEGACY_TYPE, redisTemplate.<String, String>opsForHash().get(redisKey, "_class"));
-
-		redisTemplate.delete(redisKey);
+		try {
+			assertEquals(USER_ID, guestSessionPort.findUserId(token).orElseThrow());
+			assertEquals(LEGACY_TYPE, redisTemplate.<String, String>opsForHash().get(redisKey, "_class"));
+		} finally {
+			redisTemplate.delete(redisKey);
+		}
 	}
 
 	@Test

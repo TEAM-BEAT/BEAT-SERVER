@@ -1,7 +1,7 @@
 package com.beat.gateway.authentication.internal
 
-import com.beat.contracts.auth.JwtTokenPort
-import com.beat.contracts.auth.JwtTokenType
+import com.beat.contracts.auth.AccessTokenAuthenticationResult
+import com.beat.contracts.auth.AccessTokenAuthenticator
 import com.beat.contracts.auth.TokenValidationResult
 import com.beat.observability.logging.filter.BaseMdcLoggingFilter
 import jakarta.servlet.FilterChain
@@ -22,8 +22,8 @@ import org.mockito.Mockito.`when` as given
 
 class JwtAuthenticationFilterTest {
 
-    private val jwtTokenPort = mock(JwtTokenPort::class.java)
-    private val filter = JwtAuthenticationFilter(jwtTokenPort)
+    private val accessTokenAuthenticator = mock(AccessTokenAuthenticator::class.java)
+    private val filter = JwtAuthenticationFilter(accessTokenAuthenticator)
 
     @AfterEach
     fun tearDown() {
@@ -35,9 +35,8 @@ class JwtAuthenticationFilterTest {
     fun `유효한 토큰은 SecurityContext와 이미 초기화된 MDC userId를 갱신한다`() {
         MDC.put(BaseMdcLoggingFilter.TRACE_ID_KEY, "trace-123")
         MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, BaseMdcLoggingFilter.DEFAULT_GUEST_USER)
-        given(jwtTokenPort.validateAccessToken("valid-token")).thenReturn(TokenValidationResult.VALID)
-        given(jwtTokenPort.getMemberId("valid-token", JwtTokenType.ACCESS)).thenReturn(42L)
-        given(jwtTokenPort.getRoleName("valid-token", JwtTokenType.ACCESS)).thenReturn("ROLE_MEMBER")
+        given(accessTokenAuthenticator.authenticateAccessToken("valid-token"))
+            .thenReturn(AccessTokenAuthenticationResult.Authenticated(42L, "ROLE_MEMBER"))
         val request = requestWithBearer("valid-token")
         val response = MockHttpServletResponse()
         val chain = FilterChain { _, _ ->
@@ -50,13 +49,15 @@ class JwtAuthenticationFilterTest {
 
         assertEquals("42", MDC.get(BaseMdcLoggingFilter.USER_ID_KEY))
         assertEquals(HttpServletResponse.SC_OK, response.status)
+        verify(accessTokenAuthenticator).authenticateAccessToken("valid-token")
     }
 
     @Test
     fun `만료된 토큰은 401로 단축 응답하고 기존 MDC를 유지한다`() {
         MDC.put(BaseMdcLoggingFilter.TRACE_ID_KEY, "trace-123")
         MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, BaseMdcLoggingFilter.DEFAULT_GUEST_USER)
-        given(jwtTokenPort.validateAccessToken("expired-token")).thenReturn(TokenValidationResult.EXPIRED)
+        given(accessTokenAuthenticator.authenticateAccessToken("expired-token"))
+            .thenReturn(AccessTokenAuthenticationResult.Rejected(TokenValidationResult.EXPIRED))
         val request = requestWithBearer("expired-token")
         val response = MockHttpServletResponse()
         val chain = mock(FilterChain::class.java)
@@ -72,8 +73,8 @@ class JwtAuthenticationFilterTest {
 
     @Test
     fun `유효하지 않은 토큰은 400으로 단축 응답한다`() {
-        given(jwtTokenPort.validateAccessToken("broken-token"))
-            .thenReturn(TokenValidationResult.INVALID_SIGNATURE)
+        given(accessTokenAuthenticator.authenticateAccessToken("broken-token"))
+            .thenReturn(AccessTokenAuthenticationResult.Rejected(TokenValidationResult.INVALID_SIGNATURE))
         val response = MockHttpServletResponse()
         val chain = mock(FilterChain::class.java)
 
