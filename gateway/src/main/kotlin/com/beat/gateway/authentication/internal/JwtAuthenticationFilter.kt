@@ -4,10 +4,10 @@ import com.beat.contracts.auth.JwtTokenPort
 import com.beat.contracts.auth.JwtTokenType
 import com.beat.contracts.auth.TokenValidationResult
 import com.beat.observability.logging.filter.BaseMdcLoggingFilter
+import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.GrantedAuthority
@@ -22,7 +22,6 @@ class JwtAuthenticationFilter(
     private val jwtTokenPort: JwtTokenPort,
 ) : OncePerRequestFilter() {
 
-    private val log = LoggerFactory.getLogger(JwtAuthenticationFilter::class.java)
     private val authenticationDetailsSource = WebAuthenticationDetailsSource()
 
     override fun doFilterInternal(
@@ -33,7 +32,6 @@ class JwtAuthenticationFilter(
         val token = request.bearerToken()
 
         if (token == null) {
-            log.debug("JWT Token not found in request header. Assuming guest access or public API request.")
             filterChain.doFilter(request, response)
             return
         }
@@ -48,11 +46,10 @@ class JwtAuthenticationFilter(
 
             authenticate(token, request)
             filterChain.doFilter(request, response)
-        } catch (exception: IllegalArgumentException) {
-            log.warn("Invalid JWT claims: {}", exception.message)
+        } catch (_: IllegalArgumentException) {
             response.status = HttpServletResponse.SC_UNAUTHORIZED
         } catch (exception: Exception) {
-            log.error("JWT Authentication Exception: ", exception)
+            log.error(exception) { "Unexpected JWT authentication failure" }
             response.status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR
         }
     }
@@ -93,6 +90,7 @@ class JwtAuthenticationFilter(
             ?.takeIf(String::isNotBlank)
 
     companion object {
+        private val log = KotlinLogging.logger {}
         private const val ROLE_ADMIN = "ROLE_ADMIN"
         private const val ROLE_MEMBER = "ROLE_MEMBER"
         private const val HEADER_AUTHORIZATION = "Authorization"

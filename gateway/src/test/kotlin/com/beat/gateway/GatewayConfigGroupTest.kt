@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 class GatewayConfigGroupTest {
 
     @Test
-    fun `config group은 optional stateful security 기능만 노출한다`() {
+    fun `config group은 gateway가 소유하는 optional security 기능만 노출한다`() {
         assertEquals(
             listOf(GatewayConfigGroup.REFRESH_TOKEN_STORE, GatewayConfigGroup.GUEST_ACCESS),
             GatewayConfigGroup.entries,
@@ -23,7 +23,23 @@ class GatewayConfigGroupTest {
     }
 
     @Test
-    fun `GUEST_ACCESS group이 guest 세션·비밀번호·스로틀 서비스를 소유한다`() {
+    fun `REFRESH_TOKEN_STORE group은 Redis를 소유하지 않고 port 제공만 검증한다`() {
+        assertEquals(
+            "com.beat.gateway.refreshtoken.internal.config.RefreshTokenConfig",
+            GatewayConfigGroup.REFRESH_TOKEN_STORE.configClass.name,
+        )
+
+        val source = source("refreshtoken/internal/config/RefreshTokenConfig.kt")
+
+        assertAll(
+            { assertTrue(source.contains("refreshTokenPort: RefreshTokenPort")) },
+            { assertFalse(source.contains("Redis")) },
+            { assertFalse(source.contains("Repository")) },
+        )
+    }
+
+    @Test
+    fun `GUEST_ACCESS group은 Redis adapter 없이 비밀번호 해시만 소유한다`() {
         assertEquals(
             "com.beat.gateway.guest.internal.config.GuestAccessConfig",
             GatewayConfigGroup.GUEST_ACCESS.configClass.name,
@@ -32,10 +48,10 @@ class GatewayConfigGroupTest {
         val source = source("guest/internal/config/GuestAccessConfig.kt")
 
         assertAll(
-            { assertTrue(source.contains("RedisConfig::class")) },
-            { assertTrue(source.contains("GuestSessionService::class")) },
             { assertTrue(source.contains("GuestPasswordHashService::class")) },
-            { assertTrue(source.contains("GuestAccessThrottleService::class")) },
+            { assertFalse(source.contains("Redis")) },
+            { assertFalse(source.contains("GuestSessionService")) },
+            { assertFalse(source.contains("GuestAccessThrottleService")) },
         )
     }
 
@@ -63,21 +79,6 @@ class GatewayConfigGroupTest {
             { assertTrue(source.contains("gatewaySecurityMdcLoggingFilter")) },
             { assertTrue(source.contains("FilterRegistrationBean<SecurityMdcLoggingFilter>")) },
             { assertTrue(source.contains("registration.isEnabled = false")) },
-        )
-    }
-
-    @Test
-    fun `REFRESH_TOKEN_STORE group이 Redis repository와 refresh token 서비스를 소유한다`() {
-        assertEquals(
-            "com.beat.gateway.refreshtoken.internal.config.RefreshTokenConfig",
-            GatewayConfigGroup.REFRESH_TOKEN_STORE.configClass.name,
-        )
-
-        val source = source("refreshtoken/internal/config/RefreshTokenConfig.kt")
-
-        assertAll(
-            { assertTrue(source.contains("RedisConfig::class")) },
-            { assertTrue(source.contains("RefreshTokenService::class")) },
         )
     }
 

@@ -4,9 +4,13 @@ import com.beat.apis.config.ApisSecurityConfig
 import com.beat.apis.config.GatewayConfig
 import com.beat.apis.config.GuestSessionOriginFilter
 import com.beat.apis.config.InfraConfig
+import com.beat.contracts.auth.RefreshTokenPort
+import com.beat.contracts.auth.guest.GuestAccessThrottlePort
+import com.beat.contracts.auth.guest.GuestSessionPort
 import com.beat.gateway.EnableGatewayConfig
 import com.beat.gateway.GatewayConfigGroup
 import com.beat.gateway.EnableGatewayServletSecurity
+import com.beat.infra.InfraBaseConfigGroup
 import com.beat.observability.ObservabilityModuleConfig
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -16,6 +20,9 @@ import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
 import org.springframework.security.web.access.AccessDeniedHandler
 import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.autoconfigure.AutoConfigurations
+import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
+import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
@@ -53,12 +60,12 @@ class ApisApplicationTest {
     }
 
     @Test
-    fun `apis selects gateway servlet security bootstrap with refresh token store`() {
+    fun `apis selects gateway servlet security bootstrap with guest password hash`() {
         val enableGatewayServletSecurity = GatewayConfig::class.java.getAnnotation(EnableGatewayServletSecurity::class.java)
         val enableGatewayConfig = GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
 
         assertNotNull(enableGatewayServletSecurity, "apis GatewayConfig must declare @EnableGatewayServletSecurity")
-        assertNotNull(enableGatewayConfig, "apis GatewayConfig must declare @EnableGatewayConfig for refresh-token store")
+        assertNotNull(enableGatewayConfig, "apis GatewayConfig must declare @EnableGatewayConfig for guest password hash")
         assertEquals(
             setOf(
                 GatewayConfigGroup.REFRESH_TOKEN_STORE,
@@ -66,6 +73,22 @@ class ApisApplicationTest {
             ),
             enableGatewayConfig!!.value.toSet(),
         )
+    }
+
+    @Test
+    fun `AUTH_REDIS group이 gateway refresh token requirement를 충족한다`() {
+        ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(DataRedisAutoConfiguration::class.java))
+            .withUserConfiguration(
+                InfraBaseConfigGroup.AUTH_REDIS.configClass,
+                GatewayConfigGroup.REFRESH_TOKEN_STORE.configClass,
+            )
+            .run { context ->
+                assertTrue(context.startupFailure == null, context.startupFailure?.message)
+                assertEquals(1, context.getBeansOfType(RefreshTokenPort::class.java).size)
+                assertEquals(1, context.getBeansOfType(GuestSessionPort::class.java).size)
+                assertEquals(1, context.getBeansOfType(GuestAccessThrottlePort::class.java).size)
+            }
     }
 
     @Test
@@ -120,6 +143,7 @@ class ApisApplicationTest {
         val configSource = Files.readString(Path.of("src/main/kotlin/com/beat/apis/config/InfraConfig.kt"))
 
         assertTrue(configSource.contains("InfraBaseConfigGroup.JPA"))
+        assertTrue(configSource.contains("InfraBaseConfigGroup.AUTH_REDIS"))
         assertFalse(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
         assertFalse(configSource.contains("InfraBaseConfigGroup.REDIS"))
         assertTrue(configSource.contains("InfraBaseConfigGroup.ASYNC"))

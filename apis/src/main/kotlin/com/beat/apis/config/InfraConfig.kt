@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Import
 @EnableInfraBaseConfig(
     value = [
         InfraBaseConfigGroup.JPA,
+        InfraBaseConfigGroup.AUTH_REDIS,
         InfraBaseConfigGroup.ASYNC,
         InfraBaseConfigGroup.EXTERNAL_CLIENTS,
     ]

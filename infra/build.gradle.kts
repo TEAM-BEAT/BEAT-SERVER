@@ -9,6 +9,7 @@ dependencies {
     implementation(project(":module-contracts"))
     implementation(project(":domain"))
     implementation(project(":global-support"))
+    implementation(libs.spring.boot.starter.data.redis)
     implementation(libs.aws.java.sdk.s3)
     implementation(libs.kotlin.jdsl.jpql.dsl)
     implementation(libs.kotlin.jdsl.jpql.render)

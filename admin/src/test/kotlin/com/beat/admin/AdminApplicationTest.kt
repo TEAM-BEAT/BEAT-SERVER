@@ -98,6 +98,8 @@ class AdminApplicationTest {
         val configSource = Files.readString(Path.of("src/main/kotlin/com/beat/admin/config/InfraConfig.kt"))
 
         assertTrue(configSource.contains("InfraBaseConfigGroup.JPA"))
+        assertFalse(configSource.contains("InfraBaseConfigGroup.AUTH_REDIS"))
+        assertFalse(configSource.contains("InfraBaseConfigGroup.REDIS_CACHE"))
         assertFalse(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
         assertFalse(configSource.contains("InfraBaseConfigGroup.REDIS"))
         assertTrue(configSource.contains("InfraBaseConfigGroup.EXTERNAL_CLIENTS"))

@@ -1,10 +1,12 @@
-package com.beat.gateway.guest.internal.store
+package com.beat.infra.auth.redis.guest
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.TypeAlias
 import org.springframework.data.redis.core.RedisHash
 
+@TypeAlias("com.beat.gateway.guest.internal.store.GuestSession")
 @RedisHash(value = "guestSession", timeToLive = 1800)
-class GuestSession(
+class GuestSessionRedisHash(
     @Id
     val tokenHash: String,
     val userId: Long,

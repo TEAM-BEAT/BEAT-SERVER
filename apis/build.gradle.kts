@@ -19,4 +19,5 @@ dependencies {
     implementation(project(":observability"))
 
     testImplementation(libs.bundles.integration.testcontainers)
+    testImplementation(libs.spring.boot.starter.data.redis)
 }

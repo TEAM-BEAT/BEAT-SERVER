@@ -1,21 +1,14 @@
-package com.beat.gateway.refreshtoken.internal
+package com.beat.infra.auth.redis.refreshtoken
 
 import com.beat.contracts.auth.RefreshTokenPort
-import com.beat.gateway.refreshtoken.internal.store.RefreshToken
-import com.beat.gateway.refreshtoken.internal.store.RefreshTokenRepository
-import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Service
 import java.util.OptionalLong
 
-@Service
-class RefreshTokenService(
-    private val refreshTokenRepository: RefreshTokenRepository,
+class RedisRefreshTokenAdapter(
+    private val refreshTokenRepository: RefreshTokenRedisRepository,
 ) : RefreshTokenPort {
 
-    private val log = LoggerFactory.getLogger(RefreshTokenService::class.java)
-
     override fun saveRefreshToken(memberId: Long, refreshToken: String) {
-        refreshTokenRepository.save(RefreshToken(memberId, refreshToken))
+        refreshTokenRepository.save(RefreshTokenRedisHash(memberId, refreshToken))
     }
 
     override fun findMemberIdByRefreshToken(refreshToken: String): OptionalLong =
@@ -26,7 +19,6 @@ class RefreshTokenService(
     override fun deleteRefreshToken(memberId: Long): Boolean =
         refreshTokenRepository.findById(memberId).map { token ->
             refreshTokenRepository.delete(token)
-            log.info("Deleted refresh token for memberId={}", memberId)
             true
         }.orElse(false)
 }

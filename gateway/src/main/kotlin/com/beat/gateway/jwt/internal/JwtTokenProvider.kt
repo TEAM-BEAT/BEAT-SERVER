@@ -9,7 +9,6 @@ import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.MalformedJwtException
 import io.jsonwebtoken.UnsupportedJwtException
 import io.jsonwebtoken.security.SignatureException
-import org.slf4j.LoggerFactory
 
 /**
  * [JwtTokenPort] 어댑터. 발급/파싱은 [JwtTokenIssuer]·[JwtTokenParser]에 위임하고,
@@ -20,8 +19,6 @@ class JwtTokenProvider(
     private val jwtTokenIssuer: JwtTokenIssuer,
     private val jwtTokenParser: JwtTokenParser,
 ) : JwtTokenPort {
-
-    private val log = LoggerFactory.getLogger(JwtTokenProvider::class.java)
 
     override fun issueAccessToken(subject: JwtSubject): String =
         jwtTokenIssuer.issue(subject, jwtProperties.accessTokenExpireTime, JwtTokenType.ACCESS)
@@ -56,34 +53,26 @@ class JwtTokenProvider(
 
         when {
             claims.memberIdOrNull() == null -> {
-                log.warn("JWT does not contain a numeric memberId claim")
                 TokenValidationResult.INVALID_TOKEN
             }
 
             claims.roleNameOrNull() == null -> {
-                log.warn("JWT does not contain role claim")
                 TokenValidationResult.INVALID_TOKEN
             }
 
             else -> TokenValidationResult.VALID
         }
-    } catch (ex: MalformedJwtException) {
-        log.warn("Invalid JWT Token: {}", ex.message)
+    } catch (_: MalformedJwtException) {
         TokenValidationResult.INVALID_TOKEN
-    } catch (ex: ExpiredJwtException) {
-        log.warn("Expired JWT Token: {}", ex.message)
+    } catch (_: ExpiredJwtException) {
         TokenValidationResult.EXPIRED
-    } catch (ex: UnsupportedJwtException) {
-        log.warn("Unsupported JWT Token: {}", ex.message)
+    } catch (_: UnsupportedJwtException) {
         TokenValidationResult.UNSUPPORTED
-    } catch (ex: InvalidTokenClaimsException) {
-        log.warn("Invalid JWT claims: {}", ex.message)
+    } catch (_: InvalidTokenClaimsException) {
         TokenValidationResult.INVALID_TOKEN
-    } catch (ex: IllegalArgumentException) {
-        log.warn("Empty JWT Token or Illegal Argument: {}", ex.message)
+    } catch (_: IllegalArgumentException) {
         TokenValidationResult.EMPTY
-    } catch (ex: SignatureException) {
-        log.warn("Invalid JWT Signature: {}", ex.message)
+    } catch (_: SignatureException) {
         TokenValidationResult.INVALID_SIGNATURE
     }
 

@@ -1,11 +1,11 @@
-package com.beat.gateway.guest.internal
+package com.beat.infra.auth.redis.guest
 
 import com.beat.contracts.auth.guest.GuestAccessThrottlePort
+import java.time.Duration
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.redis.core.script.DefaultRedisScript
-import java.time.Duration
 
-class GuestAccessThrottleService(
+class RedisGuestAccessThrottleAdapter(
     private val redisTemplate: StringRedisTemplate,
 ) : GuestAccessThrottlePort {
 
@@ -28,13 +28,13 @@ class GuestAccessThrottleService(
 
     private fun key(keyMaterial: String): String = KEY_PREFIX + Sha256Hasher.hashToBase64Url(keyMaterial)
 
-    companion object {
-        private const val MAX_FAILURES = 5L
-        private val WINDOW: Duration = Duration.ofMinutes(10)
-        private const val KEY_PREFIX = "guest-access-failure:"
+    private companion object {
+        const val MAX_FAILURES = 5L
+        val WINDOW: Duration = Duration.ofMinutes(10)
+        const val KEY_PREFIX = "guest-access-failure:"
 
         /** INCR과 EXPIRE를 원자적으로 수행해 window 유실을 방지한다. */
-        private val RECORD_FAILURE_SCRIPT: DefaultRedisScript<Long> = DefaultRedisScript(
+        val RECORD_FAILURE_SCRIPT: DefaultRedisScript<Long> = DefaultRedisScript(
             "local value = redis.call('INCR', KEYS[1]); " +
                 "if value == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]); end; " +
                 "return value;",

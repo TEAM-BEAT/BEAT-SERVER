@@ -1,21 +1,19 @@
-package com.beat.gateway.guest.internal
+package com.beat.infra.auth.redis.guest
 
 import com.beat.contracts.auth.guest.GuestSessionPort
-import com.beat.gateway.guest.internal.store.GuestSession
-import com.beat.gateway.guest.internal.store.GuestSessionRepository
 import java.security.SecureRandom
 import java.util.Base64
 import java.util.OptionalLong
 
-class GuestSessionService(
-    private val guestSessionRepository: GuestSessionRepository,
+class RedisGuestSessionAdapter(
+    private val guestSessionRepository: GuestSessionRedisRepository,
 ) : GuestSessionPort {
 
     private val secureRandom = SecureRandom()
 
     override fun issue(userId: Long): String {
         val token = generateToken()
-        guestSessionRepository.save(GuestSession(Sha256Hasher.hashToBase64Url(token), userId))
+        guestSessionRepository.save(GuestSessionRedisHash(Sha256Hasher.hashToBase64Url(token), userId))
         return token
     }
 
@@ -33,7 +31,7 @@ class GuestSessionService(
         return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes)
     }
 
-    companion object {
-        private const val TOKEN_BYTE_LENGTH = 32
+    private companion object {
+        const val TOKEN_BYTE_LENGTH = 32
     }
 }

@@ -1,7 +1,7 @@
 # infra module
 
 `infra`는 BEAT의 **기술 구현 어댑터 모듈**입니다.
-JPA/Kotlin JDSL persistence 어댑터, 외부 API 클라이언트, 파일 저장소, 메시징 어댑터처럼
+JPA/Kotlin JDSL persistence 어댑터, auth Redis 저장소, 외부 API 클라이언트, 파일 저장소, 메시징 어댑터처럼
 상위 레이어가 필요로 하는 모든 기술 구현을 소유합니다.
 
 `infra`는 아래 구현 세부사항을 모릅니다.
@@ -113,9 +113,16 @@ flowchart TB
         RedisCacheConfig["RedisCacheConfig<br/>Redis Cache 대표 설정<br/>현재 미활성<br/>shared cache 설계 확정 후 활성화"]
     end
 
+    subgraph AUTH_REDIS_GROUP["AUTH_REDIS group"]
+        AuthRedisConfig["AuthRedisConfig<br/>auth Redis repository 활성화"]
+        AuthRedisAdapters["Refresh token · guest session · throttle adapters"]
+        AuthRedisConfig --> AuthRedisAdapters
+    end
+
     Selector --> JpaConfig
     Selector --> AsyncConfig
     Selector --> ExternalClientConfig
+    Selector --> AuthRedisConfig
     Selector --> RedisCacheConfig
 ```
 
@@ -131,15 +138,15 @@ flowchart TB
 
 ### 실행 모듈별 group 선택
 
-| 모듈      | JPA | ASYNC | EXTERNAL_CLIENTS | REDIS_CACHE | 이유                                   |
-|---------|-----|-------|------------------|-------------|--------------------------------------|
-| `apis`  | ✅   | ✅     | ✅                | ❌           | 사용자 API + 비동기 알림 + 외부 OAuth/Slack/S3 |
-| `admin` | ✅   | ❌     | ✅                | ❌           | 관리자 API + 외부 클라이언트, 비동기 불필요          |
-| `batch` | ✅   | ✅     | ❌                | ❌           | 스케줄/배치 + 비동기, 외부 API 없음              |
+| 모듈      | JPA | AUTH_REDIS | ASYNC | EXTERNAL_CLIENTS | REDIS_CACHE | 이유 |
+|---------|-----|------------|-------|------------------|-------------|------|
+| `apis`  | ✅   | ✅          | ✅     | ✅                | ❌           | 사용자 API + 인증 상태 저장 + 비동기 알림 + 외부 연동 |
+| `admin` | ✅   | ❌          | ❌     | ✅                | ❌           | 관리자 JWT 인증은 gateway만 사용 |
+| `batch` | ✅   | ❌          | ✅     | ❌                | ❌           | 스케줄/배치 + 비동기 |
 
 ```kotlin
 // apis/config/InfraConfig.kt
-@EnableInfraBaseConfig(value = [JPA, ASYNC, EXTERNAL_CLIENTS])
+@EnableInfraBaseConfig(value = [JPA, AUTH_REDIS, ASYNC, EXTERNAL_CLIENTS])
 @Import(InfraPersistenceConfig::class)
 class InfraConfig
 
@@ -156,7 +163,7 @@ class InfraConfig
 
 ### Support config 규칙
 
-top-level group config(`AsyncConfig`, `ExternalClientConfig`, `JpaConfig`, `RedisCacheConfig`)만 `InfraBaseConfig`를
+top-level group config(`AsyncConfig`, `AuthRedisConfig`, `ExternalClientConfig`, `JpaConfig`, `RedisCacheConfig`)만 `InfraBaseConfig`를
 구현합니다.
 그 아래에서 `@Import`로 전이 로드되는 support config(`TaskExecutorConfig`, `ThreadPoolProperties`, `InfraPersistenceConfig`,
 `S3InfraConfig`)는
@@ -193,7 +200,7 @@ flowchart TB
 | 공개 타입                    | 위치                           | 용도                                                                |
 |--------------------------|------------------------------|-------------------------------------------------------------------|
 | `@EnableInfraBaseConfig` | `com.beat.infra`             | group 선택 annotation                                               |
-| `InfraBaseConfigGroup`   | `com.beat.infra`             | JPA / ASYNC / EXTERNAL_CLIENTS / REDIS_CACHE enum                 |
+| `InfraBaseConfigGroup`   | `com.beat.infra`             | JPA / AUTH_REDIS / ASYNC / EXTERNAL_CLIENTS / REDIS_CACHE enum    |
 | `InfraPersistenceConfig` | `com.beat.infra.persistence` | IDE static-analysis breadcrumb (IDE only, runtime은 JpaConfig가 보장) |
 
 `infra.external.*`, `infra.persistence.*` 구현 패키지를 실행 모듈이 직접 import하면 안 됩니다.
@@ -271,7 +278,13 @@ flowchart LR
 `InfraBaseConfigGroup.REDIS_CACHE`는 shared cache가 필요해질 때를 위한 확장 점입니다.
 `RedisCacheConfig`는 `@Bean`, `@EnableCaching`, `CacheManager`를 포함하지 않은 상태로 유지합니다.
 활성화 전에 cache name, TTL, serializer, namespace, invalidation policy, owner module, runtime opt-in을 먼저 정해야 합니다.
-gateway-owned Redis refresh token store와 shared cache bootstrap은 별도 경계입니다.
+`AUTH_REDIS`의 인증 상태 저장소와 `REDIS_CACHE`의 shared cache 정책은 별도 경계입니다.
+
+### AUTH_REDIS
+
+`InfraBaseConfigGroup.AUTH_REDIS`는 `RefreshTokenPort`, `GuestSessionPort`, `GuestAccessThrottlePort`의 Redis adapter를 활성화합니다.
+Redis hash, Spring Data repository, Lua throttle script는 `infra.auth.redis` 내부에 두고 실행 모듈에는 `module-contracts` port만 노출합니다.
+기존 운영 hash의 `_class`에는 gateway 시절 FQCN이 저장되어 있으므로 `@TypeAlias`로 그 값을 유지합니다. keyspace, property path, TTL과 secondary index도 변경하지 않습니다.
 
 ---
 
@@ -335,16 +348,29 @@ infra/
   src/main/java/com/beat/infra/
     EnableInfraBaseConfig.java                    # 공개: group 선택 annotation
     InfraBaseConfig.java                          # 공개: top-level group marker interface
-    InfraBaseConfigGroup.java                     # 공개: JPA / ASYNC / EXTERNAL_CLIENTS / REDIS_CACHE
+    InfraBaseConfigGroup.java                     # 공개: JPA / AUTH_REDIS / ASYNC / EXTERNAL_CLIENTS / REDIS_CACHE
     InfraBaseConfigImportSelector.java            # DeferredImportSelector — enum → config class 매핑
     config/
       AsyncConfig.java                            # ASYNC group owner, @Import(TaskExecutorConfig)
+      AuthRedisConfig.java                        # AUTH_REDIS group owner, auth Redis repository/adapter 등록
       ExternalClientConfig.java                   # EXTERNAL_CLIENTS group owner, @Import(S3InfraConfig)
       JpaConfig.java                              # JPA group owner, @Import(InfraPersistenceConfig)
       RedisCacheConfig.java                       # REDIS_CACHE group owner (dormant)
       TaskExecutorConfig.java                     # support config; beatApplicationTaskExecutor 빈
       MysqlCustomDialect.java                     # support config
       ThreadPoolProperties.java                   # support config
+  src/main/kotlin/com/beat/infra/
+    auth/redis/
+      refreshtoken/
+        RedisRefreshTokenAdapter.kt               # implements RefreshTokenPort
+        RefreshTokenRedisHash.kt                  # @RedisHash, legacy @TypeAlias
+        RefreshTokenRedisRepository.kt
+      guest/
+        RedisGuestSessionAdapter.kt               # implements GuestSessionPort
+        RedisGuestAccessThrottleAdapter.kt        # implements GuestAccessThrottlePort
+        GuestSessionRedisHash.kt                  # @RedisHash, legacy @TypeAlias
+        GuestSessionRedisRepository.kt
+        Sha256Hasher.kt
     external/
       auth/social/kakao/
         KakaoSocialLoginAdapter.java              # implements SocialLoginPort
@@ -428,10 +454,13 @@ global-support
 - 모든 `*Mapper`가 `infra.persistence.<aggregate>.mapper`에만 존재하는지 확인
 - Domain RepositoryPort가 명시된 Aggregate Root에만 대응하는지 확인
 - `InfraBaseConfig` marker javadoc이 `Marker for top-level infra bootstrap configurations`를 포함하는지 확인
-- top-level group config 4개가 `InfraBaseConfig`를 구현하는지 확인
+- top-level group config 5개가 `InfraBaseConfig`를 구현하는지 확인
 - support config 4개가 `InfraBaseConfig`를 구현하지 않는지 확인
 - `InfraModuleConfig.kt`가 존재하지 않는지 확인
 - `RedisCacheConfig`가 `@EnableCaching`, `CacheManager`, `@Bean`을 포함하지 않는지 확인
+- `AuthRedisConfig`가 auth Redis repository와 adapter만 좁게 등록하는지 확인
+- gateway에 Redis 의존성과 구현이 남지 않았는지 확인
+- auth Redis hash의 기존 `_class`, keyspace, TTL, index 호환성을 확인
 - `S3InfraConfig`가 `InfraBaseConfig`를 구현하지 않는지 확인
 
 ### infra-local tests
