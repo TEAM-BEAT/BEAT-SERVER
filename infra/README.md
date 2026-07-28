@@ -283,7 +283,7 @@ flowchart LR
 ### AUTH_REDIS
 
 `InfraBaseConfigGroup.AUTH_REDIS`는 `RefreshTokenPort`, `GuestSessionPort`, `GuestAccessThrottlePort`의 Redis adapter를 활성화합니다.
-Redis hash, Spring Data repository, Lua throttle script는 `infra.auth.redis` 내부에 두고 실행 모듈에는 `module-contracts` port만 노출합니다.
+Redis hash, Spring Data repository는 `infra.auth.redis`에 두고 Lua throttle script는 infra classpath resource로 관리합니다. 실행 모듈에는 `module-contracts` port만 노출합니다.
 기존 운영 hash의 `_class`에는 gateway 시절 FQCN이 저장되어 있으므로 `@TypeAlias`로 그 값을 유지합니다. keyspace, property path, TTL과 secondary index도 변경하지 않습니다.
 
 ---
@@ -418,6 +418,8 @@ infra/
         BaseTimeEntity.kt                         # @MappedSuperclass; auditing
       <context>/entity/
         <Context>JpaEntity.kt                     # 9개 context 전부 Kotlin
+  src/main/resources/redis/scripts/
+    record-guest-access-failure.lua               # INCR + 최초 EXPIRE 원자 실행
 ```
 
 ---

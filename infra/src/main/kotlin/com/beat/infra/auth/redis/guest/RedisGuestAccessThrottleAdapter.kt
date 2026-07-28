@@ -3,10 +3,11 @@ package com.beat.infra.auth.redis.guest
 import com.beat.contracts.auth.guest.GuestAccessThrottlePort
 import java.time.Duration
 import org.springframework.data.redis.core.StringRedisTemplate
-import org.springframework.data.redis.core.script.DefaultRedisScript
+import org.springframework.data.redis.core.script.RedisScript
 
 class RedisGuestAccessThrottleAdapter(
     private val redisTemplate: StringRedisTemplate,
+    private val recordGuestAccessFailureScript: RedisScript<Long>,
 ) : GuestAccessThrottlePort {
 
     override fun isBlocked(keyMaterial: String): Boolean {
@@ -16,7 +17,7 @@ class RedisGuestAccessThrottleAdapter(
 
     override fun recordFailure(keyMaterial: String) {
         redisTemplate.execute(
-            RECORD_FAILURE_SCRIPT,
+            recordGuestAccessFailureScript,
             listOf(key(keyMaterial)),
             WINDOW.toSeconds().toString(),
         )
@@ -32,13 +33,5 @@ class RedisGuestAccessThrottleAdapter(
         const val MAX_FAILURES = 5L
         val WINDOW: Duration = Duration.ofMinutes(10)
         const val KEY_PREFIX = "guest-access-failure:"
-
-        /** INCR과 EXPIRE를 원자적으로 수행해 window 유실을 방지한다. */
-        val RECORD_FAILURE_SCRIPT: DefaultRedisScript<Long> = DefaultRedisScript(
-            "local value = redis.call('INCR', KEYS[1]); " +
-                "if value == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]); end; " +
-                "return value;",
-            Long::class.java,
-        )
     }
 }

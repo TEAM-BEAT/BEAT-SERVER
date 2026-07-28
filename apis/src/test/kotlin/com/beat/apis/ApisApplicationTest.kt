@@ -26,6 +26,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
+import org.springframework.data.redis.core.script.RedisScript
 import org.springframework.scheduling.annotation.EnableScheduling
 import java.nio.file.Files
 import java.nio.file.Path
@@ -88,6 +89,9 @@ class ApisApplicationTest {
                 assertEquals(1, context.getBeansOfType(RefreshTokenPort::class.java).size)
                 assertEquals(1, context.getBeansOfType(GuestSessionPort::class.java).size)
                 assertEquals(1, context.getBeansOfType(GuestAccessThrottlePort::class.java).size)
+                val scripts = context.getBeansOfType(RedisScript::class.java)
+                assertEquals(1, scripts.size)
+                assertTrue(scripts.values.single().scriptAsString.contains("redis.call('INCR'"))
             }
     }
 
