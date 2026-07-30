@@ -145,7 +145,7 @@ export function setup() {
     throw new Error(`Load-test preflight failed with HTTP ${response.status}.`);
   }
 
-  const marker = response.json('ticketConfirmationLoadTest');
+  const marker = response.json('loadTest');
   if (marker?.enabled !== true || marker?.ticketConfirmationSmsEnabled !== false) {
     throw new Error('Server is not load-test ready or real confirmation SMS is enabled.');
   }

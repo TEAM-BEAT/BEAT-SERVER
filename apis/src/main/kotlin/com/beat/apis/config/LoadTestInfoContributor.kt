@@ -1,4 +1,4 @@
-package com.beat.apis.ticket.config
+package com.beat.apis.config
 
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.actuate.info.Info
@@ -12,13 +12,13 @@ import org.springframework.stereotype.Component
     name = ["enabled"],
     havingValue = "true",
 )
-class TicketConfirmationLoadTestInfoContributor(
+class LoadTestInfoContributor(
     @param:Value("\${beat.ticket.confirmation-sms.enabled:true}")
     private val ticketConfirmationSmsEnabled: Boolean,
 ) : InfoContributor {
     override fun contribute(builder: Info.Builder) {
         builder.withDetail(
-            "ticketConfirmationLoadTest",
+            "loadTest",
             mapOf(
                 "enabled" to true,
                 "ticketConfirmationSmsEnabled" to ticketConfirmationSmsEnabled,

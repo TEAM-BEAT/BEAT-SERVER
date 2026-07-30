@@ -1,6 +1,6 @@
 package com.beat.apis.ticket.application.event
 
-import com.beat.apis.ticket.config.TicketConfirmationLoadTestInfoContributor
+import com.beat.apis.config.LoadTestInfoContributor
 import com.beat.contracts.sms.SmsPort
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -38,12 +38,12 @@ class TicketPaymentConfirmedEventListenerConditionTest {
                 "beat.load-test.enabled=true",
                 "beat.ticket.confirmation-sms.enabled=false",
             ).run { context ->
-                val contributor = context.getBean(TicketConfirmationLoadTestInfoContributor::class.java)
+                val contributor = context.getBean(LoadTestInfoContributor::class.java)
                 val infoBuilder = Info.Builder()
 
                 contributor.contribute(infoBuilder)
 
-                assertThat(infoBuilder.build().details["ticketConfirmationLoadTest"])
+                assertThat(infoBuilder.build().details["loadTest"])
                     .isEqualTo(
                         mapOf(
                             "enabled" to true,
@@ -56,14 +56,14 @@ class TicketPaymentConfirmedEventListenerConditionTest {
     @Test
     fun `load test가 비활성화되면 marker를 등록하지 않는다`() {
         contextRunner.run { context ->
-            assertThat(context).doesNotHaveBean(TicketConfirmationLoadTestInfoContributor::class.java)
+            assertThat(context).doesNotHaveBean(LoadTestInfoContributor::class.java)
         }
     }
 
     @Configuration(proxyBeanMethods = false)
     @Import(
         TicketPaymentConfirmedEventListener::class,
-        TicketConfirmationLoadTestInfoContributor::class,
+        LoadTestInfoContributor::class,
     )
     class TestConfig {
         @Bean

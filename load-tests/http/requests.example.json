@@ -1,0 +1,20 @@
+[
+  {
+    "name": "health_check",
+    "method": "GET",
+    "path": "/api/v1/health",
+    "expectedStatuses": [200]
+  },
+  {
+    "name": "example_update",
+    "method": "PUT",
+    "path": "/api/example/1",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "status": "ACTIVE"
+    },
+    "expectedStatuses": [200]
+  }
+]
