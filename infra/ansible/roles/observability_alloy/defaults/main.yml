@@ -22,6 +22,7 @@ observability_alloy_cpus: "0.5"
 observability_alloy_enable_logs: false
 observability_alloy_enable_traces: false
 observability_alloy_enable_cadvisor: false
+observability_alloy_enable_k6_metrics: false
 
 # Scraping
 observability_alloy_scrape_interval: "30s"
@@ -33,6 +34,13 @@ observability_alloy_cluster: "beat-{{ deploy_environment }}"
 # OTLP receiver bind addresses (prod에서만 활성화됨)
 observability_alloy_otlp_grpc_addr: "0.0.0.0:4317"
 observability_alloy_otlp_http_addr: "0.0.0.0:4318"
+observability_alloy_k6_otlp_grpc_addr: "0.0.0.0:4327"
+
+# k6 OTLP metrics pipeline. Absolute limits protect the container cgroup budget.
+observability_alloy_k6_memory_limit: "192MiB"
+observability_alloy_k6_memory_spike_limit: "48MiB"
+observability_alloy_k6_batch_timeout: "1s"
+observability_alloy_k6_batch_size: 1000
 
 # Published ports — 호스트에 외부 노출 (default는 alloy UI만, prod override에서 OTLP 추가)
 observability_alloy_published_ports:

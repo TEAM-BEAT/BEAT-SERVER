@@ -64,6 +64,8 @@ modules:
     env:
       JAVA_TOOL_OPTIONS: "-Xms64m -Xmx256m -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=128m -XX:+UseG1GC -Daws.java.v1.disableDeprecationAnnouncement=true"
       MALLOC_ARENA_MAX: "2"
+      BEAT_LOAD_TEST_ENABLED: "true"
+      BEAT_TICKET_CONFIRMATION_SMS_ENABLED: "false"
     public_smoke_url: "https://{{ nginx_server_name }}/api/main"
     blue_container_name: apis-blue
     green_container_name: apis-green
@@ -101,9 +103,11 @@ observability_alloy_wal_truncate: "1h"
 observability_alloy_enable_logs: true
 observability_alloy_enable_traces: true
 observability_alloy_enable_cadvisor: false
+observability_alloy_enable_k6_metrics: true
 observability_alloy_published_ports:
   - "127.0.0.1:12345:12345"
   - "127.0.0.1:4317:4317"
   - "127.0.0.1:4318:4318"
+  - "127.0.0.1:4327:4327"
 
 letsencrypt_cron_enabled: true

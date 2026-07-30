@@ -3,12 +3,19 @@ package com.beat.apis.ticket.application.event
 import com.beat.contracts.sms.SmsMessage
 import com.beat.contracts.sms.SmsPort
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 import org.springframework.transaction.event.TransactionPhase
 import org.springframework.transaction.event.TransactionalEventListener
 
 @Component
+@ConditionalOnProperty(
+    prefix = "beat.ticket.confirmation-sms",
+    name = ["enabled"],
+    havingValue = "true",
+    matchIfMissing = true,
+)
 class TicketPaymentConfirmedEventListener(
     private val smsPort: SmsPort,
 ) {

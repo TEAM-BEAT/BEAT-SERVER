@@ -222,9 +222,46 @@ loki.write "gc" {
 }
 {% endif %}
 
+{% if observability_alloy_enable_k6_metrics %}
+// -----------------------------------------------------------------------------
+// 8. k6 OTLP metrics → Grafana Cloud Prometheus
+// -----------------------------------------------------------------------------
+otelcol.receiver.otlp "k6" {
+  grpc {
+    endpoint = "{{ observability_alloy_k6_otlp_grpc_addr }}"
+  }
+  output {
+    metrics = [otelcol.processor.memory_limiter.k6.input]
+  }
+}
+
+otelcol.processor.memory_limiter "k6" {
+  check_interval = "1s"
+  limit          = "{{ observability_alloy_k6_memory_limit }}"
+  spike_limit    = "{{ observability_alloy_k6_memory_spike_limit }}"
+
+  output {
+    metrics = [otelcol.processor.batch.k6.input]
+  }
+}
+
+otelcol.processor.batch "k6" {
+  timeout         = "{{ observability_alloy_k6_batch_timeout }}"
+  send_batch_size = {{ observability_alloy_k6_batch_size }}
+
+  output {
+    metrics = [otelcol.exporter.prometheus.k6.input]
+  }
+}
+
+otelcol.exporter.prometheus "k6" {
+  forward_to = [prometheus.remote_write.gc.receiver]
+}
+{% endif %}
+
 {% if observability_alloy_enable_traces %}
 // -----------------------------------------------------------------------------
-// 8. OTLP traces 수신 + tail sampling → Grafana Cloud Tempo (prod only)
+// 9. Application OTLP traces → tail sampling → Grafana Cloud Tempo
 // -----------------------------------------------------------------------------
 otelcol.receiver.otlp "apps" {
   grpc {
