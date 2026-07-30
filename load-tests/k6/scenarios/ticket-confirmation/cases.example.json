@@ -7,7 +7,7 @@
       {
         "bookingId": 1,
         "bookerName": null,
-        "bookerPhoneNumber": null,
+        "bookerPhoneNumber": "01000000000",
         "scheduleId": 1,
         "purchaseTicketCount": 1,
         "createdAt": "2026-07-30T00:00:00",

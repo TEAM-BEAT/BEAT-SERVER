@@ -132,12 +132,11 @@ function authorizationHeaders() {
 export function setup() {
   const response = http.get(preflightUrl, {
     headers: authorizationHeaders(),
-    responseType: 'text',
     tags: { name: 'load_test_preflight' },
     timeout: '5s',
   });
 
-  if (response.status !== 200 || response.json('loadTest.enabled') !== true) {
+  if (response.status !== Number(__ENV.PREFLIGHT_EXPECTED_STATUS || 200)) {
     throw new Error(`Load-test preflight failed with HTTP ${response.status}.`);
   }
 }

@@ -7,9 +7,8 @@ DB Job Queue 도입 전 기준선과 도입 후 `batch 1대 / worker concurrency
 
 - dev와 prod가 같은 RDS 인스턴스를 사용하므로 운영 피크 시간에는 실행하지 않습니다.
 - 기본값은 `1 RPS / 1분`이며, 이 결과로 RDS 최대 처리량을 판단하지 않습니다.
-- dev 배포는 `BEAT_TICKET_CONFIRMATION_SMS_ENABLED=false`로 실제 예매 확정 SMS를 비활성화합니다.
-  수동 SMS 검증을 위해 이 값을 켠 동안에는 부하 테스트를 실행하지 않습니다.
-- k6는 실행 전 dev Actuator `/info` marker에서 load-test 활성화와 SMS 비활성 상태를 검증합니다.
+- 이 시나리오는 실제 SMS provider 호출을 포함합니다. 승인된 합성 수신자만 사용합니다.
+- `TEST_RECIPIENT`와 모든 Booking의 `bookerPhoneNumber`가 다르면 실행 전에 중단합니다.
 - 각 iteration은 서로 다른 Booking을 사용해야 합니다. 같은 Booking을 재사용하면 실제 갱신 성능을 측정할 수 없습니다.
 - 합성 Booking만 사용하고 DB의 전화번호도 테스트 전용 값으로 준비합니다.
 - 실제 전화번호와 이름은 데이터 파일에 저장하지 않습니다.
@@ -22,14 +21,6 @@ DB Job Queue 도입 전 기준선과 도입 후 `batch 1대 / worker concurrency
 최소 `TARGET_RPS × DURATION(초)`개의 서로 겹치지 않는 요청이 있어야 합니다.
 각 Booking이 요청의 `performanceId`에 속하고 `CHECKING_PAYMENT` 상태인지 DB에서 사전 확인합니다.
 
-활성 apis 컨테이너에서도 SMS 비활성 설정을 확인합니다. 결과가 정확히 `false`가 아니면 실행하지 않습니다.
-
-```bash
-docker inspect ACTIVE_APIS_CONTAINER \
-  --format '{{range .Config.Env}}{{println .}}{{end}}' \
-  | grep '^BEAT_TICKET_CONFIRMATION_SMS_ENABLED=false$'
-```
-
 Alloy OTLP 포트는 서버 loopback에만 공개됩니다. 로컬 k6에서 dev 서버로 SSH tunnel을 엽니다.
 
 ```bash
@@ -41,7 +32,7 @@ ssh -N -L 4327:127.0.0.1:4327 ubuntu@DEV_HOST
 최신 k6 설치 후 별도 터미널에서 실행합니다.
 
 ```bash
-cd load-tests/booking-confirmation
+cd load-tests/k6/scenarios/ticket-confirmation
 
 TEST_ID="booking-$(date +%Y%m%d-%H%M%S)"
 
@@ -54,8 +45,10 @@ LOAD_TEST_ACK="shared-rds-dev" \
 TARGET_ENV="dev" \
 BASE_URL="https://DEV_API_HOST" \
 ALLOWED_DEV_ORIGIN="https://DEV_API_HOST" \
-PREFLIGHT_URL="https://DEV_API_HOST/DEV_ACTUATOR_PATH/info" \
+PREFLIGHT_URL="https://DEV_API_HOST/api/main" \
 ACCESS_TOKEN="${ACCESS_TOKEN}" \
+SMS_SIDE_EFFECT_ACK="synthetic-recipient-approved" \
+TEST_RECIPIENT="${TEST_RECIPIENT}" \
 DATA_FILE="./cases.json" \
 ITEM_COUNT="78" \
 TARGET_RPS="1" \
@@ -64,7 +57,7 @@ k6 run \
   --out opentelemetry \
   --tag test_id="${TEST_ID}" \
   --tag environment="dev" \
-  booking-confirmation.js
+  ticket-confirmation.js
 ```
 
 `1/10/78/100`건은 각각 별도 데이터 세트와 `ITEM_COUNT`로 실행합니다. RPS를 1보다 높이는 실험은

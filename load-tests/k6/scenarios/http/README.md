@@ -20,7 +20,7 @@ Alloy·Grafana 설정이나 애플리케이션 계측을 추가하지 않고 임
 Alloy SSH tunnel과 공통 안전 환경변수는 예매 확정 테스트와 동일합니다.
 
 ```bash
-cd load-tests/http
+cd load-tests/k6/scenarios/http
 
 TEST_ID="http-$(date +%Y%m%d-%H%M%S)"
 
@@ -33,7 +33,7 @@ LOAD_TEST_ACK="shared-rds-dev" \
 TARGET_ENV="dev" \
 BASE_URL="https://DEV_API_HOST" \
 ALLOWED_DEV_ORIGIN="https://DEV_API_HOST" \
-PREFLIGHT_URL="https://DEV_API_HOST/DEV_ACTUATOR_PATH/info" \
+PREFLIGHT_URL="https://DEV_API_HOST/api/main" \
 ACCESS_TOKEN="${ACCESS_TOKEN}" \
 REQUEST_FILE="./requests.json" \
 TARGET_RPS="1" \

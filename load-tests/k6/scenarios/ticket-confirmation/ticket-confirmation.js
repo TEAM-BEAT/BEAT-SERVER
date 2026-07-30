@@ -11,6 +11,7 @@ const targetRps = Number(__ENV.TARGET_RPS || 1);
 const duration = __ENV.DURATION || '1m';
 const expectedItemCount = Number(__ENV.ITEM_COUNT || 78);
 const maxSafeRps = Number(__ENV.MAX_SAFE_RPS || 1);
+const requiredSmsAcknowledgement = 'synthetic-recipient-approved';
 
 function durationInSeconds(value) {
   const match = /^(\d+)(s|m|h)$/.exec(value);
@@ -27,6 +28,11 @@ if (__ENV.LOAD_TEST_ACK !== requiredAcknowledgement) {
 }
 if (!__ENV.BASE_URL || !__ENV.ACCESS_TOKEN) {
   throw new Error('BASE_URL and ACCESS_TOKEN are required.');
+}
+if (__ENV.SMS_SIDE_EFFECT_ACK !== requiredSmsAcknowledgement || !__ENV.TEST_RECIPIENT) {
+  throw new Error(
+    `Set SMS_SIDE_EFFECT_ACK=${requiredSmsAcknowledgement} and TEST_RECIPIENT after approving provider traffic.`,
+  );
 }
 if (!__ENV.PREFLIGHT_URL) {
   throw new Error('PREFLIGHT_URL is required.');
@@ -89,6 +95,9 @@ cases.forEach((request, requestIndex) => {
     if (booking.bookingStatus !== 'BOOKING_CONFIRMED') {
       throw new Error(`bookingStatus must be BOOKING_CONFIRMED at bookingId=${booking.bookingId}.`);
     }
+    if (booking.bookerPhoneNumber !== __ENV.TEST_RECIPIENT) {
+      throw new Error(`Only TEST_RECIPIENT is allowed at bookingId=${booking.bookingId}.`);
+    }
     if (bookingIds.has(booking.bookingId)) {
       throw new Error(`Duplicate bookingId=${booking.bookingId} across the data set.`);
     }
@@ -134,7 +143,6 @@ export function setup() {
     headers: {
       Authorization: `Bearer ${__ENV.ACCESS_TOKEN}`,
     },
-    responseType: 'text',
     tags: {
       name: 'load_test_preflight',
     },
@@ -145,10 +153,6 @@ export function setup() {
     throw new Error(`Load-test preflight failed with HTTP ${response.status}.`);
   }
 
-  const marker = response.json('loadTest');
-  if (marker?.enabled !== true || marker?.ticketConfirmationSmsEnabled !== false) {
-    throw new Error('Server is not load-test ready or real confirmation SMS is enabled.');
-  }
 }
 
 export default function () {
