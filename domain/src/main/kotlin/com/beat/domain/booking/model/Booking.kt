@@ -132,6 +132,33 @@ class Booking private constructor(
         else -> throw DomainException(BookingErrorCode.DELETION_NOT_ALLOWED)
     }
 
+    fun deleteByMaker(deletedAt: LocalDateTime): Booking =
+        if (isFreeBooking()) {
+            deleteFreeBookingByMaker(deletedAt)
+        } else {
+            deletePaidBookingByMaker(deletedAt)
+        }
+
+    private fun deleteFreeBookingByMaker(deletedAt: LocalDateTime): Booking = when (bookingStatus) {
+        BookingStatus.CHECKING_PAYMENT,
+        BookingStatus.BOOKING_CONFIRMED,
+        -> cancelUnpaidOrFree(deletedAt).delete()
+        BookingStatus.BOOKING_CANCELLED,
+        BookingStatus.BOOKING_DELETED,
+        -> delete()
+        BookingStatus.REFUND_REQUESTED -> throw DomainException(BookingErrorCode.DELETION_NOT_ALLOWED)
+    }
+
+    private fun deletePaidBookingByMaker(deletedAt: LocalDateTime): Booking = when (bookingStatus) {
+        BookingStatus.CHECKING_PAYMENT -> cancelUnpaidOrFree(deletedAt).delete()
+        BookingStatus.BOOKING_CANCELLED,
+        BookingStatus.BOOKING_DELETED,
+        -> delete()
+        BookingStatus.BOOKING_CONFIRMED,
+        BookingStatus.REFUND_REQUESTED,
+        -> throw DomainException(BookingErrorCode.DELETION_NOT_ALLOWED)
+    }
+
     private fun isFreeBooking(): Boolean = totalPaymentAmount == 0
 
     private fun withState(

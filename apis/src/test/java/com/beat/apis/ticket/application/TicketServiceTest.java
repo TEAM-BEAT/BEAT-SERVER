@@ -269,20 +269,43 @@ class TicketServiceTest {
 	}
 
 	@Test
-	void deletionRejectsCheckingPaymentBookingWithoutReleasingInventory() {
+	void deletionCancelsCheckingPaymentBookingAndReleasesInventory() {
 		Booking booking = booking(BookingStatus.CHECKING_PAYMENT);
 		stubOwnedTicketUpdate(booking);
+		when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(scheduleRepository.save(any(Schedule.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-		DomainException exception = assertThrows(DomainException.class, () ->
-			ticketCommandService.deleteTicketsByBookingIds(
-				1L,
-				TicketBookingIdsCommand.of(100L, List.of(300L))
-			)
+		ticketCommandService.deleteTicketsByBookingIds(
+			1L,
+			TicketBookingIdsCommand.of(100L, List.of(300L))
 		);
 
-		assertEquals(BookingErrorCode.DELETION_NOT_ALLOWED, exception.getErrorCode());
-		verify(bookingRepository, never()).save(any());
-		verify(scheduleRepository, never()).save(any());
+		ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
+		ArgumentCaptor<Schedule> scheduleCaptor = ArgumentCaptor.forClass(Schedule.class);
+		verify(bookingRepository).save(bookingCaptor.capture());
+		verify(scheduleRepository).save(scheduleCaptor.capture());
+		assertEquals(BookingStatus.BOOKING_DELETED, bookingCaptor.getValue().getBookingStatus());
+		assertEquals(0, scheduleCaptor.getValue().getAllocatedTicketCount());
+	}
+
+	@Test
+	void deletionCancelsConfirmedFreeBookingAndReleasesInventory() {
+		Booking booking = booking(BookingStatus.BOOKING_CONFIRMED, 0);
+		stubOwnedTicketUpdate(booking);
+		when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(scheduleRepository.save(any(Schedule.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		ticketCommandService.deleteTicketsByBookingIds(
+			1L,
+			TicketBookingIdsCommand.of(100L, List.of(300L))
+		);
+
+		ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
+		ArgumentCaptor<Schedule> scheduleCaptor = ArgumentCaptor.forClass(Schedule.class);
+		verify(bookingRepository).save(bookingCaptor.capture());
+		verify(scheduleRepository).save(scheduleCaptor.capture());
+		assertEquals(BookingStatus.BOOKING_DELETED, bookingCaptor.getValue().getBookingStatus());
+		assertEquals(0, scheduleCaptor.getValue().getAllocatedTicketCount());
 	}
 
 	@Test
@@ -427,9 +450,14 @@ class TicketServiceTest {
 	}
 
 	private Booking booking(BookingStatus status) {
+		return booking(status, null);
+	}
+
+	private Booking booking(BookingStatus status, Integer totalPaymentAmount) {
 		return Booking.rehydrate(
 			300L, 1, "booker", "010-0000-0000", status,
-			LocalDateTime.of(2026, 1, 1, 12, 0), null, null, null, null, 200L, 20L);
+			LocalDateTime.of(2026, 1, 1, 12, 0), null, null, null, null, 200L, 20L,
+			totalPaymentAmount);
 	}
 
 	private TicketStatusUpdate ticketDetail(BookingStatusType status) {

@@ -41,7 +41,7 @@ class TicketFacadeTest {
 		List<ScheduleNumberType> scheduleNumbers = List.of(ScheduleNumberType.FIRST);
 		List<BookingStatusType> bookingStatuses = List.of(BookingStatusType.CHECKING_PAYMENT);
 		TicketListQuery query = new TicketListQuery(null, List.of("FIRST"), List.of("CHECKING_PAYMENT"));
-		TicketRetrieveResult expected = new TicketRetrieveResult("title", "team", 1, 100, 10, List.of());
+		TicketRetrieveResult expected = new TicketRetrieveResult("title", "team", 10000, 1, 100, 10, List.of());
 		when(ticketQueryService.findAllTicketsByConditions(memberId, performanceId, query))
 			.thenReturn(expected);
 
@@ -58,7 +58,7 @@ class TicketFacadeTest {
 		List<ScheduleNumberType> scheduleNumbers = List.of(ScheduleNumberType.FIRST);
 		List<BookingStatusType> bookingStatuses = List.of(BookingStatusType.CHECKING_PAYMENT);
 		TicketListQuery query = new TicketListQuery(searchWord, List.of("FIRST"), List.of("CHECKING_PAYMENT"));
-		TicketRetrieveResult expected = new TicketRetrieveResult("title", "team", 1, 100, 10, List.of());
+		TicketRetrieveResult expected = new TicketRetrieveResult("title", "team", 10000, 1, 100, 10, List.of());
 		when(ticketQueryService.searchAllTicketsByConditions(memberId, performanceId, query)).thenReturn(expected);
 
 		ticketFacade.searchTickets(memberId, performanceId, searchWord, scheduleNumbers, bookingStatuses);

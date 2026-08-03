@@ -6,6 +6,7 @@ import com.beat.apis.ticket.application.result.TicketRetrieveResult
 data class TicketRetrieveResponse private constructor(
     val performanceTitle: String?,
     val performanceTeamName: String?,
+    val ticketPrice: Int,
     val totalScheduleCount: Int,
     val totalPerformanceTicketCount: Int,
     val totalPerformanceSoldTicketCount: Int,
@@ -15,6 +16,7 @@ data class TicketRetrieveResponse private constructor(
         fun from(result: TicketRetrieveResult): TicketRetrieveResponse = TicketRetrieveResponse(
             performanceTitle = result.performanceTitle,
             performanceTeamName = result.performanceTeamName,
+            ticketPrice = result.ticketPrice,
             totalScheduleCount = result.totalScheduleCount,
             totalPerformanceTicketCount = result.totalPerformanceTicketCount,
             totalPerformanceSoldTicketCount = result.totalPerformanceSoldTicketCount,

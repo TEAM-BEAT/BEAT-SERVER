@@ -5,6 +5,7 @@ import java.time.LocalDateTime
 data class TicketRetrieveResult(
     val performanceTitle: String?,
     val performanceTeamName: String?,
+    val ticketPrice: Int,
     val totalScheduleCount: Int,
     val totalPerformanceTicketCount: Int,
     val totalPerformanceSoldTicketCount: Int,
