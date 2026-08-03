@@ -27,6 +27,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import com.beat.apis.ticket.exception.TicketApplicationErrorCode;
 import com.beat.apis.ticket.application.command.TicketBookingStatus;
 import com.beat.apis.ticket.application.command.TicketStatusUpdate;
+import com.beat.apis.ticket.application.command.TicketBookingIdsCommand;
 import com.beat.apis.ticket.application.command.TicketUpdateCommand;
 import com.beat.apis.ticket.application.event.TicketPaymentConfirmedEvent;
 import com.beat.apis.schedule.exception.ScheduleApplicationErrorCode;
@@ -228,6 +229,43 @@ class TicketServiceTest {
 
 		assertEquals(TicketApplicationErrorCode.DUPLICATE_BOOKING_ID, exception.getErrorCode());
 		verifyNoDependencyInteractions();
+	}
+
+	@Test
+	void refundCompletionReleasesInventoryForRefundRequestedBooking() {
+		Booking booking = booking(BookingStatus.REFUND_REQUESTED);
+		stubOwnedTicketUpdate(booking);
+		when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(scheduleRepository.save(any(Schedule.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		ticketCommandService.refundTicketsByBookingIds(
+			1L,
+			TicketBookingIdsCommand.of(100L, List.of(300L))
+		);
+
+		ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
+		ArgumentCaptor<Schedule> scheduleCaptor = ArgumentCaptor.forClass(Schedule.class);
+		verify(bookingRepository).save(bookingCaptor.capture());
+		verify(scheduleRepository).save(scheduleCaptor.capture());
+		assertEquals(BookingStatus.BOOKING_CANCELLED, bookingCaptor.getValue().getBookingStatus());
+		assertEquals(0, scheduleCaptor.getValue().getAllocatedTicketCount());
+	}
+
+	@Test
+	void refundCompletionRejectsConfirmedBookingWithoutReleasingInventory() {
+		Booking confirmed = booking(BookingStatus.BOOKING_CONFIRMED);
+		stubOwnedTicketUpdate(confirmed);
+
+		DomainException exception = assertThrows(DomainException.class, () ->
+			ticketCommandService.refundTicketsByBookingIds(
+				1L,
+				TicketBookingIdsCommand.of(100L, List.of(300L))
+			)
+		);
+
+		assertEquals(BookingErrorCode.REFUND_COMPLETION_NOT_ALLOWED, exception.getErrorCode());
+		verify(bookingRepository, never()).save(any());
+		verify(scheduleRepository, never()).save(any());
 	}
 
 	@Test

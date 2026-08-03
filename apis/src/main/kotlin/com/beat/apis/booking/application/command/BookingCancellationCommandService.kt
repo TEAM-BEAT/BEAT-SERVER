@@ -60,7 +60,7 @@ class BookingCancellationCommandService(
         }
 
         val shouldReleaseTickets = booking.hasActiveTicketAllocation()
-        booking = bookingRepository.save(booking.cancel(LocalDateTime.now(clock)))
+        booking = bookingRepository.save(booking.cancelUnpaidOrFree(LocalDateTime.now(clock)))
         if (shouldReleaseTickets) {
             val schedule = lockedSchedule
                 ?: throw ApiApplicationException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND)

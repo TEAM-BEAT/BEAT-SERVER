@@ -87,6 +87,7 @@ class Booking private constructor(
     }
 
     fun requestRefund(refundAccount: RefundAccount): Booking = when (bookingStatus) {
+        BookingStatus.CHECKING_PAYMENT,
         BookingStatus.BOOKING_CONFIRMED ->
             withState(refundAccount = refundAccount, bookingStatus = BookingStatus.REFUND_REQUESTED)
         BookingStatus.REFUND_REQUESTED -> {
@@ -99,11 +100,18 @@ class Booking private constructor(
         else -> throw DomainException(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED)
     }
 
-    fun cancel(cancelledAt: LocalDateTime): Booking {
-        if (!hasActiveTicketAllocation()) {
-            return this
-        }
-        return withState(bookingStatus = BookingStatus.BOOKING_CANCELLED, cancellationDate = cancelledAt)
+    fun cancelUnpaidOrFree(cancelledAt: LocalDateTime): Booking = when (bookingStatus) {
+        BookingStatus.CHECKING_PAYMENT ->
+            withState(bookingStatus = BookingStatus.BOOKING_CANCELLED, cancellationDate = cancelledAt)
+        BookingStatus.BOOKING_CANCELLED -> this
+        else -> throw DomainException(BookingErrorCode.CANCELLATION_NOT_ALLOWED)
+    }
+
+    fun completeRefund(completedAt: LocalDateTime): Booking = when (bookingStatus) {
+        BookingStatus.REFUND_REQUESTED ->
+            withState(bookingStatus = BookingStatus.BOOKING_CANCELLED, cancellationDate = completedAt)
+        BookingStatus.BOOKING_CANCELLED -> this
+        else -> throw DomainException(BookingErrorCode.REFUND_COMPLETION_NOT_ALLOWED)
     }
 
     fun delete(deletedAt: LocalDateTime): Booking = when (bookingStatus) {
@@ -221,6 +229,9 @@ class Booking private constructor(
             if (purchaseTicketCount <= 0) {
                 throw DomainException(BookingErrorCode.INVALID_PURCHASE_TICKET_COUNT)
             }
+            if (purchaseTicketCount > MAX_PURCHASE_TICKET_COUNT) {
+                throw DomainException(BookingErrorCode.PURCHASE_TICKET_COUNT_EXCEEDED)
+            }
         }
 
         private fun validateTotalPaymentAmount(totalPaymentAmount: Int?) {
@@ -228,5 +239,7 @@ class Booking private constructor(
                 throw DomainException(BookingErrorCode.NEGATIVE_TOTAL_PAYMENT_AMOUNT)
             }
         }
+
+        private const val MAX_PURCHASE_TICKET_COUNT = 10
     }
 }

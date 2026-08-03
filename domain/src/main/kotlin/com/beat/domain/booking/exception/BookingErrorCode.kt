@@ -13,6 +13,11 @@ enum class BookingErrorCode(
         DomainErrorType.INVALID_INPUT,
         "구매 티켓 수량은 1개 이상이어야 합니다.",
     ),
+    PURCHASE_TICKET_COUNT_EXCEEDED(
+        "BOOKING_PURCHASE_TICKET_COUNT_EXCEEDED",
+        DomainErrorType.INVALID_INPUT,
+        "구매 티켓 수량은 최대 10개까지 가능합니다.",
+    ),
     NEGATIVE_TOTAL_PAYMENT_AMOUNT(
         "BOOKING_NEGATIVE_TOTAL_PAYMENT_AMOUNT",
         DomainErrorType.INVALID_INPUT,
@@ -42,6 +47,16 @@ enum class BookingErrorCode(
         "BOOKING_REFUND_REQUEST_NOT_ALLOWED",
         DomainErrorType.STATE_CONFLICT,
         "현재 예매 상태에서는 환불을 요청할 수 없습니다.",
+    ),
+    CANCELLATION_NOT_ALLOWED(
+        "BOOKING_CANCELLATION_NOT_ALLOWED",
+        DomainErrorType.STATE_CONFLICT,
+        "현재 예매 상태에서는 일반 취소를 요청할 수 없습니다.",
+    ),
+    REFUND_COMPLETION_NOT_ALLOWED(
+        "BOOKING_REFUND_COMPLETION_NOT_ALLOWED",
+        DomainErrorType.STATE_CONFLICT,
+        "현재 예매 상태에서는 환불을 완료할 수 없습니다.",
     ),
     ;
 }

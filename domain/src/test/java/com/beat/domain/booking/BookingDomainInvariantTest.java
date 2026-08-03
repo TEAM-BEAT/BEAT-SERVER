@@ -38,6 +38,19 @@ class BookingDomainInvariantTest {
 	}
 
 	@Test
+	void createAcceptsOneToTenTicketsAndRejectsMoreThanTen() {
+		Booking minimum = booking(1);
+		Booking maximum = booking(10);
+		DomainException exception = assertThrows(DomainException.class, () -> booking(11));
+
+		assertAll(
+			() -> assertEquals(1, minimum.getPurchaseTicketCount()),
+			() -> assertEquals(10, maximum.getPurchaseTicketCount()),
+			() -> assertEquals(BookingErrorCode.PURCHASE_TICKET_COUNT_EXCEEDED, exception.getErrorCode())
+		);
+	}
+
+	@Test
 	void toStringDoesNotExposeGuestPersonalOrAuthenticationData() {
 		Booking booking = Booking.create(
 			1,
@@ -150,7 +163,7 @@ class BookingDomainInvariantTest {
 			createdAt
 		);
 
-		Booking updated = booking.cancel(cancelledAt);
+		Booking updated = booking.cancelUnpaidOrFree(cancelledAt);
 
 		assertAll(
 			() -> assertNotSame(booking, updated),
@@ -244,10 +257,11 @@ class BookingDomainInvariantTest {
 	void confirmPaymentIsIdempotentAndRejectsTerminalStatus() {
 		Booking booking = booking();
 		Booking confirmed = booking.confirmPayment();
+		Booking cancelled = booking.cancelUnpaidOrFree(LocalDateTime.of(2026, 1, 2, 12, 0));
 
 		assertSame(confirmed, confirmed.confirmPayment());
 		DomainException exception = assertThrows(DomainException.class,
-			() -> confirmed.cancel(LocalDateTime.of(2026, 1, 2, 12, 0)).confirmPayment());
+			cancelled::confirmPayment);
 		assertEquals(BookingErrorCode.PAYMENT_CONFIRMATION_NOT_ALLOWED, exception.getErrorCode());
 	}
 
@@ -255,15 +269,52 @@ class BookingDomainInvariantTest {
 	void requestRefundIsIdempotentOnlyForSameAccount() {
 		Booking booking = booking();
 		RefundAccount account = RefundAccount.of(BankName.NH_NONGHYUP, "123-456", "holder");
-		Booking requested = booking.confirmPayment().requestRefund(account);
+		Booking requested = booking.requestRefund(account);
 
 		assertSame(requested, requested.requestRefund(account));
 		DomainException accountChange = assertThrows(DomainException.class,
 			() -> requested.requestRefund(RefundAccount.of(BankName.KAKAOBANK, "999", "other")));
-		DomainException unconfirmed = assertThrows(DomainException.class, () -> booking.requestRefund(account));
 		assertAll(
-			() -> assertEquals(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED, accountChange.getErrorCode()),
-			() -> assertEquals(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED, unconfirmed.getErrorCode())
+			() -> assertEquals(BookingStatus.REFUND_REQUESTED, requested.getBookingStatus()),
+			() -> assertEquals(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED, accountChange.getErrorCode())
+		);
+	}
+
+	@Test
+	void generalCancellationRejectsConfirmedAndRefundRequestedBookings() {
+		Booking confirmed = booking().confirmPayment();
+		Booking refundRequested = confirmed.requestRefund(
+			RefundAccount.of(BankName.NH_NONGHYUP, "123-456", "holder")
+		);
+
+		DomainException confirmedError = assertThrows(DomainException.class,
+			() -> confirmed.cancelUnpaidOrFree(LocalDateTime.of(2026, 1, 2, 12, 0)));
+		DomainException refundError = assertThrows(DomainException.class,
+			() -> refundRequested.cancelUnpaidOrFree(LocalDateTime.of(2026, 1, 2, 12, 0)));
+
+		assertAll(
+			() -> assertEquals(BookingErrorCode.CANCELLATION_NOT_ALLOWED, confirmedError.getErrorCode()),
+			() -> assertEquals(BookingErrorCode.CANCELLATION_NOT_ALLOWED, refundError.getErrorCode())
+		);
+	}
+
+	@Test
+	void refundCompletionOnlyAcceptsRefundRequestedBookingAndIsIdempotent() {
+		LocalDateTime completedAt = LocalDateTime.of(2026, 1, 2, 12, 0);
+		Booking confirmed = booking().confirmPayment();
+		Booking requested = confirmed.requestRefund(
+			RefundAccount.of(BankName.NH_NONGHYUP, "123-456", "holder")
+		);
+
+		Booking completed = requested.completeRefund(completedAt);
+		DomainException error = assertThrows(DomainException.class,
+			() -> confirmed.completeRefund(completedAt));
+
+		assertAll(
+			() -> assertEquals(BookingStatus.BOOKING_CANCELLED, completed.getBookingStatus()),
+			() -> assertEquals(completedAt, completed.getCancellationDate()),
+			() -> assertSame(completed, completed.completeRefund(completedAt.plusDays(1))),
+			() -> assertEquals(BookingErrorCode.REFUND_COMPLETION_NOT_ALLOWED, error.getErrorCode())
 		);
 	}
 
@@ -273,8 +324,8 @@ class BookingDomainInvariantTest {
 		LocalDateTime cancelledAt = LocalDateTime.of(2026, 1, 2, 12, 0);
 		Booking booking = Booking.create(1, "booker", "010-1234-5678", "990101", "1234", 2L, 3L, createdAt);
 
-		Booking cancelled = booking.cancel(cancelledAt);
-		Booking repeated = cancelled.cancel(cancelledAt.plusDays(1));
+		Booking cancelled = booking.cancelUnpaidOrFree(cancelledAt);
+		Booking repeated = cancelled.cancelUnpaidOrFree(cancelledAt.plusDays(1));
 
 		assertAll(
 			() -> assertEquals(cancelled, repeated),
@@ -293,8 +344,12 @@ class BookingDomainInvariantTest {
 	}
 
 	private Booking booking() {
+		return booking(1);
+	}
+
+	private Booking booking(int purchaseTicketCount) {
 		return Booking.create(
-			1,
+			purchaseTicketCount,
 			"booker",
 			"010-1234-5678",
 			"990101",
