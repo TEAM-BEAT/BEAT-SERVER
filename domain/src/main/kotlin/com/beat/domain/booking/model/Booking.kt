@@ -126,11 +126,9 @@ class Booking private constructor(
         else -> throw DomainException(BookingErrorCode.REFUND_COMPLETION_NOT_ALLOWED)
     }
 
-    fun delete(deletedAt: LocalDateTime): Booking = when (bookingStatus) {
+    fun delete(): Booking = when (bookingStatus) {
         BookingStatus.BOOKING_DELETED -> this
         BookingStatus.BOOKING_CANCELLED -> withState(bookingStatus = BookingStatus.BOOKING_DELETED)
-        BookingStatus.CHECKING_PAYMENT ->
-            withState(bookingStatus = BookingStatus.BOOKING_DELETED, cancellationDate = deletedAt)
         else -> throw DomainException(BookingErrorCode.DELETION_NOT_ALLOWED)
     }
 

@@ -215,7 +215,7 @@ class BookingDomainInvariantTest {
 			3L
 		);
 
-		Booking updated = booking.delete(LocalDateTime.of(2026, 1, 3, 12, 0));
+		Booking updated = booking.delete();
 
 		assertAll(
 			() -> assertNotSame(booking, updated),
@@ -225,26 +225,29 @@ class BookingDomainInvariantTest {
 	}
 
 	@Test
-	void deleteOnlyAcceptsCheckingPaymentCancelledAndDeletedBookings() {
+	void deleteOnlyAcceptsCancelledAndDeletedBookings() {
 		LocalDateTime deletedAt = LocalDateTime.of(2026, 1, 2, 12, 0);
 		Booking checking = booking();
 		Booking cancelled = checking.cancelUnpaidOrFree(deletedAt.minusHours(1));
-		Booking deleted = checking.delete(deletedAt);
+		Booking deleted = cancelled.delete();
 		Booking confirmed = checking.confirmPayment();
 		Booking refundRequested = confirmed.requestRefund(
 			RefundAccount.of(BankName.NH_NONGHYUP, "123-456", "holder")
 		);
 
+		DomainException checkingError = assertThrows(DomainException.class,
+			() -> checking.delete());
 		DomainException confirmedError = assertThrows(DomainException.class,
-			() -> confirmed.delete(deletedAt));
+			() -> confirmed.delete());
 		DomainException refundError = assertThrows(DomainException.class,
-			() -> refundRequested.delete(deletedAt));
+			() -> refundRequested.delete());
 
 		assertAll(
 			() -> assertEquals(BookingStatus.BOOKING_DELETED, deleted.getBookingStatus()),
-			() -> assertEquals(deletedAt, deleted.getCancellationDate()),
-			() -> assertEquals(BookingStatus.BOOKING_DELETED, cancelled.delete(deletedAt).getBookingStatus()),
-			() -> assertSame(deleted, deleted.delete(deletedAt.plusDays(1))),
+			() -> assertEquals(deletedAt.minusHours(1), deleted.getCancellationDate()),
+			() -> assertEquals(BookingStatus.BOOKING_DELETED, cancelled.delete().getBookingStatus()),
+			() -> assertSame(deleted, deleted.delete()),
+			() -> assertEquals(BookingErrorCode.DELETION_NOT_ALLOWED, checkingError.getErrorCode()),
 			() -> assertEquals(BookingErrorCode.DELETION_NOT_ALLOWED, confirmedError.getErrorCode()),
 			() -> assertEquals(BookingErrorCode.DELETION_NOT_ALLOWED, refundError.getErrorCode())
 		);

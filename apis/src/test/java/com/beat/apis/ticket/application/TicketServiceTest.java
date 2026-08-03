@@ -269,23 +269,20 @@ class TicketServiceTest {
 	}
 
 	@Test
-	void deletionReleasesInventoryForCheckingPaymentBooking() {
+	void deletionRejectsCheckingPaymentBookingWithoutReleasingInventory() {
 		Booking booking = booking(BookingStatus.CHECKING_PAYMENT);
 		stubOwnedTicketUpdate(booking);
-		when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
-		when(scheduleRepository.save(any(Schedule.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-		ticketCommandService.deleteTicketsByBookingIds(
-			1L,
-			TicketBookingIdsCommand.of(100L, List.of(300L))
+		DomainException exception = assertThrows(DomainException.class, () ->
+			ticketCommandService.deleteTicketsByBookingIds(
+				1L,
+				TicketBookingIdsCommand.of(100L, List.of(300L))
+			)
 		);
 
-		ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
-		ArgumentCaptor<Schedule> scheduleCaptor = ArgumentCaptor.forClass(Schedule.class);
-		verify(bookingRepository).save(bookingCaptor.capture());
-		verify(scheduleRepository).save(scheduleCaptor.capture());
-		assertEquals(BookingStatus.BOOKING_DELETED, bookingCaptor.getValue().getBookingStatus());
-		assertEquals(0, scheduleCaptor.getValue().getAllocatedTicketCount());
+		assertEquals(BookingErrorCode.DELETION_NOT_ALLOWED, exception.getErrorCode());
+		verify(bookingRepository, never()).save(any());
+		verify(scheduleRepository, never()).save(any());
 	}
 
 	@Test
