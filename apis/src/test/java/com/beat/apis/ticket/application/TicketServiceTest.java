@@ -269,6 +269,92 @@ class TicketServiceTest {
 	}
 
 	@Test
+	void deletionReleasesInventoryForCheckingPaymentBooking() {
+		Booking booking = booking(BookingStatus.CHECKING_PAYMENT);
+		stubOwnedTicketUpdate(booking);
+		when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(scheduleRepository.save(any(Schedule.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		ticketCommandService.deleteTicketsByBookingIds(
+			1L,
+			TicketBookingIdsCommand.of(100L, List.of(300L))
+		);
+
+		ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
+		ArgumentCaptor<Schedule> scheduleCaptor = ArgumentCaptor.forClass(Schedule.class);
+		verify(bookingRepository).save(bookingCaptor.capture());
+		verify(scheduleRepository).save(scheduleCaptor.capture());
+		assertEquals(BookingStatus.BOOKING_DELETED, bookingCaptor.getValue().getBookingStatus());
+		assertEquals(0, scheduleCaptor.getValue().getAllocatedTicketCount());
+	}
+
+	@Test
+	void deletionDoesNotReleaseInventoryAgainForCancelledBooking() {
+		Booking booking = booking(BookingStatus.BOOKING_CANCELLED);
+		stubOwnedTicketUpdate(booking);
+		when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		ticketCommandService.deleteTicketsByBookingIds(
+			1L,
+			TicketBookingIdsCommand.of(100L, List.of(300L))
+		);
+
+		ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
+		verify(bookingRepository).save(bookingCaptor.capture());
+		verify(scheduleRepository, never()).save(any());
+		assertEquals(BookingStatus.BOOKING_DELETED, bookingCaptor.getValue().getBookingStatus());
+	}
+
+	@Test
+	void deletionIsIdempotentWithoutReleasingInventoryForDeletedBooking() {
+		Booking booking = booking(BookingStatus.BOOKING_DELETED);
+		stubOwnedTicketUpdate(booking);
+		when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		ticketCommandService.deleteTicketsByBookingIds(
+			1L,
+			TicketBookingIdsCommand.of(100L, List.of(300L))
+		);
+
+		verify(bookingRepository).save(booking);
+		verify(scheduleRepository, never()).save(any());
+	}
+
+	@Test
+	void deletionRejectsConfirmedBookingWithoutReleasingInventory() {
+		Booking confirmed = booking(BookingStatus.BOOKING_CONFIRMED);
+		stubOwnedTicketUpdate(confirmed);
+
+		DomainException confirmedError = assertThrows(DomainException.class, () ->
+			ticketCommandService.deleteTicketsByBookingIds(
+				1L,
+				TicketBookingIdsCommand.of(100L, List.of(300L))
+			)
+		);
+
+		assertEquals(BookingErrorCode.DELETION_NOT_ALLOWED, confirmedError.getErrorCode());
+		verify(bookingRepository, never()).save(any());
+		verify(scheduleRepository, never()).save(any());
+	}
+
+	@Test
+	void deletionRejectsRefundRequestedBookingWithoutReleasingInventory() {
+		Booking refundRequested = booking(BookingStatus.REFUND_REQUESTED);
+		stubOwnedTicketUpdate(refundRequested);
+
+		DomainException refundError = assertThrows(DomainException.class, () ->
+			ticketCommandService.deleteTicketsByBookingIds(
+				1L,
+				TicketBookingIdsCommand.of(100L, List.of(300L))
+			)
+		);
+
+		assertEquals(BookingErrorCode.DELETION_NOT_ALLOWED, refundError.getErrorCode());
+		verify(bookingRepository, never()).save(any());
+		verify(scheduleRepository, never()).save(any());
+	}
+
+	@Test
 	void searchAllTicketsByConditionsRejectsNullSearchWord() {
 		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () ->
 			ticketQueryService.searchAllTicketsByConditions(1L, 100L, new TicketListQuery(null, List.of(), List.of())));

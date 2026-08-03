@@ -58,5 +58,10 @@ enum class BookingErrorCode(
         DomainErrorType.STATE_CONFLICT,
         "현재 예매 상태에서는 환불을 완료할 수 없습니다.",
     ),
+    DELETION_NOT_ALLOWED(
+        "BOOKING_DELETION_NOT_ALLOWED",
+        DomainErrorType.STATE_CONFLICT,
+        "현재 예매 상태에서는 예매를 삭제할 수 없습니다.",
+    ),
     ;
 }

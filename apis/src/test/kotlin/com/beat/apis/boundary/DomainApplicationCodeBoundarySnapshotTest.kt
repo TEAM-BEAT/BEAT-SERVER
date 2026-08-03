@@ -156,6 +156,7 @@ class DomainApplicationCodeBoundarySnapshotTest {
                 "REFUND_REQUEST_NOT_ALLOWED",
                 "CANCELLATION_NOT_ALLOWED",
                 "REFUND_COMPLETION_NOT_ALLOWED",
+                "DELETION_NOT_ALLOWED",
             ),
             BookingErrorCode.entries.map { it.name },
         )

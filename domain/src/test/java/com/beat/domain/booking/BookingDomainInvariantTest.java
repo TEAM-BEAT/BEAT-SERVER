@@ -51,6 +51,28 @@ class BookingDomainInvariantTest {
 	}
 
 	@Test
+	void createConfirmsFreeBookingAndLeavesPaidBookingCheckingPayment() {
+		Booking free = Booking.create(
+			1, "booker", "010-1234-5678", null, null, 2L, 3L,
+			LocalDateTime.of(2026, 1, 1, 12, 0), 0
+		);
+		Booking paid = Booking.create(
+			1, "booker", "010-1234-5678", null, null, 2L, 3L,
+			LocalDateTime.of(2026, 1, 1, 12, 0), 10000
+		);
+		Booking paymentAmountUnknown = Booking.create(
+			1, "booker", "010-1234-5678", null, null, 2L, 3L,
+			LocalDateTime.of(2026, 1, 1, 12, 0), null
+		);
+
+		assertAll(
+			() -> assertEquals(BookingStatus.BOOKING_CONFIRMED, free.getBookingStatus()),
+			() -> assertEquals(BookingStatus.CHECKING_PAYMENT, paid.getBookingStatus()),
+			() -> assertEquals(BookingStatus.CHECKING_PAYMENT, paymentAmountUnknown.getBookingStatus())
+		);
+	}
+
+	@Test
 	void toStringDoesNotExposeGuestPersonalOrAuthenticationData() {
 		Booking booking = Booking.create(
 			1,
@@ -203,6 +225,32 @@ class BookingDomainInvariantTest {
 	}
 
 	@Test
+	void deleteOnlyAcceptsCheckingPaymentCancelledAndDeletedBookings() {
+		LocalDateTime deletedAt = LocalDateTime.of(2026, 1, 2, 12, 0);
+		Booking checking = booking();
+		Booking cancelled = checking.cancelUnpaidOrFree(deletedAt.minusHours(1));
+		Booking deleted = checking.delete(deletedAt);
+		Booking confirmed = checking.confirmPayment();
+		Booking refundRequested = confirmed.requestRefund(
+			RefundAccount.of(BankName.NH_NONGHYUP, "123-456", "holder")
+		);
+
+		DomainException confirmedError = assertThrows(DomainException.class,
+			() -> confirmed.delete(deletedAt));
+		DomainException refundError = assertThrows(DomainException.class,
+			() -> refundRequested.delete(deletedAt));
+
+		assertAll(
+			() -> assertEquals(BookingStatus.BOOKING_DELETED, deleted.getBookingStatus()),
+			() -> assertEquals(deletedAt, deleted.getCancellationDate()),
+			() -> assertEquals(BookingStatus.BOOKING_DELETED, cancelled.delete(deletedAt).getBookingStatus()),
+			() -> assertSame(deleted, deleted.delete(deletedAt.plusDays(1))),
+			() -> assertEquals(BookingErrorCode.DELETION_NOT_ALLOWED, confirmedError.getErrorCode()),
+			() -> assertEquals(BookingErrorCode.DELETION_NOT_ALLOWED, refundError.getErrorCode())
+		);
+	}
+
+	@Test
 	void requestRefundReturnsImmutableCopyWithRefundStatus() {
 		LocalDateTime createdAt = LocalDateTime.of(2026, 1, 1, 12, 0);
 		Booking booking = Booking.create(
@@ -281,6 +329,20 @@ class BookingDomainInvariantTest {
 	}
 
 	@Test
+	void requestRefundRejectsConfirmedFreeBooking() {
+		Booking free = Booking.create(
+			1, "booker", "010-1234-5678", null, null, 2L, 3L,
+			LocalDateTime.of(2026, 1, 1, 12, 0), 0
+		);
+		RefundAccount account = RefundAccount.of(BankName.NH_NONGHYUP, "123-456", "holder");
+
+		DomainException exception = assertThrows(DomainException.class,
+			() -> free.requestRefund(account));
+
+		assertEquals(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED, exception.getErrorCode());
+	}
+
+	@Test
 	void generalCancellationRejectsConfirmedAndRefundRequestedBookings() {
 		Booking confirmed = booking().confirmPayment();
 		Booking refundRequested = confirmed.requestRefund(
@@ -295,6 +357,22 @@ class BookingDomainInvariantTest {
 		assertAll(
 			() -> assertEquals(BookingErrorCode.CANCELLATION_NOT_ALLOWED, confirmedError.getErrorCode()),
 			() -> assertEquals(BookingErrorCode.CANCELLATION_NOT_ALLOWED, refundError.getErrorCode())
+		);
+	}
+
+	@Test
+	void generalCancellationAcceptsConfirmedFreeBooking() {
+		LocalDateTime cancelledAt = LocalDateTime.of(2026, 1, 2, 12, 0);
+		Booking free = Booking.create(
+			1, "booker", "010-1234-5678", null, null, 2L, 3L,
+			LocalDateTime.of(2026, 1, 1, 12, 0), 0
+		);
+
+		Booking cancelled = free.cancelUnpaidOrFree(cancelledAt);
+
+		assertAll(
+			() -> assertEquals(BookingStatus.BOOKING_CANCELLED, cancelled.getBookingStatus()),
+			() -> assertEquals(cancelledAt, cancelled.getCancellationDate())
 		);
 	}
 

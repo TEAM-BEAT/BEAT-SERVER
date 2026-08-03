@@ -88,8 +88,10 @@ class TicketCommandService(
         )
 
         bookings.forEach { original ->
-            val shouldReleaseTickets = original.hasActiveTicketAllocation()
-            val booking = bookingRepository.save(original.delete(LocalDateTime.now(clock)))
+            val deleted = original.delete(LocalDateTime.now(clock))
+            val shouldReleaseTickets =
+                original.hasActiveTicketAllocation() && !deleted.hasActiveTicketAllocation()
+            val booking = bookingRepository.save(deleted)
             if (shouldReleaseTickets) {
                 val schedule = requireNotNull(schedules[booking.getScheduleId()])
                 schedules[booking.getScheduleId()] = scheduleRepository.save(
