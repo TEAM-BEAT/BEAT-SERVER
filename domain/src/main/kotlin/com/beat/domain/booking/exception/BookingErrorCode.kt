@@ -16,7 +16,7 @@ enum class BookingErrorCode(
     PURCHASE_TICKET_COUNT_EXCEEDED(
         "BOOKING_PURCHASE_TICKET_COUNT_EXCEEDED",
         DomainErrorType.INVALID_INPUT,
-        "구매 티켓 수량은 최대 10개까지 가능합니다.",
+        "한 번에 최대 10매까지 예매할 수 있습니다.",
     ),
     NEGATIVE_TOTAL_PAYMENT_AMOUNT(
         "BOOKING_NEGATIVE_TOTAL_PAYMENT_AMOUNT",
@@ -51,17 +51,17 @@ enum class BookingErrorCode(
     CANCELLATION_NOT_ALLOWED(
         "BOOKING_CANCELLATION_NOT_ALLOWED",
         DomainErrorType.STATE_CONFLICT,
-        "현재 예매 상태에서는 일반 취소를 요청할 수 없습니다.",
+        "입금이 확인된 예매와 환불 처리 중인 예매는 바로 취소할 수 없습니다.",
     ),
     REFUND_COMPLETION_NOT_ALLOWED(
         "BOOKING_REFUND_COMPLETION_NOT_ALLOWED",
         DomainErrorType.STATE_CONFLICT,
-        "현재 예매 상태에서는 환불을 완료할 수 없습니다.",
+        "환불 요청 상태인 예매만 환불 완료 처리할 수 있습니다.",
     ),
     DELETION_NOT_ALLOWED(
         "BOOKING_DELETION_NOT_ALLOWED",
         DomainErrorType.STATE_CONFLICT,
-        "현재 예매 상태에서는 예매를 삭제할 수 없습니다.",
+        "취소 완료된 예매만 삭제할 수 있습니다.",
     ),
     ;
 }

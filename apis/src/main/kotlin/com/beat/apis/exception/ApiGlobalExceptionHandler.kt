@@ -192,13 +192,9 @@ class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
 
         private fun toV1DomainMessage(exception: DomainException): String = when (exception.errorCode) {
             BookingErrorCode.INVALID_PURCHASE_TICKET_COUNT,
-            BookingErrorCode.PURCHASE_TICKET_COUNT_EXCEEDED,
             BookingErrorCode.INVALID_REFUND_ACCOUNT,
             BookingErrorCode.PAYMENT_CONFIRMATION_NOT_ALLOWED,
             BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED,
-            BookingErrorCode.CANCELLATION_NOT_ALLOWED,
-            BookingErrorCode.REFUND_COMPLETION_NOT_ALLOWED,
-            BookingErrorCode.DELETION_NOT_ALLOWED,
             PerformanceErrorCode.NON_POSITIVE_RUNNING_TIME,
             PerformanceErrorCode.NEGATIVE_SCHEDULE_COUNT,
             ScheduleErrorCode.INVALID_BOOKING_WINDOW,
