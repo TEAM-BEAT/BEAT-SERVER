@@ -130,6 +130,7 @@ class TicketQueryService(
                 ticket.bankName.orEmpty(),
                 ticket.accountNumber.orEmpty(),
                 ticket.accountHolder.orEmpty(),
+                ticket.deletable,
             )
         }
         log.info { "Converted TicketDetail count: ${bookingList.size}" }
@@ -137,7 +138,6 @@ class TicketQueryService(
         return TicketRetrieveResult(
             performance.performanceTitle,
             performance.performanceTeamName,
-            performance.ticketPrice,
             performance.totalScheduleCount,
             schedules.sumOf(ScheduleSummaryReadModel::totalTicketCount),
             schedules.sumOf(ScheduleSummaryReadModel::soldTicketCount),

@@ -16,4 +16,5 @@ data class MakerTicketListItemReadModel(
     val bankName: String,
     val accountNumber: String,
     val accountHolder: String,
+    val deletable: Boolean,
 )

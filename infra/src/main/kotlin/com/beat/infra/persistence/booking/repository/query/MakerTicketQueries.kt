@@ -4,6 +4,7 @@ import com.beat.contracts.booking.MakerTicketReadPort
 import com.beat.contracts.booking.readmodel.MakerTicketBookingStatus
 import com.beat.contracts.booking.readmodel.MakerTicketListItemReadModel
 import com.beat.contracts.booking.readmodel.MakerTicketScheduleNumber
+import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.sharedkernel.vo.BankName
@@ -72,6 +73,7 @@ class MakerTicketQueries(
                 path(BookingJpaEntity::purchaseTicketCount),
                 path(BookingJpaEntity::createdAt),
                 path(BookingJpaEntity::bookingStatus),
+                path(BookingJpaEntity::totalPaymentAmount),
                 refundAccount(RefundAccountJpaValue::bankName),
                 refundAccount(RefundAccountJpaValue::accountNumber),
                 refundAccount(RefundAccountJpaValue::accountHolder),
@@ -114,6 +116,7 @@ class MakerTicketQueries(
             bankName = (projection.bankName ?: BankName.NONE).displayName,
             accountNumber = projection.accountNumber ?: "",
             accountHolder = projection.accountHolder ?: "",
+            deletable = Booking.canDeleteByMaker(projection.bookingStatus, projection.totalPaymentAmount),
         )
 
     private fun toScheduleNumber(scheduleNumber: MakerTicketScheduleNumber): ScheduleNumber =
@@ -133,6 +136,7 @@ class MakerTicketQueries(
         val purchaseTicketCount: Int,
         val createdAt: LocalDateTime,
         val bookingStatus: BookingStatus,
+        val totalPaymentAmount: Int?,
         val bankName: BankName?,
         val accountNumber: String?,
         val accountHolder: String?,

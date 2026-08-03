@@ -132,31 +132,15 @@ class Booking private constructor(
         else -> throw DomainException(BookingErrorCode.DELETION_NOT_ALLOWED)
     }
 
-    fun deleteByMaker(deletedAt: LocalDateTime): Booking =
-        if (isFreeBooking()) {
-            deleteFreeBookingByMaker(deletedAt)
-        } else {
-            deletePaidBookingByMaker(deletedAt)
+    fun deleteByMaker(deletedAt: LocalDateTime): Booking {
+        if (!canDeleteByMaker(bookingStatus, totalPaymentAmount)) {
+            throw DomainException(BookingErrorCode.DELETION_NOT_ALLOWED)
         }
-
-    private fun deleteFreeBookingByMaker(deletedAt: LocalDateTime): Booking = when (bookingStatus) {
-        BookingStatus.CHECKING_PAYMENT,
-        BookingStatus.BOOKING_CONFIRMED,
-        -> cancelUnpaidOrFree(deletedAt).delete()
-        BookingStatus.BOOKING_CANCELLED,
-        BookingStatus.BOOKING_DELETED,
-        -> delete()
-        BookingStatus.REFUND_REQUESTED -> throw DomainException(BookingErrorCode.DELETION_NOT_ALLOWED)
-    }
-
-    private fun deletePaidBookingByMaker(deletedAt: LocalDateTime): Booking = when (bookingStatus) {
-        BookingStatus.CHECKING_PAYMENT -> cancelUnpaidOrFree(deletedAt).delete()
-        BookingStatus.BOOKING_CANCELLED,
-        BookingStatus.BOOKING_DELETED,
-        -> delete()
-        BookingStatus.BOOKING_CONFIRMED,
-        BookingStatus.REFUND_REQUESTED,
-        -> throw DomainException(BookingErrorCode.DELETION_NOT_ALLOWED)
+        return if (hasActiveTicketAllocation()) {
+            cancelUnpaidOrFree(deletedAt).delete()
+        } else {
+            delete()
+        }
     }
 
     private fun isFreeBooking(): Boolean = totalPaymentAmount == 0
@@ -193,6 +177,16 @@ class Booking private constructor(
     }
 
     companion object {
+        @JvmStatic
+        fun canDeleteByMaker(bookingStatus: BookingStatus, totalPaymentAmount: Int?): Boolean =
+            if (totalPaymentAmount == 0) {
+                bookingStatus != BookingStatus.REFUND_REQUESTED
+            } else {
+                bookingStatus == BookingStatus.CHECKING_PAYMENT ||
+                    bookingStatus == BookingStatus.BOOKING_CANCELLED ||
+                    bookingStatus == BookingStatus.BOOKING_DELETED
+            }
+
         @JvmStatic
         @JvmOverloads
         fun create(

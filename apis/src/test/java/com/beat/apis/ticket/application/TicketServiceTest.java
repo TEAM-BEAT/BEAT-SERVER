@@ -133,7 +133,8 @@ class TicketServiceTest {
 			MakerTicketBookingStatus.CHECKING_PAYMENT,
 			"카카오뱅크",
 			"123",
-			"holder"
+			"holder",
+			true
 		);
 
 		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
@@ -153,6 +154,7 @@ class TicketServiceTest {
 
 		assertEquals("CHECKING_PAYMENT", response.getBookingList().get(0).getBookingStatus());
 		assertEquals("FIRST", response.getBookingList().get(0).getScheduleNumber());
+		assertTrue(response.getBookingList().get(0).getDeletable());
 		assertEquals(99, response.getTotalPerformanceSoldTicketCount());
 		verify(makerTicketReadPort).findTickets(
 			100L,

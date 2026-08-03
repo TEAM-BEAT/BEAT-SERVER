@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
@@ -266,6 +267,8 @@ class BookingDomainInvariantTest {
 		Booking deletedFree = free.deleteByMaker(deletedAt);
 
 		assertAll(
+			() -> assertTrue(Booking.canDeleteByMaker(BookingStatus.CHECKING_PAYMENT, null)),
+			() -> assertTrue(Booking.canDeleteByMaker(BookingStatus.BOOKING_CONFIRMED, 0)),
 			() -> assertEquals(BookingStatus.BOOKING_DELETED, deletedUnpaid.getBookingStatus()),
 			() -> assertEquals(deletedAt, deletedUnpaid.getCancellationDate()),
 			() -> assertEquals(BookingStatus.BOOKING_DELETED, deletedFree.getBookingStatus()),
@@ -287,6 +290,8 @@ class BookingDomainInvariantTest {
 			() -> refundRequested.deleteByMaker(deletedAt));
 
 		assertAll(
+			() -> assertFalse(Booking.canDeleteByMaker(BookingStatus.BOOKING_CONFIRMED, 10_000)),
+			() -> assertFalse(Booking.canDeleteByMaker(BookingStatus.REFUND_REQUESTED, 0)),
 			() -> assertEquals(BookingErrorCode.DELETION_NOT_ALLOWED, confirmedError.getErrorCode()),
 			() -> assertEquals(BookingErrorCode.DELETION_NOT_ALLOWED, refundError.getErrorCode())
 		);
