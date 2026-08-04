@@ -238,21 +238,16 @@
             }}
           - >-
             restore reload rc={{
-            nginx_fragment_transaction_restore_reload_result.rc
-            if nginx_fragment_transaction_restore_reload_result is defined
-            else 'skipped'
+            nginx_fragment_transaction_restore_reload_result.rc | default('skipped')
             }}
           - >-
             restore reload stdout={{
-            nginx_fragment_transaction_restore_reload_result.stdout
-            if nginx_fragment_transaction_restore_reload_result is defined
-            else ''
+            nginx_fragment_transaction_restore_reload_result.stdout | default('')
             }}
           - >-
             restore reload stderr={{
             nginx_fragment_transaction_restore_reload_result.stderr
-            if nginx_fragment_transaction_restore_reload_result is defined
-            else 'skipped because restore validation failed'
+            | default('skipped because restore validation failed')
             }}
 
 - name: Remove nginx fragment transaction backup files after success
