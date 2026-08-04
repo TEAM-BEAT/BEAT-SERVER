@@ -2,6 +2,7 @@ package com.beat.apis.ticket.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -27,6 +28,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import com.beat.apis.ticket.exception.TicketApplicationErrorCode;
 import com.beat.apis.ticket.application.command.TicketBookingStatus;
 import com.beat.apis.ticket.application.command.TicketStatusUpdate;
+import com.beat.apis.ticket.application.command.TicketBookingIdsCommand;
 import com.beat.apis.ticket.application.command.TicketUpdateCommand;
 import com.beat.apis.ticket.application.event.TicketPaymentConfirmedEvent;
 import com.beat.apis.schedule.exception.ScheduleApplicationErrorCode;
@@ -132,7 +134,8 @@ class TicketServiceTest {
 			MakerTicketBookingStatus.CHECKING_PAYMENT,
 			"카카오뱅크",
 			"123",
-			"holder"
+			"holder",
+			true
 		);
 
 		when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
@@ -152,6 +155,7 @@ class TicketServiceTest {
 
 		assertEquals("CHECKING_PAYMENT", response.getBookingList().get(0).getBookingStatus());
 		assertEquals("FIRST", response.getBookingList().get(0).getScheduleNumber());
+		assertTrue(response.getBookingList().get(0).getDeletable());
 		assertEquals(99, response.getTotalPerformanceSoldTicketCount());
 		verify(makerTicketReadPort).findTickets(
 			100L,
@@ -231,6 +235,149 @@ class TicketServiceTest {
 	}
 
 	@Test
+	void refundCompletionReleasesInventoryForRefundRequestedBooking() {
+		Booking booking = booking(BookingStatus.REFUND_REQUESTED);
+		stubOwnedTicketUpdate(booking);
+		when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(scheduleRepository.save(any(Schedule.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		ticketCommandService.refundTicketsByBookingIds(
+			1L,
+			TicketBookingIdsCommand.of(100L, List.of(300L))
+		);
+
+		ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
+		ArgumentCaptor<Schedule> scheduleCaptor = ArgumentCaptor.forClass(Schedule.class);
+		verify(bookingRepository).save(bookingCaptor.capture());
+		verify(scheduleRepository).save(scheduleCaptor.capture());
+		assertEquals(BookingStatus.BOOKING_CANCELLED, bookingCaptor.getValue().getBookingStatus());
+		assertEquals(0, scheduleCaptor.getValue().getAllocatedTicketCount());
+	}
+
+	@Test
+	void refundCompletionRejectsConfirmedBookingWithoutReleasingInventory() {
+		Booking confirmed = booking(BookingStatus.BOOKING_CONFIRMED);
+		stubOwnedTicketUpdate(confirmed);
+
+		DomainException exception = assertThrows(DomainException.class, () ->
+			ticketCommandService.refundTicketsByBookingIds(
+				1L,
+				TicketBookingIdsCommand.of(100L, List.of(300L))
+			)
+		);
+
+		assertEquals(BookingErrorCode.REFUND_COMPLETION_NOT_ALLOWED, exception.getErrorCode());
+		verify(bookingRepository, never()).save(any());
+		verify(scheduleRepository, never()).save(any());
+	}
+
+	@Test
+	void deletionCancelsCheckingPaymentBookingAndReleasesInventory() {
+		Booking booking = booking(BookingStatus.CHECKING_PAYMENT);
+		stubOwnedTicketUpdate(booking);
+		when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(scheduleRepository.save(any(Schedule.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		ticketCommandService.deleteTicketsByBookingIds(
+			1L,
+			TicketBookingIdsCommand.of(100L, List.of(300L))
+		);
+
+		ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
+		ArgumentCaptor<Schedule> scheduleCaptor = ArgumentCaptor.forClass(Schedule.class);
+		verify(bookingRepository).save(bookingCaptor.capture());
+		verify(scheduleRepository).save(scheduleCaptor.capture());
+		assertEquals(BookingStatus.BOOKING_DELETED, bookingCaptor.getValue().getBookingStatus());
+		assertEquals(0, scheduleCaptor.getValue().getAllocatedTicketCount());
+	}
+
+	@Test
+	void deletionCancelsConfirmedFreeBookingAndReleasesInventory() {
+		Booking booking = booking(BookingStatus.BOOKING_CONFIRMED, 0);
+		stubOwnedTicketUpdate(booking);
+		when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(scheduleRepository.save(any(Schedule.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		ticketCommandService.deleteTicketsByBookingIds(
+			1L,
+			TicketBookingIdsCommand.of(100L, List.of(300L))
+		);
+
+		ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
+		ArgumentCaptor<Schedule> scheduleCaptor = ArgumentCaptor.forClass(Schedule.class);
+		verify(bookingRepository).save(bookingCaptor.capture());
+		verify(scheduleRepository).save(scheduleCaptor.capture());
+		assertEquals(BookingStatus.BOOKING_DELETED, bookingCaptor.getValue().getBookingStatus());
+		assertEquals(0, scheduleCaptor.getValue().getAllocatedTicketCount());
+	}
+
+	@Test
+	void deletionDoesNotReleaseInventoryAgainForCancelledBooking() {
+		Booking booking = booking(BookingStatus.BOOKING_CANCELLED);
+		stubOwnedTicketUpdate(booking);
+		when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		ticketCommandService.deleteTicketsByBookingIds(
+			1L,
+			TicketBookingIdsCommand.of(100L, List.of(300L))
+		);
+
+		ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
+		verify(bookingRepository).save(bookingCaptor.capture());
+		verify(scheduleRepository, never()).save(any());
+		assertEquals(BookingStatus.BOOKING_DELETED, bookingCaptor.getValue().getBookingStatus());
+	}
+
+	@Test
+	void deletionIsIdempotentWithoutReleasingInventoryForDeletedBooking() {
+		Booking booking = booking(BookingStatus.BOOKING_DELETED);
+		stubOwnedTicketUpdate(booking);
+		when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		ticketCommandService.deleteTicketsByBookingIds(
+			1L,
+			TicketBookingIdsCommand.of(100L, List.of(300L))
+		);
+
+		verify(bookingRepository).save(booking);
+		verify(scheduleRepository, never()).save(any());
+	}
+
+	@Test
+	void deletionRejectsConfirmedBookingWithoutReleasingInventory() {
+		Booking confirmed = booking(BookingStatus.BOOKING_CONFIRMED);
+		stubOwnedTicketUpdate(confirmed);
+
+		DomainException confirmedError = assertThrows(DomainException.class, () ->
+			ticketCommandService.deleteTicketsByBookingIds(
+				1L,
+				TicketBookingIdsCommand.of(100L, List.of(300L))
+			)
+		);
+
+		assertEquals(BookingErrorCode.DELETION_NOT_ALLOWED, confirmedError.getErrorCode());
+		verify(bookingRepository, never()).save(any());
+		verify(scheduleRepository, never()).save(any());
+	}
+
+	@Test
+	void deletionRejectsRefundRequestedBookingWithoutReleasingInventory() {
+		Booking refundRequested = booking(BookingStatus.REFUND_REQUESTED);
+		stubOwnedTicketUpdate(refundRequested);
+
+		DomainException refundError = assertThrows(DomainException.class, () ->
+			ticketCommandService.deleteTicketsByBookingIds(
+				1L,
+				TicketBookingIdsCommand.of(100L, List.of(300L))
+			)
+		);
+
+		assertEquals(BookingErrorCode.DELETION_NOT_ALLOWED, refundError.getErrorCode());
+		verify(bookingRepository, never()).save(any());
+		verify(scheduleRepository, never()).save(any());
+	}
+
+	@Test
 	void searchAllTicketsByConditionsRejectsNullSearchWord() {
 		ApiApplicationException exception = assertThrows(ApiApplicationException.class, () ->
 			ticketQueryService.searchAllTicketsByConditions(1L, 100L, new TicketListQuery(null, List.of(), List.of())));
@@ -306,9 +453,14 @@ class TicketServiceTest {
 	}
 
 	private Booking booking(BookingStatus status) {
+		return booking(status, null);
+	}
+
+	private Booking booking(BookingStatus status, Integer totalPaymentAmount) {
 		return Booking.rehydrate(
 			300L, 1, "booker", "010-0000-0000", status,
-			LocalDateTime.of(2026, 1, 1, 12, 0), null, null, null, null, 200L, 20L);
+			LocalDateTime.of(2026, 1, 1, 12, 0), null, null, null, null, 200L, 20L,
+			totalPaymentAmount);
 	}
 
 	private TicketStatusUpdate ticketDetail(BookingStatusType status) {

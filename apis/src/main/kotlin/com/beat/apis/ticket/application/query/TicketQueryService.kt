@@ -130,6 +130,7 @@ class TicketQueryService(
                 ticket.bankName.orEmpty(),
                 ticket.accountNumber.orEmpty(),
                 ticket.accountHolder.orEmpty(),
+                ticket.deletable,
             )
         }
         log.info { "Converted TicketDetail count: ${bookingList.size}" }

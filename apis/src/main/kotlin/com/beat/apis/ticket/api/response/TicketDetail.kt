@@ -17,6 +17,7 @@ data class TicketDetail private constructor(
     val bankName: String,
     val accountNumber: String,
     val accountHolder: String,
+    val deletable: Boolean,
 ) {
     companion object {
         fun from(result: TicketDetailResult): TicketDetail = TicketDetail(
@@ -31,6 +32,7 @@ data class TicketDetail private constructor(
             bankName = result.bankName,
             accountNumber = result.accountNumber,
             accountHolder = result.accountHolder,
+            deletable = result.deletable,
         )
     }
 }

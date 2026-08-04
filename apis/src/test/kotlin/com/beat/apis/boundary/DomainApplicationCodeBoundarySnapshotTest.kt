@@ -147,16 +147,21 @@ class DomainApplicationCodeBoundarySnapshotTest {
         assertEquals(
             listOf(
                 "INVALID_PURCHASE_TICKET_COUNT",
+                "PURCHASE_TICKET_COUNT_EXCEEDED",
                 "NEGATIVE_TOTAL_PAYMENT_AMOUNT",
                 "INVALID_REFUND_ACCOUNT",
                 "PAYMENT_CONFIRMATION_NOT_ALLOWED",
                 "CONFIRMED_STATUS_CHANGE_NOT_ALLOWED",
                 "STATUS_TRANSITION_NOT_ALLOWED",
                 "REFUND_REQUEST_NOT_ALLOWED",
+                "CANCELLATION_NOT_ALLOWED",
+                "REFUND_COMPLETION_NOT_ALLOWED",
+                "DELETION_NOT_ALLOWED",
             ),
             BookingErrorCode.entries.map { it.name },
         )
         assertEquals(DomainErrorType.INVALID_INPUT, BookingErrorCode.INVALID_PURCHASE_TICKET_COUNT.type)
+        assertEquals(DomainErrorType.INVALID_INPUT, BookingErrorCode.PURCHASE_TICKET_COUNT_EXCEEDED.type)
         assertEquals(DomainErrorType.STATE_CONFLICT, BookingErrorCode.PAYMENT_CONFIRMATION_NOT_ALLOWED.type)
         assertEquals(
             listOf(

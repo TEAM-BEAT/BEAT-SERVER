@@ -87,8 +87,14 @@ class Booking private constructor(
     }
 
     fun requestRefund(refundAccount: RefundAccount): Booking = when (bookingStatus) {
-        BookingStatus.BOOKING_CONFIRMED ->
+        BookingStatus.CHECKING_PAYMENT ->
             withState(refundAccount = refundAccount, bookingStatus = BookingStatus.REFUND_REQUESTED)
+        BookingStatus.BOOKING_CONFIRMED -> {
+            if (isFreeBooking()) {
+                throw DomainException(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED)
+            }
+            withState(refundAccount = refundAccount, bookingStatus = BookingStatus.REFUND_REQUESTED)
+        }
         BookingStatus.REFUND_REQUESTED -> {
             if (this.refundAccount == refundAccount) {
                 this
@@ -99,18 +105,45 @@ class Booking private constructor(
         else -> throw DomainException(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED)
     }
 
-    fun cancel(cancelledAt: LocalDateTime): Booking {
-        if (!hasActiveTicketAllocation()) {
-            return this
+    fun cancelUnpaidOrFree(cancelledAt: LocalDateTime): Booking = when (bookingStatus) {
+        BookingStatus.CHECKING_PAYMENT ->
+            withState(bookingStatus = BookingStatus.BOOKING_CANCELLED, cancellationDate = cancelledAt)
+        BookingStatus.BOOKING_CONFIRMED -> {
+            if (isFreeBooking()) {
+                withState(bookingStatus = BookingStatus.BOOKING_CANCELLED, cancellationDate = cancelledAt)
+            } else {
+                throw DomainException(BookingErrorCode.CANCELLATION_NOT_ALLOWED)
+            }
         }
-        return withState(bookingStatus = BookingStatus.BOOKING_CANCELLED, cancellationDate = cancelledAt)
+        BookingStatus.BOOKING_CANCELLED -> this
+        else -> throw DomainException(BookingErrorCode.CANCELLATION_NOT_ALLOWED)
     }
 
-    fun delete(deletedAt: LocalDateTime): Booking = when (bookingStatus) {
+    fun completeRefund(completedAt: LocalDateTime): Booking = when (bookingStatus) {
+        BookingStatus.REFUND_REQUESTED ->
+            withState(bookingStatus = BookingStatus.BOOKING_CANCELLED, cancellationDate = completedAt)
+        BookingStatus.BOOKING_CANCELLED -> this
+        else -> throw DomainException(BookingErrorCode.REFUND_COMPLETION_NOT_ALLOWED)
+    }
+
+    fun delete(): Booking = when (bookingStatus) {
         BookingStatus.BOOKING_DELETED -> this
         BookingStatus.BOOKING_CANCELLED -> withState(bookingStatus = BookingStatus.BOOKING_DELETED)
-        else -> withState(bookingStatus = BookingStatus.BOOKING_DELETED, cancellationDate = deletedAt)
+        else -> throw DomainException(BookingErrorCode.DELETION_NOT_ALLOWED)
     }
+
+    fun deleteByMaker(deletedAt: LocalDateTime): Booking {
+        if (!canDeleteByMaker(bookingStatus, totalPaymentAmount)) {
+            throw DomainException(BookingErrorCode.DELETION_NOT_ALLOWED)
+        }
+        return if (hasActiveTicketAllocation()) {
+            cancelUnpaidOrFree(deletedAt).delete()
+        } else {
+            delete()
+        }
+    }
+
+    private fun isFreeBooking(): Boolean = totalPaymentAmount == 0
 
     private fun withState(
         bookingStatus: BookingStatus = this.bookingStatus,
@@ -145,6 +178,16 @@ class Booking private constructor(
 
     companion object {
         @JvmStatic
+        fun canDeleteByMaker(bookingStatus: BookingStatus, totalPaymentAmount: Int?): Boolean =
+            if (totalPaymentAmount == 0) {
+                bookingStatus != BookingStatus.REFUND_REQUESTED
+            } else {
+                bookingStatus == BookingStatus.CHECKING_PAYMENT ||
+                    bookingStatus == BookingStatus.BOOKING_CANCELLED ||
+                    bookingStatus == BookingStatus.BOOKING_DELETED
+            }
+
+        @JvmStatic
         @JvmOverloads
         fun create(
             purchaseTicketCount: Int,
@@ -167,7 +210,11 @@ class Booking private constructor(
                 purchaseTicketCount = purchaseTicketCount,
                 bookerName = bookerName,
                 bookerPhoneNumber = bookerPhoneNumber,
-                bookingStatus = BookingStatus.CHECKING_PAYMENT,
+                bookingStatus = if (totalPaymentAmount == 0) {
+                    BookingStatus.BOOKING_CONFIRMED
+                } else {
+                    BookingStatus.CHECKING_PAYMENT
+                },
                 createdAt = createdAt,
                 cancellationDate = null,
                 birthDate = birthDate,
@@ -221,6 +268,9 @@ class Booking private constructor(
             if (purchaseTicketCount <= 0) {
                 throw DomainException(BookingErrorCode.INVALID_PURCHASE_TICKET_COUNT)
             }
+            if (purchaseTicketCount > MAX_PURCHASE_TICKET_COUNT) {
+                throw DomainException(BookingErrorCode.PURCHASE_TICKET_COUNT_EXCEEDED)
+            }
         }
 
         private fun validateTotalPaymentAmount(totalPaymentAmount: Int?) {
@@ -228,5 +278,7 @@ class Booking private constructor(
                 throw DomainException(BookingErrorCode.NEGATIVE_TOTAL_PAYMENT_AMOUNT)
             }
         }
+
+        private const val MAX_PURCHASE_TICKET_COUNT = 10
     }
 }
