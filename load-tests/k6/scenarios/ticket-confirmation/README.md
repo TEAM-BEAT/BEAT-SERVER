@@ -1,40 +1,74 @@
-# 예매 확정 부하 테스트
+# 예매 확정 DB queue 전환 성능 테스트
 
-`PUT /api/tickets/update`의 HTTP 지연과 JVM·Hikari·RDS 지표를 같은 시간축에서 비교합니다.
-DB Job Queue 도입 전 기준선과 도입 후 `batch 1대 / worker concurrency 1`을 비교하는 용도입니다.
+`PUT /api/tickets/update`에 동일한 예매 확정 workload를 입력해 DB queue 도입 전 기준선과 도입 후
+producer 성능을 비교하고, worker의 backlog 처리 성능을 별도로 측정합니다. SQS 비교나 SMS
+provider 처리량 측정이 목적이 아닙니다.
+
+## 측정 경계
+
+측정을 세 단계로 나눕니다.
+
+1. **도입 전 기준선**: 동일한 Booking 수로 기존 예매 확정 경로를 실행합니다.
+   - 1/10/78/100건 절대 처리시간과 SELECT 수
+   - transaction·connection 점유시간
+   - provider 지연 변화가 API 처리시간에 미치는 영향
+2. **도입 후 producer**: worker를 중지하고 같은 k6 요청을 보냅니다.
+   - HTTP RPS·p95/p99·오류율
+   - `ticket_confirmation_items_submitted`, `ticket_confirmation_items_accepted`
+   - DB queue insert 수와 적재 실패 수
+3. **도입 후 worker**: k6를 종료한 뒤 worker concurrency를 고정하고 backlog를 처리합니다.
+   - 시작 backlog와 완료·실패·재시도 job 수
+   - backlog가 0이 될 때까지 걸린 시간과 초당 처리량
+   - queue wait time과 processing time
+
+도입 후 HTTP 200은 job 처리가 끝났다는 뜻이 아니라 예매 확정 트랜잭션과 queue 적재가
+수락됐다는 뜻입니다. `ticket_confirmation_items_accepted`를 worker 처리 성공 수로 해석하면
+안 됩니다.
 
 ## 안전 경계
 
-- dev와 prod가 같은 RDS 인스턴스를 사용하므로 운영 피크 시간에는 실행하지 않습니다.
-- 기본값은 `1 RPS / 1분`이며, 이 결과로 RDS 최대 처리량을 판단하지 않습니다.
-- 이 시나리오는 실제 SMS provider 호출을 포함합니다. 승인된 합성 수신자만 사용합니다.
-- `TEST_RECIPIENT`와 모든 Booking의 `bookerPhoneNumber`가 다르면 실행 전에 중단합니다.
-- 각 iteration은 서로 다른 Booking을 사용해야 합니다. 같은 Booking을 재사용하면 실제 갱신 성능을 측정할 수 없습니다.
-- 합성 Booking만 사용하고 DB의 전화번호도 테스트 전용 값으로 준비합니다.
-- 실제 전화번호와 이름은 데이터 파일에 저장하지 않습니다.
-- `cases.json`은 Git에서 제외됩니다.
+- 공유 dev RDS에서는 구현 비교를 위한 저부하 실험만 수행합니다.
+- 기본값은 `1 RPS / 1분`, 절대 상한은 `2 RPS / 5분`입니다.
+- 각 iteration은 서로 다른 `CHECKING_PAYMENT` Booking을 사용합니다.
+- `cases.json`에는 합성 Booking ID만 저장하며 Git에 커밋하지 않습니다.
+- worker 측정 중 외부 SMS adapter는 비활성화하거나 테스트 대역으로 교체합니다.
+- 실험 전후 queue 상태를 초기화하고 다른 배포·배치 작업이 없는 시간에 실행합니다.
 
-## 준비
+## 데이터 준비
 
-`cases.example.json`을 참고해 `cases.json`을 생성합니다. 모든 요청의 `bookingList` 길이는
-`ITEM_COUNT`와 같아야 하며 Booking은 `CHECKING_PAYMENT` 상태여야 합니다. 데이터 세트에는
-최소 `TARGET_RPS × DURATION(초)`개의 서로 겹치지 않는 요청이 있어야 합니다.
-각 Booking이 요청의 `performanceId`에 속하고 `CHECKING_PAYMENT` 상태인지 DB에서 사전 확인합니다.
+`cases.example.json`을 복사해 `cases.json`을 만듭니다. API가 실제로 사용하는 필드만 작성합니다.
 
-Alloy OTLP 포트는 서버 loopback에만 공개됩니다. 로컬 k6에서 dev 서버로 SSH tunnel을 엽니다.
+```json
+{
+  "performanceId": 1,
+  "bookingList": [
+    {
+      "bookingId": 1,
+      "bookingStatus": "BOOKING_CONFIRMED"
+    }
+  ]
+}
+```
+
+- 모든 Booking은 요청의 `performanceId`에 속해야 합니다.
+- 모든 Booking은 실행 전에 `CHECKING_PAYMENT` 상태여야 합니다.
+- 데이터 전체에서 `bookingId`를 중복 사용하면 안 됩니다.
+- 요청 하나의 `bookingList` 길이는 `ITEMS_PER_REQUEST`와 같아야 합니다.
+- case 수는 최소 `TARGET_RPS × DURATION(초)`개여야 합니다.
+
+## 기준선·Producer 실행
+
+먼저 worker를 중지하고 queue가 비어 있는지 확인합니다. Alloy OTLP 포트는 loopback에만
+공개되므로 로컬에서 SSH tunnel을 엽니다.
 
 ```bash
 ssh -N -L 4327:127.0.0.1:4327 ubuntu@DEV_HOST
 ```
 
-## 실행
-
-최신 k6 설치 후 별도 터미널에서 실행합니다.
-
 ```bash
 cd load-tests/k6/scenarios/ticket-confirmation
 
-TEST_ID="booking-$(date +%Y%m%d-%H%M%S)"
+TEST_ID="ticket-confirmation-$(date +%Y%m%d-%H%M%S)"
 
 K6_OTEL_SERVICE_NAME="beat-k6" \
 K6_OTEL_METRIC_PREFIX="k6_" \
@@ -42,15 +76,14 @@ K6_OTEL_GRPC_EXPORTER_ENDPOINT="127.0.0.1:4327" \
 K6_OTEL_GRPC_EXPORTER_INSECURE="true" \
 K6_OTEL_EXPORT_INTERVAL="5s" \
 LOAD_TEST_ACK="shared-rds-dev" \
+TICKET_CONFIRMATION_TEST_ACK="synthetic-confirmation-data-ready" \
 TARGET_ENV="dev" \
 BASE_URL="https://DEV_API_HOST" \
 ALLOWED_DEV_ORIGIN="https://DEV_API_HOST" \
-PREFLIGHT_URL="https://DEV_API_HOST/api/main" \
+PREFLIGHT_PATH="/api/main" \
 ACCESS_TOKEN="${ACCESS_TOKEN}" \
-SMS_SIDE_EFFECT_ACK="synthetic-recipient-approved" \
-TEST_RECIPIENT="${TEST_RECIPIENT}" \
 DATA_FILE="./cases.json" \
-ITEM_COUNT="78" \
+ITEMS_PER_REQUEST="1" \
 TARGET_RPS="1" \
 DURATION="1m" \
 k6 run \
@@ -60,23 +93,32 @@ k6 run \
   ticket-confirmation.js
 ```
 
-`1/10/78/100`건은 각각 별도 데이터 세트와 `ITEM_COUNT`로 실행합니다. RPS를 1보다 높이는 실험은
-사전에 RDS `DatabaseConnections`, Hikari pending, 오류율을 확인한 뒤 `MAX_SAFE_RPS`를 명시적으로
-올려야 합니다. 공유 RDS 보호를 위해 코드의 절대 상한은 `2 RPS / 5분`이며 우회할 수 없습니다.
+`1/10/78/100`건은 각각 별도 데이터 세트와 `ITEMS_PER_REQUEST`로 실행합니다. warm-up을 한다면
+측정 데이터와 겹치지 않는 별도 Booking을 사용하고, 기준선과 도입 후 실험에 동일하게 적용합니다.
 
-Latency 합격 기준은 기준선 측정 전 임의로 고정하지 않습니다. 합의된 SLO가 생기면
-`MAX_P95_MS`를 설정해 k6 threshold로 강제합니다.
+DB queue 도입 후 producer 실행에서는 다음 값이 일치하는지 확인합니다.
 
-## 확인 지표
+```text
+ticket_confirmation_items_accepted
+= CHECKING_PAYMENT → BOOKING_CONFIRMED 전이 수
+= 새로 생성된 DB queue job 수
+= worker 시작 전 pending backlog
+```
 
-- k6: 실제 RPS, p95/p99, 오류율, dropped iterations
-- Spring Boot: `http_server_requests_seconds_*`, JVM CPU/GC/memory
-- Hikari: active, idle, pending, timeout
-- RDS: DatabaseConnections, CPUUtilization, CPUCreditBalance, FreeableMemory, latency, DiskQueueDepth
+일치하지 않으면 worker 성능을 측정하지 말고 누락·중복 적재부터 조사합니다.
 
-Worker 구현 후 동일 조건에서 다음 두 결과를 비교합니다.
+## Worker 실행 및 비교
 
-1. Worker OFF 기준선
-2. `batch 1대 / worker concurrency 1`
+동일한 backlog에 대해 worker 인스턴스 수와 concurrency를 기록한 후 시작합니다. 처리량은
+`완료 job 수 / backlog drain 시간`으로 계산하고, 실패·재시도 job은 별도로 기록합니다.
 
-두 실험 사이에는 Booking 데이터를 초기 상태로 다시 준비하고 backlog가 비었는지 확인합니다.
+구현이나 worker 설정을 비교할 때는 다음을 고정합니다.
+
+- 동일한 Booking 수와 `ITEMS_PER_REQUEST`
+- 동일한 초기 queue 상태
+- 동일한 worker 인스턴스 수·concurrency
+- 동일한 DB와 애플리케이션 사양
+- 동일한 warm-up 여부와 측정 시간
+
+각 비교 실행 전 Booking과 queue 데이터를 초기 상태로 다시 준비합니다. SLO가 합의된 경우에만
+`MAX_P95_MS`를 지정해 producer HTTP p95 threshold를 강제합니다.

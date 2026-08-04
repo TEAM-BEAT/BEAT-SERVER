@@ -17,7 +17,7 @@ Alloy·Grafana 설정이나 애플리케이션 계측을 추가하지 않고 임
 
 ## 실행
 
-Alloy SSH tunnel과 공통 안전 환경변수는 예매 확정 테스트와 동일합니다.
+Alloy SSH tunnel을 연 뒤 실행합니다. 공통 안전 설정은 `k6/lib/config.js`가 검증합니다.
 
 ```bash
 cd load-tests/k6/scenarios/http
@@ -33,7 +33,7 @@ LOAD_TEST_ACK="shared-rds-dev" \
 TARGET_ENV="dev" \
 BASE_URL="https://DEV_API_HOST" \
 ALLOWED_DEV_ORIGIN="https://DEV_API_HOST" \
-PREFLIGHT_URL="https://DEV_API_HOST/api/main" \
+PREFLIGHT_PATH="/api/main" \
 ACCESS_TOKEN="${ACCESS_TOKEN}" \
 REQUEST_FILE="./requests.json" \
 TARGET_RPS="1" \
@@ -46,7 +46,7 @@ k6 run \
 ```
 
 읽기 전용 API 한 건을 반복할 때만 `REUSE_REQUESTS=true`를 추가합니다. 공유 RDS 보호를 위해
-기본 상한은 `1 RPS`, 명시적으로 승인해도 절대 상한은 `2 RPS / 5분`입니다.
+기본값은 `1 RPS / 1분`, 절대 상한은 `2 RPS / 5분`입니다.
 
 Grafana에서는 `name`, `test_id`, `environment`로 API별 결과를 분리합니다.
 `api_request_failed`는 요청별 `expectedStatuses`를 기준으로 계산됩니다. 서버 측 공통
