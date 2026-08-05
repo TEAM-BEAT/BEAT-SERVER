@@ -5,13 +5,13 @@ import { Counter, Rate } from 'k6/metrics';
 import {
   addOptionalP95Threshold,
   constantArrivalRateScenario,
-  loadSafeDevConfig,
+  loadSafeProdConfig,
 } from '../../lib/config.js';
 import { assertPreflight, authorizationHeaders } from '../../lib/http.js';
 import { loadCases } from './cases.js';
 
 const TICKET_CONFIRMATION_ACKNOWLEDGEMENT = 'synthetic-confirmation-data-ready';
-const config = loadSafeDevConfig(__ENV, { preAllocatedVUs: 20, requestTimeout: '30s' });
+const config = loadSafeProdConfig(__ENV, { preAllocatedVUs: 20, requestTimeout: '30s' });
 if (!config.accessToken) {
   throw new Error('ACCESS_TOKEN is required.');
 }

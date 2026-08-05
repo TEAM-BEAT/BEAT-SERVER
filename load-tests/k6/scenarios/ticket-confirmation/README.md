@@ -27,7 +27,7 @@ provider 처리량 측정이 목적이 아닙니다.
 
 ## 안전 경계
 
-- 공유 dev RDS에서는 구현 비교를 위한 저부하 실험만 수행합니다.
+- 실제 예매를 차단한 prod `t4g.small` 서버와 prod RDS에서 구현 전후를 비교합니다.
 - 기본값은 `1 RPS / 1분`, 절대 상한은 `2 RPS / 5분`입니다.
 - 각 iteration은 서로 다른 `CHECKING_PAYMENT` Booking을 사용합니다.
 - `cases.json`에는 합성 Booking ID만 저장하며 Git에 커밋하지 않습니다.
@@ -62,7 +62,7 @@ provider 처리량 측정이 목적이 아닙니다.
 공개되므로 로컬에서 SSH tunnel을 엽니다.
 
 ```bash
-ssh -N -L 4327:127.0.0.1:4327 ubuntu@DEV_HOST
+ssh -N -L 4327:127.0.0.1:4327 ubuntu@PROD_HOST
 ```
 
 ```bash
@@ -75,11 +75,12 @@ K6_OTEL_METRIC_PREFIX="k6_" \
 K6_OTEL_GRPC_EXPORTER_ENDPOINT="127.0.0.1:4327" \
 K6_OTEL_GRPC_EXPORTER_INSECURE="true" \
 K6_OTEL_EXPORT_INTERVAL="5s" \
-LOAD_TEST_ACK="shared-rds-dev" \
+LOAD_TEST_ACK="rds" \
+LIVE_BOOKING_BLOCKED_ACK="confirmed" \
 TICKET_CONFIRMATION_TEST_ACK="synthetic-confirmation-data-ready" \
-TARGET_ENV="dev" \
-BASE_URL="https://DEV_API_HOST" \
-ALLOWED_DEV_ORIGIN="https://DEV_API_HOST" \
+TARGET_ENV="prod" \
+BASE_URL="https://PROD_API_HOST" \
+ALLOWED_ORIGIN="https://PROD_API_HOST" \
 PREFLIGHT_PATH="/api/main" \
 ACCESS_TOKEN="${ACCESS_TOKEN}" \
 DATA_FILE="./cases.json" \
@@ -89,7 +90,8 @@ DURATION="1m" \
 k6 run \
   --out opentelemetry \
   --tag test_id="${TEST_ID}" \
-  --tag environment="dev" \
+  --tag environment="prod" \
+  --tag server_instance_type="t4g.small" \
   ticket-confirmation.js
 ```
 

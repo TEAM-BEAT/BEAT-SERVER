@@ -1,4 +1,5 @@
-const REQUIRED_ACKNOWLEDGEMENT = 'shared-rds-dev';
+const REQUIRED_ACKNOWLEDGEMENT = 'rds';
+const REQUIRED_BOOKING_BLOCK_ACKNOWLEDGEMENT = 'confirmed';
 const ABSOLUTE_MAX_RPS = 2;
 const ABSOLUTE_MAX_DURATION_SECONDS = 300;
 
@@ -26,20 +27,25 @@ export function durationInSeconds(value) {
   return Number(match[1]) * (match[2] === 'm' ? 60 : 1);
 }
 
-export function loadSafeDevConfig(env, defaults = {}) {
+export function loadSafeProdConfig(env, defaults = {}) {
   if (env.LOAD_TEST_ACK !== REQUIRED_ACKNOWLEDGEMENT) {
     throw new Error(
-      `Set LOAD_TEST_ACK=${REQUIRED_ACKNOWLEDGEMENT} after confirming the shared-RDS risk.`,
+      `Set LOAD_TEST_ACK=${REQUIRED_ACKNOWLEDGEMENT} after confirming live bookings are blocked and the RDS load-test risk.`,
     );
   }
-  if (env.TARGET_ENV !== 'dev') {
-    throw new Error('TARGET_ENV must be dev.');
+  if (env.TARGET_ENV !== 'prod') {
+    throw new Error('TARGET_ENV must be prod.');
+  }
+  if (env.LIVE_BOOKING_BLOCKED_ACK !== REQUIRED_BOOKING_BLOCK_ACKNOWLEDGEMENT) {
+    throw new Error(
+      `Set LIVE_BOOKING_BLOCKED_ACK=${REQUIRED_BOOKING_BLOCK_ACKNOWLEDGEMENT} after blocking live bookings.`,
+    );
   }
 
   const baseUrl = requireValue(env, 'BASE_URL').replace(/\/+$/, '');
-  const allowedDevOrigin = requireValue(env, 'ALLOWED_DEV_ORIGIN').replace(/\/+$/, '');
-  if (!baseUrl.startsWith('https://') || baseUrl !== allowedDevOrigin) {
-    throw new Error('BASE_URL must exactly match the approved HTTPS ALLOWED_DEV_ORIGIN.');
+  const allowedOrigin = requireValue(env, 'ALLOWED_ORIGIN').replace(/\/+$/, '');
+  if (!baseUrl.startsWith('https://') || baseUrl !== allowedOrigin) {
+    throw new Error('BASE_URL must exactly match the approved HTTPS ALLOWED_ORIGIN.');
   }
 
   const preflightPath = env.PREFLIGHT_PATH || '/api/main';
