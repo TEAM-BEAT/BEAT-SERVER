@@ -1,17 +1,16 @@
 import { SharedArray } from 'k6/data';
 
 export function loadCases(env, config) {
-  const itemsPerRequest = Number(env.ITEMS_PER_REQUEST || 1);
-  if (!Number.isInteger(itemsPerRequest) || itemsPerRequest < 1) {
-    throw new Error('ITEMS_PER_REQUEST must be a positive integer.');
-  }
-
   const cases = new SharedArray('ticket-confirmation-db-queue-cases', () =>
     JSON.parse(open(env.DATA_FILE || './cases.json')),
   );
   const requiredCases = config.targetRps * config.durationSeconds;
   if (cases.length < requiredCases) {
     throw new Error(`At least ${requiredCases} unique cases are required, but only ${cases.length} were provided.`);
+  }
+  const itemsPerRequest = cases[0].bookingList?.length;
+  if (!Number.isInteger(itemsPerRequest) || itemsPerRequest < 1) {
+    throw new Error('The first case must contain at least one booking.');
   }
 
   const bookingIds = new Set();

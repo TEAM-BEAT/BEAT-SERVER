@@ -1,7 +1,4 @@
 const REQUIRED_ACKNOWLEDGEMENT = 'rds';
-const REQUIRED_BOOKING_BLOCK_ACKNOWLEDGEMENT = 'confirmed';
-const ABSOLUTE_MAX_RPS = 2;
-const ABSOLUTE_MAX_DURATION_SECONDS = 300;
 
 function requireValue(env, name) {
   const value = env[name];
@@ -27,25 +24,16 @@ export function durationInSeconds(value) {
   return Number(match[1]) * (match[2] === 'm' ? 60 : 1);
 }
 
-export function loadSafeProdConfig(env, defaults = {}) {
+export function loadConfig(env, defaults = {}) {
   if (env.LOAD_TEST_ACK !== REQUIRED_ACKNOWLEDGEMENT) {
     throw new Error(
-      `Set LOAD_TEST_ACK=${REQUIRED_ACKNOWLEDGEMENT} after confirming live bookings are blocked and the RDS load-test risk.`,
-    );
-  }
-  if (env.TARGET_ENV !== 'prod') {
-    throw new Error('TARGET_ENV must be prod.');
-  }
-  if (env.LIVE_BOOKING_BLOCKED_ACK !== REQUIRED_BOOKING_BLOCK_ACKNOWLEDGEMENT) {
-    throw new Error(
-      `Set LIVE_BOOKING_BLOCKED_ACK=${REQUIRED_BOOKING_BLOCK_ACKNOWLEDGEMENT} after blocking live bookings.`,
+      `Set LOAD_TEST_ACK=${REQUIRED_ACKNOWLEDGEMENT} after confirming the RDS load-test risk.`,
     );
   }
 
   const baseUrl = requireValue(env, 'BASE_URL').replace(/\/+$/, '');
-  const allowedOrigin = requireValue(env, 'ALLOWED_ORIGIN').replace(/\/+$/, '');
-  if (!baseUrl.startsWith('https://') || baseUrl !== allowedOrigin) {
-    throw new Error('BASE_URL must exactly match the approved HTTPS ALLOWED_ORIGIN.');
+  if (!baseUrl.startsWith('https://')) {
+    throw new Error('BASE_URL must use HTTPS.');
   }
 
   const preflightPath = env.PREFLIGHT_PATH || '/api/main';
@@ -54,15 +42,9 @@ export function loadSafeProdConfig(env, defaults = {}) {
   }
 
   const targetRps = positiveInteger(env.TARGET_RPS || 1, 'TARGET_RPS');
-  if (targetRps > ABSOLUTE_MAX_RPS) {
-    throw new Error(`TARGET_RPS must not exceed the absolute cap(${ABSOLUTE_MAX_RPS}).`);
-  }
 
   const duration = env.DURATION || '1m';
   const durationSeconds = durationInSeconds(duration);
-  if (durationSeconds > ABSOLUTE_MAX_DURATION_SECONDS) {
-    throw new Error(`DURATION must not exceed ${ABSOLUTE_MAX_DURATION_SECONDS} seconds.`);
-  }
 
   const preAllocatedVUs = positiveInteger(
     env.PRE_ALLOCATED_VUS || defaults.preAllocatedVUs || 10,

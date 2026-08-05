@@ -17,8 +17,8 @@ k6/
 데이터, queue job 수처럼 별도 불변식과 지표가 필요한 경우에만 독립 시나리오를 추가합니다.
 
 실제 예매를 차단한 prod 환경의 `t4g.small` 애플리케이션 서버와 prod RDS를 대상으로 실행합니다.
-기본 설정은 최대 `2 RPS / 5분`으로 제한되며, 동일한 서버·DB 설정에서 DB queue 도입 전후를
-비교합니다. 실행 전 실제 예매 차단과 합성 데이터 격리를 확인해야 합니다.
+기본값은 `1 RPS / 1분`이며, `TARGET_RPS`와 `DURATION`을 지정해 원하는 부하로 실행합니다. 동일한
+서버·DB 설정과 workload로 DB queue 도입 전후를 비교합니다.
 
 모든 시나리오의 k6 지표는 OTLP로 기존 Alloy에 전달됩니다. Spring Boot의 HTTP·JVM·Hikari
 지표와 RDS 지표는 기존 수집 경로를 사용하므로 API별 Alloy 설정은 추가하지 않습니다.

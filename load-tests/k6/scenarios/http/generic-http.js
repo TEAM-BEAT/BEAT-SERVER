@@ -5,12 +5,12 @@ import { Rate } from 'k6/metrics';
 import {
   addOptionalP95Threshold,
   constantArrivalRateScenario,
-  loadSafeProdConfig,
+  loadConfig,
 } from '../../lib/config.js';
 import { assertPreflight, authorizationHeaders } from '../../lib/http.js';
 import { loadRequests } from './requests.js';
 
-const config = loadSafeProdConfig(__ENV);
+const config = loadConfig(__ENV);
 const requestFailed = new Rate('api_request_failed');
 const { requests, reuseRequests } = loadRequests(__ENV, config);
 

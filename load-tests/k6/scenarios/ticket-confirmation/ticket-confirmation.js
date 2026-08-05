@@ -5,20 +5,14 @@ import { Counter, Rate } from 'k6/metrics';
 import {
   addOptionalP95Threshold,
   constantArrivalRateScenario,
-  loadSafeProdConfig,
+  loadConfig,
 } from '../../lib/config.js';
 import { assertPreflight, authorizationHeaders } from '../../lib/http.js';
 import { loadCases } from './cases.js';
 
-const TICKET_CONFIRMATION_ACKNOWLEDGEMENT = 'synthetic-confirmation-data-ready';
-const config = loadSafeProdConfig(__ENV, { preAllocatedVUs: 20, requestTimeout: '30s' });
+const config = loadConfig(__ENV, { preAllocatedVUs: 20, requestTimeout: '30s' });
 if (!config.accessToken) {
   throw new Error('ACCESS_TOKEN is required.');
-}
-if (__ENV.TICKET_CONFIRMATION_TEST_ACK !== TICKET_CONFIRMATION_ACKNOWLEDGEMENT) {
-  throw new Error(
-    `Set TICKET_CONFIRMATION_TEST_ACK=${TICKET_CONFIRMATION_ACKNOWLEDGEMENT} after preparing isolated synthetic data.`,
-  );
 }
 
 const cases = loadCases(__ENV, config);

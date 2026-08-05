@@ -28,7 +28,7 @@ provider 처리량 측정이 목적이 아닙니다.
 ## 안전 경계
 
 - 실제 예매를 차단한 prod `t4g.small` 서버와 prod RDS에서 구현 전후를 비교합니다.
-- 기본값은 `1 RPS / 1분`, 절대 상한은 `2 RPS / 5분`입니다.
+- 기본값은 `1 RPS / 1분`이며 `TARGET_RPS`와 `DURATION`으로 원하는 부하를 지정합니다.
 - 각 iteration은 서로 다른 `CHECKING_PAYMENT` Booking을 사용합니다.
 - `cases.json`에는 합성 Booking ID만 저장하며 Git에 커밋하지 않습니다.
 - worker 측정 중 외부 SMS adapter는 비활성화하거나 테스트 대역으로 교체합니다.
@@ -53,7 +53,7 @@ provider 처리량 측정이 목적이 아닙니다.
 - 모든 Booking은 요청의 `performanceId`에 속해야 합니다.
 - 모든 Booking은 실행 전에 `CHECKING_PAYMENT` 상태여야 합니다.
 - 데이터 전체에서 `bookingId`를 중복 사용하면 안 됩니다.
-- 요청 하나의 `bookingList` 길이는 `ITEMS_PER_REQUEST`와 같아야 합니다.
+- 모든 요청의 `bookingList` 길이는 첫 요청과 같아야 합니다.
 - case 수는 최소 `TARGET_RPS × DURATION(초)`개여야 합니다.
 
 ## 기준선·Producer 실행
@@ -74,19 +74,10 @@ K6_OTEL_SERVICE_NAME="beat-k6" \
 K6_OTEL_METRIC_PREFIX="k6_" \
 K6_OTEL_GRPC_EXPORTER_ENDPOINT="127.0.0.1:4327" \
 K6_OTEL_GRPC_EXPORTER_INSECURE="true" \
-K6_OTEL_EXPORT_INTERVAL="5s" \
 LOAD_TEST_ACK="rds" \
-LIVE_BOOKING_BLOCKED_ACK="confirmed" \
-TICKET_CONFIRMATION_TEST_ACK="synthetic-confirmation-data-ready" \
-TARGET_ENV="prod" \
 BASE_URL="https://PROD_API_HOST" \
-ALLOWED_ORIGIN="https://PROD_API_HOST" \
-PREFLIGHT_PATH="/api/main" \
 ACCESS_TOKEN="${ACCESS_TOKEN}" \
 DATA_FILE="./cases.json" \
-ITEMS_PER_REQUEST="1" \
-TARGET_RPS="1" \
-DURATION="1m" \
 k6 run \
   --out opentelemetry \
   --tag test_id="${TEST_ID}" \
@@ -95,7 +86,7 @@ k6 run \
   ticket-confirmation.js
 ```
 
-`1/10/78/100`건은 각각 별도 데이터 세트와 `ITEMS_PER_REQUEST`로 실행합니다. warm-up을 한다면
+`1/10/78/100`건은 각각 해당 크기의 별도 데이터 세트로 실행합니다. warm-up을 한다면
 측정 데이터와 겹치지 않는 별도 Booking을 사용하고, 기준선과 도입 후 실험에 동일하게 적용합니다.
 
 DB queue 도입 후 producer 실행에서는 다음 값이 일치하는지 확인합니다.
@@ -116,7 +107,7 @@ ticket_confirmation_items_accepted
 
 구현이나 worker 설정을 비교할 때는 다음을 고정합니다.
 
-- 동일한 Booking 수와 `ITEMS_PER_REQUEST`
+- 동일한 Booking 수와 요청당 Booking 수
 - 동일한 초기 queue 상태
 - 동일한 worker 인스턴스 수·concurrency
 - 동일한 DB와 애플리케이션 사양

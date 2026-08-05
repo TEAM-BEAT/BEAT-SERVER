@@ -28,17 +28,10 @@ K6_OTEL_SERVICE_NAME="beat-k6" \
 K6_OTEL_METRIC_PREFIX="k6_" \
 K6_OTEL_GRPC_EXPORTER_ENDPOINT="127.0.0.1:4327" \
 K6_OTEL_GRPC_EXPORTER_INSECURE="true" \
-K6_OTEL_EXPORT_INTERVAL="5s" \
 LOAD_TEST_ACK="rds" \
-LIVE_BOOKING_BLOCKED_ACK="confirmed" \
-TARGET_ENV="prod" \
 BASE_URL="https://PROD_API_HOST" \
-ALLOWED_ORIGIN="https://PROD_API_HOST" \
-PREFLIGHT_PATH="/api/main" \
 ACCESS_TOKEN="${ACCESS_TOKEN}" \
 REQUEST_FILE="./requests.json" \
-TARGET_RPS="1" \
-DURATION="1m" \
 k6 run \
   --out opentelemetry \
   --tag test_id="${TEST_ID}" \
@@ -48,8 +41,8 @@ k6 run \
 ```
 
 실행 전 실제 예매가 차단됐는지 확인합니다. 읽기 전용 API 한 건을 반복할 때만
-`REUSE_REQUESTS=true`를 추가합니다. prod RDS 보호를 위해 기본값은 `1 RPS / 1분`, 절대 상한은
-`2 RPS / 5분`입니다.
+`REUSE_REQUESTS=true`를 추가합니다. 기본값은 `1 RPS / 1분`이며, 다른 부하는 `TARGET_RPS`와
+`DURATION`으로 지정합니다.
 
 Grafana에서는 `name`, `test_id`, `environment`로 API별 결과를 분리합니다.
 `api_request_failed`는 요청별 `expectedStatuses`를 기준으로 계산됩니다. 서버 측 공통
