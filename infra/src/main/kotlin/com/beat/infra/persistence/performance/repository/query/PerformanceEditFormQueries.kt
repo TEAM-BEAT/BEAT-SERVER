@@ -8,6 +8,7 @@ import com.beat.contracts.performance.readmodel.PerformanceEditScheduleReadModel
 import com.beat.contracts.performance.readmodel.PerformanceEditStaffReadModel
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.performance.model.Genre
+import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.sharedkernel.vo.BankName
 import com.beat.infra.persistence.booking.entity.BookingJpaEntity
 import com.beat.infra.persistence.cast.entity.CastJpaEntity
@@ -255,7 +256,7 @@ class PerformanceEditFormQueries(
         val scheduleId: Long?,
         val performanceDate: LocalDateTime,
         val totalTicketCount: Int,
-        val scheduleNumber: com.beat.domain.schedule.model.ScheduleNumber,
+        val scheduleNumber: ScheduleNumber,
     )
 
     private data class PerformanceEditCastProjection(

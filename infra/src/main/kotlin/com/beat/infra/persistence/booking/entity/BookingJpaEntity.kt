@@ -85,8 +85,6 @@ class BookingJpaEntity private constructor(
         protected set
 
     companion object {
-        @JvmStatic
-        @JvmOverloads
         fun rehydrate(
             id: Long?,
             purchaseTicketCount: Int,

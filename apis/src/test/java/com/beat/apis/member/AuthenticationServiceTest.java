@@ -16,11 +16,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.beat.apis.member.application.command.AuthenticationCommandService;
-import com.beat.contracts.auth.JwtTokenPort;
-import com.beat.contracts.auth.JwtTokenType;
-import com.beat.contracts.auth.RefreshTokenPort;
+import com.beat.contracts.auth.jwt.JwtTokenPort;
+import com.beat.contracts.auth.jwt.JwtTokenType;
+import com.beat.contracts.auth.refreshtoken.RefreshTokenPort;
 import com.beat.apis.member.exception.TokenApplicationErrorCode;
-import com.beat.contracts.auth.TokenValidationResult;
+import com.beat.contracts.auth.jwt.TokenValidationResult;
 import com.beat.apis.exception.ApiApplicationException;
 
 @ExtendWith(MockitoExtension.class)

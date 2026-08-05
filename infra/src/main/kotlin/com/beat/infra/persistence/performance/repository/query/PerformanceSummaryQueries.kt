@@ -7,7 +7,9 @@ import com.beat.domain.sharedkernel.vo.BankName
 import com.beat.infra.persistence.performance.entity.PaymentAccountJpaValue
 import com.beat.infra.persistence.performance.entity.PerformanceJpaEntity
 import com.beat.infra.persistence.performance.entity.PerformancePeriodJpaValue
+import com.linecorp.kotlinjdsl.dsl.jpql.Jpql
 import com.linecorp.kotlinjdsl.dsl.jpql.jpql
+import com.linecorp.kotlinjdsl.querymodel.jpql.predicate.Predicate
 import com.linecorp.kotlinjdsl.querymodel.jpql.select.SelectQuery
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
 import com.linecorp.kotlinjdsl.support.hibernate.extension.createQuery
@@ -38,7 +40,7 @@ class PerformanceSummaryQueries(
         read(summaryQuery { path(PerformanceJpaEntity::genre).eq(Genre.valueOf(genre)) })
 
     private fun summaryQuery(
-        predicate: (com.linecorp.kotlinjdsl.dsl.jpql.Jpql.() -> com.linecorp.kotlinjdsl.querymodel.jpql.predicate.Predicate)? = null,
+        predicate: (Jpql.() -> Predicate)? = null,
     ): SelectQuery<PerformanceSummaryProjection> = jpql {
         val paymentAccount = path(PerformanceJpaEntity::paymentAccount)
         val performancePeriod = path(PerformanceJpaEntity::performancePeriodValue)

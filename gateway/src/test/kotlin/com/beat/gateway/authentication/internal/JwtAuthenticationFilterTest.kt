@@ -1,8 +1,8 @@
 package com.beat.gateway.authentication.internal
 
-import com.beat.contracts.auth.AccessTokenAuthenticationResult
-import com.beat.contracts.auth.AccessTokenAuthenticator
-import com.beat.contracts.auth.TokenValidationResult
+import com.beat.gateway.jwt.internal.AccessTokenAuthenticationResult
+import com.beat.gateway.jwt.internal.AccessTokenAuthenticator
+import com.beat.contracts.auth.jwt.TokenValidationResult
 import com.beat.observability.logging.filter.BaseMdcLoggingFilter
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletResponse

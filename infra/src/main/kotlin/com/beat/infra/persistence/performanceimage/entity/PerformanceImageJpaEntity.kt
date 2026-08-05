@@ -29,7 +29,6 @@ class PerformanceImageJpaEntity private constructor(
         protected set
 
     companion object {
-        @JvmStatic
         fun rehydrate(
             id: Long?,
             performanceImageUrl: String,

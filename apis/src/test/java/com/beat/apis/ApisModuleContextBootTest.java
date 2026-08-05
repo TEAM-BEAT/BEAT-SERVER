@@ -21,7 +21,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.beat.apis.support.AbstractIntegrationTest;
-import com.beat.contracts.auth.RefreshTokenPort;
+import com.beat.contracts.auth.refreshtoken.RefreshTokenPort;
 import com.beat.contracts.auth.guest.GuestAccessThrottlePort;
 import com.beat.contracts.auth.guest.GuestSessionPort;
 import com.beat.contracts.auth.social.SocialLoginPort;
