@@ -4,7 +4,7 @@ import com.beat.apis.config.ApisSecurityConfig
 import com.beat.apis.config.GatewayConfig
 import com.beat.apis.config.GuestSessionOriginFilter
 import com.beat.apis.config.InfraConfig
-import com.beat.contracts.auth.RefreshTokenPort
+import com.beat.contracts.auth.refreshtoken.RefreshTokenPort
 import com.beat.contracts.auth.guest.GuestAccessThrottlePort
 import com.beat.contracts.auth.guest.GuestSessionPort
 import com.beat.gateway.EnableGatewayConfig

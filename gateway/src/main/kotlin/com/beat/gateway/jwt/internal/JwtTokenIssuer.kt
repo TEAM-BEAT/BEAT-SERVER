@@ -1,7 +1,7 @@
 package com.beat.gateway.jwt.internal
 
-import com.beat.contracts.auth.JwtSubject
-import com.beat.contracts.auth.JwtTokenType
+import com.beat.contracts.auth.jwt.JwtSubject
+import com.beat.contracts.auth.jwt.JwtTokenType
 import io.jsonwebtoken.Jwts
 import java.time.Instant
 import java.util.Date

@@ -3,11 +3,11 @@ package com.beat.apis.member.application.command
 import com.beat.apis.exception.ApiApplicationException
 import com.beat.apis.member.application.result.AccessTokenResult
 import com.beat.apis.member.exception.TokenApplicationErrorCode
-import com.beat.contracts.auth.JwtTokenPort
-import com.beat.contracts.auth.JwtSubject
-import com.beat.contracts.auth.JwtTokenType
-import com.beat.contracts.auth.RefreshTokenPort
-import com.beat.contracts.auth.TokenValidationResult
+import com.beat.contracts.auth.jwt.JwtTokenPort
+import com.beat.contracts.auth.jwt.JwtSubject
+import com.beat.contracts.auth.jwt.JwtTokenType
+import com.beat.contracts.auth.refreshtoken.RefreshTokenPort
+import com.beat.contracts.auth.jwt.TokenValidationResult
 import com.beat.domain.user.model.Role
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service

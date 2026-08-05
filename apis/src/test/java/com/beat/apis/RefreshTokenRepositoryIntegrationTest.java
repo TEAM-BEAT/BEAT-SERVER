@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import com.beat.apis.support.AbstractIntegrationTest;
-import com.beat.contracts.auth.RefreshTokenPort;
+import com.beat.contracts.auth.refreshtoken.RefreshTokenPort;
 
 class RefreshTokenRepositoryIntegrationTest extends AbstractIntegrationTest {
 

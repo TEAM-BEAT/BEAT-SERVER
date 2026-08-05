@@ -191,11 +191,14 @@ JWT/refresh token 계약은 `gateway`가 아니라 `module-contracts`에서 주�
 
 | 계약 | 위치 | 구현체 |
 | --- | --- | --- |
-| `AccessTokenAuthenticator` | `com.beat.contracts.auth` | `gateway.jwt.internal.JwtTokenProvider` |
-| `JwtTokenPort` | `com.beat.contracts.auth` | `gateway.jwt.internal.JwtTokenProvider` |
-| `RefreshTokenPort` | `com.beat.contracts.auth` | `infra.redis.auth.refreshtoken.RedisRefreshTokenAdapter` |
+| `JwtTokenPort` | `com.beat.contracts.auth.jwt` | `gateway.jwt.internal.JwtTokenProvider` |
+| `RefreshTokenPort` | `com.beat.contracts.auth.refreshtoken` | `infra.redis.auth.refreshtoken.RedisRefreshTokenAdapter` |
 | `GuestSessionPort` | `com.beat.contracts.auth.guest` | `infra.redis.auth.guest.RedisGuestSessionAdapter` |
 | `GuestAccessThrottlePort` | `com.beat.contracts.auth.guest` | `infra.redis.auth.guest.RedisGuestAccessThrottleAdapter` |
+
+`AccessTokenAuthenticator`는 구현(`JwtTokenProvider`)과 소비(`JwtAuthenticationFilter`)가 모두 `gateway`
+안에서 완결되므로 `module-contracts`가 아니라 `gateway.jwt.internal`이 소유합니다. 필터가 토큰 1회 파싱으로
+`memberId`/`roleName`을 얻기 위한 내부 계약이며, 실행 모듈에는 노출하지 않습니다.
 
 ---
 

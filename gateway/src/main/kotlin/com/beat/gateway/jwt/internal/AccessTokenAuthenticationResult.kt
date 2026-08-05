@@ -1,9 +1,6 @@
-package com.beat.contracts.auth
+package com.beat.gateway.jwt.internal
 
-fun interface AccessTokenAuthenticator {
-
-    fun authenticateAccessToken(token: String): AccessTokenAuthenticationResult
-}
+import com.beat.contracts.auth.jwt.TokenValidationResult
 
 sealed interface AccessTokenAuthenticationResult {
 

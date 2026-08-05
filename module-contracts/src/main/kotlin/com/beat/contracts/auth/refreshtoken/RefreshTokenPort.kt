@@ -1,4 +1,4 @@
-package com.beat.contracts.auth
+package com.beat.contracts.auth.refreshtoken
 
 import java.util.OptionalLong
 

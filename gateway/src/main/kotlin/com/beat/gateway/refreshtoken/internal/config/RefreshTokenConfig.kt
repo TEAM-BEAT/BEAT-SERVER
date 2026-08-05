@@ -1,6 +1,6 @@
 package com.beat.gateway.refreshtoken.internal.config
 
-import com.beat.contracts.auth.RefreshTokenPort
+import com.beat.contracts.auth.refreshtoken.RefreshTokenPort
 import org.springframework.context.annotation.Configuration
 
 /**

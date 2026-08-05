@@ -1,6 +1,6 @@
 package com.beat.infra.redis.auth.refreshtoken
 
-import com.beat.contracts.auth.RefreshTokenPort
+import com.beat.contracts.auth.refreshtoken.RefreshTokenPort
 import java.util.OptionalLong
 
 class RedisRefreshTokenAdapter(

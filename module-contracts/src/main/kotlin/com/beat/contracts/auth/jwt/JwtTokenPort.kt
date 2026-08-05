@@ -1,5 +1,4 @@
-package com.beat.contracts.auth
-
+package com.beat.contracts.auth.jwt
 
 interface JwtTokenPort {
 

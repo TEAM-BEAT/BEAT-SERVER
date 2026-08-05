@@ -1,9 +1,8 @@
 package com.beat.gateway.jwt.internal
 
-import com.beat.contracts.auth.AccessTokenAuthenticationResult
-import com.beat.contracts.auth.JwtSubject
-import com.beat.contracts.auth.JwtTokenType
-import com.beat.contracts.auth.TokenValidationResult
+import com.beat.contracts.auth.jwt.JwtSubject
+import com.beat.contracts.auth.jwt.JwtTokenType
+import com.beat.contracts.auth.jwt.TokenValidationResult
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jws
 import io.jsonwebtoken.Jwts

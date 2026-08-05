@@ -1,9 +1,9 @@
 package com.beat.apis.member.application.command
 
 import com.beat.apis.member.application.result.LoginSuccessResult
-import com.beat.contracts.auth.JwtSubject
-import com.beat.contracts.auth.JwtTokenPort
-import com.beat.contracts.auth.RefreshTokenPort
+import com.beat.contracts.auth.jwt.JwtSubject
+import com.beat.contracts.auth.jwt.JwtTokenPort
+import com.beat.contracts.auth.refreshtoken.RefreshTokenPort
 import com.beat.contracts.auth.social.SocialMemberInfo
 import com.beat.domain.user.model.Role
 import io.github.oshai.kotlinlogging.KotlinLogging
