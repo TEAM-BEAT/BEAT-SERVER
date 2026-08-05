@@ -101,9 +101,11 @@ observability_alloy_wal_truncate: "1h"
 observability_alloy_enable_logs: true
 observability_alloy_enable_traces: true
 observability_alloy_enable_cadvisor: false
+observability_alloy_enable_k6_metrics: true
 observability_alloy_published_ports:
   - "127.0.0.1:12345:12345"
   - "127.0.0.1:4317:4317"
   - "127.0.0.1:4318:4318"
+  - "127.0.0.1:4327:4327"
 
 letsencrypt_cron_enabled: true
