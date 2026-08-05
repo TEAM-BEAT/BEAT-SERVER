@@ -2,7 +2,15 @@ package com.beat.infra.persistence.performance.entity
 
 import com.beat.infra.persistence.common.BaseTimeEntity
 import com.beat.domain.performance.model.Genre
-import jakarta.persistence.*
+import jakarta.persistence.Column
+import jakarta.persistence.Embedded
+import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.Table
 
 @Entity(name = "Performance")
 @Table(name = "performance")

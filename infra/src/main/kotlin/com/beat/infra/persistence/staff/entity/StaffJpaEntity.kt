@@ -39,7 +39,6 @@ class StaffJpaEntity private constructor(
         protected set
 
     companion object {
-        @JvmStatic
         fun rehydrate(
             id: Long?,
             staffName: String,

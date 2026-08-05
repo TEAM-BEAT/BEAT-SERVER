@@ -21,8 +21,6 @@ dependencies {
         exclude(group = "org.apache.maven.plugins")
     }
     runtimeOnly(libs.mysql.connector.j)
-    compileOnly(libs.lombok)
-    annotationProcessor(libs.lombok)
 
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.boot.starter.data.redis)

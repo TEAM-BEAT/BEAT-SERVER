@@ -39,7 +39,6 @@ class CastJpaEntity private constructor(
         protected set
 
     companion object {
-        @JvmStatic
         fun rehydrate(
             id: Long?,
             castName: String,

@@ -198,7 +198,7 @@ class SharedBoundaryContractTest {
 	@Test
 	void authRedisAdaptersAreOwnedByInfraAndPreserveStoredTypeCompatibility() throws Exception {
 		String authRedisConfig = Files.readString(
-			Path.of("infra/src/main/java/com/beat/infra/redis/auth/AuthRedisConfig.java"));
+			infraMainSourcePath("com/beat/infra/redis/auth/AuthRedisConfig"));
 		String refreshToken = Files.readString(
 			Path.of("infra/src/main/kotlin/com/beat/infra/redis/auth/refreshtoken/RefreshTokenRedisHash.kt"));
 		String guestSession = Files.readString(
@@ -209,8 +209,8 @@ class SharedBoundaryContractTest {
 		String adminBuild = Files.readString(Path.of("admin/build.gradle.kts"));
 		String batchBuild = Files.readString(Path.of("batch/build.gradle.kts"));
 
-		assertTrue(authRedisConfig.contains("RefreshTokenRedisRepository.class"));
-		assertTrue(authRedisConfig.contains("GuestSessionRedisRepository.class"));
+		assertTrue(containsClassLiteral(authRedisConfig, "RefreshTokenRedisRepository"));
+		assertTrue(containsClassLiteral(authRedisConfig, "GuestSessionRedisRepository"));
 		assertFalse(authRedisConfig.contains("@Primary"));
 		assertFalse(gatewayBuild.contains("starter.data.redis"));
 		assertTrue(infraBuild.contains("compileOnly(libs.spring.boot.starter.data.redis)"));
@@ -241,21 +241,21 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void infraBaseConfigMarkerIsLimitedToSelectableTopLevelGroups() throws Exception {
-		String infraBaseConfig = Files.readString(Path.of("infra/src/main/java/com/beat/infra/InfraBaseConfig.java"));
-		String infraConfigGroup = Files.readString(Path.of("infra/src/main/java/com/beat/infra/InfraBaseConfigGroup.java"));
+		String infraBaseConfig = Files.readString(infraMainSourcePath("com/beat/infra/InfraBaseConfig"));
+		String infraConfigGroup = Files.readString(infraMainSourcePath("com/beat/infra/InfraBaseConfigGroup"));
 
-		List<String> topLevelConfigSources = List.of(
-			"infra/src/main/java/com/beat/infra/config/AsyncConfig.java",
-			"infra/src/main/java/com/beat/infra/config/ExternalClientConfig.java",
-			"infra/src/main/java/com/beat/infra/config/JpaConfig.java",
-			"infra/src/main/java/com/beat/infra/config/RedisCacheConfig.java"
+		List<Path> topLevelConfigSources = List.of(
+			infraMainSourcePath("com/beat/infra/config/AsyncConfig"),
+			infraMainSourcePath("com/beat/infra/config/ExternalClientConfig"),
+			infraMainSourcePath("com/beat/infra/config/JpaConfig"),
+			infraMainSourcePath("com/beat/infra/config/RedisCacheConfig")
 		);
-		List<String> supportConfigSources = List.of(
-			"infra/src/main/java/com/beat/infra/config/TaskExecutorConfig.java",
-			"infra/src/main/java/com/beat/infra/config/ThreadPoolProperties.java",
-			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
-			"infra/src/main/java/com/beat/infra/external/storage/s3/S3InfraConfig.java",
-			"infra/src/main/java/com/beat/infra/redis/auth/AuthRedisConfig.java"
+		List<Path> supportConfigSources = List.of(
+			infraMainSourcePath("com/beat/infra/config/TaskExecutorConfig"),
+			infraMainSourcePath("com/beat/infra/config/ThreadPoolProperties"),
+			infraMainSourcePath("com/beat/infra/persistence/InfraPersistenceConfig"),
+			infraMainSourcePath("com/beat/infra/external/storage/s3/S3InfraConfig"),
+			infraMainSourcePath("com/beat/infra/redis/auth/AuthRedisConfig")
 		);
 
 		assertTrue(infraBaseConfig.contains("Marker for top-level infra bootstrap configurations"));
@@ -263,30 +263,33 @@ class SharedBoundaryContractTest {
 		assertFalse(Files.exists(Path.of("infra/src/main/kotlin/com/beat/infra/InfraModuleConfig.kt")),
 			"InfraModuleConfig must not compete with @EnableInfraBaseConfig as a module-wide entrypoint");
 
-		for (String sourcePath : topLevelConfigSources) {
-			String source = Files.readString(Path.of(sourcePath));
-			String simpleName = Path.of(sourcePath).getFileName().toString().replace(".java", "");
-			assertTrue(infraConfigGroup.contains(simpleName + ".class"));
-			assertTrue(source.contains("InfraBaseConfig"), sourcePath);
-			assertTrue(Pattern.compile("class\\s+" + simpleName + "[^{]*implements[^{]*InfraBaseConfig").matcher(source).find(),
-				sourcePath);
+		for (Path sourcePath : topLevelConfigSources) {
+			String source = Files.readString(sourcePath);
+			String fileName = sourcePath.getFileName().toString();
+			String simpleName = fileName.substring(0, fileName.lastIndexOf('.'));
+			assertTrue(containsClassLiteral(infraConfigGroup, simpleName));
+			assertTrue(source.contains("InfraBaseConfig"), sourcePath.toString());
+			assertTrue(declaresInfraBaseConfig(source, simpleName),
+				sourcePath.toString());
 		}
 
-		for (String sourcePath : supportConfigSources) {
-			String source = Files.readString(Path.of(sourcePath));
-			assertFalse(source.contains("implements InfraBaseConfig"), sourcePath);
+		for (Path sourcePath : supportConfigSources) {
+			String source = Files.readString(sourcePath);
+			String fileName = sourcePath.getFileName().toString();
+			String simpleName = fileName.substring(0, fileName.lastIndexOf('.'));
+			assertFalse(declaresInfraBaseConfig(source, simpleName), sourcePath.toString());
 		}
 	}
 
 	@Test
 	void infraKeepsDormantRedisCacheSkeletonForFutureSharedCaching() throws Exception {
 		String infraConfigGroup = Files.readString(
-			Path.of("infra/src/main/java/com/beat/infra/InfraBaseConfigGroup.java"));
+			infraMainSourcePath("com/beat/infra/InfraBaseConfigGroup"));
 		String redisCacheConfig = Files.readString(
-			Path.of("infra/src/main/java/com/beat/infra/config/RedisCacheConfig.java"));
+			infraMainSourcePath("com/beat/infra/config/RedisCacheConfig"));
 
-		assertTrue(Files.exists(Path.of("infra/src/main/java/com/beat/infra/config/RedisCacheConfig.java")));
-		assertTrue(infraConfigGroup.contains("REDIS_CACHE(RedisCacheConfig.class)"));
+		assertTrue(infraConfigGroup.contains("REDIS_CACHE("));
+		assertTrue(containsClassLiteral(infraConfigGroup, "RedisCacheConfig"));
 		assertFalse(redisCacheConfig.contains("@EnableCaching"));
 		assertFalse(redisCacheConfig.contains("org.springframework.cache.CacheManager"));
 		assertFalse(redisCacheConfig.contains("@Bean"));
@@ -414,99 +417,98 @@ class SharedBoundaryContractTest {
 	@Test
 	void infraPersistenceBootstrapUsesSingleMarkerAndNoDomainSpecificConfig() throws Exception {
 		Set<String> requiredInfraPersistenceFiles = new HashSet<>(Set.of(
-                "infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
+                "infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceConfig.kt",
                 "infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt",
-                "infra/src/main/java/com/beat/infra/persistence/InfraPersistenceMarker.java",
+                "infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceMarker.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
-			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.kt",
 			usersJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/java/com/beat/infra/persistence/user/mapper/UsersPersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/user/repository/UsersJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/user/repository/UsersRepositoryImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/user/mapper/UsersPersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/user/repository/UsersJpaRepository.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/user/repository/UsersRepositoryImpl.kt",
 			performanceJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PaymentAccountJpaValue.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformancePeriodJpaValue.kt",
-			"infra/src/main/java/com/beat/infra/persistence/performance/mapper/PerformancePersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/performance/mapper/PerformancePersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/MakerPerformanceListQueries.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceContentOwnershipQueries.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceSummaryQueries.kt",
 			scheduleJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/java/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.java"
+			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.kt"
 		));
 		requiredInfraPersistenceFiles.addAll(bookingInfraPersistenceSourcePathsIfPresent());
 		Set<String> allowedInfraPersistenceFiles = new HashSet<>(Set.of(
-			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceConfig.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt",
-			"infra/src/main/java/com/beat/infra/persistence/exception/PersistenceMappingException.java",
-			"infra/src/main/java/com/beat/infra/persistence/InfraPersistenceMarker.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/exception/PersistenceMappingException.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceMarker.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
-			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/GuestCredentialQueries.kt",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/query/HomePromotionQueries.kt",
 			castJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/java/com/beat/infra/persistence/cast/mapper/CastPersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/cast/repository/CastJpaRepository.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/cast/mapper/CastPersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/cast/repository/CastJpaRepository.kt",
 			staffJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/java/com/beat/infra/persistence/staff/mapper/StaffPersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/staff/repository/StaffJpaRepository.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/staff/mapper/StaffPersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/staff/repository/StaffJpaRepository.kt",
 			performanceImageJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/java/com/beat/infra/persistence/performanceimage/mapper/PerformanceImagePersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/performanceimage/repository/PerformanceImageJpaRepository.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/performanceimage/mapper/PerformanceImagePersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/performanceimage/repository/PerformanceImageJpaRepository.kt",
 			usersJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/java/com/beat/infra/persistence/user/mapper/UsersPersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/user/repository/UsersJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/user/repository/UsersRepositoryImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/user/mapper/UsersPersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/user/repository/UsersJpaRepository.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/user/repository/UsersRepositoryImpl.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/member/entity/MemberJpaEntity.kt",
-			"infra/src/main/java/com/beat/infra/persistence/member/mapper/MemberPersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/member/repository/MemberJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/member/repository/MemberRepositoryImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/member/mapper/MemberPersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/member/repository/MemberJpaRepository.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/member/repository/MemberRepositoryImpl.kt",
 			performanceJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PaymentAccountJpaValue.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformancePeriodJpaValue.kt",
-			"infra/src/main/java/com/beat/infra/persistence/performance/mapper/PerformancePersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/performance/mapper/PerformancePersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/MakerPerformanceListQueries.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceContentOwnershipQueries.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceSummaryQueries.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceEditFormQueries.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformancePeriodReadSupport.kt",
 			scheduleJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/java/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query/ScheduleQueries.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query/ScheduleAvailabilityQueries.kt"
 		));
 		allowedInfraPersistenceFiles.addAll(bookingInfraPersistenceSourcePathsIfPresent());
 
 		Set<String> actualInfraPersistenceFiles = sourceFiles(
-			Path.of("infra/src/main/java/com/beat/infra/persistence"),
 			Path.of("infra/src/main/kotlin/com/beat/infra/persistence")
 		)
 			.stream()
 			.map(path -> path.toString().replace('\\', '/'))
 			.collect(Collectors.toSet());
 		String persistenceConfig = Files.readString(
-			Path.of("infra/src/main/java/com/beat/infra/persistence/InfraPersistenceConfig.java"));
+			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceConfig.kt"));
 
 		assertTrue(actualInfraPersistenceFiles.containsAll(requiredInfraPersistenceFiles));
 		assertTrue(allowedInfraPersistenceFiles.containsAll(actualInfraPersistenceFiles),
@@ -514,11 +516,11 @@ class SharedBoundaryContractTest {
 				.filter(path -> !allowedInfraPersistenceFiles.contains(path))
 				.collect(Collectors.joining("\n")));
 		assertPairedPackagePresence(actualInfraPersistenceFiles, "/cast/", "/staff/");
-		assertTrue(persistenceConfig.contains("@ComponentScan(basePackageClasses = InfraPersistenceMarker.class)"));
+		assertTrue(persistenceConfig.contains("@ComponentScan(basePackageClasses = [InfraPersistenceMarker::class])"));
 		assertFalse(persistenceConfig.contains("PromotionPersistenceConfig"));
 		assertFalse(Files.exists(
 			Path.of(
-				"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionPersistenceConfig.java")));
+				"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionPersistenceConfig.kt")));
 	}
 
 	@Test
@@ -566,9 +568,9 @@ class SharedBoundaryContractTest {
 		String bookingRepository = Files.readString(
 			Path.of("domain/src/main/kotlin/com/beat/domain/booking/repository/BookingRepository.kt"));
 		String bookingJpaRepository = Files.readString(
-			Path.of("infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java"));
+			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt"));
 		String bookingRepositoryImpl = Files.readString(
-			Path.of("infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java"));
+			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt"));
 		String ticketQueryService = Files.readString(
 			Path.of("apis/src/main/kotlin/com/beat/apis/ticket/application/query/TicketQueryService.kt"));
 		String ticketCommandService = Files.readString(
@@ -597,8 +599,8 @@ class SharedBoundaryContractTest {
 		assertFalse(bookingRepository.contains("DELETE FROM Booking b WHERE b.scheduleId IN :scheduleIds"));
 		assertTrue(bookingJpaRepository.contains("@Modifying(clearAutomatically = true, flushAutomatically = true)"));
 		assertTrue(bookingJpaRepository.contains("DELETE FROM Booking b WHERE b.scheduleId IN :scheduleIds"));
-		assertTrue(bookingJpaRepository.contains("int deleteInactiveBookingsByScheduleIds("));
-		assertTrue(bookingRepositoryImpl.contains("scheduleIds == null || scheduleIds.isEmpty()"));
+		assertTrue(bookingJpaRepository.contains("fun deleteInactiveBookingsByScheduleIds("));
+		assertTrue(bookingRepositoryImpl.contains("scheduleIds.isEmpty()"));
 		assertTrue(ticketQueryService.contains("scheduleMap[ticket.scheduleId]"));
 		assertTrue(ticketQueryService.contains("ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND"));
 		assertTrue(ticketCommandService.contains("val schedules = lockAndValidateSchedules("));
@@ -626,7 +628,7 @@ class SharedBoundaryContractTest {
 			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt"));
 
 		assertFalse(Files.exists(
-			Path.of("infra/src/main/java/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.java")));
+			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.kt")));
 		assertFalse(makerTicketQueries.contains("QScheduleJpaEntity"));
 		assertFalse(makerTicketQueries.contains("com.querydsl"));
 		// Kotlin JDSL type-safe projection preserves the MySQL custom-dialect full-text expression.
@@ -1051,12 +1053,12 @@ class SharedBoundaryContractTest {
 		Path oldDomainSpringDataRepository = Path.of(
 			"domain/src/main/kotlin/com/beat/domain/promotion/dao/PromotionRepository.kt");
 		Path springDataRepository = Path.of(
-			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.java");
+			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.kt");
 		Path jpaEntity = promotionJpaEntitySourcePath();
 		Path persistenceMapper = Path.of(
-			"infra/src/main/java/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.java");
+			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.kt");
 		Path repositoryImplementation = Path.of(
-			"infra/src/main/java/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.java");
+			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.kt");
 
 		assertTrue(Files.exists(domainContract));
 		assertFalse(Files.exists(oldDomainSpringDataRepository));
@@ -1111,20 +1113,20 @@ class SharedBoundaryContractTest {
 		assertFalse(domainContractSource.contains("org.springframework.data"));
 		assertFalse(domainContractSource.contains("jakarta.persistence"));
 		assertFalse(domainContractSource.contains("@Query"));
-		assertTrue(springDataRepositorySource.contains("extends JpaRepository<PromotionJpaEntity, Long>"));
+		assertTrue(springDataRepositorySource.contains(": JpaRepository<PromotionJpaEntity, Long>"));
 		assertFalse(springDataRepositorySource.contains("com.beat.domain.promotion.model.Promotion"));
 		assertPromotionJpaEntityMappingContract(jpaEntitySource);
-		assertTrue(persistenceMapperSource.contains("Promotion toDomain(PromotionJpaEntity entity)"));
-		assertTrue(persistenceMapperSource.contains("PromotionJpaEntity toEntity(Promotion promotion)"));
+		assertTrue(persistenceMapperSource.contains("fun toDomain(entity: PromotionJpaEntity): Promotion"));
+		assertTrue(persistenceMapperSource.contains("fun toEntity(promotion: Promotion): PromotionJpaEntity"));
 		assertFalse(persistenceMapperSource.contains("PerformanceRepository"));
 		assertFalse(persistenceMapperSource.contains("EntityManager"));
-		assertTrue(repositoryImplementationSource.contains("implements PromotionRepository"));
+		assertTrue(repositoryImplementationSource.contains(": PromotionRepository"));
 		assertTrue(
-			repositoryImplementationSource.contains("private final PromotionJpaRepository promotionJpaRepository;"));
+			repositoryImplementationSource.contains("private val promotionJpaRepository: PromotionJpaRepository"));
 		assertTrue(repositoryImplementationSource.contains(
-			"private final PromotionPersistenceMapper promotionPersistenceMapper;"));
+			"private val promotionPersistenceMapper: PromotionPersistenceMapper"));
 		assertFalse(repositoryImplementationSource.contains("PerformanceRepository"));
-		assertTrue(repositoryImplementationSource.contains("public PromotionRepositoryImpl("));
+		assertTrue(repositoryImplementationSource.contains("class PromotionRepositoryImpl("));
 		assertTrue(repositoryImplementationSource.contains("@Repository"));
 		assertFalse(repositoryImplementationSource.contains("@RequiredArgsConstructor"));
 		assertTrue(promotionRepositoryImports.stream()
@@ -1170,7 +1172,7 @@ class SharedBoundaryContractTest {
 			.map(path -> path.toString().replace('\\', '/'))
 			.collect(Collectors.toSet());
 		String domainBuild = Files.readString(Path.of("domain/build.gradle.kts"));
-		String jpaConfig = Files.readString(Path.of("infra/src/main/java/com/beat/infra/config/JpaConfig.java"));
+		String jpaConfig = Files.readString(infraMainSourcePath("com/beat/infra/config/JpaConfig"));
 
 		assertEquals(allowedQueryProjectionSources, actualQueryProjectionSources);
 		assertTrue(domainBuild.contains("id(\"beat.library\")"));
@@ -1183,10 +1185,12 @@ class SharedBoundaryContractTest {
 		assertFalse(domainBuild.contains("jakarta.persistence"));
 		assertFalse(domainBuild.contains("lombok"));
 		assertTrue(jpaConfig.contains("@EnableJpaAuditing"));
-		assertTrue(jpaConfig.contains("@EntityScan(basePackageClasses = InfraPersistenceMarker.class)"));
-		assertTrue(jpaConfig.contains("@EnableJpaRepositories(basePackageClasses = InfraPersistenceMarker.class)"));
+		assertTrue(jpaConfig.contains("@EntityScan"));
+		assertTrue(jpaConfig.contains("@EnableJpaRepositories"));
+		assertTrue(containsClassLiteral(jpaConfig, "InfraPersistenceMarker"));
 		assertFalse(jpaConfig.contains("basePackages = \"com.beat.domain\""));
-		assertTrue(jpaConfig.contains("@Import(InfraPersistenceConfig.class)"));
+		assertTrue(jpaConfig.contains("@Import"));
+		assertTrue(containsClassLiteral(jpaConfig, "InfraPersistenceConfig"));
 		assertFalse(jpaConfig.contains("PromotionRepositoryImpl"));
 		assertFalse(jpaConfig.contains("@ComponentScan"));
 		assertFalse(jpaConfig.contains("com.beat.infra.persistence.promotion.repository"));
@@ -1285,7 +1289,6 @@ class SharedBoundaryContractTest {
 			.filter(path -> path.contains("/domain/staff/port/"))
 			.toList();
 		Set<String> actualInfraPersistenceFiles = sourceFiles(
-			Path.of("infra/src/main/java/com/beat/infra/persistence"),
 			Path.of("infra/src/main/kotlin/com/beat/infra/persistence")
 		)
 			.stream()
@@ -1303,17 +1306,18 @@ class SharedBoundaryContractTest {
 	@Test
 	void externalClientBootstrapRemainsExplicitConfigurationSurface() throws Exception {
 		String externalClientConfig = Files.readString(
-			Path.of("infra/src/main/java/com/beat/infra/config/ExternalClientConfig.java"));
+			infraMainSourcePath("com/beat/infra/config/ExternalClientConfig"));
 
 		assertTrue(externalClientConfig.contains("@Configuration(proxyBeanMethods = false)"));
-		assertTrue(externalClientConfig.contains("@Import(S3InfraConfig.class)"));
-		assertTrue(externalClientConfig.contains("KakaoSocialLoginAdapter.class"));
-		assertTrue(externalClientConfig.contains("SlackBookingNotificationAdapter.class"));
-		assertTrue(externalClientConfig.contains("SlackMemberNotificationAdapter.class"));
-		assertTrue(externalClientConfig.contains("S3FileStorageAdapter.class"));
-		assertTrue(externalClientConfig.contains("CoolSmsAdapter.class"));
+		assertTrue(externalClientConfig.contains("@Import"));
+		assertTrue(containsClassLiteral(externalClientConfig, "S3InfraConfig"));
+		assertTrue(containsClassLiteral(externalClientConfig, "KakaoSocialLoginAdapter"));
+		assertTrue(containsClassLiteral(externalClientConfig, "SlackBookingNotificationAdapter"));
+		assertTrue(containsClassLiteral(externalClientConfig, "SlackMemberNotificationAdapter"));
+		assertTrue(containsClassLiteral(externalClientConfig, "S3FileStorageAdapter"));
+		assertTrue(containsClassLiteral(externalClientConfig, "CoolSmsAdapter"));
 		assertTrue(externalClientConfig.contains("excludeFilters"));
-		assertTrue(externalClientConfig.contains("classes = S3InfraConfig.class"));
+		assertTrue(externalClientConfig.contains("classes"));
 	}
 
 	@Test
@@ -1379,44 +1383,41 @@ class SharedBoundaryContractTest {
 
 
 	private Set<String> bookingInfraPersistenceSourcePathsIfPresent() {
-		Path bookingPersistenceRoot = Path.of("infra/src/main/java/com/beat/infra/persistence/booking");
-		Path bookingPersistenceKotlinRoot = Path.of("infra/src/main/kotlin/com/beat/infra/persistence/booking");
-		if (!Files.exists(bookingPersistenceRoot) && !Files.exists(bookingPersistenceKotlinRoot)) {
+		Path bookingPersistenceRoot = Path.of("infra/src/main/kotlin/com/beat/infra/persistence/booking");
+		if (!Files.exists(bookingPersistenceRoot)) {
 			return Set.of();
 		}
 
 		return Set.of(
 			bookingJpaEntitySourcePath().toString().replace('\\', '/'),
 			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/RefundAccountJpaValue.kt",
-			"infra/src/main/java/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.java",
-			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingJpaRepository.java",
-			"infra/src/main/java/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt"
 		);
 	}
 
 	private Path bookingJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/java/com/beat/infra/persistence/booking/entity/BookingJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
 			"BookingJpaEntity"
 		);
 	}
 
 	private Path promotionJpaEntitySourcePath() {
-		Path javaEntity = Path.of(
-			"infra/src/main/java/com/beat/infra/persistence/promotion/entity/PromotionJpaEntity.java");
 		Path kotlinEntity = Path.of(
 			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/entity/PromotionJpaEntity.kt");
 
-		assertTrue(Files.exists(javaEntity) ^ Files.exists(kotlinEntity),
-			"PromotionJpaEntity must exist as exactly one Java or Kotlin source during the #389 conversion");
-		return Files.exists(kotlinEntity) ? kotlinEntity : javaEntity;
+		assertTrue(Files.exists(kotlinEntity),
+			"PromotionJpaEntity Kotlin source must exist after infra Kotlin migration");
+		return kotlinEntity;
 	}
 
 	private Path castJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/java/com/beat/infra/persistence/cast/entity/CastJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/cast/entity/CastJpaEntity.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/cast/entity/CastJpaEntity.kt",
 			"CastJpaEntity"
 		);
@@ -1424,7 +1425,7 @@ class SharedBoundaryContractTest {
 
 	private Path staffJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/java/com/beat/infra/persistence/staff/entity/StaffJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/staff/entity/StaffJpaEntity.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/staff/entity/StaffJpaEntity.kt",
 			"StaffJpaEntity"
 		);
@@ -1432,7 +1433,7 @@ class SharedBoundaryContractTest {
 
 	private Path usersJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/java/com/beat/infra/persistence/user/entity/UsersJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/user/entity/UsersJpaEntity.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/user/entity/UsersJpaEntity.kt",
 			"UsersJpaEntity"
 		);
@@ -1440,7 +1441,7 @@ class SharedBoundaryContractTest {
 
 	private Path performanceJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/java/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.kt",
 			"PerformanceJpaEntity"
 		);
@@ -1448,7 +1449,7 @@ class SharedBoundaryContractTest {
 
 	private Path scheduleJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/java/com/beat/infra/persistence/schedule/entity/ScheduleJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/entity/ScheduleJpaEntity.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/entity/ScheduleJpaEntity.kt",
 			"ScheduleJpaEntity"
 		);
@@ -1572,19 +1573,18 @@ class SharedBoundaryContractTest {
 
 	private Path performanceImageJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/java/com/beat/infra/persistence/performanceimage/entity/PerformanceImageJpaEntity.java",
+			"infra/src/main/kotlin/com/beat/infra/persistence/performanceimage/entity/PerformanceImageJpaEntity.kt",
 			"infra/src/main/kotlin/com/beat/infra/persistence/performanceimage/entity/PerformanceImageJpaEntity.kt",
 			"PerformanceImageJpaEntity"
 		);
 	}
 
 	private Path singleJpaEntitySourcePath(String javaSource, String kotlinSource, String entityName) {
-		Path javaEntity = Path.of(javaSource);
 		Path kotlinEntity = Path.of(kotlinSource);
 
-		assertTrue(Files.exists(javaEntity) ^ Files.exists(kotlinEntity),
-			entityName + " must exist as exactly one Java or Kotlin source during the slice migration");
-		return Files.exists(kotlinEntity) ? kotlinEntity : javaEntity;
+		assertTrue(Files.exists(kotlinEntity),
+			entityName + " Kotlin source must exist after infra Kotlin migration");
+		return kotlinEntity;
 	}
 
 	private void assertPairedPackagePresence(Set<String> paths, String leftPackageToken, String rightPackageToken) {
@@ -1705,6 +1705,24 @@ class SharedBoundaryContractTest {
 		return source
 			.replaceAll("(?s)/\\*.*?\\*/", "")
 			.replaceAll("(?m)//.*$", "");
+	}
+
+	private Path infraMainSourcePath(String relativeTypePath) {
+		Path javaSource = Path.of("infra/src/main/java", relativeTypePath + ".java");
+		Path kotlinSource = Path.of("infra/src/main/kotlin", relativeTypePath + ".kt");
+		assertTrue(Files.exists(javaSource) ^ Files.exists(kotlinSource),
+			"Expected exactly one Java or Kotlin source for " + relativeTypePath);
+		return Files.exists(kotlinSource) ? kotlinSource : javaSource;
+	}
+
+	private boolean containsClassLiteral(String source, String simpleName) {
+		return source.contains(simpleName + ".class") || source.contains(simpleName + "::class");
+	}
+
+	private boolean declaresInfraBaseConfig(String source, String simpleName) {
+		return Pattern.compile(
+			"class\\s+" + Pattern.quote(simpleName) + "[^\\n{]*(?:implements|:)[^\\n{]*InfraBaseConfig"
+		).matcher(source).find();
 	}
 
 	private List<Path> sourceFiles(Path... roots) throws IOException {

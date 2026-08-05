@@ -6,7 +6,7 @@ import org.springframework.data.redis.core.RedisHash
 
 @TypeAlias("com.beat.gateway.guest.internal.store.GuestSession")
 @RedisHash(value = "guestSession", timeToLive = 1800)
-class GuestSessionRedisHash(
+data class GuestSessionRedisHash(
     @Id
     val tokenHash: String,
     val userId: Long,
