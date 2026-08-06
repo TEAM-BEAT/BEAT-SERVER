@@ -93,8 +93,8 @@ class AdminDtoJsonContractTest {
 
 	@Test
 	void responseJsonFieldNamesStayLegacyCompatible() {
-		UserFindAllResponse userResponse = UserFindAllResponse.from(List.of(
-			UserFindAllResponse.UserFindResponse.of(1L, "ROLE_USER")
+		UserFindAllResponse userResponse = new UserFindAllResponse(List.of(
+			new UserFindAllResponse.UserFindResponse(1L, "ROLE_USER")
 		));
 		JsonNode userJson = objectMapper.valueToTree(userResponse);
 
