@@ -15,7 +15,10 @@ import org.springframework.http.ResponseEntity
 @Tag(name = "Admin", description = "관리자 제어 API")
 interface AdminUserApi {
 
-    @Operation(summary = "유저 정보 조회", description = "관리자가 유저들의 정보를 조회하는 GET API")
+    @Operation(
+        summary = "유저 정보 조회",
+        description = "관리자가 유저들의 정보를 조회하는 GET API",
+    )
     @ApiResponses(
         value = [
             ApiResponse(
