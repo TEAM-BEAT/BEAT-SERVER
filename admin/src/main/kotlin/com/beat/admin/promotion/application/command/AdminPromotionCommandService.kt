@@ -1,10 +1,10 @@
 package com.beat.admin.promotion.application.command
 
 import com.beat.admin.exception.AdminApplicationException
+import com.beat.admin.promotion.application.AdminPromotionResultAssembler
 import com.beat.admin.promotion.application.command.CarouselHandleCommand.PromotionGenerateCommand
 import com.beat.admin.promotion.application.command.CarouselHandleCommand.PromotionModifyCommand
 import com.beat.admin.promotion.application.result.AdminPromotionResults
-import com.beat.admin.promotion.application.result.AdminPromotionResults.AdminPromotionResult
 import com.beat.admin.promotion.exception.PromotionApplicationErrorCode
 import com.beat.contracts.cdn.ImageCachePort
 import com.beat.contracts.performance.PerformanceSummaryReadPort
@@ -17,8 +17,6 @@ import com.beat.domain.promotion.service.PromotionCarouselDomainService
 import com.beat.global.support.utils.ImageKeyExtractor
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-
-private val BY_CAROUSEL_NUMBER = compareBy<Promotion> { it.carouselNumber.ordinal }
 
 @Service
 class AdminPromotionCommandService(
@@ -51,7 +49,7 @@ class AdminPromotionCommandService(
             deletePromotionIds,
         )
 
-        return toPromotionResults(changedPromotions)
+        return AdminPromotionResultAssembler.assemble(changedPromotions)
     }
 
     private fun validateCarouselImageObjects(promotions: ClassifiedCarouselPromotions) {
@@ -64,20 +62,6 @@ class AdminPromotionCommandService(
         fileStoragePort.findImageObjectMetadata(imageKey)
             ?: throw AdminApplicationException(PromotionApplicationErrorCode.INVALID_IMAGE_UPLOAD)
     }
-
-    private fun toPromotionResults(domainPromotions: List<Promotion>): AdminPromotionResults {
-        val promotionResults = domainPromotions.sortedWith(BY_CAROUSEL_NUMBER).map { it.toPromotionResult() }
-        return AdminPromotionResults(promotionResults)
-    }
-
-    private fun Promotion.toPromotionResult(): AdminPromotionResult = AdminPromotionResult(
-        promotionId = getId(),
-        carouselNumber = carouselNumber.name,
-        newImageUrl = promotionPhoto,
-        isExternal = isExternal,
-        redirectUrl = redirectUrl,
-        performanceId = getPerformanceId(),
-    )
 
     private fun classifyCarouselPromotions(command: CarouselHandleCommand): ClassifiedCarouselPromotions {
         val modifyRequests = mutableListOf<PromotionModifyCommand>()
