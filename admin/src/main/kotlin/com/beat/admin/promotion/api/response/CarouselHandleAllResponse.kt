@@ -1,0 +1,30 @@
+package com.beat.admin.promotion.api.response
+
+import com.beat.admin.promotion.application.result.AdminPromotionResults
+import com.beat.admin.promotion.application.result.AdminPromotionResults.AdminPromotionResult
+import com.fasterxml.jackson.annotation.JsonProperty
+
+data class CarouselHandleAllResponse(
+    @get:JsonProperty("modifiedPromotions")
+    val modifiedPromotionResponses: List<PromotionResponse>,
+) {
+    constructor(promotionResults: AdminPromotionResults) : this(
+        promotionResults.promotionResults.map { PromotionResponse(it) },
+    )
+
+    data class PromotionResponse(
+        val promotionId: Long?,
+        val newImageUrl: String,
+        val isExternal: Boolean,
+        val redirectUrl: String,
+        val carouselNumber: String,
+    ) {
+        constructor(promotionResult: AdminPromotionResult) : this(
+            promotionId = promotionResult.promotionId,
+            newImageUrl = promotionResult.newImageUrl,
+            isExternal = promotionResult.isExternal,
+            redirectUrl = promotionResult.redirectUrl,
+            carouselNumber = promotionResult.carouselNumber,
+        )
+    }
+}

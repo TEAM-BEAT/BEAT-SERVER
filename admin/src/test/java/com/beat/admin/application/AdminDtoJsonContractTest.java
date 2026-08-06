@@ -101,11 +101,11 @@ class AdminDtoJsonContractTest {
 		assertTrue(userJson.has("users"));
 		assertFalse(userJson.has("userResponses"));
 
-		AdminPromotionResults promotionResults = AdminPromotionResults.from(List.of(
-			AdminPromotionResult.of(1L, "ONE", "image", false, "redirect", 11L)
+		AdminPromotionResults promotionResults = new AdminPromotionResults(List.of(
+			new AdminPromotionResult(1L, "ONE", "image", false, "redirect", 11L)
 		));
-		JsonNode carouselFindJson = objectMapper.valueToTree(CarouselFindAllResponse.from(promotionResults));
-		JsonNode carouselHandleJson = objectMapper.valueToTree(CarouselHandleAllResponse.from(promotionResults));
+		JsonNode carouselFindJson = objectMapper.valueToTree(new CarouselFindAllResponse(promotionResults));
+		JsonNode carouselHandleJson = objectMapper.valueToTree(new CarouselHandleAllResponse(promotionResults));
 
 		assertTrue(carouselFindJson.has("carousels"));
 		assertFalse(carouselFindJson.has("carouselResponses"));

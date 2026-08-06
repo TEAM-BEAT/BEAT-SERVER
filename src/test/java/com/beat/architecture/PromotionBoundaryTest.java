@@ -27,15 +27,15 @@ class PromotionBoundaryTest {
 		String apiPromotionService = Files.readString(
 			Path.of("apis/src/main/kotlin/com/beat/apis/home/application/query/HomeQueryService.kt"));
 		String adminPromotionCommandService = Files.readString(
-			Path.of("admin/src/main/java/com/beat/admin/promotion/application/command/AdminPromotionCommandService.java"));
+			Path.of("admin/src/main/kotlin/com/beat/admin/promotion/application/command/AdminPromotionCommandService.kt"));
 		String adminPromotionQueryService = Files.readString(
-			Path.of("admin/src/main/java/com/beat/admin/promotion/application/query/AdminPromotionQueryService.java"));
+			Path.of("admin/src/main/kotlin/com/beat/admin/promotion/application/query/AdminPromotionQueryService.kt"));
 		String batchSchedulerService = Files.readString(
 			Path.of("batch/src/main/java/com/beat/batch/promotion/application/PromotionMaintenanceService.java"));
 
 		assertTrue(apiPromotionService.contains("import com.beat.contracts.promotion.HomePromotionReadPort"));
-		assertTrue(adminPromotionCommandService.contains("import com.beat.domain.promotion.repository.PromotionRepository;"));
-		assertTrue(adminPromotionQueryService.contains("import com.beat.domain.promotion.repository.PromotionRepository;"));
+		assertTrue(adminPromotionCommandService.contains("import com.beat.domain.promotion.repository.PromotionRepository"));
+		assertTrue(adminPromotionQueryService.contains("import com.beat.domain.promotion.repository.PromotionRepository"));
 		assertTrue(batchSchedulerService.contains("import com.beat.domain.promotion.repository.PromotionRepository;"));
 		assertFalse(apiPromotionService.contains("com.beat.domain.promotion.dao.PromotionRepository"));
 		assertFalse(adminPromotionCommandService.contains("com.beat.domain.promotion.dao.PromotionRepository"));

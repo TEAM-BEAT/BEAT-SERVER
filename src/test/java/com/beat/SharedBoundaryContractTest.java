@@ -546,7 +546,7 @@ class SharedBoundaryContractTest {
 	@Test
 	void rawDomainHelperCleanupDropsUnusedPublicLookupHelpers() throws Exception {
 		String userQueryService = Files.readString(
-			Path.of("admin/src/main/java/com/beat/admin/user/application/query/AdminUserQueryService.java"));
+			Path.of("admin/src/main/kotlin/com/beat/admin/user/application/query/AdminUserQueryService.kt"));
 		String performanceService = Files.readString(
 			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/query/PerformanceDetailQueryService.kt"));
 
