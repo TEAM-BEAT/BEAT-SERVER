@@ -14,7 +14,7 @@ object AdminPromotionResultAssembler {
     }
 
     private fun Promotion.toPromotionResult(): AdminPromotionResult = AdminPromotionResult(
-        promotionId = getId(),
+        promotionId = requireNotNull(getId()),
         carouselNumber = carouselNumber.name,
         newImageUrl = promotionPhoto,
         isExternal = isExternal,

@@ -4,7 +4,7 @@ data class AdminPromotionResults(
     val promotionResults: List<AdminPromotionResult>,
 ) {
     data class AdminPromotionResult(
-        val promotionId: Long?,
+        val promotionId: Long,
         val carouselNumber: String,
         val newImageUrl: String,
         val isExternal: Boolean,
