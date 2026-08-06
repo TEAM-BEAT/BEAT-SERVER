@@ -145,9 +145,10 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         request: HttpServletRequest,
     ): ResponseEntity<ErrorResponse> {
         val errorCode = exception.errorCode
-        val status = toHttpStatus(errorCode.getType())
+        val type = errorCode.getType()
+        val status = toHttpStatus(type)
         when {
-            errorCode.getType() == ApplicationErrorType.INTERNAL_ERROR -> {
+            type == ApplicationErrorType.INTERNAL_ERROR -> {
                 log.error("Application failure: code={}, status={}", errorCode.getCode(), status.value(), exception)
                 markObservationError(request, exception)
             }

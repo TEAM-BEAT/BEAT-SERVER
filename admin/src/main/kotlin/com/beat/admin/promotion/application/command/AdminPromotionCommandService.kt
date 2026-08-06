@@ -52,6 +52,7 @@ class AdminPromotionCommandService(
         return AdminPromotionResultAssembler.assemble(changedPromotions)
     }
 
+    // TODO: 이미지 개수만큼 순차 S3 조회. FileStoragePort(module-contracts)에 배치 조회 메서드가 없어 admin 밖(module-contracts+infra) 변경이 필요함. 별도 이슈로 분리.
     private fun validateCarouselImageObjects(promotions: ClassifiedCarouselPromotions) {
         promotions.modifyRequests.forEach { validateCarouselImageObject(it.newImageUrl) }
         promotions.generateRequests.forEach { validateCarouselImageObject(it.newImageUrl) }
@@ -64,26 +65,22 @@ class AdminPromotionCommandService(
     }
 
     private fun classifyCarouselPromotions(command: CarouselHandleCommand): ClassifiedCarouselPromotions {
-        val modifyRequests = mutableListOf<PromotionModifyCommand>()
-        val generateRequests = mutableListOf<PromotionGenerateCommand>()
-        val requestPromotionIds = mutableSetOf<Long>()
+        val modifyRequests = command.carousels.filterIsInstance<PromotionModifyCommand>()
+        val generateRequests = command.carousels.filterIsInstance<PromotionGenerateCommand>()
 
-        for (promotionCommand in command.carousels) {
-            when (promotionCommand) {
-                is PromotionModifyCommand -> {
-                    if (!requestPromotionIds.add(promotionCommand.promotionId)) {
-                        throw AdminApplicationException(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT)
-                    }
-                    modifyRequests.add(promotionCommand)
-                }
-                is PromotionGenerateCommand -> generateRequests.add(promotionCommand)
-                else -> throw AdminApplicationException(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT)
-            }
+        // null이거나 sealed 하위 타입이 아닌 항목은 두 필터에서 모두 빠지므로 개수 합으로 감지
+        if (modifyRequests.size + generateRequests.size != command.carousels.size) {
+            throw AdminApplicationException(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT)
+        }
+
+        val requestPromotionIds = modifyRequests.map { it.promotionId }
+        if (requestPromotionIds.distinct().size != requestPromotionIds.size) {
+            throw AdminApplicationException(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT)
         }
 
         return ClassifiedCarouselPromotions(
-            modifyRequests = modifyRequests.toList(),
-            generateRequests = generateRequests.toList(),
+            modifyRequests = modifyRequests,
+            generateRequests = generateRequests,
             requestPromotionIds = requestPromotionIds.toSet(),
         )
     }
@@ -135,9 +132,7 @@ class AdminPromotionCommandService(
                 redirectUrl = modifyRequest.redirectUrl,
                 performanceId = performanceId,
             )
-            val saved = promotionRepository.save(updatedPromotion)
-            imageCachePort.preWarm(imageKey)
-            saved
+            promotionRepository.save(updatedPromotion).also { imageCachePort.preWarm(imageKey) }
         }
 
     private fun handlePromotionGeneration(generateRequests: List<PromotionGenerateCommand>): List<Promotion> =
@@ -152,9 +147,7 @@ class AdminPromotionCommandService(
                 isExternal = generateRequest.isExternal,
                 carouselNumber = toCarouselNumber(generateRequest.carouselNumber),
             )
-            val saved = promotionRepository.save(newPromotion)
-            imageCachePort.preWarm(imageKey)
-            saved
+            promotionRepository.save(newPromotion).also { imageCachePort.preWarm(imageKey) }
         }
 
     private fun toCarouselNumber(carouselNumber: String): CarouselNumber = CarouselNumber.valueOf(carouselNumber)
@@ -163,11 +156,9 @@ class AdminPromotionCommandService(
         promotionRepository.findById(promotionId)
             .orElseThrow { AdminApplicationException(PromotionApplicationErrorCode.PROMOTION_NOT_FOUND) }
 
-    private fun validatePerformanceId(performanceId: Long?): Long? {
-        if (performanceId == null) return null
-        performanceSummaryReadPort.findById(performanceId)
+    private fun validatePerformanceId(performanceId: Long?): Long? = performanceId?.also {
+        performanceSummaryReadPort.findById(it)
             .orElseThrow { AdminApplicationException(PromotionApplicationErrorCode.PERFORMANCE_NOT_FOUND) }
-        return performanceId
     }
 
     private fun validateMemberExists(memberId: Long) {
