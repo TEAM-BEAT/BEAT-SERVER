@@ -91,14 +91,14 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         )
     }
 
-    override fun handleNoResourceFoundException(
+    public override fun handleNoResourceFoundException(
         ex: NoResourceFoundException,
         headers: HttpHeaders,
         status: HttpStatusCode,
         request: WebRequest,
     ): ResponseEntity<Any>? = ResponseEntity(null, headers, status)
 
-    override fun handleExceptionInternal(
+    public override fun handleExceptionInternal(
         ex: Exception,
         body: Any?,
         headers: HttpHeaders,

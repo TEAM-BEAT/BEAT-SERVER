@@ -57,7 +57,9 @@ class AdminApplicationTest {
         assertTrue(source.contains("private val jwtAuthenticationFilter: OncePerRequestFilter"))
         assertTrue(source.contains("@param:Qualifier(\"gatewaySecurityMdcLoggingFilter\")"))
         assertTrue(source.contains("private val securityMdcLoggingFilter: OncePerRequestFilter"))
-        assertTrue(source.contains(".addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter::class.java)"))
+        assertTrue(
+            source.contains(".addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter::class.java)"),
+        )
         assertTrue(source.contains(".addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.javaClass)"))
         assertFalse(source.contains("import com.beat.gateway.authentication.internal.SecurityMdcLoggingFilter"))
     }
@@ -133,7 +135,7 @@ class AdminApplicationTest {
     @Test
     fun `admin module boot test uses targeted mocks without blanket bean overriding`() {
         val config = Files.readString(Path.of("src/test/resources/application-test.yml"))
-        val bootTest = Files.readString(Path.of("src/test/java/com/beat/admin/AdminModuleContextBootTest.java"))
+        val bootTest = Files.readString(Path.of("src/test/kotlin/com/beat/admin/AdminModuleContextBootTest.kt"))
 
         assertFalse(config.contains("allow-bean-definition-overriding"))
         assertTrue(bootTest.contains("@MockitoBean"))
