@@ -51,25 +51,29 @@ class AdminApplicationTest {
 
     @Test
     fun `admin security chain registers gateway mdc filter through public filter contract`() {
-        val source = Files.readString(Path.of("src/main/java/com/beat/admin/config/AdminSecurityConfig.java"))
+        val source = Files.readString(Path.of("src/main/kotlin/com/beat/admin/config/AdminSecurityConfig.kt"))
 
-        assertTrue(source.contains("@Qualifier(\"gatewayJwtAuthenticationFilter\") OncePerRequestFilter jwtAuthenticationFilter"))
-        assertTrue(source.contains("@Qualifier(\"gatewaySecurityMdcLoggingFilter\") OncePerRequestFilter securityMdcLoggingFilter"))
-        assertTrue(source.contains(".addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter.class)"))
-        assertTrue(source.contains(".addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.getClass())"))
+        assertTrue(source.contains("@param:Qualifier(\"gatewayJwtAuthenticationFilter\")"))
+        assertTrue(source.contains("private val jwtAuthenticationFilter: OncePerRequestFilter"))
+        assertTrue(source.contains("@param:Qualifier(\"gatewaySecurityMdcLoggingFilter\")"))
+        assertTrue(source.contains("private val securityMdcLoggingFilter: OncePerRequestFilter"))
+        assertTrue(
+            source.contains(".addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter::class.java)"),
+        )
+        assertTrue(source.contains(".addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.javaClass)"))
         assertFalse(source.contains("import com.beat.gateway.authentication.internal.SecurityMdcLoggingFilter"))
     }
 
     @Test
     fun `admin swagger config exists as non prod module owned documentation policy`() {
-        val source = Files.readString(Path.of("src/main/java/com/beat/admin/swagger/config/AdminSwaggerConfig.java"))
-        val securitySource = Files.readString(Path.of("src/main/java/com/beat/admin/config/AdminSecurityConfig.java"))
+        val source = Files.readString(Path.of("src/main/kotlin/com/beat/admin/swagger/config/AdminSwaggerConfig.kt"))
+        val securitySource = Files.readString(Path.of("src/main/kotlin/com/beat/admin/config/AdminSecurityConfig.kt"))
 
         assertTrue(source.contains("@Profile(\"!prod\")"))
         assertTrue(source.contains(".group(\"admin\")"))
         assertTrue(source.contains("pathsToMatch(\"/api/admin/**\")"))
         assertTrue(securitySource.contains("if (!environment.acceptsProfiles(Profiles.of(\"prod\")))"))
-        assertTrue(securitySource.contains("Collections.addAll(whitelist, SWAGGER_WHITELIST)"))
+        assertTrue(securitySource.contains("addAll(SWAGGER_WHITELIST)"))
     }
 
     @Test
@@ -131,7 +135,7 @@ class AdminApplicationTest {
     @Test
     fun `admin module boot test uses targeted mocks without blanket bean overriding`() {
         val config = Files.readString(Path.of("src/test/resources/application-test.yml"))
-        val bootTest = Files.readString(Path.of("src/test/java/com/beat/admin/AdminModuleContextBootTest.java"))
+        val bootTest = Files.readString(Path.of("src/test/kotlin/com/beat/admin/AdminModuleContextBootTest.kt"))
 
         assertFalse(config.contains("allow-bean-definition-overriding"))
         assertTrue(bootTest.contains("@MockitoBean"))
