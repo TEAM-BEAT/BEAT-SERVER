@@ -96,12 +96,12 @@ jobs:
               - 'batch/**'
             shared:
               # Shared application / build surface
-              - 'domain/**'
+              - 'core/domain/**'
               - 'global-support/**'
               - 'module-contracts/**'
               - 'gateway/**'
               - 'observability/**'
-              - 'infra/src/**'
+              - 'core/infra/src/**'
               # Runtime Ansible only. Dedicated infrastructure roles have their
               # own workflows and must not redeploy every application module.
               - 'infra/ansible/ansible.cfg'

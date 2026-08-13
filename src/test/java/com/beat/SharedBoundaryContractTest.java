@@ -30,7 +30,7 @@ class SharedBoundaryContractTest {
 			{"user", "Users", "UserRepository"}
 		};
 		String aggregateRootSource = Files.readString(
-			Path.of("domain/src/main/kotlin/com/beat/domain/sharedkernel/model/AggregateRoot.kt"));
+			Path.of("core/domain/src/main/kotlin/com/beat/domain/sharedkernel/model/AggregateRoot.kt"));
 		assertTrue(aggregateRootSource.contains("interface AggregateRoot"));
 		assertFalse(aggregateRootSource.contains("org.springframework"));
 		Set<String> expectedRepositories = new HashSet<>();
@@ -39,9 +39,9 @@ class SharedBoundaryContractTest {
 			String context = aggregate[0];
 			String modelName = aggregate[1];
 			String repositoryName = aggregate[2];
-			Path modelPath = Path.of("domain/src/main/kotlin/com/beat/domain", context, "model", modelName + ".kt");
+			Path modelPath = Path.of("core/domain/src/main/kotlin/com/beat/domain", context, "model", modelName + ".kt");
 			Path repositoryPath = Path.of(
-				"domain/src/main/kotlin/com/beat/domain", context, "repository", repositoryName + ".kt");
+				"core/domain/src/main/kotlin/com/beat/domain", context, "repository", repositoryName + ".kt");
 			String modelSource = Files.readString(modelPath);
 			String repositorySource = Files.readString(repositoryPath);
 
@@ -51,11 +51,11 @@ class SharedBoundaryContractTest {
 				modelPath + " must not expose a public structural copy operation");
 			assertTrue(repositorySource.contains("interface " + repositoryName));
 			assertTrue(repositorySource.contains("com.beat.domain." + context + ".model." + modelName));
-			assertFalse(Files.exists(Path.of("domain/src/main/kotlin/com/beat/domain", context, "domain")));
+			assertFalse(Files.exists(Path.of("core/domain/src/main/kotlin/com/beat/domain", context, "core/domain")));
 			expectedRepositories.add(repositoryPath.toString().replace('\\', '/'));
 		}
 
-		Set<String> actualRepositories = sourceFiles(Path.of("domain/src/main/kotlin/com/beat/domain"))
+		Set<String> actualRepositories = sourceFiles(Path.of("core/domain/src/main/kotlin/com/beat/domain"))
 			.stream()
 			.map(path -> path.toString().replace('\\', '/'))
 			.filter(path -> path.contains("/repository/") && path.endsWith("Repository.kt"))
@@ -65,7 +65,7 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void domainSourcePathsFollowAggregateFirstPackageContract() throws Exception {
-		Path root = Path.of("domain/src/main/kotlin/com/beat/domain");
+		Path root = Path.of("core/domain/src/main/kotlin/com/beat/domain");
 		Set<String> aggregates = Set.of(
 			"booking", "cast", "member", "performance", "performanceimage",
 			"promotion", "schedule", "staff", "user");
@@ -97,17 +97,17 @@ class SharedBoundaryContractTest {
 			Path.of("admin/src/main"),
 			Path.of("apis/src/main"),
 			Path.of("batch/src/main"),
-			Path.of("domain/src/main"),
+			Path.of("core/domain/src/main"),
 			Path.of("gateway/src/main"),
 			Path.of("global-support/src/main"),
-			Path.of("infra/src/main"),
+			Path.of("core/infra/src/main"),
 			Path.of("module-contracts/src/main"),
 			Path.of("observability/src/main")
 		);
 		List<String> violations = productionSources.stream()
 			.filter(path -> path.getFileName().toString().matches(".*Mapper\\.(java|kt)"))
 			.map(path -> path.toString().replace('\\', '/'))
-			.filter(path -> !path.matches("infra/src/main/(java|kotlin)/com/beat/infra/persistence/[^/]+/mapper/[^/]+Mapper\\.(java|kt)"))
+			.filter(path -> !path.matches("core/infra/src/main/(java|kotlin)/com/beat/infra/persistence/[^/]+/mapper/[^/]+Mapper\\.(java|kt)"))
 			.toList();
 
 		assertTrue(violations.isEmpty(),
@@ -154,8 +154,8 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void domainRoleNoLongerOwnsSpringSecurityAuthorityBridge() throws Exception {
-		String roleSource = Files.readString(Path.of("domain/src/main/kotlin/com/beat/domain/user/model/Role.kt"));
-		String buildFile = Files.readString(Path.of("domain/build.gradle.kts"));
+		String roleSource = Files.readString(Path.of("core/domain/src/main/kotlin/com/beat/domain/user/model/Role.kt"));
+		String buildFile = Files.readString(Path.of("core/domain/build.gradle.kts"));
 
 		assertFalse(roleSource.contains("GrantedAuthority"));
 		assertFalse(roleSource.contains("SimpleGrantedAuthority"));
@@ -164,15 +164,15 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void domainMainSourceIsKotlinOnlyAfterPortAndEnumMigration() throws Exception {
-		assertFalse(Files.exists(Path.of("domain/src/main/java")),
-			"domain/src/main must not reintroduce Java sources; domain model, enum, ErrorCode, and repository contracts are Kotlin-owned");
-		assertTrue(Files.exists(Path.of("domain/src/main/kotlin/com/beat/domain")));
+		assertFalse(Files.exists(Path.of("core/domain/src/main/java")),
+			"core/domain/src/main must not reintroduce Java sources; domain model, enum, ErrorCode, and repository contracts are Kotlin-owned");
+		assertTrue(Files.exists(Path.of("core/domain/src/main/kotlin/com/beat/domain")));
 	}
 
 	@Test
 	void domainModuleRemainsLombokFreeAfterEnumMigration() throws Exception {
-		String domainBuild = Files.readString(Path.of("domain/build.gradle.kts"));
-		List<String> lombokSources = sourceFiles(Path.of("domain/src/main")).stream()
+		String domainBuild = Files.readString(Path.of("core/domain/build.gradle.kts"));
+		List<String> lombokSources = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.filter(path -> contains(path, "lombok.") || contains(path, "@Getter")
 				|| contains(path, "@RequiredArgsConstructor") || contains(path, "@AllArgsConstructor"))
 			.map(path -> path.toString().replace('\\', '/'))
@@ -200,11 +200,11 @@ class SharedBoundaryContractTest {
 		String authRedisConfig = Files.readString(
 			infraMainSourcePath("com/beat/infra/redis/auth/AuthRedisConfig"));
 		String refreshToken = Files.readString(
-			Path.of("infra/src/main/kotlin/com/beat/infra/redis/auth/refreshtoken/RefreshTokenRedisHash.kt"));
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/redis/auth/refreshtoken/RefreshTokenRedisHash.kt"));
 		String guestSession = Files.readString(
-			Path.of("infra/src/main/kotlin/com/beat/infra/redis/auth/guest/GuestSessionRedisHash.kt"));
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/redis/auth/guest/GuestSessionRedisHash.kt"));
 		String gatewayBuild = Files.readString(Path.of("gateway/build.gradle.kts"));
-		String infraBuild = Files.readString(Path.of("infra/build.gradle.kts"));
+		String infraBuild = Files.readString(Path.of("core/infra/build.gradle.kts"));
 		String apisBuild = Files.readString(Path.of("apis/build.gradle.kts"));
 		String adminBuild = Files.readString(Path.of("admin/build.gradle.kts"));
 		String batchBuild = Files.readString(Path.of("batch/build.gradle.kts"));
@@ -228,7 +228,7 @@ class SharedBoundaryContractTest {
 			.filter(path -> contains(path, "org.springframework.data.redis"))
 			.map(Path::toString)
 			.toList();
-		List<String> infraGatewayImports = sourceFiles(Path.of("infra/src/main")).stream()
+		List<String> infraGatewayImports = sourceFiles(Path.of("core/infra/src/main")).stream()
 			.filter(path -> contains(path, "import com.beat.gateway"))
 			.map(Path::toString)
 			.toList();
@@ -260,7 +260,7 @@ class SharedBoundaryContractTest {
 
 		assertTrue(infraBaseConfig.contains("Marker for top-level infra bootstrap configurations"));
 		assertTrue(infraBaseConfig.contains("Support configurations"));
-		assertFalse(Files.exists(Path.of("infra/src/main/kotlin/com/beat/infra/InfraModuleConfig.kt")),
+		assertFalse(Files.exists(Path.of("core/infra/src/main/kotlin/com/beat/infra/InfraModuleConfig.kt")),
 			"InfraModuleConfig must not compete with @EnableInfraBaseConfig as a module-wide entrypoint");
 
 		for (Path sourcePath : topLevelConfigSources) {
@@ -316,8 +316,8 @@ class SharedBoundaryContractTest {
 			Path.of("apis/src/main"),
 			Path.of("admin/src/main"),
 			Path.of("batch/src/main"),
-			Path.of("domain/src/main"),
-			Path.of("infra/src/main"),
+			Path.of("core/domain/src/main"),
+			Path.of("core/infra/src/main"),
 			Path.of("gateway/src/main"),
 			Path.of("observability/src/main"),
 			Path.of("global-support/src/main")
@@ -384,7 +384,7 @@ class SharedBoundaryContractTest {
 	void infraDomainPackageResidueIsLimitedToKnownDeferredQueryImplementations() throws Exception {
 		Set<String> allowedResidue = Set.of();
 
-		Set<String> actualResidue = sourceFiles(Path.of("infra/src/main")).stream()
+		Set<String> actualResidue = sourceFiles(Path.of("core/infra/src/main")).stream()
 			.filter(path -> contains(path, "package com.beat.domain."))
 			.map(path -> path.toString().replace('\\', '/'))
 			.collect(Collectors.toSet());
@@ -395,11 +395,11 @@ class SharedBoundaryContractTest {
 	@Test
 	void infraBaseTimeEntityOwnsAuditingMappedSuperclassContract() throws Exception {
 		String baseTimeEntity = Files.readString(
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt"));
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt"));
 		String memberEntity = Files.readString(
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/member/entity/MemberJpaEntity.kt"));
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/member/entity/MemberJpaEntity.kt"));
 		String performanceEntity = Files.readString(
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.kt"));
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.kt"));
 
 		assertTrue(baseTimeEntity.contains("package com.beat.infra.persistence.common"));
 		assertTrue(baseTimeEntity.contains("@MappedSuperclass"));
@@ -417,98 +417,98 @@ class SharedBoundaryContractTest {
 	@Test
 	void infraPersistenceBootstrapUsesSingleMarkerAndNoDomainSpecificConfig() throws Exception {
 		Set<String> requiredInfraPersistenceFiles = new HashSet<>(Set.of(
-                "infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceConfig.kt",
-                "infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt",
-                "infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceMarker.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt",
+                "core/infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceConfig.kt",
+                "core/infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt",
+                "core/infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceMarker.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.kt",
 			usersJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/kotlin/com/beat/infra/persistence/user/mapper/UsersPersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/user/repository/UsersJpaRepository.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/user/repository/UsersRepositoryImpl.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/user/mapper/UsersPersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/user/repository/UsersJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/user/repository/UsersRepositoryImpl.kt",
 			performanceJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PaymentAccountJpaValue.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformancePeriodJpaValue.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/mapper/PerformancePersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/MakerPerformanceListQueries.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceContentOwnershipQueries.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceSummaryQueries.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PaymentAccountJpaValue.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformancePeriodJpaValue.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/mapper/PerformancePersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/MakerPerformanceListQueries.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceContentOwnershipQueries.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceSummaryQueries.kt",
 			scheduleJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.kt"
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.kt"
 		));
 		requiredInfraPersistenceFiles.addAll(bookingInfraPersistenceSourcePathsIfPresent());
 		Set<String> allowedInfraPersistenceFiles = new HashSet<>(Set.of(
-			"infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceConfig.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/exception/PersistenceMappingException.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceMarker.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/GuestCredentialQueries.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceConfig.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/exception/PersistenceMappingException.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceMarker.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/GuestCredentialQueries.kt",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/query/HomePromotionQueries.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/query/HomePromotionQueries.kt",
 			castJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/kotlin/com/beat/infra/persistence/cast/mapper/CastPersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/cast/repository/CastJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/cast/mapper/CastPersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/cast/repository/CastJpaRepository.kt",
 			staffJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/kotlin/com/beat/infra/persistence/staff/mapper/StaffPersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/staff/repository/StaffJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/staff/mapper/StaffPersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/staff/repository/StaffJpaRepository.kt",
 			performanceImageJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/kotlin/com/beat/infra/persistence/performanceimage/mapper/PerformanceImagePersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performanceimage/repository/PerformanceImageJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performanceimage/mapper/PerformanceImagePersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performanceimage/repository/PerformanceImageJpaRepository.kt",
 			usersJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/kotlin/com/beat/infra/persistence/user/mapper/UsersPersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/user/repository/UsersJpaRepository.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/user/repository/UsersRepositoryImpl.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/member/entity/MemberJpaEntity.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/member/mapper/MemberPersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/member/repository/MemberJpaRepository.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/member/repository/MemberRepositoryImpl.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/user/mapper/UsersPersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/user/repository/UsersJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/user/repository/UsersRepositoryImpl.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/member/entity/MemberJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/member/mapper/MemberPersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/member/repository/MemberJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/member/repository/MemberRepositoryImpl.kt",
 			performanceJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PaymentAccountJpaValue.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformancePeriodJpaValue.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/mapper/PerformancePersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/MakerPerformanceListQueries.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceContentOwnershipQueries.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceSummaryQueries.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceEditFormQueries.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformancePeriodReadSupport.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PaymentAccountJpaValue.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformancePeriodJpaValue.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/mapper/PerformancePersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/PerformanceJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/PerformanceRepositoryImpl.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/MakerPerformanceListQueries.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceContentOwnershipQueries.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceSummaryQueries.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceEditFormQueries.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformancePeriodReadSupport.kt",
 			scheduleJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query/ScheduleQueries.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query/ScheduleAvailabilityQueries.kt"
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query/ScheduleQueries.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query/ScheduleAvailabilityQueries.kt"
 		));
 		allowedInfraPersistenceFiles.addAll(bookingInfraPersistenceSourcePathsIfPresent());
 
 		Set<String> actualInfraPersistenceFiles = sourceFiles(
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence")
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence")
 		)
 			.stream()
 			.map(path -> path.toString().replace('\\', '/'))
 			.collect(Collectors.toSet());
 		String persistenceConfig = Files.readString(
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceConfig.kt"));
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceConfig.kt"));
 
 		assertTrue(actualInfraPersistenceFiles.containsAll(requiredInfraPersistenceFiles));
 		assertTrue(allowedInfraPersistenceFiles.containsAll(actualInfraPersistenceFiles),
@@ -520,7 +520,7 @@ class SharedBoundaryContractTest {
 		assertFalse(persistenceConfig.contains("PromotionPersistenceConfig"));
 		assertFalse(Files.exists(
 			Path.of(
-				"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionPersistenceConfig.kt")));
+				"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionPersistenceConfig.kt")));
 	}
 
 	@Test
@@ -566,11 +566,11 @@ class SharedBoundaryContractTest {
 		String scheduleCoordinator = Files.readString(
 			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/command/ScheduleSynchronizer.kt"));
 		String bookingRepository = Files.readString(
-			Path.of("domain/src/main/kotlin/com/beat/domain/booking/repository/BookingRepository.kt"));
+			Path.of("core/domain/src/main/kotlin/com/beat/domain/booking/repository/BookingRepository.kt"));
 		String bookingJpaRepository = Files.readString(
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt"));
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt"));
 		String bookingRepositoryImpl = Files.readString(
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt"));
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt"));
 		String ticketQueryService = Files.readString(
 			Path.of("apis/src/main/kotlin/com/beat/apis/ticket/application/query/TicketQueryService.kt"));
 		String ticketCommandService = Files.readString(
@@ -589,9 +589,9 @@ class SharedBoundaryContractTest {
 		assertTrue(scheduleCoordinator.contains("bookingRepository.deleteInactiveBookingsByScheduleIds("));
 		assertTrue(scheduleCoordinator.contains("bookingRepository.existsActiveBookingByScheduleIds(scheduleIds"));
 		assertTrue(performanceDelete.contains("deletedBookingCount"));
-		assertFalse(Files.exists(Path.of("domain/src/main/kotlin/com/beat/domain/booking/dao")),
+		assertFalse(Files.exists(Path.of("core/domain/src/main/kotlin/com/beat/domain/booking/dao")),
 			"Booking domain repository ports must live under domain.booking.repository, not legacy dao");
-		assertFalse(Files.exists(Path.of("domain/src/main/kotlin/com/beat/domain/booking/repository/TicketRepository.kt")));
+		assertFalse(Files.exists(Path.of("core/domain/src/main/kotlin/com/beat/domain/booking/repository/TicketRepository.kt")));
 		assertFalse(bookingRepository.contains("org.springframework.data"));
 		assertFalse(bookingRepository.contains("@Query"));
 		assertTrue(bookingRepository.contains("fun deleteInactiveBookingsByScheduleIds("));
@@ -625,10 +625,10 @@ class SharedBoundaryContractTest {
 	@Test
 	void makerTicketQueriesUseDirectJdslProjection() throws Exception {
 		String makerTicketQueries = Files.readString(
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt"));
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt"));
 
 		assertFalse(Files.exists(
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.kt")));
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.kt")));
 		assertFalse(makerTicketQueries.contains("QScheduleJpaEntity"));
 		assertFalse(makerTicketQueries.contains("com.querydsl"));
 		// Kotlin JDSL type-safe projection preserves the MySQL custom-dialect full-text expression.
@@ -640,10 +640,10 @@ class SharedBoundaryContractTest {
 	@Test
 	void queryComponentsUseQueriesNamingAndExposeOnlyModuleContractsReadModels() throws Exception {
 		List<Path> queryComponents = sourceFiles(
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query"),
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query"),
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query"),
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/query")
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query"),
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query"),
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query"),
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/query")
 		).stream()
 			.filter(path -> path.getFileName().toString().endsWith("Queries.kt"))
 			.toList();
@@ -710,7 +710,7 @@ class SharedBoundaryContractTest {
 			"Sort"
 		);
 
-		Set<String> actualPersistenceConcernSources = sourceFiles(Path.of("domain/src/main")).stream()
+		Set<String> actualPersistenceConcernSources = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.filter(path -> forbiddenPersistencePatterns.stream().anyMatch(pattern -> contains(path, pattern)))
 			.map(path -> path.toString().replace('\\', '/'))
 			.collect(Collectors.toSet());
@@ -721,7 +721,7 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void domainNoLongerOwnsResponseSuccessCodes() throws Exception {
-		List<String> domainSuccessCodes = sourceFiles(Path.of("domain/src/main")).stream()
+		List<String> domainSuccessCodes = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.filter(path -> path.getFileName().toString().matches(".*SuccessCode\\.(java|kt)"))
 			.map(path -> path.toString().replace('\\', '/'))
 			.toList();
@@ -757,7 +757,7 @@ class SharedBoundaryContractTest {
 		Pattern lookupNotFoundCodePattern = Pattern.compile(
 			"\\b(NO_[A-Z0-9_]+_FOUND|[A-Z0-9_]+_NOT_FOUND|SCHEDULE_LIST_NOT_FOUND)\\b"
 		);
-		List<String> domainLookupCodes = sourceFiles(Path.of("domain/src/main")).stream()
+		List<String> domainLookupCodes = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.filter(path -> matches(path, lookupNotFoundCodePattern))
 			.map(path -> path.toString().replace('\\', '/'))
 			.toList();
@@ -765,7 +765,7 @@ class SharedBoundaryContractTest {
 		assertTrue(domainLookupCodes.isEmpty(),
 			"Repository lookup NotFound codes are application flow concerns:\n"
 				+ String.join("\n", domainLookupCodes));
-		assertFalse(Files.exists(Path.of("domain/src/main/kotlin/com/beat/domain/user/exception/UserErrorCode.kt")));
+		assertFalse(Files.exists(Path.of("core/domain/src/main/kotlin/com/beat/domain/user/exception/UserErrorCode.kt")));
 		assertSourceContains(
 			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/command/PerformanceCreateCommandService.kt"),
 			"throw ApiApplicationException(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND)");
@@ -831,12 +831,12 @@ class SharedBoundaryContractTest {
 	@Test
 	void domainErrorCodesStayOnPureInvariantAllowlist() throws Exception {
 		Set<String> expectedDomainErrorCodes = Set.of(
-			"domain/src/main/kotlin/com/beat/domain/booking/exception/BookingErrorCode.kt",
-			"domain/src/main/kotlin/com/beat/domain/performance/exception/PerformanceErrorCode.kt",
-			"domain/src/main/kotlin/com/beat/domain/promotion/exception/PromotionErrorCode.kt",
-			"domain/src/main/kotlin/com/beat/domain/schedule/exception/ScheduleErrorCode.kt"
+			"core/domain/src/main/kotlin/com/beat/domain/booking/exception/BookingErrorCode.kt",
+			"core/domain/src/main/kotlin/com/beat/domain/performance/exception/PerformanceErrorCode.kt",
+			"core/domain/src/main/kotlin/com/beat/domain/promotion/exception/PromotionErrorCode.kt",
+			"core/domain/src/main/kotlin/com/beat/domain/schedule/exception/ScheduleErrorCode.kt"
 		);
-		Set<String> actualDomainErrorCodes = sourceFiles(Path.of("domain/src/main")).stream()
+		Set<String> actualDomainErrorCodes = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.filter(path -> path.getFileName().toString().matches(".*ErrorCode\\.(java|kt)"))
 			.map(path -> path.toString().replace('\\', '/'))
 			.collect(Collectors.toSet());
@@ -844,31 +844,31 @@ class SharedBoundaryContractTest {
 		assertEquals(expectedDomainErrorCodes, actualDomainErrorCodes,
 			"Domain may only own pure invariant ErrorCode enums");
 		assertSourceContains(
-			Path.of("domain/src/main/kotlin/com/beat/domain/booking/exception/BookingErrorCode.kt"),
+			Path.of("core/domain/src/main/kotlin/com/beat/domain/booking/exception/BookingErrorCode.kt"),
 			"INVALID_PURCHASE_TICKET_COUNT(");
 		assertSourceContains(
-			Path.of("domain/src/main/kotlin/com/beat/domain/booking/exception/BookingErrorCode.kt"),
+			Path.of("core/domain/src/main/kotlin/com/beat/domain/booking/exception/BookingErrorCode.kt"),
 			"PAYMENT_CONFIRMATION_NOT_ALLOWED(");
 		assertSourceContains(
-			Path.of("domain/src/main/kotlin/com/beat/domain/performance/exception/PerformanceErrorCode.kt"),
+			Path.of("core/domain/src/main/kotlin/com/beat/domain/performance/exception/PerformanceErrorCode.kt"),
 			"NEGATIVE_TICKET_PRICE(\"PERFORMANCE_NEGATIVE_TICKET_PRICE\", DomainErrorType.INVALID_INPUT");
 		assertSourceContains(
-			Path.of("domain/src/main/kotlin/com/beat/domain/schedule/exception/ScheduleErrorCode.kt"),
+			Path.of("core/domain/src/main/kotlin/com/beat/domain/schedule/exception/ScheduleErrorCode.kt"),
 			"\"SCHEDULE_INSUFFICIENT_TICKETS\"");
 		assertSourceContains(
-			Path.of("domain/src/main/kotlin/com/beat/domain/schedule/exception/ScheduleErrorCode.kt"),
+			Path.of("core/domain/src/main/kotlin/com/beat/domain/schedule/exception/ScheduleErrorCode.kt"),
 			"MIXED_PERFORMANCE_SCHEDULES(");
 		assertSourceContains(
-			Path.of("domain/src/main/kotlin/com/beat/domain/promotion/exception/PromotionErrorCode.kt"),
+			Path.of("core/domain/src/main/kotlin/com/beat/domain/promotion/exception/PromotionErrorCode.kt"),
 			"\"PROMOTION_TOO_MANY_CAROUSEL_PROMOTIONS\"");
 		assertFalse(contains(
-			Path.of("domain/src/main/kotlin/com/beat/domain/performance/exception/PerformanceErrorCode.kt"),
+			Path.of("core/domain/src/main/kotlin/com/beat/domain/performance/exception/PerformanceErrorCode.kt"),
 			"NOT_PERFORMANCE_OWNER"));
-		assertFalse(sourceFiles(Path.of("domain/src/main")).stream()
+		assertFalse(sourceFiles(Path.of("core/domain/src/main")).stream()
 			.anyMatch(path -> contains(path, "INVALID_DATA_FORMAT")),
 			"Domain errors must name the violated invariant instead of using a generic format code");
 
-		List<String> transportCoupling = sourceFiles(Path.of("domain/src/main")).stream()
+		List<String> transportCoupling = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.filter(path -> contains(path, "com.beat.global.support"))
 			.map(path -> path.toString().replace('\\', '/'))
 			.toList();
@@ -886,7 +886,7 @@ class SharedBoundaryContractTest {
 			Path.of("apis/src/main"),
 			Path.of("admin/src/main"),
 			Path.of("batch/src/main"),
-			Path.of("infra/src/main")
+			Path.of("core/infra/src/main")
 		).stream()
 			.filter(path -> matches(path, domainErrorCodeImport))
 			.map(path -> path.toString().replace('\\', '/'))
@@ -903,7 +903,7 @@ class SharedBoundaryContractTest {
 			"^import com\\.beat\\.(apis|admin|batch)\\..*\\.[A-Za-z0-9]+ApplicationErrorCode;",
 			Pattern.MULTILINE
 		);
-		List<String> violations = sourceFiles(Path.of("infra/src/main")).stream()
+		List<String> violations = sourceFiles(Path.of("core/infra/src/main")).stream()
 			.filter(path -> matches(path, executableApplicationErrorCodeImport))
 			.map(path -> path.toString().replace('\\', '/'))
 			.toList();
@@ -915,7 +915,7 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void domainLegacyDaoPackagesDoNotReappearAfterRepositoryPortMigration() throws Exception {
-		List<String> legacyDaoPackageSources = sourceFiles(Path.of("domain/src/main")).stream()
+		List<String> legacyDaoPackageSources = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.map(path -> path.toString().replace('\\', '/'))
 			.filter(path -> path.contains("/dao/"))
 			.toList();
@@ -927,7 +927,7 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void domainApplicationUseCasePortPackagesDoNotReappear() throws Exception {
-		List<String> domainPortSources = sourceFiles(Path.of("domain/src/main")).stream()
+		List<String> domainPortSources = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.map(path -> path.toString().replace('\\', '/'))
 			.filter(path -> path.contains("/port/"))
 			.toList();
@@ -946,7 +946,7 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void domainRepositoryDtoPackagesDoNotReappearAfterReadModelSplit() throws Exception {
-		List<String> domainRepositoryDtoSources = sourceFiles(Path.of("domain/src/main")).stream()
+		List<String> domainRepositoryDtoSources = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.map(path -> path.toString().replace('\\', '/'))
 			.filter(path -> path.contains("/repository/dto/"))
 			.toList();
@@ -958,7 +958,7 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void infraSourceDoesNotDeclareDomainPackages() throws Exception {
-		List<String> infraDomainPackageResidues = sourceFiles(Path.of("infra/src/main")).stream()
+		List<String> infraDomainPackageResidues = sourceFiles(Path.of("core/infra/src/main")).stream()
 			.flatMap(path -> readLines(path).stream()
 				.filter(line -> line.startsWith("package com.beat.domain"))
 				.map(line -> path.toString().replace('\\', '/') + ": " + line))
@@ -971,12 +971,12 @@ class SharedBoundaryContractTest {
 
 	@Test
 	void castStaffAndUsersDomainContractsStayPureAndTechnologyNeutral() throws Exception {
-		Path castDomain = Path.of("domain/src/main/kotlin/com/beat/domain/performance/model/Cast.kt");
-		Path staffDomain = Path.of("domain/src/main/kotlin/com/beat/domain/performance/model/Staff.kt");
-		Path usersDomain = Path.of("domain/src/main/kotlin/com/beat/domain/user/model/Users.kt");
-		Path castRepository = Path.of("domain/src/main/kotlin/com/beat/domain/cast/repository/CastRepository.kt");
-		Path staffRepository = Path.of("domain/src/main/kotlin/com/beat/domain/staff/repository/StaffRepository.kt");
-		Path usersRepository = Path.of("domain/src/main/kotlin/com/beat/domain/user/repository/UserRepository.kt");
+		Path castDomain = Path.of("core/domain/src/main/kotlin/com/beat/domain/performance/model/Cast.kt");
+		Path staffDomain = Path.of("core/domain/src/main/kotlin/com/beat/domain/performance/model/Staff.kt");
+		Path usersDomain = Path.of("core/domain/src/main/kotlin/com/beat/domain/user/model/Users.kt");
+		Path castRepository = Path.of("core/domain/src/main/kotlin/com/beat/domain/cast/repository/CastRepository.kt");
+		Path staffRepository = Path.of("core/domain/src/main/kotlin/com/beat/domain/staff/repository/StaffRepository.kt");
+		Path usersRepository = Path.of("core/domain/src/main/kotlin/com/beat/domain/user/repository/UserRepository.kt");
 		List<Path> domainContractSources = List.of(castDomain, staffDomain, usersDomain, usersRepository);
 		List<String> forbiddenTechnologyReferences = List.of(
 			"jakarta.persistence.",
@@ -992,9 +992,9 @@ class SharedBoundaryContractTest {
 			"Performance performance"
 		);
 
-		assertFalse(Files.exists(Path.of("domain/src/main/kotlin/com/beat/domain/cast/dao/CastRepository.java")));
-		assertFalse(Files.exists(Path.of("domain/src/main/kotlin/com/beat/domain/staff/dao/StaffRepository.java")));
-		assertFalse(Files.exists(Path.of("domain/src/main/kotlin/com/beat/domain/user/dao/UserRepository.java")));
+		assertFalse(Files.exists(Path.of("core/domain/src/main/kotlin/com/beat/domain/cast/dao/CastRepository.java")));
+		assertFalse(Files.exists(Path.of("core/domain/src/main/kotlin/com/beat/domain/staff/dao/StaffRepository.java")));
+		assertFalse(Files.exists(Path.of("core/domain/src/main/kotlin/com/beat/domain/user/dao/UserRepository.java")));
 		assertFalse(Files.exists(castRepository));
 		assertFalse(Files.exists(staffRepository));
 		assertTrue(Files.exists(usersRepository));
@@ -1019,7 +1019,7 @@ class SharedBoundaryContractTest {
 	void domainCustomRepositoryContractsRemainExplicitIssue380TransitionalAllowlist() throws Exception {
 		Set<String> allowedCustomRepositoryContracts = Set.of();
 
-		Set<String> actualCustomRepositoryContracts = sourceFiles(Path.of("domain/src/main")).stream()
+		Set<String> actualCustomRepositoryContracts = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.filter(path -> path.getFileName().toString().endsWith("RepositoryCustom.java"))
 			.map(path -> path.toString().replace('\\', '/'))
 			.collect(Collectors.toSet());
@@ -1033,11 +1033,11 @@ class SharedBoundaryContractTest {
 		Set<String> allowedJpaModelSources = Set.of();
 		Set<String> allowedJpaRepositorySources = Set.of();
 
-		Set<String> actualJpaModelSources = sourceFiles(Path.of("domain/src/main")).stream()
+		Set<String> actualJpaModelSources = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.filter(path -> hasAnnotation(path, "Entity") || hasAnnotation(path, "MappedSuperclass"))
 			.map(path -> path.toString().replace('\\', '/'))
 			.collect(Collectors.toSet());
-		Set<String> actualJpaRepositorySources = sourceFiles(Path.of("domain/src/main")).stream()
+		Set<String> actualJpaRepositorySources = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.filter(path -> contains(path, "JpaRepository"))
 			.map(path -> path.toString().replace('\\', '/'))
 			.collect(Collectors.toSet());
@@ -1049,16 +1049,16 @@ class SharedBoundaryContractTest {
 	@Test
 	void promotionRepositorySeamUsesIssue380ChosenNaming() throws Exception {
 		Path domainContract = Path.of(
-			"domain/src/main/kotlin/com/beat/domain/promotion/repository/PromotionRepository.kt");
+			"core/domain/src/main/kotlin/com/beat/domain/promotion/repository/PromotionRepository.kt");
 		Path oldDomainSpringDataRepository = Path.of(
-			"domain/src/main/kotlin/com/beat/domain/promotion/dao/PromotionRepository.kt");
+			"core/domain/src/main/kotlin/com/beat/domain/promotion/dao/PromotionRepository.kt");
 		Path springDataRepository = Path.of(
-			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.kt");
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.kt");
 		Path jpaEntity = promotionJpaEntitySourcePath();
 		Path persistenceMapper = Path.of(
-			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.kt");
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.kt");
 		Path repositoryImplementation = Path.of(
-			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.kt");
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionRepositoryImpl.kt");
 
 		assertTrue(Files.exists(domainContract));
 		assertFalse(Files.exists(oldDomainSpringDataRepository));
@@ -1079,7 +1079,7 @@ class SharedBoundaryContractTest {
 			.collect(Collectors.toSet());
 
 		String promotionDomainSource = Files.readString(
-			Path.of("domain/src/main/kotlin/com/beat/domain/promotion/model/Promotion.kt"));
+			Path.of("core/domain/src/main/kotlin/com/beat/domain/promotion/model/Promotion.kt"));
 
 		assertFalse(domainContractSource.contains("org.springframework.data"));
 		assertFalse(domainContractSource.contains("jakarta.persistence"));
@@ -1090,7 +1090,7 @@ class SharedBoundaryContractTest {
 		assertTrue(promotionDomainSource.contains("class Promotion private constructor"));
 		assertTrue(promotionDomainSource.contains(": AggregateRoot"));
 		assertFalse(promotionDomainSource.contains("data class Promotion"));
-		assertFalse(Files.exists(Path.of("domain/src/main/kotlin/com/beat/domain/performance/model/PerformanceId.kt")));
+		assertFalse(Files.exists(Path.of("core/domain/src/main/kotlin/com/beat/domain/performance/model/PerformanceId.kt")));
 
 		assertTrue(promotionDomainSource.contains("@JvmInline"));
 		assertTrue(promotionDomainSource.contains("value class Id private constructor"));
@@ -1141,15 +1141,15 @@ class SharedBoundaryContractTest {
 		Set<String> allowedEntitySources = Set.of();
 		Set<String> allowedMappedSuperclassSources = Set.of();
 
-		Set<String> actualEntitySources = sourceFiles(Path.of("domain/src/main")).stream()
+		Set<String> actualEntitySources = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.filter(path -> hasAnnotation(path, "Entity"))
 			.map(path -> path.toString().replace('\\', '/'))
 			.collect(Collectors.toSet());
-		Set<String> actualMappedSuperclassSources = sourceFiles(Path.of("domain/src/main")).stream()
+		Set<String> actualMappedSuperclassSources = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.filter(path -> hasAnnotation(path, "MappedSuperclass"))
 			.map(path -> path.toString().replace('\\', '/'))
 			.collect(Collectors.toSet());
-		Set<String> actualAuditingSources = sourceFiles(Path.of("domain/src/main")).stream()
+		Set<String> actualAuditingSources = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.filter(path -> hasAnnotation(path, "EntityListeners")
 				|| hasAnnotation(path, "CreatedDate")
 				|| hasAnnotation(path, "LastModifiedDate")
@@ -1167,11 +1167,11 @@ class SharedBoundaryContractTest {
 	@Test
 	void domainBuildDoesNotRegainJpaOrQueryDslBootstrap() throws Exception {
 		Set<String> allowedQueryProjectionSources = Set.of();
-		Set<String> actualQueryProjectionSources = sourceFiles(Path.of("domain/src/main")).stream()
+		Set<String> actualQueryProjectionSources = sourceFiles(Path.of("core/domain/src/main")).stream()
 			.filter(path -> contains(path, "@QueryProjection") || contains(path, "com.querydsl."))
 			.map(path -> path.toString().replace('\\', '/'))
 			.collect(Collectors.toSet());
-		String domainBuild = Files.readString(Path.of("domain/build.gradle.kts"));
+		String domainBuild = Files.readString(Path.of("core/domain/build.gradle.kts"));
 		String jpaConfig = Files.readString(infraMainSourcePath("com/beat/infra/config/JpaConfig"));
 
 		assertEquals(allowedQueryProjectionSources, actualQueryProjectionSources);
@@ -1282,14 +1282,14 @@ class SharedBoundaryContractTest {
 		assertTrue(migration.contains("### First slice candidate ranking"));
 		assertTrue(migration.contains("Cast` + `Staff` pair"));
 		List<String> staffOnlySplitViolations = sourceFiles(
-			Path.of("infra/src/main"),
-			Path.of("domain/src/main")
+			Path.of("core/infra/src/main"),
+			Path.of("core/domain/src/main")
 		).stream()
 			.map(path -> path.toString().replace('\\', '/'))
 			.filter(path -> path.contains("/domain/staff/port/"))
 			.toList();
 		Set<String> actualInfraPersistenceFiles = sourceFiles(
-			Path.of("infra/src/main/kotlin/com/beat/infra/persistence")
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence")
 		)
 			.stream()
 			.map(path -> path.toString().replace('\\', '/'))
@@ -1383,32 +1383,32 @@ class SharedBoundaryContractTest {
 
 
 	private Set<String> bookingInfraPersistenceSourcePathsIfPresent() {
-		Path bookingPersistenceRoot = Path.of("infra/src/main/kotlin/com/beat/infra/persistence/booking");
+		Path bookingPersistenceRoot = Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/booking");
 		if (!Files.exists(bookingPersistenceRoot)) {
 			return Set.of();
 		}
 
 		return Set.of(
 			bookingJpaEntitySourcePath().toString().replace('\\', '/'),
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/RefundAccountJpaValue.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt"
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/RefundAccountJpaValue.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt"
 		);
 	}
 
 	private Path bookingJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/BookingJpaEntity.kt",
 			"BookingJpaEntity"
 		);
 	}
 
 	private Path promotionJpaEntitySourcePath() {
 		Path kotlinEntity = Path.of(
-			"infra/src/main/kotlin/com/beat/infra/persistence/promotion/entity/PromotionJpaEntity.kt");
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/entity/PromotionJpaEntity.kt");
 
 		assertTrue(Files.exists(kotlinEntity),
 			"PromotionJpaEntity Kotlin source must exist after infra Kotlin migration");
@@ -1417,40 +1417,40 @@ class SharedBoundaryContractTest {
 
 	private Path castJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/kotlin/com/beat/infra/persistence/cast/entity/CastJpaEntity.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/cast/entity/CastJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/cast/entity/CastJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/cast/entity/CastJpaEntity.kt",
 			"CastJpaEntity"
 		);
 	}
 
 	private Path staffJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/kotlin/com/beat/infra/persistence/staff/entity/StaffJpaEntity.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/staff/entity/StaffJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/staff/entity/StaffJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/staff/entity/StaffJpaEntity.kt",
 			"StaffJpaEntity"
 		);
 	}
 
 	private Path usersJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/kotlin/com/beat/infra/persistence/user/entity/UsersJpaEntity.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/user/entity/UsersJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/user/entity/UsersJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/user/entity/UsersJpaEntity.kt",
 			"UsersJpaEntity"
 		);
 	}
 
 	private Path performanceJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/entity/PerformanceJpaEntity.kt",
 			"PerformanceJpaEntity"
 		);
 	}
 
 	private Path scheduleJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/entity/ScheduleJpaEntity.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/schedule/entity/ScheduleJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/entity/ScheduleJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/entity/ScheduleJpaEntity.kt",
 			"ScheduleJpaEntity"
 		);
 	}
@@ -1458,11 +1458,11 @@ class SharedBoundaryContractTest {
 	@Test
 	void domainTypedIdsStayInternalWhileJavaBoundariesRemainScalar() throws Exception {
 		String bookingDomain = Files.readString(
-			Path.of("domain/src/main/kotlin/com/beat/domain/booking/model/Booking.kt"));
+			Path.of("core/domain/src/main/kotlin/com/beat/domain/booking/model/Booking.kt"));
 		String memberDomain = Files.readString(
-			Path.of("domain/src/main/kotlin/com/beat/domain/member/model/Member.kt"));
+			Path.of("core/domain/src/main/kotlin/com/beat/domain/member/model/Member.kt"));
 		String performanceDomain = Files.readString(
-			Path.of("domain/src/main/kotlin/com/beat/domain/performance/model/Performance.kt"));
+			Path.of("core/domain/src/main/kotlin/com/beat/domain/performance/model/Performance.kt"));
 
 		assertAll(
 			() -> assertTrue(bookingDomain.contains("private val bookingId: Id?")),
@@ -1540,7 +1540,7 @@ class SharedBoundaryContractTest {
 		Path jpaAdapterConvention = Path.of("build-logic/src/main/kotlin/beat.jpa-adapter.gradle.kts");
 		Path externalClientConvention = Path.of("build-logic/src/main/kotlin/beat.external-client.gradle.kts");
 		Path legacyJpaInfraConvention = Path.of("build-logic/src/main/kotlin/beat.jpa-infra.gradle.kts");
-		String infraBuild = Files.readString(Path.of("infra/build.gradle.kts"));
+		String infraBuild = Files.readString(Path.of("core/infra/build.gradle.kts"));
 
 		assertTrue(Files.exists(infraLibraryConvention), "infra base library convention must exist");
 		assertTrue(Files.exists(jpaAdapterConvention), "JPA adapter convention must exist");
@@ -1573,8 +1573,8 @@ class SharedBoundaryContractTest {
 
 	private Path performanceImageJpaEntitySourcePath() {
 		return singleJpaEntitySourcePath(
-			"infra/src/main/kotlin/com/beat/infra/persistence/performanceimage/entity/PerformanceImageJpaEntity.kt",
-			"infra/src/main/kotlin/com/beat/infra/persistence/performanceimage/entity/PerformanceImageJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performanceimage/entity/PerformanceImageJpaEntity.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/performanceimage/entity/PerformanceImageJpaEntity.kt",
 			"PerformanceImageJpaEntity"
 		);
 	}
@@ -1708,8 +1708,8 @@ class SharedBoundaryContractTest {
 	}
 
 	private Path infraMainSourcePath(String relativeTypePath) {
-		Path javaSource = Path.of("infra/src/main/java", relativeTypePath + ".java");
-		Path kotlinSource = Path.of("infra/src/main/kotlin", relativeTypePath + ".kt");
+		Path javaSource = Path.of("core/infra/src/main/java", relativeTypePath + ".java");
+		Path kotlinSource = Path.of("core/infra/src/main/kotlin", relativeTypePath + ".kt");
 		assertTrue(Files.exists(javaSource) ^ Files.exists(kotlinSource),
 			"Expected exactly one Java or Kotlin source for " + relativeTypePath);
 		return Files.exists(kotlinSource) ? kotlinSource : javaSource;

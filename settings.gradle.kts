@@ -29,8 +29,8 @@ include(
     "admin",
     "batch",
     "gateway",
-    "domain",
-    "infra",
+    "core:domain",
+    "core:infra",
     "global-support",
     "observability",
 )
