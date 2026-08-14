@@ -47,16 +47,16 @@ class RootRetirementContractTest {
 	@Test
 	void concernOwnedApplicationResourcesExistAfterRootRetirement() {
 		assertTrue(Files.exists(Path.of("observability/src/main/resources/application-observability.yml")));
-		assertTrue(Files.exists(Path.of("infra/src/main/resources/application-persistence.yml")));
-		assertTrue(Files.exists(Path.of("infra/src/main/resources/application-external.yml")));
-		assertTrue(Files.exists(Path.of("infra/src/main/resources/application-redis.yml")));
-		assertTrue(Files.exists(Path.of("infra/src/main/resources/application-thread-pool.yml")));
+		assertTrue(Files.exists(Path.of("core/infra/src/main/resources/application-persistence.yml")));
+		assertTrue(Files.exists(Path.of("core/infra/src/main/resources/application-external.yml")));
+		assertTrue(Files.exists(Path.of("core/infra/src/main/resources/application-redis.yml")));
+		assertTrue(Files.exists(Path.of("core/infra/src/main/resources/application-thread-pool.yml")));
 		assertTrue(Files.exists(Path.of("gateway/src/main/resources/application-jwt.yml")));
 	}
 
 	@Test
 	void persistenceProfileKeepsProdSqlLoggingOffWhileDevSqlLoggingStaysExplicitOptIn() throws Exception {
-		String persistence = read("infra/src/main/resources/application-persistence.yml");
+		String persistence = read("core/infra/src/main/resources/application-persistence.yml");
 		String baseSection = persistence.substring(0, persistence.indexOf("\n---"));
 		String prodSection = sectionAfter(persistence, "on-profile: prod");
 		String devSection = sectionAfter(persistence, "on-profile: dev");
@@ -76,7 +76,7 @@ class RootRetirementContractTest {
 	@Test
 	void domainInvariantTestsLiveWithDomainModule() {
 		assertFalse(Files.exists(Path.of("src/test/java/com/beat/domain")));
-		assertTrue(Files.exists(Path.of("domain/src/test/java/com/beat/domain")));
+		assertTrue(Files.exists(Path.of("core/domain/src/test/java/com/beat/domain")));
 	}
 
 	@Test
@@ -192,7 +192,7 @@ class RootRetirementContractTest {
 		String defaultConfTemplate = read("infra/ansible/roles/nginx_base_config/templates/default.conf.j2");
 		String defaults = read("infra/ansible/roles/nginx_base_config/defaults/main.yml");
 		String tasks = read("infra/ansible/roles/nginx_base_config/tasks/main.yml");
-		String infraReadme = read("infra/README.md");
+		String infraReadme = read("core/infra/README.md");
 		String httpServer = sectionBetween(defaultConfTemplate, "server {\n    listen 80;", "\n}\n\nserver {\n    listen 443 ssl;");
 		String httpsServer = defaultConfTemplate.substring(defaultConfTemplate.indexOf("server {\n    listen 443 ssl;"));
 
@@ -272,7 +272,7 @@ class RootRetirementContractTest {
 		String deployDev = read(".github/workflows/deploy-dev.yml");
 		String deployProd = read(".github/workflows/deploy-prod.yml");
 		String observabilityReadme = read("observability/README.md");
-		String infraReadme = read("infra/README.md");
+		String infraReadme = read("core/infra/README.md");
 
 		assertTrue(versionCatalog.contains("sentry = \"8.41.0\""));
 		assertTrue(versionCatalog.contains("sentry-gradle-plugin = \"6.6.0\""));
@@ -302,8 +302,8 @@ class RootRetirementContractTest {
 			"admin/build.gradle.kts",
 			"batch/build.gradle.kts",
 			"observability/build.gradle.kts",
-			"infra/build.gradle.kts",
-			"domain/build.gradle.kts",
+			"core/infra/build.gradle.kts",
+			"core/domain/build.gradle.kts",
 			"gateway/build.gradle.kts",
 			"global-support/build.gradle.kts",
 			"module-contracts/build.gradle.kts"
@@ -567,7 +567,7 @@ class RootRetirementContractTest {
 		String deployPlaybook = read("infra/ansible/playbooks/deploy.yml");
 		String rollbackPlaybook = read("infra/ansible/playbooks/rollback.yml");
 		String nginxFragmentsPreflight = read("infra/ansible/playbooks/tasks/validate_nginx_fragments.yml");
-		String infraReadme = read("infra/README.md");
+		String infraReadme = read("core/infra/README.md");
 
 		assertTrue(ansibleExecWorkflow.contains("connection_module:"));
 		assertTrue(ansibleExecWorkflow.contains(
@@ -698,7 +698,7 @@ class RootRetirementContractTest {
 		String appHealthcheckProbe = read("infra/ansible/roles/app_healthcheck/tasks/probe.yml");
 		String appCleanupRole = read("infra/ansible/roles/app_cleanup/tasks/main.yml");
 		String appRollbackRole = read("infra/ansible/roles/app_rollback/tasks/main.yml");
-		String infraReadme = read("infra/README.md");
+		String infraReadme = read("core/infra/README.md");
 		String nginxBaseConfig = read("infra/ansible/roles/nginx_base_config/tasks/main.yml");
 		String adminNginxRoute = read("infra/ansible/roles/app_stopstart/tasks/admin_nginx_route.yml");
 		String deployDev = read(".github/workflows/deploy-dev.yml");

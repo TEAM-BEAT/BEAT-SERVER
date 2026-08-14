@@ -95,7 +95,7 @@ class BatchApplicationTest {
         assertTrue(config.contains("- persistence"))
         assertTrue(config.contains("- observability"))
         assertTrue(config.contains("- thread-pool"))
-        val threadPoolConfig = Files.readString(Path.of("../infra/src/main/resources/application-thread-pool.yml"))
+        val threadPoolConfig = Files.readString(Path.of("../core/infra/src/main/resources/application-thread-pool.yml"))
         assertTrue(threadPoolConfig.contains("spring:"))
         assertTrue(threadPoolConfig.contains("task:"))
         assertTrue(threadPoolConfig.contains("scheduling:"))

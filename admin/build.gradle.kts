@@ -11,8 +11,8 @@ plugins {
 dependencies {
     implementation(project(":module-contracts"))
     implementation(project(":gateway"))
-    implementation(project(":domain"))
-    implementation(project(":infra"))
+    implementation(project(":core:domain"))
+    implementation(project(":core:infra"))
     implementation(project(":global-support"))
     implementation(project(":observability"))
 
