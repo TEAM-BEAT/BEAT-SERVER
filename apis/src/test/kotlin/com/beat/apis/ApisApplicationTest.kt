@@ -1,5 +1,6 @@
 package com.beat.apis
 
+import com.beat.application.frontoffice.FrontofficeApplicationConfig
 import com.beat.apis.config.ApisSecurityConfig
 import com.beat.apis.config.GatewayConfig
 import com.beat.apis.config.GuestSessionOriginFilter
@@ -43,6 +44,7 @@ class ApisApplicationTest {
 
         assertEquals(
             setOf(
+                FrontofficeApplicationConfig::class.java.name,
                 GatewayConfig::class.java.name,
                 InfraConfig::class.java.name,
                 ObservabilityModuleConfig::class.java.name,

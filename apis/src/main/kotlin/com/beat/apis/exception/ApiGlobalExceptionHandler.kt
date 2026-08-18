@@ -1,5 +1,7 @@
 package com.beat.apis.exception
 
+import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
+import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.domain.booking.exception.BookingErrorCode
 import com.beat.domain.exception.DomainException
 import com.beat.domain.performance.exception.PerformanceErrorCode
@@ -157,6 +159,24 @@ class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         return ResponseEntity.status(status).body(ErrorResponse.of(status.value(), errorCode.getMessage()))
     }
 
+    @ExceptionHandler(FrontofficeApplicationException::class)
+    fun handleFrontofficeApplicationException(
+        exception: FrontofficeApplicationException,
+        request: HttpServletRequest,
+    ): ResponseEntity<ErrorResponse> {
+        val errorCode = exception.errorCode
+        val status = toHttpStatus(errorCode.type)
+        when {
+            errorCode.type == FrontofficeApplicationErrorType.INTERNAL_ERROR -> {
+                log.error(exception) { "Application failure: code=${errorCode.code}, status=${status.value()}" }
+                markObservationError(request, exception)
+            }
+            status.is5xxServerError -> log.error { "Upstream application failure: code=${errorCode.code}, status=${status.value()}" }
+            else -> log.info { "Application failure: code=${errorCode.code}, status=${status.value()}" }
+        }
+        return ResponseEntity.status(status).body(ErrorResponse.of(status.value(), errorCode.message))
+    }
+
     private fun clientErrorResponse(
         exception: Exception,
         status: HttpStatusCode,
@@ -188,6 +208,20 @@ class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
             ApplicationErrorType.UPSTREAM_TIMEOUT -> HttpStatus.GATEWAY_TIMEOUT
             ApplicationErrorType.RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS
             ApplicationErrorType.INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR
+        }
+
+        @JvmStatic
+        fun toHttpStatus(type: FrontofficeApplicationErrorType): HttpStatus = when (type) {
+            FrontofficeApplicationErrorType.INVALID_INPUT -> HttpStatus.BAD_REQUEST
+            FrontofficeApplicationErrorType.UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED
+            FrontofficeApplicationErrorType.FORBIDDEN -> HttpStatus.FORBIDDEN
+            FrontofficeApplicationErrorType.NOT_FOUND -> HttpStatus.NOT_FOUND
+            FrontofficeApplicationErrorType.STATE_CONFLICT -> HttpStatus.CONFLICT
+            FrontofficeApplicationErrorType.UPSTREAM_FAILURE -> HttpStatus.BAD_GATEWAY
+            FrontofficeApplicationErrorType.UPSTREAM_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE
+            FrontofficeApplicationErrorType.UPSTREAM_TIMEOUT -> HttpStatus.GATEWAY_TIMEOUT
+            FrontofficeApplicationErrorType.RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS
+            FrontofficeApplicationErrorType.INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR
         }
 
         private fun toV1DomainMessage(exception: DomainException): String = when (exception.errorCode) {

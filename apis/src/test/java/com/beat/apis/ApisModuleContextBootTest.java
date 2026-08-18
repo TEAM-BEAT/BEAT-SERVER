@@ -27,6 +27,8 @@ import com.beat.contracts.auth.guest.GuestSessionPort;
 import com.beat.contracts.auth.social.SocialLoginPort;
 import com.beat.contracts.cdn.ImageCachePort;
 import com.beat.contracts.notification.BookingNotificationPort;
+import com.beat.application.frontoffice.booking.command.MemberBookingCommandService;
+import com.beat.application.frontoffice.booking.query.BookerBookingReader;
 import com.beat.contracts.notification.MemberNotificationPort;
 import com.beat.contracts.sms.SmsPort;
 import com.beat.contracts.storage.FileStoragePort;
@@ -74,6 +76,8 @@ class ApisModuleContextBootTest extends AbstractIntegrationTest {
 		assertEquals(1, applicationContext.getBeansOfType(PerformanceRepository.class).size());
 		assertEquals(1, applicationContext.getBeansOfType(PromotionRepository.class).size());
 		assertEquals(1, applicationContext.getBeansOfType(ScheduleRepository.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(MemberBookingCommandService.class).size());
+		assertEquals(1, applicationContext.getBeansOfType(BookerBookingReader.class).size());
 	}
 
 	@Test

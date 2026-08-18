@@ -24,9 +24,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.apis.booking.application.command.GuestBookingCommandService;
-import com.beat.apis.booking.application.command.GuestBookingCommand;
-import com.beat.apis.booking.application.result.BookingCreationResult;
+import com.beat.application.frontoffice.booking.command.GuestBookingCommandService;
+import com.beat.application.frontoffice.booking.command.GuestBookingCommand;
+import com.beat.application.frontoffice.booking.result.BookingCreationResult;
 import com.beat.apis.support.AbstractIntegrationTest;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.performance.repository.PerformanceRepository;
@@ -40,8 +40,6 @@ import com.beat.domain.performance.vo.TicketPrice;
 import com.beat.domain.schedule.repository.ScheduleRepository;
 import com.beat.domain.schedule.model.Schedule;
 import com.beat.domain.schedule.model.ScheduleNumber;
-import com.beat.apis.booking.exception.BookingApplicationErrorCode;
-import com.beat.apis.exception.ApiApplicationException;
 import com.beat.domain.exception.DomainException;
 import com.beat.domain.schedule.exception.ScheduleErrorCode;
 import com.beat.domain.user.model.Users;
@@ -175,11 +173,6 @@ class GuestBookingServiceConcurrencyTest extends AbstractIntegrationTest {
 					createGuestBookingRequest(schedule, purchaseTicketCount, scheduleNumber));
 			assertNotNull(response);
 			return true;
-		} catch (ApiApplicationException e) {
-			if (e.getErrorCode() == BookingApplicationErrorCode.INSUFFICIENT_TICKETS) {
-				return false;
-			}
-			throw e;
 		} catch (DomainException e) {
 			if (e.getErrorCode() == ScheduleErrorCode.INSUFFICIENT_TICKETS) {
 				return false;

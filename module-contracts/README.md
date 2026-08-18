@@ -43,11 +43,8 @@ module-contracts/
         RefreshTokenPort.kt
       guest/
         GuestAccessThrottlePort.kt
-        GuestCredentialReadPort.kt
         GuestPasswordHashPort.kt
         GuestSessionPort.kt
-        readmodel/
-          GuestCredentialReadModel.kt
       social/
         SocialLoginRequest.kt
         SocialLoginPort.kt
@@ -115,11 +112,8 @@ com.beat.contracts/
       RefreshTokenPort
     guest/
       GuestAccessThrottlePort
-      GuestCredentialReadPort
       GuestPasswordHashPort
       GuestSessionPort
-      readmodel/
-        GuestCredentialReadModel
     social/
       SocialLoginRequest
       SocialLoginPort

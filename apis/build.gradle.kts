@@ -15,6 +15,7 @@ base {
 dependencies {
     implementation(libs.kotlin.logging.jvm)
 
+    implementation(project(":application:frontoffice"))
     implementation(project(":module-contracts"))
     implementation(project(":support:security"))
     implementation(project(":domain"))

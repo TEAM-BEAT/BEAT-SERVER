@@ -1,15 +1,15 @@
 package com.beat.apis.booking.facade
 
-import com.beat.apis.booking.application.command.BookingCancellationCommandService
-import com.beat.apis.booking.application.command.BookingCancelCommand
-import com.beat.apis.booking.application.command.BookingRefundCommand
-import com.beat.apis.booking.application.command.GuestBookingCommandService
-import com.beat.apis.booking.application.command.GuestBookingCommand
-import com.beat.apis.booking.application.command.GuestBookingAuthenticationCommand
-import com.beat.apis.booking.application.command.GuestBookingAuthenticationCommandService
-import com.beat.apis.booking.application.command.GuestBookingSessionCommandService
-import com.beat.apis.booking.application.command.MemberBookingCommandService
-import com.beat.apis.booking.application.command.MemberBookingCommand
+import com.beat.application.frontoffice.booking.command.BookingCancellationCommandService
+import com.beat.application.frontoffice.booking.command.BookingCancelCommand
+import com.beat.application.frontoffice.booking.command.BookingRefundCommand
+import com.beat.application.frontoffice.booking.command.GuestBookingCommandService
+import com.beat.application.frontoffice.booking.command.GuestBookingCommand
+import com.beat.application.frontoffice.booking.command.GuestBookingAuthenticationCommand
+import com.beat.application.frontoffice.booking.command.GuestBookingAuthenticationCommandService
+import com.beat.application.frontoffice.booking.command.GuestBookingSessionCommandService
+import com.beat.application.frontoffice.booking.command.MemberBookingCommandService
+import com.beat.application.frontoffice.booking.command.MemberBookingCommand
 import com.beat.apis.booking.api.request.BookingCancelRequest
 import com.beat.apis.booking.api.response.BookingCancelResponse
 import com.beat.apis.booking.api.request.BookingRefundRequest
@@ -21,8 +21,8 @@ import com.beat.apis.booking.api.response.GuestBookingRetrieveResponse
 import com.beat.apis.booking.api.request.MemberBookingRequest
 import com.beat.apis.booking.api.response.MemberBookingResponse
 import com.beat.apis.booking.api.response.MemberBookingRetrieveResponse
-import com.beat.apis.booking.application.query.GuestBookingQueryService
-import com.beat.apis.booking.application.query.MemberBookingQueryService
+import com.beat.application.frontoffice.booking.query.GuestBookingQueryService
+import com.beat.application.frontoffice.booking.query.MemberBookingQueryService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service
 

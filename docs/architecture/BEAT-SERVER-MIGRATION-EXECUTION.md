@@ -111,6 +111,12 @@ Revision: PR-2 was changed from independent to dependent on PR-1 after the dirty
 - Rollback: point app adapters back to the legacy Booking entry points while retaining compatible contracts.
 - DoD: complete member/guest create/cancel/query flow crosses apps -> application -> domain <- infrastructure; no Booking command consumes a read model.
 
+Implementation decision:
+
+- Booking Commands use the existing `PerformanceRepository` because ticket price, title, and payment account are authoritative aggregate state. A new Booking-owned terms port would duplicate Performance domain knowledge, while locking Performance after Schedule would introduce an inverse lock order against Performance modification.
+- Booker queries use the consumer-owned `BookerBookingReader` because their projection shape, batching, and future replica/cache policy can change independently from aggregate persistence. Removing this seam would couple Application to JPA/JDSL implementation details.
+- No compatibility workflow was retained. Guest credential lookup is now an authoritative frontoffice-owned repository contract backed by primary Booking persistence. Guest session/password-hashing and notification contracts remain temporarily in `module-contracts` and are explicitly scheduled for ownership migration before module retirement.
+
 ### PR-4 — Remaining frontoffice capabilities
 
 - Objective: migrate Performance/Schedule, then Ticket/Member/Home/File use cases and consumer-owned readers/ports.

@@ -3,6 +3,7 @@ package com.beat.apis.booking.exception
 import com.beat.apis.exception.ApplicationErrorCode
 import com.beat.apis.exception.ApplicationErrorType
 
+/** Temporary Ticket compatibility until the remaining frontoffice capability migration. */
 enum class BookingApplicationErrorCode(
     private val code: String,
     private val type: ApplicationErrorType,

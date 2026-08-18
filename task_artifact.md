@@ -30,7 +30,7 @@
 
 - [x] Correctness/characterization prerequisites complete
 - [x] Target Gradle boundaries and architecture guards complete
-- [ ] Reference Capability migrated and verified
+- [x] Reference Capability migrated and verified
 - [ ] Remaining frontoffice capabilities migrated and verified
 - [ ] Admin workflows migrated and verified
 - [ ] System/batch workflows migrated and verified
@@ -64,6 +64,7 @@
 - Initial audit and ten-PR dependency graph: `docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md`.
 - Correctness: the current Performance summary adapter reads primary DB state, but its mixed `@ReadModel` contract is unsafe for commands. Member Booking create also returns member ID where persisted/retrieved Booking uses user ID; PR-1 fixes this under regression coverage.
 - PR-1: member Booking create now returns the persisted Booking user ID. `BookingCreationStatusServiceTest` asserts distinct member/user IDs; focused test passed with a single Gradle worker. Sober review: PASS.
+- PR-3: Booker Booking commands/queries now live in `application:frontoffice`; commands read Performance aggregate state through `PerformanceRepository`, guest authentication uses an authoritative frontoffice-owned credential repository, and queries use the consumer-owned `BookerBookingReader` implemented by direct JDSL projections. Focused Booking/context tests, a MySQL projection integration test, root architecture tests, three boot jars, full `./gradlew check --no-parallel`, targeted project health for frontoffice/infrastructure/API, and Sober re-review passed.
 
 ## Per-PR completion reports
 
@@ -84,3 +85,12 @@
 4. Legacy path removed: legacy logical Gradle task names; physical aliases intentionally remain.
 5. Temporary compatibility remaining: empty Application lanes, physical aliases, `module-contracts`, and `global-support`.
 6. Next PRs unblocked: Booking reference slice can now compile in `application:frontoffice` while apps remain executable.
+
+### PR-3 — Booking authoritative seam and reference slice
+
+1. Architecture invariant improved: `apps:api` retains Booking HTTP adaptation only; frontoffice owns Booking use cases/transactions, Commands use authoritative Performance aggregate state, and Query uses a consumer-owned reader.
+2. Behavior preserved: routes, request/response JSON, HTTP error code/message mapping, guest session behavior, inventory locking, post-commit notification, stored payment amounts, and legacy payment fallback remain unchanged.
+3. Tests/evidence: frontoffice command/query unit tests, MySQL Booker projection integration coverage, API Booking/concurrency/Schedule/context/error tests, root transition guards, `verifyTargetModuleGraph`, `verifyModuleBootJars`, and full `./gradlew check --no-parallel` passed.
+4. Legacy path removed: Booking Application Services/results/events/helpers and query repository orchestration under `apps:api`; Booking Commands no longer consume `PerformanceSummaryReadPort`.
+5. Temporary compatibility remaining: frontoffice still consumes guest password-hashing/session and Booking notification ports from `module-contracts`; legacy API error types remain for unmigrated Ticket tests/flows; physical module aliases remain.
+6. Next PRs unblocked: remaining frontoffice Performance/Schedule/Ticket/Home/Member capabilities and their consumer-owned contracts can migrate against the validated apps -> application -> domain <- infrastructure path.

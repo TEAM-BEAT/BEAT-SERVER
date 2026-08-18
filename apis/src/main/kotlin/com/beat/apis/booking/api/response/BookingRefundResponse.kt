@@ -1,7 +1,7 @@
 package com.beat.apis.booking.api.response
 
 import com.beat.apis.booking.api.type.BookingStatusType
-import com.beat.apis.booking.application.result.BookingRefundResult
+import com.beat.application.frontoffice.booking.result.BookingRefundResult
 import com.beat.apis.performance.api.type.BankNameType
 
 @ConsistentCopyVisibility

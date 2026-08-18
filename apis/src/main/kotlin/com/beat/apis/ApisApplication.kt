@@ -1,5 +1,6 @@
 package com.beat.apis
 
+import com.beat.application.frontoffice.FrontofficeApplicationConfig
 import com.beat.apis.config.GatewayConfig
 import com.beat.apis.config.InfraConfig
 import com.beat.observability.ObservabilityModuleConfig
@@ -9,6 +10,7 @@ import org.springframework.context.annotation.Import
 
 @SpringBootApplication(scanBasePackageClasses = [ApisApplication::class])
 @Import(
+    FrontofficeApplicationConfig::class,
     GatewayConfig::class,
     InfraConfig::class,
     ObservabilityModuleConfig::class,

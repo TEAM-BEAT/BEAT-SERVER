@@ -458,7 +458,7 @@ class SharedBoundaryContractTest {
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt",
-			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/GuestCredentialQueries.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/GuestBookingCredentialRepositoryImpl.kt",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.kt",
@@ -492,6 +492,7 @@ class SharedBoundaryContractTest {
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceSummaryQueries.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformanceEditFormQueries.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/performance/repository/query/PerformancePeriodReadSupport.kt",
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/BookerBookingQueries.kt",
 			scheduleJpaEntitySourcePath().toString().replace('\\', '/'),
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/mapper/SchedulePersistenceMapper.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleJpaRepository.kt",
@@ -576,11 +577,9 @@ class SharedBoundaryContractTest {
 		String ticketCommandService = Files.readString(
 			Path.of("apis/src/main/kotlin/com/beat/apis/ticket/application/command/TicketCommandService.kt"));
 		String bookingCancelService = Files.readString(
-			Path.of("apis/src/main/kotlin/com/beat/apis/booking/application/command/BookingCancellationCommandService.kt"));
-		String guestBookingRetrieveService = Files.readString(
-			Path.of("apis/src/main/kotlin/com/beat/apis/booking/application/query/GuestBookingQueryService.kt"));
-		String memberBookingRetrieveService = Files.readString(
-			Path.of("apis/src/main/kotlin/com/beat/apis/booking/application/query/MemberBookingQueryService.kt"));
+			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/booking/command/BookingCancellationCommandService.kt"));
+		String bookerBookingQueries = Files.readString(
+			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/BookerBookingQueries.kt"));
 
 		assertTrue(performanceCreate.contains("scheduleRepository.saveAll("));
 		assertTrue(scheduleCoordinator.contains("scheduleRepository.saveAll("));
@@ -607,19 +606,13 @@ class SharedBoundaryContractTest {
 		assertTrue(ticketCommandService.contains("scheduleRepository.lockById(scheduleId)"));
 		assertTrue(bookingCancelService.contains("@Transactional"));
 		assertTrue(bookingCancelService.contains("scheduleRepository.lockById(snapshot.getScheduleId())"));
-		assertTrue(guestBookingRetrieveService.contains(
-			"scheduleRepository.findAllById(bookings.map(Booking::getScheduleId).distinct())"));
-		assertTrue(guestBookingRetrieveService.contains(
-			"performanceSummaryReadPort.findAllByIds(schedules.map(Schedule::getPerformanceId).distinct())"));
-		assertFalse(guestBookingRetrieveService.contains("scheduleRepository.findById(booking.getScheduleId())"));
-		assertFalse(guestBookingRetrieveService.contains("performanceRepository.findById(schedule.getPerformanceId())"));
-		assertTrue(memberBookingRetrieveService.contains(
-			"scheduleRepository.findAllById(bookings.map(Booking::getScheduleId).distinct())"));
-		assertTrue(memberBookingRetrieveService.contains(
-			"performanceSummaryReadPort.findAllByIds("));
-		assertTrue(memberBookingRetrieveService.contains("schedules.values.map(Schedule::getPerformanceId).distinct()"));
-		assertFalse(memberBookingRetrieveService.contains("scheduleRepository.findById(booking.getScheduleId())"));
-		assertFalse(memberBookingRetrieveService.contains("performanceRepository.findById(schedule.getPerformanceId())"));
+		assertTrue(bookerBookingQueries.contains("findSchedules(bookings.map(BookingProjection::scheduleId).distinct())"));
+		assertTrue(bookerBookingQueries.contains(
+			"findPerformances(schedules.values.map(ScheduleProjection::performanceId).distinct())"));
+		assertTrue(bookerBookingQueries.contains("selectNew<BookingProjection>"));
+		assertTrue(bookerBookingQueries.contains("selectNew<ScheduleProjection>"));
+		assertTrue(bookerBookingQueries.contains("selectNew<PerformanceProjection>"));
+		assertFalse(bookerBookingQueries.contains("PerformanceSummaryReadPort"));
 	}
 
 	@Test
@@ -665,11 +658,12 @@ class SharedBoundaryContractTest {
 		for (Path component : queryComponents) {
 			String componentSource = Files.readString(component);
 			String name = component.toString().replace('\\', '/');
-			if (!componentSource.contains("com.beat.contracts")) {
-				contractViolations.add(name + ": must depend on module-contracts read contracts");
+			if (!componentSource.contains("com.beat.contracts")
+				&& !componentSource.contains("com.beat.application.")) {
+				contractViolations.add(name + ": must depend on a consumer-owned application reader contract");
 			}
-			if (!Pattern.compile("(implements|:)[^{]*ReadPort").matcher(componentSource).find()) {
-				contractViolations.add(name + ": must implement a module-contracts *ReadPort");
+			if (!Pattern.compile("(implements|:)[^{]*(ReadPort|Reader)").matcher(componentSource).find()) {
+				contractViolations.add(name + ": must implement a consumer-owned *Reader or transitional *ReadPort");
 			}
 			if (executableResponseImport.matcher(componentSource).find()) {
 				contractViolations.add(name + ": must not import executable response/DTO types");
@@ -684,7 +678,7 @@ class SharedBoundaryContractTest {
 			}
 		}
 		assertTrue(contractViolations.isEmpty(),
-			"Query components must return module-contracts ReadModels through a ReadPort and execute direct projections:\n"
+			"Query components must return consumer-owned read models and execute direct projections:\n"
 				+ String.join("\n", contractViolations));
 	}
 
@@ -775,7 +769,7 @@ class SharedBoundaryContractTest {
 
 		assertAll(
 			() -> assertSourceContains(
-				Path.of("apis/src/main/kotlin/com/beat/apis/booking/exception/BookingApplicationErrorCode.kt"),
+				Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/booking/BookingApplicationErrorCode.kt"),
 				"\"BOOKING_NOT_FOUND\""),
 			() -> assertSourceContains(
 				Path.of("apis/src/main/kotlin/com/beat/apis/ticket/exception/TicketApplicationErrorCode.kt"),

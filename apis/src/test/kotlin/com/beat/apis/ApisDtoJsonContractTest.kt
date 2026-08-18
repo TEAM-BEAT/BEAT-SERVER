@@ -6,7 +6,7 @@ import com.beat.apis.booking.api.request.MemberBookingRequest
 import com.beat.apis.booking.api.response.GuestBookingResponse
 import com.beat.apis.booking.api.response.MemberBookingResponse
 import com.beat.apis.booking.api.type.BookingStatusType
-import com.beat.apis.booking.application.result.BookingCreationResult
+import com.beat.application.frontoffice.booking.result.BookingCreationResult
 import com.beat.apis.home.api.response.HomeFindAllResponse
 import com.beat.apis.home.api.type.HomeGenreType
 import com.beat.apis.home.application.result.HomeFindAllResult
