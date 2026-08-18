@@ -86,9 +86,7 @@
 **원인**: pipx 로 설치한 ansible venv 에 `amazon.aws.cloudformation` /
 `amazon.aws.s3_object` 모듈이 의존하는 boto3 가 없음.
 
-**해결**: `pipx inject ansible boto3 botocore`. 운영자 로컬 환경 변경
-1회. 향후 GHA workflow 에서는 `setup-ansible-tooling` 액션이 동일
-의존성을 install 하도록 보강 필요(별도 PR).
+**해결**: `infra/ansible/requirements.txt`에 `boto3`, `botocore` 의존성을 정의하고 `setup-ansible-tooling` 액션에서 설치하도록 구성. (로컬 환경은 `pip install -r infra/ansible/requirements.txt` 또는 `pipx inject ansible boto3 botocore`)
 
 ---
 
