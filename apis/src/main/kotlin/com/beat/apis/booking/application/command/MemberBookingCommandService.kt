@@ -68,7 +68,7 @@ class MemberBookingCommandService(
             ),
         )
         return BookingCreationResult(
-            booking.getId(), schedule.getId(), member.getId(), booking.getPurchaseTicketCount(),
+            booking.getId(), schedule.getId(), booking.getUserId(), booking.getPurchaseTicketCount(),
             schedule.getScheduleNumber().name, booking.getBookerName(),
             booking.getBookerPhoneNumber(), booking.getBookingStatus().name,
             performance.bankName, performance.accountNumber, totalAmount,

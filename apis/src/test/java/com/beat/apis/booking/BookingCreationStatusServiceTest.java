@@ -156,6 +156,8 @@ class BookingCreationStatusServiceTest {
 		ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
 		verify(bookingRepository).save(bookingCaptor.capture());
 		assertEquals(BookingStatus.CHECKING_PAYMENT, bookingCaptor.getValue().getBookingStatus());
+		assertEquals(30L, bookingCaptor.getValue().getUserId());
+		assertEquals(30L, response.getUserId());
 		assertEquals(10_000, response.getTotalPaymentAmount());
 	}
 
