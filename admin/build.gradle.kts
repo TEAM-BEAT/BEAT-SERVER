@@ -8,13 +8,17 @@ plugins {
     id("beat.prometheus-runtime")
 }
 
+base {
+    archivesName.set("admin")
+}
+
 dependencies {
     implementation(project(":module-contracts"))
-    implementation(project(":gateway"))
-    implementation(project(":core:domain"))
-    implementation(project(":core:infra"))
+    implementation(project(":support:security"))
+    implementation(project(":domain"))
+    implementation(project(":infrastructure"))
     implementation(project(":global-support"))
-    implementation(project(":observability"))
+    implementation(project(":support:observability"))
 
     testImplementation(libs.bundles.integration.testcontainers)
 }

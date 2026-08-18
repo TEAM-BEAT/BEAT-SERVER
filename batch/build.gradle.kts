@@ -5,12 +5,16 @@ plugins {
     id("beat.prometheus-runtime")
 }
 
+base {
+    archivesName.set("batch")
+}
+
 dependencies {
     implementation(project(":module-contracts"))
-    implementation(project(":core:domain"))
-    implementation(project(":core:infra"))
+    implementation(project(":domain"))
+    implementation(project(":infrastructure"))
     implementation(project(":global-support"))
-    implementation(project(":observability"))
+    implementation(project(":support:observability"))
 
     testImplementation(libs.bundles.integration.testcontainers)
 }

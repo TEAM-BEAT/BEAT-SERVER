@@ -7,7 +7,7 @@ plugins {
 dependencies {
     implementation(platform(libs.aws.java.sdk.bom))
     implementation(project(":module-contracts"))
-    implementation(project(":core:domain"))
+    implementation(project(":domain"))
     implementation(project(":global-support"))
     compileOnly(libs.spring.boot.starter.data.redis)
     implementation(libs.aws.java.sdk.s3)

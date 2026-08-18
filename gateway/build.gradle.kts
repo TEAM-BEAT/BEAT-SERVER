@@ -5,7 +5,7 @@ plugins {
 
 dependencies {
     api(project(":module-contracts"))
-    api(project(":observability"))
+    api(project(":support:observability"))
     implementation(project(":global-support"))
     implementation(libs.jjwt.api)
     implementation(libs.kotlin.logging.jvm)

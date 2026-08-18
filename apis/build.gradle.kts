@@ -8,15 +8,19 @@ plugins {
     id("beat.prometheus-runtime")
 }
 
+base {
+    archivesName.set("apis")
+}
+
 dependencies {
     implementation(libs.kotlin.logging.jvm)
 
     implementation(project(":module-contracts"))
-    implementation(project(":gateway"))
-    implementation(project(":core:domain"))
-    implementation(project(":core:infra"))
+    implementation(project(":support:security"))
+    implementation(project(":domain"))
+    implementation(project(":infrastructure"))
     implementation(project(":global-support"))
-    implementation(project(":observability"))
+    implementation(project(":support:observability"))
     runtimeOnly(libs.spring.boot.starter.data.redis)
 
     testImplementation(libs.bundles.integration.testcontainers)

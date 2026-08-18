@@ -107,9 +107,10 @@ class RootRetirementContractTest {
 		assertTrue(buildFile.contains("testImplementation(libs.junit.jupiter)"));
 		assertTrue(buildFile.contains("Builds the non-executable root coordination artifact."));
 		assertTrue(buildFile.contains("verifyModuleBootJars"));
-		assertTrue(buildFile.contains("\":apis:bootJar\""));
-		assertTrue(buildFile.contains("\":admin:bootJar\""));
-		assertTrue(buildFile.contains("\":batch:bootJar\""));
+		assertTrue(buildFile.contains("\":apps:api\" to \"apis\""));
+		assertTrue(buildFile.contains("\":apps:admin\" to \"admin\""));
+		assertTrue(buildFile.contains("\":apps:batch\" to \"batch\""));
+		assertTrue(buildFile.contains("dependsOn(targetRuntimeArchiveNames.keys.map { \"$it:bootJar\" })"));
 	}
 
 	@Test

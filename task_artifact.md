@@ -29,7 +29,7 @@
 ## Migration implementation
 
 - [x] Correctness/characterization prerequisites complete
-- [ ] Target Gradle boundaries and architecture guards complete
+- [x] Target Gradle boundaries and architecture guards complete
 - [ ] Reference Capability migrated and verified
 - [ ] Remaining frontoffice capabilities migrated and verified
 - [ ] Admin workflows migrated and verified
@@ -75,3 +75,12 @@
 4. Legacy path removed: member-ID-as-user-ID response path.
 5. Temporary compatibility remaining: Booking still resides in the API module and commands still consume the mixed Performance summary read model until PR-3.
 6. Next PRs unblocked: target Gradle skeleton and Booking reference-slice extraction.
+
+### PR-2 — Target Gradle skeleton with runtime compatibility guards
+
+1. Architecture invariant improved: target projects exist; Domain/Application lanes and executable lanes have compile-time isolation guards.
+2. Behavior preserved: legacy physical paths, runtime ports/profiles, and deploy artifact names `apis/admin/batch-*.jar` remain compatible.
+3. Tests/evidence: `verifyTargetModuleGraph`, `verifyModuleBootJars`, and fresh root `:test --rerun-tasks` passed; all three boot jars were built. Sober review: PASS after two findings were fixed.
+4. Legacy path removed: legacy logical Gradle task names; physical aliases intentionally remain.
+5. Temporary compatibility remaining: empty Application lanes, physical aliases, `module-contracts`, and `global-support`.
+6. Next PRs unblocked: Booking reference slice can now compile in `application:frontoffice` while apps remain executable.

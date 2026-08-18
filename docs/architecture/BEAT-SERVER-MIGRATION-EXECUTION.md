@@ -60,14 +60,15 @@ Booking remains the reference slice after the correctness prerequisite. It has t
 ## PR dependency graph
 
 ```text
-PR-1 ─┐
-      ├→ PR-3 → PR-4 ─┐
-PR-2 ─┘          │    ├→ PR-7 → PR-8 → PR-9 → PR-10
-                 ├→ PR-5 ┘
-                 └→ PR-6 ┘
+PR-1 → PR-2 → PR-3 → PR-4 ─┐
+                       │    ├→ PR-7 → PR-8 → PR-9 → PR-10
+                       ├→ PR-5 ┘
+                       └→ PR-6 ┘
 ```
 
 PR-4 and PR-5 may proceed in parallel after PR-3. PR-6 waits for the relevant frontoffice Booking/Promotion contracts from PR-4.
+
+Revision: PR-2 was changed from independent to dependent on PR-1 after the dirty-worktree audit. Serializing the already-present skeleton behind the small correctness fix keeps every local branch green and avoids duplicating the migration execution artifact; it does not add a code dependency between the two changes.
 
 ## Planned PRs
 
@@ -92,7 +93,7 @@ PR-4 and PR-5 may proceed in parallel after PR-3. PR-6 waits for the relevant fr
 - Invariant gained: target lanes exist and are compile-time isolated; runtime artifacts remain deploy-compatible.
 - Risk: Gradle task/archive renames and hidden stale artifacts.
 - Tests: `projects`, `verifyTargetModuleGraph`, `verifyModuleBootJars`, clean artifact-name assertions, root tests.
-- Dependencies: none.
+- Dependencies: PR-1 for the stacked delivery sequence; no source-level dependency.
 - Temporary compatibility: target project names map to legacy physical directories; `module-contracts` and `global-support` remain.
 - Rollback: restore legacy includes/dependency paths and CI filters.
 - DoD: clean build emits expected deploy artifacts and all three boot jars pass.
