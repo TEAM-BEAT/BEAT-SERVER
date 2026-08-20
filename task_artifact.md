@@ -6,7 +6,7 @@
 - [x] Existing dirty worktree detected and preserved
 - [x] Base branch and baseline commit recorded
 - [x] Existing uncommitted migration changes classified
-- [x] Baseline build/test result recorded
+- [x] Clean `develop` baseline build/test result recorded
 
 ## Required initial audit
 
@@ -24,13 +24,16 @@
 
 - [x] PR dependency graph recorded
 - [x] Every PR has boundary rationale, risks, tests, dependencies, rollback, and DoD
-- [x] Existing uncommitted changes mapped to planned PR boundaries
+- [x] Quarantined experimental changes re-diffed and mapped to the revised PR boundaries
 
 ## Migration implementation
 
-- [x] Correctness/characterization prerequisites complete
-- [x] Target Gradle boundaries and architecture guards complete
-- [x] Reference Capability migrated and verified
+- [ ] Correctness/characterization prerequisites complete
+  - [x] Member Booking response identity corrected and verified on the migration branch
+  - [ ] Snapshot, rehydration, Guest identity, and concurrency decisions resolved
+- [x] Target Gradle skeleton and initial graph guards complete
+- [ ] Final executable dependency and source-boundary guards complete
+- [ ] Booking reference Capability collaboration corrected and fully verified
 - [ ] Remaining frontoffice capabilities migrated and verified
 - [ ] Admin workflows migrated and verified
 - [ ] System/batch workflows migrated and verified
@@ -42,9 +45,9 @@
 
 ## Final verification
 
-- [ ] `./gradlew check` passes
-- [ ] Applicable unit/application/infrastructure/security/batch/API tests pass
-- [ ] All three apps build and remain independently executable
+- [x] `./gradlew check` passes
+- [x] Applicable unit/application/infrastructure/security/batch/API tests pass
+- [x] All three apps build and remain independently executable
 - [ ] Final Gradle dependency graph inspected
 - [ ] Application public APIs inspected and minimized
 - [ ] No `module-contracts` or legacy module references remain
@@ -58,39 +61,18 @@
 
 ## Evidence log
 
-- Baseline: `develop` at `eb007147`; worktree already contained target-project aliases, empty Application lane projects, architecture docs, and regression tests.
-- Baseline `./gradlew projects check --stacktrace`: project model resolved; `:apps:api:test` executed 165 tests, then Gradle failed closing a missing `apis/build/test-results/test/binary/in-progress-results-*.bin`. No assertion failure was reported; deterministic single-worker rerun remains required.
-- Application ownership: Booker booking/member/schedule/home, Maker performance/ticket/file, Admin promotion/user, and System ticket-cleanup/promotion-maintenance use cases identified. HTTP DTO conversion facades remain app adapters. No cross-capability concrete Application Service call was found; repository/read-port orchestration remains to migrate.
-- Initial audit and ten-PR dependency graph: `docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md`.
-- Correctness: the current Performance summary adapter reads primary DB state, but its mixed `@ReadModel` contract is unsafe for commands. Member Booking create also returns member ID where persisted/retrieved Booking uses user ID; PR-1 fixes this under regression coverage.
-- PR-1: member Booking create now returns the persisted Booking user ID. `BookingCreationStatusServiceTest` asserts distinct member/user IDs; focused test passed with a single Gradle worker. Sober review: PASS.
-- PR-3: Booker Booking commands/queries now live in `application:frontoffice`; commands read Performance aggregate state through `PerformanceRepository`, guest authentication uses an authoritative frontoffice-owned credential repository, and queries use the consumer-owned `BookerBookingReader` implemented by direct JDSL projections. Focused Booking/context tests, a MySQL projection integration test, root architecture tests, three boot jars, full `./gradlew check --no-parallel`, targeted project health for frontoffice/infrastructure/API, and Sober re-review passed.
+- Baseline source: clean `develop` Git object `eb007147f6aa3824073b108407ea3ae47748aa40`. It contains only the legacy projects; target-project aliases/application lanes in the current worktree are experimental changes and are not baseline evidence.
+- Clean baseline verification: `./gradlew check verifyModuleBootJars --no-daemon --max-workers=1` passed in 3m 28s with 98 executed tasks. Three Infra Kotlin compiler warnings remain recorded as debt.
+- Application ownership: Booker Booking/Schedule/Home, Booker+Maker Performance, Maker Ticket, Member/Auth, Admin Promotion/User, and System Booking/Promotion maintenance were identified. File upload preparation belongs semantically to Performance Maker, not an independent Domain capability.
+- Constitution re-audit, source inventory, revised 14-PR graph, contract disposition, and reopened collaboration decision: `docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md`.
+- Guest password hashing correction: it is a `support:security` public technical API with an internal BCrypt implementation, not an Application output port. Revised PR-4 owns this transition and forbids `support:security → application`.
+- Rejected `application.frontoffice.performance.api`/offer experiment and its package guard were removed. Booking now uses the approved authoritative Domain repository collaboration; no `performance/api` remains.
+- Concurrency correction: preliminary `Schedule.findById` caused stale JPA first-level-cache inventory and reproduced 30/30 successes where only 5 were valid. It was replaced by `ScheduleRepository.findPerformanceIdById(Long): Long?`; locked Schedule membership/inventory remains the final authority. The focused concurrency test then passed.
+- Main verification: forced targeted Application/support/API concurrency tests and `verifyTargetModuleGraph` passed with 66 executed tasks. Full `check verifyModuleBootJars` is rerun after this correction before any completion box is checked.
+- Full current-boundary verification: `./gradlew check verifyModuleBootJars --no-daemon --max-workers=1` passed in 2m 49s; 118 tasks, all three executable boot jars verified. These gates must be rerun after later PRs.
+- Correctness: the current Performance summary adapter reads primary DB state, but its mixed `@ReadModel` contract is unsafe for money/authorization commands. Member Booking response identity, legacy amount fallback, rehydration range, guest identity, lock ordering, and Promotion referential concurrency remain implementation prerequisites.
+- The rejected Performance API experiment is no longer quarantined because it was deleted. Remaining migration changes are accepted only at their individual verified PR boundary; unrelated pre-existing untracked files remain untouched.
 
-## Per-PR completion reports
+## Quarantined experimental work
 
-### PR-1 — Characterize and correct Booking identity/amount semantics
-
-1. Architecture invariant improved: Booking's external result uses the same identity persisted by the command and returned by queries.
-2. Behavior preserved: route, JSON field name, status, amount, inventory, and event behavior are unchanged; the incorrect numeric identity is corrected.
-3. Tests/evidence: focused `BookingCreationStatusServiceTest` passed; existing Booking retrieval tests preserve stored total and characterize legacy fallback.
-4. Legacy path removed: member-ID-as-user-ID response path.
-5. Temporary compatibility remaining: Booking still resides in the API module and commands still consume the mixed Performance summary read model until PR-3.
-6. Next PRs unblocked: target Gradle skeleton and Booking reference-slice extraction.
-
-### PR-2 — Target Gradle skeleton with runtime compatibility guards
-
-1. Architecture invariant improved: target projects exist; Domain/Application lanes and executable lanes have compile-time isolation guards.
-2. Behavior preserved: legacy physical paths, runtime ports/profiles, and deploy artifact names `apis/admin/batch-*.jar` remain compatible.
-3. Tests/evidence: `verifyTargetModuleGraph`, `verifyModuleBootJars`, and fresh root `:test --rerun-tasks` passed; all three boot jars were built. Sober review: PASS after two findings were fixed.
-4. Legacy path removed: legacy logical Gradle task names; physical aliases intentionally remain.
-5. Temporary compatibility remaining: empty Application lanes, physical aliases, `module-contracts`, and `global-support`.
-6. Next PRs unblocked: Booking reference slice can now compile in `application:frontoffice` while apps remain executable.
-
-### PR-3 — Booking authoritative seam and reference slice
-
-1. Architecture invariant improved: `apps:api` retains Booking HTTP adaptation only; frontoffice owns Booking use cases/transactions, Commands use authoritative Performance aggregate state, and Query uses a consumer-owned reader.
-2. Behavior preserved: routes, request/response JSON, HTTP error code/message mapping, guest session behavior, inventory locking, post-commit notification, stored payment amounts, and legacy payment fallback remain unchanged.
-3. Tests/evidence: frontoffice command/query unit tests, MySQL Booker projection integration coverage, API Booking/concurrency/Schedule/context/error tests, root transition guards, `verifyTargetModuleGraph`, `verifyModuleBootJars`, and full `./gradlew check --no-parallel` passed.
-4. Legacy path removed: Booking Application Services/results/events/helpers and query repository orchestration under `apps:api`; Booking Commands no longer consume `PerformanceSummaryReadPort`.
-5. Temporary compatibility remaining: frontoffice still consumes guest password-hashing/session and Booking notification ports from `module-contracts`; legacy API error types remain for unmigrated Ticket tests/flows; physical module aliases remain.
-6. Next PRs unblocked: remaining frontoffice Performance/Schedule/Ticket/Home/Member capabilities and their consumer-owned contracts can migrate against the validated apps -> application -> domain <- infrastructure path.
+Earlier PR-1/PR-2/PR-3 work was re-diffed against the approved report. The target skeleton and Booking slice are verified incrementally; this does not convert unresolved correctness questions or later Capability work into completed migration items.
