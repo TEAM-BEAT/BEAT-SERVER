@@ -38,7 +38,8 @@ com.beat.gateway
 ├─ jwt.internal            JwtTokenProvider · JwtTokenParser · JwtTokenIssuer
 │                          JwtSigningKeyHolder · JwtProperties (+ config/JwtConfig)
 ├─ refreshtoken.internal   config/RefreshTokenConfig                   (RefreshTokenPort fail-fast requirement)
-├─ guest.internal          GuestPasswordHashService                   (+ config/GuestAccessConfig)
+├─ guest.internal          config/GuestAccessConfig
+├─ com.beat.support.security.password PasswordHasher · internal/BCryptPasswordHasher
 ├─ authentication.internal JwtAuthenticationFilter · SecurityMdcLoggingFilter · Custom*Handler
 │                          CurrentMemberArgumentResolver · MemberAuthentication · AdminAuthentication
 │                                                                     (+ config/ServletSecurityConfig·SecurityFilterConfig·WebMvcConfig)
@@ -132,7 +133,7 @@ flowchart TB
 
     subgraph GUEST_ACCESS["Optional GatewayConfigGroup.GUEST_ACCESS"]
         GuestAccessConfig["GuestAccessConfig"]
-        GuestPasswordHashService["GuestPasswordHashService<br/>implements GuestPasswordHashPort"]
+        BCryptPasswordHasher["BCryptPasswordHasher<br/>implements support-owned PasswordHasher"]
     end
 
     subgraph REFRESH_TOKEN_STORE["Compatibility GatewayConfigGroup.REFRESH_TOKEN_STORE"]
@@ -147,7 +148,7 @@ flowchart TB
     ServletSecurityConfig --> JwtConfig
     ServletSecurityConfig --> SecurityConfig
     ServletSecurityConfig --> WebMvcConfig
-    GuestAccessConfig --> GuestPasswordHashService
+    GuestAccessConfig --> BCryptPasswordHasher
 ```
 
 ### 실행 모듈별 선택
@@ -305,10 +306,12 @@ gateway/
         JwtConfig.kt                       # JwtTokenProvider bean 등록
     refreshtoken/internal/config/
       RefreshTokenConfig.kt                # RefreshTokenPort 제공 여부 fail-fast 검증
-    guest/internal/
-      GuestPasswordHashService.kt          # implements GuestPasswordHashPort (BCrypt)
-      config/
-        GuestAccessConfig.kt               # GUEST_ACCESS group entrypoint
+    guest/internal/config/
+      GuestAccessConfig.kt                 # GUEST_ACCESS group entrypoint
+  support/security/password/
+    PasswordHasher.kt                      # public technical API
+    internal/
+      BCryptPasswordHasher.kt              # BCrypt + legacy verification/upgrade
     authentication/internal/
       JwtAuthenticationFilter.kt           # OncePerRequestFilter
       SecurityMdcLoggingFilter.kt          # observability BaseMdcLoggingFilter 확장

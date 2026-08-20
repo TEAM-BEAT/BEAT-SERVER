@@ -43,7 +43,6 @@ module-contracts/
         RefreshTokenPort.kt
       guest/
         GuestAccessThrottlePort.kt
-        GuestPasswordHashPort.kt
         GuestSessionPort.kt
       social/
         SocialLoginRequest.kt
@@ -112,7 +111,6 @@ com.beat.contracts/
       RefreshTokenPort
     guest/
       GuestAccessThrottlePort
-      GuestPasswordHashPort
       GuestSessionPort
     social/
       SocialLoginRequest

@@ -48,7 +48,7 @@ class GatewayConfigGroupTest {
         val source = source("guest/internal/config/GuestAccessConfig.kt")
 
         assertAll(
-            { assertTrue(source.contains("GuestPasswordHashService::class")) },
+            { assertTrue(source.contains("BCryptPasswordHasher::class")) },
             { assertFalse(source.contains("Redis")) },
             { assertFalse(source.contains("GuestSessionService")) },
             { assertFalse(source.contains("GuestAccessThrottleService")) },

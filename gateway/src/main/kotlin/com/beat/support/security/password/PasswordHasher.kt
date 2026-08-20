@@ -1,6 +1,6 @@
-package com.beat.contracts.auth.guest
+package com.beat.support.security.password
 
-interface GuestPasswordHashPort {
+interface PasswordHasher {
 
     fun encode(rawPassword: String): String
 

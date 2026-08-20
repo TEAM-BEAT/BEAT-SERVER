@@ -9,7 +9,6 @@ import com.beat.application.frontoffice.booking.validateGuestBookingIdentity
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.repository.BookingRepository
-import com.beat.domain.performance.vo.TicketPrice
 import com.beat.domain.performance.repository.PerformanceRepository
 import com.beat.domain.schedule.repository.ScheduleRepository
 import com.beat.domain.user.model.Users
@@ -46,16 +45,21 @@ class GuestBookingCommandService internal constructor(
             identity.birthDate,
             identity.password,
         ) ?: userRepository.save(Users.create()).getId()
+        val performanceId = scheduleRepository.findPerformanceIdById(scheduleId)
+            ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.SCHEDULE_NOT_FOUND)
+        val performance = performanceRepository.lockById(performanceId)
+            .orElseThrow { FrontofficeApplicationException(BookingApplicationErrorCode.PERFORMANCE_NOT_FOUND) }
         var schedule = scheduleRepository.lockById(scheduleId)
             .orElseThrow { FrontofficeApplicationException(BookingApplicationErrorCode.SCHEDULE_NOT_FOUND) }
+        if (!schedule.belongsTo(performanceId)) {
+            throw FrontofficeApplicationException(BookingApplicationErrorCode.SCHEDULE_NOT_FOUND)
+        }
         if (!scheduleRepository.isBeforeBookingCloseAt(schedule.getId())) {
             throw FrontofficeApplicationException(BookingApplicationErrorCode.BOOKING_CLOSED)
         }
         schedule = schedule.reserveTickets(command.purchaseTicketCount)
-        val performance = performanceRepository.findById(schedule.getPerformanceId())
-            .orElseThrow { FrontofficeApplicationException(BookingApplicationErrorCode.PERFORMANCE_NOT_FOUND) }
         val totalAmount = calculatePaymentAmountForCommand(
-            TicketPrice.of(performance.getTicketPrice()),
+            performance.getTicketPriceValue(),
             command.purchaseTicketCount,
         )
         schedule = scheduleRepository.save(schedule)
@@ -81,7 +85,7 @@ class GuestBookingCommandService internal constructor(
             booking.getId(), schedule.getId(), booking.getUserId(), booking.getPurchaseTicketCount(),
             schedule.getScheduleNumber().name, booking.getBookerName(),
             booking.getBookerPhoneNumber(), booking.getBookingStatus().name,
-            performance.getBankName()?.name, performance.getAccountNumber(), totalAmount,
+            performance.getPaymentAccount()?.bankName?.name, performance.getPaymentAccount()?.accountNumber, totalAmount,
             booking.getCreatedAt(),
         )
     }

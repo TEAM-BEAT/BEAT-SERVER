@@ -7,6 +7,7 @@ dependencies {
     implementation(platform(libs.spring.boot.dependencies))
     implementation(project(":domain"))
     implementation(project(":module-contracts"))
+    implementation(project(":support:security"))
     implementation("org.springframework:spring-context")
     implementation("org.springframework:spring-tx")
     implementation(libs.kotlin.logging.jvm)

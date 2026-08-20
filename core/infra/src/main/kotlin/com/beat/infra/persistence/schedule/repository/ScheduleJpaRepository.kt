@@ -15,6 +15,9 @@ interface ScheduleJpaRepository : JpaRepository<ScheduleJpaEntity, Long> {
     @Query("SELECT s FROM Schedule s WHERE s.id = :id")
     fun lockById(@Param("id") id: Long?): Optional<ScheduleJpaEntity>
 
+    @Query("SELECT s.performanceId FROM Schedule s WHERE s.id = :id")
+    fun findPerformanceIdById(@Param("id") id: Long): Long?
+
     @Query(
         value = """
             SELECT CURRENT_TIMESTAMP(6) < booking_close_at

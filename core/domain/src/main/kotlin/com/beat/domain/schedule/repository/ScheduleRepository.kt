@@ -7,6 +7,8 @@ import java.util.*
 interface ScheduleRepository {
     fun findById(id: Long?): Optional<Schedule>
 
+    fun findPerformanceIdById(id: Long): Long?
+
     fun lockById(id: Long?): Optional<Schedule>
 
     fun isBeforeBookingCloseAt(id: Long?): Boolean

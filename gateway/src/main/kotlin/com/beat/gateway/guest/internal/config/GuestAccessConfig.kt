@@ -1,9 +1,9 @@
 package com.beat.gateway.guest.internal.config
 
-import com.beat.gateway.guest.internal.GuestPasswordHashService
+import com.beat.support.security.password.internal.BCryptPasswordHasher
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 
 @Configuration(proxyBeanMethods = false)
-@Import(GuestPasswordHashService::class)
+@Import(BCryptPasswordHasher::class)
 class GuestAccessConfig

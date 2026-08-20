@@ -1,12 +1,12 @@
-package com.beat.gateway.guest.internal
+package com.beat.support.security.password.internal
 
-import com.beat.contracts.auth.guest.GuestPasswordHashPort
+import com.beat.support.security.password.PasswordHasher
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
-class GuestPasswordHashService : GuestPasswordHashPort {
+internal class BCryptPasswordHasher : PasswordHasher {
 
     private val passwordEncoder: PasswordEncoder = BCryptPasswordEncoder()
 

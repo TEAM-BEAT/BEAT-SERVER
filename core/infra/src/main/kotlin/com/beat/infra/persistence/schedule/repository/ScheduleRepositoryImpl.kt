@@ -15,6 +15,9 @@ class ScheduleRepositoryImpl(
     override fun findById(id: Long?): Optional<Schedule> =
         scheduleJpaRepository.findById(requireRepositoryId(id)).map(schedulePersistenceMapper::toDomain)
 
+    override fun findPerformanceIdById(id: Long): Long? =
+        scheduleJpaRepository.findPerformanceIdById(id)
+
     override fun lockById(id: Long?): Optional<Schedule> =
         scheduleJpaRepository.lockById(id).map(schedulePersistenceMapper::toDomain)
 
