@@ -34,22 +34,9 @@ module-contracts/
     common/
       ReadModel.kt                         # read/query contract marker; Spring/JPA behavior 없음
     auth/
-      jwt/
-        JwtSubject.kt
-        JwtTokenPort.kt
-        JwtTokenType.kt
-        TokenValidationResult.kt
-      refreshtoken/
-        RefreshTokenPort.kt
       guest/
         GuestAccessThrottlePort.kt
         GuestSessionPort.kt
-      social/
-        SocialLoginRequest.kt
-        SocialLoginPort.kt
-        SocialLoginType.kt
-        SocialMemberInfo.kt
-        SocialLoginFailure.kt              # adapter 실패를 application이 번역
     booking/
       MakerTicketReadPort.kt
       readmodel/
@@ -68,17 +55,12 @@ module-contracts/
     notification/
       BookingNotification.kt
       BookingNotificationPort.kt
-      MemberNotification.kt
-      MemberNotificationPort.kt
     schedule/
       ScheduleAvailabilityReadPort.kt
       ScheduleReadPort.kt
       readmodel/
         ScheduleAvailabilityReadModel.kt # DB 시각 기반 회차 예매 가능 상태
         MinPerformanceDateReadModel.kt
-    sms/
-      SmsMessage.kt
-      SmsPort.kt
     storage/
       BannerPresignedUrl.kt
       CarouselPresignedUrls.kt
@@ -88,7 +70,7 @@ module-contracts/
 
 설명:
 
-- 현재 `module-contracts`는 `auth`, `booking`, `cdn`, `notification`, `schedule`, `sms`, `storage` 계약을 모아두는 얇은 공유 모듈이다.
+- 현재 `module-contracts`는 `auth`, `booking`, `cdn`, `notification`, `schedule`, `storage` 계약을 모아두는 얇은 공유 모듈이다.
 - 구현체는 다른 모듈에 있고, 이 모듈은 계약 타입만 제공한다.
 - contract surface는 Kotlin으로 통일되어 있으며 Java 실행 모듈과의 호출 호환성은 compile test로 보호한다.
 - 다른 project module을 노출하지 않는다. 인증 use-case 오류는 `apis.member.exception`이 소유한다.
@@ -102,22 +84,9 @@ com.beat.contracts/
   common/
     ReadModel
   auth/
-    jwt/
-      JwtSubject
-      JwtTokenPort
-      JwtTokenType
-      TokenValidationResult
-    refreshtoken/
-      RefreshTokenPort
     guest/
       GuestAccessThrottlePort
       GuestSessionPort
-    social/
-      SocialLoginRequest
-      SocialLoginPort
-      SocialLoginType
-      SocialMemberInfo
-      SocialLoginFailure
   booking/
     MakerTicketReadPort
     readmodel/
@@ -136,17 +105,12 @@ com.beat.contracts/
   notification/
     BookingNotification
     BookingNotificationPort
-    MemberNotification
-    MemberNotificationPort
   schedule/
     ScheduleAvailabilityReadPort
     ScheduleReadPort
     readmodel/
       ScheduleAvailabilityReadModel
       MinPerformanceDateReadModel
-  sms/
-    SmsMessage
-    SmsPort
   storage/
     BannerPresignedUrl
     CarouselPresignedUrls
@@ -154,16 +118,14 @@ com.beat.contracts/
     PerformancePresignedUrls
 ```
 
-`RefreshTokenPort`는 저장소 부재를 HTTP 예외로 바꾸지 않고 `OptionalLong`으로 돌려줍니다. 재발급 유스케이스가 이를 인증 오류로 번역하며 삭제는 로그아웃 재시도에 안전하도록 멱등입니다. `SocialLoginFailure`는 사용자 인증 실패와 provider failure/unavailable/timeout을 구분해 실행 모듈이 401/502/503/504 정책을 결정하게 합니다.
-
 설명:
 
-- To-Be 구조는 현재 구조와 거의 동일하게 유지한다.
-- 이 모듈은 기능별 계약만 담고, 구현 계층을 끼워 넣지 않는다.
-- 계약이 늘어나더라도 역할별 패키지 분리를 기본으로 유지한다.
+- 이 모듈은 migration 중에만 남는 legacy 계약의 임시 소유자이며 최종 Target에는 포함되지 않는다.
+- 각 계약은 consumer, vocabulary, volatility를 다시 검증한 뒤 application/domain/query owner로 이동하거나 삭제한다.
+- 새로운 중앙 계약을 추가하지 않고, 남은 계약도 consumer migration 후 순차적으로 제거한다.
 - read-model query result는 예외적으로 `<context>/readmodel` 하위 패키지에 모아 port/command/external contract와 구분한다.
-- `auth`는 인증 방식별 관심사(`jwt`, `refreshtoken`, `guest`, `social`)를 하위 패키지로 분리한다.
-- 구현과 소비가 같은 모듈 안에서 완결되는 계약은 `module-contracts`에 두지 않는다. 예로 `AccessTokenAuthenticator`는 `gateway`의 `JwtTokenProvider`가 구현하고 `JwtAuthenticationFilter`가 소비하므로 `gateway.jwt.internal`이 소유한다. `module-contracts`는 모듈 경계를 실제로 넘는 계약만 노출한다.
+- `auth`는 실행 모듈과 infra 사이에 남은 guest 접근 계약을 하위 패키지로 분리한다.
+- 구현과 소비가 같은 모듈 안에서 완결되는 계약은 `module-contracts`에 두지 않는다. 예로 `AccessTokenAuthenticator`는 `com.beat.support.security`의 `JwtTokenProvider`가 구현하고 `JwtAuthenticationFilter`가 소비하므로 `com.beat.support.security.jwt.internal`이 소유한다. `module-contracts`는 모듈 경계를 실제로 넘는 계약만 노출한다.
 
 
 ### Application/query contract boundary
@@ -178,7 +140,7 @@ Facade/ApplicationService/DomainService 표준에서 `module-contracts`는 실�
 - 계약 타입은 Spring/JPA/QueryDSL/Redis/document 구현 세부사항을 포함하지 않는다.
 - 신규 계약 타입은 Domain model, JPA Entity, 실행 모듈 ResponseDTO를 필드나 반환 타입으로 담지 않는다.
 - 실행 모듈 전용 response DTO는 여기에 두지 않는다. read-model contract는 실행 모듈 query service와 infra query adapter 사이의 구현 없는 계약이 필요하거나 여러 실행 모듈에서 공유될 때만 둔다.
-- Issue #426 이후 `SocialLoginRequest`는 `SocialLoginType` contract enum만 받고, `SocialMemberInfo`는 외부 provider profile 결과(`socialId`, `nickname`, `email`)만 반환한다. `SocialLoginFailure`는 infra adapter-local failure를 application boundary에서 API-facing ErrorCode로 번역하기 위한 port-level failure다. Issue #428 이후 회차 조회는 `ScheduleAvailabilityReadPort`와 구현 독립적인 read model을 사용한다.
+- 소셜 로그인과 회원 알림 실행 계약은 각 application 경계가 소유하고, `module-contracts`에는 남은 공유 계약과 구현 독립적인 read model만 둔다. Issue #428 이후 회차 조회는 `ScheduleAvailabilityReadPort`와 구현 독립적인 read model을 사용한다.
 
 
 ### Read-model contract rule

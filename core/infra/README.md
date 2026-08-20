@@ -235,12 +235,11 @@ flowchart LR
         S3["S3FileStorageAdapter<br/>external.storage.s3"]:::adapter
     end
 
-    subgraph PORTS["Module Contracts Ports"]
+    subgraph PORTS["Application-owned and Module Contracts Ports"]
         direction TB
-        SocialPort["SocialLoginPort"]:::port
+        SocialPort["SocialLoginProvider<br/>(application-owned)"]:::port
         BookingPort["BookingNotificationPort"]:::port
-        MemberPort["MemberNotificationPort"]:::port
-        SmsPort["SmsPort"]:::port
+        MemberPort["MemberRegistrationNotifier<br/>(application-owned)"]:::port
         FileStoragePort["FileStoragePort"]:::port
     end
 
@@ -252,7 +251,6 @@ flowchart LR
     Kakao -. implements .-> SocialPort
     Slack -. implements .-> BookingPort
     Slack -. implements .-> MemberPort
-    Sms -. implements .-> SmsPort
     S3 -. implements .-> FileStoragePort
 
     classDef config fill:#ECFEFF,stroke:#14B8A6,stroke-width:2px,color:#0F172A
@@ -263,7 +261,7 @@ flowchart LR
 
 ### 외부 어댑터 규칙
 
-- `module-contracts`의 port interface(`SocialLoginPort`, `BookingNotificationPort`, ...)를 구현합니다.
+- application-owned contract(`SocialLoginProvider`, `RefreshTokenStore`, `MemberRegistrationNotifier`)와 남은 `module-contracts` port(`BookingNotificationPort`, `FileStoragePort`, ...)를 구현합니다.
 - 실행 모듈 DTO, ApplicationService, domain model을 import하지 않습니다.
 - Feign client는 `@FeignClient` interface로 정의하고 `ExternalClientConfig`의 `@EnableFeignClients(basePackageClasses=...)`로
   등록합니다.
@@ -283,7 +281,7 @@ flowchart LR
 
 ### AuthRedisConfig
 
-APIs의 composition root가 `AuthRedisConfig`를 직접 import해 `RefreshTokenPort`, `GuestSessionPort`, `GuestAccessThrottlePort`의 Redis adapter를 활성화합니다.
+APIs의 composition root가 `AuthRedisConfig`를 직접 import해 application-owned `RefreshTokenStore`와 `GuestSessionPort`, `GuestAccessThrottlePort`의 Redis adapter를 활성화합니다.
 Redis starter runtime dependency도 APIs만 소유하므로 Admin과 Batch에는 Redis auto-configuration이 유입되지 않습니다.
 Redis hash, Spring Data repository는 `infra.redis.auth`에 두고 Lua throttle script는 infra classpath resource로 관리합니다. 실행 모듈에는 `module-contracts` port만 노출합니다.
 기존 운영 hash의 `_class`에는 gateway 시절 FQCN이 저장되어 있으므로 `@TypeAlias`로 그 값을 유지합니다. keyspace, property path, TTL과 secondary index도 변경하지 않습니다.
@@ -365,7 +363,7 @@ infra/
   src/main/kotlin/com/beat/infra/
     redis/auth/
       refreshtoken/
-        RedisRefreshTokenAdapter.kt               # implements RefreshTokenPort
+        RedisRefreshTokenAdapter.kt               # implements application auth RefreshTokenStore
         RefreshTokenRedisHash.kt                  # @RedisHash, legacy @TypeAlias
         RefreshTokenRedisRepository.kt
       guest/
@@ -376,7 +374,7 @@ infra/
         Sha256Hasher.kt
     external/
       social/kakao/
-        KakaoSocialLoginAdapter.java              # implements SocialLoginPort
+        KakaoSocialLoginAdapter.kt                # implements application member SocialLoginProvider
         client/
           KakaoApiClient.java                     # @FeignClient
           KakaoAuthApiClient.java                 # @FeignClient
@@ -387,7 +385,7 @@ infra/
           KakaoUserResponse.java
       notification/slack/
         SlackBookingNotificationAdapter.java      # implements BookingNotificationPort
-        SlackMemberNotificationAdapter.java       # implements MemberNotificationPort
+        SlackMemberNotificationAdapter.kt         # implements application member MemberRegistrationNotifier
         client/
           BookingSlackClient.java                 # @FeignClient
           MemberSlackClient.java                  # @FeignClient
@@ -397,7 +395,7 @@ infra/
           message/ SlackMessage.java
           text/   MarkdownText.java PlainText.java Text.java
       notification/sms/
-        CoolSmsAdapter.java                       # implements SmsPort
+        CoolSmsAdapter.kt                         # internal SMS adapter
       storage/s3/
         S3FileStorageAdapter.java                 # implements FileStoragePort
         S3InfraConfig.java                        # support config; AmazonS3 빈

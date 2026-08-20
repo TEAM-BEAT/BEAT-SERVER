@@ -11,17 +11,17 @@ JWT 발급/검증, 인증 필터, 인가 실패 처리, 현재 사용자 princip
 - 외부 API adapter (Kakao, Slack, S3, SMS)
 - 배치 잡 / 스케줄러
 
-> 핵심 원칙: 실행 모듈은 `gateway`의 내부 구현 패키지를 직접 import하지 않습니다.
-> 공개 표면 (`EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `CurrentMember`, `module-contracts auth port`) 만을 통해 인증 경계를 사용합니다.
+> 핵심 원칙: 실행 모듈은 `:support:security`의 내부 구현 패키지를 직접 import하지 않습니다.
+> 공개 표면(`com.beat.support.security` root bootstrap/`CurrentMember`, `password/PasswordHasher`, `token/*`)만을 통해 인증 경계를 사용합니다.
 
 ### 패키지 구조 규칙 (G1~G5)
 
 `gateway`는 기술 레이어가 아니라 **인증 capability**로 패키지를 나눕니다. Spring Modulith 컨벤션(모듈
 base package = API, 하위 package = internal)을 모듈 내부에 적용한 형태입니다.
 
-- **G1 · Public surface 단일화** — 실행 모듈이 import 가능한 것은 `com.beat.gateway` 루트의 bootstrap/annotation
-  타입(`@EnableGatewayServletSecurity`, `@EnableGatewayConfig`, `GatewayConfigGroup`, `@CurrentMember`)뿐입니다.
-  행위 계약은 `gateway`가 아니라 `module-contracts`의 port로 노출합니다.
+- **G1 · Public surface 단일화** — 실행 모듈이 import 가능한 것은 `com.beat.support.security` root의 bootstrap/annotation
+  타입(`@EnableGatewayServletSecurity`, `@EnableGatewayConfig`, `GatewayConfigGroup`, `@CurrentMember`),
+  `password/PasswordHasher`, `token/*` technical API뿐입니다.
 - **G2 · Capability-first** — 내부는 인증 capability로 1차 분할합니다: `jwt`, `guest`,
   `authentication`(servlet 필터/인가/principal).
 - **G3 · Internal 경계 단일 규칙** — 각 capability 구현은 예외 없이 `<capability>.internal` 아래에 둡니다. 실행
@@ -29,17 +29,18 @@ base package = API, 하위 package = internal)을 모듈 내부에 적용한 형
 - **G4 · Config 동거** — capability를 구성하는 `@Configuration`은 그 capability의
   `internal.config`에 둡니다. Redis 저장 구현은 `infra.redis.auth`가 소유합니다.
 - **G5 · Bootstrap 공유만 예외** — optional capability selector인 `GatewayConfigImportSelector`만
-  `gateway.shared.internal`에 둡니다. 이것이 유일하게 허용되는 non-capability
+  `com.beat.support.security.shared.internal`에 둡니다. 이것이 유일하게 허용되는 non-capability
   패키지입니다.
 
 ```text
-com.beat.gateway
+com.beat.support.security
 ├─ (root, public)          EnableGatewayServletSecurity · EnableGatewayConfig · GatewayConfigGroup · CurrentMember
+├─ token (public)          TokenSubject · TokenIssuer · RefreshTokenAuthenticator · TokenAuthenticationResult · TokenAuthenticationFailure
+├─ password (public)       PasswordHasher
+│  └─ internal             BCryptPasswordHasher
 ├─ jwt.internal            JwtTokenProvider · JwtTokenParser · JwtTokenIssuer
 │                          JwtSigningKeyHolder · JwtProperties (+ config/JwtConfig)
-├─ refreshtoken.internal   config/RefreshTokenConfig                   (RefreshTokenPort fail-fast requirement)
 ├─ guest.internal          config/GuestAccessConfig
-├─ com.beat.support.security.password PasswordHasher · internal/BCryptPasswordHasher
 ├─ authentication.internal JwtAuthenticationFilter · SecurityMdcLoggingFilter · Custom*Handler
 │                          CurrentMemberArgumentResolver · MemberAuthentication · AdminAuthentication
 │                                                                     (+ config/ServletSecurityConfig·SecurityFilterConfig·WebMvcConfig)
@@ -63,15 +64,15 @@ com.beat.gateway
 
 | 질문 | 위치 |
 | --- | --- |
-| JWT 발급/검증 구현 | `gateway.jwt.internal` |
-| 인증 필터, 인가 핸들러, principal resolver | `gateway.authentication.internal` |
+| JWT 발급/검증 구현 | `com.beat.support.security.jwt.internal` |
+| 인증 필터, 인가 핸들러, principal resolver | `com.beat.support.security.authentication.internal` |
 | Refresh token/guest session/throttle Redis adapter | `infra.redis.auth` |
-| Guest 비밀번호 해시 primitive | `gateway.guest.internal` |
-| Optional gateway import selector | `gateway.shared.internal` |
-| JWT/refresh token/guest 계약 정의 | `com.beat.contracts.auth` (`module-contracts`) |
+| Guest 비밀번호 해시 primitive | `com.beat.support.security.password` / `guest.internal` |
+| Token technical API | `com.beat.support.security.token` |
+| Guest 계약 정의 | `com.beat.contracts.auth.guest` (`module-contracts`) |
 | Route whitelist, 역할 기반 접근 정책 | 각 실행 모듈 security config (`apis`, `admin`) |
-| SecurityContext 기반 MDC userId 추출 | `gateway.authentication.internal.SecurityMdcLoggingFilter` |
-| 비즈니스 로그인/로그아웃 흐름 | 실행 모듈 application service |
+| SecurityContext 기반 MDC userId 추출 | `com.beat.support.security.authentication.internal.SecurityMdcLoggingFilter` |
+| 비즈니스 로그인/로그아웃 흐름 | `application:frontoffice` auth/member use case |
 
 ---
 
@@ -80,18 +81,18 @@ com.beat.gateway
 ```mermaid
 flowchart TB
     Apis[apis / admin<br/>실행 모듈]
-    GatewayPublic[gateway 공개 표면<br/>EnableGatewayServletSecurity · EnableGatewayConfig · GatewayConfigGroup<br/>CurrentMember annotation]
-    Contracts[module-contracts<br/>JwtTokenPort · RefreshTokenPort · GuestSessionPort]
-    GatewayInternal[gateway 내부 구현<br/>JwtTokenProvider · JwtAuthenticationFilter<br/>SecurityMdcLoggingFilter · CurrentMemberArgumentResolver]
+    Application[application:frontoffice<br/>auth/member use cases]
+    GatewayPublic[:support:security 공개 표면<br/>bootstrap · CurrentMember · password/PasswordHasher · token/*]
+    Contracts[module-contracts<br/>GuestSessionPort · GuestAccessThrottlePort]
+    GatewayInternal[:support:security 내부 구현<br/>JwtTokenProvider · JwtAuthenticationFilter<br/>SecurityMdcLoggingFilter · CurrentMemberArgumentResolver]
     InfraAuthRedis[infra auth Redis adapter<br/>RedisRefreshTokenAdapter · RedisGuestSessionAdapter<br/>RedisGuestAccessThrottleAdapter]
     Redis[(Redis)]
     ModuleSecurityConfig[실행 모듈 security config<br/>route whitelist · role-based access]
 
     Apis -->|public bootstrap 선택| GatewayPublic
-    Apis -->|auth port 주입| Contracts
+    Application -->|남은 guest output port 사용| Contracts
     Apis --> ModuleSecurityConfig
     GatewayPublic -->|DeferredImportSelector| GatewayInternal
-    Contracts -->|implements| GatewayInternal
     Contracts -->|implements| InfraAuthRedis
     InfraAuthRedis --> Redis
 
@@ -105,16 +106,16 @@ flowchart TB
 
 | Layer | 책임 | 금지 |
 | --- | --- | --- |
-| 실행 모듈 | `@EnableGatewayServletSecurity`와 optional gateway primitive 선택, APIs에서 `AuthRedisConfig`로 Redis adapter 조립, route/role 정책 소유 | gateway/infra internal 직접 import |
-| gateway 공개 표면 | 선택 가능한 config group, `@CurrentMember` annotation | 내부 구현 노출 |
-| module-contracts | JWT/refresh token 계약 정의 | 실행 모듈 DTO, domain model 포함 |
+| 실행 모듈 | `@EnableGatewayServletSecurity`와 `GUEST_ACCESS` 선택, APIs에서 `AuthRedisConfig`로 Redis adapter 조립, route/role 정책 소유 | `:support:security`/infra internal 직접 import |
+| `:support:security` 공개 표면 | bootstrap, `@CurrentMember`, `PasswordHasher`, token technical API | 내부 구현 노출 |
+| module-contracts | guest 계약 정의 | 실행 모듈 DTO, domain model 포함 |
 | gateway 내부 구현 | JWT 구현, 인증 필터, guest 비밀번호 해시 | 비즈니스 정책, repository, Redis adapter |
 
 ---
 
 ## 3. Bootstrap 구조
 
-실행 모듈은 servlet security를 `@EnableGatewayServletSecurity` public annotation으로 정적으로 선택합니다. `REFRESH_TOKEN_STORE`는 기존 공개 bootstrap 호환성을 유지하면서 `RefreshTokenPort` 제공 여부만 fail-fast 검증하고, 실제 Redis adapter는 실행 모듈의 `InfraConfig`에서 선택합니다. `GUEST_ACCESS`는 gateway가 소유하는 guest 비밀번호 해시를 활성화합니다.
+실행 모듈은 servlet security를 `@EnableGatewayServletSecurity` public annotation으로 정적으로 선택합니다. `GUEST_ACCESS`는 `:support:security`가 소유하는 guest 비밀번호 해시를 활성화합니다. Redis refresh store는 auth application output port인 `RefreshTokenStore`를 application이 소유하고, infrastructure가 구현해 `InfraConfig`에서 조립합니다.
 `EnableGatewayServletSecurity`는 IDE/Spring analyzer가 따라갈 수 있는 public static import surface이고, 내부적으로 servlet security 대표 config를 직접 import합니다.
 
 ```mermaid
@@ -136,15 +137,10 @@ flowchart TB
         BCryptPasswordHasher["BCryptPasswordHasher<br/>implements support-owned PasswordHasher"]
     end
 
-    subgraph REFRESH_TOKEN_STORE["Compatibility GatewayConfigGroup.REFRESH_TOKEN_STORE"]
-        RefreshTokenConfig["RefreshTokenConfig<br/>RefreshTokenPort 제공 여부 fail-fast 검증"]
-    end
-
     ModuleGatewayConfig --> ServletBootstrap
     ModuleGatewayConfig -->|optional @EnableGatewayConfig| Selector
     ServletBootstrap --> SERVLET_BOOTSTRAP
     Selector --> GUEST_ACCESS
-    Selector --> REFRESH_TOKEN_STORE
     ServletSecurityConfig --> JwtConfig
     ServletSecurityConfig --> SecurityConfig
     ServletSecurityConfig --> WebMvcConfig
@@ -155,7 +151,7 @@ flowchart TB
 
 | 모듈 | Servlet security bootstrap | Gateway optional group | `AuthRedisConfig` | 이유 |
 | --- | --- | --- | --- | --- |
-| `apis` | `@EnableGatewayServletSecurity` | `REFRESH_TOKEN_STORE`, `GUEST_ACCESS` | ✅ | 사용자/guest 인증 + refresh token 저장 |
+| `apis` | `@EnableGatewayServletSecurity` | `GUEST_ACCESS` | ✅ | 사용자/guest 인증 + application-owned refresh token store |
 | `admin` | `@EnableGatewayServletSecurity` | ❌ | ❌ | 관리자 JWT 인증만 |
 | `batch` | ❌ | ❌ | ❌ | HTTP 인증 lane 없음 |
 
@@ -164,7 +160,6 @@ flowchart TB
 @EnableGatewayServletSecurity
 @EnableGatewayConfig(
     value = [
-        GatewayConfigGroup.REFRESH_TOKEN_STORE,
         GatewayConfigGroup.GUEST_ACCESS,
     ],
 )
@@ -183,22 +178,20 @@ class GatewayConfig
 
 | 공개 타입 | 위치 | 용도 |
 | --- | --- | --- |
-| `@EnableGatewayServletSecurity` | `com.beat.gateway` | servlet security static bootstrap annotation |
-| `@EnableGatewayConfig` | `com.beat.gateway` | optional config group 선택 annotation |
-| `GatewayConfigGroup` | `com.beat.gateway` | `REFRESH_TOKEN_STORE` compatibility requirement / optional `GUEST_ACCESS` enum |
-| `@CurrentMember` | `com.beat.gateway` | controller 파라미터에서 현재 사용자 memberId 추출 |
-
-JWT/refresh token 계약은 `gateway`가 아니라 `module-contracts`에서 주입받습니다.
+| `@EnableGatewayServletSecurity` | `com.beat.support.security` | servlet security static bootstrap annotation |
+| `@EnableGatewayConfig` | `com.beat.support.security` | optional config group 선택 annotation |
+| `GatewayConfigGroup` | `com.beat.support.security` | optional `GUEST_ACCESS` enum |
+| `@CurrentMember` | `com.beat.support.security` | controller 파라미터에서 현재 사용자 memberId 추출 |
+| `PasswordHasher` | `com.beat.support.security.password` | password hashing technical API |
+| `TokenSubject`, `TokenIssuer`, `RefreshTokenAuthenticator`, `TokenAuthenticationResult` | `com.beat.support.security.token` | token technical API |
 
 | 계약 | 위치 | 구현체 |
 | --- | --- | --- |
-| `JwtTokenPort` | `com.beat.contracts.auth.jwt` | `gateway.jwt.internal.JwtTokenProvider` |
-| `RefreshTokenPort` | `com.beat.contracts.auth.refreshtoken` | `infra.redis.auth.refreshtoken.RedisRefreshTokenAdapter` |
 | `GuestSessionPort` | `com.beat.contracts.auth.guest` | `infra.redis.auth.guest.RedisGuestSessionAdapter` |
 | `GuestAccessThrottlePort` | `com.beat.contracts.auth.guest` | `infra.redis.auth.guest.RedisGuestAccessThrottleAdapter` |
 
 `AccessTokenAuthenticator`는 구현(`JwtTokenProvider`)과 소비(`JwtAuthenticationFilter`)가 모두 `gateway`
-안에서 완결되므로 `module-contracts`가 아니라 `gateway.jwt.internal`이 소유합니다. 필터가 토큰 1회 파싱으로
+안에서 완결되므로 `module-contracts`가 아니라 `com.beat.support.security.jwt.internal`이 소유합니다. 필터가 토큰 1회 파싱으로
 `memberId`/`roleName`을 얻기 위한 내부 계약이며, 실행 모듈에는 노출하지 않습니다.
 
 ---
@@ -251,12 +244,12 @@ sequenceDiagram
 
 ---
 
-## 6. Refresh token 흐름
+## 6. Refresh token store 경계
 
 ```mermaid
 sequenceDiagram
     participant App as MemberApplicationService (apis)
-    participant Port as RefreshTokenPort
+    participant Port as RefreshTokenStore (application/auth)
     participant Adapter as RedisRefreshTokenAdapter (infra)
     participant Redis as Redis
 
@@ -270,7 +263,7 @@ sequenceDiagram
     Port->>Adapter: findMemberIdByRefreshToken(refreshToken)
     Adapter->>Redis: findByRefreshToken(refreshToken)
     Redis-->>Adapter: RefreshTokenRedisHash?
-    Adapter-->>App: OptionalLong
+    Adapter-->>App: Long?
 
     Note over App,Redis: 로그아웃 — refresh token 삭제
     App->>Port: deleteRefreshToken(memberId)
@@ -281,7 +274,7 @@ sequenceDiagram
 
 - `RefreshTokenRedisHash`는 `memberId`를 `@Id`로, `refreshToken` 문자열을 `@Indexed`로 저장합니다.
 - 기존 운영 hash의 `_class` 호환을 위해 gateway 시절 FQCN을 `@TypeAlias`로 유지합니다.
-- 조회 실패와 삭제 실패는 port의 값(`OptionalLong.empty`, `false`)으로 반환하고, application service가 기존 client 오류 계약으로 변환합니다.
+- 조회 실패와 삭제 실패는 application output port의 값(`null`, `false`)으로 반환하고, application service가 client 오류 계약으로 변환합니다.
 - TTL은 14일 (1,209,600초)로 고정됩니다.
 - `admin`은 `AuthRedisConfig`를 import하지 않고 Redis runtime dependency도 없으므로 Redis adapter와 auto-configuration이 올라오지 않습니다.
 
@@ -290,28 +283,32 @@ sequenceDiagram
 ## 7. 패키지 구조
 
 ```text
-gateway/
-  src/main/kotlin/com/beat/gateway/
+gateway/  # Gradle project :support:security
+  src/main/kotlin/com/beat/support/security/
     EnableGatewayConfig.kt                # 공개: optional group 선택 annotation
     EnableGatewayServletSecurity.kt        # 공개: servlet security static bootstrap annotation
-    GatewayConfigGroup.kt                  # 공개: REFRESH_TOKEN_STORE / GUEST_ACCESS group enum
+    GatewayConfigGroup.kt                  # 공개: GUEST_ACCESS group enum
     CurrentMember.kt                       # 공개: controller 파라미터 annotation
+    token/
+      TokenSubject.kt                      # public technical API
+      TokenIssuer.kt                       # public technical API
+      RefreshTokenAuthenticator.kt         # public technical API
+      TokenAuthenticationResult.kt         # public technical API
+      TokenAuthenticationFailure.kt        # public technical API
     jwt/internal/
-      JwtTokenProvider.kt                  # implements JwtTokenPort
+      JwtTokenProvider.kt                  # implements token APIs + AccessTokenAuthenticator
       JwtTokenParser.kt                    # 서명 및 tokenType 검증
       JwtTokenIssuer.kt                    # access/refresh token 발급
       JwtSigningKeyHolder.kt               # 서명 키 1회 파생 및 보관
       JwtProperties.kt                     # @ConfigurationProperties(prefix = "jwt")
       config/
         JwtConfig.kt                       # JwtTokenProvider bean 등록
-    refreshtoken/internal/config/
-      RefreshTokenConfig.kt                # RefreshTokenPort 제공 여부 fail-fast 검증
     guest/internal/config/
       GuestAccessConfig.kt                 # GUEST_ACCESS group entrypoint
-  support/security/password/
-    PasswordHasher.kt                      # public technical API
-    internal/
-      BCryptPasswordHasher.kt              # BCrypt + legacy verification/upgrade
+    password/
+      PasswordHasher.kt                    # public technical API
+      internal/
+        BCryptPasswordHasher.kt            # BCrypt + legacy verification/upgrade
     authentication/internal/
       JwtAuthenticationFilter.kt           # OncePerRequestFilter
       SecurityMdcLoggingFilter.kt          # observability BaseMdcLoggingFilter 확장
@@ -344,7 +341,7 @@ gateway/
 
 ```text
 global-support
-module-contracts        # JwtTokenPort, RefreshTokenPort, TokenValidationResult 계약
+module-contracts        # GuestSessionPort, GuestAccessThrottlePort 계약
 observability           # BaseMdcLoggingFilter 확장
 ```
 
@@ -367,7 +364,7 @@ observability           # BaseMdcLoggingFilter 확장
 ### `ApisApplicationTest` / `AdminApplicationTest`
 
 - 모듈 import 집합 고정 (`GatewayConfig`, `InfraConfig`, `ObservabilityModuleConfig`)
-- `apis`가 `@EnableGatewayServletSecurity + REFRESH_TOKEN_STORE + GUEST_ACCESS`를 선택하고 `AuthRedisConfig`를 함께 제공하는지 확인
+- `apis`가 `@EnableGatewayServletSecurity + GUEST_ACCESS`를 선택하고 `AuthRedisConfig`로 application-owned refresh store adapter를 함께 제공하는지 확인
 - `admin`이 optional gateway group과 Redis runtime/config를 가져가지 않는지 확인
 
 ### `ApisArchitectureGuardTest` / `AdminArchitectureGuardTest`

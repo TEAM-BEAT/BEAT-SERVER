@@ -45,6 +45,15 @@
   - [x] PR-6 SMS contract retirement is verified
   - [x] PR-6 Kotlin callers are migrated and verified
   - [x] PR-6 architecture, API, and integration verification is complete
+- [x] PR-7 Member/Auth and support boundaries migrated and verified
+  - [x] Member/Auth production ownership moved
+  - [x] Support JWT technical API split completed and mixed `JwtTokenPort` removed
+  - [x] Social, refresh, and notification contracts have consumer ownership with nullable Kotlin APIs
+  - [x] Apps HTTP, cookie, and error compatibility preserved
+  - [x] Support/application/infrastructure dependency guards added
+  - [x] Member-to-Auth concrete service graph prohibition guard added
+  - [x] Kotlin/Java interop debt and callers audited
+  - [x] Focused tests, three runtime-context smoke tests, `verifyTargetModuleGraph`, and full check pass
 - [ ] Admin workflows migrated and verified
 - [ ] System/batch workflows migrated and verified
 - [ ] Infrastructure consolidated with internal implementations
@@ -85,6 +94,8 @@
 - Current correctness verification: all `application:frontoffice` and `support:security` tests, API bootstrap/JSON contract tests, and `verifyTargetModuleGraph` passed (67 tasks). The full API integration task could not initialize Testcontainers because Docker Desktop's Unix socket timed out on a direct 5-second `/_ping`; no test assertion failed before the run was stopped.
 - The rejected Performance API experiment is no longer quarantined because it was deleted. Remaining migration changes are accepted only at their individual verified PR boundary; unrelated pre-existing untracked files remain untouched.
 - PR-5 ownership gate: Performance detail schedule projection belongs to `performance/booker/query`; Schedule availability decision remains an authoritative Schedule query; child ownership lookup remains a Maker command diagnostic reader to preserve foreign-vs-missing 403/404; Performance Maker gets one object-storage output seam; poster CDN prewarm is an infrastructure subscriber to the committed Performance event. No `performance/api` or thin cache port is introduced.
+- PR-7 ownership gate: Member owns social login/registration and its provider/notifier vocabulary; Auth owns login-session issuance and the Redis `RefreshTokenStore`; `support:security` owns public password/token technical APIs and internal BCrypt/JWT/Spring Security implementations. Member collaborates only through `LoginSessionIssuer`, not a concrete Auth service or support token vocabulary.
+- PR-7 clean verification: `~/.sober/scripts/verify.sh` passed in a detached clean worktree with 112 executed tasks; API/Admin/Batch context smoke tests and `verifyTargetModuleGraph` passed, and `verifyModuleBootJars` verified all three executable jars. Existing infrastructure compiler warnings remain unchanged.
 
 ## Quarantined experimental work
 
