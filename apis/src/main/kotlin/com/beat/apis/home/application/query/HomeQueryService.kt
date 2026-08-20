@@ -3,7 +3,7 @@ package com.beat.apis.home.application.query
 import com.beat.apis.home.application.result.HomePerformanceResult
 import com.beat.apis.home.application.result.HomePromotionResult
 import com.beat.apis.home.application.result.HomeFindAllResult
-import com.beat.apis.schedule.application.calculateDueDate
+import com.beat.application.frontoffice.schedule.calculateDueDate
 import com.beat.contracts.performance.PerformanceSummaryReadPort
 import com.beat.contracts.performance.readmodel.PerformanceSummaryReadModel
 import com.beat.contracts.promotion.HomePromotionReadPort

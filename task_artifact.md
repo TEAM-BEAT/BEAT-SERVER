@@ -77,6 +77,7 @@
 - Guest identity correction: password-matching candidates authenticate only when they resolve to exactly one distinct `userId`; duplicate rows for the same user remain compatible, while multi-user ambiguity returns the existing authentication-failure outcome. Four focused Kotlin tests passed.
 - Current correctness verification: all `application:frontoffice` and `support:security` tests, API bootstrap/JSON contract tests, and `verifyTargetModuleGraph` passed (67 tasks). The full API integration task could not initialize Testcontainers because Docker Desktop's Unix socket timed out on a direct 5-second `/_ping`; no test assertion failed before the run was stopped.
 - The rejected Performance API experiment is no longer quarantined because it was deleted. Remaining migration changes are accepted only at their individual verified PR boundary; unrelated pre-existing untracked files remain untouched.
+- PR-5 ownership gate: Performance detail schedule projection belongs to `performance/booker/query`; Schedule availability decision remains an authoritative Schedule query; child ownership lookup remains a Maker command diagnostic reader to preserve foreign-vs-missing 403/404; Performance Maker gets one object-storage output seam; poster CDN prewarm is an infrastructure subscriber to the committed Performance event. No `performance/api` or thin cache port is introduced.
 
 ## Quarantined experimental work
 

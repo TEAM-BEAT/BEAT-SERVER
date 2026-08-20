@@ -1,6 +1,6 @@
 package com.beat.apis.file.api.response
 
-import com.beat.contracts.storage.ImagePresignedUpload
+import com.beat.application.frontoffice.performance.maker.command.ImagePresignedUpload
 
 @ConsistentCopyVisibility
 data class PerformanceMakerPresignedUrlFindAllResponse private constructor(

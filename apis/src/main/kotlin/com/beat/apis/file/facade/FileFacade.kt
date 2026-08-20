@@ -1,7 +1,7 @@
 package com.beat.apis.file.facade
 
 import com.beat.apis.file.api.response.PerformanceMakerPresignedUrlFindAllResponse
-import com.beat.apis.file.application.command.FileCommandService
+import com.beat.application.frontoffice.performance.maker.command.FileCommandService
 import org.springframework.stereotype.Service
 
 @Service

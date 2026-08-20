@@ -1,6 +1,6 @@
 package com.beat.apis.performance.api.response
 
-import com.beat.apis.performance.application.result.PerformanceDetailScheduleResult
+import com.beat.application.frontoffice.performance.booker.query.PerformanceDetailScheduleResult
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.LocalDateTime
 

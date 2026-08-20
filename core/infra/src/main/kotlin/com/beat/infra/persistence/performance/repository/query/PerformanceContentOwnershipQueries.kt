@@ -1,6 +1,6 @@
 package com.beat.infra.persistence.performance.repository.query
 
-import com.beat.contracts.performance.PerformanceContentOwnershipReadPort
+import com.beat.application.frontoffice.performance.maker.command.PerformanceContentOwnershipReader
 import com.beat.infra.persistence.cast.entity.CastJpaEntity
 import com.beat.infra.persistence.performanceimage.entity.PerformanceImageJpaEntity
 import com.beat.infra.persistence.staff.entity.StaffJpaEntity
@@ -11,10 +11,10 @@ import jakarta.persistence.EntityManager
 import org.springframework.stereotype.Repository
 
 @Repository
-class PerformanceContentOwnershipQueries(
+internal class PerformanceContentOwnershipQueries(
     private val entityManager: EntityManager,
     private val jpqlRenderContext: JpqlRenderContext,
-) : PerformanceContentOwnershipReadPort {
+) : PerformanceContentOwnershipReader {
 
     override fun findPerformanceIdByCastId(castId: Long): Long? =
         entityManager.createQuery(castPerformanceIdQuery(castId), jpqlRenderContext).resultList.firstOrNull()

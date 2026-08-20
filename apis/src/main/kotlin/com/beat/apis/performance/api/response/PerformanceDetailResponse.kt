@@ -1,6 +1,6 @@
 package com.beat.apis.performance.api.response
 
-import com.beat.apis.performance.application.result.PerformanceDetailResult
+import com.beat.application.frontoffice.performance.booker.query.PerformanceDetailResult
 import com.beat.global.support.jackson.CdnImageUrl
 
 @ConsistentCopyVisibility

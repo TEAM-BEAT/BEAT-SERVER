@@ -527,10 +527,10 @@ class SharedBoundaryContractTest {
 	@Test
 	void performanceOwnershipChecksUseLongValueEquality() throws Exception {
 		List<Path> serviceSources = List.of(
-			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/command/PerformanceCreateCommandService.kt"),
-			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/command/PerformanceDeleteCommandService.kt"),
-			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/command/PerformanceModifyCommandService.kt"),
-			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/query/PerformanceDetailQueryService.kt")
+			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/maker/command/PerformanceCreateCommandService.kt"),
+			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/maker/command/PerformanceDeleteCommandService.kt"),
+			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/maker/command/PerformanceModifyCommandService.kt"),
+			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/booker/query/PerformanceDetailQueryService.kt")
 		);
 
 		Pattern boxedLongIdentityComparison = Pattern.compile(
@@ -551,7 +551,7 @@ class SharedBoundaryContractTest {
 		String userQueryService = Files.readString(
 			Path.of("admin/src/main/kotlin/com/beat/admin/user/application/query/AdminUserQueryService.kt"));
 		String performanceService = Files.readString(
-			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/query/PerformanceDetailQueryService.kt"));
+			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/booker/query/PerformanceDetailQueryService.kt"));
 
 		assertFalse(userQueryService.contains("userRepository.findAllUsers("));
 		assertFalse(userQueryService.contains("userRepository.findUserByUserId("));
@@ -561,11 +561,11 @@ class SharedBoundaryContractTest {
 	@Test
 	void scheduleMigrationPersistsImmutableCopiesAndHandlesDetachedBookingRows() throws Exception {
 		String performanceCreate = Files.readString(
-			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/command/PerformanceCreateCommandService.kt"));
+			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/maker/command/PerformanceCreateCommandService.kt"));
 		String performanceDelete = Files.readString(
-			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/command/PerformanceDeleteCommandService.kt"));
+			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/maker/command/PerformanceDeleteCommandService.kt"));
 		String scheduleCoordinator = Files.readString(
-			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/command/ScheduleSynchronizer.kt"));
+			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/maker/command/ScheduleSynchronizer.kt"));
 		String bookingRepository = Files.readString(
 			Path.of("core/domain/src/main/kotlin/com/beat/domain/booking/repository/BookingRepository.kt"));
 		String bookingJpaRepository = Files.readString(
@@ -631,7 +631,7 @@ class SharedBoundaryContractTest {
 	}
 
 	@Test
-	void queryComponentsUseQueriesNamingAndExposeOnlyModuleContractsReadModels() throws Exception {
+	void queryComponentsUseQueriesNamingAndExposeOnlyConsumerOwnedReaderReadModels() throws Exception {
 		List<Path> queryComponents = sourceFiles(
 			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query"),
 			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query"),
@@ -678,7 +678,7 @@ class SharedBoundaryContractTest {
 			}
 		}
 		assertTrue(contractViolations.isEmpty(),
-			"Query components must return consumer-owned read models and execute direct projections:\n"
+			"Query components must return consumer-owned reader/read models and execute direct projections:\n"
 				+ String.join("\n", contractViolations));
 	}
 
@@ -761,11 +761,11 @@ class SharedBoundaryContractTest {
 				+ String.join("\n", domainLookupCodes));
 		assertFalse(Files.exists(Path.of("core/domain/src/main/kotlin/com/beat/domain/user/exception/UserErrorCode.kt")));
 		assertSourceContains(
-			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/command/PerformanceCreateCommandService.kt"),
-			"throw ApiApplicationException(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND)");
+			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/maker/command/PerformanceCreateCommandService.kt"),
+			"throw FrontofficeApplicationException(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND)");
 		assertSourceContains(
-			Path.of("apis/src/main/kotlin/com/beat/apis/performance/application/command/PerformanceModifyCommandService.kt"),
-			"throw ApiApplicationException(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND)");
+			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/maker/command/PerformanceModifyCommandService.kt"),
+			"throw FrontofficeApplicationException(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND)");
 
 		assertAll(
 			() -> assertSourceContains(
@@ -784,22 +784,22 @@ class SharedBoundaryContractTest {
 				Path.of("apis/src/main/kotlin/com/beat/apis/member/exception/MemberApplicationErrorCode.kt"),
 				"\"MEMBER_NOT_FOUND\""),
 			() -> assertSourceContains(
-				Path.of("apis/src/main/kotlin/com/beat/apis/performance/exception/PerformanceApplicationErrorCode.kt"),
+				Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/exception/PerformanceApplicationErrorCode.kt"),
 				"\"PERFORMANCE_NOT_FOUND\""),
 			() -> assertSourceContains(
-				Path.of("apis/src/main/kotlin/com/beat/apis/performance/exception/PerformanceApplicationErrorCode.kt"),
+				Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/exception/PerformanceApplicationErrorCode.kt"),
 				"\"PERFORMANCE_SCHEDULE_LIST_REQUIRED\""),
 			() -> assertSourceContains(
-				Path.of("apis/src/main/kotlin/com/beat/apis/performance/exception/CastApplicationErrorCode.kt"),
+				Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/exception/CastApplicationErrorCode.kt"),
 				"\"CAST_NOT_FOUND\""),
 			() -> assertSourceContains(
-				Path.of("apis/src/main/kotlin/com/beat/apis/performance/exception/StaffApplicationErrorCode.kt"),
+				Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/exception/StaffApplicationErrorCode.kt"),
 				"\"STAFF_NOT_FOUND\""),
 			() -> assertSourceContains(
-				Path.of("apis/src/main/kotlin/com/beat/apis/performance/exception/PerformanceImageApplicationErrorCode.kt"),
+				Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/exception/PerformanceImageApplicationErrorCode.kt"),
 				"\"PERFORMANCE_IMAGE_NOT_FOUND\""),
 			() -> assertSourceContains(
-				Path.of("apis/src/main/kotlin/com/beat/apis/schedule/exception/ScheduleApplicationErrorCode.kt"),
+				Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/schedule/exception/ScheduleApplicationErrorCode.kt"),
 				"\"SCHEDULE_NOT_FOUND\""),
 			() -> assertSourceContains(
 				Path.of("apis/src/main/kotlin/com/beat/apis/user/exception/UserApplicationErrorCode.kt"),

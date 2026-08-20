@@ -1,11 +1,11 @@
 package com.beat.infra.persistence.performance.repository.query
 
-import com.beat.contracts.performance.PerformanceEditFormReadPort
-import com.beat.contracts.performance.readmodel.PerformanceEditCastReadModel
-import com.beat.contracts.performance.readmodel.PerformanceEditFormReadModel
-import com.beat.contracts.performance.readmodel.PerformanceEditImageReadModel
-import com.beat.contracts.performance.readmodel.PerformanceEditScheduleReadModel
-import com.beat.contracts.performance.readmodel.PerformanceEditStaffReadModel
+import com.beat.application.frontoffice.performance.maker.query.PerformanceEditFormReader
+import com.beat.application.frontoffice.performance.maker.query.PerformanceEditCastReadModel
+import com.beat.application.frontoffice.performance.maker.query.PerformanceEditFormReadModel
+import com.beat.application.frontoffice.performance.maker.query.PerformanceEditImageReadModel
+import com.beat.application.frontoffice.performance.maker.query.PerformanceEditScheduleReadModel
+import com.beat.application.frontoffice.performance.maker.query.PerformanceEditStaffReadModel
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.performance.model.Genre
 import com.beat.domain.schedule.model.ScheduleNumber
@@ -26,23 +26,21 @@ import org.springframework.stereotype.Repository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Optional
 
 @Repository
-class PerformanceEditFormQueries(
+internal class PerformanceEditFormQueries(
     private val entityManager: EntityManager,
     private val jpqlRenderContext: JpqlRenderContext,
-) : PerformanceEditFormReadPort {
+) : PerformanceEditFormReader {
 
-    override fun findByPerformanceId(performanceId: Long): Optional<PerformanceEditFormReadModel> {
+    override fun findByPerformanceId(performanceId: Long): PerformanceEditFormReadModel? {
         val header = entityManager.createQuery(headerQuery(performanceId), jpqlRenderContext)
             .resultList
             .firstOrNull()
-            ?: return Optional.empty()
+            ?: return null
         val schedules = findSchedules(performanceId)
 
-        return Optional.of(
-            PerformanceEditFormReadModel(
+        return PerformanceEditFormReadModel(
                 performanceId = checkNotNull(header.performanceId),
                 userId = header.userId,
                 performanceTitle = header.performanceTitle,
@@ -69,8 +67,7 @@ class PerformanceEditFormQueries(
                 casts = findCasts(performanceId),
                 staffs = findStaffs(performanceId),
                 images = findImages(performanceId),
-            ),
-        )
+            )
     }
 
     private fun headerQuery(performanceId: Long) = jpql {

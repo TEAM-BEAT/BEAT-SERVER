@@ -1,7 +1,7 @@
 package com.beat.apis.performance.api.response
 
 import com.beat.apis.schedule.api.type.ScheduleNumberType
-import com.beat.apis.performance.application.result.ScheduleResult
+import com.beat.application.frontoffice.performance.maker.ScheduleResult
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility

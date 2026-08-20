@@ -1,7 +1,7 @@
 package com.beat.apis.schedule.facade
 
 import com.beat.apis.schedule.api.response.TicketAvailabilityResponse
-import com.beat.apis.schedule.application.query.ScheduleQueryService
+import com.beat.application.frontoffice.schedule.query.ScheduleQueryService
 import org.springframework.stereotype.Service
 
 @Service

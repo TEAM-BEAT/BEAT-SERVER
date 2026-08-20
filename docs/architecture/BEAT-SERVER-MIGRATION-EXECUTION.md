@@ -128,12 +128,12 @@ core:domain         └→ no BEAT production project
 | `application/query/PerformanceDetailQueryService.kt` | Booker public detail와 Booking-form detail가 한 service에 혼재 | Booker Query | display projection | `application:frontoffice/performance/booker/query` | SPLIT 여부를 output/change reason으로 결정. 이름만으로 split 금지 |
 | `application/query/{MakerPerformanceListQueryService,PerformanceEditFormQueryService}.kt` | Maker list/edit form | Maker Query | consumer projection, auth | `application:frontoffice/performance/maker/query` | MOVE; consumer reader 소유 |
 | `application/{PerformanceImageKey,PerformancePresentation}.kt` | storage key validation과 query formatting/due-date | mixed helper | object metadata / display | maker command 및 actor query owner 인접 | SPLIT. 현재 하나의 `application` root에 다른 change reason이 혼재 |
-| `application/event/{PerformancePosterChangedEvent,PerformancePosterChangedEventListener}.kt` | best-effort CDN prewarm | Maker internal event/output | committed poster key | `application:frontoffice/performance/maker` | MOVE; generic central cache contract 제거 검토 |
+| `application/event/{PerformancePosterChangedEvent,PerformancePosterChangedEventListener}.kt` | committed poster 변경 event와 best-effort CDN prewarm가 apps에 함께 존재 | Maker event + driven adapter | committed poster key | event는 `application:frontoffice/performance/maker`, listener는 `infrastructure/external/cdn` | SPLIT. Application은 기술 cache port를 호출하지 않고 사실을 publish하며 infrastructure listener가 현재 CDN 전략을 수행 |
 | `application/result/PerformanceResults.kt` | Booker/Maker command/query output가 한 파일에 혼재 | mixed | authoritative + projection | 각 actor/command/query owner 인접 | SPLIT/MOVE |
 | `exception/{CastApplicationErrorCode,PerformanceApplicationErrorCode,PerformanceImageApplicationErrorCode,StaffApplicationErrorCode}.kt` | API-coupled errors | Application failure | 없음 | 해당 actor use case | REPLACE/MOVE |
 | `core/domain/.../performance/{model/*,vo/*,repository/PerformanceRepository,exception/PerformanceErrorCode}.kt` | Performance aggregate, price/payment/content/owner | Domain | Performance | `domain/performance` | MOVE. 별도 Offering aggregate는 evidence 없음 |
 | `core/infra/.../performance/{entity/*,mapper/*,repository/*}.kt`와 `persistence/{cast,staff,performanceimage}/**` | aggregate persistence; repository load가 casts/staff/images 전부 rehydrate | Adapter | primary Performance rows | `infrastructure/persistence/performance` | MOVE/internal. 전체 aggregate load 비용은 측정 후 최적화 |
-| `repository/query/{MakerPerformanceListQueries,PerformanceEditFormQueries,PerformanceContentOwnershipQueries,PerformanceSummaryQueries,PerformancePeriodReadSupport}.kt` | 서로 다른 consumer와 command diagnostic을 한 legacy contract module에 맞춤 | mixed Query/Command support | primary projection | consumer별 infrastructure adapter | SPLIT. summary wholesale 이동 금지 |
+| `repository/query/{MakerPerformanceListQueries,PerformanceEditFormQueries,PerformanceContentOwnershipQueries,PerformanceSummaryQueries,PerformancePeriodReadSupport}.kt` | 서로 다른 consumer와 command diagnostic을 한 legacy contract module에 맞춤 | mixed Query/Command support | primary projection | consumer별 infrastructure adapter | SPLIT. Maker list/edit와 child ownership diagnostic은 Performance owner 인접 contract를 구현하고 summary는 wholesale 이동 금지 |
 
 실제 ownership:
 
@@ -141,18 +141,21 @@ core:domain         └→ no BEAT production project
 - price 변경은 active Booking이 있으면 Domain에서 거부한다.
 - modify/delete는 Performance를 먼저 lock하고 Schedule을 정렬해 lock한다.
 - `PerformanceRepository.lockById`는 현재 casts/staff/images까지 읽는다. 이것은 coupling/비용 evidence지만 그 자체가 새 Application API의 충분조건은 아니다.
+- `PerformanceContentOwnershipReadPort`는 modify 요청의 foreign child와 missing child를 구별해 기존 403/404를 보존한다. seam 삭제 시 전체 aggregate scan, persistence leakage 또는 오류 의미 손실이 발생하므로 PR-5에서는 Performance Maker command-owned diagnostic reader로 유지한다. 이것은 invariant input이나 다른 Capability API가 아니다.
 
 ### 3.3 Schedule
 
 | Current file(s) | Current responsibility / callers | Actor / semantic | Authoritative state | Target | Action / reason |
 |---|---|---|---|---|---|
 | `apis/.../schedule/api/{ScheduleApi,ScheduleController}.kt`, `api/response/{ScheduleSuccessCode,TicketAvailabilityResponse}.kt`, `api/type/ScheduleNumberType.kt` | availability HTTP endpoint | Booker adapter | 없음 | `apps:api/schedule` | MOVE |
-| `application/query/ScheduleQueryService.kt`, `application/result/ScheduleResults.kt`, `application/DueDate.kt`, `facade/ScheduleFacade.kt`, `exception/ScheduleApplicationErrorCode.kt` | availability/due-date query와 mapping | Booker Query + adapter | Schedule | app/application으로 SPLIT | facade/HTTP error는 apps; query/policy는 `application:frontoffice/schedule/query` |
+| `application/query/ScheduleQueryService.kt`, `application/result/ScheduleResults.kt`, `application/DueDate.kt`, `facade/ScheduleFacade.kt`, `exception/ScheduleApplicationErrorCode.kt` | authoritative availability decision과 HTTP mapping | Booker Query + adapter | Schedule | app/application으로 SPLIT | facade/HTTP mapping은 apps; query/policy/failure는 `application:frontoffice/schedule/query` |
 | `core/domain/.../schedule/{model/Schedule,model/ScheduleNumber,repository/ScheduleRepository,service/ScheduleSequenceDomainService,exception/ScheduleErrorCode}.kt` | occurrence, close time, inventory, numbering | Domain | Schedule | `domain/schedule` | MOVE. Booking/Performance에 흡수 금지 |
 | `core/infra/.../schedule/{entity/*,mapper/*,repository/*}.kt` | JPA lock, DB-time close query, persistence | Adapter | primary Schedule rows | `infrastructure/persistence/schedule` | MOVE/internal |
 | `repository/query/{ScheduleAvailabilityQueries,ScheduleQueries}.kt` | Booker availability, Home min date, Ticket Maker summary가 혼재 | multiple consumer Query | projections | consumer별 adapter | SPLIT |
 
 `PESSIMISTIC_WRITE`는 현재 strategy다. 영구 invariant는 oversell 방지, DB close-time 검증, competing mutation의 serialization/conflict detection이다.
+
+이름이 `ScheduleAvailabilityReadPort`인 legacy contract의 실제 consumer는 `PerformanceDetailQueryService` 하나다. 따라서 상세 화면용 schedule projection은 `application:frontoffice/performance/booker/query`가 vocabulary를 소유한다. 반면 `/schedule/ticket-availability`는 `ScheduleQueryService`가 authoritative `ScheduleRepository`로 close/inventory를 판단하는 독립 Schedule Booker query이며 projection reader로 대체하지 않는다.
 
 ### 3.4 Ticket
 
@@ -199,8 +202,10 @@ Home은 aggregate가 아니라 consumer query capability다. cross-capability jo
 | Current file(s) | Current responsibility / callers | Actor / semantic | Authoritative state | Target | Action / reason |
 |---|---|---|---|---|---|
 | `apis/.../file/api/{FileApi,FileController}.kt`, `api/response/*`, `facade/FileFacade.kt` | `/file/presigned-url` HTTP surface | Performance Maker adapter | 없음 | `apps:api/file` | MOVE. route 보존; 앱 package 이름이 Domain owner를 의미하지 않음 |
-| `application/command/FileCommandService.kt` | Performance maker image names validate + presigned upload request | Performance Maker Command | external object contract | `application:frontoffice/performance/maker/command` | MOVE/RENAME 후보. 현재 `File`은 business capability evidence가 없음 |
-| `module-contracts/storage/**`, `core/infra/external/storage/s3/**` | Performance와 Admin Promotion storage methods/DTO를 한 interface에 결합 | multiple consumers | S3 object metadata | consumer ports + one infra adapter | SPLIT. 중앙 storage contract 재생산 금지 |
+| `application/command/FileCommandService.kt` | Performance maker image names validate + presigned upload request | Performance Maker Command | external object contract | `application:frontoffice/performance/maker/command` | MOVE; class rename은 caller/result 이동 후 책임이 실제로 더 선명해질 때만 수행. 현재 `File`은 business capability evidence가 없음 |
+| `module-contracts/storage/**`, `core/infra/external/storage/s3/**` | Performance와 Admin Promotion storage methods/DTO를 한 interface에 결합 | multiple consumers | S3 object metadata | Performance Maker-owned storage output + temporary Admin legacy contract implemented by one infra adapter | SPLIT. PR-5에서 Performance presign/metadata vocabulary만 이동하고 Admin methods/DTO는 PR-10까지 compatibility로 남긴다 |
+
+Performance Maker storage seam은 presigned upload 발급과 저장 object metadata 확인이라는 동일 외부 object-store volatility를 숨긴다. 삭제하면 Application이 S3 구현을 알거나 broad Admin contract를 계속 사용해야 하므로 port creation/deletion test를 통과한다. 반면 poster CDN pre-warm은 별도 thin port를 만들지 않는다. committed `PerformancePosterChangedEvent`를 infrastructure listener가 구독하고 현재 CDN adapter를 호출한다. 따라서 PR-5 후 Performance Application은 `FileStoragePort`와 `ImageCachePort`를 모두 알지 않는다.
 
 ### 3.8 Promotion
 
@@ -380,8 +385,8 @@ Password hashing은 위 output-port 목록과 다르다. 외부 상태나 다른
 | `PerformanceSummaryReadPort`, `PerformanceSummaryReadModel` | Booking/Home/Ticket/Admin이 서로 다른 fields 사용; JDSL primary projection | REQUIRES-CORRECTNESS-FIX. Command money/owner/existence는 authoritative Domain collaboration으로 교체; Home/Ticket 등은 consumer reader로 분해 |
 | `MakerPerformanceListReadPort`, `MakerPerformanceListItemReadModel` | Performance Maker query / JDSL | MOVE-TO-QUERY-READER: `application:frontoffice/performance/maker/query` |
 | `PerformanceEditFormReadPort`, `PerformanceEditFormReadModel` | Performance Maker edit query / JDSL | MOVE-TO-QUERY-READER: same owner |
-| `PerformanceContentOwnershipReadPort` | Performance modify의 child-not-found error diagnostic / JDSL | deletion test 후 repository/domain error semantics로 fold 우선. 독립 volatility가 없으면 INLINE-OR-DELETE |
-| `ScheduleAvailabilityReadPort`, `ScheduleAvailabilityReadModel` | Performance/Schedule Booker view / JDBC | MOVE-TO-QUERY-READER: 실제 endpoint output 기준으로 Performance Booker 또는 Schedule Booker owner를 PR에서 확정 |
+| `PerformanceContentOwnershipReadPort` | Performance modify의 foreign child와 missing child 403/404 diagnostic / JDSL | MOVE-TO-APPLICATION-READER: `application:frontoffice/performance/maker/command`. 삭제하면 persistence leakage, aggregate scan 또는 오류 의미 손실이 생기며 invariant input으로 재사용 금지 |
+| `ScheduleAvailabilityReadPort`, `ScheduleAvailabilityReadModel` | `PerformanceDetailQueryService`만 소비하는 detail projection / JDBC | MOVE-TO-QUERY-READER: `application:frontoffice/performance/booker/query`. Schedule availability endpoint는 별도 authoritative repository query 유지 |
 | `ScheduleReadPort`, `MinPerformanceDateReadModel`, `ScheduleSummaryReadModel` | Home min date + Ticket Maker summary를 한 interface에 결합 | SPLIT/MOVE-TO-QUERY-READER: Home과 Ticket consumer 각각 소유 |
 | `MakerTicketReadPort`, `MakerTicketListItemReadModel`, `MakerTicketBookingStatus`, `MakerTicketScheduleNumber` | Ticket Maker list/search / JDSL | MOVE-TO-QUERY-READER: `application:frontoffice/ticket/query` |
 | `HomePromotionReadPort`, `HomePromotionReadModel` | Home / JDSL | MOVE-TO-QUERY-READER: Home projection에 fold |
@@ -395,8 +400,8 @@ Password hashing은 위 output-port 목록과 다르다. 외부 상태나 다른
 | `BookingNotificationPort`, `BookingNotification` | Booking created listener / Slack | MOVE-TO-APPLICATION-PORT: Booking event/output |
 | `MemberNotificationPort`, `MemberNotification` | Member registered listener / Slack | MOVE-TO-APPLICATION-PORT: Member event/output |
 | `SmsPort`, `SmsMessage` | Ticket payment-confirmed listener만 사용 / CoolSMS | REPLACE consumer semantic output. generic SMS transport vocabulary를 Application public API로 유지하지 않음 |
-| `ImageCachePort` | Performance poster와 Admin Promotion prewarm / CDN adapter | central contract 삭제. 각 consumer의 best-effort image-change output 또는 infrastructure listener로 분리; 실패 semantics 유지 |
-| `FileStoragePort` | Performance Maker + Admin Promotion + metadata를 한 interface로 결합 / S3 | REQUIRES-SPLIT. consumer별 storage capability로 이동; S3 adapter는 여러 port 구현 가능 |
+| `ImageCachePort` | Performance poster와 Admin Promotion prewarm / CDN adapter | PR-5에서 Performance 사용 제거: committed poster event를 infrastructure가 구독. Admin legacy contract는 PR-10까지 유지한 뒤 central contract 삭제 |
+| `FileStoragePort` | Performance Maker + Admin Promotion + metadata를 한 interface로 결합 / S3 | REQUIRES-SPLIT. PR-5에서 Performance presign/metadata를 Maker-owned object-storage output으로 이동; S3 adapter는 새 port와 temporary Admin legacy contract를 함께 구현 |
 | `PerformancePresignedUrls`, `ImagePresignedUpload` | Performance Maker consumer | 해당 Performance Maker output port/input-output에 MOVE |
 | `CarouselPresignedUrls`, `CarouselPresignedUpload`, `BannerPresignedUrl` | Admin Promotion consumer | `application:admin/promotion`에 MOVE |
 | `ImageObjectMetadata` | Performance/Admin command validation | 각 consumer vocabulary로 fold하거나 implementation-neutral value를 각 port와 함께 소유; 중앙 shared DTO 금지 |
@@ -574,14 +579,14 @@ PR-7, PR-8, PR-11, PR-12는 선행 consumer contract 충돌이 없도록 실제 
 
 ### PR-5 — Performance/Schedule Frontoffice ownership and Maker storage
 
-- Objective: Performance Booker/Maker actor split, Schedule independent aggregate/query, Maker upload preparation을 target boundary로 이동한다.
-- Invariant gained: Capability→Actor→CQRS change locality와 Performance→Schedule orchestration ownership.
+- Objective: 실제 caller 기준으로 Performance Booker/Maker application, 독립 Schedule Booker query, Performance Maker upload preparation을 target boundary로 이동한다. 새 Capability API는 만들지 않는다.
+- Invariant gained: Capability→Actor→CQRS change locality, Performance→Schedule orchestration ownership, Application의 Web/central-contract 의존 제거.
 - Dependencies: PR-4 (shared summary/schedule contract conflict 회피).
-- Correctness risk: modify/delete concurrency, active Booking price restriction, image metadata, edit/detail JSON.
-- Compatibility: Performance/Schedule/File routes와 S3 key semantics 유지.
+- Correctness risk: modify/delete의 Performance→sorted Schedule lock, active Booking price restriction, foreign-vs-missing child 403/404, DB-clock availability, image metadata/category validation, edit/detail JSON.
+- Compatibility: Performance/Schedule/File routes, status/message/JSON, transaction boundary, S3 key/presigned URL semantics, after-commit best-effort CDN prewarm 유지. Admin storage/cache legacy contract는 PR-10까지 temporary compatibility로 남긴다.
 - Rollback: capability slice revert; no schema change.
-- Tests: Performance/Schedule domain/application, modification concurrency, JPA/JDSL/JDBC readers, API contract, storage adapter.
-- DoD: `performance/booker`와 `performance/maker` 실제 packages만 존재; Schedule ownership 독립; broad storage contract의 Performance methods retired.
+- Tests: Performance/Schedule domain/application, modification/delete lock and active-booking behavior, child diagnostic, JPA/JDSL/JDBC readers, File/Performance/Schedule API contract, S3 adapter, context bootstrap, capability/implementation-access guards.
+- DoD: 실제 use case가 있는 `performance/booker/query`, `performance/maker/{command,query}`, `schedule/query`만 존재; no `performance/api`; Schedule ownership 독립; Performance application에서 `ApiApplicationException`, apps error, Web, infrastructure, `module-contracts` import zero; `PerformanceEditFormReadPort`의 `Optional` 제거; Performance 용 broad storage/cache methods retired; touched Java caller를 Kotlin으로 옮긴 뒤 불필요한 `@Jvm*` 제거; apps facade/controller는 application public use case/output 외 infrastructure implementation에 접근하지 않음.
 
 ### PR-6 — Ticket Maker capability
 

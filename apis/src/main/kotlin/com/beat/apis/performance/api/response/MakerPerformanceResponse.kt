@@ -1,6 +1,6 @@
 package com.beat.apis.performance.api.response
 
-import com.beat.apis.performance.application.result.MakerPerformanceListResult
+import com.beat.application.frontoffice.performance.maker.query.MakerPerformanceListResult
 
 @ConsistentCopyVisibility
 data class MakerPerformanceResponse private constructor(

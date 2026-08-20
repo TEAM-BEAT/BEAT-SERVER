@@ -2,7 +2,7 @@ package com.beat.apis.performance.api.response
 
 import com.beat.apis.performance.api.type.BankNameType
 import com.beat.apis.performance.api.type.GenreType
-import com.beat.apis.performance.application.result.PerformanceMutationResult
+import com.beat.application.frontoffice.performance.maker.PerformanceMutationResult
 import com.beat.global.support.jackson.CdnImageUrl
 
 @ConsistentCopyVisibility

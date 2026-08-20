@@ -10,14 +10,15 @@ import com.beat.apis.home.api.response.HomeSuccessCode
 import com.beat.apis.member.api.response.MemberSuccessCode
 import com.beat.apis.member.exception.MemberApplicationErrorCode
 import com.beat.apis.performance.api.response.PerformanceSuccessCode
-import com.beat.apis.performance.exception.CastApplicationErrorCode
-import com.beat.apis.performance.exception.PerformanceApplicationErrorCode
-import com.beat.apis.performance.exception.PerformanceImageApplicationErrorCode
-import com.beat.apis.performance.exception.StaffApplicationErrorCode
 import com.beat.apis.schedule.api.response.ScheduleSuccessCode
-import com.beat.apis.schedule.exception.ScheduleApplicationErrorCode
 import com.beat.apis.user.exception.UserApplicationErrorCode
 import com.beat.apis.exception.ApplicationErrorCode
+import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorCode
+import com.beat.application.frontoffice.performance.exception.CastApplicationErrorCode
+import com.beat.application.frontoffice.performance.exception.PerformanceApplicationErrorCode
+import com.beat.application.frontoffice.performance.exception.PerformanceImageApplicationErrorCode
+import com.beat.application.frontoffice.performance.exception.StaffApplicationErrorCode
+import com.beat.application.frontoffice.schedule.exception.ScheduleApplicationErrorCode
 import com.beat.domain.booking.exception.BookingErrorCode
 import com.beat.domain.exception.DomainErrorType
 import com.beat.domain.performance.exception.PerformanceErrorCode
@@ -34,26 +35,26 @@ import org.junit.jupiter.api.function.Executable
 class DomainApplicationCodeBoundarySnapshotTest {
     @Test
     fun errorCodesAreExplicitAndUniqueWithinTheirLayer() {
-        val applicationCodes: List<ApplicationErrorCode> =
-            BookingApplicationErrorCode.entries +
-                TicketApplicationErrorCode.entries +
-                MemberApplicationErrorCode.entries +
-                CastApplicationErrorCode.entries +
-                PerformanceApplicationErrorCode.entries +
-                PerformanceImageApplicationErrorCode.entries +
-                StaffApplicationErrorCode.entries +
-                ScheduleApplicationErrorCode.entries +
-                UserApplicationErrorCode.entries +
-                TokenApplicationErrorCode.entries
+        val applicationCodes =
+            BookingApplicationErrorCode.entries.map { it.getCode() } +
+                TicketApplicationErrorCode.entries.map { it.getCode() } +
+                MemberApplicationErrorCode.entries.map { it.getCode() } +
+                CastApplicationErrorCode.entries.map { it.code } +
+                PerformanceApplicationErrorCode.entries.map { it.code } +
+                PerformanceImageApplicationErrorCode.entries.map { it.code } +
+                StaffApplicationErrorCode.entries.map { it.code } +
+                ScheduleApplicationErrorCode.entries.map { it.code } +
+                UserApplicationErrorCode.entries.map { it.getCode() } +
+                TokenApplicationErrorCode.entries.map { it.getCode() }
         val domainCodes =
             BookingErrorCode.entries.map { it.code } +
                 PerformanceErrorCode.entries.map { it.code } +
                 PromotionErrorCode.entries.map { it.code } +
                 ScheduleErrorCode.entries.map { it.code }
 
-        assertEquals(applicationCodes.size, applicationCodes.map { it.getCode() }.distinct().size)
+        assertEquals(applicationCodes.size, applicationCodes.distinct().size)
         assertEquals(domainCodes.size, domainCodes.distinct().size)
-        assertTrue(applicationCodes.all { it.getCode().matches(Regex("[A-Z][A-Z0-9_]+")) })
+        assertTrue(applicationCodes.all { it.matches(Regex("[A-Z][A-Z0-9_]+")) })
         assertTrue(domainCodes.all { it.matches(Regex("[A-Z][A-Z0-9_]+")) })
     }
 
@@ -199,8 +200,19 @@ class DomainApplicationCodeBoundarySnapshotTest {
     private fun success(code: SuccessCode, status: Int, message: String): SuccessSnapshot =
         SuccessSnapshot(code, status, message)
 
-    private fun error(code: ApplicationErrorCode, status: Int, message: String): ErrorSnapshot =
-        ErrorSnapshot(code, status, message)
+    private fun error(code: ApplicationErrorCode, status: Int, message: String): ErrorSnapshot {
+        val snapshot = ErrorSnapshot(code.getCode(), statusOf(code), code.getMessage())
+        assertEquals(status, snapshot.status, "${code} status")
+        assertEquals(message, snapshot.message, "${code} message")
+        return snapshot
+    }
+
+    private fun error(code: FrontofficeApplicationErrorCode, status: Int, message: String): ErrorSnapshot {
+        val snapshot = ErrorSnapshot(code.code, statusOf(code), code.message)
+        assertEquals(status, snapshot.status, "${code} status")
+        assertEquals(message, snapshot.message, "${code} message")
+        return snapshot
+    }
 
     private fun assertSuccessSnapshot(snapshot: SuccessSnapshot) {
         assertEquals(snapshot.status, snapshot.code.getStatus(), "${snapshot.code} status")
@@ -208,12 +220,13 @@ class DomainApplicationCodeBoundarySnapshotTest {
     }
 
     private fun assertErrorSnapshot(snapshot: ErrorSnapshot) {
-        assertEquals(snapshot.status, statusOf(snapshot.code), "${snapshot.code} status")
-        assertTrue(snapshot.code.getCode().matches(Regex("[A-Z][A-Z0-9_]+")))
-        assertEquals(snapshot.message, snapshot.code.getMessage(), "${snapshot.code} message")
+        assertTrue(snapshot.code.matches(Regex("[A-Z][A-Z0-9_]+")))
     }
 
     private fun statusOf(code: ApplicationErrorCode): Int = ApiGlobalExceptionHandler.toHttpStatus(code).value()
+
+    private fun statusOf(code: FrontofficeApplicationErrorCode): Int =
+        ApiGlobalExceptionHandler.toHttpStatus(code.type).value()
 
     private data class SuccessSnapshot(
         val code: SuccessCode,
@@ -222,7 +235,7 @@ class DomainApplicationCodeBoundarySnapshotTest {
     )
 
     private data class ErrorSnapshot(
-        val code: ApplicationErrorCode,
+        val code: String,
         val status: Int,
         val message: String,
     )

@@ -13,5 +13,6 @@ dependencies {
     implementation(libs.kotlin.logging.jvm)
 
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.0")
     testRuntimeOnly(libs.junit.platform.launcher)
 }

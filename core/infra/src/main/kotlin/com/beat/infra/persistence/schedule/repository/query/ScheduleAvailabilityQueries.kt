@@ -1,20 +1,20 @@
 package com.beat.infra.persistence.schedule.repository.query
 
-import com.beat.contracts.schedule.ScheduleAvailabilityReadPort
-import com.beat.contracts.schedule.readmodel.ScheduleAvailabilityReadModel
+import com.beat.application.frontoffice.performance.booker.query.PerformanceScheduleAvailabilityReader
+import com.beat.application.frontoffice.performance.booker.query.PerformanceScheduleAvailabilityReadModel
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 
 @Repository
-class ScheduleAvailabilityQueries(
+internal class ScheduleAvailabilityQueries(
     private val jdbcTemplate: JdbcTemplate,
-) : ScheduleAvailabilityReadPort {
+) : PerformanceScheduleAvailabilityReader {
 
     override fun findAllByPerformanceId(
         performanceId: Long,
-    ): List<ScheduleAvailabilityReadModel> =
+    ): List<PerformanceScheduleAvailabilityReadModel> =
         jdbcTemplate.query(QUERY, { resultSet, _ ->
-            ScheduleAvailabilityReadModel(
+            PerformanceScheduleAvailabilityReadModel(
                 scheduleId = resultSet.getLong("schedule_id"),
                 performanceDate = resultSet.getTimestamp("performance_date").toLocalDateTime(),
                 scheduleNumber = resultSet.getString("schedule_number"),

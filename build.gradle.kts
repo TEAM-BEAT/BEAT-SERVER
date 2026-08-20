@@ -132,16 +132,29 @@ val verifyTargetModuleGraph by tasks.registering {
                 .flatMap { configuration -> configuration.dependencies.withType(ProjectDependency::class.java) }
                 .map { dependency -> dependency.path }
                 .toSet()
-            check(dependencies.intersect(targetApplicationProjects - applicationProject).isEmpty()) {
-                "$applicationProject must not depend on another application lane: $dependencies"
+            val forbiddenProjects =
+                (targetApplicationProjects - applicationProject) +
+                    setOf(":infrastructure") +
+                    targetExecutableProjects
+            check(dependencies.intersect(forbiddenProjects).isEmpty()) {
+                "$applicationProject must not depend on another application lane, infrastructure, or an executable app: $dependencies"
             }
+        }
+        val infrastructureDependencies = project(":infrastructure").configurations
+            .flatMap { configuration -> configuration.dependencies.withType(ProjectDependency::class.java) }
+            .map { dependency -> dependency.path }
+            .toSet()
+        check(infrastructureDependencies.intersect(targetExecutableProjects).isEmpty()) {
+            ":infrastructure must not depend on an executable app: $infrastructureDependencies"
         }
         val supportSecurityDependencies = project(":support:security").configurations
             .flatMap { configuration -> configuration.dependencies.withType(ProjectDependency::class.java) }
             .map { dependency -> dependency.path }
             .toSet()
-        check(supportSecurityDependencies.intersect(targetApplicationProjects).isEmpty()) {
-            ":support:security must not depend on an application lane: $supportSecurityDependencies"
+        val forbiddenSupportSecurityProjects =
+            targetApplicationProjects + setOf(":infrastructure") + targetExecutableProjects
+        check(supportSecurityDependencies.intersect(forbiddenSupportSecurityProjects).isEmpty()) {
+            ":support:security must not depend on an application lane, infrastructure, or an executable app: $supportSecurityDependencies"
         }
         targetExecutableApplicationLane.forEach { (executableProject, allowedApplicationProject) ->
             val dependencies = project(executableProject).configurations

@@ -1,7 +1,7 @@
 package com.beat.infra.persistence.performance.repository.query
 
-import com.beat.contracts.performance.MakerPerformanceListReadPort
-import com.beat.contracts.performance.readmodel.MakerPerformanceListItemReadModel
+import com.beat.application.frontoffice.performance.maker.query.MakerPerformanceListReader
+import com.beat.application.frontoffice.performance.maker.query.MakerPerformanceListItemReadModel
 import com.beat.contracts.schedule.readmodel.MinPerformanceDateReadModel
 import com.beat.domain.performance.model.Genre
 import com.beat.infra.persistence.performance.entity.PerformanceJpaEntity
@@ -16,10 +16,10 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Repository
-class MakerPerformanceListQueries(
+internal class MakerPerformanceListQueries(
     private val entityManager: EntityManager,
     private val jpqlRenderContext: JpqlRenderContext,
-) : MakerPerformanceListReadPort {
+) : MakerPerformanceListReader {
 
     override fun findByUserId(userId: Long): List<MakerPerformanceListItemReadModel> {
         val performances = entityManager.createQuery(performanceQuery(userId), jpqlRenderContext).resultList

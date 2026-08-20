@@ -1,6 +1,6 @@
 package com.beat.apis.performance.api.response
 
-import com.beat.apis.performance.application.result.CastResult
+import com.beat.application.frontoffice.performance.CastResult
 import com.beat.global.support.jackson.CdnImageUrl
 
 @ConsistentCopyVisibility

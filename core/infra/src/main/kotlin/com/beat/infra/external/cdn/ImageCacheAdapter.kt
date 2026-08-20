@@ -16,7 +16,7 @@ import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
 @Component
-class ImageCacheAdapter(
+internal class ImageCacheAdapter(
     restClientBuilder: RestClient.Builder,
     @param:Value("\${cloud.cdn.domain:}") cdnDomain: String,
 ) : ImageCachePort {

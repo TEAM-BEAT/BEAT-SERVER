@@ -9,24 +9,25 @@ import com.beat.contracts.storage.CarouselPresignedUpload
 import com.beat.contracts.storage.CarouselPresignedUrls
 import com.beat.contracts.storage.FileStoragePort
 import com.beat.contracts.storage.ImageObjectMetadata
-import com.beat.contracts.storage.ImagePresignedUpload
-import com.beat.contracts.storage.PerformancePresignedUrls
+import com.beat.application.frontoffice.performance.maker.command.ImagePresignedUpload
+import com.beat.application.frontoffice.performance.maker.command.PerformanceImageStorage
+import com.beat.application.frontoffice.performance.maker.command.PerformancePresignedUrls
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.util.Date
 import java.util.UUID
 
 @Service
-class S3FileStorageAdapter(
+internal class S3FileStorageAdapter(
     private val amazonS3: AmazonS3,
-) : FileStoragePort {
+) : FileStoragePort, PerformanceImageStorage {
     @field:Value("\${cloud.s3.bucket}")
     private lateinit var bucket: String
 
     @field:Value("\${cloud.s3.key-prefix:}")
     private lateinit var keyPrefix: String
 
-    override fun issueAllPresignedUrlsForPerformanceMaker(
+    override fun issueAllPresignedUrls(
         posterImage: String,
         castImages: List<String>,
         staffImages: List<String>,
@@ -69,6 +70,8 @@ class S3FileStorageAdapter(
             throw exception
         }
     }
+
+    override fun exists(imageKey: String): Boolean = findImageObjectMetadata(imageKey) != null
 
     override fun issuePresignedUrlForBanner(bannerImage: String): BannerPresignedUrl {
         val path = generatePath("banner", bannerImage)
