@@ -1,7 +1,7 @@
 package com.beat.application.frontoffice.booking.credential
 
-import com.beat.support.security.password.PasswordHasher
 import com.beat.domain.booking.repository.BookingRepository
+import com.beat.support.security.password.PasswordHasher
 import org.springframework.stereotype.Component
 
 @Component
@@ -16,20 +16,21 @@ internal class GuestBookingCredentialAuthenticator(
         birthDate: String,
         rawPassword: String,
     ): Long? {
-        val matchedCredential = guestBookingCredentialRepository.findCandidates(bookerName, phoneNumber, birthDate)
-            .firstOrNull { credential ->
+        val matchedCredentials = guestBookingCredentialRepository.findCandidates(bookerName, phoneNumber, birthDate)
+            .filter { credential ->
                 passwordHasher.matches(rawPassword, credential.encodedPassword)
             }
-            ?: return null
-        upgradePasswordIfNeeded(matchedCredential, rawPassword)
-        return matchedCredential.userId
+        val matchingUserIds = matchedCredentials.map { it.userId }.distinct()
+        if (matchingUserIds.size != 1) {
+            return null
+        }
+
+        val userId = matchingUserIds.single()
+        if (matchedCredentials.any { passwordHasher.needsUpgrade(it.encodedPassword) }) {
+            bookingRepository.replaceGuestPassword(userId, passwordHasher.encode(rawPassword))
+        }
+        return userId
     }
 
     fun encode(rawPassword: String): String = passwordHasher.encode(rawPassword)
-
-    private fun upgradePasswordIfNeeded(credential: GuestBookingCredential, rawPassword: String) {
-        if (passwordHasher.needsUpgrade(credential.encodedPassword)) {
-            bookingRepository.replaceGuestPassword(credential.userId, passwordHasher.encode(rawPassword))
-        }
-    }
 }

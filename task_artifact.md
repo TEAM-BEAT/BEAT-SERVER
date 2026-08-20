@@ -30,7 +30,10 @@
 
 - [ ] Correctness/characterization prerequisites complete
   - [x] Member Booking response identity corrected and verified on the migration branch
-  - [ ] Snapshot, rehydration, Guest identity, and concurrency decisions resolved
+  - [x] Snapshot, rehydration, Guest identity, and concurrency decisions resolved
+    - [x] Legacy null amount/current payment destination behavior preserved and explicitly classified as compatibility behavior, not historical snapshot truth
+    - [x] Rehydration validation held behind a read-only production data audit instead of changing historical read behavior blindly
+    - [x] Ambiguous guest identity fails closed with focused regression coverage
 - [x] Target Gradle skeleton and initial graph guards complete
 - [ ] Final executable dependency and source-boundary guards complete
 - [ ] Booking reference Capability collaboration corrected and fully verified
@@ -70,7 +73,9 @@
 - Concurrency correction: preliminary `Schedule.findById` caused stale JPA first-level-cache inventory and reproduced 30/30 successes where only 5 were valid. It was replaced by `ScheduleRepository.findPerformanceIdById(Long): Long?`; locked Schedule membership/inventory remains the final authority. The focused concurrency test then passed.
 - Main verification: forced targeted Application/support/API concurrency tests and `verifyTargetModuleGraph` passed with 66 executed tasks. Full `check verifyModuleBootJars` is rerun after this correction before any completion box is checked.
 - Full current-boundary verification: `./gradlew check verifyModuleBootJars --no-daemon --max-workers=1` passed in 2m 49s; 118 tasks, all three executable boot jars verified. These gates must be rerun after later PRs.
-- Correctness: the current Performance summary adapter reads primary DB state, but its mixed `@ReadModel` contract is unsafe for money/authorization commands. Member Booking response identity, legacy amount fallback, rehydration range, guest identity, lock ordering, and Promotion referential concurrency remain implementation prerequisites.
+- Correctness: the current Performance summary adapter reads primary DB state, but its mixed `@ReadModel` contract is unsafe for money/authorization commands. Member response identity, Booking lock ordering, and ambiguous guest authorization are corrected. Legacy amount/payment destination behavior is preserved pending authoritative data/product evidence; strict rehydration validation is gated by a recorded DB audit. Promotion referential concurrency remains a later prerequisite.
+- Guest identity correction: password-matching candidates authenticate only when they resolve to exactly one distinct `userId`; duplicate rows for the same user remain compatible, while multi-user ambiguity returns the existing authentication-failure outcome. Four focused Kotlin tests passed.
+- Current correctness verification: all `application:frontoffice` and `support:security` tests, API bootstrap/JSON contract tests, and `verifyTargetModuleGraph` passed (67 tasks). The full API integration task could not initialize Testcontainers because Docker Desktop's Unix socket timed out on a direct 5-second `/_ping`; no test assertion failed before the run was stopped.
 - The rejected Performance API experiment is no longer quarantined because it was deleted. Remaining migration changes are accepted only at their individual verified PR boundary; unrelated pre-existing untracked files remain untouched.
 
 ## Quarantined experimental work

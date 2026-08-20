@@ -112,8 +112,8 @@ core:domain         └→ no BEAT production project
 
 - Member Booking 생성은 `member.userId`로 저장하지만 response `userId`에는 `member.id`를 넣는다.
 - 새 Booking은 `totalPaymentAmount`를 저장한다. legacy null row는 조회 시 현재 Performance 가격으로 재계산한다.
-- `Booking.create`는 구매 수량 범위를 검증하지만 `rehydrate`는 동일 검증을 하지 않는다.
-- guest candidate 조회는 deterministic order/unique identity를 보장하지 않는다.
+- `Booking.create`는 구매 수량 범위를 검증하지만 `rehydrate`는 동일 검증을 하지 않는다. 운영 row 분포를 모르는 상태에서 검증을 켜면 historical Booking read regression이 생긴다.
+- guest candidate 조회는 deterministic order/unique identity를 보장하지 않고 첫 password match를 선택한다. 서로 다른 `userId`가 동시에 일치하면 authorization 결과가 DB 반환 순서에 의존한다.
 
 ### 3.2 Performance
 
@@ -239,9 +239,16 @@ Users aggregate/JPA files는 3.5에 함께 기록했다. `application:admin` lan
 ### 3.11 아직 닫지 않은 modeling/correctness question
 
 1. **Payment destination snapshot:** 기존 Booking은 Performance payment account를 저장하지 않는다. 기존 unpaid Booking이 account correction을 따라야 하는지 product decision이 필요하다.
-2. **Legacy amount:** `totalPaymentAmount == null` row의 historical price를 현재 schema로 복원할 수 없다. current-price fallback 유지, backfill, unknown 처리 중 real data audit 뒤 선택한다.
-3. **Rehydration range:** persisted purchase count가 `1..10` 밖인지 확인하기 전에는 rehydrate validation을 켜지 않는다.
-4. **Guest identity:** Booking row에 중복 저장된 name/phone/birth/password를 하나의 identity로 볼지, ambiguous match를 fail-closed할지 결정되지 않았다.
+2. **Legacy amount:** `totalPaymentAmount == null` row의 historical price를 tracked schema만으로 복원할 수 없다. 현재 가격 fallback은 compatibility behavior로 유지한다. authoritative backfill source가 확인되기 전 이를 historical snapshot이라고 부르거나 임의 보정하지 않는다.
+3. **Rehydration range:** persisted purchase count가 `1..10` 밖인지 확인하기 전에는 strict rehydrate validation을 켜지 않는다. 배포 전 DB owner는 아래 read-only audit을 실행하고, historical policy로 허용할지 repair/reject할지를 Booking domain owner와 결정해야 한다. 현재 source behavior는 보존한다.
+   ```sql
+   SELECT purchase_ticket_count, COUNT(*)
+   FROM booking
+   WHERE purchase_ticket_count NOT BETWEEN 1 AND 10
+   GROUP BY purchase_ticket_count
+   ORDER BY purchase_ticket_count;
+   ```
+4. **Guest identity:** name/phone/birth/password가 일치한 candidate의 distinct `userId`가 정확히 하나일 때만 인증한다. 같은 `userId`의 여러 Booking row는 허용하지만, 서로 다른 `userId`가 동시에 일치하면 정렬로 임의 선택하지 않고 기존 인증 실패 결과로 fail-closed한다.
 5. **Price scope:** 현재는 Performance-wide price다. per-Schedule price/Offering lifecycle evidence가 없다.
 6. **Performance schedule count:** `Performance.totalScheduleCount`와 실제 Schedule rows가 중복된다. authoritative metadata인지 derived projection인지 data drift audit가 필요하다.
 7. **Promotion referential race:** `promotion.performance_id`는 JPA scalar이며 code-level relation/lock이 없다. Admin의 existence check와 concurrent Performance deletion 사이 orphan 가능성을 Testcontainers로 먼저 검증한다.
@@ -526,11 +533,11 @@ PR-7, PR-8, PR-11, PR-12는 선행 consumer contract 충돌이 없도록 실제 
 - Objective: memberId/userId mismatch, new/legacy amount semantics, purchase-count rehydrate, duplicate/concurrent guest credential behavior를 regression test와 data audit로 확정한다.
 - Invariant gained: 구조 이동 전에 intended/actual behavior와 허용 가능한 data state가 명시된다.
 - Dependencies: none.
-- Correctness risk: legacy invalid rows를 바로 reject하거나 fallback을 바꾸면 production regression 가능.
-- Compatibility: route/schema/JSON 유지; 검증된 member response defect만 별도 commit으로 수정.
+- Correctness risk: legacy invalid rows를 audit 없이 reject하거나 amount fallback을 바꾸면 production regression 가능. 반대로 ambiguous guest를 임의 선택하면 authorization 위반이다.
+- Compatibility: route/schema/JSON과 legacy null amount/current payment destination 표시를 유지한다. member response identity는 수정하고 multi-user guest match는 기존 인증 실패 representation으로 fail-closed한다. strict rehydrate validation은 data gate 전 보류한다.
 - Rollback: tests/작은 field correction 단위 revert.
-- Tests: Booking unit/application/API, persisted legacy fixtures, guest duplicate/concurrency integration.
-- DoD: 네 위험 각각 decision+coverage; unresolved product choice는 behavior 유지와 owner 명시.
+- Tests: Booking unit/application/API, stored/null amount fixtures, same-user/multi-user guest credential cases, guest concurrency integration.
+- DoD: 네 위험 각각 decision+coverage; legacy amount/payment destination/rehydration처럼 source만으로 닫을 수 없는 결정은 behavior 유지, owner, executable data audit를 명시한다.
 
 ### PR-2 — Booking/Performance/Schedule lock and authoritative-state characterization
 
