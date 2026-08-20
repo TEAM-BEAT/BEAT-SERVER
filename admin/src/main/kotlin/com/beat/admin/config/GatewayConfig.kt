@@ -1,6 +1,6 @@
 package com.beat.admin.config
 
-import com.beat.gateway.EnableGatewayServletSecurity
+import com.beat.support.security.EnableGatewayServletSecurity
 import org.springframework.context.annotation.Configuration
 
 @Configuration(proxyBeanMethods = false)

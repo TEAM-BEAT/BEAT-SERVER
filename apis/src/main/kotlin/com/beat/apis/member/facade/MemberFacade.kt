@@ -1,12 +1,13 @@
 package com.beat.apis.member.facade
 
-import com.beat.apis.member.application.command.AuthenticationCommandService
-import com.beat.apis.member.application.command.SocialLoginCommandService
-import com.beat.apis.member.application.command.SocialLoginCommand
-import com.beat.apis.member.application.command.SocialLoginProvider
 import com.beat.apis.member.api.request.MemberLoginRequest
+import com.beat.apis.member.api.type.SocialTypeRequest
 import com.beat.apis.member.api.response.AccessTokenGenerateResponse
 import com.beat.apis.member.api.response.MemberLoginResponse
+import com.beat.application.frontoffice.auth.command.AuthenticationCommandService
+import com.beat.application.frontoffice.member.command.SocialLoginCommand
+import com.beat.application.frontoffice.member.command.SocialLoginCommandService
+import com.beat.application.frontoffice.member.command.SocialLoginType
 import org.springframework.stereotype.Service
 
 @Service
@@ -17,13 +18,13 @@ class MemberFacade(
     fun handleSocialLogin(authorizationCode: String, request: MemberLoginRequest): MemberLoginSession =
         socialLoginCommandService.handleSocialLogin(
             authorizationCode,
-            SocialLoginCommand.from(
-                socialType = SocialLoginProvider.valueOf(requireNotNull(request.socialType).name),
+            SocialLoginCommand(
+                socialType = requireNotNull(request.socialType).toApplicationType(),
             ),
         ).let { result ->
             MemberLoginSession(
                 response = MemberLoginResponse.from(result),
-                refreshToken = requireNotNull(result.refreshToken),
+                refreshToken = result.refreshToken,
             )
         }
 
@@ -31,6 +32,10 @@ class MemberFacade(
         AccessTokenGenerateResponse.from(authenticationCommandService.generateAccessTokenFromRefreshToken(refreshToken))
 
     fun signOut(memberId: Long) = authenticationCommandService.signOut(memberId)
+
+    private fun SocialTypeRequest.toApplicationType(): SocialLoginType = when (this) {
+        SocialTypeRequest.KAKAO -> SocialLoginType.KAKAO
+    }
 }
 
 data class MemberLoginSession(

@@ -1,7 +1,7 @@
 package com.beat.admin.user.api
 
 import com.beat.admin.user.api.response.UserFindAllResponse
-import com.beat.gateway.CurrentMember
+import com.beat.support.security.CurrentMember
 import com.beat.global.support.response.ErrorResponse
 import com.beat.global.support.response.SuccessResponse
 import io.swagger.v3.oas.annotations.Operation

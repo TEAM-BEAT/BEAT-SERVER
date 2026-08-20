@@ -7,7 +7,7 @@ import com.beat.admin.promotion.api.response.CarouselHandleAllResponse
 import com.beat.admin.promotion.api.response.CarouselPresignedUrlFindAllResponse
 import com.beat.admin.promotion.api.response.PromotionSuccessCode
 import com.beat.admin.promotion.facade.AdminPromotionFacade
-import com.beat.gateway.CurrentMember
+import com.beat.support.security.CurrentMember
 import com.beat.global.support.response.SuccessResponse
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus

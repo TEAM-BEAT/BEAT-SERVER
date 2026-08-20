@@ -1,24 +1,21 @@
 package com.beat.infra.redis.auth.refreshtoken
 
-import com.beat.contracts.auth.refreshtoken.RefreshTokenPort
-import java.util.OptionalLong
+import com.beat.application.frontoffice.auth.command.RefreshTokenStore
 
-class RedisRefreshTokenAdapter(
+internal class RedisRefreshTokenAdapter(
     private val refreshTokenRepository: RefreshTokenRedisRepository,
-) : RefreshTokenPort {
+) : RefreshTokenStore {
 
-    override fun saveRefreshToken(memberId: Long, refreshToken: String) {
+    override fun save(memberId: Long, refreshToken: String) {
         refreshTokenRepository.save(RefreshTokenRedisHash(memberId, refreshToken))
     }
 
-    override fun findMemberIdByRefreshToken(refreshToken: String): OptionalLong =
-        refreshTokenRepository.findByRefreshToken(refreshToken)
-            .map { token -> OptionalLong.of(token.id) }
-            .orElseGet { OptionalLong.empty() }
+    override fun findMemberIdByRefreshToken(refreshToken: String): Long? =
+        refreshTokenRepository.findByRefreshToken(refreshToken)?.id
 
-    override fun deleteRefreshToken(memberId: Long): Boolean =
-        refreshTokenRepository.findById(memberId).map { token ->
-            refreshTokenRepository.delete(token)
-            true
-        }.orElse(false)
+    override fun delete(memberId: Long): Boolean {
+        val token = refreshTokenRepository.findById(memberId).orElse(null) ?: return false
+        refreshTokenRepository.delete(token)
+        return true
+    }
 }

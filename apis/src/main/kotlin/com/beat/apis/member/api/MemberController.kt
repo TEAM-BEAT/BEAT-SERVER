@@ -5,7 +5,7 @@ import com.beat.apis.member.api.response.AccessTokenGenerateResponse
 import com.beat.apis.member.api.response.MemberLoginResponse
 import com.beat.apis.member.api.response.MemberSuccessCode
 import com.beat.apis.member.facade.MemberFacade
-import com.beat.gateway.CurrentMember
+import com.beat.support.security.CurrentMember
 import com.beat.global.support.response.SuccessResponse
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid

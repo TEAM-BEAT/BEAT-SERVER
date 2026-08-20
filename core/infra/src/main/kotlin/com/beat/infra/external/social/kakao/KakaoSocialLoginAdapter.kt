@@ -1,10 +1,10 @@
 package com.beat.infra.external.social.kakao
 
-import com.beat.contracts.auth.social.SocialLoginFailure
-import com.beat.contracts.auth.social.SocialLoginPort
-import com.beat.contracts.auth.social.SocialLoginRequest
-import com.beat.contracts.auth.social.SocialLoginType
-import com.beat.contracts.auth.social.SocialMemberInfo
+import com.beat.application.frontoffice.member.command.SocialLoginFailure
+import com.beat.application.frontoffice.member.command.SocialLoginProfile
+import com.beat.application.frontoffice.member.command.SocialLoginProvider
+import com.beat.application.frontoffice.member.command.SocialLoginRequest
+import com.beat.application.frontoffice.member.command.SocialLoginType
 import com.beat.infra.external.social.kakao.client.KakaoApiClient
 import com.beat.infra.external.social.kakao.client.KakaoAuthApiClient
 import com.beat.infra.external.social.kakao.response.KakaoUserResponse
@@ -17,17 +17,17 @@ import java.net.SocketTimeoutException
 import java.util.regex.Pattern
 
 @Service
-class KakaoSocialLoginAdapter(
+internal class KakaoSocialLoginAdapter(
     private val kakaoApiClient: KakaoApiClient,
     private val kakaoAuthApiClient: KakaoAuthApiClient,
-) : SocialLoginPort {
+) : SocialLoginProvider {
     @field:Value("\${spring.security.oauth2.client.registration.kakao.redirect-uri}")
     private lateinit var redirectUri: String
 
     @field:Value("\${spring.security.oauth2.client.registration.kakao.client-id}")
     private lateinit var clientId: String
 
-    override fun login(request: SocialLoginRequest): SocialMemberInfo {
+    override fun login(request: SocialLoginRequest): SocialLoginProfile {
         if (request.socialType != SocialLoginType.KAKAO) {
             throw SocialLoginFailure.unsupportedSocialType()
         }
@@ -42,7 +42,7 @@ class KakaoSocialLoginAdapter(
             }
 
         try {
-            return mapToSocialMemberInfo(getUserInfo(accessToken))
+            return mapToSocialLoginProfile(getUserInfo(accessToken))
         } catch (exception: RetryableException) {
             throw translateRetryableFailure(exception)
         } catch (exception: FeignException) {
@@ -87,7 +87,7 @@ class KakaoSocialLoginAdapter(
         return response
     }
 
-    private fun mapToSocialMemberInfo(response: KakaoUserResponse?): SocialMemberInfo {
+    private fun mapToSocialLoginProfile(response: KakaoUserResponse?): SocialLoginProfile {
         if (response == null) {
             throw SocialLoginFailure.providerFailure()
         }
@@ -119,7 +119,7 @@ class KakaoSocialLoginAdapter(
             throw SocialLoginFailure.providerFailure()
         }
 
-        return SocialMemberInfo(id, nickname, email)
+        return SocialLoginProfile(id, nickname, email)
     }
 
     private fun translateTokenFeignFailure(exception: FeignException): SocialLoginFailure {

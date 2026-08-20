@@ -4,7 +4,7 @@ import com.beat.apis.member.api.request.MemberLoginRequest
 import com.beat.apis.member.api.response.AccessTokenGenerateResponse
 import com.beat.apis.member.api.response.MemberLoginResponse
 import com.beat.apis.swagger.annotation.DisableSwaggerSecurity
-import com.beat.gateway.CurrentMember
+import com.beat.support.security.CurrentMember
 import com.beat.global.support.response.ErrorResponse
 import com.beat.global.support.response.SuccessResponse
 import io.swagger.v3.oas.annotations.Operation

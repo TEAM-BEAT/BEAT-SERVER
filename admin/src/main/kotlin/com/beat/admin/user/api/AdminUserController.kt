@@ -3,7 +3,7 @@ package com.beat.admin.user.api
 import com.beat.admin.user.api.response.UserFindAllResponse
 import com.beat.admin.user.api.response.UserSuccessCode
 import com.beat.admin.user.facade.AdminUserFacade
-import com.beat.gateway.CurrentMember
+import com.beat.support.security.CurrentMember
 import com.beat.global.support.response.SuccessResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

@@ -1,6 +1,6 @@
 package com.beat.apis.member.api.response
 
-import com.beat.apis.member.application.result.LoginSuccessResult
+import com.beat.application.frontoffice.member.command.LoginSuccessResult
 
 @ConsistentCopyVisibility
 data class MemberLoginResponse private constructor(

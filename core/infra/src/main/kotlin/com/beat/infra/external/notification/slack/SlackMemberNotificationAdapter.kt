@@ -1,7 +1,7 @@
 package com.beat.infra.external.notification.slack
 
-import com.beat.contracts.notification.MemberNotification
-import com.beat.contracts.notification.MemberNotificationPort
+import com.beat.application.frontoffice.member.command.MemberRegistrationNotification
+import com.beat.application.frontoffice.member.command.MemberRegistrationNotifier
 import com.beat.infra.external.notification.slack.client.MemberSlackClient
 import com.beat.infra.external.notification.slack.vo.SlackConstant.BRAND_COLOR
 import com.beat.infra.external.notification.slack.vo.block.DividerBlock
@@ -12,14 +12,14 @@ import com.beat.infra.external.notification.slack.vo.text.MarkdownText
 import org.springframework.stereotype.Component
 
 @Component
-class SlackMemberNotificationAdapter(
+internal class SlackMemberNotificationAdapter(
     private val memberSlackClient: MemberSlackClient,
-) : MemberNotificationPort {
-    override fun send(notification: MemberNotification) {
+) : MemberRegistrationNotifier {
+    override fun send(notification: MemberRegistrationNotification) {
         memberSlackClient.sendMessage(buildMessage(notification))
     }
 
-    private fun buildMessage(notification: MemberNotification): SlackMessage =
+    private fun buildMessage(notification: MemberRegistrationNotification): SlackMessage =
         SlackMessage.newInstance(
             listOf(
                 HeaderBlock.newInstance("🎉 BEAT 신규 회원 가입 🎉"),

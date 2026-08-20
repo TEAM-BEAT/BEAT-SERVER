@@ -1,15 +1,14 @@
 package com.beat.apis.config
 
-import com.beat.gateway.EnableGatewayConfig
-import com.beat.gateway.GatewayConfigGroup
-import com.beat.gateway.EnableGatewayServletSecurity
+import com.beat.support.security.EnableGatewayConfig
+import com.beat.support.security.EnableGatewayServletSecurity
+import com.beat.support.security.GatewayConfigGroup
 import org.springframework.context.annotation.Configuration
 
 @Configuration(proxyBeanMethods = false)
 @EnableGatewayServletSecurity
 @EnableGatewayConfig(
     value = [
-        GatewayConfigGroup.REFRESH_TOKEN_STORE,
         GatewayConfigGroup.GUEST_ACCESS,
     ],
 )
