@@ -1,6 +1,6 @@
 package com.beat.apis.ticket.api.response
 
-import com.beat.apis.ticket.application.result.TicketRetrieveResult
+import com.beat.application.frontoffice.ticket.query.TicketRetrieveResult
 
 @ConsistentCopyVisibility
 data class TicketRetrieveResponse private constructor(

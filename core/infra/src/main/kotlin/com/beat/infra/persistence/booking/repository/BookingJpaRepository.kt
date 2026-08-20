@@ -16,6 +16,9 @@ interface BookingJpaRepository : JpaRepository<BookingJpaEntity, Long> {
     @Query("SELECT b FROM Booking b WHERE b.id = :id")
     fun lockById(@Param("id") id: Long?): Optional<BookingJpaEntity>
 
+    @Query("SELECT b.scheduleId FROM Booking b WHERE b.id IN :ids")
+    fun findScheduleIdsByIds(@Param("ids") ids: Collection<Long>): List<Long>
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Booking b SET b.password = :encodedPassword WHERE b.userId = :userId AND b.birthDate IS NOT NULL")
     fun replaceGuestPassword(

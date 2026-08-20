@@ -11,7 +11,7 @@ interface BookingRepository {
 
     fun findById(id: Long?): Optional<Booking>
 
-    fun findAllById(ids: Collection<Long>): List<Booking>
+    fun findScheduleIdsByIds(ids: Collection<Long>): List<Long>
 
     fun lockById(id: Long?): Optional<Booking>
 

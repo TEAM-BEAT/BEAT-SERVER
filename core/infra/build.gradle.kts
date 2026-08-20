@@ -25,6 +25,7 @@ dependencies {
 
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.boot.starter.data.redis)
+    testRuntimeOnly(libs.spring.boot.starter.data.jpa)
     testImplementation(platform(libs.spring.cloud.dependencies))
     testImplementation(libs.spring.cloud.starter.openfeign)
     testRuntimeOnly(libs.junit.platform.launcher)

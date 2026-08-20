@@ -38,6 +38,13 @@
 - [ ] Final executable dependency and source-boundary guards complete
 - [ ] Booking reference Capability collaboration corrected and fully verified
 - [ ] Remaining frontoffice capabilities migrated and verified
+  - [x] PR-6 Ticket authoritative owner authorization is verified
+  - [x] PR-6 Ticket commands use scalar identity before acquiring locks
+  - [x] PR-6 Schedule-to-Booking lock ordering is sorted and verified
+  - [x] PR-6 Ticket query uses a consumer-owned reader
+  - [x] PR-6 SMS contract retirement is verified
+  - [x] PR-6 Kotlin callers are migrated and verified
+  - [ ] PR-6 architecture, API, and integration verification is complete
 - [ ] Admin workflows migrated and verified
 - [ ] System/batch workflows migrated and verified
 - [ ] Infrastructure consolidated with internal implementations

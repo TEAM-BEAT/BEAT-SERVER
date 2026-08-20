@@ -6,13 +6,13 @@ import com.beat.apis.ticket.api.request.TicketDeleteRequest
 import com.beat.apis.ticket.api.request.TicketRefundRequest
 import com.beat.apis.ticket.api.response.TicketRetrieveResponse
 import com.beat.apis.ticket.api.request.TicketUpdateRequest
-import com.beat.apis.ticket.application.command.TicketBookingIdsCommand
-import com.beat.apis.ticket.application.command.TicketBookingStatus
-import com.beat.apis.ticket.application.command.TicketCommandService
-import com.beat.apis.ticket.application.command.TicketStatusUpdate
-import com.beat.apis.ticket.application.command.TicketUpdateCommand
-import com.beat.apis.ticket.application.query.TicketListQuery
-import com.beat.apis.ticket.application.query.TicketQueryService
+import com.beat.application.frontoffice.ticket.command.TicketBookingIdsCommand
+import com.beat.application.frontoffice.ticket.command.TicketBookingStatus
+import com.beat.application.frontoffice.ticket.command.TicketCommandService
+import com.beat.application.frontoffice.ticket.command.TicketStatusUpdate
+import com.beat.application.frontoffice.ticket.command.TicketUpdateCommand
+import com.beat.application.frontoffice.ticket.query.TicketListQuery
+import com.beat.application.frontoffice.ticket.query.TicketQueryService
 import org.springframework.stereotype.Service
 
 @Service
@@ -57,10 +57,10 @@ class TicketFacade(
     fun updateTickets(memberId: Long, request: TicketUpdateRequest) =
         ticketCommandService.updateTickets(
             memberId,
-            TicketUpdateCommand.of(
+            TicketUpdateCommand(
                 performanceId = requireNotNull(request.performanceId),
                 bookingList = requireNotNull(request.bookingList).map { detail ->
-                    TicketStatusUpdate.of(
+                    TicketStatusUpdate(
                         bookingId = requireNotNull(detail.bookingId),
                         bookingStatus = TicketBookingStatus.valueOf(requireNotNull(detail.bookingStatus).name),
                     )
@@ -71,7 +71,7 @@ class TicketFacade(
     fun refundTickets(memberId: Long, request: TicketRefundRequest) =
         ticketCommandService.refundTicketsByBookingIds(
             memberId,
-            TicketBookingIdsCommand.of(
+            TicketBookingIdsCommand(
                 performanceId = requireNotNull(request.performanceId),
                 bookingIds = requireNotNull(request.bookingList).map { requireNotNull(it.bookingId) },
             ),
@@ -80,7 +80,7 @@ class TicketFacade(
     fun deleteTickets(memberId: Long, request: TicketDeleteRequest) =
         ticketCommandService.deleteTicketsByBookingIds(
             memberId,
-            TicketBookingIdsCommand.of(
+            TicketBookingIdsCommand(
                 performanceId = requireNotNull(request.performanceId),
                 bookingIds = requireNotNull(request.bookingList).map { requireNotNull(it.bookingId) },
             ),

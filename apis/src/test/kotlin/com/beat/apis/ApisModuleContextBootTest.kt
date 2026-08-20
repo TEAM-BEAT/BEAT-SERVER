@@ -4,6 +4,8 @@ import com.beat.apis.support.AbstractIntegrationTest
 import com.beat.application.frontoffice.booking.command.MemberBookingCommandService
 import com.beat.application.frontoffice.booking.query.BookerBookingReader
 import com.beat.application.frontoffice.performance.maker.command.PerformanceImageStorage
+import com.beat.application.frontoffice.ticket.command.TicketCommandService
+import com.beat.application.frontoffice.ticket.query.TicketQueryService
 import com.beat.contracts.auth.guest.GuestAccessThrottlePort
 import com.beat.contracts.auth.guest.GuestSessionPort
 import com.beat.contracts.auth.refreshtoken.RefreshTokenPort
@@ -11,14 +13,12 @@ import com.beat.contracts.auth.social.SocialLoginPort
 import com.beat.contracts.cdn.ImageCachePort
 import com.beat.contracts.notification.BookingNotificationPort
 import com.beat.contracts.notification.MemberNotificationPort
-import com.beat.contracts.sms.SmsPort
 import com.beat.contracts.storage.FileStoragePort
 import com.beat.domain.performance.repository.PerformanceRepository
 import com.beat.domain.promotion.repository.PromotionRepository
 import com.beat.domain.schedule.repository.ScheduleRepository
 import com.beat.infra.external.notification.slack.SlackBookingNotificationAdapter
 import com.beat.infra.external.notification.slack.SlackMemberNotificationAdapter
-import com.beat.infra.external.notification.sms.CoolSmsAdapter
 import com.beat.infra.external.social.kakao.KakaoSocialLoginAdapter
 import com.beat.infra.redis.auth.guest.RedisGuestAccessThrottleAdapter
 import com.beat.infra.redis.auth.guest.RedisGuestSessionAdapter
@@ -73,6 +73,8 @@ class ApisModuleContextBootTest : AbstractIntegrationTest() {
         assertEquals(1, applicationContext.getBeansOfType(ScheduleRepository::class.java).size)
         assertEquals(1, applicationContext.getBeansOfType(MemberBookingCommandService::class.java).size)
         assertEquals(1, applicationContext.getBeansOfType(BookerBookingReader::class.java).size)
+        assertEquals(1, applicationContext.getBeansOfType(TicketCommandService::class.java).size)
+        assertEquals(1, applicationContext.getBeansOfType(TicketQueryService::class.java).size)
     }
 
     @Test
@@ -100,10 +102,6 @@ class ApisModuleContextBootTest : AbstractIntegrationTest() {
         assertSame(
             applicationContext.getBean(SlackMemberNotificationAdapter::class.java),
             applicationContext.getBean(MemberNotificationPort::class.java),
-        )
-        assertSame(
-            applicationContext.getBean(CoolSmsAdapter::class.java),
-            applicationContext.getBean(SmsPort::class.java),
         )
         assertNotNull(applicationContext.getBean(PerformanceImageStorage::class.java))
         assertNotNull(applicationContext.getBean(FileStoragePort::class.java))

@@ -424,7 +424,6 @@ class SharedBoundaryContractTest {
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt",
-			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/repository/PromotionJpaRepository.kt",
@@ -448,6 +447,7 @@ class SharedBoundaryContractTest {
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/ScheduleRepositoryImpl.kt"
 		));
 		requiredInfraPersistenceFiles.addAll(bookingInfraPersistenceSourcePathsIfPresent());
+		requiredInfraPersistenceFiles.addAll(ticketInfraPersistenceSourcePathsIfPresent());
 		Set<String> allowedInfraPersistenceFiles = new HashSet<>(Set.of(
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/InfraPersistenceConfig.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/common/BaseTimeEntity.kt",
@@ -457,7 +457,6 @@ class SharedBoundaryContractTest {
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt",
-			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/GuestBookingCredentialRepositoryImpl.kt",
 			promotionJpaEntitySourcePath().toString().replace('\\', '/'),
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/promotion/mapper/PromotionPersistenceMapper.kt",
@@ -501,6 +500,7 @@ class SharedBoundaryContractTest {
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/repository/query/ScheduleAvailabilityQueries.kt"
 		));
 		allowedInfraPersistenceFiles.addAll(bookingInfraPersistenceSourcePathsIfPresent());
+		allowedInfraPersistenceFiles.addAll(ticketInfraPersistenceSourcePathsIfPresent());
 
 		Set<String> actualInfraPersistenceFiles = sourceFiles(
 			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence")
@@ -572,10 +572,6 @@ class SharedBoundaryContractTest {
 			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt"));
 		String bookingRepositoryImpl = Files.readString(
 			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt"));
-		String ticketQueryService = Files.readString(
-			Path.of("apis/src/main/kotlin/com/beat/apis/ticket/application/query/TicketQueryService.kt"));
-		String ticketCommandService = Files.readString(
-			Path.of("apis/src/main/kotlin/com/beat/apis/ticket/application/command/TicketCommandService.kt"));
 		String bookingCancelService = Files.readString(
 			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/booking/command/BookingCancellationCommandService.kt"));
 		String bookerBookingQueries = Files.readString(
@@ -600,10 +596,6 @@ class SharedBoundaryContractTest {
 		assertTrue(bookingJpaRepository.contains("DELETE FROM Booking b WHERE b.scheduleId IN :scheduleIds"));
 		assertTrue(bookingJpaRepository.contains("fun deleteInactiveBookingsByScheduleIds("));
 		assertTrue(bookingRepositoryImpl.contains("scheduleIds.isEmpty()"));
-		assertTrue(ticketQueryService.contains("scheduleMap[ticket.scheduleId]"));
-		assertTrue(ticketQueryService.contains("ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND"));
-		assertTrue(ticketCommandService.contains("val schedules = lockAndValidateSchedules("));
-		assertTrue(ticketCommandService.contains("scheduleRepository.lockById(scheduleId)"));
 		assertTrue(bookingCancelService.contains("@Transactional"));
 		assertTrue(bookingCancelService.contains("scheduleRepository.lockById(snapshot.getScheduleId())"));
 		assertTrue(bookerBookingQueries.contains("findSchedules(bookings.map(BookingProjection::scheduleId).distinct())"));
@@ -613,21 +605,6 @@ class SharedBoundaryContractTest {
 		assertTrue(bookerBookingQueries.contains("selectNew<ScheduleProjection>"));
 		assertTrue(bookerBookingQueries.contains("selectNew<PerformanceProjection>"));
 		assertFalse(bookerBookingQueries.contains("PerformanceSummaryReadPort"));
-	}
-
-	@Test
-	void makerTicketQueriesUseDirectJdslProjection() throws Exception {
-		String makerTicketQueries = Files.readString(
-			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt"));
-
-		assertFalse(Files.exists(
-			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/schedule/entity/QScheduleJpaEntity.kt")));
-		assertFalse(makerTicketQueries.contains("QScheduleJpaEntity"));
-		assertFalse(makerTicketQueries.contains("com.querydsl"));
-		// Kotlin JDSL type-safe projection preserves the MySQL custom-dialect full-text expression.
-		assertTrue(makerTicketQueries.contains("com.linecorp.kotlinjdsl"));
-		assertTrue(makerTicketQueries.contains("selectNew<MakerTicketProjection>"));
-		assertTrue(makerTicketQueries.contains("function(Double::class, \"match\""));
 	}
 
 	@Test
@@ -771,9 +748,6 @@ class SharedBoundaryContractTest {
 			() -> assertSourceContains(
 				Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/booking/BookingApplicationErrorCode.kt"),
 				"\"BOOKING_NOT_FOUND\""),
-			() -> assertSourceContains(
-				Path.of("apis/src/main/kotlin/com/beat/apis/ticket/exception/TicketApplicationErrorCode.kt"),
-				"\"TICKET_NOT_FOUND\""),
 			() -> assertSourceContains(
 				Path.of("apis/src/main/kotlin/com/beat/apis/booking/exception/BookingApplicationErrorCode.kt"),
 				"\"BOOKING_PERFORMANCE_NOT_FOUND\""),
@@ -1247,25 +1221,34 @@ class SharedBoundaryContractTest {
 			Path.of("module-contracts/src/main/kotlin/com/beat/contracts/common/ReadModel.kt"));
 		String minPerformanceDate = Files.readString(
 			Path.of("module-contracts/src/main/kotlin/com/beat/contracts/schedule/readmodel/MinPerformanceDateReadModel.kt"));
-		String makerTicketListItemReadModel = Files.readString(
-			Path.of("module-contracts/src/main/kotlin/com/beat/contracts/booking/readmodel/MakerTicketListItemReadModel.kt"));
 		String scheduleReadPort = Files.readString(
 			Path.of("module-contracts/src/main/kotlin/com/beat/contracts/schedule/ScheduleReadPort.kt"));
-		String makerTicketReadPort = Files.readString(
-			Path.of("module-contracts/src/main/kotlin/com/beat/contracts/booking/MakerTicketReadPort.kt"));
 
 		assertTrue(readModelMarker.contains("@Target(AnnotationTarget.CLASS)"));
 		assertTrue(readModelMarker.contains("@Retention(AnnotationRetention.RUNTIME)"));
 		assertTrue(readModelMarker.contains("annotation class ReadModel"));
 		assertTrue(minPerformanceDate.contains("import com.beat.contracts.common.ReadModel"));
 		assertTrue(minPerformanceDate.contains("@ReadModel"));
-		assertTrue(makerTicketListItemReadModel.contains("import com.beat.contracts.common.ReadModel"));
-		assertTrue(makerTicketListItemReadModel.contains("@ReadModel"));
 		assertTrue(scheduleReadPort.contains("fun findMinPerformanceDateByPerformanceIds"));
-		assertTrue(makerTicketReadPort.contains("fun findTickets("));
-		assertTrue(makerTicketReadPort.contains("fun searchTickets("));
-		assertFalse(Files.exists(Path.of(
-			"module-contracts/src/main/kotlin/com/beat/contracts/booking/MakerTicketSearchCondition.kt")));
+	}
+
+	@Test
+	void ticketInfrastructureQueryAndSmsImplementationsAreInternal() throws Exception {
+		List<Path> ticketImplementations = sourceFiles(Path.of("core/infra/src/main")).stream()
+			.filter(this::isTicketInfrastructureImplementation)
+			.toList();
+		if (ticketImplementations.isEmpty()) {
+			return;
+		}
+
+		List<String> violations = ticketImplementations.stream()
+			.filter(path -> !declaresInternalImplementation(path))
+			.map(path -> path.toString().replace('\\', '/'))
+			.toList();
+
+		assertTrue(violations.isEmpty(),
+			"Ticket infrastructure query/SMS implementations must remain internal:\n"
+				+ String.join("\n", violations));
 	}
 
 	@Test
@@ -1387,9 +1370,51 @@ class SharedBoundaryContractTest {
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/entity/RefundAccountJpaValue.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/mapper/BookingPersistenceMapper.kt",
 			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingJpaRepository.kt",
-			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt",
-			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/MakerTicketQueries.kt"
+			"core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt"
 		);
+	}
+
+	private boolean isTicketInfrastructureImplementation(Path path) {
+		String normalized = path.toString().replace('\\', '/');
+		String fileName = path.getFileName().toString();
+		return normalized.contains("/persistence/ticket/repository/query/")
+			|| normalized.contains("/external/notification/ticket/")
+			|| (normalized.contains("/external/notification/sms/")
+				&& (fileName.startsWith("Ticket") || fileName.equals("CoolSmsAdapter.kt")));
+	}
+
+	private boolean declaresInternalImplementation(Path path) {
+		return Pattern.compile(
+			"(?s).*\\binternal\\s+(?:class|object|interface|fun)\\s+[A-Za-z_][A-Za-z0-9_]*.*")
+			.matcher(readSource(path))
+			.matches();
+	}
+
+	private String readSource(Path path) {
+		try {
+			return Files.readString(path);
+		} catch (IOException exception) {
+			throw new IllegalStateException("Failed to read " + path, exception);
+		}
+	}
+
+	private Set<String> ticketInfraPersistenceSourcePathsIfPresent() throws IOException {
+		Path persistenceRoot = Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence");
+		if (!Files.exists(persistenceRoot)) {
+			return Set.of();
+		}
+
+		return sourceFiles(persistenceRoot).stream()
+			.filter(this::isTicketPersistenceSource)
+			.map(path -> path.toString().replace('\\', '/'))
+			.collect(Collectors.toSet());
+	}
+
+	private boolean isTicketPersistenceSource(Path path) {
+		String normalized = path.toString().replace('\\', '/');
+		return normalized.contains("/persistence/ticket/repository/query/")
+			|| (normalized.contains("/persistence/booking/repository/query/")
+				&& path.getFileName().toString().contains("Ticket"));
 	}
 
 	private Path bookingJpaEntitySourcePath() {

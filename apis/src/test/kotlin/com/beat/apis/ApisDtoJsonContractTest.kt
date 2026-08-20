@@ -30,7 +30,7 @@ import com.beat.application.frontoffice.performance.maker.PerformanceMutationRes
 import com.beat.apis.schedule.api.response.TicketAvailabilityResponse
 import com.beat.application.frontoffice.schedule.query.TicketAvailabilityResult
 import com.beat.apis.schedule.api.type.ScheduleNumberType
-import com.beat.apis.ticket.application.command.TicketBookingStatus
+import com.beat.application.frontoffice.ticket.command.TicketBookingStatus
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.member.model.SocialType
 import com.beat.domain.performance.model.Genre

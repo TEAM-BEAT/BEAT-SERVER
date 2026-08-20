@@ -61,6 +61,34 @@ class FrontofficeApplicationArchitectureTest {
         )
     }
 
+    @Test
+    fun `ticket application must not depend on adapters contracts infrastructure web or global support`() {
+        checkRule(
+            noDependencyRule(
+                packagePattern("ticket"),
+                packagePattern("apis"),
+                packagePattern("admin"),
+                packagePattern("batch"),
+                packagePattern("contracts"),
+                packagePattern("infra"),
+                packagePattern("web"),
+                packagePattern("global"),
+            ),
+        )
+    }
+
+    @Test
+    fun `ticket application must not depend on performance maker services`() {
+        checkRule(
+            noDependencyRule(
+                packagePattern("ticket"),
+                packagePattern("performance", "maker", "command"),
+                packagePattern("performance", "maker", "query"),
+                packagePattern("performance", "application"),
+            ),
+        )
+    }
+
     private fun checkRule(rule: ArchRule?) {
         rule?.check(importedClasses)
     }
@@ -69,7 +97,7 @@ class FrontofficeApplicationArchitectureTest {
         sourcePackage: PackagePattern,
         vararg targetPackages: PackagePattern,
     ): ArchRule? {
-        if (!hasPackage(sourcePackage) || targetPackages.none(::hasPackage)) {
+        if (!hasPackage(sourcePackage)) {
             return null
         }
         val targets = targetPackages.map { it.archUnitPattern }.toTypedArray()

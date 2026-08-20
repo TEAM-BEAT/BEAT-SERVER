@@ -22,8 +22,12 @@ class BookingRepositoryImpl(
         bookingJpaRepository.findById(requireNotNull(id) { "The given id must not be null" })
             .map(bookingPersistenceMapper::toDomain)
 
-    override fun findAllById(ids: Collection<Long>): List<Booking> =
-        bookingJpaRepository.findAllById(ids).map(bookingPersistenceMapper::toDomain)
+    override fun findScheduleIdsByIds(ids: Collection<Long>): List<Long> {
+        if (ids.isEmpty()) {
+            return emptyList()
+        }
+        return bookingJpaRepository.findScheduleIdsByIds(ids)
+    }
 
     override fun lockById(id: Long?): Optional<Booking> =
         bookingJpaRepository.lockById(id).map(bookingPersistenceMapper::toDomain)

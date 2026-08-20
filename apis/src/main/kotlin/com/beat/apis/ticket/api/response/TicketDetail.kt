@@ -1,7 +1,7 @@
 package com.beat.apis.ticket.api.response
 
 import com.beat.apis.booking.api.type.BookingStatusType
-import com.beat.apis.ticket.application.result.TicketDetailResult
+import com.beat.application.frontoffice.ticket.query.TicketDetailResult
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility
@@ -27,7 +27,7 @@ data class TicketDetail private constructor(
             scheduleId = result.scheduleId,
             purchaseTicketCount = result.purchaseTicketCount,
             createdAt = result.createdAt,
-            bookingStatus = result.bookingStatus?.let(BookingStatusType::valueOf),
+            bookingStatus = BookingStatusType.valueOf(result.bookingStatus),
             scheduleNumber = result.scheduleNumber,
             bankName = result.bankName,
             accountNumber = result.accountNumber,
