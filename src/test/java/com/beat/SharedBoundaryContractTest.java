@@ -755,9 +755,6 @@ class SharedBoundaryContractTest {
 				Path.of("apis/src/main/kotlin/com/beat/apis/booking/exception/BookingApplicationErrorCode.kt"),
 				"\"BOOKING_SCHEDULE_NOT_FOUND\""),
 			() -> assertSourceContains(
-				Path.of("apis/src/main/kotlin/com/beat/apis/member/exception/MemberApplicationErrorCode.kt"),
-				"\"MEMBER_NOT_FOUND\""),
-			() -> assertSourceContains(
 				Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/performance/exception/PerformanceApplicationErrorCode.kt"),
 				"\"PERFORMANCE_NOT_FOUND\""),
 			() -> assertSourceContains(

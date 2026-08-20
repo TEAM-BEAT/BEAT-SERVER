@@ -8,7 +8,6 @@ import com.beat.application.frontoffice.ticket.exception.TicketApplicationErrorC
 import com.beat.apis.file.api.response.FileSuccessCode
 import com.beat.apis.home.api.response.HomeSuccessCode
 import com.beat.apis.member.api.response.MemberSuccessCode
-import com.beat.apis.member.exception.MemberApplicationErrorCode
 import com.beat.apis.performance.api.response.PerformanceSuccessCode
 import com.beat.apis.schedule.api.response.ScheduleSuccessCode
 import com.beat.apis.user.exception.UserApplicationErrorCode
@@ -24,7 +23,6 @@ import com.beat.domain.exception.DomainErrorType
 import com.beat.domain.performance.exception.PerformanceErrorCode
 import com.beat.domain.promotion.exception.PromotionErrorCode
 import com.beat.domain.schedule.exception.ScheduleErrorCode
-import com.beat.apis.member.exception.TokenApplicationErrorCode
 import com.beat.global.support.response.SuccessCode
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -38,14 +36,12 @@ class DomainApplicationCodeBoundarySnapshotTest {
         val applicationCodes =
             BookingApplicationErrorCode.entries.map { it.getCode() } +
                 TicketApplicationErrorCode.entries.map { it.code } +
-                MemberApplicationErrorCode.entries.map { it.getCode() } +
                 CastApplicationErrorCode.entries.map { it.code } +
                 PerformanceApplicationErrorCode.entries.map { it.code } +
                 PerformanceImageApplicationErrorCode.entries.map { it.code } +
                 StaffApplicationErrorCode.entries.map { it.code } +
                 ScheduleApplicationErrorCode.entries.map { it.code } +
-                UserApplicationErrorCode.entries.map { it.getCode() } +
-                TokenApplicationErrorCode.entries.map { it.getCode() }
+                UserApplicationErrorCode.entries.map { it.getCode() }
         val domainCodes =
             BookingErrorCode.entries.map { it.code } +
                 PerformanceErrorCode.entries.map { it.code } +
@@ -100,7 +96,6 @@ class DomainApplicationCodeBoundarySnapshotTest {
             error(BookingApplicationErrorCode.NO_PERFORMANCE_FOUND, 404, "공연을 찾을 수 없습니다."),
             error(BookingApplicationErrorCode.NO_SCHEDULE_FOUND, 404, "회차를 찾을 수 없습니다."),
             error(CastApplicationErrorCode.CAST_NOT_FOUND, 404, "등장인물이 존재하지 않습니다."),
-            error(MemberApplicationErrorCode.MEMBER_NOT_FOUND, 404, "회원이 없습니다"),
             error(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND, 404, "해당 공연 정보를 찾을 수 없습니다."),
             error(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND, 400, "스케쥴 리스트에 스케쥴이 없습니다."),
             error(PerformanceImageApplicationErrorCode.PERFORMANCE_IMAGE_NOT_FOUND, 404, "해당 공연 상세이미지를 찾을 수 없습니다."),
@@ -122,8 +117,6 @@ class DomainApplicationCodeBoundarySnapshotTest {
                 400,
                 "요청한 티켓 수량이 잔여 티켓 수를 초과했습니다. 다른 수량을 선택해 주세요.",
             ),
-            error(MemberApplicationErrorCode.SOCIAL_TYPE_BAD_REQUEST, 400, "로그인 요청이 유효하지 않습니다."),
-            error(MemberApplicationErrorCode.AUTHENTICATION_CODE_EXPIRED, 401, "인가코드가 만료되었습니다"),
             error(PerformanceApplicationErrorCode.PRICE_UPDATE_NOT_ALLOWED, 400, "예매자가 존재하여 가격을 수정할 수 없습니다."),
             error(PerformanceApplicationErrorCode.PAST_SCHEDULE_NOT_ALLOWED, 400, "과거 날짜 회차를 포함한 공연을 생성할 수 없습니다."),
             error(PerformanceApplicationErrorCode.SCHEDULE_MODIFICATION_NOT_ALLOWED_FOR_ENDED_SCHEDULE, 400, "종료된 회차를 수정할 수 없습니다."),

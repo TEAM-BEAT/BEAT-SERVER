@@ -1,4 +1,4 @@
-package com.beat.gateway
+package com.beat.support.security
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
@@ -17,31 +17,15 @@ class GatewayConfigGroupTest {
     @Test
     fun `config group은 gateway가 소유하는 optional security 기능만 노출한다`() {
         assertEquals(
-            listOf(GatewayConfigGroup.REFRESH_TOKEN_STORE, GatewayConfigGroup.GUEST_ACCESS),
+            listOf(GatewayConfigGroup.GUEST_ACCESS),
             GatewayConfigGroup.entries,
-        )
-    }
-
-    @Test
-    fun `REFRESH_TOKEN_STORE group은 Redis를 소유하지 않고 port 제공만 검증한다`() {
-        assertEquals(
-            "com.beat.gateway.refreshtoken.internal.config.RefreshTokenConfig",
-            GatewayConfigGroup.REFRESH_TOKEN_STORE.configClass.name,
-        )
-
-        val source = source("refreshtoken/internal/config/RefreshTokenConfig.kt")
-
-        assertAll(
-            { assertTrue(source.contains("refreshTokenPort: RefreshTokenPort")) },
-            { assertFalse(source.contains("Redis")) },
-            { assertFalse(source.contains("Repository")) },
         )
     }
 
     @Test
     fun `GUEST_ACCESS group은 Redis adapter 없이 비밀번호 해시만 소유한다`() {
         assertEquals(
-            "com.beat.gateway.guest.internal.config.GuestAccessConfig",
+            "com.beat.support.security.guest.internal.config.GuestAccessConfig",
             GatewayConfigGroup.GUEST_ACCESS.configClass.name,
         )
 
@@ -86,7 +70,7 @@ class GatewayConfigGroupTest {
     fun `JWT filter가 이미 초기화된 MDC에 인증 사용자 id를 채운다`() {
         val source = source("authentication/internal/JwtAuthenticationFilter.kt")
 
-        assertTrue(source.contains("MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, result.memberId.toString())"))
+        assertTrue(source.contains("MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, result.subject.memberId.toString())"))
     }
 
     @Test
@@ -102,5 +86,5 @@ class GatewayConfigGroupTest {
     }
 
     private fun source(relativePath: String): String =
-        Files.readString(Path.of("src/main/kotlin/com/beat/gateway/$relativePath"))
+        Files.readString(Path.of("src/main/kotlin/com/beat/support/security/$relativePath"))
 }

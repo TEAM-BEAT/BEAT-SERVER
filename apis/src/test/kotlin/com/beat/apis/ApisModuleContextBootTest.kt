@@ -3,26 +3,23 @@ package com.beat.apis
 import com.beat.apis.support.AbstractIntegrationTest
 import com.beat.application.frontoffice.booking.command.MemberBookingCommandService
 import com.beat.application.frontoffice.booking.query.BookerBookingReader
+import com.beat.application.frontoffice.auth.command.RefreshTokenStore
+import com.beat.application.frontoffice.member.command.MemberRegistrationNotifier
+import com.beat.application.frontoffice.member.command.SocialLoginProvider
 import com.beat.application.frontoffice.performance.maker.command.PerformanceImageStorage
 import com.beat.application.frontoffice.ticket.command.TicketCommandService
 import com.beat.application.frontoffice.ticket.query.TicketQueryService
 import com.beat.contracts.auth.guest.GuestAccessThrottlePort
 import com.beat.contracts.auth.guest.GuestSessionPort
-import com.beat.contracts.auth.refreshtoken.RefreshTokenPort
-import com.beat.contracts.auth.social.SocialLoginPort
 import com.beat.contracts.cdn.ImageCachePort
 import com.beat.contracts.notification.BookingNotificationPort
-import com.beat.contracts.notification.MemberNotificationPort
 import com.beat.contracts.storage.FileStoragePort
 import com.beat.domain.performance.repository.PerformanceRepository
 import com.beat.domain.promotion.repository.PromotionRepository
 import com.beat.domain.schedule.repository.ScheduleRepository
 import com.beat.infra.external.notification.slack.SlackBookingNotificationAdapter
-import com.beat.infra.external.notification.slack.SlackMemberNotificationAdapter
-import com.beat.infra.external.social.kakao.KakaoSocialLoginAdapter
 import com.beat.infra.redis.auth.guest.RedisGuestAccessThrottleAdapter
 import com.beat.infra.redis.auth.guest.RedisGuestSessionAdapter
-import com.beat.infra.redis.auth.refreshtoken.RedisRefreshTokenAdapter
 import io.swagger.v3.oas.models.OpenAPI
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -79,10 +76,7 @@ class ApisModuleContextBootTest : AbstractIntegrationTest() {
 
     @Test
     fun registersSelectedInfraBeans() {
-        assertSame(
-            applicationContext.getBean(RedisRefreshTokenAdapter::class.java),
-            applicationContext.getBean(RefreshTokenPort::class.java),
-        )
+        assertEquals(1, applicationContext.getBeansOfType(RefreshTokenStore::class.java).size)
         assertSame(
             applicationContext.getBean(RedisGuestSessionAdapter::class.java),
             applicationContext.getBean(GuestSessionPort::class.java),
@@ -91,18 +85,12 @@ class ApisModuleContextBootTest : AbstractIntegrationTest() {
             applicationContext.getBean(RedisGuestAccessThrottleAdapter::class.java),
             applicationContext.getBean(GuestAccessThrottlePort::class.java),
         )
-        assertSame(
-            applicationContext.getBean(KakaoSocialLoginAdapter::class.java),
-            applicationContext.getBean(SocialLoginPort::class.java),
-        )
+        assertEquals(1, applicationContext.getBeansOfType(SocialLoginProvider::class.java).size)
         assertSame(
             applicationContext.getBean(SlackBookingNotificationAdapter::class.java),
             applicationContext.getBean(BookingNotificationPort::class.java),
         )
-        assertSame(
-            applicationContext.getBean(SlackMemberNotificationAdapter::class.java),
-            applicationContext.getBean(MemberNotificationPort::class.java),
-        )
+        assertEquals(1, applicationContext.getBeansOfType(MemberRegistrationNotifier::class.java).size)
         assertNotNull(applicationContext.getBean(PerformanceImageStorage::class.java))
         assertNotNull(applicationContext.getBean(FileStoragePort::class.java))
         assertNotNull(applicationContext.getBean(ImageCachePort::class.java))

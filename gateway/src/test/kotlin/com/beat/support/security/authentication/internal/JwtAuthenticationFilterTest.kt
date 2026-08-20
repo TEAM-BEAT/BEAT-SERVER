@@ -1,8 +1,9 @@
-package com.beat.gateway.authentication.internal
+package com.beat.support.security.authentication.internal
 
-import com.beat.gateway.jwt.internal.AccessTokenAuthenticationResult
-import com.beat.gateway.jwt.internal.AccessTokenAuthenticator
-import com.beat.contracts.auth.jwt.TokenValidationResult
+import com.beat.support.security.jwt.internal.AccessTokenAuthenticator
+import com.beat.support.security.token.TokenAuthenticationFailure
+import com.beat.support.security.token.TokenAuthenticationResult
+import com.beat.support.security.token.TokenSubject
 import com.beat.observability.logging.filter.BaseMdcLoggingFilter
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletResponse
@@ -36,7 +37,7 @@ class JwtAuthenticationFilterTest {
         MDC.put(BaseMdcLoggingFilter.TRACE_ID_KEY, "trace-123")
         MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, BaseMdcLoggingFilter.DEFAULT_GUEST_USER)
         given(accessTokenAuthenticator.authenticateAccessToken("valid-token"))
-            .thenReturn(AccessTokenAuthenticationResult.Authenticated(42L, "ROLE_MEMBER"))
+            .thenReturn(TokenAuthenticationResult.Authenticated(TokenSubject(42L, "ROLE_MEMBER")))
         val request = requestWithBearer("valid-token")
         val response = MockHttpServletResponse()
         val chain = FilterChain { _, _ ->
@@ -57,7 +58,7 @@ class JwtAuthenticationFilterTest {
         MDC.put(BaseMdcLoggingFilter.TRACE_ID_KEY, "trace-123")
         MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, BaseMdcLoggingFilter.DEFAULT_GUEST_USER)
         given(accessTokenAuthenticator.authenticateAccessToken("expired-token"))
-            .thenReturn(AccessTokenAuthenticationResult.Rejected(TokenValidationResult.EXPIRED))
+            .thenReturn(TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.EXPIRED))
         val request = requestWithBearer("expired-token")
         val response = MockHttpServletResponse()
         val chain = mock(FilterChain::class.java)
@@ -74,7 +75,7 @@ class JwtAuthenticationFilterTest {
     @Test
     fun `유효하지 않은 토큰은 400으로 단축 응답한다`() {
         given(accessTokenAuthenticator.authenticateAccessToken("broken-token"))
-            .thenReturn(AccessTokenAuthenticationResult.Rejected(TokenValidationResult.INVALID_SIGNATURE))
+            .thenReturn(TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_SIGNATURE))
         val response = MockHttpServletResponse()
         val chain = mock(FilterChain::class.java)
 

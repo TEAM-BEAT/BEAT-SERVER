@@ -3,8 +3,8 @@ package com.beat.admin
 import com.beat.admin.config.AdminSecurityConfig
 import com.beat.admin.config.GatewayConfig
 import com.beat.admin.config.InfraConfig
-import com.beat.gateway.EnableGatewayConfig
-import com.beat.gateway.EnableGatewayServletSecurity
+import com.beat.support.security.EnableGatewayConfig
+import com.beat.support.security.EnableGatewayServletSecurity
 import com.beat.observability.ObservabilityModuleConfig
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -61,7 +61,7 @@ class AdminApplicationTest {
             source.contains(".addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter::class.java)"),
         )
         assertTrue(source.contains(".addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.javaClass)"))
-        assertFalse(source.contains("import com.beat.gateway.authentication.internal.SecurityMdcLoggingFilter"))
+        assertFalse(source.contains("import com.beat.support.security.authentication.internal.SecurityMdcLoggingFilter"))
     }
 
     @Test

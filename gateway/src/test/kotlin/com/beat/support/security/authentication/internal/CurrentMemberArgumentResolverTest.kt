@@ -1,6 +1,6 @@
-package com.beat.gateway.authentication.internal
+package com.beat.support.security.authentication.internal
 
-import com.beat.gateway.CurrentMember
+import com.beat.support.security.CurrentMember
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll

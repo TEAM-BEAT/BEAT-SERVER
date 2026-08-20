@@ -32,7 +32,7 @@ class BatchArchitectureGuardTest {
             "com.beat.legacyroot.",
             "com.beat.global.common.config.",
             "com.beat.global.support.config.",
-            "com.beat.gateway.",
+            "com.beat.support.security.",
             "com.beat.apis.",
             "com.beat.admin.",
             "com.beat.global.support.scheduler.application.",

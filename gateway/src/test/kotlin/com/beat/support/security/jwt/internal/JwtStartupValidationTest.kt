@@ -1,4 +1,4 @@
-package com.beat.gateway.jwt.internal
+package com.beat.support.security.jwt.internal
 
 import io.jsonwebtoken.security.WeakKeyException
 import jakarta.validation.Validation

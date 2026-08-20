@@ -1,4 +1,4 @@
-package com.beat.gateway.authentication.internal
+package com.beat.support.security.authentication.internal
 
 import com.beat.observability.logging.filter.BaseMdcLoggingFilter
 import com.beat.observability.tracing.NoOpTraceContextResolver

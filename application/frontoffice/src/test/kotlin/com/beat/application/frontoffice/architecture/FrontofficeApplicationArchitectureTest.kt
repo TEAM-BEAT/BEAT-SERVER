@@ -1,5 +1,7 @@
 package com.beat.application.frontoffice.architecture
 
+import com.tngtech.archunit.base.DescribedPredicate
+import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.lang.ArchRule
@@ -15,6 +17,11 @@ class FrontofficeApplicationArchitectureTest {
         checkRule(
             noDependencyRule(packagePattern("command"), packagePattern("query")),
         )
+    }
+
+    @Test
+    fun `command packages must not depend on presentation read models`() {
+        checkRule(noCommandDependencyOnPresentationReadModelsRule())
     }
 
     @Test
@@ -89,6 +96,54 @@ class FrontofficeApplicationArchitectureTest {
         )
     }
 
+    @Test
+    fun `member and auth lanes must not depend on runtime adapters or state frameworks`() {
+        val forbiddenPackages = arrayOf(
+            packagePattern("apps"),
+            packagePattern("admin"),
+            packagePattern("batch"),
+            packagePattern("contracts"),
+            packagePattern("infra"),
+            packagePattern("global"),
+            packagePattern("web"),
+            packagePattern("jakarta", "persistence"),
+            packagePattern("jakarta", "servlet"),
+            packagePattern("org", "springframework", "data", "redis"),
+            packagePattern("org", "springframework", "http"),
+            packagePattern("org", "springframework", "web"),
+        )
+        checkRule(noDependencyRule(packagePattern("member"), *forbiddenPackages))
+        checkRule(noDependencyRule(packagePattern("auth"), *forbiddenPackages))
+    }
+
+    @Test
+    fun `auth must not depend on member`() {
+        checkRule(
+            noDependencyRule(
+                packagePattern("auth"),
+                packagePattern("member"),
+            ),
+        )
+    }
+
+    @Test
+    fun `member may depend on only the auth login session boundary`() {
+        checkRule(noMemberDependencyOnAuthTypesRule())
+    }
+
+    @Test
+    fun `member must not depend directly on support token issuers`() {
+        checkRule(
+            noDependencyOnConcreteTypesRule(
+                packagePattern("member"),
+                setOf(
+                    "com.beat.support.security.token.TokenIssuer",
+                    "com.beat.support.security.token.RefreshTokenAuthenticator",
+                ),
+            ),
+        )
+    }
+
     private fun checkRule(rule: ArchRule?) {
         rule?.check(importedClasses)
     }
@@ -109,6 +164,66 @@ class FrontofficeApplicationArchitectureTest {
             .resideInAnyPackage(*targets)
             .because(
                 "${sourcePackage.archUnitPattern} must not depend on ${targets.joinToString()}",
+            )
+    }
+
+    private fun noCommandDependencyOnPresentationReadModelsRule(): ArchRule? {
+        val sourcePackage = packagePattern("command")
+        if (!hasPackage(sourcePackage)) {
+            return null
+        }
+        val presentationReadModel = object : DescribedPredicate<JavaClass>(
+            "be module-contracts read models or classes annotated with @ReadModel",
+        ) {
+            override fun test(input: JavaClass): Boolean =
+                input.packageName.split('.').contains("readmodel") ||
+                    input.isAnnotatedWith("com.beat.contracts.common.ReadModel")
+        }
+        return noClasses()
+            .that()
+            .resideInAnyPackage(sourcePackage.archUnitPattern)
+            .should()
+            .dependOnClassesThat(presentationReadModel)
+            .because(
+                "${sourcePackage.archUnitPattern} correctness code must not depend on module-contracts presentation projections",
+            )
+    }
+
+    private fun noMemberDependencyOnAuthTypesRule(): ArchRule? {
+        val allowedAuthTypes = setOf(
+            "com.beat.application.frontoffice.auth.command.LoginSessionIssuer",
+            "com.beat.application.frontoffice.auth.command.LoginSession",
+        )
+        val forbiddenAuthTypes = importedClasses
+            .filter { javaClass ->
+                javaClass.packageName.startsWith("com.beat.application.frontoffice.auth") &&
+                    javaClass.fullName !in allowedAuthTypes
+            }
+            .map(JavaClass::getFullName)
+            .toSet()
+        return noDependencyOnConcreteTypesRule(packagePattern("member"), forbiddenAuthTypes)
+    }
+
+    private fun noDependencyOnConcreteTypesRule(
+        sourcePackage: PackagePattern,
+        forbiddenTypes: Set<String>,
+    ): ArchRule? {
+        if (!hasPackage(sourcePackage) || forbiddenTypes.isEmpty()) {
+            return null
+        }
+        val forbiddenTypePredicate = object : DescribedPredicate<JavaClass>(
+            "have forbidden concrete types ${forbiddenTypes.sorted().joinToString()}",
+        ) {
+            override fun test(input: JavaClass): Boolean = input.fullName in forbiddenTypes
+        }
+        return noClasses()
+            .that()
+            .resideInAnyPackage(sourcePackage.archUnitPattern)
+            .should()
+            .dependOnClassesThat(forbiddenTypePredicate)
+            .because(
+                "${sourcePackage.archUnitPattern} must not depend on forbidden concrete types "
+                    + forbiddenTypes.sorted().joinToString(),
             )
     }
 

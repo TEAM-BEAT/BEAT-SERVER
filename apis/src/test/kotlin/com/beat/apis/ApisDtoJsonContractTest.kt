@@ -14,7 +14,7 @@ import com.beat.apis.home.application.result.HomePerformanceResult
 import com.beat.apis.home.application.result.HomePromotionResult
 import com.beat.apis.member.api.request.MemberLoginRequest
 import com.beat.apis.member.api.type.SocialTypeRequest
-import com.beat.apis.member.application.command.SocialLoginProvider
+import com.beat.application.frontoffice.member.command.SocialLoginType
 import com.beat.apis.performance.api.type.BankNameType
 import com.beat.apis.performance.api.type.GenreType
 import com.beat.application.frontoffice.performance.maker.command.PerformanceBankName
@@ -84,7 +84,7 @@ class ApisDtoJsonContractTest {
         assertSameEnumNames(ScheduleNumberType.entries.toTypedArray(), ScheduleNumber.entries.toTypedArray())
         assertSameEnumNames(BankNameType.entries.toTypedArray(), BankName.entries.toTypedArray())
         assertSameEnumNames(BookingStatusType.entries.toTypedArray(), BookingStatus.entries.toTypedArray())
-        assertSameEnumNames(SocialTypeRequest.entries.toTypedArray(), SocialLoginProvider.entries.toTypedArray())
+        assertSameEnumNames(SocialTypeRequest.entries.toTypedArray(), SocialLoginType.entries.toTypedArray())
         assertSameEnumNames(GenreType.entries.toTypedArray(), PerformanceGenre.entries.toTypedArray())
         assertSameEnumNames(BankNameType.entries.toTypedArray(), PerformanceBankName.entries.toTypedArray())
         assertSameEnumNames(ScheduleNumberType.entries.toTypedArray(), PerformanceScheduleNumber.entries.toTypedArray())

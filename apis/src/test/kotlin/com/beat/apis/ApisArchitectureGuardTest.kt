@@ -61,10 +61,10 @@ class ApisArchitectureGuardTest {
     fun `apis main sources import only public gateway boundary and no infra implementations`() {
         val gatewayViolations = findGatewayImportViolations(
             setOf(
-                "com.beat.gateway.EnableGatewayConfig",
-                "com.beat.gateway.GatewayConfigGroup",
-                "com.beat.gateway.CurrentMember",
-                "com.beat.gateway.EnableGatewayServletSecurity",
+                "com.beat.support.security.EnableGatewayConfig",
+                "com.beat.support.security.GatewayConfigGroup",
+                "com.beat.support.security.CurrentMember",
+                "com.beat.support.security.EnableGatewayServletSecurity",
             )
         )
         val infraViolations = findForbiddenImports(
@@ -222,6 +222,7 @@ class ApisArchitectureGuardTest {
                 Regex("""import\s+com\.beat\.apis\.[^\r\n]+\.application(?:\.|;)"""),
                 Regex("""com\.beat\.apis(?:\.[A-Za-z0-9_]+)+\.application(?:\.[A-Za-z0-9_]+)*\.[A-Za-z0-9_]+Service"""),
                 Regex("""com\.beat\.contracts\.(?:[A-Za-z0-9_]+\.)*[A-Za-z0-9_]+Port"""),
+                Regex("""com\.beat\.infra\."""),
             ),
         )
 
@@ -444,14 +445,16 @@ class ApisArchitectureGuardTest {
                 .flatMap { path ->
                     Files.readAllLines(path)
                         .asSequence()
-                        .filter { it.trimStart().startsWith("import com.beat.gateway.") }
+                        .filter { it.trimStart().startsWith("import com.beat.support.security.") }
                         .map { line ->
                             line.trim()
                                 .removePrefix("import ")
                                 .removeSuffix(";")
                                 .substringBefore(" as ")
                         }
-                        .filterNot(allowedImports::contains)
+                        .filter { gatewayImport ->
+                            gatewayImport.contains(".internal.") || gatewayImport !in allowedImports
+                        }
                         .map { gatewayImport -> "${path}: $gatewayImport" }
                         .toList()
                 }

@@ -1,8 +1,8 @@
-package com.beat.gateway.jwt.internal
+package com.beat.support.security.jwt.internal
 
-import com.beat.contracts.auth.jwt.JwtSubject
-import com.beat.contracts.auth.jwt.JwtTokenType
-import com.beat.contracts.auth.jwt.TokenValidationResult
+import com.beat.support.security.token.TokenAuthenticationFailure
+import com.beat.support.security.token.TokenAuthenticationResult
+import com.beat.support.security.token.TokenSubject
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jws
 import io.jsonwebtoken.Jwts
@@ -34,9 +34,7 @@ class JwtTokenProviderTest {
         assertAll(
             { assertEquals(KEY_ID, parsed.header.keyId) },
             { assertEquals("ACCESS", parsed.payload.get(JwtClaimNames.TOKEN_TYPE, String::class.java)) },
-            { assertEquals(TokenValidationResult.VALID, jwtTokenProvider.validateAccessToken(accessToken)) },
-            { assertEquals(1L, jwtTokenProvider.getMemberId(accessToken, JwtTokenType.ACCESS)) },
-            { assertEquals("ROLE_MEMBER", jwtTokenProvider.getRoleName(accessToken, JwtTokenType.ACCESS)) },
+            { assertEquals(TokenAuthenticationResult.Authenticated(subject()), jwtTokenProvider.authenticateAccessToken(accessToken)) },
         )
     }
 
@@ -53,7 +51,7 @@ class JwtTokenProviderTest {
 
         val result = provider.authenticateAccessToken("access-token")
 
-        assertEquals(AccessTokenAuthenticationResult.Authenticated(1L, "ROLE_MEMBER"), result)
+        assertEquals(TokenAuthenticationResult.Authenticated(TokenSubject(1L, "ROLE_MEMBER")), result)
         verify(parser).parse("access-token", JwtTokenType.ACCESS)
     }
 
@@ -66,7 +64,7 @@ class JwtTokenProviderTest {
         assertAll(
             { assertEquals(KEY_ID, parsed.header.keyId) },
             { assertEquals("REFRESH", parsed.payload.get(JwtClaimNames.TOKEN_TYPE, String::class.java)) },
-            { assertEquals(TokenValidationResult.VALID, jwtTokenProvider.validateRefreshToken(refreshToken)) },
+            { assertEquals(TokenAuthenticationResult.Authenticated(subject()), jwtTokenProvider.authenticateRefreshToken(refreshToken)) },
         )
     }
 
@@ -74,14 +72,20 @@ class JwtTokenProviderTest {
     fun `refresh token은 access 검증을 통과하지 못한다`() {
         val refreshToken = jwtTokenProvider.issueRefreshToken(subject())
 
-        assertEquals(TokenValidationResult.INVALID_TOKEN, jwtTokenProvider.validateAccessToken(refreshToken))
+        assertEquals(
+            TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN),
+            jwtTokenProvider.authenticateAccessToken(refreshToken),
+        )
     }
 
     @Test
     fun `access token은 refresh 검증을 통과하지 못한다`() {
         val accessToken = jwtTokenProvider.issueAccessToken(subject())
 
-        assertEquals(TokenValidationResult.INVALID_TOKEN, jwtTokenProvider.validateRefreshToken(accessToken))
+        assertEquals(
+            TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN),
+            jwtTokenProvider.authenticateRefreshToken(accessToken),
+        )
     }
 
     @Test
@@ -112,7 +116,10 @@ class JwtTokenProviderTest {
             .signWith(strongKey())
             .compact()
 
-        assertEquals(TokenValidationResult.INVALID_TOKEN, jwtTokenProvider.validateAccessToken(token))
+        assertEquals(
+            TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN),
+            jwtTokenProvider.authenticateAccessToken(token),
+        )
     }
 
     private fun provider(secret: String = STRONG_BASE64_SECRET): JwtTokenProvider {
@@ -133,7 +140,7 @@ class JwtTokenProviderTest {
 
     private fun strongKey(): SecretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(STRONG_BASE64_SECRET))
 
-    private fun subject(): JwtSubject = JwtSubject(1L, "ROLE_MEMBER")
+    private fun subject(): TokenSubject = TokenSubject(1L, "ROLE_MEMBER")
 
     companion object {
         private const val STRONG_BASE64_SECRET =

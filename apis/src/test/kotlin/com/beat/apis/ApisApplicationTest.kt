@@ -5,12 +5,12 @@ import com.beat.apis.config.ApisSecurityConfig
 import com.beat.apis.config.GatewayConfig
 import com.beat.apis.config.GuestSessionOriginFilter
 import com.beat.apis.config.InfraConfig
-import com.beat.contracts.auth.refreshtoken.RefreshTokenPort
 import com.beat.contracts.auth.guest.GuestAccessThrottlePort
 import com.beat.contracts.auth.guest.GuestSessionPort
-import com.beat.gateway.EnableGatewayConfig
-import com.beat.gateway.GatewayConfigGroup
-import com.beat.gateway.EnableGatewayServletSecurity
+import com.beat.application.frontoffice.auth.command.RefreshTokenStore
+import com.beat.support.security.EnableGatewayConfig
+import com.beat.support.security.GatewayConfigGroup
+import com.beat.support.security.EnableGatewayServletSecurity
 import com.beat.infra.InfraBaseConfigGroup
 import com.beat.infra.redis.auth.AuthRedisConfig
 import com.beat.observability.ObservabilityModuleConfig
@@ -72,7 +72,6 @@ class ApisApplicationTest {
         assertNotNull(enableGatewayConfig, "apis GatewayConfig must declare @EnableGatewayConfig for guest password hash")
         assertEquals(
             setOf(
-                GatewayConfigGroup.REFRESH_TOKEN_STORE,
                 GatewayConfigGroup.GUEST_ACCESS,
             ),
             enableGatewayConfig!!.value.toSet(),
@@ -80,16 +79,15 @@ class ApisApplicationTest {
     }
 
     @Test
-    fun `auth Redis config가 gateway refresh token requirement를 충족한다`() {
+    fun `auth Redis config가 application refresh token store requirement를 충족한다`() {
         ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(DataRedisAutoConfiguration::class.java))
             .withUserConfiguration(
                 AuthRedisConfig::class.java,
-                GatewayConfigGroup.REFRESH_TOKEN_STORE.configClass,
             )
             .run { context ->
                 assertTrue(context.startupFailure == null, context.startupFailure?.message)
-                assertEquals(1, context.getBeansOfType(RefreshTokenPort::class.java).size)
+                assertEquals(1, context.getBeansOfType(RefreshTokenStore::class.java).size)
                 assertEquals(1, context.getBeansOfType(GuestSessionPort::class.java).size)
                 assertEquals(1, context.getBeansOfType(GuestAccessThrottlePort::class.java).size)
                 val scripts = context.getBeansOfType(RedisScript::class.java)
@@ -243,7 +241,7 @@ class ApisApplicationTest {
         assertTrue(source.contains("val SWAGGER_WHITELIST"))
         assertTrue(source.contains("if (!environment.acceptsProfiles(Profiles.of(\"prod\")))"))
         assertTrue(source.contains("addAll(SWAGGER_WHITELIST)"))
-        assertFalse(source.contains("import com.beat.gateway.authentication.internal.SecurityMdcLoggingFilter"))
+        assertFalse(source.contains("import com.beat.support.security.authentication.internal.SecurityMdcLoggingFilter"))
     }
 
     @Test
