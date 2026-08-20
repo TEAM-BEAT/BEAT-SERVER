@@ -44,7 +44,7 @@
   - [x] PR-6 Ticket query uses a consumer-owned reader
   - [x] PR-6 SMS contract retirement is verified
   - [x] PR-6 Kotlin callers are migrated and verified
-  - [ ] PR-6 architecture, API, and integration verification is complete
+  - [x] PR-6 architecture, API, and integration verification is complete
 - [ ] Admin workflows migrated and verified
 - [ ] System/batch workflows migrated and verified
 - [ ] Infrastructure consolidated with internal implementations
