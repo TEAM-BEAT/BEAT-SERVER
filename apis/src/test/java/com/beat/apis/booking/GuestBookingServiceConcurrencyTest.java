@@ -24,9 +24,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.beat.application.frontoffice.booking.command.GuestBookingCommandService;
-import com.beat.application.frontoffice.booking.command.GuestBookingCommand;
-import com.beat.application.frontoffice.booking.result.BookingCreationResult;
+import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommandService;
+import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommand;
+import com.beat.application.frontoffice.booking.booker.result.BookingCreationResult;
 import com.beat.apis.support.AbstractIntegrationTest;
 import com.beat.domain.booking.repository.BookingRepository;
 import com.beat.domain.performance.repository.PerformanceRepository;

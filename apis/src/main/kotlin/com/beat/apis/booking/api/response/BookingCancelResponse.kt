@@ -1,7 +1,7 @@
 package com.beat.apis.booking.api.response
 
 import com.beat.apis.booking.api.type.BookingStatusType
-import com.beat.application.frontoffice.booking.result.BookingCancelResult
+import com.beat.application.frontoffice.booking.booker.result.BookingCancelResult
 
 @ConsistentCopyVisibility
 data class BookingCancelResponse private constructor(

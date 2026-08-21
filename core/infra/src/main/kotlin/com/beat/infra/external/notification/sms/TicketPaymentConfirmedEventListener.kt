@@ -1,6 +1,6 @@
 package com.beat.infra.external.notification.sms
 
-import com.beat.application.frontoffice.ticket.command.TicketPaymentConfirmedEvent
+import com.beat.application.frontoffice.ticket.maker.command.TicketPaymentConfirmedEvent
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component

@@ -1,14 +1,14 @@
 package com.beat.apis
 
 import com.beat.apis.support.AbstractIntegrationTest
-import com.beat.application.frontoffice.booking.command.MemberBookingCommandService
-import com.beat.application.frontoffice.booking.query.BookerBookingReader
+import com.beat.application.frontoffice.booking.booker.command.MemberBookingCommandService
+import com.beat.application.frontoffice.booking.booker.query.BookerBookingReader
 import com.beat.application.frontoffice.auth.command.RefreshTokenStore
 import com.beat.application.frontoffice.member.command.MemberRegistrationNotifier
 import com.beat.application.frontoffice.member.command.SocialLoginProvider
 import com.beat.application.frontoffice.performance.maker.command.PerformanceImageStorage
-import com.beat.application.frontoffice.ticket.command.TicketCommandService
-import com.beat.application.frontoffice.ticket.query.TicketQueryService
+import com.beat.application.frontoffice.ticket.maker.command.TicketCommandService
+import com.beat.application.frontoffice.ticket.maker.query.TicketQueryService
 import com.beat.contracts.auth.guest.GuestAccessThrottlePort
 import com.beat.contracts.auth.guest.GuestSessionPort
 import com.beat.contracts.cdn.ImageCachePort

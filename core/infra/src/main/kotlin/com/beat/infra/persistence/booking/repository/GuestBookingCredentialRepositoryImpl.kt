@@ -1,7 +1,7 @@
 package com.beat.infra.persistence.booking.repository
 
-import com.beat.application.frontoffice.booking.credential.GuestBookingCredential
-import com.beat.application.frontoffice.booking.credential.GuestBookingCredentialRepository
+import com.beat.application.frontoffice.booking.booker.credential.GuestBookingCredential
+import com.beat.application.frontoffice.booking.booker.credential.GuestBookingCredentialRepository
 import com.beat.infra.persistence.booking.entity.BookingJpaEntity
 import com.linecorp.kotlinjdsl.dsl.jpql.jpql
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext

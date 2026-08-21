@@ -6,7 +6,7 @@ import com.beat.apis.booking.api.request.MemberBookingRequest
 import com.beat.apis.booking.api.response.GuestBookingResponse
 import com.beat.apis.booking.api.response.MemberBookingResponse
 import com.beat.apis.booking.api.type.BookingStatusType
-import com.beat.application.frontoffice.booking.result.BookingCreationResult
+import com.beat.application.frontoffice.booking.booker.result.BookingCreationResult
 import com.beat.apis.home.api.response.HomeFindAllResponse
 import com.beat.apis.home.api.type.HomeGenreType
 import com.beat.apis.home.application.result.HomeFindAllResult
@@ -28,9 +28,9 @@ import com.beat.application.frontoffice.performance.booker.query.PerformanceDeta
 import com.beat.application.frontoffice.performance.maker.query.PerformanceEditResult
 import com.beat.application.frontoffice.performance.maker.PerformanceMutationResult
 import com.beat.apis.schedule.api.response.TicketAvailabilityResponse
-import com.beat.application.frontoffice.schedule.query.TicketAvailabilityResult
+import com.beat.application.frontoffice.schedule.booker.query.TicketAvailabilityResult
 import com.beat.apis.schedule.api.type.ScheduleNumberType
-import com.beat.application.frontoffice.ticket.command.TicketBookingStatus
+import com.beat.application.frontoffice.ticket.maker.command.TicketBookingStatus
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.member.model.SocialType
 import com.beat.domain.performance.model.Genre

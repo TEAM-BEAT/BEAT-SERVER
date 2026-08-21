@@ -1,8 +1,8 @@
 package com.beat.apis.query
 
 import com.beat.apis.support.AbstractIntegrationTest
-import com.beat.application.frontoffice.ticket.query.MakerTicketReader
-import com.beat.application.frontoffice.ticket.query.MakerTicketBookingStatus
+import com.beat.application.frontoffice.ticket.maker.query.MakerTicketReader
+import com.beat.application.frontoffice.ticket.maker.query.MakerTicketBookingStatus
 import com.beat.contracts.schedule.ScheduleReadPort
 import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.model.BookingStatus

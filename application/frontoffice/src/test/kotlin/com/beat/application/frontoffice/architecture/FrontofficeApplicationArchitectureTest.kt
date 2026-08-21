@@ -25,14 +25,40 @@ class FrontofficeApplicationArchitectureTest {
     }
 
     @Test
-    fun `booking packages must not depend on performance lanes`() {
+    fun `booking booker packages must not depend on performance lanes`() {
         checkRule(
             noDependencyRule(
-                packagePattern("booking"),
+                packagePattern("booking", "booker"),
                 packagePattern("performance", "booker"),
                 packagePattern("performance", "maker"),
             ),
         )
+    }
+
+    @Test
+    fun `booking classes must reside in the booker lane`() {
+        checkActorAlignment("booking", "booking.booker")
+    }
+
+    @Test
+    fun `ticket classes must reside in the maker lane`() {
+        checkActorAlignment("ticket", "ticket.maker")
+    }
+
+    @Test
+    fun `legacy schedule query package must not exist`() {
+        val legacyPackage = "com.beat.application.frontoffice.schedule.query"
+        val violations = importedClasses
+            .filter { javaClass ->
+                javaClass.packageName == legacyPackage ||
+                    javaClass.packageName.startsWith("$legacyPackage.")
+            }
+            .map(JavaClass::getFullName)
+            .sorted()
+
+        check(violations.isEmpty()) {
+            "Legacy schedule.query classes must not exist: ${violations.joinToString(", ")}"
+        }
     }
 
     @Test
@@ -63,16 +89,16 @@ class FrontofficeApplicationArchitectureTest {
                 packagePattern("performance", "maker", "command"),
                 packagePattern("performance", "booker"),
                 packagePattern("performance", "maker", "query"),
-                packagePattern("schedule", "query"),
+                packagePattern("schedule", "booker", "query"),
             ),
         )
     }
 
     @Test
-    fun `ticket application must not depend on adapters contracts infrastructure web or global support`() {
+    fun `ticket maker application must not depend on adapters contracts infrastructure web or global support`() {
         checkRule(
             noDependencyRule(
-                packagePattern("ticket"),
+                packagePattern("ticket", "maker"),
                 packagePattern("apis"),
                 packagePattern("admin"),
                 packagePattern("batch"),
@@ -85,10 +111,10 @@ class FrontofficeApplicationArchitectureTest {
     }
 
     @Test
-    fun `ticket application must not depend on performance maker services`() {
+    fun `ticket maker application must not depend on performance maker services`() {
         checkRule(
             noDependencyRule(
-                packagePattern("ticket"),
+                packagePattern("ticket", "maker"),
                 packagePattern("performance", "maker", "command"),
                 packagePattern("performance", "maker", "query"),
                 packagePattern("performance", "application"),
@@ -165,6 +191,23 @@ class FrontofficeApplicationArchitectureTest {
             .because(
                 "${sourcePackage.archUnitPattern} must not depend on ${targets.joinToString()}",
             )
+    }
+
+    private fun checkActorAlignment(sourceSegment: String, actorPackage: String) {
+        val sourcePrefix = "com.beat.application.frontoffice.$sourceSegment"
+        val actorPrefix = "com.beat.application.frontoffice.$actorPackage"
+        val violations = importedClasses
+            .filter { javaClass ->
+                val packageName = javaClass.packageName
+                (packageName == sourcePrefix || packageName.startsWith("$sourcePrefix.")) &&
+                    packageName != actorPrefix && !packageName.startsWith("$actorPrefix.")
+            }
+            .map(JavaClass::getFullName)
+            .sorted()
+
+        check(violations.isEmpty()) {
+            "$sourcePrefix classes must reside under $actorPrefix: ${violations.joinToString(", ")}"
+        }
     }
 
     private fun noCommandDependencyOnPresentationReadModelsRule(): ArchRule? {

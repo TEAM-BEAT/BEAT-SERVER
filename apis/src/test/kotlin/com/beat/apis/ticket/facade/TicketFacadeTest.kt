@@ -2,10 +2,10 @@ package com.beat.apis.ticket.facade
 
 import com.beat.apis.booking.api.type.BookingStatusType
 import com.beat.apis.schedule.api.type.ScheduleNumberType
-import com.beat.application.frontoffice.ticket.query.TicketListQuery
-import com.beat.application.frontoffice.ticket.query.TicketQueryService
-import com.beat.application.frontoffice.ticket.query.TicketRetrieveResult
-import com.beat.application.frontoffice.ticket.command.TicketCommandService
+import com.beat.application.frontoffice.ticket.maker.query.TicketListQuery
+import com.beat.application.frontoffice.ticket.maker.query.TicketQueryService
+import com.beat.application.frontoffice.ticket.maker.query.TicketRetrieveResult
+import com.beat.application.frontoffice.ticket.maker.command.TicketCommandService
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 

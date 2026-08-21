@@ -1,7 +1,7 @@
 package com.beat.apis.query
 
 import com.beat.apis.support.AbstractIntegrationTest
-import com.beat.application.frontoffice.booking.query.BookerBookingReader
+import com.beat.application.frontoffice.booking.booker.query.BookerBookingReader
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.performance.model.Genre
 import com.beat.domain.schedule.model.ScheduleNumber

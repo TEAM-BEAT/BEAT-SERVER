@@ -1,9 +1,9 @@
 package com.beat.infra.persistence.booking.repository.query
 
-import com.beat.application.frontoffice.booking.query.BookerBookingPerformanceReadModel
-import com.beat.application.frontoffice.booking.query.BookerBookingReadModel
-import com.beat.application.frontoffice.booking.query.BookerBookingReader
-import com.beat.application.frontoffice.booking.query.BookerBookingScheduleReadModel
+import com.beat.application.frontoffice.booking.booker.query.BookerBookingPerformanceReadModel
+import com.beat.application.frontoffice.booking.booker.query.BookerBookingReadModel
+import com.beat.application.frontoffice.booking.booker.query.BookerBookingReader
+import com.beat.application.frontoffice.booking.booker.query.BookerBookingScheduleReadModel
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.sharedkernel.vo.BankName

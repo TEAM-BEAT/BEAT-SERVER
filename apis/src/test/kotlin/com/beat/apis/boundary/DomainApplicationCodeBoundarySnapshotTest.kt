@@ -4,7 +4,7 @@ import com.beat.apis.booking.api.response.BookingSuccessCode
 import com.beat.apis.ticket.api.response.TicketSuccessCode
 import com.beat.apis.booking.exception.BookingApplicationErrorCode
 import com.beat.apis.exception.ApiGlobalExceptionHandler
-import com.beat.application.frontoffice.ticket.exception.TicketApplicationErrorCode
+import com.beat.application.frontoffice.ticket.maker.exception.TicketApplicationErrorCode
 import com.beat.apis.file.api.response.FileSuccessCode
 import com.beat.apis.home.api.response.HomeSuccessCode
 import com.beat.apis.member.api.response.MemberSuccessCode

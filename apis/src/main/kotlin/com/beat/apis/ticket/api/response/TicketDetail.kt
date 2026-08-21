@@ -1,7 +1,7 @@
 package com.beat.apis.ticket.api.response
 
 import com.beat.apis.booking.api.type.BookingStatusType
-import com.beat.application.frontoffice.ticket.query.TicketDetailResult
+import com.beat.application.frontoffice.ticket.maker.query.TicketDetailResult
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility

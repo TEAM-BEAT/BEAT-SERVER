@@ -1,6 +1,6 @@
 package com.beat.apis.exception
 
-import com.beat.application.frontoffice.booking.BookingApplicationErrorCode
+import com.beat.application.frontoffice.booking.booker.BookingApplicationErrorCode
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorCode
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException

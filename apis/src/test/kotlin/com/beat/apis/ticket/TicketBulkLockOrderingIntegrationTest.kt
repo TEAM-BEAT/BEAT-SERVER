@@ -1,10 +1,10 @@
 package com.beat.apis.ticket
 
 import com.beat.apis.support.AbstractIntegrationTest
-import com.beat.application.frontoffice.ticket.command.TicketBookingStatus
-import com.beat.application.frontoffice.ticket.command.TicketCommandService
-import com.beat.application.frontoffice.ticket.command.TicketStatusUpdate
-import com.beat.application.frontoffice.ticket.command.TicketUpdateCommand
+import com.beat.application.frontoffice.ticket.maker.command.TicketBookingStatus
+import com.beat.application.frontoffice.ticket.maker.command.TicketCommandService
+import com.beat.application.frontoffice.ticket.maker.command.TicketStatusUpdate
+import com.beat.application.frontoffice.ticket.maker.command.TicketUpdateCommand
 import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.booking.repository.BookingRepository

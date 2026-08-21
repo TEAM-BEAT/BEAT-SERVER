@@ -1,10 +1,10 @@
 package com.beat.infra.persistence.ticket.repository.query
 
-import com.beat.application.frontoffice.ticket.query.MakerTicketBookingStatus
-import com.beat.application.frontoffice.ticket.query.MakerTicketListItemReadModel
-import com.beat.application.frontoffice.ticket.query.MakerTicketReader
-import com.beat.application.frontoffice.ticket.query.MakerTicketScheduleNumber
-import com.beat.application.frontoffice.ticket.query.MakerTicketScheduleReadModel
+import com.beat.application.frontoffice.ticket.maker.query.MakerTicketBookingStatus
+import com.beat.application.frontoffice.ticket.maker.query.MakerTicketListItemReadModel
+import com.beat.application.frontoffice.ticket.maker.query.MakerTicketReader
+import com.beat.application.frontoffice.ticket.maker.query.MakerTicketScheduleNumber
+import com.beat.application.frontoffice.ticket.maker.query.MakerTicketScheduleReadModel
 import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.schedule.model.ScheduleNumber

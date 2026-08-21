@@ -1,6 +1,6 @@
 package com.beat.apis.schedule.api.response
 
-import com.beat.application.frontoffice.schedule.query.TicketAvailabilityResult
+import com.beat.application.frontoffice.schedule.booker.query.TicketAvailabilityResult
 import com.fasterxml.jackson.annotation.JsonProperty
 
 @ConsistentCopyVisibility

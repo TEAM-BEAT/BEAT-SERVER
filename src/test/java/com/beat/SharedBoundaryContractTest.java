@@ -573,7 +573,7 @@ class SharedBoundaryContractTest {
 		String bookingRepositoryImpl = Files.readString(
 			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/BookingRepositoryImpl.kt"));
 		String bookingCancelService = Files.readString(
-			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/booking/command/BookingCancellationCommandService.kt"));
+			Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/booking/booker/command/BookingCancellationCommandService.kt"));
 		String bookerBookingQueries = Files.readString(
 			Path.of("core/infra/src/main/kotlin/com/beat/infra/persistence/booking/repository/query/BookerBookingQueries.kt"));
 
@@ -746,7 +746,7 @@ class SharedBoundaryContractTest {
 
 		assertAll(
 			() -> assertSourceContains(
-				Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/booking/BookingApplicationErrorCode.kt"),
+				Path.of("application/frontoffice/src/main/kotlin/com/beat/application/frontoffice/booking/booker/BookingApplicationErrorCode.kt"),
 				"\"BOOKING_NOT_FOUND\""),
 			() -> assertSourceContains(
 				Path.of("apis/src/main/kotlin/com/beat/apis/booking/exception/BookingApplicationErrorCode.kt"),

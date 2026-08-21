@@ -6,13 +6,13 @@ import com.beat.apis.ticket.api.request.TicketDeleteRequest
 import com.beat.apis.ticket.api.request.TicketRefundRequest
 import com.beat.apis.ticket.api.response.TicketRetrieveResponse
 import com.beat.apis.ticket.api.request.TicketUpdateRequest
-import com.beat.application.frontoffice.ticket.command.TicketBookingIdsCommand
-import com.beat.application.frontoffice.ticket.command.TicketBookingStatus
-import com.beat.application.frontoffice.ticket.command.TicketCommandService
-import com.beat.application.frontoffice.ticket.command.TicketStatusUpdate
-import com.beat.application.frontoffice.ticket.command.TicketUpdateCommand
-import com.beat.application.frontoffice.ticket.query.TicketListQuery
-import com.beat.application.frontoffice.ticket.query.TicketQueryService
+import com.beat.application.frontoffice.ticket.maker.command.TicketBookingIdsCommand
+import com.beat.application.frontoffice.ticket.maker.command.TicketBookingStatus
+import com.beat.application.frontoffice.ticket.maker.command.TicketCommandService
+import com.beat.application.frontoffice.ticket.maker.command.TicketStatusUpdate
+import com.beat.application.frontoffice.ticket.maker.command.TicketUpdateCommand
+import com.beat.application.frontoffice.ticket.maker.query.TicketListQuery
+import com.beat.application.frontoffice.ticket.maker.query.TicketQueryService
 import org.springframework.stereotype.Service
 
 @Service

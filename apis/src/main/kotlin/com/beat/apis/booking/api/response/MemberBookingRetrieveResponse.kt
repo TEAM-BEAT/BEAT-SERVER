@@ -1,7 +1,7 @@
 package com.beat.apis.booking.api.response
 
 import com.beat.apis.booking.api.type.BookingStatusType
-import com.beat.application.frontoffice.booking.result.BookingRetrieveResult
+import com.beat.application.frontoffice.booking.booker.result.BookingRetrieveResult
 import com.beat.apis.performance.api.type.BankNameType
 import com.beat.apis.schedule.api.type.ScheduleNumberType
 import com.beat.global.support.jackson.CdnImageUrl

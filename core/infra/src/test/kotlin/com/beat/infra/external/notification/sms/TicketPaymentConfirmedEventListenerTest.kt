@@ -1,6 +1,6 @@
 package com.beat.infra.external.notification.sms
 
-import com.beat.application.frontoffice.ticket.command.TicketPaymentConfirmedEvent
+import com.beat.application.frontoffice.ticket.maker.command.TicketPaymentConfirmedEvent
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
