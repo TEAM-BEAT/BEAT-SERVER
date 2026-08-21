@@ -124,10 +124,10 @@ class SharedBoundaryContractTest {
 		String dockerfile = Files.readString(Path.of("Dockerfile.module"));
 		String versions = Files.readString(Path.of("gradle/libs.versions.toml"));
 
-		assertTrue(versions.contains("spring-boot = \"4.0.7\""));
-		assertTrue(versions.contains("kotlin = \"2.3.20\""));
-		assertTrue(migration.contains("Spring Boot `4.0.7`"));
-		assertTrue(migration.contains("Kotlin `2.3.20`"));
+		assertTrue(versions.contains("spring-boot = \"4.0.8\""));
+		assertTrue(versions.contains("kotlin = \"2.3.21\""));
+		assertTrue(migration.contains("Spring Boot `4.0.8`"));
+		assertTrue(migration.contains("Kotlin `2.3.21`"));
 		assertTrue(migration.contains("Docker runtime Java `25`"));
 
 		assertTrue(sdkman.contains("java=25.0.2-tem"));

@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Tag;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 
 import com.redis.testcontainers.RedisContainer;
 
@@ -14,7 +14,7 @@ import com.redis.testcontainers.RedisContainer;
 public abstract class AbstractIntegrationTest {
 
 	@ServiceConnection
-	static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0.39")
+	static MySQLContainer mysql = new MySQLContainer("mysql:8.0.39")
 		.withDatabaseName("beat_apis_test")
 		.withCommand("--default-time-zone=+09:00");
 

@@ -539,6 +539,7 @@ PR-7 이후 graph를 다시 나눈 이유는 세 가지다.
 - 단일 Actor 생략 가설이 Frontoffice Actor ownership과 충돌했다.
 - runtime/BOM upgrade, test authoring foundation, test semantic rewrite, Testcontainers lifecycle 변경은 rollback 위험이 서로 다르다.
 - 이미 이동한 Booking/Performance/Schedule/Ticket/Member/Auth의 package를 먼저 정렬해야 테스트를 두 번 이동하지 않는다.
+- Spring Boot 4.1 채택은 Constitution의 조건부 선택인데 기존 PR-9가 이를 확정안처럼 닫았다. 현재 Spring Cloud `2025.1.x` 공식 지원선은 Boot `4.0.x`이고 최신 `2025.1.3` BOM도 Boot `4.0.8`을 가리키므로, PR-9는 지원되는 patch line 정렬로 교정한다.
 
 ### 9.2 Current dependency graph
 
@@ -644,16 +645,16 @@ PR-11/PR-12와 capability PR-13/14/16/17은 source overlap이 없을 때 병렬 
 - Tests: affected compile/test, three app boot, actor/package ArchUnit.
 - DoD: Booking/Schedule/Ticket의 production/test package 정렬; Performance의 기존 Booker/Maker 보존; Member/Auth actor-neutral allowlist; Admin/System actor 중복 금지.
 
-### PR-9 — Spring Boot 4.1 runtime/BOM alignment
+### PR-9 — Supported runtime/BOM patch alignment
 
-- Objective: Spring Boot 4.1 baseline과 BOM-managed Kotlin/Testcontainers versions를 먼저 검증하고 불필요한 explicit override를 제거한다.
+- Objective: 공식 호환 조합인 Spring Boot `4.0.8`/Spring Cloud `2025.1.3`과 Kotlin `2.3.21`/Testcontainers `2.0.5`를 검증하고, 새 Boot BOM보다 낮은 Tomcat/Jackson/Netty override를 제거한다.
 - Invariant gained: test/tool version compatibility가 application migration과 분리된 한 rollback boundary에 놓인다.
 - Dependencies: PR-8.
 - Correctness risk: plugin/API binary compatibility, Testcontainers 2.x package/API, Spring bootstrap/security behavior.
 - Compatibility: route/schema/runtime behavior 유지; version upgrade 외 source migration 금지.
 - Rollback: dependency/build-logic commit revert.
 - Tests: full current suite, dependency resolution, three boot contexts, MySQL/Redis container smoke, bootJar/deploy smoke.
-- DoD: adopted versions and remaining overrides documented; Boot BOM 기준 dependency graph green.
+- DoD: adopted versions and remaining security overrides documented; Spring Cloud compatibility verifier와 Boot BOM 기준 dependency graph green; Boot 4.1 보류 근거 기록.
 
 ### PR-10 — Kotest FunSpec authoring foundation and pilot
 
@@ -868,8 +869,13 @@ Apps의 Domain 직접 dependency는 기본 금지한다. Domain failure를 Contr
 
 ### ADR-MIG-008 — Runtime/BOM upgrade와 test rewrite를 분리
 
-- 현재 build의 Spring Boot 4.0.7/Kotlin 2.3.20/Testcontainers 1.21.3에서 Boot 4.1 baseline으로 이동할 때 dependency/API/runtime 위험이 발생한다.
-- version/BOM alignment를 PR-9에서 먼저 검증하고 Kotest foundation은 PR-10, semantic test rewrite는 PR-11/12로 분리한다.
+- Constitution은 Spring Boot 4.1 채택을 조건부로 열어 두었지만 기존 Execution Record는 이를 PR-9 확정안으로 잘못 닫았다.
+- 공식 Spring Cloud 지원표는 `2025.1.x`를 Boot `4.0.x`에만 대응시키고, Maven Central의 최신 `spring-cloud-dependencies:2025.1.3`도 `spring-boot.version=4.0.8`을 선언한다. 현재 Kakao/Slack adapter가 OpenFeign을 사용하므로 Cloud를 무시한 Boot 4.1 강행은 지원되지 않는 runtime 조합이다.
+- PR-9는 지원되는 Boot `4.0.8`/Cloud `2025.1.3` patch line과 Kotlin `2.3.21`, Boot BOM과 동일한 Testcontainers `2.0.5`를 정렬한다. Testcontainers 2의 artifact/package 변경만 필수 호환 수정으로 허용한다.
+- 기존 Cloud Context `5.0.1`이 `spring-boot-restclient`를 우연히 transitive 제공해 `ImageCacheAdapter`의 `RestClient.Builder` runtime requirement를 숨기고 있었다. Cloud `5.0.3`에서 그 transitive가 제거되므로 API/Admin external-client composition은 `spring-boot-starter-restclient`를 명시적으로 제공한다. 이는 새 abstraction이 아니라 기존 adapter의 실제 runtime dependency 복구다.
+- Boot 4.0.8 BOM이 현재 명시적 핀보다 새 Tomcat/Jackson/Netty를 관리하므로 해당 downgrade override는 제거하고, BOM이 해결하지 않는 security pin만 근거와 함께 유지한다.
+- Boot 4.1은 Cloud 호환 train 도입 또는 OpenFeign adapter retirement가 별도 evidence로 완료된 뒤 다시 판단한다. 이를 달성하기 위해 임의의 HTTP client 재작성이나 새 PR을 지금 발명하지 않는다.
+- runtime/BOM alignment는 PR-9, Kotest foundation은 PR-10, semantic test rewrite는 PR-11/12로 분리한다.
 - 이 경계는 실패 원인이 runtime upgrade인지 authoring framework인지 test semantic rewrite인지 즉시 식별하고 독립 rollback하기 위함이다.
 
 ## Audit gate

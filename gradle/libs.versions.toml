@@ -1,23 +1,19 @@
 [versions]
-spring-boot = "4.0.7"
+spring-boot = "4.0.8"
 dependency-management = "1.1.7"
-kotlin = "2.3.20"
+kotlin = "2.3.21"
 kotlin-logging = "8.0.4"
 kotlinx-coroutines = "1.10.2"
 sonarqube = "7.2.3.7755"
 kover = "0.9.7"
-spring-cloud = "2025.1.1"
+spring-cloud = "2025.1.3"
 springdoc = "3.0.2"
-tomcat-embed = "11.0.22"
-jackson3 = "3.1.4"
-jackson2 = "2.21.4"
+jackson3 = "3.1.5"
 commons-fileupload = "1.6.0"
-netty = "4.2.15.Final"
-bouncycastle = "1.84"
 jjwt = "0.13.0"
 aws-sdk-v1 = "1.12.797"
-testcontainers = "1.21.3"
-redis-testcontainers = "2.2.2"
+testcontainers = "2.0.5"
+redis-testcontainers = "2.2.4"
 sentry = "8.41.0"
 sentry-gradle-plugin = "6.6.0"
 # Micrometer Tracing / OpenTelemetry 버전은 Spring Boot 4.0 BOM 이 관리 (spring-boot-starter-opentelemetry 가 정렬된 transitive 제공)
@@ -60,6 +56,7 @@ spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-depe
 spring-boot-persistence = { module = "org.springframework.boot:spring-boot-persistence", version.ref = "spring-boot" }
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
+spring-boot-starter-restclient = { module = "org.springframework.boot:spring-boot-starter-restclient", version.ref = "spring-boot" }
 spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
 spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa", version.ref = "spring-boot" }
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "spring-boot" }
@@ -67,16 +64,8 @@ spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-
 spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis", version.ref = "spring-boot" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
 spring-boot-starter-log4j2 = { module = "org.springframework.boot:spring-boot-starter-log4j2", version.ref = "spring-boot" }
-tomcat-embed-core = { module = "org.apache.tomcat.embed:tomcat-embed-core", version.ref = "tomcat-embed" }
-tomcat-embed-el = { module = "org.apache.tomcat.embed:tomcat-embed-el", version.ref = "tomcat-embed" }
-tomcat-embed-websocket = { module = "org.apache.tomcat.embed:tomcat-embed-websocket", version.ref = "tomcat-embed" }
-jackson3-core = { module = "tools.jackson.core:jackson-core", version.ref = "jackson3" }
 jackson3-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson3" }
-jackson2-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson2" }
 commons-fileupload = { module = "commons-fileupload:commons-fileupload", version.ref = "commons-fileupload" }
-netty-codec-dns = { module = "io.netty:netty-codec-dns", version.ref = "netty" }
-netty-resolver-dns = { module = "io.netty:netty-resolver-dns", version.ref = "netty" }
-bouncycastle-bcprov-jdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 
 spring-cloud-dependencies = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "spring-cloud" }
 spring-cloud-starter-openfeign = { module = "org.springframework.cloud:spring-cloud-starter-openfeign" }
@@ -94,8 +83,8 @@ nurigo-java-sdk = { module = "net.nurigo:javaSDK", version = "2.2" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 # Spring Boot 4.0 OTLP tracing starter — micrometer-tracing-bridge-otel + opentelemetry-sdk + opentelemetry-exporter-otlp + opentelemetry-api 를 BOM 정렬된 버전으로 transitive 제공
 spring-boot-starter-opentelemetry = { module = "org.springframework.boot:spring-boot-starter-opentelemetry", version.ref = "spring-boot" }
-testcontainers-mysql = { module = "org.testcontainers:mysql", version.ref = "testcontainers" }
-testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
+testcontainers-mysql = { module = "org.testcontainers:testcontainers-mysql", version.ref = "testcontainers" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:testcontainers-junit-jupiter", version.ref = "testcontainers" }
 testcontainers-redis = { module = "com.redis:testcontainers-redis", version.ref = "redis-testcontainers" }
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers", version.ref = "spring-boot" }
 

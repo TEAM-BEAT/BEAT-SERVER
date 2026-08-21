@@ -29,7 +29,7 @@ class PromotionJpaEntityContractTest {
                     "kotlin-jpa/no-arg must emit a reflection-visible no-arg constructor",
                 )
             },
-            // Kotlin documents the no-arg artifact as synthetic; current 2.3.20 bytecode exposes it as
+            // Kotlin documents the no-arg artifact as synthetic; current 2.3.21 bytecode exposes it as
             // hidden/deprecated, so either marker proves this constructor came from the compiler plugin.
             {
                 assertTrue(

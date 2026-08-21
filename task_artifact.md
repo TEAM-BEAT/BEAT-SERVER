@@ -58,7 +58,11 @@
   - [x] Booking, Schedule Booker query, and Ticket Maker packages aligned
   - [x] Performance Booker/Maker packages preserved
   - [x] Member/Auth actor-neutral and Admin/System lane exceptions guarded
-- [ ] PR-9 Spring Boot 4.1 runtime/BOM alignment verified independently
+- [x] PR-9 supported runtime/BOM patch alignment verified independently
+  - [x] Boot 4.0.8 / Cloud 2025.1.3 / Kotlin 2.3.21 compatibility line resolved
+  - [x] Testcontainers 2.0.5 artifact/package migration compiled and integration-tested
+  - [x] API/Admin RestClient runtime dependency declared without compile-surface expansion
+  - [x] Full clean check, three boot jars, and dependency build health verified
 - [ ] PR-10 Kotest FunSpec foundation and mixed-runner discovery verified
 - [ ] PR-11 migrated Domain/Frontoffice pure tests rewritten invariant-by-invariant
 - [ ] PR-12 Spring integration/acceptance and Testcontainers lifecycle standardized
@@ -108,6 +112,9 @@
 - PR-8 Actor alignment: Booking application source/tests now reside under `booking/booker`, Schedule's Booker availability query under `schedule/booker/query`, and Ticket application source/tests under `ticket/maker`. Schedule `DueDate` and failure language remain capability-shared because Performance Maker also consumes them; Member/Auth remain actor-neutral by policy.
 - PR-8 guards: compiled Frontoffice classes reject Booking/Ticket classes outside their Actor lane and reject the legacy direct `schedule.query` package. Existing CQRS/cross-capability dependency rules now target the Actor-qualified packages.
 - PR-8 clean verification: `~/.sober/scripts/verify.sh` passed in a detached worktree containing only committed/staged PR files in 4m 47s with 112 executed tasks. Domain/Application/Infrastructure/Security/Admin/API/Batch checks and `verifyTargetModuleGraph` passed; the three pre-existing Infrastructure compiler warnings are unchanged.
+- PR-9 runtime decision: Boot 4.1 is not adopted while the used Spring Cloud `2025.1.x` line officially supports Boot `4.0.x`; latest Cloud `2025.1.3` declares Boot `4.0.8`. PR-9 aligns that supported pair plus Kotlin `2.3.21` and Testcontainers `2.0.5`; Boot 4.1 remains conditional on a compatible Cloud train or separately justified OpenFeign retirement.
+- PR-9 dependency correction: Cloud Context `5.0.1` had accidentally supplied `spring-boot-restclient`; `5.0.3` exposed the hidden dependency. API/Admin external-client runtime now declares the RestClient starter explicitly, restoring the existing `ImageCacheAdapter` bean without changing its behavior.
+- PR-9 clean verification: `~/.sober/scripts/verify.sh` passed in a detached worktree with 112 actionable tasks after the final runtime-only dependency scope change. `verifyModuleBootJars buildHealth` then passed with all three executable jars and 471 dependency-analysis tasks; existing non-fatal advice remains, and no RestClient advice was introduced. Resolved runtime versions include Tomcat `11.0.24`, Jackson `3.1.5`/`2.21.5`, Netty `4.2.17.Final`, OpenFeign `5.0.3`, and Testcontainers `2.0.5`. Only the OpenFeign `commons-fileupload:1.6.0` CVE pin remains in the app convention because Boot does not manage it.
 
 ## Quarantined experimental work
 
