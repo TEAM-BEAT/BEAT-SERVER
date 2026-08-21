@@ -54,6 +54,14 @@
   - [x] Member-to-Auth concrete service graph prohibition guard added
   - [x] Kotlin/Java interop debt and callers audited
   - [x] Focused tests, three runtime-context smoke tests, `verifyTargetModuleGraph`, and full check pass
+- [x] PR-8 Frontoffice Actor ownership aligned and guarded
+  - [x] Booking, Schedule Booker query, and Ticket Maker packages aligned
+  - [x] Performance Booker/Maker packages preserved
+  - [x] Member/Auth actor-neutral and Admin/System lane exceptions guarded
+- [ ] PR-9 Spring Boot 4.1 runtime/BOM alignment verified independently
+- [ ] PR-10 Kotest FunSpec foundation and mixed-runner discovery verified
+- [ ] PR-11 migrated Domain/Frontoffice pure tests rewritten invariant-by-invariant
+- [ ] PR-12 Spring integration/acceptance and Testcontainers lifecycle standardized
 - [ ] Admin workflows migrated and verified
 - [ ] System/batch workflows migrated and verified
 - [ ] Infrastructure consolidated with internal implementations
@@ -83,7 +91,8 @@
 - Baseline source: clean `develop` Git object `eb007147f6aa3824073b108407ea3ae47748aa40`. It contains only the legacy projects; target-project aliases/application lanes in the current worktree are experimental changes and are not baseline evidence.
 - Clean baseline verification: `./gradlew check verifyModuleBootJars --no-daemon --max-workers=1` passed in 3m 28s with 98 executed tasks. Three Infra Kotlin compiler warnings remain recorded as debt.
 - Application ownership: Booker Booking/Schedule/Home, Booker+Maker Performance, Maker Ticket, Member/Auth, Admin Promotion/User, and System Booking/Promotion maintenance were identified. File upload preparation belongs semantically to Performance Maker, not an independent Domain capability.
-- Constitution re-audit, source inventory, revised 14-PR graph, contract disposition, and reopened collaboration decision: `docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md`.
+- Constitution re-audit, source inventory, revised 19-PR graph, contract disposition, and reopened collaboration decision: `docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md`.
+- Actor/test Constitution decision: Frontoffice actor-specific use cases explicitly retain Booker/Maker even when only one actor currently exists; Member/Auth remain actor-neutral because their policy is shared, while Admin/System lanes already encode actor. JUnit Platform remains the execution contract and new/reworked Kotlin tests use Kotest FunSpec; runtime/BOM, test foundation, pure semantic rewrite, and Spring/Testcontainers lifecycle are separated into PR-9~12.
 - Guest password hashing correction: it is a `support:security` public technical API with an internal BCrypt implementation, not an Application output port. Revised PR-4 owns this transition and forbids `support:security → application`.
 - Rejected `application.frontoffice.performance.api`/offer experiment and its package guard were removed. Booking now uses the approved authoritative Domain repository collaboration; no `performance/api` remains.
 - Concurrency correction: preliminary `Schedule.findById` caused stale JPA first-level-cache inventory and reproduced 30/30 successes where only 5 were valid. It was replaced by `ScheduleRepository.findPerformanceIdById(Long): Long?`; locked Schedule membership/inventory remains the final authority. The focused concurrency test then passed.
@@ -96,6 +105,9 @@
 - PR-5 ownership gate: Performance detail schedule projection belongs to `performance/booker/query`; Schedule availability decision remains an authoritative Schedule query; child ownership lookup remains a Maker command diagnostic reader to preserve foreign-vs-missing 403/404; Performance Maker gets one object-storage output seam; poster CDN prewarm is an infrastructure subscriber to the committed Performance event. No `performance/api` or thin cache port is introduced.
 - PR-7 ownership gate: Member owns social login/registration and its provider/notifier vocabulary; Auth owns login-session issuance and the Redis `RefreshTokenStore`; `support:security` owns public password/token technical APIs and internal BCrypt/JWT/Spring Security implementations. Member collaborates only through `LoginSessionIssuer`, not a concrete Auth service or support token vocabulary.
 - PR-7 clean verification: `~/.sober/scripts/verify.sh` passed in a detached clean worktree with 112 executed tasks; API/Admin/Batch context smoke tests and `verifyTargetModuleGraph` passed, and `verifyModuleBootJars` verified all three executable jars. Existing infrastructure compiler warnings remain unchanged.
+- PR-8 Actor alignment: Booking application source/tests now reside under `booking/booker`, Schedule's Booker availability query under `schedule/booker/query`, and Ticket application source/tests under `ticket/maker`. Schedule `DueDate` and failure language remain capability-shared because Performance Maker also consumes them; Member/Auth remain actor-neutral by policy.
+- PR-8 guards: compiled Frontoffice classes reject Booking/Ticket classes outside their Actor lane and reject the legacy direct `schedule.query` package. Existing CQRS/cross-capability dependency rules now target the Actor-qualified packages.
+- PR-8 clean verification: `~/.sober/scripts/verify.sh` passed in a detached worktree containing only committed/staged PR files in 4m 47s with 112 executed tasks. Domain/Application/Infrastructure/Security/Admin/API/Batch checks and `verifyTargetModuleGraph` passed; the three pre-existing Infrastructure compiler warnings are unchanged.
 
 ## Quarantined experimental work
 
