@@ -3,7 +3,7 @@
 Baseline: `develop` / `eb007147f6aa3824073b108407ea3ae47748aa40`
 Architecture Constitution: `BEAT-SERVER-CQRS-MULTIMODULE-ARCHITECTURE-FINAL.md`
 Audit date: 2026-08-20
-Status: **implementation 전 재설계 보고서**. 아래 PR은 모두 계획이며 구현 완료를 뜻하지 않는다.
+Status: **living execution record**. PR graph와 micro-design은 실행 가설이며 실제 완료 상태는 `task_artifact.md`와 각 PR evidence를 따른다.
 
 이 문서는 깨끗한 `develop` Git object를 별도 디렉터리에 전개해 조사했다. 현재 작업 브랜치의 target-module skeleton, `performance/api`, Booking offer 실험 코드는 evidence에서 제외했다. Constitution은 판단 기준이고, 이 문서는 현재 파일을 그 기준으로 옮기기 위한 실행 가설이다.
 
@@ -14,8 +14,8 @@ Status: **implementation 전 재설계 보고서**. 아래 PR은 모두 계획�
 3. `application`은 use case, application policy, command transaction, consumer-owned output port/query reader를 소유한다. Web/JPA/Redis/JDSL/Feign/S3 구현 타입을 참조하지 않는다.
 4. `domain`은 aggregate, value object, business invariant와 필요한 domain service를 소유하며 framework-free다.
 5. `infrastructure`는 Domain/Application abstraction의 driven adapter다. 구현 클래스는 기본 `internal`이다. 외부 상태를 숨기지 않는 credential verification 같은 공통 기술 기능은 `support:security`가 좁은 public technical API와 구현을 함께 소유할 수 있다.
-6. logical/change ownership의 1차 축은 Business Capability다. Frontoffice에서 실제 actor가 둘 이상이면 Actor, 그 아래에서 Command/Query를 구분한다.
-7. `Capability → Actor → Command/Query`는 분류 순서다. 빈 package 생성 규칙도, class naming 규칙도 아니다.
+6. logical/change ownership의 1차 축은 Business Capability다. Frontoffice Use Case가 Booker/Maker 행위임이 분명하면 현재 한 Actor만 존재해도 Actor package를 명시한다. Member/Auth처럼 특정 Actor의 policy가 아닌 공통 capability만 근거를 남기고 Actor를 생략한다.
+7. `Capability → Actor → Command/Query`는 분류 순서다. Actor는 security principal이 아니라 use-case policy/change owner다. 빈 package 생성 규칙이나 class naming 규칙은 아니다.
 8. Command correctness는 authoritative state를 사용한다. `Query`라는 이름 자체가 금지가 아니며, primary authoritative read 자체도 금지가 아니다.
 9. money, inventory, authorization, ownership, state transition은 cache/replica/presentation projection/eventually-consistent read model로 결정하지 않는다.
 10. Cross-capability collaboration 우선순위는 Domain collaboration, consumer-owned narrow port, explicit stable Capability API, 마지막 수단인 다른 use case다. 어느 후보도 이름만으로 채택하지 않는다.
@@ -26,6 +26,7 @@ Status: **implementation 전 재설계 보고서**. 아래 PR은 모두 계획�
 15. Kotlin-owned API는 Kotlin nullability/property/default argument를 우선한다. Java caller를 먼저 옮긴 뒤 `Optional`, `@Jvm*`, Java getter/factory를 제거한다.
 16. 외부 route/JSON/status/auth, DB/Redis/external contract, scheduler/deploy behavior는 명시적 correctness fix가 아니면 보존한다.
 17. Architecture는 Gradle/compiler, Kotlin visibility, ArchUnit/semantic test 순으로 가능한 가장 강한 mechanism으로 집행한다.
+18. Test execution contract은 JUnit Platform이고 Kotlin authoring baseline은 Kotest FunSpec이다. Domain/Application unit test는 Spring을 사용하지 않고, real object→simple fake→MockK 순으로 선택하며 MySQL/Redis correctness는 실제 Testcontainers로 검증한다.
 
 근거: Constitution `§3-7`, `§12-19`, `§24-28`, `§33`, `§36-43`, `§46-48`.
 
@@ -96,14 +97,14 @@ core:domain         └→ no BEAT production project
 | `api/response/{BookingCancelResponse,BookingRefundResponse,BookingSuccessCode,GuestBookingResponse,GuestBookingRetrieveResponse,MemberBookingResponse,MemberBookingRetrieveResponse}.kt`, `api/type/BookingStatusType.kt` | HTTP representation | Booker outbound DTO | 없음 | `apps:api/booking` | MOVE. Domain/Application type 직접 노출 금지 |
 | `facade/BookingFacade.kt` | DTO mapping 외에 create→guest session, authenticate→query, actor resolution을 orchestration | 혼합: adapter + Booker workflow | guest identity/session | apps + application | SPLIT. mapping/cookie는 apps, workflow는 application inbound use case |
 | `facade/GuestBookingSessionOutcome.kt` | response와 session token을 묶는 HTTP 전달 타입 | adapter | 없음 | `apps:api/booking` | MOVE/KEEP |
-| `application/command/{GuestBookingCommandService,MemberBookingCommandService}.kt`, `BookingCommands.kt` | Booking 생성, Schedule inventory, Performance summary 조회, persistence | Booker Command | Booking, Schedule, Performance price | `application:frontoffice/booking/command` | MOVE 후 correctness 수정. 현재 `@ReadModel` money dependency 제거 |
+| `application/command/{GuestBookingCommandService,MemberBookingCommandService}.kt`, `BookingCommands.kt` | Booking 생성, Schedule inventory, Performance summary 조회, persistence | Booker Command | Booking, Schedule, Performance price | `application:frontoffice/booking/booker/command` | MOVE 후 correctness 수정. 현재 `@ReadModel` money dependency 제거 |
 | `application/command/BookingCancellationCommandService.kt` | refund/cancel, Booking/Schedule lock과 allocation release | Booker Command | Booking status/refund, Schedule inventory | same | MOVE. lock semantics 유지/검증 |
-| `application/command/{GuestBookingAuthenticationCommandService,GuestBookingSessionCommandService}.kt`, `application/credential/GuestBookingCredentialAuthenticator.kt`, `application/GuestBookingIdentityValidation.kt` | guest credential, throttle, session actor resolution | Booker/anonymous Command | authoritative guest credential/session | `application:frontoffice/booking/command` 및 internal | MOVE. 중복 identity 결정 선행 |
-| `application/query/{GuestBookingQueryService,MemberBookingQueryService}.kt` | Booking retrieval; legacy null amount fallback; Performance/Schedule 조합 | Booker Query | Booking snapshot + display projection | `application:frontoffice/booking/query` | MOVE. consumer reader 분리; fallback behavior 결정 필요 |
-| `application/BookingPaymentAmount.kt` | price×quantity overflow-safe 계산; command/read error가 혼재 | internal policy | TicketPrice, Booking total | `application:frontoffice/booking` internal | MOVE. 별도 Port 불필요 |
-| `application/event/{BookingCreatedEvent,BookingCreatedEventListener}.kt` | post-commit notification | Booker internal event/output | committed Booking snapshot | `application:frontoffice/booking` | MOVE. notification output은 Booking 소유 |
+| `application/command/{GuestBookingAuthenticationCommandService,GuestBookingSessionCommandService}.kt`, `application/credential/GuestBookingCredentialAuthenticator.kt`, `application/GuestBookingIdentityValidation.kt` | guest credential, throttle, session actor resolution | Booker/anonymous Command | authoritative guest credential/session | `application:frontoffice/booking/booker/command` 및 internal | MOVE. 중복 identity 결정 선행 |
+| `application/query/{GuestBookingQueryService,MemberBookingQueryService}.kt` | Booking retrieval; legacy null amount fallback; Performance/Schedule 조합 | Booker Query | Booking snapshot + display projection | `application:frontoffice/booking/booker/query` | MOVE. consumer reader 분리; fallback behavior 결정 필요 |
+| `application/BookingPaymentAmount.kt` | price×quantity overflow-safe 계산; command/read error가 혼재 | internal policy | TicketPrice, Booking total | `application:frontoffice/booking/booker` internal | MOVE. 별도 Port 불필요 |
+| `application/event/{BookingCreatedEvent,BookingCreatedEventListener}.kt` | post-commit notification | Booker internal event/output | committed Booking snapshot | `application:frontoffice/booking/booker` | MOVE. notification output은 Booking 소유 |
 | `application/result/BookingResults.kt` | use-case output | Booker Command/Query output | snapshot/display 혼합 | command/query owner 인접 | SPLIT/MOVE. HTTP type과 분리 |
-| `exception/BookingApplicationErrorCode.kt` 및 공용 `ApiApplicationException` 사용 | HTTP-coupled application failure | application failure | 없음 | `application:frontoffice/booking` | REPLACE. HTTP 독립 failure language |
+| `exception/BookingApplicationErrorCode.kt` 및 공용 `ApiApplicationException` 사용 | HTTP-coupled application failure | application failure | 없음 | `application:frontoffice/booking/booker` | REPLACE. HTTP 독립 failure language |
 | `core/domain/.../booking/{model/Booking,model/BookingStatus,vo/RefundAccount,repository/BookingRepository,exception/BookingErrorCode}.kt` | Booking aggregate/state/invariant/collection | Domain | Booking | `domain/booking` | MOVE; Kotlin-first는 caller와 함께. `rehydrate` validation 감사 |
 | `core/infra/.../booking/{entity/*,mapper/*,repository/BookingJpaRepository,BookingRepositoryImpl}.kt` | JPA persistence/locking | Adapter | primary Booking rows | `infrastructure/persistence/booking` | MOVE; implementation `internal` |
 | `core/infra/.../booking/repository/query/{GuestCredentialQueries,MakerTicketQueries}.kt` | credential authoritative lookup와 Maker ticket projection이 한 capability path에 공존 | Booking auth / Ticket Maker Query | Booking rows | 각 consumer adapter package | SPLIT/MOVE. 같은 query implementation owner가 아님 |
@@ -148,7 +149,7 @@ core:domain         └→ no BEAT production project
 | Current file(s) | Current responsibility / callers | Actor / semantic | Authoritative state | Target | Action / reason |
 |---|---|---|---|---|---|
 | `apis/.../schedule/api/{ScheduleApi,ScheduleController}.kt`, `api/response/{ScheduleSuccessCode,TicketAvailabilityResponse}.kt`, `api/type/ScheduleNumberType.kt` | availability HTTP endpoint | Booker adapter | 없음 | `apps:api/schedule` | MOVE |
-| `application/query/ScheduleQueryService.kt`, `application/result/ScheduleResults.kt`, `application/DueDate.kt`, `facade/ScheduleFacade.kt`, `exception/ScheduleApplicationErrorCode.kt` | authoritative availability decision과 HTTP mapping | Booker Query + adapter | Schedule | app/application으로 SPLIT | facade/HTTP mapping은 apps; query/policy/failure는 `application:frontoffice/schedule/query` |
+| `application/query/ScheduleQueryService.kt`, `application/result/ScheduleResults.kt`, `application/DueDate.kt`, `facade/ScheduleFacade.kt`, `exception/ScheduleApplicationErrorCode.kt` | authoritative availability decision, cross-actor due-date calculation/failure language, HTTP mapping | Booker Query + capability-shared policy + adapter | Schedule | app/application으로 SPLIT | facade/HTTP mapping은 apps; query/results는 `application:frontoffice/schedule/booker/query`; Performance Maker도 사용하는 `DueDate`와 failure language는 `schedule` capability 공통 영역에 유지 |
 | `core/domain/.../schedule/{model/Schedule,model/ScheduleNumber,repository/ScheduleRepository,service/ScheduleSequenceDomainService,exception/ScheduleErrorCode}.kt` | occurrence, close time, inventory, numbering | Domain | Schedule | `domain/schedule` | MOVE. Booking/Performance에 흡수 금지 |
 | `core/infra/.../schedule/{entity/*,mapper/*,repository/*}.kt` | JPA lock, DB-time close query, persistence | Adapter | primary Schedule rows | `infrastructure/persistence/schedule` | MOVE/internal |
 | `repository/query/{ScheduleAvailabilityQueries,ScheduleQueries}.kt` | Booker availability, Home min date, Ticket Maker summary가 혼재 | multiple consumer Query | projections | consumer별 adapter | SPLIT |
@@ -163,9 +164,9 @@ core:domain         └→ no BEAT production project
 |---|---|---|---|---|---|
 | `apis/.../ticket/api/{TicketApi,TicketController}.kt`, `api/request/*.kt`, `api/response/*.kt` | Maker ticket-management HTTP | Maker adapter | 없음 | `apps:api/ticket` | MOVE |
 | `facade/TicketFacade.kt` | DTO mapping and delegation | Maker adapter | 없음 | `apps:api/ticket` | MOVE/MERGE |
-| `application/command/{TicketCommandService,TicketCommands}.kt` | payment confirmation/refund completion/delete over Booking/Schedule | Maker Command | Booking status, Schedule allocation, Performance owner | `application:frontoffice/ticket/command` | MOVE. Performance `@ReadModel` authorization 제거 |
-| `application/query/{TicketQueryService,TicketListQuery}.kt`, `result/TicketRetrieveResult.kt` | Maker ticket list/search | Maker Query | consumer projection; separate auth | `application:frontoffice/ticket/query` | MOVE; reader vocabulary를 consumer가 소유 |
-| `application/event/{TicketPaymentConfirmedEvent,TicketPaymentConfirmedEventListener}.kt` | post-commit SMS | Maker event/output | committed Booking state | `application:frontoffice/ticket` | MOVE. generic `SmsPort` 대신 consumer semantic 검토 |
+| `application/command/{TicketCommandService,TicketCommands}.kt` | payment confirmation/refund completion/delete over Booking/Schedule | Maker Command | Booking status, Schedule allocation, Performance owner | `application:frontoffice/ticket/maker/command` | MOVE. Performance `@ReadModel` authorization 제거 |
+| `application/query/{TicketQueryService,TicketListQuery}.kt`, `result/TicketRetrieveResult.kt` | Maker ticket list/search | Maker Query | consumer projection; separate auth | `application:frontoffice/ticket/maker/query` | MOVE; reader vocabulary를 consumer가 소유 |
+| `application/event/{TicketPaymentConfirmedEvent,TicketPaymentConfirmedEventListener}.kt` | post-commit SMS | Maker event/output | committed Booking state | `application:frontoffice/ticket/maker` | MOVE. generic `SmsPort` 대신 consumer semantic 검토 |
 | `exception/TicketApplicationErrorCode.kt` | API-coupled failure | Application | 없음 | ticket command/query owner | REPLACE/MOVE |
 
 현재 Domain에는 Ticket aggregate/repository가 없다. Ticket은 Maker가 인식하는 application capability이지만 state owner는 Booking과 Schedule이다. 따라서 `ticket` package를 유지하는 것과 Ticket Domain aggregate를 발명하는 것은 별개의 결정이다.
@@ -193,7 +194,7 @@ Member와 Users는 현재 서로 다른 aggregate다. Member는 social identity/
 | Current file(s) | Current responsibility / callers | Actor / semantic | Authoritative state | Target | Action / reason |
 |---|---|---|---|---|---|
 | `apis/.../home/api/{HomeApi,HomeController}.kt`, `api/response/*.kt`, `api/type/HomeGenreType.kt`, `facade/HomeFacade.kt` | Home HTTP and mapping | Booker adapter | 없음 | `apps:api/home` | MOVE/MERGE |
-| `application/query/HomeQueryService.kt`, `application/result/HomeResults.kt` | Performance/Schedule/Promotion consumer projection 조합 | Booker Query | 없음; read projection | `application:frontoffice/home/query` | MOVE. 하나의 Home-owned reader shape로 fold 가능 |
+| `application/query/HomeQueryService.kt`, `application/result/HomeResults.kt` | Performance/Schedule/Promotion consumer projection 조합 | Booker Query | 없음; read projection | `application:frontoffice/home/booker/query` | MOVE. 하나의 Home-owned reader shape로 fold 가능 |
 
 Home은 aggregate가 아니라 consumer query capability다. cross-capability join/projection을 허용하되 Command seam으로 재사용하지 않는다.
 
@@ -203,7 +204,7 @@ Home은 aggregate가 아니라 consumer query capability다. cross-capability jo
 |---|---|---|---|---|---|
 | `apis/.../file/api/{FileApi,FileController}.kt`, `api/response/*`, `facade/FileFacade.kt` | `/file/presigned-url` HTTP surface | Performance Maker adapter | 없음 | `apps:api/file` | MOVE. route 보존; 앱 package 이름이 Domain owner를 의미하지 않음 |
 | `application/command/FileCommandService.kt` | Performance maker image names validate + presigned upload request | Performance Maker Command | external object contract | `application:frontoffice/performance/maker/command` | MOVE; class rename은 caller/result 이동 후 책임이 실제로 더 선명해질 때만 수행. 현재 `File`은 business capability evidence가 없음 |
-| `module-contracts/storage/**`, `core/infra/external/storage/s3/**` | Performance와 Admin Promotion storage methods/DTO를 한 interface에 결합 | multiple consumers | S3 object metadata | Performance Maker-owned storage output + temporary Admin legacy contract implemented by one infra adapter | SPLIT. PR-5에서 Performance presign/metadata vocabulary만 이동하고 Admin methods/DTO는 PR-10까지 compatibility로 남긴다 |
+| `module-contracts/storage/**`, `core/infra/external/storage/s3/**` | Performance와 Admin Promotion storage methods/DTO를 한 interface에 결합 | multiple consumers | S3 object metadata | Performance Maker-owned storage output + temporary Admin legacy contract implemented by one infra adapter | SPLIT. PR-5에서 Performance presign/metadata vocabulary만 이동하고 Admin methods/DTO는 PR-15까지 compatibility로 남긴다 |
 
 Performance Maker storage seam은 presigned upload 발급과 저장 object metadata 확인이라는 동일 외부 object-store volatility를 숨긴다. 삭제하면 Application이 S3 구현을 알거나 broad Admin contract를 계속 사용해야 하므로 port creation/deletion test를 통과한다. 반면 poster CDN pre-warm은 별도 thin port를 만들지 않는다. committed `PerformancePosterChangedEvent`를 infrastructure listener가 구독하고 현재 CDN adapter를 호출한다. 따라서 PR-5 후 Performance Application은 `FileStoragePort`와 `ImageCachePort`를 모두 알지 않는다.
 
@@ -263,14 +264,14 @@ Users aggregate/JPA files는 3.5에 함께 기록했다. `application:admin` lan
 
 | Lane | Capability | Actual actor | Command | Query | Actor package decision |
 |---|---|---|---|---|---|
-| Frontoffice | Booking | Booker/anonymous guest | create, authenticate/session, refund/cancel | member/guest retrieval | Actor 생략 가능. 현재 다른 actor use case 없음 |
+| Frontoffice | Booking | Booker/anonymous guest | create, authenticate/session, refund/cancel | member/guest retrieval | `booking/booker`; guest는 별도 Actor가 아니라 Booker use case의 인증 상태다 |
 | Frontoffice | Performance | Booker | 없음 | public detail/booking form | `performance/booker/query` 필요 |
 | Frontoffice | Performance | Maker | create/modify/delete, Schedule orchestration, upload preparation | list/edit form | `performance/maker/{command,query}` 필요 |
-| Frontoffice | Schedule | Booker | 없음 | availability | 단일 actor이므로 `schedule/query` 가능 |
-| Frontoffice | Ticket | Maker | payment/refund/delete workflow | list/search | 단일 actor이므로 `ticket/{command,query}` 가능 |
+| Frontoffice | Schedule | Booker | 없음 | availability | `schedule/booker/query` |
+| Frontoffice | Ticket | Maker | payment/refund/delete workflow | list/search | `ticket/maker/{command,query}` |
 | Frontoffice | Member | anonymous/Booker | social login/registration | 없음 | Actor package 불필요 |
 | Frontoffice | Auth | anonymous/Booker | token refresh/signout/issuance | 없음 | Actor package 불필요 |
-| Frontoffice | Home | Booker | 없음 | home projection | `home/query` |
+| Frontoffice | Home | Booker | 없음 | home projection | `home/booker/query` |
 | Admin | Promotion | lane 자체가 Admin | carousel/storage command | promotion/storage query | `promotion/{command,query}`; `admin` 중복 금지 |
 | Admin | User | lane 자체가 Admin | 없음 | user list | `user/query` |
 | System | Booking | lane 자체가 System | old-cancelled cleanup | 없음 | `booking/command`; `system` 중복 금지 |
@@ -388,7 +389,7 @@ Password hashing은 위 output-port 목록과 다르다. 외부 상태나 다른
 | `PerformanceContentOwnershipReadPort` | Performance modify의 foreign child와 missing child 403/404 diagnostic / JDSL | MOVE-TO-APPLICATION-READER: `application:frontoffice/performance/maker/command`. 삭제하면 persistence leakage, aggregate scan 또는 오류 의미 손실이 생기며 invariant input으로 재사용 금지 |
 | `ScheduleAvailabilityReadPort`, `ScheduleAvailabilityReadModel` | `PerformanceDetailQueryService`만 소비하는 detail projection / JDBC | MOVE-TO-QUERY-READER: `application:frontoffice/performance/booker/query`. Schedule availability endpoint는 별도 authoritative repository query 유지 |
 | `ScheduleReadPort`, `MinPerformanceDateReadModel`, `ScheduleSummaryReadModel` | Home min date + Ticket Maker summary를 한 interface에 결합 | SPLIT/MOVE-TO-QUERY-READER: Home과 Ticket consumer 각각 소유 |
-| `MakerTicketReadPort`, `MakerTicketListItemReadModel`, `MakerTicketBookingStatus`, `MakerTicketScheduleNumber` | Ticket Maker list/search / JDSL | MOVE-TO-QUERY-READER: `application:frontoffice/ticket/query` |
+| `MakerTicketReadPort`, `MakerTicketListItemReadModel`, `MakerTicketBookingStatus`, `MakerTicketScheduleNumber` | Ticket Maker list/search / JDSL | MOVE-TO-QUERY-READER: `application:frontoffice/ticket/maker/query` |
 | `HomePromotionReadPort`, `HomePromotionReadModel` | Home / JDSL | MOVE-TO-QUERY-READER: Home projection에 fold |
 | `GuestCredentialReadPort`, `GuestCredentialReadModel` | Booking guest authentication / Booking rows | MOVE-TO-APPLICATION-PORT: authoritative credential lookup. Query projection으로 최적화 금지; duplicate policy 포함 |
 | `GuestAccessThrottlePort` | Booking guest auth / Redis | MOVE-TO-APPLICATION-PORT: Booking command |
@@ -400,7 +401,7 @@ Password hashing은 위 output-port 목록과 다르다. 외부 상태나 다른
 | `BookingNotificationPort`, `BookingNotification` | Booking created listener / Slack | MOVE-TO-APPLICATION-PORT: Booking event/output |
 | `MemberNotificationPort`, `MemberNotification` | Member registered listener / Slack | MOVE-TO-APPLICATION-PORT: Member event/output |
 | `SmsPort`, `SmsMessage` | Ticket payment-confirmed listener만 사용 / CoolSMS | REPLACE consumer semantic output. generic SMS transport vocabulary를 Application public API로 유지하지 않음 |
-| `ImageCachePort` | Performance poster와 Admin Promotion prewarm / CDN adapter | PR-5에서 Performance 사용 제거: committed poster event를 infrastructure가 구독. Admin legacy contract는 PR-10까지 유지한 뒤 central contract 삭제 |
+| `ImageCachePort` | Performance poster와 Admin Promotion prewarm / CDN adapter | PR-5에서 Performance 사용 제거: committed poster event를 infrastructure가 구독. Admin legacy contract는 PR-15까지 유지한 뒤 central contract 삭제 |
 | `FileStoragePort` | Performance Maker + Admin Promotion + metadata를 한 interface로 결합 / S3 | REQUIRES-SPLIT. PR-5에서 Performance presign/metadata를 Maker-owned object-storage output으로 이동; S3 adapter는 새 port와 temporary Admin legacy contract를 함께 구현 |
 | `PerformancePresignedUrls`, `ImagePresignedUpload` | Performance Maker consumer | 해당 Performance Maker output port/input-output에 MOVE |
 | `CarouselPresignedUrls`, `CarouselPresignedUpload`, `BannerPresignedUrl` | Admin Promotion consumer | `application:admin/promotion`에 MOVE |
@@ -414,7 +415,7 @@ Password hashing은 위 output-port 목록과 다르다. 외부 상태나 다른
 2. **`Performance Capability API`를 package/class 설계로 즉시 변환:** Constitution의 public 후보를 `application:frontoffice/performance/api` 생성 의무로 해석했다. 해당 package 결정은 철회한다.
 3. **API와 lock을 결합:** authoritative offer semantic과 `PESSIMISTIC_WRITE` strategy를 같은 contract로 만들려 했다. lock은 교체 가능한 consistency implementation이다.
 4. **Lock inversion 미검출:** Performance modify의 `Performance→Schedule`과 기존 Booking create의 `Schedule→Performance` 가능성을 충분히 비교하지 않았다.
-5. **Actor package 과잉:** Booking을 무조건 `booking/booker`로 정렬하려 했다. 실제 단일 actor capability에는 불필요하다.
+5. **Actor package 과소 지정:** 단일 Actor라는 이유로 Booking/Schedule/Ticket/Home의 Actor를 생략하려 했다. `frontoffice` lane은 Actor를 표현하지 않으므로 실제 행위가 Booker/Maker로 분명한 use case는 Actor package를 명시한다.
 6. **Schedule ownership 표현 혼동:** reference slice sequencing을 “Booking enabling seam”으로 표현해 Schedule의 독립 aggregate ownership을 흐렸다.
 7. **Contract relocation 중심 분류:** mixed summary/storage/JWT contracts를 consumer semantics보다 새 package 위치로 먼저 분류했다.
 8. **Kotlin-first 후순위화:** 별도 말기 PR로 대부분 미뤘다. 실제로는 Java caller를 각 slice에서 옮긴 직후 compatibility surface를 제거해야 한다.
@@ -455,8 +456,9 @@ application
 ├── frontoffice
 │   └── com.beat.application.frontoffice
 │       ├── booking
-│       │   ├── command
-│       │   └── query
+│       │   └── booker
+│       │       ├── command
+│       │       └── query
 │       ├── performance
 │       │   ├── booker
 │       │   │   └── query
@@ -464,16 +466,19 @@ application
 │       │       ├── command
 │       │       └── query
 │       ├── schedule
-│       │   └── query
+│       │   └── booker
+│       │       └── query
 │       ├── ticket
-│       │   ├── command
-│       │   └── query
+│       │   └── maker
+│       │       ├── command
+│       │       └── query
 │       ├── member
 │       │   └── command
 │       ├── auth
 │       │   └── command
 │       └── home
-│           └── query
+│           └── booker
+│               └── query
 ├── admin
 │   └── com.beat.application.admin
 │       ├── promotion
@@ -518,20 +523,38 @@ support
 - `application.admin.*.admin` / `application.system.*.system`: physical lane과 Actor가 중복된다.
 - `domain.ticket`, `domain.home`: 현재 aggregate/invariant evidence가 없다.
 
+Actor 표기 근거:
+
+- `booking`, `schedule`, `home`은 현재 Booker 행위만 있지만 `frontoffice`가 Actor를 대신 표현하지 않으므로 `booker`를 명시한다.
+- `ticket`의 endpoint vocabulary는 ticket이지만 실제 Use Case는 공연 Maker의 예매자 관리이므로 `maker`를 명시한다.
+- `member`, `auth`는 Booker/Maker 공통 identity/session capability이며 actor-specific policy가 없어 Actor-neutral로 둔다. 단순히 actor가 하나라서 생략한 것이 아니다.
+- Admin/System은 physical application lane이 Actor를 이미 표현하므로 하위에 동일 actor package를 반복하지 않는다.
+
 ## 9. Revised PR graph
 
+### 9.1 Revision reason
+
+PR-7 이후 graph를 다시 나눈 이유는 세 가지다.
+
+- 단일 Actor 생략 가설이 Frontoffice Actor ownership과 충돌했다.
+- runtime/BOM upgrade, test authoring foundation, test semantic rewrite, Testcontainers lifecycle 변경은 rollback 위험이 서로 다르다.
+- 이미 이동한 Booking/Performance/Schedule/Ticket/Member/Auth의 package를 먼저 정렬해야 테스트를 두 번 이동하지 않는다.
+
+### 9.2 Current dependency graph
+
 ```text
-PR-1 ─┐
-PR-2 ─┼→ PR-4 → PR-5 → PR-6 ───────────────┐
-PR-3 ─┘    │      └→ PR-8                   │
-           └→ PR-7 → PR-9 → PR-10 ← PR-5   ├→ PR-13 → PR-14
-PR-3 ─────────────────→ PR-11               │
-PR-3 ─────────────────→ PR-12 ──────────────┘
+PR-1 + PR-2 + PR-3 → PR-4 → PR-5 → PR-6 → PR-7
+PR-7 → PR-8 → PR-9 → PR-10
+PR-10 → PR-11
+PR-10 → PR-12
+PR-5 + PR-10 → PR-13
+PR-7 + PR-10 → PR-14 → PR-15
+PR-3 + PR-10 → PR-16
+PR-3 + PR-10 → PR-17
+PR-11..PR-17 → PR-18 → PR-19
 ```
 
-`PR-13`은 PR-4부터 PR-12까지의 모든 실제 consumer migration 완료에 의존한다.
-
-PR-7, PR-8, PR-11, PR-12는 선행 consumer contract 충돌이 없도록 실제 merge 시점에 병렬 가능하다. 번호는 Architecture가 아니며 source overlap이 달라지면 graph를 수정한다.
+PR-11/PR-12와 capability PR-13/14/16/17은 source overlap이 없을 때 병렬 진행할 수 있다. 신규 또는 재작성 Kotlin test는 PR-10 이후 FunSpec으로 작성한다. 번호는 Architecture가 아니며 correctness dependency나 source overlap이 달라지면 graph와 DoD를 먼저 수정한다.
 
 ### PR-1 — Correctness characterization: Booking identity, snapshots, rehydration, guest ambiguity
 
@@ -583,10 +606,10 @@ PR-7, PR-8, PR-11, PR-12는 선행 consumer contract 충돌이 없도록 실제 
 - Invariant gained: Capability→Actor→CQRS change locality, Performance→Schedule orchestration ownership, Application의 Web/central-contract 의존 제거.
 - Dependencies: PR-4 (shared summary/schedule contract conflict 회피).
 - Correctness risk: modify/delete의 Performance→sorted Schedule lock, active Booking price restriction, foreign-vs-missing child 403/404, DB-clock availability, image metadata/category validation, edit/detail JSON.
-- Compatibility: Performance/Schedule/File routes, status/message/JSON, transaction boundary, S3 key/presigned URL semantics, after-commit best-effort CDN prewarm 유지. Admin storage/cache legacy contract는 PR-10까지 temporary compatibility로 남긴다.
+- Compatibility: Performance/Schedule/File routes, status/message/JSON, transaction boundary, S3 key/presigned URL semantics, after-commit best-effort CDN prewarm 유지. Admin storage/cache legacy contract는 PR-15까지 temporary compatibility로 남긴다.
 - Rollback: capability slice revert; no schema change.
 - Tests: Performance/Schedule domain/application, modification/delete lock and active-booking behavior, child diagnostic, JPA/JDSL/JDBC readers, File/Performance/Schedule API contract, S3 adapter, context bootstrap, capability/implementation-access guards.
-- DoD: 실제 use case가 있는 `performance/booker/query`, `performance/maker/{command,query}`, `schedule/query`만 존재; no `performance/api`; Schedule ownership 독립; Performance application에서 `ApiApplicationException`, apps error, Web, infrastructure, `module-contracts` import zero; `PerformanceEditFormReadPort`의 `Optional` 제거; Performance 용 broad storage/cache methods retired; touched Java caller를 Kotlin으로 옮긴 뒤 불필요한 `@Jvm*` 제거; apps facade/controller는 application public use case/output 외 infrastructure implementation에 접근하지 않음.
+- DoD: 실제 use case가 있는 `performance/booker/query`, `performance/maker/{command,query}`, `schedule/booker/query`만 존재; no `performance/api`; Schedule ownership 독립; Performance application에서 `ApiApplicationException`, apps error, Web, infrastructure, `module-contracts` import zero; `PerformanceEditFormReadPort`의 `Optional` 제거; Performance 용 broad storage/cache methods retired; touched Java caller를 Kotlin으로 옮긴 뒤 불필요한 `@Jvm*` 제거; apps facade/controller는 application public use case/output 외 infrastructure implementation에 접근하지 않음.
 
 ### PR-6 — Ticket Maker capability
 
@@ -610,82 +633,137 @@ PR-7, PR-8, PR-11, PR-12는 선행 consumer contract 충돌이 없도록 실제 
 - Tests: token unit/security integration, social mapping, refresh Redis, three runtime auth smoke.
 - DoD: mixed `JwtTokenPort` retired; no central auth contract; Java callers migrated and nullable/property API verified.
 
-### PR-8 — Home consumer projection
+### PR-8 — Frontoffice Actor ownership alignment
 
-- Objective: Home projection을 consumer-owned reader로 fold하고 Performance/Schedule/Promotion central read contracts를 제거한다.
+- Objective: 이미 이동한 Booking 전체, Schedule Booker query, Ticket 전체 source와 tests를 각각 `booking/booker`, `schedule/booker/query`, `ticket/maker` 아래로 정렬하고 Actor 규칙을 executable guard로 고정한다. Performance Maker도 사용하는 Schedule 공통 policy/failure는 capability root에 유지한다.
+- Invariant gained: Frontoffice의 모든 actor-specific use case가 Capability→Actor→CQRS 순으로 동일하게 탐색된다.
+- Dependencies: PR-7; PR-4/5/6 source가 모두 도착한 뒤 한 번만 이동한다.
+- Correctness risk: Spring component scan, package-private/internal test access, import 누락.
+- Compatibility: class behavior와 public use-case signature를 바꾸지 않는다. 기존 JUnit tests는 이 PR에서 그대로 이동한다.
+- Rollback: package move commit 단위 revert; schema/runtime contract 변화 없음.
+- Tests: affected compile/test, three app boot, actor/package ArchUnit.
+- DoD: Booking/Schedule/Ticket의 production/test package 정렬; Performance의 기존 Booker/Maker 보존; Member/Auth actor-neutral allowlist; Admin/System actor 중복 금지.
+
+### PR-9 — Spring Boot 4.1 runtime/BOM alignment
+
+- Objective: Spring Boot 4.1 baseline과 BOM-managed Kotlin/Testcontainers versions를 먼저 검증하고 불필요한 explicit override를 제거한다.
+- Invariant gained: test/tool version compatibility가 application migration과 분리된 한 rollback boundary에 놓인다.
+- Dependencies: PR-8.
+- Correctness risk: plugin/API binary compatibility, Testcontainers 2.x package/API, Spring bootstrap/security behavior.
+- Compatibility: route/schema/runtime behavior 유지; version upgrade 외 source migration 금지.
+- Rollback: dependency/build-logic commit revert.
+- Tests: full current suite, dependency resolution, three boot contexts, MySQL/Redis container smoke, bootJar/deploy smoke.
+- DoD: adopted versions and remaining overrides documented; Boot BOM 기준 dependency graph green.
+
+### PR-10 — Kotest FunSpec authoring foundation and pilot
+
+- Objective: JUnit Platform 위에 Kotest runner/assertions/property, MockK, Kotest Spring Extension을 module convention으로 제공하고 대표 pure/Spring spec으로 lifecycle을 검증한다.
+- Invariant gained: Kotlin test authoring language와 execution contract가 분리되어 표준화된다.
+- Dependencies: PR-9.
+- Correctness risk: test discovery, IDE/Gradle parity, Kotest 6 extension registration/lifecycle, mixed JUnit coexistence.
+- Compatibility: 기존 JUnit tests를 제거하지 않고 동일 suite에서 함께 실행한다.
+- Rollback: test dependency/convention과 pilot conversion revert.
+- Tests: test discovery count, representative Domain/Application FunSpec, representative Spring FunSpec, property smoke.
+- DoD: `useJUnitPlatform()` 유지; FunSpec convention과 Spring lifecycle mode 명시; broad source conversion 없음.
+
+### PR-11 — Migrated Domain/Frontoffice pure-test semantic rewrite
+
+- Objective: PR-4~7에서 이동한 Domain/Application tests를 protected invariant별 FunSpec으로 재작성하고 Spring context를 제거한다.
+- Invariant gained: pure business correctness가 framework 없이 빠르게 검증된다.
+- Dependencies: PR-10.
+- Correctness risk: 기존 test가 우연히 보호하던 edge case 누락, mock interaction을 behavior로 오인.
+- Compatibility: invariant-by-invariant replacement 후 기존 test를 제거한다.
+- Rollback: capability별 test commit revert.
+- Tests: real object→simple fake→MockK 순서, boundary property tests, Booking/Performance/Schedule/Ticket/Member/Auth use-case tests.
+- DoD: replacement mapping 완성; pure test의 Spring annotation/context zero; 기존 JUnit/Mockito test는 replacement가 확인된 것만 제거.
+
+### PR-12 — Spring integration/acceptance and Testcontainers lifecycle foundation
+
+- Objective: lane-local acceptance meta-annotation과 Spring-managed MySQL/Redis Testcontainers configuration을 도입하고 migrated slice integration/API/concurrency tests를 FunSpec으로 재작성한다.
+- Invariant gained: production DB/cache semantics, Spring context lifecycle, context-cache reuse가 한 표준으로 검증된다.
+- Dependencies: PR-10; PR-11과 병렬 가능하나 같은 test file은 동시에 건드리지 않는다.
+- Correctness risk: context cache fragmentation, container shutdown before cached context, transaction rollback illusion, suite runtime 증가.
+- Compatibility: real MySQL/Redis와 production transaction boundary 유지; SpringMockK/bean override를 기본값으로 만들지 않는다.
+- Rollback: meta-annotation/config와 capability test commit 단위 revert.
+- Tests: repository adapters, controller/serialization/security, acceptance journey, lock/concurrency without test-level transaction, context-cache measurement.
+- DoD: `@BeatAcceptanceTest`가 apps:api lane configuration을 표준화; admin/batch는 필요가 증명될 때만 lane-local annotation; manual static `.start()` base 제거; leaf/root lifecycle choice documented.
+
+### PR-13 — Home Booker consumer projection
+
+- Objective: Home projection을 `home/booker/query` consumer-owned reader로 fold하고 central read contracts를 제거한다.
 - Invariant gained: Query consumer가 vocabulary와 optimization을 소유한다.
-- Dependencies: PR-5; Promotion domain/adapter는 현재 contract compatibility로 독립 이동 가능.
+- Dependencies: PR-5, PR-10.
 - Correctness risk: ordering/due-date/genre/filter and carousel composition.
 - Compatibility: Home JSON/order 유지.
-- Rollback: reader adapter와 use case slice revert.
-- Tests: Home application, JDSL/JDBC integration, API contract.
-- DoD: Home query만의 projection; Home model이 Command에 노출되지 않음.
+- Rollback: reader adapter와 use-case slice revert.
+- Tests: FunSpec Home application, JDSL/JDBC integration, API contract.
+- DoD: Home-only projection; Home model이 Command에 노출되지 않음; actor package guard green.
 
-### PR-9 — Admin User lane foundation
+### PR-14 — Admin User lane foundation
 
-- Objective: apps:admin→application:admin User query를 먼저 검증해 runtime boundary를 작은 slice로 연다.
-- Invariant gained: Admin lane이 Actor를 중복 package로 만들지 않고 use case를 소유한다.
-- Dependencies: PR-3, PR-7 security wiring.
+- Objective: apps:admin→application:admin User query를 작은 slice로 열어 Admin runtime boundary를 검증한다.
+- Invariant gained: Admin lane이 Actor를 이미 표현하며 controller는 mapping만 소유한다.
+- Dependencies: PR-7, PR-10.
 - Correctness risk: admin role vs member-existence policy.
 - Compatibility: `/users` behavior 유지.
 - Rollback: small slice revert.
-- Tests: Admin user query, security/HTTP, admin boot.
-- DoD: controller has mapping only; no Domain failure direct HTTP mapping.
+- Tests: FunSpec Admin user query, security/HTTP, admin boot.
+- DoD: no duplicated `user/admin`; no Domain failure direct HTTP mapping.
 
-### PR-10 — Admin Promotion
+### PR-15 — Admin Promotion
 
-- Objective: Promotion command/query, Performance existence, S3/cache outputs를 application:admin으로 이동한다.
-- Invariant gained: Admin command authoritative referential checks와 consumer-owned storage seams.
-- Dependencies: PR-5, PR-7, PR-9.
-- Correctness risk: carousel uniqueness/order, external/internal redirect, S3 object validation/cache failure.
+- Objective: Promotion command/query, authoritative Performance existence check, S3/cache outputs를 application:admin으로 이동한다.
+- Invariant gained: Admin command authoritative checks와 consumer-owned storage seams.
+- Dependencies: PR-5, PR-14.
+- Correctness risk: carousel uniqueness/order, concurrent Performance delete, redirect, S3 validation/cache failure.
 - Compatibility: Admin routes/JSON/storage keys 유지.
 - Rollback: Promotion slice revert.
-- Tests: Promotion domain/application, concurrent Performance delete/existence Testcontainers, JPA/S3/cache adapters, Admin API/security.
-- DoD: no Admin Command→`PerformanceSummaryReadModel`; broad storage/cache central contracts 제거.
+- Tests: FunSpec Promotion domain/application, MySQL concurrency, JPA/S3/cache adapters, Admin API/security.
+- DoD: no Admin Command→Performance read model; broad storage/cache contracts 제거.
 
-### PR-11 — System/Batch workflows and Java production retirement
+### PR-16 — System/Batch workflows and Java production retirement
 
-- Objective: two maintenance services를 application:system Kotlin use case로, jobs를 apps:batch scheduler adapter로 이동한다.
+- Objective: maintenance services를 application:system Kotlin use case로, jobs를 apps:batch scheduler adapter로 이동한다.
 - Invariant gained: apps:batch has no maintenance workflow; production Java 제거.
-- Dependencies: PR-3; PR-4/10과 source conflict가 생기면 해당 PR 후 merge.
+- Dependencies: PR-3, PR-10; PR-4/15 source conflict 시 해당 PR 후 merge.
 - Correctness risk: clock/timezone, cron/error handler, large delete/reorder transaction.
-- Compatibility: scheduler names/cron/job behavior/deploy runtime 유지.
+- Compatibility: scheduler names/cron/job/deploy behavior 유지.
 - Rollback: job별 commit revert.
-- Tests: Clock-controlled application tests, scheduler invocation, batch boot, repository integration.
-- DoD: four Java production files gone; thin facades gone; no unjustified `@Jvm*` left for them.
+- Tests: FunSpec Clock-controlled application, scheduler invocation, repository integration, batch boot.
+- DoD: production Java jobs/services 제거; no duplicated system actor package; unjustified `@Jvm*` zero.
 
-### PR-12 — Observability/global-support ownership
+### PR-17 — Observability/global-support ownership
 
-- Objective: observability physical target move와 global-support 분해를 수행한다.
-- Invariant gained: narrow technical support; HTTP response/Jackson policy는 apps가 소유.
-- Dependencies: PR-3.
+- Objective: observability target move와 global-support 분해를 수행한다.
+- Invariant gained: narrow technical support; HTTP/Jackson policy는 apps가 소유한다.
+- Dependencies: PR-3, PR-10.
 - Correctness risk: logging/MDC/Sentry/serialization behavior.
 - Compatibility: log fields, trace IDs, CDN serialization, error envelope 유지.
-- Rollback: support concern별 revert.
-- Tests: observability tests, serialization/API snapshots, three boot apps.
+- Rollback: concern별 revert.
+- Tests: FunSpec observability, serialization/API snapshots, three boot apps.
 - DoD: `global-support` retired; no Domain dependency in observability.
 
-### PR-13 — Infrastructure visibility and `module-contracts` retirement
+### PR-18 — Infrastructure visibility and `module-contracts` retirement
 
-- Objective: 모든 consumer migration 후 remaining contract/config bridge를 제거하고 infra implementation을 internal로 닫는다.
+- Objective: 모든 consumer/test migration 후 remaining contract/config bridge를 제거하고 infra implementation을 internal로 닫는다.
 - Invariant gained: no central contracts, apps web→infra implementation 금지, minimal bootstrap API.
-- Dependencies: PR-4 through PR-12 relevant consumers.
+- Dependencies: PR-11 through PR-17 and their prior capability PRs.
 - Correctness risk: Spring bean discovery/configuration and hidden implementation access.
 - Compatibility: explicit bootstrap configuration allowlist only.
 - Rollback: adapter family별 commits; module deletion은 마지막 commit.
 - Tests: full context/adapter integration, dependency graph, zero-reference scans.
 - DoD: `module-contracts` project/package/reference zero; public infra implementation exceptions documented.
 
-### PR-14 — Physical tree alignment, Kotlin/API minimization, legacy guard retirement, final verification
+### PR-19 — Physical tree, Kotlin/API/test debt closeout and final verification
 
-- Objective: legacy names/directories를 target tree에 최종 정렬하고 remaining Kotlin/public/test debt를 감사한다.
+- Objective: legacy names/directories를 target tree에 정렬하고 Kotlin/public/test debt와 obsolete guards를 감사한다.
 - Invariant gained: target physical graph와 semantic guards가 최종 상태를 증명한다.
-- Dependencies: PR-13.
-- Correctness risk: CI/deploy paths, Java ABI test callers, obsolete guard removal.
-- Compatibility: deployment module alias/rollback path를 release plan에 따라 유지 또는 명시적으로 전환.
-- Rollback: physical rename/CI mapping commit 단위.
-- Tests: full `check`, boot jars, Testcontainers, security, batch, API, dependency/build health, deploy artifact smoke.
-- DoD: final dependency graph; remaining Java/`@Jvm*`/Optional/public API/source-scan/temp adapter 전수 justification; all three apps executable.
+- Dependencies: PR-18.
+- Correctness risk: CI/deploy paths, Java ABI callers, obsolete guard removal, hidden test coverage loss.
+- Compatibility: deployment alias/rollback path를 release plan에 따라 유지 또는 전환한다.
+- Rollback: physical rename/CI/test-retirement commit 단위.
+- Tests: full `check`, boot jars, MySQL/Redis Testcontainers, security, batch, API, dependency/build health, deploy artifact smoke.
+- DoD: remaining Java/`@Jvm*`/Optional/public API/source-scan/temp adapter justified or zero; authored Kotlin tests FunSpec; JUnit Platform remains; all three apps executable.
 
 ## 10. Architecture guard migration plan과 ADR
 
@@ -726,10 +804,12 @@ Apps의 Domain 직접 dependency는 기본 금지한다. Domain failure를 Contr
 1. **Gradle/compiler:** project dependency matrix, forbidden framework dependencies, bootJar policy, domain classpath test.
 2. **Kotlin visibility:** Application helper/assembler/policy와 infra implementation `internal`; configuration/marker만 public.
 3. **ArchUnit:** apps controller/web→infra implementation 금지, application→Web/JPA/Redis/JDSL type 금지, cross-lane application edge 금지, concrete Application Service cross-capability 호출 금지, support:security→application 금지.
-4. **Capability ownership:** `performance` 안의 Booker/Maker packages가 서로의 concrete service를 호출하지 않도록 보호. Booking에는 evidence 없는 `booker` package를 강제하지 않는다.
+4. **Capability/Actor ownership:** Frontoffice actor-specific use case는 `booking/booker`, `performance/{booker,maker}`, `schedule/booker`, `ticket/maker`, `home/booker` 아래에만 둔다. Member/Auth는 actor-neutral allowlist로 관리하고 Admin/System에는 중복 actor package를 금지한다. Actor 사이와 capability 사이의 concrete Application Service 호출을 금지한다.
 5. **CQRS semantic tests:** Command monetary/ownership/inventory dependency가 read-model/cache/replica adapter를 사용하지 않음을 type/annotation graph로 검증한다. 단순 package-name scan으로 대체하지 않는다.
 6. **Concurrency/integration:** Performance/Booking/Schedule lock outcome, bulk Ticket locks, guest identity race, DB clock을 Testcontainers로 검증한다.
 7. **Legacy guard retirement:** 각 source-string assertion의 protected invariant를 위 mechanism에 매핑한 뒤 한 개씩 제거한다.
+8. **Test authoring/build logic:** JUnit Platform discovery와 Kotest runner를 convention plugin으로 고정한다. module별 migration이 끝나면 Jupiter/Mockito authoring dependency를 제거해 신규 Kotlin test가 legacy style로 늘지 않게 compiler classpath로 제한한다.
+9. **Test semantics:** Domain/Application test source에서 Spring context annotation을 금지하고, Spring integration은 lane-local meta-annotation/configuration을 사용한다. manual static container lifecycle과 test-level transaction을 사용하는 concurrency spec은 semantic guard와 review checklist로 막는다.
 
 ### ADR-MIG-001 — `performance/api`를 만들지 않고 Domain collaboration을 초기 선택
 
@@ -748,12 +828,14 @@ Apps의 Domain 직접 dependency는 기본 금지한다. Domain failure를 Contr
 ### ADR-MIG-003 — Ticket은 Application capability, Domain aggregate는 아님
 
 - Maker endpoint와 change reason은 분명하지만 persistent state와 transition은 Booking/Schedule에 있다.
-- 따라서 `application:frontoffice/ticket`은 유지할 수 있으나 `domain.ticket`은 만들지 않는다.
+- 따라서 `application:frontoffice/ticket/maker`는 유지할 수 있으나 `domain.ticket`은 만들지 않는다.
 
-### ADR-MIG-004 — Actor package는 capability별 evidence로 생성
+### ADR-MIG-004 — Frontoffice actor-specific use case는 Actor를 명시
 
-- Performance는 Booker와 Maker의 command/query가 모두 있어 Actor axis가 필요하다.
-- Booking, Ticket, Home, Schedule은 현재 한 actor만 확인되어 Actor directory를 생략할 수 있다.
+- `application:frontoffice`는 delivery/runtime lane이지 Booker/Maker 중 하나를 의미하지 않는다.
+- Performance는 Booker/Maker를 모두 명시하고, Booking/Schedule/Home은 Booker, Ticket은 Maker를 명시한다. 현재 한 Actor만 존재한다는 사실은 생략 근거가 아니다.
+- guest/member는 Booking Booker use case의 인증 상태이며 별도 Actor package로 복제하지 않는다.
+- Member/Auth는 Booker/Maker 공통 identity/session capability이고 현재 actor-specific policy가 없어 actor-neutral allowlist로 둔다.
 - Admin/System은 physical lane이 Actor를 이미 표현하므로 중복 package를 만들지 않는다.
 
 ### ADR-MIG-005 — Guest password hashing은 Application Output Port가 아니다
@@ -772,6 +854,23 @@ Apps의 Domain 직접 dependency는 기본 금지한다. Domain failure를 Contr
 - 새 Application Port/Capability API를 만들지 않고, authoritative Schedule repository에 non-null id를 받는 Kotlin-first scalar lookup `findPerformanceIdById(Long): Long?`를 추가한다.
 - scalar는 lock-order hint이지 Command decision state가 아니다. 가격은 locked Performance, inventory/close/membership은 locked Schedule에서 재확정한다.
 - 대안인 `Schedule → Performance` lock order는 Performance modify/delete와 충돌하고, Application-owned Port는 Schedule domain knowledge를 중복하며, persistence-context clear/refresh는 현 transaction의 다른 pending state를 건드릴 수 있어 선택하지 않았다.
+
+### ADR-MIG-007 — Kotlin test authoring은 Kotest FunSpec, execution은 JUnit Platform
+
+- Kotlin production과 test의 표현을 맞추고 Domain/Application/Adapter/Acceptance를 `context`/`test` 한 mental model로 읽기 위해 FunSpec을 기본으로 선택한다.
+- JUnit Platform은 runner interoperability와 Gradle/IDE execution contract로 유지한다. Kotest 채택은 JUnit Platform 폐기가 아니다.
+- unit test의 핵심 규칙은 framework 선택이 아니라 Spring 제거와 behavior isolation이다. real object→simple fake→MockK 순서로 사용하고 interaction verification은 boundary behavior에 필요할 때만 둔다.
+- Spring integration/acceptance도 FunSpec을 사용한다. Lifecycle mode 지정은 기술적 필수사항이 아니지만, BEAT 정책은 nested leaf와 Spring test-method lifecycle이 1:1이 아님을 전제로 mode를 명시적으로 고정한다.
+- Testcontainers는 real MySQL/Redis를 사용한다. Spring Context와 lifecycle을 공유하는 integration/acceptance container만 context-managed bean/import 방식으로 정렬하며 독립 repository/adapter test에 이를 일괄 강제하지 않는다.
+- acceptance meta-annotation은 context configuration을 안정화하는 수단이며 중앙 test-common dumping ground가 아니다. app lane별 필요가 입증될 때만 둔다.
+- concurrency/lock spec은 test-level transaction을 사용하지 않고 production Application Command transaction을 실행한다.
+- Toss 사례는 선택 가능성을 뒷받침하는 industry evidence이지 BEAT 결정의 권위가 아니다. BEAT의 authoritative 근거는 Kotlin-first 목표, 실제 MySQL/Redis semantics, test ownership과 feedback 요구다.
+
+### ADR-MIG-008 — Runtime/BOM upgrade와 test rewrite를 분리
+
+- 현재 build의 Spring Boot 4.0.7/Kotlin 2.3.20/Testcontainers 1.21.3에서 Boot 4.1 baseline으로 이동할 때 dependency/API/runtime 위험이 발생한다.
+- version/BOM alignment를 PR-9에서 먼저 검증하고 Kotest foundation은 PR-10, semantic test rewrite는 PR-11/12로 분리한다.
+- 이 경계는 실패 원인이 runtime upgrade인지 authoring framework인지 test semantic rewrite인지 즉시 식별하고 독립 rollback하기 위함이다.
 
 ## Audit gate
 
