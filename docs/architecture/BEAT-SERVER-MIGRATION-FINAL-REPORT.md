@@ -221,11 +221,13 @@ PR-24는 CI 중복 실행 제거, workflow validity, stale source assertion/lega
 
 ## 15. Verification evidence
 
-- Full gate: `./gradlew check transitionBoundaryTest verifyTargetModuleGraph verifyModuleBootJars --rerun-tasks --no-daemon --max-workers=1` — **BUILD SUCCESSFUL**, 5m09s, 115 tasks executed
-- Dependency analysis: `./gradlew buildHealth --no-daemon --max-workers=1` — **BUILD SUCCESSFUL**, 41s, 451 tasks
+- Clean verification commit: `60afcb9e666110e96356ee9895c9e4ecbc534253`
+- Full gate: `./gradlew check transitionBoundaryTest verifyTargetModuleGraph verifyModuleBootJars --rerun-tasks --no-build-cache --no-daemon --max-workers=1` — **BUILD SUCCESSFUL**, 4m59s, 114 tasks executed
+- Unfiltered discovery: 490 tests, failures 0, errors 0, skipped 0
+- Dependency analysis: `./gradlew buildHealth --no-build-cache --no-daemon --max-workers=1` — **BUILD SUCCESSFUL**, 40s, 450 tasks
 - OpenAPI: `.github/scripts/verify_openapi_compatibility.sh` — checksum valid, General/Admin no breaking change
 - Workflow syntax: `actionlint .github/workflows/*.yml` — pass
-- Catalog: `.github/scripts/check_unused_version_catalog_aliases.py` — 44 Kotlin DSL files, unused alias zero
+- Catalog: `.github/scripts/check_unused_version_catalog_aliases.py` — 29 source Gradle Kotlin DSL files, unused alias zero; generated `build-logic/bin` copies are excluded
 - Static: `git diff --check` — pass
 - Runtime: API/Admin/Batch boot jars verified independently
 - Integration/correctness: real MySQL/Redis, booking overselling, price serialization, Schedule close time, Ticket lock ordering, Promotion referential concurrency, System maintenance all included in the full gate

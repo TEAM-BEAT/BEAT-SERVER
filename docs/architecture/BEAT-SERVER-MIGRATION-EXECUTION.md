@@ -855,7 +855,7 @@ PR-11/PR-12는 source overlap이 없을 때 병렬 진행할 수 있고, PR-16/1
 - Tests: full `check`, risk lanes, boot jars, MySQL/Redis, security, batch, OpenAPI, authorization, concurrency, dependency/build health, deploy artifact smoke.
 - DoD: final graph/public API/Kotlin interop/source scan/cross-service/public infrastructure/temp adapter audit 완료; three apps independently executable; final report complete.
 - Evidence: PR CI의 unfiltered `check`를 authoritative discovery로 유지하고 중복 `openApiTest --rerun-tasks`를 제거했다. 모든 deploy workflow는 `actionlint`를 통과하며 삭제된 legacy project path filter와 지원되지 않는 concurrency key가 없다. Production source를 읽는 architecture assertion은 Gradle/compiler/ArchUnit guard로 대체됐다.
-- Final verification: `check transitionBoundaryTest verifyTargetModuleGraph verifyModuleBootJars --rerun-tasks`가 115 tasks로 통과했고, `buildHealth` 451 tasks, General/Admin OpenAPI compatibility, unused catalog, workflow syntax, zero-reference/interop/public-surface audit가 모두 통과했다. 최종 결과와 deliberate filesystem mapping ADR은 `BEAT-SERVER-MIGRATION-FINAL-REPORT.md`에 기록한다.
+- Final verification: clean commit `60afcb9e`에서 `check transitionBoundaryTest verifyTargetModuleGraph verifyModuleBootJars --rerun-tasks --no-build-cache`가 114 tasks로 통과했고, unfiltered 490 tests는 failure/error/skip이 모두 zero다. `buildHealth` 450 tasks, General/Admin OpenAPI compatibility, 29개 source Gradle Kotlin DSL 기준 unused catalog, workflow syntax, zero-reference/interop/public-surface audit도 모두 통과했다. 최종 결과와 deliberate filesystem mapping ADR은 `BEAT-SERVER-MIGRATION-FINAL-REPORT.md`에 기록한다.
 
 ### ADR-MIG-009 — Target Gradle identity와 deployment-compatible source path를 분리
 
