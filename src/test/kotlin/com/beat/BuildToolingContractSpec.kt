@@ -81,6 +81,12 @@ class BuildToolingContractSpec : FunSpec() {
                 "     */",
                 "}"
     ).joinToString("\n"))
+            val generatedScriptDir = tempRoot.resolve("build-logic/bin/main")
+            Files.createDirectories(generatedScriptDir)
+            Files.writeString(
+                generatedScriptDir.resolve("generated.gradle.kts"),
+                "dependencies { implementation(libs.unused.lib) }",
+            )
 
             val checker = Path.of(".github/scripts/check_unused_version_catalog_aliases.py")
                 .toAbsolutePath()

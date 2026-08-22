@@ -8,7 +8,6 @@ sonarqube = "7.2.3.7755"
 kover = "0.9.7"
 spring-cloud = "2025.1.3"
 springdoc = "3.0.2"
-jackson3 = "3.1.5"
 commons-fileupload = "1.6.0"
 jjwt = "0.13.0"
 aws-sdk-v1 = "1.12.797"
@@ -72,7 +71,6 @@ spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boo
 spring-boot-data-redis-test = { module = "org.springframework.boot:spring-boot-data-redis-test", version.ref = "spring-boot" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
 spring-boot-starter-log4j2 = { module = "org.springframework.boot:spring-boot-starter-log4j2", version.ref = "spring-boot" }
-jackson3-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson3" }
 commons-fileupload = { module = "commons-fileupload:commons-fileupload", version.ref = "commons-fileupload" }
 
 spring-cloud-dependencies = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "spring-cloud" }
