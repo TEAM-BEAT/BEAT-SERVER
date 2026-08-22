@@ -1,0 +1,172 @@
+package com.beat.application.frontoffice.booking.booker.command
+
+import com.beat.application.frontoffice.booking.booker.BookingApplicationErrorCode
+import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
+import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.domain.booking.exception.BookingErrorCode
+import com.beat.domain.booking.model.Booking
+import com.beat.domain.booking.model.BookingStatus
+import com.beat.domain.booking.repository.BookingRepository
+import com.beat.domain.schedule.model.Schedule
+import com.beat.domain.schedule.model.ScheduleNumber
+import com.beat.domain.schedule.repository.ScheduleRepository
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import org.mockito.Answers
+import org.mockito.Mockito
+import org.mockito.stubbing.Answer
+import java.time.Clock
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+
+class BookingLifecycleCommandSpec : FunSpec({
+    isolationMode = IsolationMode.SingleInstance
+
+    test("이미 취소된 예매를 반복 취소해도 재고를 다시 해제하지 않는다") {
+        val bookingRepository = mockWithSavePassthrough(BookingRepository::class.java)
+        val scheduleRepository = mockWithSavePassthrough(ScheduleRepository::class.java)
+        val cancelled = booking(BookingStatus.BOOKING_CANCELLED, LocalDateTime.of(2026, 1, 2, 12, 0))
+        Mockito.`when`(bookingRepository.findById(1L)).thenReturn(cancelled)
+        Mockito.`when`(bookingRepository.lockById(1L)).thenReturn(cancelled)
+
+        BookingCancellationCommandService(bookingRepository, FIXED_CLOCK, scheduleRepository)
+            .cancelBooking(20L, BookingCancelCommand.from(1L))
+
+        Mockito.verify(bookingRepository).lockById(1L)
+        verifyNoInvocation(scheduleRepository, "lockById")
+        verifyNoInvocation(scheduleRepository, "save")
+    }
+
+    test("active 예매 취소는 회차를 잠그고 티켓 재고를 한 번 해제한다") {
+        val bookingRepository = mockWithSavePassthrough(BookingRepository::class.java)
+        val scheduleRepository = mockWithSavePassthrough(ScheduleRepository::class.java)
+        val active = booking(BookingStatus.CHECKING_PAYMENT, null)
+        val schedule = schedule()
+        Mockito.`when`(bookingRepository.findById(1L)).thenReturn(active)
+        Mockito.`when`(bookingRepository.lockById(1L)).thenReturn(active)
+        Mockito.`when`(scheduleRepository.lockById(10L)).thenReturn(schedule)
+
+        BookingCancellationCommandService(bookingRepository, FIXED_CLOCK, scheduleRepository)
+            .cancelBooking(20L, BookingCancelCommand.from(1L))
+
+        val savedSchedule = savedArgument<Schedule>(scheduleRepository, "save")
+        savedSchedule.allocatedTicketCount shouldBe 1
+    }
+
+    test("active 예매의 회차가 없으면 안정적인 회차 없음 error를 반환한다") {
+        val bookingRepository = mockWithSavePassthrough(BookingRepository::class.java)
+        val scheduleRepository = mockWithSavePassthrough(ScheduleRepository::class.java)
+        Mockito.`when`(bookingRepository.findById(1L)).thenReturn(booking(BookingStatus.CHECKING_PAYMENT, null))
+        Mockito.`when`(scheduleRepository.lockById(10L)).thenReturn(null)
+
+        val exception = shouldThrow<FrontofficeApplicationException> {
+            BookingCancellationCommandService(bookingRepository, FIXED_CLOCK, scheduleRepository)
+                .cancelBooking(20L, BookingCancelCommand.from(1L))
+        }
+
+        exception.errorCode.code shouldBe "SCHEDULE_NOT_FOUND"
+        exception.errorCode.message shouldBe "해당 회차를 찾을 수 없습니다."
+    }
+
+    test("다른 사용자의 예매는 소유 여부를 노출하지 않고 아무 상태도 잠그거나 변경하지 않는다") {
+        val bookingRepository = mockWithSavePassthrough(BookingRepository::class.java)
+        val scheduleRepository = mockWithSavePassthrough(ScheduleRepository::class.java)
+        Mockito.`when`(bookingRepository.findById(1L)).thenReturn(booking(BookingStatus.CHECKING_PAYMENT, null))
+
+        val exception = shouldThrow<FrontofficeApplicationException> {
+            BookingCancellationCommandService(bookingRepository, FIXED_CLOCK, scheduleRepository)
+                .cancelBooking(999L, BookingCancelCommand.from(1L))
+        }
+
+        exception.errorCode shouldBe BookingApplicationErrorCode.NO_BOOKING_FOUND
+        verifyNoInvocation(bookingRepository, "lockById")
+        Mockito.verifyNoInteractions(scheduleRepository)
+    }
+
+    test("확정 예매 취소가 거부되면 booking과 schedule을 저장하지 않는다") {
+        val bookingRepository = mockWithSavePassthrough(BookingRepository::class.java)
+        val scheduleRepository = mockWithSavePassthrough(ScheduleRepository::class.java)
+        Mockito.`when`(bookingRepository.findById(1L)).thenReturn(booking(BookingStatus.BOOKING_CONFIRMED, null))
+        Mockito.`when`(bookingRepository.lockById(1L)).thenReturn(booking(BookingStatus.BOOKING_CONFIRMED, null))
+        Mockito.`when`(scheduleRepository.lockById(10L)).thenReturn(schedule())
+
+    val exception = shouldThrow<FrontofficeApplicationException> {
+        BookingCancellationCommandService(bookingRepository, FIXED_CLOCK, scheduleRepository)
+            .cancelBooking(20L, BookingCancelCommand.from(1L))
+    }
+
+    exception.errorCode.code shouldBe BookingErrorCode.CANCELLATION_NOT_ALLOWED.code
+    exception.errorCode.type shouldBe FrontofficeApplicationErrorType.INVALID_INPUT
+    exception.errorCode.message shouldBe BookingErrorCode.CANCELLATION_NOT_ALLOWED.message
+    verifyNoInvocation(bookingRepository, "save")
+        verifyNoInvocation(scheduleRepository, "save")
+    }
+
+    test("입금 확인 중 예매는 환불 계좌를 저장하고 회차 재고를 변경하지 않는다") {
+        val bookingRepository = mockWithSavePassthrough(BookingRepository::class.java)
+        val scheduleRepository = mockWithSavePassthrough(ScheduleRepository::class.java)
+        Mockito.`when`(bookingRepository.lockById(1L)).thenReturn(booking(BookingStatus.CHECKING_PAYMENT, null))
+
+        val result = BookingCancellationCommandService(bookingRepository, FIXED_CLOCK, scheduleRepository)
+            .refundBooking(20L, BookingRefundCommand.of(1L, "KAKAOBANK", "123-456", "holder"))
+
+        result.bookingStatus shouldBe BookingStatus.REFUND_REQUESTED.name
+        Mockito.verifyNoInteractions(scheduleRepository)
+    }
+})
+
+private fun booking(status: BookingStatus, cancelledAt: LocalDateTime?): Booking = Booking.rehydrate(
+    id = 1L,
+    purchaseTicketCount = 1,
+    bookerName = "booker",
+    bookerPhoneNumber = "010-1234-5678",
+    bookingStatus = status,
+    createdAt = LocalDateTime.of(2026, 1, 1, 12, 0),
+    cancellationDate = cancelledAt,
+    birthDate = "990101",
+    password = "1234",
+    refundAccount = null,
+    scheduleId = 10L,
+    userId = 20L,
+)
+
+private fun schedule(): Schedule {
+    val performanceDate = LocalDateTime.of(2026, 2, 1, 18, 0)
+    return Schedule.rehydrate(
+        id = 10L,
+        performanceDate = performanceDate,
+        bookingCloseAt = performanceDate.plusHours(2),
+        totalTicketCount = 10,
+        allocatedTicketCount = 2,
+        scheduleNumber = ScheduleNumber.FIRST,
+        performanceId = 30L,
+    )
+}
+
+private val FIXED_CLOCK: Clock = Clock.fixed(
+    Instant.parse("2026-01-02T12:00:00Z"),
+    ZoneOffset.UTC,
+)
+
+private fun <T> mockWithSavePassthrough(type: Class<T>): T = Mockito.mock(
+    type,
+    Answer<Any?> { invocation ->
+        if (invocation.method.name == "save") {
+            invocation.arguments[0]
+        } else {
+            Answers.RETURNS_DEFAULTS.answer(invocation)
+        }
+    },
+)
+
+private fun verifyNoInvocation(mock: Any, methodName: String) {
+    Mockito.mockingDetails(mock).invocations.any { it.method.name == methodName } shouldBe false
+}
+
+private inline fun <reified T> savedArgument(mock: Any, methodName: String): T =
+    Mockito.mockingDetails(mock).invocations
+        .single { it.method.name == methodName }
+        .arguments[0] as T

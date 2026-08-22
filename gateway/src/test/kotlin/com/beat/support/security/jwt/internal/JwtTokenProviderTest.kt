@@ -9,117 +9,105 @@ import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.io.Decoders
 import io.jsonwebtoken.security.Keys
 import io.jsonwebtoken.security.WeakKeyException
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertAll
-import org.junit.jupiter.api.assertThrows
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import java.time.Instant
 import java.util.Base64
 import java.util.Date
 import javax.crypto.SecretKey
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when` as given
 
-class JwtTokenProviderTest {
+class JwtTokenProviderTest : FunSpec() {
 
     private val jwtTokenProvider = provider()
 
-    @Test
-    fun `access token은 kid와 tokenType을 담아 발급되고 검증된다`() {
-        val accessToken = jwtTokenProvider.issueAccessToken(subject())
+    init {
+        isolationMode = IsolationMode.SingleInstance
 
-        val parsed = parse(accessToken)
+        test("access token은 kid와 tokenType을 담아 발급되고 검증된다") {
+            val accessToken = jwtTokenProvider.issueAccessToken(subject())
 
-        assertAll(
-            { assertEquals(KEY_ID, parsed.header.keyId) },
-            { assertEquals("ACCESS", parsed.payload.get(JwtClaimNames.TOKEN_TYPE, String::class.java)) },
-            { assertEquals(TokenAuthenticationResult.Authenticated(subject()), jwtTokenProvider.authenticateAccessToken(accessToken)) },
-        )
-    }
+            val parsed = parse(accessToken)
 
-    @Test
-    fun `access token 인증은 한 번 파싱한 claims에서 사용자 정보를 추출한다`() {
-        val properties = JwtProperties(STRONG_BASE64_SECRET, ACCESS_TTL_MILLIS, REFRESH_TTL_MILLIS, KEY_ID)
-        val signingKeyHolder = JwtSigningKeyHolder(properties)
-        val parser = mock(JwtTokenParser::class.java)
-        val claims = mock(Claims::class.java)
-        val provider = JwtTokenProvider(properties, JwtTokenIssuer(signingKeyHolder), parser)
-        given(parser.parse("access-token", JwtTokenType.ACCESS)).thenReturn(claims)
-        given(claims[JwtClaimNames.MEMBER_ID]).thenReturn(1L)
-        given(claims.get(JwtClaimNames.ROLE, String::class.java)).thenReturn("ROLE_MEMBER")
+            parsed.header.keyId shouldBe KEY_ID
+            parsed.payload.get(JwtClaimNames.TOKEN_TYPE, String::class.java) shouldBe "ACCESS"
+            jwtTokenProvider.authenticateAccessToken(accessToken) shouldBe
+                TokenAuthenticationResult.Authenticated(subject())
+        }
 
-        val result = provider.authenticateAccessToken("access-token")
+        test("access token 인증은 한 번 파싱한 claims에서 사용자 정보를 추출한다") {
+            val properties = JwtProperties(STRONG_BASE64_SECRET, ACCESS_TTL_MILLIS, REFRESH_TTL_MILLIS, KEY_ID)
+            val signingKeyHolder = JwtSigningKeyHolder(properties)
+            val parser = mock(JwtTokenParser::class.java)
+            val claims = mock(Claims::class.java)
+            val provider = JwtTokenProvider(properties, JwtTokenIssuer(signingKeyHolder), parser)
+            given(parser.parse("access-token", JwtTokenType.ACCESS)).thenReturn(claims)
+            given(claims[JwtClaimNames.MEMBER_ID]).thenReturn(1L)
+            given(claims.get(JwtClaimNames.ROLE, String::class.java)).thenReturn("ROLE_MEMBER")
 
-        assertEquals(TokenAuthenticationResult.Authenticated(TokenSubject(1L, "ROLE_MEMBER")), result)
-        verify(parser).parse("access-token", JwtTokenType.ACCESS)
-    }
+            val result = provider.authenticateAccessToken("access-token")
 
-    @Test
-    fun `refresh token은 kid와 tokenType을 담아 발급되고 검증된다`() {
-        val refreshToken = jwtTokenProvider.issueRefreshToken(subject())
+            result shouldBe TokenAuthenticationResult.Authenticated(TokenSubject(1L, "ROLE_MEMBER"))
+            verify(parser).parse("access-token", JwtTokenType.ACCESS)
+        }
 
-        val parsed = parse(refreshToken)
+        test("refresh token은 kid와 tokenType을 담아 발급되고 검증된다") {
+            val refreshToken = jwtTokenProvider.issueRefreshToken(subject())
 
-        assertAll(
-            { assertEquals(KEY_ID, parsed.header.keyId) },
-            { assertEquals("REFRESH", parsed.payload.get(JwtClaimNames.TOKEN_TYPE, String::class.java)) },
-            { assertEquals(TokenAuthenticationResult.Authenticated(subject()), jwtTokenProvider.authenticateRefreshToken(refreshToken)) },
-        )
-    }
+            val parsed = parse(refreshToken)
 
-    @Test
-    fun `refresh token은 access 검증을 통과하지 못한다`() {
-        val refreshToken = jwtTokenProvider.issueRefreshToken(subject())
+            parsed.header.keyId shouldBe KEY_ID
+            parsed.payload.get(JwtClaimNames.TOKEN_TYPE, String::class.java) shouldBe "REFRESH"
+            jwtTokenProvider.authenticateRefreshToken(refreshToken) shouldBe
+                TokenAuthenticationResult.Authenticated(subject())
+        }
 
-        assertEquals(
-            TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN),
-            jwtTokenProvider.authenticateAccessToken(refreshToken),
-        )
-    }
+        test("refresh token은 access 검증을 통과하지 못한다") {
+            val refreshToken = jwtTokenProvider.issueRefreshToken(subject())
 
-    @Test
-    fun `access token은 refresh 검증을 통과하지 못한다`() {
-        val accessToken = jwtTokenProvider.issueAccessToken(subject())
+            jwtTokenProvider.authenticateAccessToken(refreshToken) shouldBe
+                TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN)
+        }
 
-        assertEquals(
-            TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN),
-            jwtTokenProvider.authenticateRefreshToken(accessToken),
-        )
-    }
+        test("access token은 refresh 검증을 통과하지 못한다") {
+            val accessToken = jwtTokenProvider.issueAccessToken(subject())
 
-    @Test
-    fun `Base64가 아닌 secret은 발급에 실패한다`() {
-        val provider = provider(secret = "not-base64!!")
+            jwtTokenProvider.authenticateRefreshToken(accessToken) shouldBe
+                TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN)
+        }
 
-        assertThrows<RuntimeException> { provider.issueAccessToken(subject()) }
-    }
+        test("Base64가 아닌 secret은 발급에 실패한다") {
+            val provider = provider(secret = "not-base64!!")
 
-    @Test
-    fun `HS256 최소 강도를 만족하지 못하는 secret은 발급에 실패한다`() {
-        val provider = provider(secret = Base64.getEncoder().encodeToString("weak".toByteArray()))
+            shouldThrow<RuntimeException> { provider.issueAccessToken(subject()) }
+        }
 
-        assertThrows<WeakKeyException> { provider.issueAccessToken(subject()) }
-    }
+        test("HS256 최소 강도를 만족하지 못하는 secret은 발급에 실패한다") {
+            val provider = provider(secret = Base64.getEncoder().encodeToString("weak".toByteArray()))
 
-    @Test
-    fun `숫자가 아닌 memberId claim은 추출 전에 검증에서 걸러진다`() {
-        val token = Jwts.builder()
-            .header()
-            .keyId(KEY_ID)
-            .and()
-            .issuedAt(Date.from(NOW))
-            .expiration(Date.from(NOW.plusMillis(ACCESS_TTL_MILLIS)))
-            .claim(JwtClaimNames.MEMBER_ID, "not-a-number")
-            .claim(JwtClaimNames.ROLE, "ROLE_MEMBER")
-            .claim(JwtClaimNames.TOKEN_TYPE, "ACCESS")
-            .signWith(strongKey())
-            .compact()
+            shouldThrow<WeakKeyException> { provider.issueAccessToken(subject()) }
+        }
 
-        assertEquals(
-            TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN),
-            jwtTokenProvider.authenticateAccessToken(token),
-        )
+        test("숫자가 아닌 memberId claim은 추출 전에 검증에서 걸러진다") {
+            val token = Jwts.builder()
+                .header()
+                .keyId(KEY_ID)
+                .and()
+                .issuedAt(Date.from(NOW))
+                .expiration(Date.from(NOW.plusMillis(ACCESS_TTL_MILLIS)))
+                .claim(JwtClaimNames.MEMBER_ID, "not-a-number")
+                .claim(JwtClaimNames.ROLE, "ROLE_MEMBER")
+                .claim(JwtClaimNames.TOKEN_TYPE, "ACCESS")
+                .signWith(strongKey())
+                .compact()
+
+            jwtTokenProvider.authenticateAccessToken(token) shouldBe
+                TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN)
+        }
     }
 
     private fun provider(secret: String = STRONG_BASE64_SECRET): JwtTokenProvider {

@@ -8,14 +8,21 @@ import java.time.LocalDateTime
 
 class Schedule private constructor(
     private val scheduleId: Id?,
-    private val performanceDate: LocalDateTime,
-    private val bookingCloseAt: LocalDateTime,
-    private val totalTicketCount: Int,
-    private val allocatedTicketCount: Int,
-    private val scheduleNumber: ScheduleNumber,
+    val performanceDate: LocalDateTime,
+    val bookingCloseAt: LocalDateTime,
+    val totalTicketCount: Int,
+    val allocatedTicketCount: Int,
+    val scheduleNumber: ScheduleNumber,
     private val linkedPerformanceId: Performance.Id,
 ) : AggregateRoot {
-    fun getId(): Long? = scheduleId?.value
+    val id: Long?
+        get() = scheduleId?.value
+
+    val performanceId: Long
+        get() = linkedPerformanceId.value
+
+    val availableTicketCount: Int
+        get() = totalTicketCount - allocatedTicketCount
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -25,24 +32,10 @@ class Schedule private constructor(
 
     override fun hashCode(): Int = scheduleId?.hashCode() ?: System.identityHashCode(this)
 
-    override fun toString(): String = "Schedule(id=${getId()})"
-
-    fun getPerformanceId(): Long = linkedPerformanceId.value
-
-    fun getPerformanceDate(): LocalDateTime = performanceDate
-
-    fun getBookingCloseAt(): LocalDateTime = bookingCloseAt
-
-    fun getTotalTicketCount(): Int = totalTicketCount
-
-    fun getAllocatedTicketCount(): Int = allocatedTicketCount
-
-    fun getAvailableTicketCount(): Int = totalTicketCount - allocatedTicketCount
+    override fun toString(): String = "Schedule(id=$id)"
 
     fun canPurchase(purchaseTicketCount: Int): Boolean =
-        purchaseTicketCount > 0 && getAvailableTicketCount() >= purchaseTicketCount
-
-    fun getScheduleNumber(): ScheduleNumber = scheduleNumber
+        purchaseTicketCount > 0 && availableTicketCount >= purchaseTicketCount
 
     fun belongsTo(performanceId: Long): Boolean = linkedPerformanceId.value == performanceId
 
@@ -119,16 +112,13 @@ class Schedule private constructor(
     @JvmInline
     value class Id private constructor(val value: Long) {
         companion object {
-            @JvmStatic
             fun from(value: Long): Id = Id(value)
 
-            @JvmStatic
             fun fromNullable(value: Long?): Id? = value?.let(::from)
         }
     }
 
     companion object {
-        @JvmStatic
         fun create(
             performanceDate: LocalDateTime,
             bookingCloseAt: LocalDateTime,
@@ -150,7 +140,6 @@ class Schedule private constructor(
             )
         }
 
-        @JvmStatic
         fun createUpcoming(
             performanceDate: LocalDateTime,
             bookingCloseAt: LocalDateTime,
@@ -163,7 +152,6 @@ class Schedule private constructor(
             return create(performanceDate, bookingCloseAt, totalTicketCount, scheduleNumber, performanceId)
         }
 
-        @JvmStatic
         fun rehydrate(
             id: Long?,
             performanceDate: LocalDateTime,

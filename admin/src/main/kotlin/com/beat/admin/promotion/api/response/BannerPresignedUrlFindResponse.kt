@@ -1,6 +1,6 @@
 package com.beat.admin.promotion.api.response
 
-import com.beat.admin.promotion.application.result.AdminPromotionPresignedUrlResults.BannerPresignedUrlResult
+import com.beat.application.admin.promotion.query.AdminPromotionPresignedUrlResults.BannerPresignedUrlResult
 
 data class BannerPresignedUrlFindResponse(
     val bannerPresignedUrl: String,

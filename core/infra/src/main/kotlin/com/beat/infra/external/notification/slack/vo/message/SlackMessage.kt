@@ -2,7 +2,7 @@ package com.beat.infra.external.notification.slack.vo.message
 
 import com.beat.infra.external.notification.slack.vo.block.Block
 
-data class SlackMessage(
+internal data class SlackMessage(
     val attachments: List<Attachment>,
 ) {
     companion object {

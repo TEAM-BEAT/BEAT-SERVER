@@ -27,13 +27,13 @@ internal class MemberRegistrar(
             Member.create(
                 socialLoginProfile.nickname,
                 socialLoginProfile.email,
-                requireNotNull(user.getId()),
+                requireNotNull(user.id),
                 socialIdentity,
             ),
         )
-        log.info { "Member registered with memberId: ${member.getId()}, role: ${user.role}" }
+        log.info { "Member registered with memberId: ${member.id}, role: ${user.role}" }
         eventPublisher.publishEvent(MemberRegisteredEvent(member.nickname))
-        return requireNotNull(member.getId())
+        return requireNotNull(member.id)
     }
 
     private companion object {

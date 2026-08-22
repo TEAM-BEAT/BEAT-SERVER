@@ -11,20 +11,36 @@ import java.time.LocalDateTime
 
 class Booking private constructor(
     private val bookingId: Id?,
-    private val purchaseTicketCount: Int,
-    private val bookerName: String,
-    private val bookerPhoneNumber: String,
-    private val bookingStatus: BookingStatus,
-    private val createdAt: LocalDateTime,
-    private val cancellationDate: LocalDateTime?,
-    private val birthDate: String?,
-    private val password: String?,
-    private val refundAccount: RefundAccount?,
-    private val totalPaymentAmount: Int?,
+    val purchaseTicketCount: Int,
+    val bookerName: String,
+    val bookerPhoneNumber: String,
+    val bookingStatus: BookingStatus,
+    val createdAt: LocalDateTime,
+    val cancellationDate: LocalDateTime?,
+    val birthDate: String?,
+    val password: String?,
+    val refundAccount: RefundAccount?,
+    val totalPaymentAmount: Int?,
     private val linkedScheduleId: Schedule.Id,
     private val linkedUserId: Users.Id,
 ) : AggregateRoot {
-    fun getId(): Long? = bookingId?.value
+    val id: Long?
+        get() = bookingId?.value
+
+    val bankName: BankName?
+        get() = refundAccount?.bankName
+
+    val accountNumber: String?
+        get() = refundAccount?.accountNumber
+
+    val accountHolder: String?
+        get() = refundAccount?.accountHolder
+
+    val scheduleId: Long
+        get() = linkedScheduleId.value
+
+    val userId: Long
+        get() = linkedUserId.value
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -36,36 +52,6 @@ class Booking private constructor(
 
     override fun toString(): String =
         "Booking(id=${bookingId?.value}, status=$bookingStatus)"
-
-    fun getPurchaseTicketCount(): Int = purchaseTicketCount
-
-    fun getBookerName(): String = bookerName
-
-    fun getBookerPhoneNumber(): String = bookerPhoneNumber
-
-    fun getBookingStatus(): BookingStatus = bookingStatus
-
-    fun getCreatedAt(): LocalDateTime = createdAt
-
-    fun getCancellationDate(): LocalDateTime? = cancellationDate
-
-    fun getBirthDate(): String? = birthDate
-
-    fun getPassword(): String? = password
-
-    fun getBankName(): BankName? = refundAccount?.bankName
-
-    fun getAccountNumber(): String? = refundAccount?.accountNumber
-
-    fun getAccountHolder(): String? = refundAccount?.accountHolder
-
-    fun getRefundAccount(): RefundAccount? = refundAccount
-
-    fun getTotalPaymentAmount(): Int? = totalPaymentAmount
-
-    fun getScheduleId(): Long = linkedScheduleId.value
-
-    fun getUserId(): Long = linkedUserId.value
 
     fun hasActiveTicketAllocation(): Boolean = !bookingStatus.isInactiveForTicketAllocation()
 
@@ -168,16 +154,13 @@ class Booking private constructor(
     @JvmInline
     value class Id private constructor(val value: Long) {
         companion object {
-            @JvmStatic
             fun from(value: Long): Id = Id(value)
 
-            @JvmStatic
             fun fromNullable(value: Long?): Id? = value?.let(::from)
         }
     }
 
     companion object {
-        @JvmStatic
         fun canDeleteByMaker(bookingStatus: BookingStatus, totalPaymentAmount: Int?): Boolean =
             if (totalPaymentAmount == 0) {
                 bookingStatus != BookingStatus.REFUND_REQUESTED
@@ -187,8 +170,6 @@ class Booking private constructor(
                     bookingStatus == BookingStatus.BOOKING_DELETED
             }
 
-        @JvmStatic
-        @JvmOverloads
         fun create(
             purchaseTicketCount: Int,
             bookerName: String,
@@ -226,8 +207,6 @@ class Booking private constructor(
             )
         }
 
-        @JvmStatic
-        @JvmOverloads
         fun rehydrate(
             id: Long?,
             purchaseTicketCount: Int,

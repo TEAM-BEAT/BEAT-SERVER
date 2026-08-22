@@ -6,7 +6,8 @@ class Staff private constructor(
     val staffRole: String,
     val staffPhoto: String,
 ) {
-    fun getId(): Long? = staffId?.value
+    val id: Long?
+        get() = staffId?.value
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -16,7 +17,7 @@ class Staff private constructor(
 
     override fun hashCode(): Int = staffId?.hashCode() ?: System.identityHashCode(this)
 
-    override fun toString(): String = "Staff(id=${getId()})"
+    override fun toString(): String = "Staff(id=$id)"
 
     fun update(staffName: String, staffRole: String, staffPhoto: String): Staff = Staff(
         staffId = staffId,
@@ -28,13 +29,11 @@ class Staff private constructor(
     @JvmInline
     value class Id private constructor(val value: Long) {
         companion object {
-            @JvmStatic
             fun fromNullable(value: Long?): Id? = value?.let(::Id)
         }
     }
 
     companion object {
-        @JvmStatic
         fun create(staffName: String, staffRole: String, staffPhoto: String): Staff = Staff(
             staffId = null,
             staffName = staffName,
@@ -42,7 +41,6 @@ class Staff private constructor(
             staffPhoto = staffPhoto,
         )
 
-        @JvmStatic
         fun rehydrate(id: Long?, staffName: String, staffRole: String, staffPhoto: String): Staff = Staff(
             staffId = Id.fromNullable(id),
             staffName = staffName,

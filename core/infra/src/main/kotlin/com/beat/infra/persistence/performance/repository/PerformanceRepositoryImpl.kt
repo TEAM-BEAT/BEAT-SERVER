@@ -14,10 +14,9 @@ import com.beat.infra.persistence.performanceimage.repository.PerformanceImageJp
 import com.beat.infra.persistence.staff.mapper.StaffPersistenceMapper
 import com.beat.infra.persistence.staff.repository.StaffJpaRepository
 import org.springframework.stereotype.Repository
-import java.util.Optional
 
 @Repository
-class PerformanceRepositoryImpl(
+internal class PerformanceRepositoryImpl(
     private val performanceJpaRepository: PerformanceJpaRepository,
     private val performancePersistenceMapper: PerformancePersistenceMapper,
     private val castJpaRepository: CastJpaRepository,
@@ -27,27 +26,27 @@ class PerformanceRepositoryImpl(
     private val performanceImageJpaRepository: PerformanceImageJpaRepository,
     private val performanceImagePersistenceMapper: PerformanceImagePersistenceMapper,
 ) : PerformanceRepository {
-    override fun findById(id: Long?): Optional<Performance> =
-        performanceJpaRepository.findById(requireRepositoryId(id)).map(::toAggregate)
+    override fun findById(id: Long): Performance? =
+        performanceJpaRepository.findById(id).map(::toAggregate).orElse(null)
 
-    override fun lockById(id: Long?): Optional<Performance> =
-        performanceJpaRepository.lockById(id).map(::toAggregate)
+    override fun lockById(id: Long): Performance? =
+        performanceJpaRepository.lockById(id)?.let(::toAggregate)
 
     override fun save(performance: Performance): Performance {
         val entity = performancePersistenceMapper.toEntity(performance)
         val savedEntity = performanceJpaRepository.save(entity)
         val performanceId = checkNotNull(savedEntity.id) { "Saved Performance must have an id" }
-        val casts = synchronizeCasts(performanceId, performance.getCasts())
-        val staffs = synchronizeStaffs(performanceId, performance.getStaffs())
-        val images = synchronizeImages(performanceId, performance.getImages())
+        val casts = synchronizeCasts(performanceId, performance.casts)
+        val staffs = synchronizeStaffs(performanceId, performance.staffs)
+        val images = synchronizeImages(performanceId, performance.images)
         return performancePersistenceMapper.toDomain(savedEntity, casts, staffs, images)
     }
 
-    override fun deleteById(id: Long?) {
+    override fun deleteById(id: Long) {
         castJpaRepository.deleteByPerformanceId(id)
         staffJpaRepository.deleteByPerformanceId(id)
         performanceImageJpaRepository.deleteByPerformanceId(id)
-        performanceJpaRepository.deleteById(requireRepositoryId(id))
+        performanceJpaRepository.deleteById(id)
     }
 
     private fun toAggregate(entity: PerformanceJpaEntity): Performance {
@@ -60,7 +59,7 @@ class PerformanceRepositoryImpl(
     }
 
     private fun synchronizeCasts(performanceId: Long, casts: List<Cast>): List<Cast> {
-        val requestedIds = casts.mapNotNull(Cast::getId).toSet()
+        val requestedIds = casts.mapNotNull(Cast::id).toSet()
         val existingIds = castJpaRepository.findIdsByPerformanceId(performanceId)
         validateOwnedIds("Cast", requestedIds, existingIds)
         castJpaRepository.deleteAllByIdInBatch(existingIds.filterNot(requestedIds::contains))
@@ -69,7 +68,7 @@ class PerformanceRepositoryImpl(
     }
 
     private fun synchronizeStaffs(performanceId: Long, staffs: List<Staff>): List<Staff> {
-        val requestedIds = staffs.mapNotNull(Staff::getId).toSet()
+        val requestedIds = staffs.mapNotNull(Staff::id).toSet()
         val existingIds = staffJpaRepository.findIdsByPerformanceId(performanceId)
         validateOwnedIds("Staff", requestedIds, existingIds)
         staffJpaRepository.deleteAllByIdInBatch(existingIds.filterNot(requestedIds::contains))
@@ -78,7 +77,7 @@ class PerformanceRepositoryImpl(
     }
 
     private fun synchronizeImages(performanceId: Long, images: List<PerformanceImage>): List<PerformanceImage> {
-        val requestedIds = images.mapNotNull(PerformanceImage::getId).toSet()
+        val requestedIds = images.mapNotNull(PerformanceImage::id).toSet()
         val existingIds = performanceImageJpaRepository.findIdsByPerformanceId(performanceId)
         validateOwnedIds("PerformanceImage", requestedIds, existingIds)
         performanceImageJpaRepository.deleteAllByIdInBatch(existingIds.filterNot(requestedIds::contains))
@@ -93,6 +92,4 @@ class PerformanceRepositoryImpl(
         }
     }
 
-    private fun requireRepositoryId(id: Long?): Long =
-        requireNotNull(id) { "The given id must not be null" }
 }

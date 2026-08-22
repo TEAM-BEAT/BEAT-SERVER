@@ -2,21 +2,25 @@ package com.beat.application.frontoffice.booking.booker.command
 
 import com.beat.application.frontoffice.booking.booker.BookingApplicationErrorCode
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
-import com.beat.contracts.auth.guest.GuestSessionPort
+import com.beat.application.frontoffice.exception.translateDomainFailure
 import org.springframework.stereotype.Service
 
 @Service
 class GuestBookingSessionCommandService(
-    private val guestSessionPort: GuestSessionPort,
+    private val guestSessionStore: GuestSessionStore,
 ) {
-    fun issue(userId: Long): String = guestSessionPort.issue(userId)
+    fun issue(userId: Long): String = translateDomainFailure { guestSessionStore.issue(userId) }
 
-    fun resolveActorUserId(memberId: Long?, guestSessionToken: String?): Long {
-        if (memberId != null) return memberId
-        if (guestSessionToken.isNullOrBlank()) {
-            throw FrontofficeApplicationException(BookingApplicationErrorCode.AUTHENTICATION_REQUIRED)
+    fun resolveActorUserId(memberId: Long?, guestSessionToken: String?): Long =
+        translateDomainFailure {
+            if (memberId != null) {
+                memberId
+            } else {
+                if (guestSessionToken.isNullOrBlank()) {
+                    throw FrontofficeApplicationException(BookingApplicationErrorCode.AUTHENTICATION_REQUIRED)
+                }
+                guestSessionStore.findUserId(guestSessionToken)
+                    ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.AUTHENTICATION_REQUIRED)
+            }
         }
-        return guestSessionPort.findUserId(guestSessionToken)
-            .orElseThrow { FrontofficeApplicationException(BookingApplicationErrorCode.AUTHENTICATION_REQUIRED) }
-    }
 }

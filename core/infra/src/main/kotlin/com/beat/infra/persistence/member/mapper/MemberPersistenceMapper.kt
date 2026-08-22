@@ -9,7 +9,7 @@ import com.beat.infra.persistence.member.entity.MemberJpaEntity
 import org.springframework.stereotype.Component
 
 @Component
-class MemberPersistenceMapper {
+internal class MemberPersistenceMapper {
     fun toDomain(entity: MemberJpaEntity): Member =
         try {
             val socialType: SocialType? = entity.socialType
@@ -30,11 +30,11 @@ class MemberPersistenceMapper {
 
     fun toEntity(domain: Member): MemberJpaEntity =
         MemberJpaEntity.rehydrate(
-            domain.getId(),
+            domain.id,
             domain.nickname,
             domain.email,
             domain.deletedAt,
-            domain.getUserId(),
+            domain.userId,
             domain.socialIdentity.socialId,
             domain.socialIdentity.socialType,
         )

@@ -17,14 +17,14 @@ class ScheduleSequenceDomainService {
         validateSamePerformance(schedules)
 
         return schedules
-            .sortedBy { it.getPerformanceDate() }
+            .sortedBy { it.performanceDate }
             .mapIndexed { index, schedule ->
                 schedule.updateScheduleNumber(ScheduleNumber.entries[index])
             }
     }
 
     private fun validateSamePerformance(schedules: List<Schedule>) {
-        val performanceIds = schedules.map(Schedule::getPerformanceId).distinct()
+        val performanceIds = schedules.map(Schedule::performanceId).distinct()
         if (performanceIds.size > 1) {
             throw DomainException(ScheduleErrorCode.MIXED_PERFORMANCE_SCHEDULES)
         }

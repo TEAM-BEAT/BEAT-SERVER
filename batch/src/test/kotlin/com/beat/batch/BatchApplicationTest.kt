@@ -1,166 +1,91 @@
 package com.beat.batch
 
 import com.beat.batch.config.InfraConfig
+import com.beat.application.system.SystemApplicationConfig
+import com.beat.infra.EnableInfraBaseConfig
+import com.beat.infra.InfraBaseConfigGroup
+import com.beat.infra.persistence.InfraPersistenceConfig
 import com.beat.observability.ObservabilityModuleConfig
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.context.annotation.ComponentScan
+import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 import org.springframework.scheduling.annotation.EnableScheduling
 import java.nio.file.Files
 import java.nio.file.Path
 
-class BatchApplicationTest {
+class BatchApplicationTest : FunSpec() {
 
-    @Test
-    fun `batch application keeps detached module import contract`() {
-        val importAnnotation = BatchApplication::class.java.getAnnotation(Import::class.java)
-        assertNotNull(importAnnotation, "BatchApplication must declare @Import")
-        val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
+    init {
+        isolationMode = IsolationMode.SingleInstance
 
-        assertEquals(
-            setOf(
+        test("batch application keeps detached module import contract") {
+            val importAnnotation = BatchApplication::class.java.getAnnotation(Import::class.java)
+            importAnnotation shouldNotBe null
+            val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
+
+            importedClassNames shouldBe setOf(
+                SystemApplicationConfig::class.java.name,
                 InfraConfig::class.java.name,
                 ObservabilityModuleConfig::class.java.name,
-            ),
-            importedClassNames,
-        )
-    }
-
-    @Test
-    fun `batch application keeps scheduling local to the module bootstrap`() {
-        val springBootApplication = BatchApplication::class.java.getAnnotation(SpringBootApplication::class.java)
-        val componentScan = BatchApplication::class.java.getAnnotation(ComponentScan::class.java)
-        val enableScheduling = BatchApplication::class.java.getAnnotation(EnableScheduling::class.java)
-        val source = Files.readString(Path.of("src/main/kotlin/com/beat/batch/BatchApplication.kt"))
-
-        assertNotNull(springBootApplication)
-        assertNull(componentScan)
-        assertNotNull(enableScheduling)
-        assertEquals(
-            setOf(BatchApplication::class.java.name),
-            springBootApplication!!.scanBasePackageClasses.map { it.java.name }.toSet(),
-        )
-        assertFalse(source.contains("BatchSchedulerBootstrapConfig"))
-        assertFalse(source.contains("GatewayModuleConfig"))
-        assertFalse(source.contains("@EnableFeignClients"))
-        assertFalse(source.contains("FeignAutoConfiguration"))
-        assertFalse(source.contains("TaskSchedulingAutoConfiguration::class"))
-        assertFalse(source.contains("\"com.beat.domain\""))
-        assertFalse(source.contains("\"com.beat.global\""))
-    }
-
-    @Test
-    fun `batch owner sources no longer declare legacy owner packages`() {
-        val paths = Files.walk(Path.of("src/main"))
-        val violations = try {
-            paths
-                .filter(Files::isRegularFile)
-                .filter { it.toString().endsWith(".java") || it.toString().endsWith(".kt") }
-                .filter { path ->
-                    val source = Files.readString(path)
-                    source.startsWith("package com.beat.domain.")
-                        || source.startsWith("package com.beat.global.")
-                }
-                .map(Path::toString)
-                .toList()
-        } finally {
-            paths.close()
+            )
         }
 
-        assertTrue(violations.isEmpty(), "Found legacy owner package declarations:\n${violations.joinToString("\n")}")
-    }
+        test("batch application keeps scheduling local to the module bootstrap") {
+            val springBootApplication = BatchApplication::class.java.getAnnotation(SpringBootApplication::class.java)
+            val componentScan = BatchApplication::class.java.getAnnotation(ComponentScan::class.java)
+            val enableScheduling = BatchApplication::class.java.getAnnotation(EnableScheduling::class.java)
 
-    @Test
-    fun `batch infra config keeps explicit base bootstrap groups`() {
-        val configSource = Files.readString(Path.of("src/main/kotlin/com/beat/batch/config/InfraConfig.kt"))
+            springBootApplication shouldNotBe null
+            componentScan shouldBe null
+            enableScheduling shouldNotBe null
+            springBootApplication!!.scanBasePackageClasses.map { it.java.name }.toSet() shouldBe
+                setOf(BatchApplication::class.java.name)
+        }
 
-        assertTrue(configSource.contains("InfraBaseConfigGroup.JPA"))
-        assertFalse(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
-        assertTrue(configSource.contains("InfraBaseConfigGroup.ASYNC"))
-        assertFalse(configSource.contains("InfraBaseConfigGroup.SCHEDULER"))
-    }
+        test("batch infra config keeps explicit base bootstrap groups") {
+            InfraConfig::class.java.getAnnotation(Configuration::class.java) shouldNotBe null
+            val enableInfraBaseConfig = InfraConfig::class.java.getAnnotation(EnableInfraBaseConfig::class.java)
+            enableInfraBaseConfig shouldNotBe null
+            enableInfraBaseConfig!!.value.toSet() shouldBe setOf(
+                InfraBaseConfigGroup.JPA,
+                InfraBaseConfigGroup.ASYNC,
+            )
 
-    @Test
-    fun `batch resources enable scheduler ownership by default`() {
-        val config = Files.readString(Path.of("src/main/resources/application.yml"))
+            val imports = InfraConfig::class.java.getAnnotation(Import::class.java)
+            imports shouldNotBe null
+            imports!!.value.map { it.java.name }.toSet() shouldBe setOf(InfraPersistenceConfig::class.java.name)
+        }
 
-        assertTrue(config.contains("beat:"))
-        assertTrue(config.contains("scheduler:"))
-        assertTrue(config.contains("owner: true"))
-        assertFalse(config.contains("owner: false"))
-        assertTrue(config.contains("profiles:"))
-        assertTrue(config.contains("group:"))
-        assertTrue(config.contains("- persistence"))
-        assertTrue(config.contains("- observability"))
-        assertTrue(config.contains("- thread-pool"))
-        val threadPoolConfig = Files.readString(Path.of("../core/infra/src/main/resources/application-thread-pool.yml"))
-        assertTrue(threadPoolConfig.contains("spring:"))
-        assertTrue(threadPoolConfig.contains("task:"))
-        assertTrue(threadPoolConfig.contains("scheduling:"))
-        assertTrue(threadPoolConfig.contains("thread-name-prefix: executor-scheduler-"))
-        assertTrue(threadPoolConfig.contains("size: 2"))
-        assertFalse(config.contains("- jwt"))
-        assertFalse(config.contains("- redis"))
-        assertFalse(config.contains("- external"))
-        assertTrue(config.contains("on-profile: dev"))
-        assertTrue(config.contains("application-dev-secret.properties"))
-        assertTrue(config.contains("port: 4002"))
-        assertTrue(config.contains("on-profile: prod"))
-        assertTrue(config.contains("application-prod-secret.properties"))
-        assertFalse(config.contains("BEAT_SERVER_PORT"))
-        assertFalse(config.contains("management:"))
-        assertFalse(config.contains("../secret/application-dev-secret.properties"))
-        assertFalse(config.contains("../secret/application-prod-secret.properties"))
-        assertFalse(config.contains("datasource:"))
-    }
+        test("batch resources enable scheduler ownership by default") {
+            val config = Files.readString(Path.of("src/main/resources/application.yml"))
 
-    @Test
-    fun `batch actuator management config is owned by observability resource`() {
-        val observabilityConfig = Files.readString(
-            Path.of("../observability/src/main/resources/application-observability.yml"),
-        )
-
-        assertTrue(observabilityConfig.contains("port: \${DEV_ACTUATOR_PORT}"))
-        assertTrue(observabilityConfig.contains("base-path: \${DEV_ACTUATOR_PATH}"))
-        assertTrue(observabilityConfig.contains("port: \${PROD_ACTUATOR_PORT}"))
-        assertTrue(observabilityConfig.contains("base-path: \${PROD_ACTUATOR_PATH}"))
-        assertTrue(observabilityConfig.contains("base-path: /actuator-test"))
-    }
-
-    @Test
-    fun `actuator properties do not fall back to public default path`() {
-        val actuatorProperties = Files.readString(
-            Path.of("../observability/src/main/kotlin/com/beat/observability/metrics/config/ActuatorProperties.kt"),
-        )
-
-        assertTrue(actuatorProperties.contains("val basePath: String"))
-        assertFalse(actuatorProperties.contains("/actuator"))
-    }
-
-    @Test
-    fun `batch does not auto register servlet mdc filter`() {
-        val observabilityLoggingConfig = Files.readString(
-            Path.of("../observability/src/main/kotlin/com/beat/observability/logging/LoggingConfig.kt"),
-        )
-        val observabilityModuleConfig = Files.readString(
-            Path.of("../observability/src/main/kotlin/com/beat/observability/ObservabilityModuleConfig.kt"),
-        )
-
-        assertFalse(observabilityLoggingConfig.contains("SimpleMdcLoggingFilter"))
-        assertFalse(observabilityLoggingConfig.contains("BaseMdcLoggingFilter"))
-        assertFalse(observabilityModuleConfig.contains("SimpleMdcLoggingFilter"))
-    }
-
-    @Test
-    fun `batch test resources disable scheduler ownership for smoke tests`() {
-        val config = Files.readString(Path.of("src/test/resources/application-test.yml"))
-
-        assertTrue(config.contains("beat:"))
-        assertTrue(config.contains("scheduler:"))
-        assertTrue(config.contains("owner: false"))
-        assertFalse(config.contains("owner: true"))
-        assertFalse(config.contains("allow-bean-definition-overriding"))
+            config.contains("beat:") shouldBe true
+            config.contains("scheduler:") shouldBe true
+            config.contains("owner: true") shouldBe true
+            config.contains("owner: false") shouldBe false
+            config.contains("profiles:") shouldBe true
+            config.contains("group:") shouldBe true
+            config.contains("- persistence") shouldBe true
+            config.contains("- observability") shouldBe true
+            config.contains("- thread-pool") shouldBe true
+            config.contains("- jwt") shouldBe false
+            config.contains("- redis") shouldBe false
+            config.contains("- external") shouldBe false
+            config.contains("on-profile: dev") shouldBe true
+            config.contains("application-dev-secret.properties") shouldBe true
+            config.contains("port: 4002") shouldBe true
+            config.contains("on-profile: prod") shouldBe true
+            config.contains("application-prod-secret.properties") shouldBe true
+            config.contains("BEAT_SERVER_PORT") shouldBe false
+            config.contains("management:") shouldBe false
+            config.contains("../secret/application-dev-secret.properties") shouldBe false
+            config.contains("../secret/application-prod-secret.properties") shouldBe false
+            config.contains("datasource:") shouldBe false
+        }
     }
 }

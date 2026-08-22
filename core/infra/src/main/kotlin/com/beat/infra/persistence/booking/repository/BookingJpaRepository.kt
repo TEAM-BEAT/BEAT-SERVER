@@ -9,12 +9,11 @@ import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
-import java.util.Optional
 
-interface BookingJpaRepository : JpaRepository<BookingJpaEntity, Long> {
+internal interface BookingJpaRepository : JpaRepository<BookingJpaEntity, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM Booking b WHERE b.id = :id")
-    fun lockById(@Param("id") id: Long?): Optional<BookingJpaEntity>
+    fun lockById(@Param("id") id: Long): BookingJpaEntity?
 
     @Query("SELECT b.scheduleId FROM Booking b WHERE b.id IN :ids")
     fun findScheduleIdsByIds(@Param("ids") ids: Collection<Long>): List<Long>
@@ -26,18 +25,19 @@ interface BookingJpaRepository : JpaRepository<BookingJpaEntity, Long> {
         @Param("encodedPassword") encodedPassword: String,
     ): Int
 
-    fun findByUserId(userId: Long?): List<BookingJpaEntity>
+    fun findByUserId(userId: Long): List<BookingJpaEntity>
 
     fun findByBookingStatusAndCancellationDateBefore(
         bookingStatus: BookingStatus,
         cancellationDate: LocalDateTime,
     ): List<BookingJpaEntity>
 
-    @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.scheduleId IN :scheduleIds AND b.bookingStatus NOT IN :excludedStatuses")
-    fun existsActiveBookingByScheduleIds(
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Booking b WHERE b.scheduleId IN :scheduleIds AND b.bookingStatus NOT IN :excludedStatuses")
+    fun findActiveBookingsForUpdate(
         @Param("scheduleIds") scheduleIds: List<Long>,
         @Param("excludedStatuses") excludedStatuses: List<BookingStatus>,
-    ): Boolean
+    ): List<BookingJpaEntity>
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM Booking b WHERE b.scheduleId IN :scheduleIds AND b.bookingStatus IN :inactiveStatuses")

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestHeader
 
 @FeignClient(name = "kakaoApiClient", url = "https://kapi.kakao.com")
-interface KakaoApiClient {
+internal interface KakaoApiClient {
     @GetMapping(value = ["/v2/user/me"])
     fun getUserInformation(
         @RequestHeader(HttpHeaders.AUTHORIZATION) accessToken: String,

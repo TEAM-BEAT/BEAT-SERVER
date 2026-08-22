@@ -7,7 +7,7 @@ import com.beat.infra.persistence.schedule.entity.ScheduleJpaEntity
 import org.springframework.stereotype.Component
 
 @Component
-class SchedulePersistenceMapper {
+internal class SchedulePersistenceMapper {
 
     fun toDomain(entity: ScheduleJpaEntity): Schedule =
         try {
@@ -26,12 +26,12 @@ class SchedulePersistenceMapper {
 
     fun toEntity(schedule: Schedule): ScheduleJpaEntity =
         ScheduleJpaEntity.rehydrate(
-            schedule.getId(),
-            schedule.getPerformanceDate(),
-            schedule.getBookingCloseAt(),
-            schedule.getTotalTicketCount(),
-            schedule.getAllocatedTicketCount(),
-            schedule.getScheduleNumber(),
-            schedule.getPerformanceId(),
+            schedule.id,
+            schedule.performanceDate,
+            schedule.bookingCloseAt,
+            schedule.totalTicketCount,
+            schedule.allocatedTicketCount,
+            schedule.scheduleNumber,
+            schedule.performanceId,
         )
 }

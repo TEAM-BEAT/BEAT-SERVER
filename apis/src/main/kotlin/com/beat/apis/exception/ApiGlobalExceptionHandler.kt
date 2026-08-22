@@ -1,12 +1,8 @@
 package com.beat.apis.exception
 
+import com.beat.apis.response.ErrorResponse
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
-import com.beat.domain.booking.exception.BookingErrorCode
-import com.beat.domain.exception.DomainException
-import com.beat.domain.performance.exception.PerformanceErrorCode
-import com.beat.domain.schedule.exception.ScheduleErrorCode
-import com.beat.global.support.response.ErrorResponse
 import jakarta.servlet.http.HttpServletRequest
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.beans.TypeMismatchException
@@ -29,14 +25,6 @@ import org.springframework.web.servlet.resource.NoResourceFoundException
 
 @RestControllerAdvice
 class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
-    @ExceptionHandler(DomainException::class)
-    fun handleDomainException(exception: DomainException): ResponseEntity<ErrorResponse> {
-        val status = toV1DomainStatus(exception)
-        log.info { "Domain failure: code=${exception.errorCode.code}, status=${status.value()}" }
-        return ResponseEntity.status(status)
-            .body(ErrorResponse.of(status.value(), toV1DomainMessage(exception)))
-    }
-
     override fun handleMethodArgumentNotValid(
         ex: MethodArgumentNotValidException,
         headers: HttpHeaders,
@@ -141,24 +129,6 @@ class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
             .body(ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR.value(), "서버 내부 오류입니다."))
     }
 
-    @ExceptionHandler(ApiApplicationException::class)
-    fun handleApplicationException(
-        exception: ApiApplicationException,
-        request: HttpServletRequest,
-    ): ResponseEntity<ErrorResponse> {
-        val errorCode = exception.errorCode
-        val status = toHttpStatus(errorCode)
-        when {
-            errorCode.getType() == ApplicationErrorType.INTERNAL_ERROR -> {
-                log.error(exception) { "Application failure: code=${errorCode.getCode()}, status=${status.value()}" }
-                markObservationError(request, exception)
-            }
-            status.is5xxServerError -> log.error { "Upstream application failure: code=${errorCode.getCode()}, status=${status.value()}" }
-            else -> log.info { "Application failure: code=${errorCode.getCode()}, status=${status.value()}" }
-        }
-        return ResponseEntity.status(status).body(ErrorResponse.of(status.value(), errorCode.getMessage()))
-    }
-
     @ExceptionHandler(FrontofficeApplicationException::class)
     fun handleFrontofficeApplicationException(
         exception: FrontofficeApplicationException,
@@ -193,24 +163,6 @@ class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
     companion object {
         private val log = KotlinLogging.logger {}
 
-        @JvmStatic
-        fun toHttpStatus(errorCode: ApplicationErrorCode): HttpStatus = toHttpStatus(errorCode.getType())
-
-        @JvmStatic
-        fun toHttpStatus(type: ApplicationErrorType): HttpStatus = when (type) {
-            ApplicationErrorType.INVALID_INPUT -> HttpStatus.BAD_REQUEST
-            ApplicationErrorType.UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED
-            ApplicationErrorType.FORBIDDEN -> HttpStatus.FORBIDDEN
-            ApplicationErrorType.NOT_FOUND -> HttpStatus.NOT_FOUND
-            ApplicationErrorType.STATE_CONFLICT -> HttpStatus.CONFLICT
-            ApplicationErrorType.UPSTREAM_FAILURE -> HttpStatus.BAD_GATEWAY
-            ApplicationErrorType.UPSTREAM_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE
-            ApplicationErrorType.UPSTREAM_TIMEOUT -> HttpStatus.GATEWAY_TIMEOUT
-            ApplicationErrorType.RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS
-            ApplicationErrorType.INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR
-        }
-
-        @JvmStatic
         fun toHttpStatus(type: FrontofficeApplicationErrorType): HttpStatus = when (type) {
             FrontofficeApplicationErrorType.INVALID_INPUT -> HttpStatus.BAD_REQUEST
             FrontofficeApplicationErrorType.UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED
@@ -224,40 +176,5 @@ class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
             FrontofficeApplicationErrorType.INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR
         }
 
-        private fun toV1DomainMessage(exception: DomainException): String = when (exception.errorCode) {
-            BookingErrorCode.INVALID_PURCHASE_TICKET_COUNT,
-            BookingErrorCode.INVALID_REFUND_ACCOUNT,
-            BookingErrorCode.PAYMENT_CONFIRMATION_NOT_ALLOWED,
-            BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED,
-            PerformanceErrorCode.NON_POSITIVE_RUNNING_TIME,
-            PerformanceErrorCode.NEGATIVE_SCHEDULE_COUNT,
-            ScheduleErrorCode.INVALID_BOOKING_WINDOW,
-            ScheduleErrorCode.NEGATIVE_TICKET_COUNT,
-            ScheduleErrorCode.NON_POSITIVE_TICKET_COUNT,
-            -> "잘못된 데이터 형식입니다."
-            ScheduleErrorCode.TOO_MANY_SCHEDULES -> "공연 회차는 최대 10개까지 추가할 수 있습니다."
-            ScheduleErrorCode.ALLOCATED_TICKETS_EXCEED_TOTAL ->
-                "판매된 티켓 수보다 적은 수로 판매할 티켓 매수를 수정할 수 없습니다."
-            else -> exception.errorCode.message
-        }
-
-        private fun toV1DomainStatus(exception: DomainException): HttpStatus = when (exception.errorCode) {
-            BookingErrorCode.PAYMENT_CONFIRMATION_NOT_ALLOWED,
-            BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED,
-            BookingErrorCode.CONFIRMED_STATUS_CHANGE_NOT_ALLOWED,
-            BookingErrorCode.STATUS_TRANSITION_NOT_ALLOWED,
-            BookingErrorCode.CANCELLATION_NOT_ALLOWED,
-            BookingErrorCode.REFUND_COMPLETION_NOT_ALLOWED,
-            BookingErrorCode.DELETION_NOT_ALLOWED,
-            ScheduleErrorCode.INSUFFICIENT_TICKETS,
-            ScheduleErrorCode.ENDED_SCHEDULE_MODIFICATION_NOT_ALLOWED,
-            PerformanceErrorCode.PRICE_UPDATE_NOT_ALLOWED,
-            -> HttpStatus.BAD_REQUEST
-            PerformanceErrorCode.DELETE_NOT_ALLOWED -> HttpStatus.FORBIDDEN
-            else -> when (exception.errorCode.type) {
-                com.beat.domain.exception.DomainErrorType.INVALID_INPUT -> HttpStatus.BAD_REQUEST
-                com.beat.domain.exception.DomainErrorType.STATE_CONFLICT -> HttpStatus.CONFLICT
-            }
-        }
     }
 }

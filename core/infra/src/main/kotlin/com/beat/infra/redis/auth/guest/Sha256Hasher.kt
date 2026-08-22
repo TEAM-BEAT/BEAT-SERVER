@@ -5,7 +5,7 @@ import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import java.util.Base64
 
-object Sha256Hasher {
+internal object Sha256Hasher {
 
     private const val ALGORITHM = "SHA-256"
 

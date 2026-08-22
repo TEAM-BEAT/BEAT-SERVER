@@ -2,7 +2,7 @@ package com.beat.infra.external.social.kakao.response
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-data class KakaoUserResponse(
+internal data class KakaoUserResponse(
     @param:JsonProperty("id")
     val id: Long?,
     @param:JsonProperty("connected_at")

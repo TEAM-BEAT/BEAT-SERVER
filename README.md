@@ -134,15 +134,15 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 
 <img src="https://github.com/user-attachments/assets/7b1f3833-f2b0-40fb-970e-e9f8becc9a6d" alt="BEAT server architecture diagram">
 
-현재 Gradle project module과 canonical guide:
+현재 논리 Gradle project와 source-directory mapping:
 
 | 구분 | 모듈 | 책임 / 기준서 |
 | --- | --- | --- |
-| Executable | `apis`, `admin`, `batch` | public API, 관리자 API, scheduler/job ([apis](apis/README.md), [admin](admin/README.md), [batch](batch/README.md)) |
-| Core | `domain` | JPA-free aggregate, Entity, VO, DomainService, repository port ([domain](domain/README.md)) |
-| Contract | `module-contracts` | implementation-free inter-module read/external port ([module-contracts](module-contracts/README.md)) |
-| Adapter | `infra` | JPA entity/mapper/repository, query/external adapter, bootstrap ([infra](infra/README.md)) |
-| Cross-cutting | `gateway`, `observability`, `global-support` | auth/security, logging/metrics/tracing, legacy response/error compatibility ([gateway](gateway/README.md), [observability](observability/README.md), [global-support](global-support/README.md)) |
+| Executable | `:apps:api`, `:apps:admin`, `:apps:batch` | inbound adapter/composition root. Sources remain in deployment-compatible `apis`, `admin`, `batch` directories ([API](apis/README.md), [Admin](admin/README.md), [Batch](batch/README.md)) |
+| Application | `:application:frontoffice`, `:application:admin`, `:application:system` | capability-owned use cases, transactions, output ports, query readers |
+| Domain | `:domain` | framework-free aggregates, value objects, domain services/events, aggregate repositories ([domain](core/domain/README.md)) |
+| Adapter | `:infrastructure` | internal JPA/Redis/external adapters and narrow public bootstrap configuration ([infrastructure](core/infra/README.md)) |
+| Cross-cutting | `:support:security`, `:support:observability` | narrow security and observability technical APIs. Sources remain in `gateway`, `observability` directories ([security](gateway/README.md), [observability](observability/README.md)) |
 
 `build-logic`는 Gradle included build이며 application project module은 아닙니다.
 
@@ -157,15 +157,16 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 - 같은 transaction에서 지켜야 하는 규칙은 명시적 domain method 호출로 처리합니다. 이벤트는 commit 이후 부수 효과에만 사용합니다.
 - DB 제약, lock, idempotency, expand/contract migration과 contract/concurrency test로 애플리케이션 규칙을 보강합니다.
 
-세부 기준의 정본은 [domain guide](domain/README.md), [infra guide](infra/README.md), [API guide](apis/README.md),
-[global-support guide](global-support/README.md), [error handling guide](docs/architecture/error-handling.md)입니다.
+Architecture 정본은 [CQRS multi-module Constitution](docs/architecture/BEAT-SERVER-CQRS-MULTIMODULE-ARCHITECTURE-FINAL.md)입니다.
+세부 현행 가이드는 [domain](core/domain/README.md), [infrastructure](core/infra/README.md), [API](apis/README.md),
+[security](gateway/README.md), [error handling](docs/architecture/error-handling.md)을 따릅니다.
 
 ### Backend migration baseline
 
-Backend module boundary and migration guardrails are maintained in [MIGRATION.md](MIGRATION.md).
-Domain invariant failures use HTTP/framework-neutral `DomainException`/`DomainErrorCode`; API and admin adapters map them to HTTP responses. User-facing message ownership is still a documented migration debt.
-Application/use-case failures remain owned by each executable module. See the [domain guide](domain/README.md) and
-[ErrorCode migration inventory](docs/migration/domain-application-errorcode-inventory.md) for the historical #421 snapshot. Current ownership is defined by the domain guide and source code.
+Current migration decisions and evidence are maintained in
+[BEAT-SERVER-MIGRATION-EXECUTION.md](docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md) and `task_artifact.md`.
+Domain failures are translated to lane-owned Application failure language before Web adapters map them to HTTP.
+[MIGRATION.md](MIGRATION.md) and the ErrorCode inventory are historical pre-target records, not current architecture guidance.
 
 ### Environment configuration
 

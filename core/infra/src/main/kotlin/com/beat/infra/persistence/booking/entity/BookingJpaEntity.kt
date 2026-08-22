@@ -14,7 +14,7 @@ import java.time.LocalDateTime
 
 @Entity(name = "Booking")
 @Table(name = "booking")
-class BookingJpaEntity private constructor(
+internal class BookingJpaEntity private constructor(
     id: Long?,
     purchaseTicketCount: Int,
     bookerName: String,

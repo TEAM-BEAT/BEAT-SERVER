@@ -6,17 +6,14 @@ import com.beat.domain.booking.vo.RefundAccount
 import com.beat.domain.sharedkernel.vo.BankName
 import com.beat.infra.persistence.booking.entity.BookingJpaEntity
 import com.beat.infra.persistence.booking.entity.RefundAccountJpaValue
-import org.junit.jupiter.api.Assertions.assertAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import java.time.LocalDateTime
 
-class BookingPersistenceMapperTest {
-    private val mapper = BookingPersistenceMapper()
+class BookingPersistenceMapperTest : FunSpec({
+    val mapper = BookingPersistenceMapper()
 
-    @Test
-    fun toDomainPreservesJpaEntityFields() {
+    test("toDomainPreservesJpaEntityFields") {
         val createdAt = LocalDateTime.of(2026, 4, 29, 19, 10)
         val cancellationDate = LocalDateTime.of(2026, 4, 30, 19, 10)
         val entity = BookingJpaEntity.rehydrate(
@@ -37,25 +34,22 @@ class BookingPersistenceMapperTest {
 
         val booking = mapper.toDomain(entity)
 
-        assertAll(
-            { assertEquals(11L, booking.getId()) },
-            { assertEquals(2, booking.getPurchaseTicketCount()) },
-            { assertEquals("booker", booking.getBookerName()) },
-            { assertEquals("010-1234-5678", booking.getBookerPhoneNumber()) },
-            { assertEquals(BookingStatus.BOOKING_CANCELLED, booking.getBookingStatus()) },
-            { assertEquals(createdAt, booking.getCreatedAt()) },
-            { assertEquals(cancellationDate, booking.getCancellationDate()) },
-            { assertEquals(BankName.KAKAOBANK, booking.getBankName()) },
-            { assertEquals("111-222", booking.getAccountNumber()) },
-            { assertEquals("holder", booking.getAccountHolder()) },
-            { assertEquals(30_000, booking.getTotalPaymentAmount()) },
-            { assertEquals(22L, booking.getScheduleId()) },
-            { assertEquals(33L, booking.getUserId()) },
-        )
+        booking.id shouldBe 11L
+        booking.purchaseTicketCount shouldBe 2
+        booking.bookerName shouldBe "booker"
+        booking.bookerPhoneNumber shouldBe "010-1234-5678"
+        booking.bookingStatus shouldBe BookingStatus.BOOKING_CANCELLED
+        booking.createdAt shouldBe createdAt
+        booking.cancellationDate shouldBe cancellationDate
+        booking.bankName shouldBe BankName.KAKAOBANK
+        booking.accountNumber shouldBe "111-222"
+        booking.accountHolder shouldBe "holder"
+        booking.totalPaymentAmount shouldBe 30_000
+        booking.scheduleId shouldBe 22L
+        booking.userId shouldBe 33L
     }
 
-    @Test
-    fun toEntityKeepsGeneratedIdNullForNewBooking() {
+    test("toEntityKeepsGeneratedIdNullForNewBooking") {
         val booking = Booking.create(
             1,
             "new-booker",
@@ -70,19 +64,16 @@ class BookingPersistenceMapperTest {
 
         val entity = mapper.toEntity(booking)
 
-        assertAll(
-            { assertNull(entity.id) },
-            { assertEquals(1, entity.purchaseTicketCount) },
-            { assertEquals("new-booker", entity.bookerName) },
-            { assertEquals(BookingStatus.CHECKING_PAYMENT, entity.bookingStatus) },
-            { assertEquals(20_000, entity.totalPaymentAmount) },
-            { assertEquals(44L, entity.scheduleId) },
-            { assertEquals(55L, entity.userId) },
-        )
+        entity.id shouldBe null
+        entity.purchaseTicketCount shouldBe 1
+        entity.bookerName shouldBe "new-booker"
+        entity.bookingStatus shouldBe BookingStatus.CHECKING_PAYMENT
+        entity.totalPaymentAmount shouldBe 20_000
+        entity.scheduleId shouldBe 44L
+        entity.userId shouldBe 55L
     }
 
-    @Test
-    fun roundTripPreservesRefundFields() {
+    test("roundTripPreservesRefundFields") {
         val createdAt = LocalDateTime.of(2026, 4, 29, 19, 20)
         val booking = Booking.rehydrate(
             31L,
@@ -102,16 +93,14 @@ class BookingPersistenceMapperTest {
 
         val roundTrip = mapper.toDomain(mapper.toEntity(booking))
 
-        assertAll(
-            { assertEquals(booking.getId(), roundTrip.getId()) },
-            { assertEquals(booking.getBookingStatus(), roundTrip.getBookingStatus()) },
-            { assertEquals(booking.getCreatedAt(), roundTrip.getCreatedAt()) },
-            { assertEquals(booking.getBankName(), roundTrip.getBankName()) },
-            { assertEquals(booking.getAccountNumber(), roundTrip.getAccountNumber()) },
-            { assertEquals(booking.getAccountHolder(), roundTrip.getAccountHolder()) },
-            { assertEquals(booking.getTotalPaymentAmount(), roundTrip.getTotalPaymentAmount()) },
-            { assertEquals(booking.getScheduleId(), roundTrip.getScheduleId()) },
-            { assertEquals(booking.getUserId(), roundTrip.getUserId()) },
-        )
+        roundTrip.id shouldBe booking.id
+        roundTrip.bookingStatus shouldBe booking.bookingStatus
+        roundTrip.createdAt shouldBe booking.createdAt
+        roundTrip.bankName shouldBe booking.bankName
+        roundTrip.accountNumber shouldBe booking.accountNumber
+        roundTrip.accountHolder shouldBe booking.accountHolder
+        roundTrip.totalPaymentAmount shouldBe booking.totalPaymentAmount
+        roundTrip.scheduleId shouldBe booking.scheduleId
+        roundTrip.userId shouldBe booking.userId
     }
-}
+})

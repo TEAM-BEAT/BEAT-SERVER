@@ -5,7 +5,7 @@ import com.beat.infra.external.notification.slack.vo.text.Text
 import com.fasterxml.jackson.annotation.JsonInclude
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-data class SectionBlock(
+internal data class SectionBlock(
     override val type: String,
     val fields: List<Text>?,
     val text: Text?,

@@ -18,23 +18,23 @@ internal class SocialLoginMemberResolver(
         socialIdentity: SocialIdentity,
     ): MemberAuthenticationResult {
         val existingMember = memberRepository.findBySocialIdentity(socialIdentity)
-        if (existingMember.isPresent) return existingMember.get().toAuthenticationResult()
+        existingMember?.let { return it.toAuthenticationResult() }
         return try {
             val memberId = memberRegistrar.registerMemberWithUserInfo(socialLoginProfile, socialIdentity)
             findById(memberId)
         } catch (duplicate: DuplicateSocialIdentityException) {
             memberRepository.findBySocialIdentity(socialIdentity)
-                .map { member -> member.toAuthenticationResult() }
-                .orElseThrow { duplicate }
+                ?.toAuthenticationResult()
+                ?: throw duplicate
         }
     }
 
-    private fun findById(memberId: Long): MemberAuthenticationResult = memberRepository.findById(memberId)
-        .map { member -> member.toAuthenticationResult() }
-        .orElseThrow { FrontofficeApplicationException(MemberApplicationErrorCode.MEMBER_NOT_FOUND) }
+    private fun findById(memberId: Long): MemberAuthenticationResult =
+        memberRepository.findById(memberId)?.toAuthenticationResult()
+            ?: throw FrontofficeApplicationException(MemberApplicationErrorCode.MEMBER_NOT_FOUND)
 
     private fun Member.toAuthenticationResult(): MemberAuthenticationResult = MemberAuthenticationResult(
-        memberId = requireNotNull(getId()),
-        userId = getUserId(),
+        memberId = requireNotNull(id),
+        userId = userId,
     )
 }

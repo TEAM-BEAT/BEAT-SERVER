@@ -9,7 +9,7 @@ import com.beat.infra.persistence.exception.PersistenceMappingException
 import org.springframework.stereotype.Component
 
 @Component
-class BookingPersistenceMapper {
+internal class BookingPersistenceMapper {
     fun toDomain(entity: BookingJpaEntity): Booking =
         try {
             Booking.rehydrate(
@@ -33,19 +33,19 @@ class BookingPersistenceMapper {
 
     fun toEntity(domain: Booking): BookingJpaEntity =
         BookingJpaEntity.rehydrate(
-            domain.getId(),
-            domain.getPurchaseTicketCount(),
-            domain.getBookerName(),
-            domain.getBookerPhoneNumber(),
-            domain.getBookingStatus(),
-            domain.getCreatedAt(),
-            domain.getCancellationDate(),
-            domain.getBirthDate(),
-            domain.getPassword(),
-            toEntity(domain.getRefundAccount()),
-            domain.getScheduleId(),
-            domain.getUserId(),
-            domain.getTotalPaymentAmount(),
+            domain.id,
+            domain.purchaseTicketCount,
+            domain.bookerName,
+            domain.bookerPhoneNumber,
+            domain.bookingStatus,
+            domain.createdAt,
+            domain.cancellationDate,
+            domain.birthDate,
+            domain.password,
+            toEntity(domain.refundAccount),
+            domain.scheduleId,
+            domain.userId,
+            domain.totalPaymentAmount,
         )
 
     private fun toDomain(value: RefundAccountJpaValue?): RefundAccount? =

@@ -1,7 +1,7 @@
 package com.beat.admin.promotion.api.response
 
-import com.beat.admin.promotion.application.result.AdminPromotionResults
-import com.beat.admin.promotion.application.result.AdminPromotionResults.AdminPromotionResult
+import com.beat.application.admin.promotion.AdminPromotionResults
+import com.beat.application.admin.promotion.AdminPromotionResults.AdminPromotionResult
 import com.fasterxml.jackson.annotation.JsonProperty
 
 data class CarouselFindAllResponse(

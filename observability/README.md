@@ -497,7 +497,7 @@ Sentry는 `observability` 모듈이 소유하는 vendor observability bootstrap�
 
 Source Context는 `build-logic`의 `beat.sentry-source-context` convention이 Sentry JVM Gradle Plugin을 적용해 처리합니다. Runtime Sentry 의존성은 계속 `observability`가 소유하지만, source bundle upload는 CI/build concern이므로 root build가 아니라 production/library module build policy로 명시 적용합니다.
 
-- 적용 대상: `apis`, `admin`, `batch`, `observability`, `infra`, `domain`, `gateway`, `global-support`, `module-contracts`
+- 적용 대상: `:apps:api`, `:apps:admin`, `:apps:batch`, 세 `:application:*` lane, `:domain`, `:infrastructure`, `:support:security`, `:support:observability`
 - CI secret: `SENTRY_AUTH_TOKEN`
 - runtime env: `SENTRY_RELEASE=beat-server@<git-sha>`
 - Gradle source bundle upload release와 runtime `sentry.release`는 같은 `beat-server@<git-sha>` 형식을 사용합니다.

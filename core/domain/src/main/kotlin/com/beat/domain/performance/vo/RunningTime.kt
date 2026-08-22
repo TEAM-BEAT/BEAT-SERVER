@@ -11,7 +11,6 @@ data class RunningTime private constructor(
     fun endsAt(start: LocalDateTime): LocalDateTime = start.plusMinutes(minutes.toLong())
 
     companion object {
-        @JvmStatic
         fun of(minutes: Int): RunningTime {
             if (minutes <= 0) {
                 throw DomainException(PerformanceErrorCode.NON_POSITIVE_RUNNING_TIME)

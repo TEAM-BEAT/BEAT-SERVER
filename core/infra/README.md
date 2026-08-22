@@ -24,7 +24,7 @@ JPA/Kotlin JDSL persistence 어댑터, auth Redis 저장소, 외부 API 클라�
 1. 이것은 DB/캐시/검색엔진과 통신하는 저장소 구현인가?
 2. 이것은 외부 API/서드파티 서비스(OAuth, Slack, SMS, S3)를 호출하는 클라이언트인가?
 3. 이것은 domain repository interface의 구현체인가?
-4. 이것은 module-contracts read port의 구현체인가?
+4. 이것은 특정 Application consumer가 소유한 output port/query reader의 구현체인가?
 5. 이것은 Spring Boot 기술 설정(async, JPA, 외부 클라이언트)인가?
 ```
 
@@ -33,11 +33,11 @@ JPA/Kotlin JDSL persistence 어댑터, auth Redis 저장소, 외부 API 클라�
 | domain RepositoryPort 구현체 + Spring Data 어댑터      | `infra.persistence.<context>.repository`       |
 | JPA entity / persistence model                   | `infra.persistence.<context>.entity`           |
 | domain ↔ JPA entity 변환 mapper                    | `infra.persistence.<context>.mapper`           |
-| module-contracts ReadPort 구현체 / query projection | `infra.persistence.<context>.repository.query` |
+| Application-owned output port/query reader 구현체 | 실제 기술에 맞는 `infra.persistence` / `infra.external` 하위 패키지 |
 | 외부 API 클라이언트 / 서드파티 어댑터                          | `infra.external.<concern>.<provider>`          |
 | JPA/async/external-client 기술 설정                  | `infra.config`                                 |
 | domain model, UseCase, ApplicationService        | `domain` / 실행 모듈                               |
-| 실행 모듈 간 계약, ReadModel contract                   | `module-contracts`                             |
+| use-case output port / consumer query projection       | 해당 `application:*` capability                |
 
 ---
 
@@ -49,20 +49,20 @@ flowchart TB
     Facade[Facade<br/>Scenario entrypoint]
     App[ApplicationService<br/>CommandService / QueryService]
     Domain[domain module<br/>Entity / VO / DomainService / RepositoryPort]
-    Contracts[module-contracts<br/>ReadPort / ExternalPort / ReadModel]
+    Ports[application-owned<br/>Output Port / Query Reader]
     Infra[infra module<br/>persistence adapter / external adapter / config]
     External[(DB / Redis / External APIs)]
 
     Controller --> Facade
     Facade --> App
     App --> Domain
-    App --> Contracts
+    App --> Ports
     Infra -->|RepositoryPort 구현| Domain
-    Infra -->|ReadPort / ExternalPort 구현| Contracts
+    Infra -->|Output Port / Query Reader 구현| Ports
     Infra --> External
 
     style Domain fill:#e8fff1,stroke:#15803d,stroke-width:2px
-    style Contracts fill:#eef2ff,stroke:#4338ca,stroke-width:2px
+    style Ports fill:#eef2ff,stroke:#4338ca,stroke-width:2px
     style Infra fill:#fff7ed,stroke:#c2410c,stroke-width:2px
 ```
 
@@ -74,7 +74,7 @@ flowchart TB
 | Facade             | 실행 시나리오 조합 진입점                            | infra 직접 호출                     |
 | ApplicationService | use-case 실행, transaction, domain 호출       | infra 구현 직접 의존                  |
 | domain             | 도메인 상태, 불변식, 저장소 계약(interface)            | Spring/JPA/infra 구현             |
-| module-contracts   | port/contract/read model 정의               | infra 구현, domain model 직접 노출    |
+| application        | use case와 consumer-owned port/query reader | Web/JPA/Redis/외부 SDK 구현 세부사항    |
 | **infra**          | persistence/external adapter 구현, 기술 설정 소유 | service 계층 소유, 실행 모듈 DTO import |
 
 ---
@@ -205,7 +205,8 @@ flowchart TB
 | `AuthRedisConfig`        | `com.beat.infra.redis.auth`  | APIs composition root가 명시적으로 선택하는 인증 Redis 설정          |
 
 `infra.external.*`, `infra.persistence.*` 구현 패키지를 실행 모듈이 직접 import하면 안 됩니다.
-외부 어댑터 주입은 `module-contracts` port interface를 통해서만 받습니다.
+Application이 기술 경계를 숨길 필요가 있을 때는 해당 consumer가 소유한 output port/query reader를 `infra`가 구현합니다.
+단순 기술 primitive는 `support:*`의 좁은 public API를 사용하며, 얕은 forwarding port를 만들지 않습니다.
 
 ---
 
@@ -235,12 +236,13 @@ flowchart LR
         S3["S3FileStorageAdapter<br/>external.storage.s3"]:::adapter
     end
 
-    subgraph PORTS["Application-owned and Module Contracts Ports"]
+    subgraph PORTS["Application-owned Ports"]
         direction TB
         SocialPort["SocialLoginProvider<br/>(application-owned)"]:::port
-        BookingPort["BookingNotificationPort"]:::port
+        BookingPort["BookingNotificationSender<br/>(Booking-owned)"]:::port
         MemberPort["MemberRegistrationNotifier<br/>(application-owned)"]:::port
-        FileStoragePort["FileStoragePort"]:::port
+        PerformanceStorage["PerformanceImageStorage"]:::port
+        PromotionStorage["PromotionImageStorage"]:::port
     end
 
     Registry --> Kakao
@@ -251,7 +253,8 @@ flowchart LR
     Kakao -. implements .-> SocialPort
     Slack -. implements .-> BookingPort
     Slack -. implements .-> MemberPort
-    S3 -. implements .-> FileStoragePort
+    S3 -. implements .-> PerformanceStorage
+    S3 -. implements .-> PromotionStorage
 
     classDef config fill:#ECFEFF,stroke:#14B8A6,stroke-width:2px,color:#0F172A
     classDef hub fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px,color:#334155
@@ -261,7 +264,7 @@ flowchart LR
 
 ### 외부 어댑터 규칙
 
-- application-owned contract(`SocialLoginProvider`, `RefreshTokenStore`, `MemberRegistrationNotifier`)와 남은 `module-contracts` port(`BookingNotificationPort`, `FileStoragePort`, ...)를 구현합니다.
+- 실제 volatility boundary가 있는 application-owned contract(`SocialLoginProvider`, `RefreshTokenStore`, `BookingNotificationSender`, `MemberRegistrationNotifier`, `PerformanceImageStorage`, `PromotionImageStorage`)를 구현합니다.
 - 실행 모듈 DTO, ApplicationService, domain model을 import하지 않습니다.
 - Feign client는 `@FeignClient` interface로 정의하고 `ExternalClientConfig`의 `@EnableFeignClients(basePackageClasses=...)`로
   등록합니다.
@@ -281,9 +284,9 @@ flowchart LR
 
 ### AuthRedisConfig
 
-APIs의 composition root가 `AuthRedisConfig`를 직접 import해 application-owned `RefreshTokenStore`와 `GuestSessionPort`, `GuestAccessThrottlePort`의 Redis adapter를 활성화합니다.
+APIs의 composition root가 `AuthRedisConfig`를 직접 import해 application-owned `RefreshTokenStore`, `GuestSessionStore`, `GuestAccessThrottle`의 Redis adapter를 활성화합니다.
 Redis starter runtime dependency도 APIs만 소유하므로 Admin과 Batch에는 Redis auto-configuration이 유입되지 않습니다.
-Redis hash, Spring Data repository는 `infra.redis.auth`에 두고 Lua throttle script는 infra classpath resource로 관리합니다. 실행 모듈에는 `module-contracts` port만 노출합니다.
+Redis hash, Spring Data repository는 `infra.redis.auth`에 두고 Lua throttle script는 infra classpath resource로 관리합니다. 구현 타입은 `internal`이고 Application 계약만 외부에 노출합니다.
 기존 운영 hash의 `_class`에는 gateway 시절 FQCN이 저장되어 있으므로 `@TypeAlias`로 그 값을 유지합니다. keyspace, property path, TTL과 secondary index도 변경하지 않습니다.
 
 ---
@@ -299,7 +302,7 @@ Redis hash, Spring Data repository는 `infra.redis.auth`에 두고 Lua throttle 
 | `.entity`           | Kotlin JPA entity와 persistence `@Embeddable`   | 항상                                     |
 | `.repository`       | JpaRepository, RepositoryPort 구현체               | 항상                                     |
 | `.mapper`           | JPA entity ↔ domain model 변환                    | entity와 domain model이 실제로 분리된 slice에서만 |
-| `.repository.query` | module-contracts ReadPort 구현체, query projection | 화면/검색/통계 조회가 복잡해질 때만                   |
+| `.repository.query` | Application-owned query reader 구현과 projection | 화면/검색/통계 조회가 복잡해질 때만                   |
 
 ### 현재 persistence context
 
@@ -345,30 +348,22 @@ Hibernate의 공식 기준은 [Hibernate ORM Introduction — Embeddable types](
 
 ```text
 infra/
-  src/main/java/com/beat/infra/
-    EnableInfraBaseConfig.java                    # 공개: group 선택 annotation
-    InfraBaseConfig.java                          # 공개: top-level group marker interface
-    InfraBaseConfigGroup.java                     # 공개: JPA / ASYNC / EXTERNAL_CLIENTS / REDIS_CACHE
-    InfraBaseConfigImportSelector.java            # DeferredImportSelector — enum → config class 매핑
-    config/
-      AsyncConfig.java                            # ASYNC group owner, @Import(TaskExecutorConfig)
-      ExternalClientConfig.java                   # EXTERNAL_CLIENTS group owner, @Import(S3InfraConfig)
-      JpaConfig.java                              # JPA group owner, @Import(InfraPersistenceConfig)
-      RedisCacheConfig.java                       # REDIS_CACHE group owner (dormant)
-      TaskExecutorConfig.java                     # support config; beatApplicationTaskExecutor 빈
-      MysqlCustomDialect.java                     # support config
-      ThreadPoolProperties.java                   # support config
-    redis/auth/
-      AuthRedisConfig.java                        # APIs가 직접 import하는 auth Redis repository/adapter 설정
   src/main/kotlin/com/beat/infra/
+    EnableInfraBaseConfig.kt                      # 공개: group 선택 annotation
+    InfraBaseConfigGroup.kt                       # 공개: JPA / ASYNC / EXTERNAL_CLIENTS / REDIS_CACHE
+    InfraBaseConfig.kt                            # internal top-level group marker
+    InfraBaseConfigImportSelector.kt              # internal DeferredImportSelector
+    config/
+      *.kt                                        # internal group/support configuration
     redis/auth/
+      AuthRedisConfig.kt                          # 공개: API composition root의 auth Redis 설정
       refreshtoken/
         RedisRefreshTokenAdapter.kt               # implements application auth RefreshTokenStore
         RefreshTokenRedisHash.kt                  # @RedisHash, legacy @TypeAlias
         RefreshTokenRedisRepository.kt
       guest/
-        RedisGuestSessionAdapter.kt               # implements GuestSessionPort
-        RedisGuestAccessThrottleAdapter.kt        # implements GuestAccessThrottlePort
+        RedisGuestSessionAdapter.kt               # implements Booking GuestSessionStore
+        RedisGuestAccessThrottleAdapter.kt        # implements Booking GuestAccessThrottle
         GuestSessionRedisHash.kt                  # @RedisHash, legacy @TypeAlias
         GuestSessionRedisRepository.kt
         Sha256Hasher.kt
@@ -376,49 +371,29 @@ infra/
       social/kakao/
         KakaoSocialLoginAdapter.kt                # implements application member SocialLoginProvider
         client/
-          KakaoApiClient.java                     # @FeignClient
-          KakaoAuthApiClient.java                 # @FeignClient
-        response/
-          KakaoAccessTokenResponse.java
-          KakaoAccount.java
-          KakaoUserProfile.java
-          KakaoUserResponse.java
+          *.kt                                    # internal @FeignClient
+        response/*.kt                             # internal provider DTO
       notification/slack/
-        SlackBookingNotificationAdapter.java      # implements BookingNotificationPort
+        SlackBookingNotificationAdapter.kt        # implements Booking BookingNotificationSender
         SlackMemberNotificationAdapter.kt         # implements application member MemberRegistrationNotifier
-        client/
-          BookingSlackClient.java                 # @FeignClient
-          MemberSlackClient.java                  # @FeignClient
-        vo/
-          SlackConstant.java
-          block/  Block.java DividerBlock.java HeaderBlock.java SectionBlock.java
-          message/ SlackMessage.java
-          text/   MarkdownText.java PlainText.java Text.java
+        client/*.kt                               # internal @FeignClient
+        vo/**/*.kt                                # internal provider message model
       notification/sms/
         CoolSmsAdapter.kt                         # internal SMS adapter
       storage/s3/
-        S3FileStorageAdapter.java                 # implements FileStoragePort
-        S3InfraConfig.java                        # support config; AmazonS3 빈
+        S3FileStorageAdapter.kt                   # implements PerformanceImageStorage, PromotionImageStorage
+        S3InfraConfig.kt                          # internal support config; AmazonS3 빈
     persistence/
-      InfraPersistenceConfig.java                 # @ComponentScan(basePackageClasses=InfraPersistenceMarker)
-      InfraPersistenceMarker.java                 # entity/repository scan root
-      common/
-        (BaseTimeEntity.kt — Kotlin)
+      InfraPersistenceConfig.kt                   # 공개: composition-root scan breadcrumb
+      InfraPersistenceMarker.kt                   # internal scan root
+      common/BaseTimeEntity.kt
       <context>/                                  # booking · cast · member · performance · performanceimage
-        entity/   <Context>JpaEntity.kt           #   · promotion · schedule · staff · user
-        mapper/   <Context>PersistenceMapper.java
+        entity/   <Context>JpaEntity.kt           #   · promotion · schedule · staff · user; internal
+        mapper/   <Context>PersistenceMapper.kt   # internal
         repository/
-          <Context>JpaRepository.java
-          <Aggregate>RepositoryImpl.java           # Aggregate Root에만 공개 Domain adapter
-          query/  <Query>ReadPortImpl.kt          # 새 query adapter는 Kotlin
-                                                  # schedule: ScheduleReadPortImpl
-
-  src/main/kotlin/com/beat/infra/
-    persistence/
-      common/
-        BaseTimeEntity.kt                         # @MappedSuperclass; auditing
-      <context>/entity/
-        <Context>JpaEntity.kt                     # 9개 context 전부 Kotlin
+          <Context>JpaRepository.kt               # internal
+          <Aggregate>RepositoryImpl.kt            # internal Domain repository adapter
+          query/<ConsumerProjection>Queries.kt    # internal Application query reader
   src/main/resources/redis/scripts/
     record-guest-access-failure.lua               # INCR + 최초 EXPIRE 원자 실행
 ```
@@ -429,9 +404,12 @@ infra/
 
 ```text
 domain
-module-contracts
-global-support
+application:frontoffice
+application:admin
+application:system
 ```
+
+필요한 Application lane만 해당 adapter 구현을 위해 의존합니다. `infra`는 `apps:*`에 의존하지 않습니다.
 
 ---
 
@@ -486,7 +464,7 @@ global-support
 
 - [ ] 외부 어댑터라면 `infra.external.<concern>.<provider>` 아래에 두었는가?
 - [ ] 영속성 어댑터라면 `infra.persistence.<context>.*` 아래에 두었는가?
-- [ ] `module-contracts` port interface를 구현했는가? (어댑터 타입 노출 금지)
+- [ ] 필요한 경우 실제 consumer-owned port/query reader를 구현했는가? (얕은 forwarding interface 금지)
 - [ ] 실행 모듈 DTO / ResponseDTO / ApplicationService를 import하지 않았는가?
 - [ ] domain model을 infra query 결과로 직접 반환하지 않았는가? (read model 사용)
 - [ ] 새 group이 필요하다면 `InfraBaseConfigGroup`에 추가하고 `InfraBaseConfig`를 구현했는가?
@@ -494,7 +472,7 @@ global-support
 - [ ] 실행 모듈 `InfraConfig`에서 `@EnableInfraBaseConfig` group 선택이 올바른가?
 - [ ] Kotlin JPA entity 작성 규약을 `MIGRATION.md` canonical guide를 따랐는가?
 - [ ] mapper는 entity ↔ domain 변환만 담당하고 query projection 조립을 담당하지 않는가?
-- [ ] query adapter라면 `module-contracts` ReadPort를 구현하고 API ResponseDTO를 반환하지 않는가?
+- [ ] query adapter라면 Application consumer projection을 반환하고 API ResponseDTO를 반환하지 않는가?
 - [ ] external adapter가 예상 가능한 provider exception만 번역하고 치명적 오류나 cancellation을 삼키지 않는가?
 - [ ] DB constraint와 lock 전략이 Aggregate invariant 및 concurrency test로 검증됐는가?
 - [ ] schema 변경이 expand/contract와 rollback 호환성을 지키는가?

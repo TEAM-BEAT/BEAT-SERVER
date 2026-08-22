@@ -19,12 +19,12 @@
 
 ## 허용 의존성
 
-- `module-contracts`
-- `domain`
-- `infra`
-- `gateway`의 공개 계약/enable 경계만
-- `global-support`
-- `observability`
+- `:application:frontoffice`
+- `:infrastructure`의 명시적 composition configuration만
+- `:support:security`의 공개 technical/bootstrap API
+- `:support:observability`
+
+Production source의 `:domain` 직접 의존은 금지합니다. Domain failure와 model은 Application boundary를 통해 번역합니다.
 
 ## 금지 규칙
 
@@ -53,9 +53,6 @@ apis/
   src/main/kotlin/com/beat/apis/
     ApisApplication.kt
     exception/
-      ApiApplicationException.kt
-      ApplicationErrorCode.kt
-      ApplicationErrorType.kt
       ApiGlobalExceptionHandler.kt
     config/
       GatewayConfig.kt              # servlet security + gateway auth capability bootstrap
@@ -64,7 +61,7 @@ apis/
     web/converter/
       CaseInsensitiveStringToEnumConverterFactory.kt
 
-  src/main/java/com/beat/apis/
+  src/main/kotlin/com/beat/apis/
     booking/
     home/
     member/
@@ -107,7 +104,7 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
 | Area | Current in `apis` | Target direction | Deferred-to-issue |
 | --- | --- | --- | --- |
 | Executable lane ownership | 사용자 API lane은 root bootstrap 없이 `ApisApplication`과 module-local config로 실행된다. | 계속 `apis`가 user-facing controller/DTO/security/OpenAPI를 소유한다. | #384 gate baseline only |
-| Shared module ownership | `domain`, `module-contracts`, `global-support`, `observability`, `gateway`, `infra`의 현재 공개 계약을 사용한다. | shared module ownership/package closeout 이후 공개 계약만 더 좁게 사용한다. | #378 |
+| Dependency ownership | Frontoffice Application과 좁은 Infrastructure/Security/Observability bootstrap만 사용한다. | Controller/Web에서 Infrastructure 구현 접근을 금지한다. | compiled guard |
 | CQRS/package normalization | context별 `api/request`, `api/response`, `facade`, `application/command`, `application/query`, `application/result` 경계를 적용했다. 조회·변경 중 한쪽만 있는 context에는 불필요한 빈 package를 만들지 않는다. | 응집된 변경 이유와 transaction 경계를 기준으로 service를 나누며 endpoint마다 기계적으로 클래스를 만들지 않는다. | architecture guard로 지속 검증 |
 | Gateway/Redis boundary | `@EnableGatewayServletSecurity`, `@EnableGatewayConfig(GUEST_ACCESS)`, `com.beat.support.security.CurrentMember`와 public password/token API를 사용한다. Redis refresh store는 auth application output port `RefreshTokenStore`를 infrastructure가 구현하고 composition root가 `AuthRedisConfig`로 조립한다. | `:support:security` 내부 구현 직접 참조 없이 public API와 명시적 infra config만 사용한다. | architecture guard로 고정 |
 | Domain/persistence boundary | API DTO는 JPA Entity/QueryDSL Q type/Redis document를 직접 노출하지 않는 guard를 유지하고, 홈 화면의 공연·프로모션 조회는 단일 `HomeQueryService` read-only transaction에서 조합한다. | domain persistence 전략 정리 후에도 API boundary는 transfer DTO 중심으로 유지한다. | #380 |
@@ -128,9 +125,9 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
 ### Outside `apis`
 
 - `gateway`: public bootstrap/current-member/JWT contract와 internal JWT/security implementation boundary
-- `infra`: JPA, QueryDSL, async/external-client bootstrap
-- `domain`: repository/domain/exception/port contracts used by `apis`
-- `global-support`: `ErrorResponse`, `SuccessResponse`, `SuccessCode`와 Jackson/순수 support
+- `application:frontoffice`: use cases, transaction, result/failure language, consumer-owned contracts
+- `infrastructure`: composition root가 import하는 최소 bootstrap configuration
+- API-local: `ErrorResponse`, `SuccessResponse`, `SuccessCode`와 HTTP/Jackson policy
 - `observability`: MDC/access logging, metrics/actuator, Micrometer/OpenTelemetry tracing bootstrap
 - `batch`: 프로모션 관리와 티켓 정리 등 정기 유지보수 작업
 
@@ -189,7 +186,7 @@ com.beat.apis.<context>/
 - request/response JSON 필드명과 기존 오류 응답 계약은 패키지 이동 및 application 입력 분리와 무관하게 유지한다.
 - request와 response가 함께 쓰는 wire enum은 `api/type`, 내부 후속 처리 이벤트는 `application/event`가 소유한다. enum과 event를 DTO 패키지에 섞지 않는다.
 - command service는 상태 변경 유스케이스와 transaction 경계다. domain repository contract로 Domain model을 조회/변경/저장하고, 필요한 순수 정책은 DomainService/Entity/VO에 위임한다.
-- query service는 조회 흐름과 application read model 조립을 맡는다. 단순 domain 조회는 domain repository contract를 사용할 수 있지만, 화면/검색/정렬/통계/read-model 조회가 되면 domain repository를 키우지 않고 module-contracts read port + infra query adapter 또는 실행 모듈 내부 read-model 경계로 분리한다. infra adapter가 필요하면 실행 모듈 타입을 infra가 import하지 않고 module-contracts read contract를 먼저 둔다. 이때 infra persistence mapper를 직접 사용하지 않는다.
+- query service는 조회 흐름과 consumer read model 조립을 맡습니다. 화면/검색/정렬/통계 조회 계약은 `application:frontoffice` consumer가 소유하고 Infrastructure가 구현하며, Apps는 persistence mapper를 직접 사용하지 않습니다.
 - `adapter`, `port` 패키지는 BEAT 기본 가이드로 강제하지 않는다.
 - executable-lane owner file은 계속 `com.beat.apis.*` 아래에 둔다.
 
@@ -206,16 +203,16 @@ Controller -> Facade -> ApplicationService(command/query) -> DomainService/Entit
 - `Facade`는 API 시나리오의 공식 진입점이다. 여러 command/query service output을 조합하고 최종 response를 반환하지만, transaction을 열거나 repository/domain service를 직접 호출하지 않는다.
 - `Facade`는 raw Domain model을 절대 받거나 반환하지 않는다. HTTP request를 검증된 application command/query로 변환하고, 입력/출력은 request primitive, ResponseDTO, CommandResult/QueryResult 같은 실행 모듈 내부 전달 모델로 제한한다.
 - `ApplicationService`는 command service와 query service를 의미한다. 이 계층만 유스케이스 method 내부에서 Domain model을 조회/변경/정책 판단에 사용할 수 있고, Domain model은 이 계층 밖으로 반환하지 않는다. 다른 ApplicationService에 raw Domain model을 반환하는 public helper method를 새로 만들지 않는다.
-- command service는 상태 변경 흐름과 transaction 경계를 맡는다. repository 조회/저장, lock, event, external/module-contract command port 호출, DomainService/Entity 호출 순서를 책임진다.
+- command service는 상태 변경 흐름과 transaction 경계를 맡습니다. repository 조회/저장, lock, event, 증명된 output port, DomainService/Entity 호출 순서를 책임집니다.
 - transactional command method 전체를 `runCatching`으로 감싸거나 `Result.failure`로 정상 반환하지 않는다. Spring rollback이 필요한 실패는 예외로 경계 밖까지 전파한다.
 - query service는 조회 흐름과 application read model 조립을 맡는다. HTTP ResponseDTO 조립은 Facade가 담당해 application이 API 계약에 의존하지 않게 한다.
 - ApplicationService는 도메인 판단을 직접 if/계산으로 반복 구현하지 않는다. 주요 도메인 판단은 `domain.<context>.service`의 DomainService 또는 Entity/VO method에 위임한다.
 - Kotlin 생성자에 인자가 둘 이상이면 named argument를 사용해 필드 대응을 명시한다. Java 생성자와 외부 라이브러리 API에는 이 규칙을 강제하지 않는다.
-- `@JvmRecord`는 Java V1 Controller·테스트가 Kotlin DTO를 Java record 접근자(`field()`)로 사용하는 전환 기간에만 유지한다. Kotlin-only 내부 모델에는 관성적으로 추가하지 않는다.
+- Kotlin-owned input/output은 Kotlin property와 nullability를 사용하며 Java-only `@Jvm*` compatibility를 관성적으로 추가하지 않습니다.
 - DomainService는 `apis`가 아니라 `domain` 모듈에 둔다. `apis`에는 `application/port/in` 같은 use-case port 패키지를 기본으로 만들지 않는다.
-- 복잡한 화면 조회/read-model은 domain repository를 키우지 않고 `module-contracts` read port + infra query adapter 또는 infra adapter가 필요 없는 실행 모듈 query service 내부 read-model 경계로 분리한다.
+- 복잡한 화면 조회/read-model은 Domain repository를 키우지 않고 해당 Application capability의 query reader/read model로 분리합니다.
 - application/use-case 실패 사유는 `<context>/exception/<Context>ApplicationErrorCode`가 소유한다. repository lookup 실패, request/use-case input validation, actor/owner/permission 검증, external adapter 실패 번역은 domain ErrorCode로 표현하지 않는다.
-- 공통 application 오류 shape와 wrapper는 `apis.exception`의 `ApplicationErrorCode`, `ApplicationErrorType`, `ApiApplicationException`이 소유한다. `ApiGlobalExceptionHandler`가 `ApiApplicationException`과 `DomainException`을 사용자 API의 HTTP 응답으로 변환하며, `global-support`는 이 예외 계약과 HTTP 매핑을 소유하지 않는다.
+- Application failure language는 `application:frontoffice`가 소유합니다. `ApiGlobalExceptionHandler`는 그 실패를 API-local response envelope과 HTTP status로 변환하며 Domain failure를 직접 매핑하지 않습니다.
 - Controller response 성공 문구는 `api/response/<Context>SuccessCode`가 소유한다. `SuccessCode`를 domain에 새로 추가하지 않는다.
 - `infra` adapter가 던진 adapter-local failure는 application service에서 API-facing ErrorCode로 번역한다. `infra`가 `apis` ErrorCode를 import하게 만들지 않는다.
 - 같은 transaction에서 지켜야 하는 invariant는 event listener로 넘기지 않는다. Application event는 저장 성공 이후의 알림·관측 같은 부수 효과에만 사용한다.
@@ -239,7 +236,7 @@ Controller <- Facade                     <- ResponseDTO conversion
 - 단순 조회는 domain repository contract를 임시로 사용할 수 있다. 예: `findById`, `findAllByPerformanceId`, `exists...`처럼 Domain model이 실제로 필요한 조회.
 - 화면/검색/목록/정렬/통계/N+1 회피/fetch 전용/projection 조회는 read-model로 분리한다.
 - read-model은 save 대상이 아니며 Domain model도 API ResponseDTO도 아니다. query 결과를 담는 내부 조회 shape다.
-- infra query adapter가 구현하고 실행 모듈 query service가 주입받아야 하는 조회 계약은 `module-contracts`의 `*ReadPort`, `*ReadModel`로 둔다. 검색 조건이 단순하면 port 메서드 파라미터로 직접 전달하고, 조건이 많아져 의미가 분명해질 때만 `*SearchCondition`을 추가한다.
+- Infrastructure query adapter가 구현할 조회 계약은 consumer인 Application query package가 소유합니다. 실제 projection volatility와 deletion test를 통과할 때만 reader/read model을 만듭니다.
 - 특정 API query service 내부에서만 쓰는 조립 결과는 `apis.<context>.application.result` 또는 query service private row/result로 둔다.
 - query service는 JPA Entity, QueryDSL Q type, EntityManager, infra persistence mapper를 직접 사용하지 않는다.
 - mapper 타입은 실행 모듈에 만들지 않는다. API ResponseDTO 조립은 Facade가 담당하고 Controller는 HTTP envelope만 조립한다. persistence entity ↔ domain 변환만 `infra.persistence.<aggregate>.mapper`가 담당한다.
@@ -255,7 +252,7 @@ Controller <- Facade                     <- ResponseDTO conversion
 - Controller와 Facade에는 raw Domain model을 절대 올리지 않는다.
 - ApplicationService 간 공유도 raw Domain model이 아니라 primitive/value/result/read model로 한다.
 - ResponseDTO, RequestDTO, CommandResult, QueryResult는 Domain model을 필드로 담지 않는다.
-- 실행 모듈 간 DTO/ApplicationService/Facade를 공유하지 않는다. 공유가 필요하면 `module-contracts`에 최소 계약을 새로 정의한다.
+- 실행 모듈 간 DTO/ApplicationService/Facade를 공유하지 않습니다. 중앙 contracts module 대신 Domain collaboration 또는 consumer-owned narrow seam을 사용합니다.
 
 
 ### ResponseDTO vs Result selection rule

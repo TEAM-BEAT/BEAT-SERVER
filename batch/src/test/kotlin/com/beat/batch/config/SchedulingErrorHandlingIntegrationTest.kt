@@ -1,15 +1,20 @@
 package com.beat.batch.config
 
-import com.beat.batch.support.AbstractBatchIntegrationTest
+import com.beat.batch.support.BeatBatchAcceptanceTest
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.core.LogEvent
 import org.apache.logging.log4j.core.LoggerContext
 import org.apache.logging.log4j.core.appender.AbstractAppender
 import org.apache.logging.log4j.core.config.Property
-import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.Awaitility.await
-import org.junit.jupiter.api.Test
+import io.kotest.core.annotation.Tags
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.extensions.spring.SpringExtension
+import io.kotest.extensions.spring.SpringTestLifecycleMode
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.scheduling.TaskScheduler
@@ -30,34 +35,39 @@ import java.util.concurrent.CopyOnWriteArrayList
  * 테스트와 함께 실행될 때 캡처가 누락될 수 있어, [ScheduledTaskErrorHandlerTest]와 동일하게
  * 로거에 직접 부착하는 방식으로 결정적으로 검증한다.)
  */
-class SchedulingErrorHandlingIntegrationTest : AbstractBatchIntegrationTest() {
+@BeatBatchAcceptanceTest
+@Tags("acceptance")
+class SchedulingErrorHandlingIntegrationTest : FunSpec() {
 
     @Autowired
     @Qualifier("maintenanceTaskScheduler")
     private lateinit var taskScheduler: TaskScheduler
 
-    @Test
-    fun maintenanceTaskSchedulerUsesCentralErrorHandler() {
-        assertThat(ReflectionTestUtils.getField(taskScheduler, "errorHandler"))
-            .isInstanceOf(ScheduledTaskErrorHandler::class.java)
-    }
+    init {
+        isolationMode = IsolationMode.SingleInstance
+        extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-    @Test
-    fun dynamicScheduledTaskFailureIsHandledByCentralErrorHandler() {
-        val events = captureLogEvents(ScheduledTaskErrorHandler::class.java.name) { collected ->
-            taskScheduler.schedule(
-                { throw IllegalStateException("dynamic-schedule-boom") },
-                Instant.now(),
-            )
-
-            await().atMost(Duration.ofSeconds(5)).until { collected().isNotEmpty() }
+        test("maintenanceTaskSchedulerUsesCentralErrorHandler") {
+            ReflectionTestUtils.getField(taskScheduler, "errorHandler")
+                .shouldBeInstanceOf<ScheduledTaskErrorHandler>()
         }
 
-        assertThat(events).hasSize(1)
-        val event = events.first()
-        assertThat(event.level).isEqualTo(Level.ERROR)
-        assertThat(event.message.formattedMessage).isEqualTo("Batch task execution failed")
-        assertThat(event.thrown).hasMessage("dynamic-schedule-boom")
+        test("dynamicScheduledTaskFailureIsHandledByCentralErrorHandler") {
+            val events = captureLogEvents(ScheduledTaskErrorHandler::class.java.name) { collected ->
+                taskScheduler.schedule(
+                    { throw IllegalStateException("dynamic-schedule-boom") },
+                    Instant.now(),
+                )
+
+                await().atMost(Duration.ofSeconds(5)).until { collected().isNotEmpty() }
+            }
+
+            events.size shouldBe 1
+            val event = events.first()
+            event.level shouldBe Level.ERROR
+            event.message.formattedMessage shouldBe "Batch task execution failed"
+            event.thrown?.message shouldBe "dynamic-schedule-boom"
+        }
     }
 
     /**

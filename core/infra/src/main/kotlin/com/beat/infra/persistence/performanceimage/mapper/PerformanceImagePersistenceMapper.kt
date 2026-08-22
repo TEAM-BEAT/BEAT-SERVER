@@ -5,7 +5,7 @@ import com.beat.infra.persistence.performanceimage.entity.PerformanceImageJpaEnt
 import org.springframework.stereotype.Component
 
 @Component
-class PerformanceImagePersistenceMapper {
+internal class PerformanceImagePersistenceMapper {
     fun toDomain(entity: PerformanceImageJpaEntity): PerformanceImage = PerformanceImage.rehydrate(
         entity.id,
         entity.performanceImageUrl,
@@ -13,7 +13,7 @@ class PerformanceImagePersistenceMapper {
 
     fun toEntity(performanceImage: PerformanceImage, performanceId: Long): PerformanceImageJpaEntity =
         PerformanceImageJpaEntity.rehydrate(
-            performanceImage.getId(),
+            performanceImage.id,
             performanceImage.performanceImageUrl,
             performanceId,
         )

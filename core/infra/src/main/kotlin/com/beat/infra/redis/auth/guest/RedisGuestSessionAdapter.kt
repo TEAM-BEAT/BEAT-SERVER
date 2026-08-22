@@ -1,13 +1,12 @@
 package com.beat.infra.redis.auth.guest
 
-import com.beat.contracts.auth.guest.GuestSessionPort
+import com.beat.application.frontoffice.booking.booker.command.GuestSessionStore
 import java.security.SecureRandom
 import java.util.Base64
-import java.util.OptionalLong
 
-class RedisGuestSessionAdapter(
+internal class RedisGuestSessionAdapter(
     private val guestSessionRepository: GuestSessionRedisRepository,
-) : GuestSessionPort {
+) : GuestSessionStore {
 
     private val secureRandom = SecureRandom()
 
@@ -17,13 +16,13 @@ class RedisGuestSessionAdapter(
         return token
     }
 
-    override fun findUserId(token: String): OptionalLong {
+    override fun findUserId(token: String): Long? {
         if (token.isBlank()) {
-            return OptionalLong.empty()
+            return null
         }
         return guestSessionRepository.findById(Sha256Hasher.hashToBase64Url(token))
-            .map { OptionalLong.of(it.userId) }
-            .orElseGet { OptionalLong.empty() }
+            .map { it.userId }
+            .orElse(null)
     }
 
     private fun generateToken(): String {

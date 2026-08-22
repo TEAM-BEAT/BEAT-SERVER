@@ -1,6 +1,7 @@
 package com.beat.application.frontoffice.performance.maker.command
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.exception.translateDomainFailure
 import org.springframework.stereotype.Service
 
 @Service
@@ -13,6 +14,7 @@ class FileCommandService(
         staffImages: List<String>?,
         performanceImages: List<String>?,
     ): PerformancePresignedUrls {
+        return translateDomainFailure {
         val normalizedCastImages = castImages.orEmpty().filter(String::isNotBlank)
         val normalizedStaffImages = staffImages.orEmpty().filter(String::isNotBlank)
         val normalizedPerformanceImages = performanceImages.orEmpty().filter(String::isNotBlank)
@@ -21,12 +23,13 @@ class FileCommandService(
             throw FrontofficeApplicationException(FileApplicationErrorCode.INVALID_FILE_NAME)
         }
 
-        return performanceImageStorage.issueAllPresignedUrls(
+        performanceImageStorage.issueAllPresignedUrls(
             posterImage,
             normalizedCastImages,
             normalizedStaffImages,
             normalizedPerformanceImages,
         )
+        }
     }
 
     private fun isValidFileName(fileName: String): Boolean =

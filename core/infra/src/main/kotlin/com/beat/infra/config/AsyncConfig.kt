@@ -15,4 +15,4 @@ import org.springframework.scheduling.annotation.EnableAsync
 @Configuration(proxyBeanMethods = false)
 @EnableAsync
 @Import(TaskExecutorConfig::class)
-class AsyncConfig : InfraBaseConfig
+internal class AsyncConfig : InfraBaseConfig

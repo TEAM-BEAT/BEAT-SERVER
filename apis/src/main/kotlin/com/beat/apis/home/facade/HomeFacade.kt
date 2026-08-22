@@ -2,7 +2,7 @@ package com.beat.apis.home.facade
 
 import com.beat.apis.home.api.response.HomeFindAllResponse
 import com.beat.apis.home.api.type.HomeGenreType
-import com.beat.apis.home.application.query.HomeQueryService
+import com.beat.application.frontoffice.home.booker.query.HomeQueryService
 import org.springframework.stereotype.Service
 
 @Service

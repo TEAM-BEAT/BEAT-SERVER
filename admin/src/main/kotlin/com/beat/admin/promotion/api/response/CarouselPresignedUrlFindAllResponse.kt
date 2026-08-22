@@ -1,7 +1,7 @@
 package com.beat.admin.promotion.api.response
 
-import com.beat.admin.promotion.application.result.AdminPromotionPresignedUrlResults.CarouselPresignedUrlsResult
-import com.beat.contracts.storage.CarouselPresignedUpload
+import com.beat.application.admin.promotion.PromotionImageUpload
+import com.beat.application.admin.promotion.query.AdminPromotionPresignedUrlResults.CarouselPresignedUrlsResult
 
 data class CarouselPresignedUrlFindAllResponse(
     val carouselPresignedUrls: Map<String, String>,
@@ -18,6 +18,6 @@ data class CarouselPresignedUrlFindAllResponse(
         val uploadUrl: String,
         val imageKey: String,
     ) {
-        constructor(upload: CarouselPresignedUpload) : this(upload.uploadUrl, upload.imageKey)
+        constructor(upload: PromotionImageUpload) : this(upload.uploadUrl, upload.imageKey)
     }
 }

@@ -3,11 +3,11 @@ package com.beat.support.security.jwt.internal
 import io.jsonwebtoken.security.WeakKeyException
 import jakarta.validation.Validation
 import jakarta.validation.Validator
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import java.util.Base64
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 
 /**
  * 기동 시점 fail-fast 계약을 고정한다.
@@ -15,67 +15,63 @@ import org.junit.jupiter.api.Assertions.assertTrue
  * - 값의 존재/범위: [JwtProperties]의 Bean Validation (Spring Boot 권장 방식)
  * - 값으로 실제 서명 키를 만들 수 있는지: [JwtSigningKeyHolder.validateSigningKey]
  */
-class JwtStartupValidationTest {
+class JwtStartupValidationTest : FunSpec() {
 
     private val validator: Validator = Validation.buildDefaultValidatorFactory().validator
 
-    @Test
-    fun `keyId가 비어 있으면 프로퍼티 검증에서 실패한다`() {
-        val violations = validator.validate(properties(keyId = ""))
+    init {
+        isolationMode = IsolationMode.SingleInstance
 
-        assertEquals(1, violations.size)
-        assertEquals("keyId", violations.first().propertyPath.toString())
-    }
+        test("keyId가 비어 있으면 프로퍼티 검증에서 실패한다") {
+            val violations = validator.validate(properties(keyId = ""))
 
-    @Test
-    fun `secret이 비어 있으면 프로퍼티 검증에서 실패한다`() {
-        val violations = validator.validate(properties(secret = " "))
+            violations.size shouldBe 1
+            violations.first().propertyPath.toString() shouldBe "keyId"
+        }
 
-        assertEquals(1, violations.size)
-        assertEquals("secret", violations.first().propertyPath.toString())
-    }
+        test("secret이 비어 있으면 프로퍼티 검증에서 실패한다") {
+            val violations = validator.validate(properties(secret = " "))
 
-    @Test
-    fun `access token 만료 시간이 양수가 아니면 프로퍼티 검증에서 실패한다`() {
-        val violations = validator.validate(properties(accessTokenExpireTime = 0L))
+            violations.size shouldBe 1
+            violations.first().propertyPath.toString() shouldBe "secret"
+        }
 
-        assertEquals(1, violations.size)
-        assertEquals("accessTokenExpireTime", violations.first().propertyPath.toString())
-    }
+        test("access token 만료 시간이 양수가 아니면 프로퍼티 검증에서 실패한다") {
+            val violations = validator.validate(properties(accessTokenExpireTime = 0L))
 
-    @Test
-    fun `refresh token 만료 시간이 양수가 아니면 프로퍼티 검증에서 실패한다`() {
-        val violations = validator.validate(properties(refreshTokenExpireTime = -1L))
+            violations.size shouldBe 1
+            violations.first().propertyPath.toString() shouldBe "accessTokenExpireTime"
+        }
 
-        assertEquals(1, violations.size)
-        assertEquals("refreshTokenExpireTime", violations.first().propertyPath.toString())
-    }
+        test("refresh token 만료 시간이 양수가 아니면 프로퍼티 검증에서 실패한다") {
+            val violations = validator.validate(properties(refreshTokenExpireTime = -1L))
 
-    @Test
-    fun `유효한 프로퍼티는 검증을 통과한다`() {
-        assertTrue(validator.validate(properties()).isEmpty())
-    }
+            violations.size shouldBe 1
+            violations.first().propertyPath.toString() shouldBe "refreshTokenExpireTime"
+        }
 
-    @Test
-    fun `Base64가 아닌 secret은 기동 시점에 서명 키 생성으로 검출된다`() {
-        val holder = JwtSigningKeyHolder(properties(secret = "not-base64!!"))
+        test("유효한 프로퍼티는 검증을 통과한다") {
+            validator.validate(properties()).isEmpty() shouldBe true
+        }
 
-        assertThrows<RuntimeException> { holder.validateSigningKey() }
-    }
+        test("Base64가 아닌 secret은 기동 시점에 서명 키 생성으로 검출된다") {
+            val holder = JwtSigningKeyHolder(properties(secret = "not-base64!!"))
 
-    @Test
-    fun `HS256 최소 강도 미달 secret은 기동 시점에 검출된다`() {
-        val weakSecret = Base64.getEncoder().encodeToString("weak".toByteArray())
-        val holder = JwtSigningKeyHolder(properties(secret = weakSecret))
+            shouldThrow<RuntimeException> { holder.validateSigningKey() }
+        }
 
-        assertThrows<WeakKeyException> { holder.validateSigningKey() }
-    }
+        test("HS256 최소 강도 미달 secret은 기동 시점에 검출된다") {
+            val weakSecret = Base64.getEncoder().encodeToString("weak".toByteArray())
+            val holder = JwtSigningKeyHolder(properties(secret = weakSecret))
 
-    @Test
-    fun `서명 키는 한 번만 생성되어 재사용된다`() {
-        val holder = JwtSigningKeyHolder(properties())
+            shouldThrow<WeakKeyException> { holder.validateSigningKey() }
+        }
 
-        assertTrue(holder.signingKey === holder.signingKey)
+        test("서명 키는 한 번만 생성되어 재사용된다") {
+            val holder = JwtSigningKeyHolder(properties())
+
+            (holder.signingKey === holder.signingKey) shouldBe true
+        }
     }
 
     private fun properties(

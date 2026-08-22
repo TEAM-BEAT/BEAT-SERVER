@@ -17,14 +17,11 @@ data class PerformancePeriod private constructor(
     }
 
     companion object {
-        @JvmStatic
         fun of(startDate: LocalDate, endDate: LocalDate): PerformancePeriod = PerformancePeriod(startDate, endDate)
 
-        @JvmStatic
         fun fromPerformanceDateTimes(performanceDates: List<LocalDateTime>): PerformancePeriod =
             fromDates(performanceDates.map(LocalDateTime::toLocalDate))
 
-        @JvmStatic
         fun fromDates(performanceDates: List<LocalDate>): PerformancePeriod {
             validateNotEmpty(performanceDates)
             return PerformancePeriod(performanceDates.min(), performanceDates.max())

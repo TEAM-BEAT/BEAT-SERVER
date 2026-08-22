@@ -1,5 +1,5 @@
 package com.beat.infra.external.notification.slack.vo.text
 
-sealed interface Text {
+internal sealed interface Text {
     val type: String
 }

@@ -12,7 +12,7 @@ import jakarta.persistence.Table
 
 @Entity(name = "Users")
 @Table(name = "users")
-class UsersJpaEntity private constructor(
+internal class UsersJpaEntity private constructor(
     id: Long?,
     role: Role,
 ) {

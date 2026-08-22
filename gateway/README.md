@@ -69,7 +69,7 @@ com.beat.support.security
 | Refresh token/guest session/throttle Redis adapter | `infra.redis.auth` |
 | Guest 비밀번호 해시 primitive | `com.beat.support.security.password` / `guest.internal` |
 | Token technical API | `com.beat.support.security.token` |
-| Guest 계약 정의 | `com.beat.contracts.auth.guest` (`module-contracts`) |
+| Guest session/throttle 계약 | `application:frontoffice` Booking-owned output port |
 | Route whitelist, 역할 기반 접근 정책 | 각 실행 모듈 security config (`apis`, `admin`) |
 | SecurityContext 기반 MDC userId 추출 | `com.beat.support.security.authentication.internal.SecurityMdcLoggingFilter` |
 | 비즈니스 로그인/로그아웃 흐름 | `application:frontoffice` auth/member use case |
@@ -83,7 +83,7 @@ flowchart TB
     Apis[apis / admin<br/>실행 모듈]
     Application[application:frontoffice<br/>auth/member use cases]
     GatewayPublic[:support:security 공개 표면<br/>bootstrap · CurrentMember · password/PasswordHasher · token/*]
-    Contracts[module-contracts<br/>GuestSessionPort · GuestAccessThrottlePort]
+    BookingPorts[application:frontoffice<br/>GuestSessionStore · GuestAccessThrottle]
     GatewayInternal[:support:security 내부 구현<br/>JwtTokenProvider · JwtAuthenticationFilter<br/>SecurityMdcLoggingFilter · CurrentMemberArgumentResolver]
     InfraAuthRedis[infra auth Redis adapter<br/>RedisRefreshTokenAdapter · RedisGuestSessionAdapter<br/>RedisGuestAccessThrottleAdapter]
     Redis[(Redis)]
@@ -108,7 +108,7 @@ flowchart TB
 | --- | --- | --- |
 | 실행 모듈 | `@EnableGatewayServletSecurity`와 `GUEST_ACCESS` 선택, APIs에서 `AuthRedisConfig`로 Redis adapter 조립, route/role 정책 소유 | `:support:security`/infra internal 직접 import |
 | `:support:security` 공개 표면 | bootstrap, `@CurrentMember`, `PasswordHasher`, token technical API | 내부 구현 노출 |
-| module-contracts | guest 계약 정의 | 실행 모듈 DTO, domain model 포함 |
+| `application:frontoffice` | guest session/throttle consumer vocabulary | security 구현 세부사항 포함 |
 | gateway 내부 구현 | JWT 구현, 인증 필터, guest 비밀번호 해시 | 비즈니스 정책, repository, Redis adapter |
 
 ---
@@ -187,11 +187,11 @@ class GatewayConfig
 
 | 계약 | 위치 | 구현체 |
 | --- | --- | --- |
-| `GuestSessionPort` | `com.beat.contracts.auth.guest` | `infra.redis.auth.guest.RedisGuestSessionAdapter` |
-| `GuestAccessThrottlePort` | `com.beat.contracts.auth.guest` | `infra.redis.auth.guest.RedisGuestAccessThrottleAdapter` |
+| `GuestSessionStore` | `application.frontoffice.booking.booker.command` | `infra.redis.auth.guest.RedisGuestSessionAdapter` |
+| `GuestAccessThrottle` | `application.frontoffice.booking.booker.command` | `infra.redis.auth.guest.RedisGuestAccessThrottleAdapter` |
 
 `AccessTokenAuthenticator`는 구현(`JwtTokenProvider`)과 소비(`JwtAuthenticationFilter`)가 모두 `gateway`
-안에서 완결되므로 `module-contracts`가 아니라 `com.beat.support.security.jwt.internal`이 소유합니다. 필터가 토큰 1회 파싱으로
+안에서 완결되므로 중앙 contract가 아니라 `com.beat.support.security.jwt.internal`이 소유합니다. 필터가 토큰 1회 파싱으로
 `memberId`/`roleName`을 얻기 위한 내부 계약이며, 실행 모듈에는 노출하지 않습니다.
 
 ---
@@ -340,8 +340,8 @@ gateway/  # Gradle project :support:security
 ## 8. 허용 의존성
 
 ```text
-global-support
-module-contracts        # GuestSessionPort, GuestAccessThrottlePort 계약
+application:*           # 금지: support가 use-case contract를 구현하지 않음
+infrastructure          # 금지: Redis/external adapter 소유권 분리
 observability           # BaseMdcLoggingFilter 확장
 ```
 
@@ -390,7 +390,7 @@ observability           # BaseMdcLoggingFilter 확장
 
 - [ ] 이 코드가 진짜 인증/인가 primitive인가? 비즈니스 정책이 아닌가?
 - [ ] 실행 모듈이 `gateway.internal.*`를 직접 import하게 만들지 않았는가?
-- [ ] 새 공개 타입이 필요하다면 `security/servlet/` 또는 `module-contracts`에 두었는가?
+- [ ] 새 공개 타입이 정말 shared security primitive 또는 composition bootstrap인가?
 - [ ] route whitelist / 역할 기반 접근 제어를 `gateway`에 두지 않았는가?
 - [ ] `domain`, `infra`, `apis`, `admin`, `batch` import가 없는가?
 - [ ] 새 optional config group이 필요하다면 `GatewayConfigGroup`에 추가하고 `DeferredImportSelector`가 자동으로 처리하는지 확인했는가?

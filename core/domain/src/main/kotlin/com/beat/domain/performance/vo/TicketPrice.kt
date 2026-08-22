@@ -15,7 +15,6 @@ data class TicketPrice private constructor(
     }
 
     companion object {
-        @JvmStatic
         fun of(amount: Int): TicketPrice {
             if (amount < 0) {
                 throw DomainException(PerformanceErrorCode.NEGATIVE_TICKET_PRICE)

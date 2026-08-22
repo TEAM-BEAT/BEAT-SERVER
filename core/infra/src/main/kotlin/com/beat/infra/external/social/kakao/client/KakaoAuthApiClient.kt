@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 
 @FeignClient(name = "kakaoAuthApiClient", url = "https://kauth.kakao.com")
-interface KakaoAuthApiClient {
+internal interface KakaoAuthApiClient {
     @PostMapping(value = ["/oauth/token"], consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE])
     fun getOAuth2AccessToken(
         @RequestParam("grant_type") grantType: String,

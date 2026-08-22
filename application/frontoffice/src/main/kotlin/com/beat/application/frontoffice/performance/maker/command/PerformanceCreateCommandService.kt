@@ -1,6 +1,7 @@
 package com.beat.application.frontoffice.performance.maker.command
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.application.frontoffice.performance.CastResult
 import com.beat.application.frontoffice.performance.PerformanceImageResult
 import com.beat.application.frontoffice.performance.StaffResult
@@ -44,8 +45,9 @@ class PerformanceCreateCommandService(
 ) {
     @Transactional
     fun createPerformance(memberId: Long, command: PerformanceCreateCommand): PerformanceMutationResult {
+        return translateDomainFailure {
         val member = memberRepository.findById(memberId)
-            .orElseThrow { FrontofficeApplicationException(PerformanceApplicationErrorCode.MEMBER_NOT_FOUND) }
+            ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.MEMBER_NOT_FOUND)
         val performanceDates = command.schedules.map { it.performanceDate }
         if (performanceDates.isEmpty()) {
             throw FrontofficeApplicationException(PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND)
@@ -89,13 +91,13 @@ class PerformanceCreateCommandService(
             PerformancePeriod.fromPerformanceDateTimes(performanceDates),
             TicketPrice.of(command.ticketPrice),
             command.schedules.size,
-            member.getUserId(),
+            member.userId,
             casts,
             staffs,
             images,
         )
         val savedPerformance = performanceRepository.save(performance)
-        val performanceId = checkNotNull(savedPerformance.getId())
+        val performanceId = checkNotNull(savedPerformance.id)
         val now = LocalDateTime.now(clock)
         var schedules = command.schedules.map { scheduleCommand ->
             Schedule.createUpcoming(
@@ -109,13 +111,14 @@ class PerformanceCreateCommandService(
         }
         schedules = scheduleRepository.saveAll(scheduleSequenceDomainService.assignScheduleNumbers(schedules))
         eventPublisher.publishEvent(PerformancePosterChangedEvent(savedPerformance.posterImage))
-        return toResult(
+        toResult(
             savedPerformance,
             schedules,
-            savedPerformance.getCasts(),
-            savedPerformance.getStaffs(),
-            savedPerformance.getImages(),
+            savedPerformance.casts,
+            savedPerformance.staffs,
+            savedPerformance.images,
         )
+        }
     }
 
     private fun toResult(
@@ -128,27 +131,27 @@ class PerformanceCreateCommandService(
         val today = LocalDate.now(clock)
         val scheduleResponses = schedules.map { schedule ->
             ScheduleResult(
-                schedule.getId(),
-                schedule.getPerformanceDate(),
-                schedule.getTotalTicketCount(),
+                schedule.id,
+                schedule.performanceDate,
+                schedule.totalTicketCount,
                 calculateDueDate(today, schedule),
-                schedule.getScheduleNumber().name,
+                schedule.scheduleNumber.name,
             )
         }
-        val castResponses = casts.map { CastResult(it.getId(), it.castName, it.castRole, it.castPhoto) }
-        val staffResponses = staffs.map { StaffResult(it.getId(), it.staffName, it.staffRole, it.staffPhoto) }
-        val imageResponses = images.map { PerformanceImageResult(it.getId(), it.performanceImageUrl) }
+        val castResponses = casts.map { CastResult(it.id, it.castName, it.castRole, it.castPhoto) }
+        val staffResponses = staffs.map { StaffResult(it.id, it.staffName, it.staffRole, it.staffPhoto) }
+        val imageResponses = images.map { PerformanceImageResult(it.id, it.performanceImageUrl) }
         return PerformanceMutationResult(
-            userId = performance.getUserId(),
-            performanceId = performance.getId(),
+            userId = performance.userId,
+            performanceId = performance.id,
             performanceTitle = performance.performanceTitle,
             genre = performance.genre.name,
-            runningTime = performance.getRunningTime(),
+            runningTime = performance.runningTime,
             performanceDescription = performance.performanceDescription,
             performanceAttentionNote = performance.performanceAttentionNote,
-            bankName = performance.getBankName()?.name,
-            accountNumber = performance.getAccountNumber(),
-            accountHolder = performance.getAccountHolder(),
+            bankName = performance.bankName?.name,
+            accountNumber = performance.accountNumber,
+            accountHolder = performance.accountHolder,
             posterImage = performance.posterImage,
             performanceTeamName = performance.performanceTeamName,
             performanceVenue = performance.performanceVenue,
@@ -157,8 +160,8 @@ class PerformanceCreateCommandService(
             latitude = performance.latitude,
             longitude = performance.longitude,
             performanceContact = performance.performanceContact,
-            performancePeriod = formatPerformancePeriod(performance.getPerformancePeriodValue()),
-            ticketPrice = performance.getTicketPrice(),
+            performancePeriod = formatPerformancePeriod(performance.performancePeriodValue),
+            ticketPrice = performance.ticketPrice,
             totalScheduleCount = performance.totalScheduleCount,
             schedules = scheduleResponses,
             casts = castResponses,

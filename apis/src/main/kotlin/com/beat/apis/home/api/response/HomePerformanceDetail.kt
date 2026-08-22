@@ -1,7 +1,7 @@
 package com.beat.apis.home.api.response
 
-import com.beat.apis.home.application.result.HomePerformanceResult
-import com.beat.global.support.jackson.CdnImageUrl
+import com.beat.application.frontoffice.home.booker.query.HomePerformanceResult
+import com.beat.apis.web.jackson.CdnImageUrl
 
 @ConsistentCopyVisibility
 data class HomePerformanceDetail private constructor(

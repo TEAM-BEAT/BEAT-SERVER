@@ -13,12 +13,14 @@ base {
 }
 
 dependencies {
-    implementation(project(":module-contracts"))
+    implementation(project(":application:admin"))
     implementation(project(":support:security"))
-    implementation(project(":domain"))
     implementation(project(":infrastructure"))
-    implementation(project(":global-support"))
     implementation(project(":support:observability"))
 
+    testImplementation(project(":domain"))
     testImplementation(libs.bundles.integration.testcontainers)
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.0")
+    testImplementation(libs.kotest.extensions.spring)
+    testImplementation(libs.spring.security.test)
 }

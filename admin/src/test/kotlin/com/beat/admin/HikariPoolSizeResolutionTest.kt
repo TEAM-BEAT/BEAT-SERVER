@@ -1,7 +1,8 @@
 package com.beat.admin
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import org.springframework.boot.WebApplicationType
 import org.springframework.boot.builder.SpringApplicationBuilder
 import org.springframework.context.ApplicationContextInitializer
@@ -22,30 +23,33 @@ import org.springframework.mock.env.MockEnvironment
  * variable (systemEnvironment property source, which always outranks
  * config-data documents) reliably supplies it.
  */
-class HikariPoolSizeResolutionTest {
+class HikariPoolSizeResolutionTest : FunSpec() {
 
-    @Test
-    fun `DB_HIKARI_MAX_POOL_SIZE env var overrides shared persistence default`() {
-        val resolved = arrayOfNulls<String>(1)
+    init {
+        isolationMode = IsolationMode.SingleInstance
 
-        val app = SpringApplicationBuilder(AdminApplication::class.java)
-            .web(WebApplicationType.NONE)
-            .profiles("dev")
-            .initializers(ApplicationContextInitializer<ConfigurableApplicationContext> { ctx ->
-                val mockEnv = MockEnvironment()
-                mockEnv.setProperty("DB_HIKARI_MAX_POOL_SIZE", "3")
-                ctx.environment.propertySources.addFirst(mockEnv.propertySources.get("mockProperties")!!)
-                resolved[0] = ctx.environment.getProperty("spring.datasource.hikari.maximum-pool-size")
-                throw AbortAfterEnvironmentResolved()
-            })
+        test("DB_HIKARI_MAX_POOL_SIZE env var overrides shared persistence default") {
+            val resolved = arrayOfNulls<String>(1)
 
-        try {
-            app.run()
-        } catch (_: AbortAfterEnvironmentResolved) {
-            // expected: we only wanted the Environment, not a full context.
+            val app = SpringApplicationBuilder(AdminApplication::class.java)
+                .web(WebApplicationType.NONE)
+                .profiles("dev")
+                .initializers(ApplicationContextInitializer<ConfigurableApplicationContext> { ctx ->
+                    val mockEnv = MockEnvironment()
+                    mockEnv.setProperty("DB_HIKARI_MAX_POOL_SIZE", "3")
+                    ctx.environment.propertySources.addFirst(mockEnv.propertySources.get("mockProperties")!!)
+                    resolved[0] = ctx.environment.getProperty("spring.datasource.hikari.maximum-pool-size")
+                    throw AbortAfterEnvironmentResolved()
+                })
+
+            try {
+                app.run()
+            } catch (_: AbortAfterEnvironmentResolved) {
+                // expected: we only wanted the Environment, not a full context.
+            }
+
+            resolved[0] shouldBe "3"
         }
-
-        assertEquals("3", resolved[0], "DB_HIKARI_MAX_POOL_SIZE env var must supply Hikari maximum-pool-size")
     }
 
     private class AbortAfterEnvironmentResolved : RuntimeException()

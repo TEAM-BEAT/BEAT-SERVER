@@ -44,6 +44,10 @@ jobs:
           ./gradlew check verifyModuleBootJars --parallel --build-cache
         shell: bash
 
+      - name: Verify OpenAPI compatibility from Gradle check artifacts
+        run: bash .github/scripts/verify_openapi_compatibility.sh
+        shell: bash
+
       - name: Stage bootJars for downstream image build
         run: |
           mkdir -p staged-jars

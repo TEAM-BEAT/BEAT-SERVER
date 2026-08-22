@@ -2,6 +2,7 @@ package com.beat.application.frontoffice.member.command
 
 import com.beat.application.frontoffice.auth.command.LoginSessionIssuer
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.application.frontoffice.member.exception.MemberApplicationErrorCode
 import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.vo.SocialIdentity
@@ -15,32 +16,33 @@ class SocialLoginCommandService internal constructor(
     private val loginSessionIssuer: LoginSessionIssuer,
     private val userRepository: UserRepository,
 ) {
-    fun handleSocialLogin(authorizationCode: String, command: SocialLoginCommand): LoginSuccessResult {
-        val socialType = SocialType.valueOf(command.socialType.name)
-        val socialLoginProfile = try {
-            socialLoginProvider.login(
-                SocialLoginRequest(authorizationCode, socialType.toLoginType()),
+    fun handleSocialLogin(authorizationCode: String, command: SocialLoginCommand): LoginSuccessResult =
+        translateDomainFailure {
+            val socialType = SocialType.valueOf(command.socialType.name)
+            val socialLoginProfile = try {
+                socialLoginProvider.login(
+                    SocialLoginRequest(authorizationCode, socialType.toLoginType()),
+                )
+            } catch (failure: SocialLoginFailure) {
+                throw failure.toApplicationException()
+            }
+            val member = socialLoginMemberResolver.findOrRegister(
+                socialLoginProfile,
+                SocialIdentity.of(socialType, socialLoginProfile.socialId),
             )
-        } catch (failure: SocialLoginFailure) {
-            throw failure.toApplicationException()
+            val user = userRepository.findById(member.userId)
+                ?: throw FrontofficeApplicationException(MemberApplicationErrorCode.USER_NOT_FOUND)
+            val loginSession = loginSessionIssuer.issueFor(
+                memberId = member.memberId,
+                roleName = user.role.roleName,
+            )
+            LoginSuccessResult(
+                accessToken = loginSession.accessToken,
+                refreshToken = loginSession.refreshToken,
+                nickname = socialLoginProfile.nickname,
+                role = user.role.roleName,
+            )
         }
-        val member = socialLoginMemberResolver.findOrRegister(
-            socialLoginProfile,
-            SocialIdentity.of(socialType, socialLoginProfile.socialId),
-        )
-        val user = userRepository.findById(member.userId)
-            .orElseThrow { FrontofficeApplicationException(MemberApplicationErrorCode.USER_NOT_FOUND) }
-        val loginSession = loginSessionIssuer.issueFor(
-            memberId = member.memberId,
-            roleName = user.role.roleName,
-        )
-        return LoginSuccessResult(
-            accessToken = loginSession.accessToken,
-            refreshToken = loginSession.refreshToken,
-            nickname = socialLoginProfile.nickname,
-            role = user.role.roleName,
-        )
-    }
 
     private fun SocialType.toLoginType(): SocialLoginType = when (this) {
         SocialType.KAKAO -> SocialLoginType.KAKAO

@@ -4,7 +4,7 @@ import com.beat.apis.home.api.response.HomeFindAllResponse
 import com.beat.apis.home.api.response.HomeSuccessCode
 import com.beat.apis.home.api.type.HomeGenreType
 import com.beat.apis.home.facade.HomeFacade
-import com.beat.global.support.response.SuccessResponse
+import com.beat.apis.response.SuccessResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping

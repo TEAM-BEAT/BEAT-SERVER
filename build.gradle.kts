@@ -2,7 +2,7 @@ import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.artifacts.ProjectDependency
 
 plugins {
-    java
+    id("beat.kotlin-base")
     alias(libs.plugins.sonarqube)
     alias(libs.plugins.kover)
     alias(libs.plugins.dependency.analysis)
@@ -67,9 +67,9 @@ val transitionBoundaryTest by tasks.registering(Test::class) {
     classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
     filter {
-        includeTestsMatching("com.beat.architecture.PromotionBoundaryTest")
-        includeTestsMatching("com.beat.RootRetirementContractTest")
-        includeTestsMatching("com.beat.SharedBoundaryContractTest")
+        includeTestsMatching("com.beat.RuntimeConfigurationContractSpec")
+        includeTestsMatching("com.beat.DeploymentContractSpec")
+        includeTestsMatching("com.beat.BuildToolingContractSpec")
     }
 }
 
@@ -107,6 +107,17 @@ val targetExecutableApplicationLane = mapOf(
     ":apps:batch" to ":application:system",
 )
 
+val forbiddenLegacyProjects = setOf(
+    ":apis",
+    ":admin",
+    ":batch",
+    ":infra",
+    ":gateway",
+    ":module-contracts",
+    ":global",
+    ":global-support",
+)
+
 val verifyTargetModuleGraph by tasks.registering {
     group = "verification"
     description = "Verifies the target application lanes are present and compile-time isolated."
@@ -123,6 +134,9 @@ val verifyTargetModuleGraph by tasks.registering {
         )
         check(requiredProjects.all { findProject(it) != null }) {
             "Missing target project(s): ${requiredProjects.filter { findProject(it) == null }}"
+        }
+        check(forbiddenLegacyProjects.none { findProject(it) != null }) {
+            "Legacy project(s) must remain absent: ${forbiddenLegacyProjects.filter { findProject(it) != null }}"
         }
         check(project(":domain").configurations.none { configuration ->
             configuration.dependencies.withType(ProjectDependency::class.java).isNotEmpty()
@@ -155,6 +169,17 @@ val verifyTargetModuleGraph by tasks.registering {
             targetApplicationProjects + setOf(":infrastructure") + targetExecutableProjects
         check(supportSecurityDependencies.intersect(forbiddenSupportSecurityProjects).isEmpty()) {
             ":support:security must not depend on an application lane, infrastructure, or an executable app: $supportSecurityDependencies"
+        }
+        val mainConfigurations = setOf("api", "implementation", "compileOnly", "runtimeOnly")
+        targetExecutableApplicationLane.keys.forEach { executableProject ->
+            val mainDependencies = project(executableProject).configurations
+                .filter { configuration -> configuration.name in mainConfigurations }
+                .flatMap { configuration -> configuration.dependencies.withType(ProjectDependency::class.java) }
+                .map { dependency -> dependency.path }
+                .toSet()
+            check(":domain" !in mainDependencies) {
+                "$executableProject must not depend directly on :domain in main configurations: $mainDependencies"
+            }
         }
         targetExecutableApplicationLane.forEach { (executableProject, allowedApplicationProject) ->
             val dependencies = project(executableProject).configurations

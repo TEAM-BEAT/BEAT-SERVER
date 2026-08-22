@@ -3,7 +3,7 @@ package com.beat.apis.schedule.api
 import com.beat.apis.schedule.api.response.ScheduleSuccessCode
 import com.beat.apis.schedule.api.response.TicketAvailabilityResponse
 import com.beat.apis.schedule.facade.ScheduleFacade
-import com.beat.global.support.response.SuccessResponse
+import com.beat.apis.response.SuccessResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping

@@ -15,7 +15,6 @@ enum class BookingStatus(
     companion object {
         private val inactiveTicketAllocationStatuses = listOf(BOOKING_CANCELLED, BOOKING_DELETED)
 
-        @JvmStatic
         fun inactiveForTicketAllocation(): List<BookingStatus> = inactiveTicketAllocationStatuses
     }
 }

@@ -12,7 +12,7 @@ import jakarta.persistence.Table
 
 @Entity(name = "Promotion")
 @Table(name = "promotion")
-class PromotionJpaEntity private constructor(
+internal class PromotionJpaEntity private constructor(
     id: Long?,
     promotionPhoto: String,
     performanceId: Long?,
@@ -48,7 +48,6 @@ class PromotionJpaEntity private constructor(
         protected set
 
     companion object {
-        @JvmStatic
         fun rehydrate(
             id: Long?,
             promotionPhoto: String,

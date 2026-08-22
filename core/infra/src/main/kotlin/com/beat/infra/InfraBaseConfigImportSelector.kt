@@ -3,7 +3,7 @@ package com.beat.infra
 import org.springframework.context.annotation.DeferredImportSelector
 import org.springframework.core.type.AnnotationMetadata
 
-class InfraBaseConfigImportSelector : DeferredImportSelector {
+internal class InfraBaseConfigImportSelector : DeferredImportSelector {
     override fun selectImports(importingClassMetadata: AnnotationMetadata): Array<String> =
         getValues(importingClassMetadata)
             .map { it.configClass.name }

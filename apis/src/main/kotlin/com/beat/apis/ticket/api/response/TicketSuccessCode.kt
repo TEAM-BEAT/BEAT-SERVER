@@ -1,10 +1,10 @@
 package com.beat.apis.ticket.api.response
 
-import com.beat.global.support.response.SuccessCode
+import com.beat.apis.response.SuccessCode
 
 enum class TicketSuccessCode(
-    private val status: Int,
-    private val message: String,
+    override val status: Int,
+    override val message: String,
 ) : SuccessCode {
     TICKET_RETRIEVE_SUCCESS(200, "예매자 목록 조회가 성공적으로 완료되었습니다."),
     TICKET_UPDATE_SUCCESS(200, "예매자 입금여부 수정이 성공적으로 완료되었습니다."),
@@ -13,7 +13,4 @@ enum class TicketSuccessCode(
     TICKET_SEARCH_SUCCESS(200, "예매자 검색 결과 조회가 성공적으로 완료되었습니다.")
     ;
 
-    override fun getStatus(): Int = status
-
-    override fun getMessage(): String = message
 }

@@ -10,7 +10,7 @@ class PromotionEligibilityDomainService {
         performanceDates: List<LocalDateTime>,
         today: LocalDate,
     ): Boolean {
-        if (promotion.getPerformanceId() == null || performanceDates.isEmpty()) {
+        if (promotion.performanceId == null || performanceDates.isEmpty()) {
             return true
         }
 

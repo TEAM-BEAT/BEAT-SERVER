@@ -1,8 +1,12 @@
 package com.beat.batch.config
 
-import com.beat.batch.support.AbstractBatchIntegrationTest
-import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Test
+import com.beat.batch.support.BeatBatchAcceptanceTest
+import io.kotest.core.annotation.Tags
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.extensions.spring.SpringExtension
+import io.kotest.extensions.spring.SpringTestLifecycleMode
+import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.scheduling.annotation.Scheduled
@@ -20,7 +24,9 @@ import org.springframework.test.util.ReflectionTestUtils
  *    `scheduler`를 빠뜨린 메서드는 에러 핸들러가 적용되지 않는 이름 없는 스케줄러로 조용히
  *    fallback되어 예외가 관측되지 않을 수 있다.
  */
-class SchedulingConfigTest : AbstractBatchIntegrationTest() {
+@BeatBatchAcceptanceTest
+@Tags("acceptance")
+class SchedulingConfigTest : FunSpec() {
 
     @Autowired
     private lateinit var applicationContext: ApplicationContext
@@ -31,30 +37,30 @@ class SchedulingConfigTest : AbstractBatchIntegrationTest() {
     @Autowired
     private lateinit var scheduledTaskErrorHandler: ScheduledTaskErrorHandler
 
-    @Test
-    fun maintenanceTaskScheduler는_지정한_설정으로_구성된다() {
-        assertThat(maintenanceTaskScheduler.poolSize).isEqualTo(2)
-        assertThat(maintenanceTaskScheduler.threadNamePrefix).isEqualTo("maintenance-scheduler-")
-        assertThat(ReflectionTestUtils.getField(maintenanceTaskScheduler, "errorHandler"))
-            .isSameAs(scheduledTaskErrorHandler)
-    }
+    init {
+        isolationMode = IsolationMode.SingleInstance
+        extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-    @Test
-    fun 모든_Scheduled_메서드는_scheduler를_명시한다() {
-        val violations = applicationContext.beanDefinitionNames
-            .mapNotNull { beanName ->
-                runCatching { applicationContext.getType(beanName) }.getOrNull()
-            }
-            .flatMap { type ->
-                type.methods
-                    .filter { it.isAnnotationPresent(Scheduled::class.java) }
-                    .filter { it.getAnnotation(Scheduled::class.java).scheduler.isBlank() }
-                    .map { "${type.simpleName}.${it.name}" }
-            }
-            .distinct()
+        test("maintenanceTaskScheduler는_지정한_설정으로_구성된다") {
+            maintenanceTaskScheduler.poolSize shouldBe 2
+            maintenanceTaskScheduler.threadNamePrefix shouldBe "maintenance-scheduler-"
+            ReflectionTestUtils.getField(maintenanceTaskScheduler, "errorHandler") shouldBe scheduledTaskErrorHandler
+        }
 
-        assertThat(violations)
-            .withFailMessage("scheduler 속성이 없는 @Scheduled 메서드: %s", violations)
-            .isEmpty()
+        test("모든_Scheduled_메서드는_scheduler를_명시한다") {
+            val violations = applicationContext.beanDefinitionNames
+                .mapNotNull { beanName ->
+                    runCatching { applicationContext.getType(beanName) }.getOrNull()
+                }
+                .flatMap { type ->
+                    type.methods
+                        .filter { it.isAnnotationPresent(Scheduled::class.java) }
+                        .filter { it.getAnnotation(Scheduled::class.java).scheduler.isBlank() }
+                        .map { "${type.simpleName}.${it.name}" }
+                }
+                .distinct()
+
+            violations shouldBe emptyList()
+        }
     }
 }

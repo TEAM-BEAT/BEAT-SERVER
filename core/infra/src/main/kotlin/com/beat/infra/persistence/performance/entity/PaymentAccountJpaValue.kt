@@ -7,7 +7,7 @@ import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 
 @Embeddable
-class PaymentAccountJpaValue(
+internal class PaymentAccountJpaValue(
     bankName: BankName,
     accountNumber: String,
     accountHolder: String,

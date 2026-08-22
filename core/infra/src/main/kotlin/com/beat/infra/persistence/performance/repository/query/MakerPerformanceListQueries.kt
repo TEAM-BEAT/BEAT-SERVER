@@ -2,7 +2,6 @@ package com.beat.infra.persistence.performance.repository.query
 
 import com.beat.application.frontoffice.performance.maker.query.MakerPerformanceListReader
 import com.beat.application.frontoffice.performance.maker.query.MakerPerformanceListItemReadModel
-import com.beat.contracts.schedule.readmodel.MinPerformanceDateReadModel
 import com.beat.domain.performance.model.Genre
 import com.beat.infra.persistence.performance.entity.PerformanceJpaEntity
 import com.beat.infra.persistence.performance.entity.PerformancePeriodJpaValue
@@ -67,10 +66,10 @@ internal class MakerPerformanceListQueries(
         )
     }
 
-    private fun findRepresentativeDates(performanceIds: List<Long>): List<MinPerformanceDateReadModel> {
+    private fun findRepresentativeDates(performanceIds: List<Long>): List<RepresentativePerformanceDateProjection> {
         val now = LocalDateTime.now()
         val query = jpql {
-            selectNew<MinPerformanceDateReadModel>(
+            selectNew<RepresentativePerformanceDateProjection>(
                 path(ScheduleJpaEntity::performanceId),
                 coalesce(
                     min(
@@ -103,5 +102,10 @@ internal class MakerPerformanceListQueries(
         val periodStartDate: LocalDate?,
         val periodEndDate: LocalDate?,
         val legacyPeriod: String,
+    )
+
+    private data class RepresentativePerformanceDateProjection(
+        val performanceId: Long,
+        val performanceDate: LocalDateTime,
     )
 }

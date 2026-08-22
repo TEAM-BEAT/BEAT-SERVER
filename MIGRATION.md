@@ -1,4 +1,6 @@
-# BEAT-SERVER 마이그레이션 기준 문서
+# BEAT-SERVER 마이그레이션 기준 문서 — Historical Pre-CQRS Record
+
+> 이 문서는 과거 migration의 당시 상태를 보존하는 기록이다. 제거된 legacy project와 contract 명칭은 historical evidence로만 남아 있으며 신규 설계 지침이 아니다. 현재 Architecture는 `docs/architecture/BEAT-SERVER-CQRS-MULTIMODULE-ARCHITECTURE-FINAL.md`, 실행 상태는 `docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md`와 `task_artifact.md`를 따른다.
 
 이 문서는 BEAT-SERVER의 Java → Kotlin 전환을 시작하기 전에 현재 백엔드 구조와 검증 기준을 고정하기 위한 기준 문서입니다.
 

@@ -10,7 +10,7 @@ import org.hibernate.sql.ast.SqlAstTranslator
 import org.hibernate.sql.ast.spi.SqlAppender
 import org.hibernate.sql.ast.tree.SqlAstNode
 
-class MysqlCustomDialect : MySQLDialect() {
+internal class MysqlCustomDialect : MySQLDialect() {
     override fun initializeFunctionRegistry(functionContributions: FunctionContributions) {
         super.initializeFunctionRegistry(functionContributions)
 

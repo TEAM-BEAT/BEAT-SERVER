@@ -16,14 +16,15 @@ dependencies {
     implementation(libs.kotlin.logging.jvm)
 
     implementation(project(":application:frontoffice"))
-    implementation(project(":module-contracts"))
     implementation(project(":support:security"))
-    implementation(project(":domain"))
     implementation(project(":infrastructure"))
-    implementation(project(":global-support"))
     implementation(project(":support:observability"))
     runtimeOnly(libs.spring.boot.starter.data.redis)
 
     testImplementation(libs.bundles.integration.testcontainers)
+    testImplementation(project(":domain"))
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.0")
+    testImplementation(libs.kotest.extensions.spring)
+    testImplementation(libs.spring.security.test)
     testImplementation(libs.spring.boot.starter.data.redis)
 }

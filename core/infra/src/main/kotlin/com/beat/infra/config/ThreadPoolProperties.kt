@@ -8,7 +8,7 @@ import org.springframework.util.StringUtils
  * This avoids constructor binding friction while infra config ownership is still moving across modules.
  */
 @ConfigurationProperties(prefix = "thread-pool")
-class ThreadPoolProperties {
+internal class ThreadPoolProperties {
     var coreSize: Int = 2
         set(value) {
             field = value.coerceAtLeast(1)

@@ -2,16 +2,13 @@ package com.beat.infra.persistence.staff.mapper
 
 import com.beat.domain.performance.model.Staff
 import com.beat.infra.persistence.staff.entity.StaffJpaEntity
-import org.junit.jupiter.api.Assertions.assertAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 
-class StaffPersistenceMapperTest {
-    private val mapper = StaffPersistenceMapper()
+class StaffPersistenceMapperTest : FunSpec({
+    val mapper = StaffPersistenceMapper()
 
-    @Test
-    fun toDomainPreservesJpaEntityFieldsIncludingScalarPerformanceId() {
+    test("toDomainPreservesJpaEntityFieldsIncludingScalarPerformanceId") {
         val entity = StaffJpaEntity.rehydrate(
             11L,
             "staff-name",
@@ -22,16 +19,13 @@ class StaffPersistenceMapperTest {
 
         val staff = mapper.toDomain(entity)
 
-        assertAll(
-            { assertEquals(11L, staff.getId()) },
-            { assertEquals("staff-name", staff.staffName) },
-            { assertEquals("staff-role", staff.staffRole) },
-            { assertEquals("https://example.com/staff.png", staff.staffPhoto) },
-        )
+        staff.id shouldBe 11L
+        staff.staffName shouldBe "staff-name"
+        staff.staffRole shouldBe "staff-role"
+        staff.staffPhoto shouldBe "https://example.com/staff.png"
     }
 
-    @Test
-    fun toEntityKeepsGeneratedIdNullForNewStaff() {
+    test("toEntityKeepsGeneratedIdNullForNewStaff") {
         val staff = Staff.create(
             "new-staff",
             "new-role",
@@ -40,18 +34,15 @@ class StaffPersistenceMapperTest {
 
         val entity = mapper.toEntity(staff, 44L)
 
-        assertAll(
-            { assertNull(staff.getId()) },
-            { assertNull(entity.id) },
-            { assertEquals("new-staff", entity.staffName) },
-            { assertEquals("new-role", entity.staffRole) },
-            { assertEquals("https://example.com/new-staff.png", entity.staffPhoto) },
-            { assertEquals(44L, entity.performanceId) },
-        )
+        staff.id shouldBe null
+        entity.id shouldBe null
+        entity.staffName shouldBe "new-staff"
+        entity.staffRole shouldBe "new-role"
+        entity.staffPhoto shouldBe "https://example.com/new-staff.png"
+        entity.performanceId shouldBe 44L
     }
 
-    @Test
-    fun toEntityPreservesRehydratedDomainFields() {
+    test("toEntityPreservesRehydratedDomainFields") {
         val staff = Staff.rehydrate(
             31L,
             "existing-staff",
@@ -61,12 +52,10 @@ class StaffPersistenceMapperTest {
 
         val entity = mapper.toEntity(staff, 41L)
 
-        assertAll(
-            { assertEquals(31L, entity.id) },
-            { assertEquals("existing-staff", entity.staffName) },
-            { assertEquals("existing-role", entity.staffRole) },
-            { assertEquals("https://example.com/existing-staff.png", entity.staffPhoto) },
-            { assertEquals(41L, entity.performanceId) },
-        )
+        entity.id shouldBe 31L
+        entity.staffName shouldBe "existing-staff"
+        entity.staffRole shouldBe "existing-role"
+        entity.staffPhoto shouldBe "https://example.com/existing-staff.png"
+        entity.performanceId shouldBe 41L
     }
-}
+})

@@ -205,9 +205,11 @@ jobs:
           IMAGE_TAG="${RELEASE_TAG}"
           IMAGE_REF="${DOCKER_NAMESPACE}/beat-${MODULE}:${IMAGE_TAG}"
           IMAGE_LATEST="${DOCKER_NAMESPACE}/beat-${MODULE}:prod-latest"
-          echo "tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
-          echo "image=$IMAGE_REF" >> "$GITHUB_OUTPUT"
-          echo "latest=$IMAGE_LATEST" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=$IMAGE_TAG"
+            echo "image=$IMAGE_REF"
+            echo "latest=$IMAGE_LATEST"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build and push image
         id: build
@@ -256,7 +258,6 @@ jobs:
       - build-image
     concurrency:
       group: prod-runtime
-      queue: max
       cancel-in-progress: false
     uses: ./.github/workflows/_ansible-exec.yml
     with:
@@ -287,7 +288,6 @@ jobs:
       - foundation
     concurrency:
       group: prod-runtime
-      queue: max
       cancel-in-progress: false
     strategy:
       fail-fast: false

@@ -5,7 +5,7 @@ import com.beat.infra.persistence.promotion.entity.PromotionJpaEntity
 import org.springframework.stereotype.Component
 
 @Component
-class PromotionPersistenceMapper {
+internal class PromotionPersistenceMapper {
 
     fun toDomain(entity: PromotionJpaEntity): Promotion =
         Promotion.rehydrate(
@@ -19,9 +19,9 @@ class PromotionPersistenceMapper {
 
     fun toEntity(promotion: Promotion): PromotionJpaEntity =
         PromotionJpaEntity.rehydrate(
-            promotion.getId(),
+            promotion.id,
             promotion.promotionPhoto,
-            promotion.getPerformanceId(),
+            promotion.performanceId,
             promotion.redirectUrl,
             promotion.isExternal,
             promotion.carouselNumber,

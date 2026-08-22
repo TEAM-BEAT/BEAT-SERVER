@@ -1,6 +1,6 @@
 package com.beat.admin.user.api.response
 
-import com.beat.admin.user.application.result.AdminUserResults
+import com.beat.application.admin.user.query.AdminUserResults
 import com.fasterxml.jackson.annotation.JsonProperty
 
 data class UserFindAllResponse(

@@ -20,7 +20,7 @@ import java.time.format.DateTimeParseException
 import java.time.format.ResolverStyle
 
 @Component
-class PerformancePersistenceMapper {
+internal class PerformancePersistenceMapper {
     fun toDomain(entity: PerformanceJpaEntity): Performance = toDomain(entity, emptyList(), emptyList(), emptyList())
 
     fun toDomain(
@@ -58,13 +58,13 @@ class PerformancePersistenceMapper {
     }
 
     fun toEntity(domain: Performance): PerformanceJpaEntity = PerformanceJpaEntity.rehydrate(
-        domain.getId(),
+        domain.id,
         domain.performanceTitle,
         domain.genre,
-        domain.getRunningTimeValue().minutes,
+        domain.runningTimeValue.minutes,
         domain.performanceDescription,
         domain.performanceAttentionNote,
-        toEntity(domain.getPaymentAccount()),
+        toEntity(domain.paymentAccount),
         domain.posterImage,
         domain.performanceTeamName,
         domain.performanceVenue,
@@ -73,11 +73,11 @@ class PerformancePersistenceMapper {
         domain.latitude,
         domain.longitude,
         domain.performanceContact,
-        toEntity(domain.getPerformancePeriodValue()),
-        formatLegacy(domain.getPerformancePeriodValue()),
-        domain.getTicketPriceValue().amount,
+        toEntity(domain.performancePeriodValue),
+        formatLegacy(domain.performancePeriodValue),
+        domain.ticketPriceValue.amount,
         domain.totalScheduleCount,
-        domain.getUserId(),
+        domain.userId,
     )
 
     private fun toDomain(value: PaymentAccountJpaValue?): PaymentAccount? = value?.let {
@@ -90,14 +90,16 @@ class PerformancePersistenceMapper {
 
     private fun toDomainPeriod(entity: PerformanceJpaEntity): PerformancePeriod {
         val value = entity.performancePeriodValue ?: return parseLegacyPeriod(entity)
-        if (value.startDate == null || value.endDate == null) {
+        val startDate = value.startDate
+        val endDate = value.endDate
+        if (startDate == null || endDate == null) {
             throw PersistenceMappingException.invalidStoredState(
                 "Performance",
                 entity.id,
                 IllegalStateException("Performance period columns must be both null or both non-null"),
             )
         }
-        return PerformancePeriod.of(value.startDate, value.endDate)
+        return PerformancePeriod.of(startDate, endDate)
     }
 
     private fun parseLegacyPeriod(entity: PerformanceJpaEntity): PerformancePeriod {

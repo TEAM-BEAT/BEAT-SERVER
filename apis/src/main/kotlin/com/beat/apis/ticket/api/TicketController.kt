@@ -9,7 +9,7 @@ import com.beat.apis.ticket.api.response.TicketRetrieveResponse
 import com.beat.apis.ticket.api.response.TicketSuccessCode
 import com.beat.apis.ticket.facade.TicketFacade
 import com.beat.support.security.CurrentMember
-import com.beat.global.support.response.SuccessResponse
+import com.beat.apis.response.SuccessResponse
 import jakarta.validation.Valid
 import org.springframework.http.CacheControl
 import org.springframework.http.ResponseEntity

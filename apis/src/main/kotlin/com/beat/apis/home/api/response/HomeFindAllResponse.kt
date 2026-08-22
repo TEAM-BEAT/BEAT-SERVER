@@ -1,6 +1,6 @@
 package com.beat.apis.home.api.response
 
-import com.beat.apis.home.application.result.HomeFindAllResult
+import com.beat.application.frontoffice.home.booker.query.HomeFindAllResult
 
 @ConsistentCopyVisibility
 data class HomeFindAllResponse private constructor(

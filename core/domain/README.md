@@ -38,7 +38,7 @@
 | 도메인 상태, 불변식, 상태 변경 | `domain/<aggregate>/model` |
 | Entity 하나에 넣기 어려운 순수 도메인 정책 | `domain/<context>/service` |
 | command/lifecycle 저장소 계약 | `domain/<context>/repository` |
-| 조회 전용 shape / 화면 projection | `module-contracts` read model + `infra` query adapter |
+| 조회 전용 shape / 화면 projection | consumer Application query reader/read model + Infrastructure adapter |
 | API 요청/응답 shape | `apis` / `admin` / `batch` 실행 모듈 |
 | JPA entity / Spring Data / QueryDSL 구현 | `infra` |
 
@@ -52,7 +52,7 @@ flowchart TB
     Facade[Facade<br/>Scenario entrypoint]
     App[ApplicationService<br/>CommandService / QueryService<br/>Use-case + transaction boundary]
     Domain[domain module<br/>Entity / VO / DomainService / RepositoryPort]
-    Contracts[module-contracts<br/>ReadPort / ExternalPort / ReadModel]
+    ApplicationPort[application consumer<br/>Output Port / Query Reader / ReadModel]
     Infra[infra module<br/>JPA Entity / Spring Data Adapter / Query Adapter]
     External[(DB / Redis / External systems)]
 
@@ -119,7 +119,7 @@ user
 | `Page`, `Pageable`, `Sort` | Spring Data 타입 | 실행 모듈 query 또는 infra adapter |
 | `HttpStatus`, `ResponseEntity` | Web 타입 | 실행 모듈 |
 | `GrantedAuthority` | Security adapter 타입 | `gateway` 또는 실행 모듈 |
-| Redis document / external API DTO | 외부 구현 shape | `infra`, `module-contracts` |
+| Redis document / external API DTO | 외부 구현 shape | `infrastructure` 내부 |
 
 허용 의존성은 원칙적으로 다음뿐입니다.
 
@@ -179,7 +179,7 @@ domain/
 
 `SuccessCode`는 domain 소유가 아닙니다. 성공 응답 문구는 실행 모듈 response boundary가 소유합니다.
 
-클라이언트 입력이나 현재 상태에 따라 정상적으로 발생할 수 있는 도메인 규칙 실패는 `DomainException(DomainErrorCode)`으로 표현합니다. 프로그래머 계약을 검사하는 `require`/`IllegalArgumentException`과 구분하며, 후자는 클라이언트 오류로 일괄 변환하지 않고 예상하지 못한 500으로 처리해 내부 message를 숨깁니다. `DomainErrorCode`는 안정적인 `code`, 의미 기반 `type`, 안전한 `message`만 소유하고 HTTP status, Spring, `ErrorResponse`, `ApplicationErrorCode`를 알지 않습니다. `INVALID_INPUT`/`STATE_CONFLICT`를 HTTP status로 바꾸는 책임은 `apis`/`admin` handler에 있습니다. 따라서 `domain`은 `global-support`에 의존하지 않습니다.
+클라이언트 입력이나 현재 상태에 따라 정상적으로 발생할 수 있는 도메인 규칙 실패는 `DomainException(DomainErrorCode)`으로 표현합니다. 프로그래머 계약을 검사하는 `require`/`IllegalArgumentException`과 구분하며, 후자는 클라이언트 오류로 일괄 변환하지 않고 예상하지 못한 500으로 처리해 내부 message를 숨깁니다. `DomainErrorCode`는 안정적인 `code`, 의미 기반 `type`, 안전한 `message`만 소유하고 HTTP status, Spring, Web response를 알지 않습니다. Domain failure는 lane-owned Application failure language로 번역된 뒤 Web adapter가 HTTP status를 결정합니다. `domain`은 다른 BEAT project에 의존하지 않습니다.
 
 `DomainErrorCode.message`는 현재 기존 응답 계약에 쓰이는 안전한 기본 문구입니다. v1 `{status, message}` 응답에는 stable code를 노출하지 않으므로 클라이언트가 message를 분기 기준으로 사용해서는 안 됩니다. 향후 code를 노출하려면 별도 API version과 소비자 전환이 필요합니다. 다국어·채널별 문구가 필요해질 때 web adapter의 message catalog로 분리합니다. 소셜 ID UNIQUE 경쟁은 Member 전체에서 보장해야 하는 유일성 규칙이므로 `member.exception.DuplicateSocialIdentityException`으로 표현하고 application service만 복구합니다.
 
@@ -482,7 +482,7 @@ flowchart TB
     Query[Query use-case]
     DomainRepo[domain RepositoryPort<br/>aggregate lifecycle]
     DomainModel[Domain model]
-    ReadPort[module-contracts ReadPort<br/>query contract]
+    ReadPort[Application-owned Reader<br/>consumer query contract]
     ReadModel[ReadModel<br/>query-only shape]
     InfraRepo[infra persistence adapter]
     InfraQuery[infra query adapter]
@@ -509,10 +509,10 @@ Domain repository는 aggregate lifecycle과 command에 필요한 저장/수정/�
 
 허용 예:
 
-```java
-Optional<Booking> findById(Long id);
-Booking save(Booking booking);
-void deleteAll(List<Booking> bookings);
+```kotlin
+fun findById(id: Long): Booking?
+fun save(booking: Booking): Booking
+fun deleteAll(bookings: List<Booking>)
 ```
 
 금지 후보:
@@ -530,7 +530,7 @@ ReadModel은 Domain model이 아닙니다. 저장 대상도 아닙니다. 조회
 
 규칙:
 
-- `module-contracts`가 ReadPort와 ReadModel contract를 소유합니다.
+- 각 consumer Application capability가 필요한 Reader와 ReadModel contract를 소유합니다.
 - ReadModel class suffix는 `*ReadModel`을 사용합니다.
 - ReadModel은 `@ReadModel` marker를 붙입니다.
 - ReadModel은 domain type을 import하지 않습니다.
@@ -540,9 +540,9 @@ ReadModel은 Domain model이 아닙니다. 저장 대상도 아닙니다. 조회
 예:
 
 ```text
-module-contracts
-  com.beat.contracts.schedule.ScheduleReadPort
-  com.beat.contracts.schedule.readmodel.MinPerformanceDateReadModel
+application/frontoffice
+  com.beat.application.frontoffice.schedule.booker.query.*Reader
+  com.beat.application.frontoffice.schedule.booker.query.*ReadModel
 
 infra
   infra.persistence.schedule.repository.query.ScheduleReadPortImpl
@@ -556,7 +556,7 @@ Domain model 내부에서는 raw `Long`을 그대로 흘리지 않고 aggregate-
 
 ```mermaid
 flowchart LR
-    Api[API / DTO / module-contracts<br/>Long]
+    Api[API / Application boundary<br/>Long]
     App[ApplicationService Java/Kotlin<br/>Long bridge]
     Domain[Domain internal<br/>Performance.Id / Schedule.Id / Users.Id]
     Jpa[JPA entity / DB<br/>Long]
@@ -575,8 +575,8 @@ flowchart LR
   - 예: `Performance.Id`, `Schedule.Id`, `Booking.Id`, `Users.Id`
 - 다른 aggregate를 참조할 때는 객체 그래프가 아니라 ID로 참조합니다.
   - 예: `Schedule`은 `Performance` 객체가 아니라 `Performance.Id`를 보유합니다.
-- Java-facing factory/getter/rehydrate는 기존 application/infra interop을 위해 `Long`/`long` bridge를 유지합니다.
-- Repository interface, JPA entity, DTO, module-contracts, ReadModel은 scalar `Long`을 유지합니다.
+- Kotlin-owned factory/repository API는 nullability, property, default argument를 우선하며 Java-only bridge를 유지하지 않습니다.
+- Application input/output, repository boundary, JPA entity와 ReadModel은 외부 scalar identity에 `Long`을 유지할 수 있습니다.
 - 외부 시스템 identity는 domain aggregate ID와 섞지 않습니다.
   - 예: `Member.socialId`는 `Users.Id`가 아니라 social provider의 외부 ID입니다.
 - 저장된 Entity(`id != null`)의 `equals`/`hashCode`는 ID만 사용합니다. 같은 ID의 다른 immutable snapshot은 같은 Entity입니다.
@@ -622,7 +622,7 @@ BEAT는 identity 기반 모델과 값 기반 모델의 의미를 코드에서 �
 - Entity의 생성자를 `private`으로 두어 factory/rehydrate를 강제하고, 상태 변경은 의미가 드러나는 domain method가 새 인스턴스를 반환합니다.
 - 개인정보·계좌·인증 값을 가진 Entity는 안전한 `toString()`을 명시하고 로그에는 필요한 ID만 남깁니다.
 - 외부 생성은 `create(...)`, persistence 재구성은 `rehydrate(...)`로 분리합니다.
-- Java call-site 호환이 필요한 companion factory에는 `@JvmStatic`을 유지합니다.
+- Kotlin caller를 기본으로 하고 companion factory는 불필요한 `@Jvm*` compatibility surface를 노출하지 않습니다.
 - Aggregate Root의 상태 변경에 `copy(...)`를 노출하지 않습니다.
 - hard invariant는 생성/수정 경계에서 검증합니다.
 - `rehydrate(...)` 검증은 기존 DB row 조회 장애를 만들 수 있으므로 데이터 audit 후 보수적으로 추가합니다.
@@ -700,14 +700,14 @@ infra.persistence.<context>.repository.query  # read/query adapter
 
 ---
 
-## 15. Module-contracts boundary
+## 15. Application-owned contract boundary
 
-Issue `#426` 이후 `module-contracts/src/main`은 domain type을 직접 import하지 않습니다. 실행 모듈 간 공유 contract는 다음 원칙을 따릅니다.
+중앙 contracts module은 제거되었습니다. Application output port/query reader는 실제 consumer vocabulary와 volatility를 표현할 때만 두며 다음 원칙을 따릅니다.
 
 - Domain model, domain enum/value object, JPA entity, API ResponseDTO를 필드나 반환 타입으로 담지 않습니다.
-- 필요한 값은 contract-local enum/value/read model로 끊고, domain type과의 변환은 실행 모듈 application boundary에서 수행합니다.
-- 예: social auth contract는 `SocialLoginType`, 회차 조회 계약은 `ScheduleAvailabilityReadModel`을 사용합니다.
-- 추가 query/read-model 최적화, Kotlin JDSL 전환, contract-local DTO 분리는 별도 후속 이슈에서 다룹니다.
+- 필요한 값은 consumer-local enum/value/read model로 끊고, Domain type과의 변환은 Application boundary에서 수행합니다.
+- 예: social auth contract는 Member Application vocabulary를, 회차 조회 계약은 해당 Booker Query vocabulary를 사용합니다.
+- 추가 query/read-model 최적화는 실제 consumer와 volatility evidence가 있을 때 진행합니다.
 
 ---
 
@@ -718,7 +718,7 @@ Issue `#426` 이후 `module-contracts/src/main`은 domain type을 직접 import�
 - [ ] 이 타입이 진짜 domain concept인가?
 - [ ] JPA/Spring/Web/QueryDSL/Redis/external DTO import가 없는가?
 - [ ] ErrorCode가 repository lookup, request validation, actor/owner/permission, response success message를 표현하지 않는가?
-- [ ] DomainException/ErrorCode에 HTTP status, Spring 또는 global-support 의존이 없는가?
+- [ ] DomainException/ErrorCode에 HTTP status, Spring 또는 Web response 의존이 없는가?
 - [ ] Entity/VO에 둘 수 있는 invariant를 ApplicationService에 절차 코드로 두지 않았는가?
 - [ ] DomainService가 repository나 transaction을 소유하지 않는가?
 - [ ] DomainService 이름이 context catch-all이 아니라 하나의 정책과 변경 이유를 드러내는가?
@@ -729,7 +729,7 @@ Issue `#426` 이후 `module-contracts/src/main`은 domain type을 직접 import�
 - [ ] Entity는 ID equality, transient instance equality를 사용하고 VO는 구조적 equality를 사용하는가?
 - [ ] Entity/VO의 `toString()`이나 객체 전체 로그가 개인정보·계좌·비밀번호를 노출하지 않는가?
 - [ ] 복잡 조회/검색/정렬/통계를 domain repository에 넣지 않았는가?
-- [ ] ReadModel이 필요하다면 `module-contracts` `*ReadPort` / `*ReadModel`로 분리했는가?
+- [ ] ReadModel이 필요하다면 consumer Application query reader/read model로 분리했는가?
 - [ ] ApplicationService가 Domain model을 밖으로 반환하지 않는가?
 - [ ] Facade가 repository/domain service/transaction을 직접 소유하지 않는가?
 - [ ] transactional command나 Domain/RepositoryPort를 `runCatching`/`Result<T>`로 감싸 실패와 rollback을 숨기지 않았는가?

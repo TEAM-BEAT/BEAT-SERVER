@@ -1,15 +1,14 @@
 package com.beat.infra.persistence.performance.repository.query
 
 import com.beat.infra.persistence.exception.PersistenceMappingException
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Test
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import java.time.LocalDate
 
-class PerformancePeriodReadSupportTest {
+class PerformancePeriodReadSupportTest : FunSpec({
 
-    @Test
-    fun `falls back to the strict legacy period when normalized columns are absent`() {
+    test("falls back to the strict legacy period when normalized columns are absent") {
         val period = resolvePerformancePeriod(
             performanceId = 1L,
             startDate = null,
@@ -17,13 +16,12 @@ class PerformancePeriodReadSupportTest {
             legacyPeriod = "2026.07.16~2026.07.18",
         )
 
-        assertEquals(LocalDate.of(2026, 7, 16), period.startDate)
-        assertEquals(LocalDate.of(2026, 7, 18), period.endDate)
+        period.startDate shouldBe LocalDate.of(2026, 7, 16)
+        period.endDate shouldBe LocalDate.of(2026, 7, 18)
     }
 
-    @Test
-    fun `translates partially populated period columns to persistence mapping failure`() {
-        assertThrows(PersistenceMappingException::class.java) {
+    test("translates partially populated period columns to persistence mapping failure") {
+        shouldThrow<PersistenceMappingException> {
             resolvePerformancePeriod(
                 performanceId = 1L,
                 startDate = LocalDate.of(2026, 7, 16),
@@ -33,9 +31,8 @@ class PerformancePeriodReadSupportTest {
         }
     }
 
-    @Test
-    fun `translates malformed legacy period to persistence mapping failure`() {
-        assertThrows(PersistenceMappingException::class.java) {
+    test("translates malformed legacy period to persistence mapping failure") {
+        shouldThrow<PersistenceMappingException> {
             resolvePerformancePeriod(
                 performanceId = 1L,
                 startDate = null,
@@ -44,4 +41,4 @@ class PerformancePeriodReadSupportTest {
             )
         }
     }
-}
+})

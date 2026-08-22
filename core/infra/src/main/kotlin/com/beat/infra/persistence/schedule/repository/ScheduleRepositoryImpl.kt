@@ -4,36 +4,35 @@ import com.beat.domain.schedule.model.Schedule
 import com.beat.domain.schedule.repository.ScheduleRepository
 import com.beat.infra.persistence.schedule.mapper.SchedulePersistenceMapper
 import org.springframework.stereotype.Repository
-import java.util.Optional
 
 @Repository
-class ScheduleRepositoryImpl(
+internal class ScheduleRepositoryImpl(
     private val scheduleJpaRepository: ScheduleJpaRepository,
     private val schedulePersistenceMapper: SchedulePersistenceMapper,
 ) : ScheduleRepository {
 
-    override fun findById(id: Long?): Optional<Schedule> =
-        scheduleJpaRepository.findById(requireRepositoryId(id)).map(schedulePersistenceMapper::toDomain)
+    override fun findById(id: Long): Schedule? =
+        scheduleJpaRepository.findById(id).map(schedulePersistenceMapper::toDomain).orElse(null)
 
     override fun findPerformanceIdById(id: Long): Long? =
         scheduleJpaRepository.findPerformanceIdById(id)
 
-    override fun lockById(id: Long?): Optional<Schedule> =
-        scheduleJpaRepository.lockById(id).map(schedulePersistenceMapper::toDomain)
+    override fun lockById(id: Long): Schedule? =
+        scheduleJpaRepository.lockById(id)?.let(schedulePersistenceMapper::toDomain)
 
-    override fun isBeforeBookingCloseAt(id: Long?): Boolean =
+    override fun isBeforeBookingCloseAt(id: Long): Boolean =
         scheduleJpaRepository.isBeforeBookingCloseAt(id) == 1L
 
-    override fun findAllByPerformanceId(performanceId: Long?): List<Schedule> =
+    override fun findAllByPerformanceId(performanceId: Long): List<Schedule> =
         scheduleJpaRepository.findAllByPerformanceId(performanceId).map(schedulePersistenceMapper::toDomain)
 
     override fun findAllById(ids: Collection<Long>): List<Schedule> =
         scheduleJpaRepository.findAllById(ids).map(schedulePersistenceMapper::toDomain)
 
-    override fun findIdsByPerformanceId(performanceId: Long?): List<Long> =
+    override fun findIdsByPerformanceId(performanceId: Long): List<Long> =
         scheduleJpaRepository.findIdsByPerformanceId(performanceId)
 
-    override fun countByPerformanceId(performanceId: Long?): Int =
+    override fun countByPerformanceId(performanceId: Long): Int =
         scheduleJpaRepository.countByPerformanceId(performanceId)
 
     override fun save(schedule: Schedule): Schedule =
@@ -45,14 +44,12 @@ class ScheduleRepositoryImpl(
             .map(schedulePersistenceMapper::toDomain)
 
     override fun delete(schedule: Schedule) {
-        val scheduleId = requireNotNull(schedule.getId()) { "Cannot delete unpersisted Schedule" }
+        val scheduleId = requireNotNull(schedule.id) { "Cannot delete unpersisted Schedule" }
         scheduleJpaRepository.deleteById(scheduleId)
     }
 
-    override fun deleteByPerformanceId(performanceId: Long?) {
+    override fun deleteByPerformanceId(performanceId: Long) {
         scheduleJpaRepository.deleteByPerformanceId(performanceId)
     }
 
-    private fun requireRepositoryId(id: Long?): Long =
-        requireNotNull(id) { "The given id must not be null" }
 }

@@ -13,7 +13,7 @@ import java.time.LocalDateTime
 
 @Entity(name = "Schedule")
 @Table(name = "schedule")
-class ScheduleJpaEntity private constructor(
+internal class ScheduleJpaEntity private constructor(
     id: Long?,
     performanceDate: LocalDateTime,
     bookingCloseAt: LocalDateTime,
@@ -54,7 +54,6 @@ class ScheduleJpaEntity private constructor(
         protected set
 
     companion object {
-        @JvmStatic
         fun rehydrate(
             id: Long?,
             performanceDate: LocalDateTime,

@@ -15,7 +15,7 @@ flowchart TB
     Admin[admin module<br/>HTTP executable]
     Gateway[gateway<br/>public auth contract / security bootstrap]
     Domain[domain<br/>pure domain model / repository contract]
-    Contracts[module-contracts<br/>shared port contract]
+    Application[application:admin<br/>use cases / consumer contracts]
     Infra[infra<br/>JPA / query / external adapter]
     Observability[observability<br/>logging / monitoring bootstrap]
     External[(DB / S3 / external systems)]
@@ -33,7 +33,7 @@ flowchart TB
     style Infra fill:#fff7ed,stroke:#c2410c,stroke-width:2px
 ```
 
-`admin`은 독립 실행 모듈입니다. root application이나 `apis`/`batch`의 application service를 우회해서 재사용하지 않습니다. 공유가 필요한 기능은 공개 bootstrap/config 또는 `module-contracts` port로 연결합니다.
+`admin`은 `:apps:admin`의 source directory입니다. 다른 실행 lane의 Application Service를 우회해 재사용하지 않으며, Admin workflow는 `:application:admin`이 소유합니다.
 
 ---
 
@@ -79,12 +79,10 @@ flowchart TB
 ### 허용 의존성
 
 ```kotlin
-implementation(project(":module-contracts"))
-implementation(project(":gateway"))
-implementation(project(":domain"))
-implementation(project(":infra"))
-implementation(project(":global-support"))
-implementation(project(":observability"))
+implementation(project(":application:admin"))
+implementation(project(":support:security"))
+implementation(project(":infrastructure"))
+implementation(project(":support:observability"))
 ```
 
 ### 금지 규칙
@@ -106,7 +104,7 @@ implementation(project(":observability"))
   - `gateway.guest.internal.*`
   - `gateway.authentication.internal.*`
   - `gateway.shared.internal.*`
-- 허용되는 gateway 공개 표면은 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `gateway.CurrentMember`로 제한하고 JWT/refresh token 계약은 `module-contracts`의 `com.beat.contracts.auth.*`를 사용
+- 허용되는 security 공개 표면은 `EnableGatewayServletSecurity`, `EnableGatewayConfig`, `GatewayConfigGroup`, `CurrentMember`와 좁은 token/password technical API로 제한합니다.
 - transitional package 재도입 금지
   - `adapter/`
   - `controller/`
@@ -149,6 +147,7 @@ class AdminApplication
 
 - broad `@ComponentScan`을 사용하지 않습니다.
 - `AdminApplication` 자신의 package 아래만 component scan합니다.
+- `AdminApplicationConfig` 공개 bootstrap type으로 `application:admin`만 명시적으로 조립합니다.
 - module-local `GatewayConfig`가 공개 `@EnableGatewayServletSecurity` 경계를 선택합니다. broad `com.beat.gateway` scan에 의존하지 않고 refresh token store를 import하지 않습니다.
 - `InfraConfig`는 admin이 필요한 infra group만 명시합니다.
 - `ObservabilityModuleConfig`는 관측성 공개 bootstrap 경계입니다.
@@ -165,10 +164,6 @@ class AdminApplication
 admin/
   src/main/kotlin/com/beat/admin/
     AdminApplication.kt
-    exception/
-      AdminApplicationException.kt
-      ApplicationErrorCode.kt
-      ApplicationErrorType.kt
     config/
       GatewayConfig.kt
       InfraConfig.kt
@@ -176,7 +171,6 @@ admin/
       api/
         request/
         response/UserSuccessCode.kt
-      exception/UserApplicationErrorCode.kt
     promotion/
       api/
         request/
@@ -184,7 +178,7 @@ admin/
       exception/PromotionApplicationErrorCode.kt
       application/command/
 
-  src/main/java/com/beat/admin/
+  src/main/kotlin/com/beat/admin/
     exception/
       AdminGlobalExceptionHandler
     config/
@@ -225,11 +219,12 @@ com.beat.admin.user/
       UserFindAllResponse
   facade/
     AdminUserFacade
-  application/
-    query/AdminUserQueryService
-    result/AdminUserResults
-  exception/
-    UserApplicationErrorCode
+
+application/admin/src/main/kotlin/com/beat/application/admin/user/
+  query/
+    AdminUserQueryService
+    AdminUserResults
+  exception/UserApplicationErrorCode
 ```
 
 역할:
@@ -256,12 +251,18 @@ com.beat.admin.promotion/
     response/PromotionSuccessCode
   facade/
     AdminPromotionFacade
-  application/
-    command/AdminPromotionCommandService
-    query/AdminPromotionQueryService
-    result/*
-  exception/
-    PromotionApplicationErrorCode
+
+application/admin/src/main/kotlin/com/beat/application/admin/promotion/
+  command/
+    AdminPromotionCommandService
+    CarouselHandleCommand
+    PromotionImageCache
+  query/
+    AdminPromotionQueryService
+    AdminPromotionPresignedUrlResults
+  AdminPromotionResults
+  PromotionImageStorage
+  exception/PromotionApplicationErrorCode
 ```
 
 역할:
@@ -269,7 +270,8 @@ com.beat.admin.promotion/
 - 캐러셀/배너 presigned URL 발급
 - 캐러셀 promotion 조회
 - 캐러셀 promotion 생성/수정/삭제 orchestration
-- HTTP request는 Facade에서 non-null command/query로 변환하고 application service는 HTTP DTO에 의존하지 않음
+- HTTP request는 Facade에서 non-null command/query로 변환하고 Application service는 HTTP DTO에 의존하지 않음
+- command reference correctness는 authoritative Performance lock을 사용하고, carousel 일괄 mutation은 Infrastructure의 cross-instance transaction lock으로 직렬화
 
 현재 endpoints:
 
@@ -362,7 +364,7 @@ flowchart TB
 - query service는 admin application read model/result 조립을 소유하고 HTTP response 조립은 Facade에 맡깁니다.
 - command/query service 간 공유가 필요하면 raw Domain model이 아니라 primitive/value/result/read model을 반환합니다.
 - 단순 조회는 domain repository contract를 사용할 수 있습니다.
-- 목록/검색/정렬/통계/projection 조회가 커지면 domain repository를 키우지 않고 `module-contracts` read port/read model과 infra query adapter를 검토합니다.
+- 목록/검색/정렬/통계 projection은 consumer인 `application:admin`이 query reader/read model을 소유하고 Infrastructure가 구현합니다.
 - query service는 JPA Entity, QueryDSL Q type, EntityManager, infra persistence mapper를 직접 사용하지 않습니다.
 
 ---
@@ -449,28 +451,28 @@ flowchart LR
     Handler[AdminGlobalExceptionHandler]
     AdminException[AdminApplicationException<br/>use-case failure]
 
-    DomainError --> DomainException --> Handler
+    DomainError --> DomainException --> Translator[Application failure translator] --> AdminException
     FeatureError --> AdminException --> Handler
     FeatureSuccess --> Response[SuccessResponse]
 ```
 
 ### ErrorCode
 
-admin의 application 오류 공통 shape와 wrapper는 아래 module-local contract가 소유합니다.
+admin의 application 오류 공통 shape와 wrapper는 `application:admin`이 소유합니다.
 
 ```text
-admin.exception.ApplicationErrorCode
-admin.exception.ApplicationErrorType
-admin.exception.AdminApplicationException
+application.admin.exception.AdminApplicationErrorCode
+application.admin.exception.AdminApplicationErrorType
+application.admin.exception.AdminApplicationException
 ```
 
-`AdminGlobalExceptionHandler`는 `AdminApplicationException`과 `DomainException`을 각각 admin HTTP 응답으로 변환합니다. `global-support`는 이 예외 계약이나 HTTP 매핑을 소유하지 않습니다.
+`AdminGlobalExceptionHandler`는 `application:admin`의 실패 언어만 HTTP 응답으로 변환합니다. Domain failure는 Application boundary 안에서 먼저 번역됩니다.
 
 위치:
 
 ```text
-admin.promotion.exception.PromotionApplicationErrorCode
-admin.user.exception.UserApplicationErrorCode
+application.admin.promotion.exception.PromotionApplicationErrorCode
+application.admin.user.exception.UserApplicationErrorCode
 ```
 
 소유 대상:

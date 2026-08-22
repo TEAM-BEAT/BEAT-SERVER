@@ -1,7 +1,7 @@
 package com.beat.apis.home.api.response
 
-import com.beat.apis.home.application.result.HomePromotionResult
-import com.beat.global.support.jackson.CdnImageUrl
+import com.beat.application.frontoffice.home.booker.query.HomePromotionResult
+import com.beat.apis.web.jackson.CdnImageUrl
 import com.fasterxml.jackson.annotation.JsonProperty
 
 @ConsistentCopyVisibility

@@ -2,7 +2,7 @@ package com.beat.infra.external.social.kakao.response
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-data class KakaoAccessTokenResponse(
+internal data class KakaoAccessTokenResponse(
     @param:JsonProperty("token_type")
     val tokenType: String?,
     @param:JsonProperty("access_token")

@@ -1,10 +1,10 @@
 package com.beat.apis.booking.api.response
 
-import com.beat.global.support.response.SuccessCode
+import com.beat.apis.response.SuccessCode
 
 enum class BookingSuccessCode(
-    private val status: Int,
-    private val message: String,
+    override val status: Int,
+    override val message: String,
 ) : SuccessCode {
     MEMBER_BOOKING_RETRIEVE_SUCCESS(200, "회원 예매 조회가 성공적으로 완료되었습니다."),
     GUEST_BOOKING_RETRIEVE_SUCCESS(200, "비회원 예매 조회가 성공적으로 완료되었습니다."),
@@ -14,7 +14,4 @@ enum class BookingSuccessCode(
     GUEST_BOOKING_SUCCESS(201, "비회원 예매가 성공적으로 완료되었습니다")
     ;
 
-    override fun getStatus(): Int = status
-
-    override fun getMessage(): String = message
 }

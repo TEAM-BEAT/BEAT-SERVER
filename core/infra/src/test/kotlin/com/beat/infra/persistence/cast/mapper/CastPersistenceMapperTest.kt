@@ -2,16 +2,13 @@ package com.beat.infra.persistence.cast.mapper
 
 import com.beat.domain.performance.model.Cast
 import com.beat.infra.persistence.cast.entity.CastJpaEntity
-import org.junit.jupiter.api.Assertions.assertAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 
-class CastPersistenceMapperTest {
-    private val mapper = CastPersistenceMapper()
+class CastPersistenceMapperTest : FunSpec({
+    val mapper = CastPersistenceMapper()
 
-    @Test
-    fun toDomainPreservesJpaEntityFieldsIncludingScalarPerformanceId() {
+    test("toDomainPreservesJpaEntityFieldsIncludingScalarPerformanceId") {
         val entity = CastJpaEntity.rehydrate(
             11L,
             "cast-name",
@@ -22,16 +19,13 @@ class CastPersistenceMapperTest {
 
         val cast = mapper.toDomain(entity)
 
-        assertAll(
-            { assertEquals(11L, cast.getId()) },
-            { assertEquals("cast-name", cast.castName) },
-            { assertEquals("cast-role", cast.castRole) },
-            { assertEquals("https://example.com/cast.png", cast.castPhoto) },
-        )
+        cast.id shouldBe 11L
+        cast.castName shouldBe "cast-name"
+        cast.castRole shouldBe "cast-role"
+        cast.castPhoto shouldBe "https://example.com/cast.png"
     }
 
-    @Test
-    fun toEntityKeepsGeneratedIdNullForNewCast() {
+    test("toEntityKeepsGeneratedIdNullForNewCast") {
         val cast = Cast.create(
             "new-cast",
             "new-role",
@@ -40,18 +34,15 @@ class CastPersistenceMapperTest {
 
         val entity = mapper.toEntity(cast, 44L)
 
-        assertAll(
-            { assertNull(cast.getId()) },
-            { assertNull(entity.id) },
-            { assertEquals("new-cast", entity.castName) },
-            { assertEquals("new-role", entity.castRole) },
-            { assertEquals("https://example.com/new-cast.png", entity.castPhoto) },
-            { assertEquals(44L, entity.performanceId) },
-        )
+        cast.id shouldBe null
+        entity.id shouldBe null
+        entity.castName shouldBe "new-cast"
+        entity.castRole shouldBe "new-role"
+        entity.castPhoto shouldBe "https://example.com/new-cast.png"
+        entity.performanceId shouldBe 44L
     }
 
-    @Test
-    fun toEntityPreservesRehydratedDomainFields() {
+    test("toEntityPreservesRehydratedDomainFields") {
         val cast = Cast.rehydrate(
             31L,
             "existing-cast",
@@ -61,12 +52,10 @@ class CastPersistenceMapperTest {
 
         val entity = mapper.toEntity(cast, 41L)
 
-        assertAll(
-            { assertEquals(31L, entity.id) },
-            { assertEquals("existing-cast", entity.castName) },
-            { assertEquals("existing-role", entity.castRole) },
-            { assertEquals("https://example.com/existing-cast.png", entity.castPhoto) },
-            { assertEquals(41L, entity.performanceId) },
-        )
+        entity.id shouldBe 31L
+        entity.castName shouldBe "existing-cast"
+        entity.castRole shouldBe "existing-role"
+        entity.castPhoto shouldBe "https://example.com/existing-cast.png"
+        entity.performanceId shouldBe 41L
     }
-}
+})

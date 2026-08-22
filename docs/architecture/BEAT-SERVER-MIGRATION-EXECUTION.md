@@ -2,10 +2,12 @@
 
 Baseline: `develop` / `eb007147f6aa3824073b108407ea3ae47748aa40`
 Architecture Constitution: `BEAT-SERVER-CQRS-MULTIMODULE-ARCHITECTURE-FINAL.md`
+Test Constitution: `BEAT_TEST_ARCHITECTURE_FINAL.md`
+Test rewrite plan: `BEAT_TEST_REWRITE_PLAN.md`
 Audit date: 2026-08-20
 Status: **living execution record**. PR graph와 micro-design은 실행 가설이며 실제 완료 상태는 `task_artifact.md`와 각 PR evidence를 따른다.
 
-이 문서는 깨끗한 `develop` Git object를 별도 디렉터리에 전개해 조사했다. 현재 작업 브랜치의 target-module skeleton, `performance/api`, Booking offer 실험 코드는 evidence에서 제외했다. Constitution은 판단 기준이고, 이 문서는 현재 파일을 그 기준으로 옮기기 위한 실행 가설이다.
+이 문서는 깨끗한 `develop` Git object를 별도 디렉터리에 전개해 조사했다. 현재 작업 브랜치의 target-module skeleton, `performance/api`, Booking offer 실험 코드는 evidence에서 제외했다. Architecture Constitution은 전체 boundary의 판단 기준이고 Test Constitution은 그 경계 안의 test-specific 결정이다. Test Rewrite Plan은 실제 source/test inventory와 risk ownership을 소유하며, 이 문서는 그 결과를 PR 단위로 실행하는 가설이다.
 
 ## 1. Constitution에서 변경할 수 없는 invariant
 
@@ -322,7 +324,7 @@ Reference slice에서는 새로운 `performance/api`, `collaboration`, `BookingT
 
 ### 5.4 Transaction / lock rationale
 
-현재 Performance modify/delete는 `Performance → sorted Schedule` 순서다. 현재 Booking create는 `Schedule`을 먼저 lock한 뒤 Performance summary를 읽는다. 이 상태에서 Booking에 뒤늦게 Performance lock을 추가하면 `Schedule → Performance`가 되어 반대 순서와 deadlock 가능성이 생긴다.
+현재 Performance modify/delete와 Booking create는 모두 `Performance → sorted Schedule` 순서를 사용한다. Booking은 먼저 Schedule의 Performance 식별자를 조회한 뒤 authoritative Performance row를 잠그고, 그 다음 Schedule row를 잠근다. 이 순서를 뒤집는 변경은 반대 lock order와 deadlock 가능성을 만들므로 금지한다.
 
 따라서 command flow를 다음 결과가 보장되도록 재구성한다.
 
@@ -338,6 +340,8 @@ authoritative scalar Schedule.performanceId read (no aggregate rehydration)
 ```
 
 사전 조회는 lock order를 결정하기 위한 Schedule-owned identity lookup일 뿐이며, 최종 판단 값이 아니다. 여기서 `Schedule` aggregate를 먼저 rehydrate하면 동일 transaction의 JPA 1차 캐시에 stale inventory가 남아, 나중의 pessimistic lock 조회가 갱신된 재고 대신 cached entity를 반환할 수 있다. 실제 concurrency test에서 5건만 성공해야 할 요청 30건이 모두 성공하는 것을 재현했다. 따라서 `ScheduleRepository.findPerformanceIdById(Long): Long?`는 primary DB scalar만 조회하고, authoritative inventory/membership는 항상 이후 `lockById` 결과와 `belongsTo` 재검증으로 확정한다.
+
+PR11은 또 다른 `REPEATABLE READ` gap을 확인했다. Performance 수정 transaction이 owner 조회 후 Performance lock에서 대기하면 기존 snapshot이 먼저 만들어질 수 있으므로, Schedule lock 뒤의 active Booking 판단을 일반 `COUNT` projection으로 수행해서는 안 된다. 현재 구현은 해당 Schedule들의 Booking row를 locking read로 조회한다. 이미 잡은 Schedule lock이 새 Booking insert를 막고 locking read가 최신 committed state를 보므로, 가격 변경 판단은 stale snapshot에 의존하지 않는다.
 
 현재 pessimistic implementation의 global row order:
 
@@ -420,7 +424,7 @@ Password hashing은 위 output-port 목록과 다르다. 외부 상태나 다른
 7. **Contract relocation 중심 분류:** mixed summary/storage/JWT contracts를 consumer semantics보다 새 package 위치로 먼저 분류했다.
 8. **Kotlin-first 후순위화:** 별도 말기 PR로 대부분 미뤘다. 실제로는 Java caller를 각 slice에서 옮긴 직후 compatibility surface를 제거해야 한다.
 9. **Guard 후순위화:** invented `booking→performance.api` allowlist를 먼저 상정하고 compiler-level macro graph와 apps→domain policy를 충분히 앞세우지 않았다.
-10. **PR 완료 상태 오기:** 작업 브랜치 실험 결과를 baseline PR 완료처럼 기록했다. 이 재감사본에서 모든 migration PR은 미착수다.
+10. **PR 완료 상태 오기:** 작업 브랜치 실험 결과를 baseline PR 완료처럼 기록했다. 재감사 시점에는 모든 migration PR을 미착수로 재설정했으며, 이후 절의 완료 표시는 각 PR 경계에서 직접 검증한 evidence만 반영한다.
 
 ## 8. Revised target package tree
 
@@ -534,28 +538,30 @@ Actor 표기 근거:
 
 ### 9.1 Revision reason
 
-PR-7 이후 graph를 다시 나눈 이유는 세 가지다.
+PR-7 이후 graph를 다시 나눈 이유는 다음과 같다.
 
 - 단일 Actor 생략 가설이 Frontoffice Actor ownership과 충돌했다.
 - runtime/BOM upgrade, test authoring foundation, test semantic rewrite, Testcontainers lifecycle 변경은 rollback 위험이 서로 다르다.
 - 이미 이동한 Booking/Performance/Schedule/Ticket/Member/Auth의 package를 먼저 정렬해야 테스트를 두 번 이동하지 않는다.
 - Spring Boot 4.1 채택은 Constitution의 조건부 선택인데 기존 PR-9가 이를 확정안처럼 닫았다. 현재 Spring Cloud `2025.1.x` 공식 지원선은 Boot `4.0.x`이고 최신 `2025.1.3` BOM도 Boot `4.0.8`을 가리키므로, PR-9는 지원되는 patch line 정렬로 교정한다.
+- PR-9 이후 전체 test inventory와 production-risk ownership을 재감사한 결과 lock characterization, adapter fidelity, Web/API/security gate, capability migration, legacy deletion은 서로 다른 rollback surface를 가진다. 따라서 기존 PR-10~19 가설을 폐기하고 PR-10~22로 재분해했다.
+- PR-21 이후 final audit에서 API/Admin이 Domain exception과 Domain service configuration을 직접 소유하는 실제 위반이 확인됐다. Error-language 경계는 Kotlin/test cleanup과 behavior/rollback 위험이 다르므로 PR-23으로 분리하고, 최종 gate/report는 PR-24로 이동한다.
 
 ### 9.2 Current dependency graph
 
 ```text
 PR-1 + PR-2 + PR-3 → PR-4 → PR-5 → PR-6 → PR-7
 PR-7 → PR-8 → PR-9 → PR-10
-PR-10 → PR-11
-PR-10 → PR-12
-PR-5 + PR-10 → PR-13
-PR-7 + PR-10 → PR-14 → PR-15
-PR-3 + PR-10 → PR-16
-PR-3 + PR-10 → PR-17
-PR-11..PR-17 → PR-18 → PR-19
+PR-10 ─┬→ PR-11
+       └→ PR-12
+PR-11 + PR-12 → PR-13 → PR-14 → PR-15
+PR-15 ─┬→ PR-16
+       ├→ PR-17 → PR-18
+       └→ PR-19
+PR-16 + PR-18 + PR-19 → PR-20 → PR-21 → PR-22 → PR-23 → PR-24
 ```
 
-PR-11/PR-12와 capability PR-13/14/16/17은 source overlap이 없을 때 병렬 진행할 수 있다. 신규 또는 재작성 Kotlin test는 PR-10 이후 FunSpec으로 작성한다. 번호는 Architecture가 아니며 correctness dependency나 source overlap이 달라지면 graph와 DoD를 먼저 수정한다.
+PR-11/PR-12는 source overlap이 없을 때 병렬 진행할 수 있고, PR-16/17/19도 각 capability source가 독립적일 때 병렬 진행할 수 있다. PR-20은 source-conflicting capability move가 합쳐진 뒤 merge한다. 신규 또는 재작성 Kotlin test는 PR-10 이후 FunSpec으로 작성한다. 번호는 Architecture가 아니며 correctness dependency나 source overlap이 달라지면 graph와 DoD를 먼저 수정한다.
 
 ### PR-1 — Correctness characterization: Booking identity, snapshots, rehydration, guest ambiguity
 
@@ -656,115 +662,207 @@ PR-11/PR-12와 capability PR-13/14/16/17은 source overlap이 없을 때 병렬 
 - Tests: full current suite, dependency resolution, three boot contexts, MySQL/Redis container smoke, bootJar/deploy smoke.
 - DoD: adopted versions and remaining security overrides documented; Spring Cloud compatibility verifier와 Boot BOM 기준 dependency graph green; Boot 4.1 보류 근거 기록.
 
-### PR-10 — Kotest FunSpec authoring foundation and pilot
+### PR-10 — Test platform and coexistence pilot
 
-- Objective: JUnit Platform 위에 Kotest runner/assertions/property, MockK, Kotest Spring Extension을 module convention으로 제공하고 대표 pure/Spring spec으로 lifecycle을 검증한다.
-- Invariant gained: Kotlin test authoring language와 execution contract가 분리되어 표준화된다.
+- Objective: production behavior를 바꾸지 않고 JUnit Platform 위에 Kotest FunSpec authoring과 risk-based test tasks를 추가한다.
+- Invariant gained: execution contract와 Kotlin authoring style이 분리되고 JUnit/Kotest coexistence가 executable evidence로 검증된다.
 - Dependencies: PR-9.
-- Correctness risk: test discovery, IDE/Gradle parity, Kotest 6 extension registration/lifecycle, mixed JUnit coexistence.
-- Compatibility: 기존 JUnit tests를 제거하지 않고 동일 suite에서 함께 실행한다.
-- Rollback: test dependency/convention과 pilot conversion revert.
-- Tests: test discovery count, representative Domain/Application FunSpec, representative Spring FunSpec, property smoke.
-- DoD: `useJUnitPlatform()` 유지; FunSpec convention과 Spring lifecycle mode 명시; broad source conversion 없음.
+- Correctness risk: engine/tag discovery 누락, IDE/Gradle 불일치, global Spring extension side effect.
+- Compatibility: 기존 JUnit/Mockito test를 유지하고 대표 Domain/Application/Spring assertion을 dual-run한다.
+- Rollback: catalog alias, convention/task, pilot spec만 제거하면 legacy suite가 그대로 남는다.
+- Tests: `test`, `fastTest`, `integrationTest`, `correctnessTest`, `acceptanceTest`; engine별 discovery count와 tag selection 비교.
+- DoD: `useJUnitPlatform()` 유지; pure/Spring FunSpec discovery; SingleInstance와 Spring leaf lifecycle policy가 명시적으로 실행됨; Fixture Monkey 미도입.
 
-### PR-11 — Migrated Domain/Frontoffice pure-test semantic rewrite
+### PR-11 — Critical Booking/Performance/Schedule/Ticket characterization
 
-- Objective: PR-4~7에서 이동한 Domain/Application tests를 protected invariant별 FunSpec으로 재작성하고 Spring context를 제거한다.
-- Invariant gained: pure business correctness가 framework 없이 빠르게 검증된다.
+- Objective: broad test rewrite 전에 Booking overselling, Performance 가격 변경, Schedule close/inventory, Ticket multi-row lock의 production transaction/lock semantics를 확정한다.
+- Invariant gained: money/inventory/lock correctness가 실제 MySQL과 production transaction topology로 보호된다.
 - Dependencies: PR-10.
-- Correctness risk: 기존 test가 우연히 보호하던 edge case 누락, mock interaction을 behavior로 오인.
-- Compatibility: invariant-by-invariant replacement 후 기존 test를 제거한다.
+- Correctness risk: 테스트가 기존 production defect 또는 정의되지 않은 snapshot 결과를 드러낼 수 있다.
+- Compatibility: 기존 concurrency/integration tests는 deterministic replacement가 동일 risk를 증명할 때까지 유지한다.
+- Rollback: 새 spec/harness를 독립 revert하며 기존 tests를 보존한다.
+- Tests: API correctness task, Frontoffice focused test, barrier+bounded timeout 반복 실행, 최종 authoritative DB state 검증.
+- DoD: approved old/new price snapshot 결과, no overselling, DB close 재확인, sorted Ticket lock, canonical lock order가 deterministic하다. defect 발견 시 assertion을 약화하지 않고 별도 correctness fix로 분리한다.
+
+### PR-12 — Domain fast-risk rewrite
+
+- Objective: Domain invariant를 capability-owned Kotlin FunSpec의 단일 fast owner로 옮기고 Java/중복 Domain test를 제거한다.
+- Invariant gained: aggregate/value-object/state-transition correctness가 Spring과 persistence 없이 검증된다.
+- Dependencies: PR-10; PR-11과 source overlap이 없으면 병렬 가능.
+- Correctness risk: syntax translation 과정에서 legacy edge case 또는 equality/privacy rule 누락.
+- Compatibility: assertion inventory를 비교하고 replacement가 통과한 파일만 제거한다.
+- Rollback: production source 변화가 없으므로 capability/file 단위 revert.
+- Tests: `:domain:test`, bounded property generators와 seed report; Spring compile classpath 부재 확인.
+- DoD: Domain risk matrix의 각 invariant에 단일 owner가 있고 deliberate mutant가 검출된다. Domain test에서 Spring/MockK를 사용하지 않는다.
+
+### PR-13 — Real MySQL and Redis adapter slices
+
+- Objective: mocked repository/Redis와 broad context/manual container를 실제 MySQL/Redis 기반 capability slice로 교체한다.
+- Invariant gained: JPA/JDSL/JDBC query, constraint, locking, Redis TTL/alias/Lua atomicity가 production infra에서 검증된다.
+- Dependencies: PR-11, PR-12.
+- Correctness risk: slice import가 custom repository implementation을 누락하거나 cached context가 종료된 container를 참조할 수 있다.
+- Compatibility: 마지막 consumer가 이동할 때까지 legacy integration base를 유지한다.
+- Rollback: 새 slice/config를 독립 제거하고 legacy base로 복귀한다.
+- Tests: `:infrastructure:integrationTest`, `:apps:api:integrationTest`, context-cache/container count와 non-empty query 결과.
+- DoD: persistence/Redis risk마다 real-infra owner가 있고 Spring-cached context와 container lifecycle이 정렬된다. H2와 mocked Redis semantics를 correctness 근거로 사용하지 않는다.
+
+### PR-14 — Frontoffice application risk-owner rewrite
+
+- Objective: Booking/Performance/Schedule/Ticket/Member/Auth Application tests를 Spring 없이 actor/use-case risk별 FunSpec으로 재작성한다.
+- Invariant gained: Application orchestration, authorization, output/event intent가 Domain 및 persistence risk와 중복 없이 검증된다.
+- Dependencies: PR-13.
+- Correctness risk: fake repository가 query/lock semantics를 거짓으로 표현하거나 service별 test 생성으로 퇴행할 수 있다.
+- Compatibility: protected risk mapping을 유지하고 capability별 replacement 후 기존 test를 제거한다.
 - Rollback: capability별 test commit revert.
-- Tests: real object→simple fake→MockK 순서, boundary property tests, Booking/Performance/Schedule/Ticket/Member/Auth use-case tests.
-- DoD: replacement mapping 완성; pure test의 Spring annotation/context zero; 기존 JUnit/Mockito test는 replacement가 확인된 것만 제거.
+- Tests: `:application:frontoffice:test`; real object→simple fake→boundary MockK; application framework-leakage guard.
+- DoD: 각 test가 Actor와 production risk를 명시하며 Domain/DB assertion을 중복하지 않는다. authoritative command semantics를 fake가 임의로 축약하지 않는다.
 
-### PR-12 — Spring integration/acceptance and Testcontainers lifecycle foundation
+### PR-15 — Web, authorization, OpenAPI, and acceptance foundation
 
-- Objective: lane-local acceptance meta-annotation과 Spring-managed MySQL/Redis Testcontainers configuration을 도입하고 migrated slice integration/API/concurrency tests를 FunSpec으로 재작성한다.
-- Invariant gained: production DB/cache semantics, Spring context lifecycle, context-cache reuse가 한 표준으로 검증된다.
-- Dependencies: PR-10; PR-11과 병렬 가능하나 같은 test file은 동시에 건드리지 않는다.
-- Correctness risk: context cache fragmentation, container shutdown before cached context, transaction rollback illusion, suite runtime 증가.
-- Compatibility: real MySQL/Redis와 production transaction boundary 유지; SpringMockK/bean override를 기본값으로 만들지 않는다.
-- Rollback: meta-annotation/config와 capability test commit 단위 revert.
-- Tests: repository adapters, controller/serialization/security, acceptance journey, lock/concurrency without test-level transaction, context-cache measurement.
-- DoD: `@BeatAcceptanceTest`가 apps:api lane configuration을 표준화; admin/batch는 필요가 증명될 때만 lane-local annotation; manual static `.start()` base 제거; leaf/root lifecycle choice documented.
+- Objective: HTTP/security/API compatibility owner와 소수 critical acceptance lane을 확립한다.
+- Invariant gained: route/JSON/status/error/security backward compatibility가 Web slice, authorization matrix, OpenAPI diff, real-infra acceptance로 분리된다.
+- Dependencies: PR-14.
+- Correctness risk: `@WebMvcTest` import 폭증, TestContext cache fragmentation, spec/tag 누락.
+- Compatibility: DTO/handler/facade fragment는 Web/OpenAPI/acceptance replacement가 통과한 뒤에만 제거한다.
+- Rollback: meta-annotation/config, baseline, capability Web spec을 별도 commit으로 되돌린다.
+- Tests: API/Admin fast tests, API acceptance, normalized OpenAPI breaking diff, context cache key report.
+- DoD: 실제 endpoint 전체 authorization matrix, reviewed general/admin OpenAPI baseline, critical journeys의 real MySQL/Redis 검증. Fixture Monkey는 admission evidence가 있을 때만 도입한다.
+- Implementation evidence: API의 실제 24 operations와 Admin의 실제 5 operations를 handler mapping에서 추출한 exact authorization matrix가 anonymous/member/admin filter boundary를 검증한다. API/Admin acceptance는 공통 meta-annotation과 Spring-managed Testcontainers configuration을 사용하며, API는 MySQL/Redis, Admin은 실제 MySQL과 stable storage fake로 현재 composition을 부팅한다. File query alias와 Ticket API→Application filter mapping은 focused Web slice가 소유하고, JSON alias/enum/validation 및 error envelope는 OpenAPI가 표현하지 못하는 compatibility spec으로 남겼다.
+- OpenAPI evidence: `openApiTest`가 현재 Springdoc general/admin JSON을 각 module build directory에 생성한다. 검토된 baseline은 general 24 operations/22 paths, admin 5 operations/4 paths이며 authorization matrix와 정확히 일치한다. CI는 oasdiff `v1.28.0`의 플랫폼별 고정 asset/checksum을 검증한 뒤 두 문서에 `breaking --fail-on ERR`를 적용한다. 현재 두 비교 모두 `No changes detected`다.
+- Verification evidence: focused JSON/Web specs, API/Admin authorization/boot acceptance, `:apps:api:check`, `:apps:admin:check`, version-catalog alias 검사, `git diff --check`, OpenAPI compatibility script, api/admin/batch `verifyModuleBootJars`가 통과했다. 삭제된 Admin boot source-string leaf의 risk는 실제 context boot가 대체한다.
 
-### PR-13 — Home Booker consumer projection
+### PR-16 — Home Booker projection migration with tests
 
-- Objective: Home projection을 `home/booker/query` consumer-owned reader로 fold하고 central read contracts를 제거한다.
-- Invariant gained: Query consumer가 vocabulary와 optimization을 소유한다.
-- Dependencies: PR-5, PR-10.
-- Correctness risk: ordering/due-date/genre/filter and carousel composition.
-- Compatibility: Home JSON/order 유지.
-- Rollback: reader adapter와 use-case slice revert.
-- Tests: FunSpec Home application, JDSL/JDBC integration, API contract.
-- DoD: Home-only projection; Home model이 Command에 노출되지 않음; actor package guard green.
+- Objective: Home을 `home/booker/query` consumer-owned projection으로 이동하고 Application/MySQL/Web risk owner를 함께 만든다.
+- Invariant gained: Home consumer가 projection vocabulary와 optimization을 소유하고 Performance/Schedule Domain knowledge를 복제하지 않는다.
+- Dependencies: PR-15와 Performance/Schedule foundations.
+- Correctness risk: ordering, due-date, genre/filter, carousel composition과 JSON drift.
+- Compatibility: Home route, JSON, ordering 유지.
+- Rollback: Home capability slice revert.
+- Tests: Home Booker application query, real projection query, Web/API diff, API boot.
+- DoD: Home model은 Query 전용이며 Command에 노출되지 않고 actor/package guard가 통과한다.
+- Implementation evidence: API adapter가 소유하던 Home workflow/result를 `application:frontoffice/home/booker/query`로 이동했다. 기존 `PerformanceSummaryReadPort.findAll/findByGenre`, `ScheduleReadPort`, `HomePromotionReadPort`의 세 consumer 조각은 Home vocabulary를 소유하는 하나의 `HomeProjectionReader`로 fold했다. Infrastructure의 `HomeProjectionQueries`가 현재 세-query composition을 내부 구현하고 Apps는 facade/HTTP/JSON mapping만 유지한다. 새로운 Home aggregate, `api` package, central contract module은 만들지 않았다.
+- Correctness evidence: real MySQL에서 `@Enumerated(EnumType.STRING)` carousel ordering이 `ONE, THREE, TWO`가 되는 결함을 확인했다. SQL 문자열 정렬을 제거하고 typed `CarouselNumber.number` 순서로 adapter에서 정렬해 Domain carousel 의미를 보존한다. Application은 `Clock`과 genre를 reader에 전달하고 period/due-date/sort policy를 소유하며, projection fidelity와 min-Schedule semantics는 MySQL spec이 소유한다.
+- Retirement/compatibility: API-owned Home service/result, `HomePromotionReadPort`/read model, mixed `ScheduleReadPort`/minimum-date read model, old Home Promotion/Schedule query adapters를 replacement green 이후 제거했다. `/api/main` route와 response JSON/OpenAPI는 변경하지 않았다.
+- Verification evidence: focused Home Application/MySQL/Web specs, root `test`, `:application:frontoffice:check`, `:infrastructure:check`, `:apps:api:check`, api/admin/batch bootJar verification, both OpenAPI breaking diffs, and `git diff --check` pass.
 
-### PR-14 — Admin User lane foundation
+### PR-17 — Admin User migration with tests
 
-- Objective: apps:admin→application:admin User query를 작은 slice로 열어 Admin runtime boundary를 검증한다.
-- Invariant gained: Admin lane이 Actor를 이미 표현하며 controller는 mapping만 소유한다.
-- Dependencies: PR-7, PR-10.
-- Correctness risk: admin role vs member-existence policy.
-- Compatibility: `/users` behavior 유지.
-- Rollback: small slice revert.
-- Tests: FunSpec Admin user query, security/HTTP, admin boot.
-- DoD: no duplicated `user/admin`; no Domain failure direct HTTP mapping.
+- Objective: Admin User workflow를 `application:admin`으로 이동하고 Admin actor/security lane을 검증한다.
+- Invariant gained: Admin lane 자체가 Actor를 표현하고 apps:admin은 HTTP mapping/bootstrap만 소유한다.
+- Dependencies: PR-15.
+- Correctness risk: admin role과 member-existence policy, facade compatibility.
+- Compatibility: `/users` behavior와 JSON을 유지하며 마지막 commit까지 temporary facade adapter를 둘 수 있다.
+- Rollback: 작은 User slice와 adapter를 함께 revert.
+- Tests: `:application:admin:test`, Admin User Web/security, OpenAPI diff, Admin boot.
+- DoD: facade workflow 제거; `ROLE_ADMIN` matrix 집행; 중복 `user/admin` actor package와 Domain failure 직접 HTTP mapping 없음.
+- Implementation evidence: `AdminUserQueryService`, `AdminUserResults`, `UserApplicationErrorCode`, Admin failure wrapper를 `application:admin/user/query`와 application-owned failure language로 이동했다. Admin lane 자체가 actor이므로 중복 `admin` actor package를 만들지 않았고, 현재 `Users` aggregate/repository가 id/role의 authoritative collection이어서 새 Port나 `api` package를 만들지 않았다.
+- Composition evidence: `apps:admin`은 공개 bootstrap type인 `AdminApplicationConfig`만 import하고 Application 내부 구현 package를 scan하지 않는다. Admin Web/facade는 moved query boundary만 호출하며 Infrastructure 구현을 직접 알지 않는다.
+- Correctness/compatibility evidence: existing caller-Member existence validation과 persisted `Users.id` response semantics를 보존했다. `ROLE_ADMIN`은 기존 exact authorization matrix가 소유하며 Application query는 role을 재판단하지 않는다. route/JSON/OpenAPI breaking change는 없다.
+- Replacement/verification evidence: Spring-free `AdminUserQueryApplicationSpec`과 focused `AdminUserControllerWebSpec`이 workflow와 delivery risk를 각각 소유한다. old service test와 delegation-only facade test는 replacement green 후 제거했다. `:application:admin:check`, `:apps:admin:check`, Admin OpenAPI generation, `transitionBoundaryTest`, `verifyTargetModuleGraph`, `verifyModuleBootJars`, pinned OpenAPI breaking diff, `git diff --check`가 통과한다.
 
-### PR-15 — Admin Promotion
+### PR-18 — Admin Promotion migration and referential concurrency
 
-- Objective: Promotion command/query, authoritative Performance existence check, S3/cache outputs를 application:admin으로 이동한다.
-- Invariant gained: Admin command authoritative checks와 consumer-owned storage seams.
-- Dependencies: PR-5, PR-14.
-- Correctness risk: carousel uniqueness/order, concurrent Performance delete, redirect, S3 validation/cache failure.
-- Compatibility: Admin routes/JSON/storage keys 유지.
-- Rollback: Promotion slice revert.
-- Tests: FunSpec Promotion domain/application, MySQL concurrency, JPA/S3/cache adapters, Admin API/security.
-- DoD: no Admin Command→Performance read model; broad storage/cache contracts 제거.
+- Objective: Admin Promotion command/query를 이동하고 Performance reference 및 Carousel persistence concurrency를 실제 MySQL로 검증한다.
+- Invariant gained: Promotion risk가 Domain/Application/MySQL/Web 및 실제 storage/cache adapter owner로 분리된다.
+- Dependencies: PR-17와 Performance foundation.
+- Correctness risk: carousel uniqueness/order, concurrent Performance delete, redirect, S3/cache failure.
+- Compatibility: Admin routes/JSON/storage keys를 유지하고 migration commit 끝까지 compatibility adapter를 보존할 수 있다.
+- Rollback: Promotion capability slice revert.
+- Tests: Promotion Domain/Application, MySQL referential concurrency, JPA/JDSL/S3/cache adapter, Admin Web/security/API diff.
+- DoD: existence-check race 결과가 확정되고 facade/JPA-shape tests는 semantic replacement 후 제거된다. production defect이면 별도 correctness commit으로 분리한다.
+- Implementation evidence: Admin adapter가 소유하던 Promotion command/query/result/failure language를 `application:admin/promotion/{command,query}`로 이동했다. Admin lane 자체가 actor를 표현하므로 중복 `admin` package와 speculative `api` package를 만들지 않았다. Application은 HTTP/JPA/S3/Redis/JDSL 타입에 의존하지 않는다.
+- Collaboration evidence: command가 사용하던 mixed `PerformanceSummaryReadPort` projection을 제거했다. Promotion은 이미 Domain에서 `Performance.Id` reference를 소유하고 command에 필요한 것은 authoritative reference validity뿐이다. 따라서 distinct Performance ids를 정렬해 기존 `PerformanceRepository.lockById`로 확인한다. Domain redesign은 invariant가 바뀌지 않아 과도하고, consumer-owned existence Port는 repository를 thin-forward하며, explicit Performance Capability API는 provider policy/remote boundary/다중 consumer evidence가 없어 탈락했다.
+- Concurrency evidence: real MySQL은 Promotion row가 존재할 때 `PESSIMISTIC_WRITE`가 일괄 변경을 직렬화하지만 empty table에서는 두 `SELECT ... FOR UPDATE`가 동시에 통과함을 재현했다. 새 schema/JVM-local lock 대신 Infrastructure repository implementation이 transaction-scoped business namespace를 MySQL advisory lock으로 직렬화하고 현재 row lock을 함께 유지한다. lock 전략은 Domain/Application contract가 아니며 다른 cross-instance 전략으로 교체 가능하다. Promotion 생성과 Performance 삭제도 같은 authoritative Performance row lock을 사용해 orphan 없이 직렬화된다.
+- Contract/compatibility evidence: `PromotionImageStorage`는 presigned upload와 object existence라는 S3 volatility를 Promotion vocabulary로 숨기고, `PromotionImageCache`는 외부 CDN pre-warm 실패/latency boundary를 숨긴다. Infrastructure S3/CDN adapter가 구현하며 Admin route, JSON, storage key, synchronous pre-warm behavior는 유지된다. central storage/CDN contracts와 Performance summary read contract/query는 마지막 consumer가 사라진 뒤 삭제했다. `application:admin → global-support`의 `ImageKeyExtractor`만 PR-20까지 temporary compatibility로 남는다.
+- Replacement/verification evidence: Spring-free command/query specs, focused Admin Web spec, S3 adapter spec, 세 가지 real-MySQL locking outcome이 각각 policy/delivery/external/persistence risk를 소유한다. old service/facade/JPA-shape tests는 replacement green 후 제거했다. `:application:admin:check`, `:infrastructure:check`, `:apps:admin:check`, Admin OpenAPI generation, `transitionBoundaryTest`, `verifyTargetModuleGraph`, `verifyModuleBootJars`, pinned OpenAPI breaking diff, `git diff --check`가 통과한다.
 
-### PR-16 — System/Batch workflows and Java production retirement
+### PR-19 — System/Batch workflow migration with tests
 
-- Objective: maintenance services를 application:system Kotlin use case로, jobs를 apps:batch scheduler adapter로 이동한다.
-- Invariant gained: apps:batch has no maintenance workflow; production Java 제거.
-- Dependencies: PR-3, PR-10; PR-4/15 source conflict 시 해당 PR 후 merge.
-- Correctness risk: clock/timezone, cron/error handler, large delete/reorder transaction.
-- Compatibility: scheduler names/cron/job/deploy behavior 유지.
-- Rollback: job별 commit revert.
-- Tests: FunSpec Clock-controlled application, scheduler invocation, repository integration, batch boot.
-- DoD: production Java jobs/services 제거; no duplicated system actor package; unjustified `@Jvm*` zero.
+- Objective: cleanup/maintenance workflow를 `application:system` Kotlin use case로 옮기고 batch를 scheduler/bootstrap adapter로 제한한다.
+- Invariant gained: apps:batch가 business workflow를 소유하지 않고 System lane이 transaction/time policy를 소유한다.
+- Dependencies: PR-12/13; maintenance가 Promotion state를 건드리면 PR-18.
+- Correctness risk: clock/timezone, cron/error handling, large delete/reorder transaction, Java compatibility.
+- Compatibility: scheduler names/cron/job/deploy behavior 유지; final migration commit까지 scheduler delegation adapter 허용.
+- Rollback: job/use-case별 commit revert.
+- Tests: `:application:system:test`, focused scheduler context, repository integration, Batch boot/actuator/job invocation.
+- DoD: delegation facade/job의 business assertion 제거; Batch 때문에만 남은 Java production/test compatibility 없음; 중복 system actor package 없음.
+- Implementation evidence: ticket cleanup은 System Booking command, carousel maintenance는 System Promotion command로 `application:system`에 이동했다. physical lane이 actor를 이미 표현하므로 중복 `system` package나 새 API/Port를 만들지 않았다. Batch job은 해당 use case만 호출하며 one-line facade와 Batch-owned Java service/job은 제거됐다.
+- Consistency evidence: 두 use case는 고정 가능한 `Clock`과 Application transaction을 소유한다. Promotion maintenance는 발견된 Performance id와 각 Schedule id를 정렬해 authoritative lock을 획득한 뒤 Promotion namespace/row lock을 잡는다. 잠금 snapshot 이후 추가된 reference는 unlocked state로 판정하지 않고 다음 실행으로 미룬다.
+- Compatibility/verification evidence: cron, scheduler qualifier, owner flag, actuator/bootstrap behavior는 Kotlin job에서도 동일하다. Spring-free System specs, Spring-managed Batch context, real MySQL cutoff/deletion/reorder integration, Batch check, target module graph, 세 bootJar가 통과했다. Batch production은 Java `NO-SOURCE`이며 unrelated untracked contention probe는 변경하지 않았다.
 
-### PR-17 — Observability/global-support ownership
+### PR-20 — Observability and global-support rewrite
 
-- Objective: observability target move와 global-support 분해를 수행한다.
-- Invariant gained: narrow technical support; HTTP/Jackson policy는 apps가 소유한다.
-- Dependencies: PR-3, PR-10.
-- Correctness risk: logging/MDC/Sentry/serialization behavior.
-- Compatibility: log fields, trace IDs, CDN serialization, error envelope 유지.
-- Rollback: concern별 revert.
-- Tests: FunSpec observability, serialization/API snapshots, three boot apps.
-- DoD: `global-support` retired; no Domain dependency in observability.
+- Objective: observability와 shared technical support의 focused test를 이동하고 `global-support` retirement ownership을 확정한다.
+- Invariant gained: MDC/coroutine/async/Sentry/token/password는 좁은 technical owner를 갖고 HTTP/Jackson policy는 apps가 소유한다.
+- Dependencies: PR-12 이후 시작 가능하나 source-conflicting PR-16/18/19 뒤 merge.
+- Correctness risk: log field, trace ID, resource/config, serialization/error-envelope drift.
+- Compatibility: 기존 resource/bootstrap tests를 physical move가 끝날 때까지 유지한다.
+- Rollback: concern/file 단위 revert.
+- Tests: support-security/observability focused specs, serialization/API contract, three app boot smokes.
+- DoD: focused technical risks가 유지되고 source-string architecture scan은 더 강한 guard로 대체된다. observability→Domain dependency 없음.
+- Implemented: API/Admin response envelope은 각 inbound adapter가 소유하고 API CDN annotation/serializer는 API Web/Jackson policy로 이동했다. `ImageKeyExtractor`는 유일한 Admin Promotion consumer 옆의 `internal` utility로 이동했으며 `global-support` project/dependency/source는 제거됐다. central shared replacement module은 만들지 않았다.
+- Evidence: API/Admin JSON, CDN serializer, Promotion image-key, support-security/observability focused checks, three app checks/boot jars, target graph가 통과했다. 기존 observability Jupiter owner는 risk fidelity가 올바르므로 PR-22 authoring audit 전까지 유지한다.
 
-### PR-18 — Infrastructure visibility and `module-contracts` retirement
+### PR-21 — Infrastructure visibility and `module-contracts` retirement
 
-- Objective: 모든 consumer/test migration 후 remaining contract/config bridge를 제거하고 infra implementation을 internal로 닫는다.
-- Invariant gained: no central contracts, apps web→infra implementation 금지, minimal bootstrap API.
-- Dependencies: PR-11 through PR-17 and their prior capability PRs.
-- Correctness risk: Spring bean discovery/configuration and hidden implementation access.
-- Compatibility: explicit bootstrap configuration allowlist only.
-- Rollback: adapter family별 commits; module deletion은 마지막 commit.
-- Tests: full context/adapter integration, dependency graph, zero-reference scans.
-- DoD: `module-contracts` project/package/reference zero; public infra implementation exceptions documented.
+- Objective: 모든 consumer/test 이동 뒤 remaining contract와 temporary adapter를 제거하고 infrastructure implementation을 internal로 닫는다.
+- Invariant gained: central contracts가 사라지고 apps web/controller→infra implementation 및 application lane cross-dependency가 executable하게 금지된다.
+- Dependencies: PR-16~20.
+- Correctness risk: Spring bean discovery/configuration, thin port 증식, bootstrap access breakage.
+- Compatibility: contract별 temporary adapter를 마지막 consumer migration까지 유지하고 bootstrap configuration만 allowlist한다.
+- Rollback: adapter family별 commit; module deletion은 마지막 독립 commit.
+- Tests: project dependency graph, focused Gradle/ArchUnit guard, all adapter slices, three app boots, zero-reference scans.
+- DoD: `module-contracts` project/package/reference zero; controller/web infra implementation 접근 zero; application lanes independent; public infra exception은 ADR로 명시.
+- Implemented: Redis guest session/throttle는 Booking-owned `GuestSessionStore`/`GuestAccessThrottle`, Slack notification은 기존 `BookingCreatedEvent`를 받는 `BookingNotificationSender`로 이동했다. `OptionalLong`과 중복 notification DTO를 제거하고 `module-contracts` project/dependency/source를 삭제했다. Infrastructure 구현은 `internal`이며 apps가 보는 public surface는 `EnableInfraBaseConfig`, `InfraBaseConfigGroup`, `InfraPersistenceConfig`, `AuthRedisConfig`뿐이다.
+- Evidence: Frontoffice/Infrastructure/Security/API/Admin/Batch checks, transition/target graph, three boot jars를 강제 재실행해 97 tasks가 통과했다. Batch integration은 Domain repository와 JDBC cleanup만 사용하고 infrastructure 구현 타입을 import하지 않는다.
 
-### PR-19 — Physical tree, Kotlin/API/test debt closeout and final verification
+### PR-22 — Kotlin interop and legacy test retirement
 
-- Objective: legacy names/directories를 target tree에 정렬하고 Kotlin/public/test debt와 obsolete guards를 감사한다.
-- Invariant gained: target physical graph와 semantic guards가 최종 상태를 증명한다.
-- Dependencies: PR-18.
-- Correctness risk: CI/deploy paths, Java ABI callers, obsolete guard removal, hidden test coverage loss.
-- Compatibility: deployment alias/rollback path를 release plan에 따라 유지 또는 전환한다.
-- Rollback: physical rename/CI/test-retirement commit 단위.
-- Tests: full `check`, boot jars, MySQL/Redis Testcontainers, security, batch, API, dependency/build health, deploy artifact smoke.
-- DoD: remaining Java/`@Jvm*`/Optional/public API/source-scan/temp adapter justified or zero; authored Kotlin tests FunSpec; JUnit Platform remains; all three apps executable.
+- Objective: Kotlin-owned repository API의 `Optional`/nullable lookup id, Java-only `@Jvm*`, replacement가 완료된 Java/JUnit authoring debt와 source scans를 risk owner 단위로 제거한다.
+- Invariant gained: Kotlin-owned API가 idiomatic하고 architecture rule은 source 문자열보다 compiler/Gradle/ArchUnit/risk-owner test가 소유한다.
+- Dependencies: PR-21과 모든 test owner green.
+- Correctness risk: nullable/Optional 변환이 not-found semantics를 바꾸거나 cleanup이 hidden coverage를 제거할 수 있다.
+- Compatibility: Java caller를 Kotlin으로 옮긴 뒤에만 `@Jvm*`를 제거하며 사용자 소유 untracked probe는 변경하지 않는다.
+- Rollback: cleanup category별 revert.
+- Tests: affected Domain/Application/Infrastructure/API suites, architecture guards, unfiltered discovery comparison.
+- DoD: tracked Java production/test와 unnecessary `@Jvm*`/Kotlin `Optional`은 zero; source-string architecture assertion은 compiler/Gradle/ArchUnit으로 대체되거나 non-code contract risk로 구체적 정당화된다.
+- Evidence: Kotlin repository API는 nullable result/non-null id로 전환됐고 tracked Java caller는 zero다. Domain/API/Admin의 Java compatibility accessor는 Kotlin read-only property로 전환했다. 불필요한 `@JvmStatic` 54개, `@JvmOverloads` 6개, `@JvmSuppressWildcards` 6개를 제거했으며 value class의 `@JvmInline`만 유지한다. API/Admin/Batch/Frontoffice architecture rule은 compiled ArchUnit/Gradle이 소유한다. Root의 배포/Nginx/Sentry/inventory/version-catalog 계약 13개는 세 Kotlin FunSpec으로 분리했고, 실행을 위해 root의 기존 Java test coordination plugin을 `beat.kotlin-base`로 교체했다. Root main source와 executable plugin은 여전히 없다.
+- Verification: ten module checks passed (93 tasks, 4m35s); root `compileTestKotlin`/`transitionBoundaryTest --rerun-tasks` passed (83 tasks); target graph and three boot jars passed. 사용자 소유 untracked Batch contention probe는 변경하지 않았다.
+
+### PR-23 — Application failure boundary and apps-to-Domain retirement
+
+- Objective: Domain failure를 Frontoffice/Admin Application failure language로 번역하고 Domain service composition을 각 Application configuration으로 이동해 API/Admin의 direct Domain dependency를 제거한다.
+- Invariant gained: `Domain failure → Application failure → Web status`; apps web/controller는 Domain exception/error code를 알지 않으며 apps→Domain direct dependency는 explicit allowlist 없이 zero다.
+- Dependencies: PR-22.
+- Correctness risk: 기존 V1 status/message와 transaction rollback semantics가 달라질 수 있다.
+- Compatibility: 현재 API/Admin domain-error mapping matrix를 characterization으로 고정하고 동일한 status/message/code를 Application failure mapping으로 이전한다.
+- Rollback: Frontoffice와 Admin lane을 별도 commit으로 유지한다.
+- Tests: Spring-free translation specs, affected Application use-case specs, API/Admin HTTP contract, concurrency failure type, two app checks/boot/OpenAPI.
+- DoD: API/Admin production Domain imports/dependencies/config zero; Domain exception이 inbound adapter까지 직접 노출되지 않음; HTTP observable contract unchanged.
+- Evidence: 모든 Frontoffice/Admin `@Service` public entry point가 method body 안에서 Domain failure를 lane Application exception으로 번역하며 compiled ArchUnit이 translator dependency 누락을 막는다. 따라서 transaction interceptor는 동일한 RuntimeException rollback semantics를 유지한다. Schedule/Promotion Domain service bean은 각 Application configuration이 소유한다. API/Admin main Domain import와 main dependency는 zero이며 test-only fixture dependency만 명시적으로 남는다.
+- Admin correction: 실제 Admin use case는 Promotion/User이고 reachable Domain failure는 Promotion carousel invariant다. 기존 Admin handler의 Booking/Performance/Schedule special mapping은 도달 불가능한 copied knowledge라서 Application으로 이식하지 않았다. Promotion code/message와 generic Domain type semantics만 보존한다.
+- Verification: Frontoffice/Admin Application checks, forced API/Admin checks (2m56s), booking overselling and price-lock concurrency, target graph, three boot jars, API/Admin OpenAPI tests, compatibility script가 통과했다.
+
+### PR-24 — CI optimization and final migration gates
+
+- Objective: measured test discovery를 기준으로 CI를 조정하고 전체 dependency/public surface/temporary adapter/runtime report를 확정한다.
+- Invariant gained: 최종 architecture/test portfolio가 compiler, risk-owner tests, API/security/concurrency/OpenAPI/deploy gates로 증명된다.
+- Dependencies: PR-23과 모든 risk owner green.
+- Correctness risk: tag filter가 test를 조용히 누락하거나 최종 cleanup이 deploy artifact를 바꿀 수 있다.
+- Compatibility: CI optimization과 semantic deletion을 분리하고 unfiltered `test`와 discovered suite를 비교한다.
+- Rollback: CI/task/report category별 revert.
+- Tests: full `check`, risk lanes, boot jars, MySQL/Redis, security, batch, OpenAPI, authorization, concurrency, dependency/build health, deploy artifact smoke.
+- DoD: final graph/public API/Kotlin interop/source scan/cross-service/public infrastructure/temp adapter audit 완료; three apps independently executable; final report complete.
+- Evidence: PR CI의 unfiltered `check`를 authoritative discovery로 유지하고 중복 `openApiTest --rerun-tasks`를 제거했다. 모든 deploy workflow는 `actionlint`를 통과하며 삭제된 legacy project path filter와 지원되지 않는 concurrency key가 없다. Production source를 읽는 architecture assertion은 Gradle/compiler/ArchUnit guard로 대체됐다.
+- Final verification: `check transitionBoundaryTest verifyTargetModuleGraph verifyModuleBootJars --rerun-tasks`가 115 tasks로 통과했고, `buildHealth` 451 tasks, General/Admin OpenAPI compatibility, unused catalog, workflow syntax, zero-reference/interop/public-surface audit가 모두 통과했다. 최종 결과와 deliberate filesystem mapping ADR은 `BEAT-SERVER-MIGRATION-FINAL-REPORT.md`에 기록한다.
+
+### ADR-MIG-009 — Target Gradle identity와 deployment-compatible source path를 분리
+
+- 최종 compile/dependency boundary는 Constitution의 `:apps:*`, `:application:*`, `:domain`, `:infrastructure`, `:support:*` 10개 project로 확정했다.
+- 디스크의 `apis/admin/batch`, `core/domain`, `core/infra`, `gateway`, `observability` 경로는 deploy path filter와 runtime contract가 사용한다. `settings.gradle.kts`의 explicit `projectDir` mapping으로 target project identity에 연결한다.
+- 디렉터리 rename은 compile/change isolation을 추가하지 않고 deploy diff와 rollback surface만 늘린다. Constitution의 “폴더 모양이 아니라 change locality” 원칙에 따라 이를 PR-24 semantic migration에 섞지 않는다.
+- 이는 legacy Gradle module의 유지가 아니다. settings와 dependency graph에는 target project만 존재하며, legacy project name/reference는 executable negative guard 외에는 없다.
 
 ## 10. Architecture guard migration plan과 ADR
 
@@ -875,7 +973,7 @@ Apps의 Domain 직접 dependency는 기본 금지한다. Domain failure를 Contr
 - 기존 Cloud Context `5.0.1`이 `spring-boot-restclient`를 우연히 transitive 제공해 `ImageCacheAdapter`의 `RestClient.Builder` runtime requirement를 숨기고 있었다. Cloud `5.0.3`에서 그 transitive가 제거되므로 API/Admin external-client composition은 `spring-boot-starter-restclient`를 명시적으로 제공한다. 이는 새 abstraction이 아니라 기존 adapter의 실제 runtime dependency 복구다.
 - Boot 4.0.8 BOM이 현재 명시적 핀보다 새 Tomcat/Jackson/Netty를 관리하므로 해당 downgrade override는 제거하고, BOM이 해결하지 않는 security pin만 근거와 함께 유지한다.
 - Boot 4.1은 Cloud 호환 train 도입 또는 OpenFeign adapter retirement가 별도 evidence로 완료된 뒤 다시 판단한다. 이를 달성하기 위해 임의의 HTTP client 재작성이나 새 PR을 지금 발명하지 않는다.
-- runtime/BOM alignment는 PR-9, Kotest foundation은 PR-10, semantic test rewrite는 PR-11/12로 분리한다.
+- runtime/BOM alignment는 PR-9, Kotest coexistence foundation은 PR-10, critical lock characterization은 PR-11, Domain/Application/adapter/Web test ownership은 PR-12~15로 분리한다. 이후 capability migration은 각 risk owner를 함께 이동하고 final legacy deletion은 PR-22에서 수행한다.
 - 이 경계는 실패 원인이 runtime upgrade인지 authoring framework인지 test semantic rewrite인지 즉시 식별하고 독립 rollback하기 위함이다.
 
 ## Audit gate

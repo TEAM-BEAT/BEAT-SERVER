@@ -1,6 +1,6 @@
 package com.beat.infra.persistence.exception
 
-class PersistenceMappingException private constructor(
+internal class PersistenceMappingException private constructor(
     message: String,
     cause: RuntimeException,
 ) : RuntimeException(message, cause) {

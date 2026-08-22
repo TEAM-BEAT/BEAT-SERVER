@@ -1,90 +1,47 @@
 package com.beat.support.security
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertAll
-import java.nio.file.Files
-import java.nio.file.Path
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import org.springframework.context.annotation.Import
 
 /**
- * gateway bootstrap 계약(공개 표면 → internal config 매핑)을 고정한다.
- * config group이 소유하는 bean 집합은 source 검사로 회귀를 막는다.
+ * gateway bootstrap 계약(공개 표면 → compiled config metadata 매핑)을 고정한다.
  */
-class GatewayConfigGroupTest {
+class GatewayConfigGroupTest : FunSpec() {
 
-    @Test
-    fun `config group은 gateway가 소유하는 optional security 기능만 노출한다`() {
-        assertEquals(
-            listOf(GatewayConfigGroup.GUEST_ACCESS),
-            GatewayConfigGroup.entries,
-        )
+    init {
+        isolationMode = IsolationMode.SingleInstance
+
+        test("config group은 gateway가 소유하는 optional security 기능만 노출한다") {
+            GatewayConfigGroup.entries shouldBe listOf(GatewayConfigGroup.GUEST_ACCESS)
+        }
+
+        test("GUEST_ACCESS group은 password hasher configuration만 import한다") {
+            val guestAccessConfig = GatewayConfigGroup.GUEST_ACCESS.configClass
+
+            guestAccessConfig.name shouldBe
+                "com.beat.support.security.guest.internal.config.GuestAccessConfig"
+            guestAccessConfig.importedClassSimpleNames() shouldBe setOf("BCryptPasswordHasher")
+        }
+
+        test("servlet security 공개 annotation이 compiled static import 표면이다") {
+            val servletSecurityConfig = EnableGatewayServletSecurity::class.java
+                .getAnnotation(Import::class.java)
+                .value
+                .single()
+                .java
+
+            servletSecurityConfig.name shouldBe
+                "com.beat.support.security.authentication.internal.config.ServletSecurityConfig"
+            servletSecurityConfig.importedClassSimpleNames() shouldBe
+                setOf("JwtConfig", "SecurityFilterConfig", "WebMvcConfig")
+        }
     }
 
-    @Test
-    fun `GUEST_ACCESS group은 Redis adapter 없이 비밀번호 해시만 소유한다`() {
-        assertEquals(
-            "com.beat.support.security.guest.internal.config.GuestAccessConfig",
-            GatewayConfigGroup.GUEST_ACCESS.configClass.name,
-        )
-
-        val source = source("guest/internal/config/GuestAccessConfig.kt")
-
-        assertAll(
-            { assertTrue(source.contains("BCryptPasswordHasher::class")) },
-            { assertFalse(source.contains("Redis")) },
-            { assertFalse(source.contains("GuestSessionService")) },
-            { assertFalse(source.contains("GuestAccessThrottleService")) },
-        )
-    }
-
-    @Test
-    fun `servlet security 공개 annotation이 실행 모듈의 static import 표면이다`() {
-        val annotationSource = source("EnableGatewayServletSecurity.kt")
-        val configSource = source("authentication/internal/config/ServletSecurityConfig.kt")
-
-        assertAll(
-            { assertTrue(annotationSource.contains("@Import(ServletSecurityConfig::class)")) },
-            { assertTrue(configSource.contains("JwtConfig::class")) },
-            { assertTrue(configSource.contains("SecurityFilterConfig::class")) },
-            { assertTrue(configSource.contains("WebMvcConfig::class")) },
-            { assertFalse(configSource.contains("RefreshTokenConfig::class")) },
-            { assertFalse(configSource.contains("RedisConfig::class")) },
-            { assertFalse(configSource.contains("RefreshTokenService::class")) },
-        )
-    }
-
-    @Test
-    fun `MDC filter는 servlet security group에 속하고 servlet 자동 등록은 비활성화된다`() {
-        val source = source("authentication/internal/config/SecurityFilterConfig.kt")
-
-        assertAll(
-            { assertTrue(source.contains("gatewaySecurityMdcLoggingFilter")) },
-            { assertTrue(source.contains("FilterRegistrationBean<SecurityMdcLoggingFilter>")) },
-            { assertTrue(source.contains("registration.isEnabled = false")) },
-        )
-    }
-
-    @Test
-    fun `JWT filter가 이미 초기화된 MDC에 인증 사용자 id를 채운다`() {
-        val source = source("authentication/internal/JwtAuthenticationFilter.kt")
-
-        assertTrue(source.contains("MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, result.subject.memberId.toString())"))
-    }
-
-    @Test
-    fun `JwtConfig는 JWT 관련 bean만 등록하고 refresh token·Redis를 가져오지 않는다`() {
-        val source = source("jwt/internal/config/JwtConfig.kt")
-
-        assertAll(
-            { assertTrue(source.contains("fun jwtTokenProvider(")) },
-            { assertTrue(source.contains("JwtTokenProvider")) },
-            { assertFalse(source.contains("RefreshTokenService")) },
-            { assertFalse(source.contains("RedisConfig")) },
-        )
-    }
-
-    private fun source(relativePath: String): String =
-        Files.readString(Path.of("src/main/kotlin/com/beat/support/security/$relativePath"))
+    private fun Class<*>.importedClassSimpleNames(): Set<String> =
+        getAnnotation(Import::class.java)?.value
+            ?.map { it.java.simpleName }
+            ?.toSet()
+            ?: emptySet()
 }

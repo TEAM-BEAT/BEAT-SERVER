@@ -1,6 +1,6 @@
 package com.beat.infra.external.cdn
 
-import com.beat.contracts.cdn.ImageCachePort
+import com.beat.application.admin.promotion.command.PromotionImageCache
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
@@ -18,8 +18,8 @@ import java.util.concurrent.Executors
 @Component
 internal class ImageCacheAdapter(
     restClientBuilder: RestClient.Builder,
-    @param:Value("\${cloud.cdn.domain:}") cdnDomain: String,
-) : ImageCachePort {
+    @Value("\${cloud.cdn.domain:}") cdnDomain: String,
+) : PromotionImageCache {
     private val restClient: RestClient = restClientBuilder.requestFactory(buildRequestFactory()).build()
     private val cdnBase: String = normalize(cdnDomain)
 

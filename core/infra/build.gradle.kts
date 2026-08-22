@@ -6,10 +6,9 @@ plugins {
 
 dependencies {
     implementation(platform(libs.aws.java.sdk.bom))
+    implementation(project(":application:admin"))
     implementation(project(":application:frontoffice"))
-    implementation(project(":module-contracts"))
     implementation(project(":domain"))
-    implementation(project(":global-support"))
     compileOnly(libs.spring.boot.starter.data.redis)
     implementation(libs.aws.java.sdk.s3)
     implementation(libs.kotlin.jdsl.jpql.dsl)
@@ -24,7 +23,10 @@ dependencies {
     runtimeOnly(libs.mysql.connector.j)
 
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.kotest.extensions.spring)
     testImplementation(libs.spring.boot.starter.data.redis)
+    testImplementation(libs.spring.boot.data.redis.test)
+    testImplementation(libs.spring.boot.data.jpa.test)
     testImplementation(libs.bundles.integration.testcontainers)
     testRuntimeOnly(libs.spring.boot.starter.data.jpa)
     testImplementation(platform(libs.spring.cloud.dependencies))

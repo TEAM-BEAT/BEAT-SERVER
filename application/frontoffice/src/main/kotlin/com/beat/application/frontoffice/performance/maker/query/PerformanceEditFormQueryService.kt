@@ -1,6 +1,7 @@
 package com.beat.application.frontoffice.performance.maker.query
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.application.frontoffice.performance.CastResult
 import com.beat.application.frontoffice.performance.PerformanceImageResult
 import com.beat.application.frontoffice.performance.StaffResult
@@ -22,11 +23,12 @@ class PerformanceEditFormQueryService(
     private val clock: Clock,
 ) {
     fun getPerformanceEdit(memberId: Long, performanceId: Long): PerformanceEditResult {
+        return translateDomainFailure {
         val member = memberRepository.findById(memberId)
-            .orElseThrow { FrontofficeApplicationException(PerformanceApplicationErrorCode.MEMBER_NOT_FOUND) }
+            ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.MEMBER_NOT_FOUND)
         val performance = performanceEditFormReader.findByPerformanceId(performanceId)
             ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND)
-        if (performance.userId != member.getUserId()) {
+        if (performance.userId != member.userId) {
             throw FrontofficeApplicationException(PerformanceApplicationErrorCode.NOT_PERFORMANCE_OWNER)
         }
         val today = LocalDate.now(clock)
@@ -70,6 +72,7 @@ class PerformanceEditFormQueryService(
             staffs = staffs,
             images = images,
         )
-        return PerformanceEditResult(result, performance.hasActiveBooking)
+        PerformanceEditResult(result, performance.hasActiveBooking)
+        }
     }
 }

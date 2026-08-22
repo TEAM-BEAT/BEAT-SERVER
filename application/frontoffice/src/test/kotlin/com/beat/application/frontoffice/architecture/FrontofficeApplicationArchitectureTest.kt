@@ -5,8 +5,10 @@ import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.lang.ArchRule
+import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
 import org.junit.jupiter.api.Test
+import org.springframework.stereotype.Service
 
 class FrontofficeApplicationArchitectureTest {
     private val importedClasses: JavaClasses =
@@ -43,6 +45,11 @@ class FrontofficeApplicationArchitectureTest {
     @Test
     fun `ticket classes must reside in the maker lane`() {
         checkActorAlignment("ticket", "ticket.maker")
+    }
+
+    @Test
+    fun `home classes must reside in the booker lane`() {
+        checkActorAlignment("home", "home.booker")
     }
 
     @Test
@@ -170,6 +177,23 @@ class FrontofficeApplicationArchitectureTest {
         )
     }
 
+    @Test
+    fun `all service classes must depend on the compiled domain failure translator`() {
+        val failureTranslator = object : DescribedPredicate<JavaClass>(
+            "be the domain failure translator",
+        ) {
+            override fun test(javaClass: JavaClass): Boolean =
+                javaClass.fullName == "com.beat.application.frontoffice.exception.DomainFailureTranslatorKt"
+        }
+        classes()
+            .that()
+            .areAnnotatedWith(Service::class.java)
+            .should()
+            .dependOnClassesThat(failureTranslator)
+            .because("service use-case boundaries must translate domain failures")
+            .check(importedClasses)
+    }
+
     private fun checkRule(rule: ArchRule?) {
         rule?.check(importedClasses)
     }
@@ -196,18 +220,13 @@ class FrontofficeApplicationArchitectureTest {
     private fun checkActorAlignment(sourceSegment: String, actorPackage: String) {
         val sourcePrefix = "com.beat.application.frontoffice.$sourceSegment"
         val actorPrefix = "com.beat.application.frontoffice.$actorPackage"
-        val violations = importedClasses
-            .filter { javaClass ->
-                val packageName = javaClass.packageName
-                (packageName == sourcePrefix || packageName.startsWith("$sourcePrefix.")) &&
-                    packageName != actorPrefix && !packageName.startsWith("$actorPrefix.")
-            }
-            .map(JavaClass::getFullName)
-            .sorted()
-
-        check(violations.isEmpty()) {
-            "$sourcePrefix classes must reside under $actorPrefix: ${violations.joinToString(", ")}"
-        }
+        classes()
+            .that()
+            .resideInAnyPackage(sourcePrefix, "$sourcePrefix..")
+            .should()
+            .resideInAnyPackage(actorPrefix, "$actorPrefix..")
+            .because("$sourcePrefix classes must reside under $actorPrefix")
+            .check(importedClasses)
     }
 
     private fun noCommandDependencyOnPresentationReadModelsRule(): ArchRule? {
@@ -216,11 +235,10 @@ class FrontofficeApplicationArchitectureTest {
             return null
         }
         val presentationReadModel = object : DescribedPredicate<JavaClass>(
-            "be module-contracts read models or classes annotated with @ReadModel",
+            "be presentation read-model classes",
         ) {
             override fun test(input: JavaClass): Boolean =
-                input.packageName.split('.').contains("readmodel") ||
-                    input.isAnnotatedWith("com.beat.contracts.common.ReadModel")
+                input.packageName.split('.').contains("readmodel")
         }
         return noClasses()
             .that()
@@ -228,7 +246,7 @@ class FrontofficeApplicationArchitectureTest {
             .should()
             .dependOnClassesThat(presentationReadModel)
             .because(
-                "${sourcePackage.archUnitPattern} correctness code must not depend on module-contracts presentation projections",
+                "${sourcePackage.archUnitPattern} correctness code must not depend on presentation projections",
             )
     }
 

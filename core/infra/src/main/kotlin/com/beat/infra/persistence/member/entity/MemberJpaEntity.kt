@@ -21,7 +21,7 @@ import java.time.LocalDateTime
         UniqueConstraint(name = "uk_member_social_identity", columnNames = ["social_type", "social_id"]),
     ],
 )
-class MemberJpaEntity private constructor(
+internal class MemberJpaEntity private constructor(
     id: Long?,
     nickname: String,
     email: String?,
@@ -63,7 +63,6 @@ class MemberJpaEntity private constructor(
         protected set
 
     companion object {
-        @JvmStatic
         fun rehydrate(
             id: Long?,
             nickname: String,

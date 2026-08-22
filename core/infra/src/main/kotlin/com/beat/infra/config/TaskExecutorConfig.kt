@@ -14,7 +14,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 // defaultCandidate=false를 통해 타입 기반 기본 주입 후보에서는 제외하고, 명시적 이름/qualifier로만 사용되게 한다.
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(ThreadPoolProperties::class)
-class TaskExecutorConfig {
+internal class TaskExecutorConfig {
     @Bean(name = ["beatAsyncExecutor"], defaultCandidate = false)
     fun beatAsyncExecutor(
         threadPoolProperties: ThreadPoolProperties,

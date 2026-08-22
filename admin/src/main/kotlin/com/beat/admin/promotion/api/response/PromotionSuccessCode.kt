@@ -1,10 +1,10 @@
 package com.beat.admin.promotion.api.response
 
-import com.beat.global.support.response.SuccessCode
+import com.beat.admin.response.SuccessCode
 
 enum class PromotionSuccessCode(
-    private val status: Int,
-    private val message: String,
+    override val status: Int,
+    override val message: String,
 ) : SuccessCode {
     CAROUSEL_PRESIGNED_URL_ISSUED(200, "캐러셀 Presigned URL 발급 성공"),
     BANNER_PRESIGNED_URL_ISSUED(200, "배너 Presigned URL 발급 성공"),
@@ -12,7 +12,4 @@ enum class PromotionSuccessCode(
     UPDATE_ALL_CAROUSEL_PROMOTIONS_SUCCESS(200, "캐러셀 이미지 수정 성공"),
     ;
 
-    override fun getStatus(): Int = status
-
-    override fun getMessage(): String = message
 }

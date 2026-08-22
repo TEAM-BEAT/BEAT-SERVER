@@ -7,8 +7,8 @@ import com.beat.apis.ticket.api.request.TicketRefundRequest
 import com.beat.apis.ticket.api.request.TicketUpdateRequest
 import com.beat.apis.ticket.api.response.TicketRetrieveResponse
 import com.beat.support.security.CurrentMember
-import com.beat.global.support.response.ErrorResponse
-import com.beat.global.support.response.SuccessResponse
+import com.beat.apis.response.ErrorResponse
+import com.beat.apis.response.SuccessResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema

@@ -13,7 +13,11 @@ class Member private constructor(
     private val linkedUserId: Users.Id,
     val socialIdentity: SocialIdentity,
 ) : AggregateRoot {
-    fun getId(): Long? = memberId?.value
+    val id: Long?
+        get() = memberId?.value
+
+    val userId: Long
+        get() = linkedUserId.value
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -23,23 +27,18 @@ class Member private constructor(
 
     override fun hashCode(): Int = memberId?.hashCode() ?: System.identityHashCode(this)
 
-    override fun toString(): String = "Member(id=${getId()})"
-
-    fun getUserId(): Long = linkedUserId.value
+    override fun toString(): String = "Member(id=$id)"
 
     @JvmInline
     value class Id private constructor(val value: Long) {
         companion object {
-            @JvmStatic
             fun from(value: Long): Id = Id(value)
 
-            @JvmStatic
             fun fromNullable(value: Long?): Id? = value?.let(::from)
         }
     }
 
     companion object {
-        @JvmStatic
         fun create(
             nickname: String,
             email: String?,
@@ -54,7 +53,6 @@ class Member private constructor(
             socialIdentity = socialIdentity,
         )
 
-        @JvmStatic
         fun rehydrate(
             id: Long?,
             nickname: String,

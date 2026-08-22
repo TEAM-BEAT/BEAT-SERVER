@@ -2,8 +2,8 @@ package com.beat.apis.schedule.api
 
 import com.beat.apis.schedule.api.response.TicketAvailabilityResponse
 import com.beat.apis.swagger.annotation.DisableSwaggerSecurity
-import com.beat.global.support.response.ErrorResponse
-import com.beat.global.support.response.SuccessResponse
+import com.beat.apis.response.ErrorResponse
+import com.beat.apis.response.SuccessResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema

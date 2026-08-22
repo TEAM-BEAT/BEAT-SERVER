@@ -13,4 +13,4 @@ import org.springframework.context.annotation.Configuration
  * namespace conventions.
  */
 @Configuration(proxyBeanMethods = false)
-class RedisCacheConfig : InfraBaseConfig
+internal class RedisCacheConfig : InfraBaseConfig

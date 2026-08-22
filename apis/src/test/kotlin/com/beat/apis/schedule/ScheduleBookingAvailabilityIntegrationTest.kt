@@ -1,16 +1,20 @@
 package com.beat.apis.schedule
 
-import com.beat.apis.support.AbstractIntegrationTest
+import com.beat.apis.support.BeatTestContainersConfig
 import com.beat.application.frontoffice.performance.booker.query.PerformanceScheduleAvailabilityReadModel
 import com.beat.application.frontoffice.performance.booker.query.PerformanceScheduleAvailabilityReader
 import com.beat.domain.schedule.repository.ScheduleRepository
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import io.kotest.core.annotation.Tags
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.extensions.spring.SpringExtension
+import io.kotest.extensions.spring.SpringTestLifecycleMode
+import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDateTime
@@ -20,8 +24,13 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.LockSupport
 
-class ScheduleBookingAvailabilityIntegrationTest : AbstractIntegrationTest() {
+@SpringBootTest
+@ActiveProfiles("test")
+@Import(BeatTestContainersConfig::class)
+@Tags("integration", "correctness")
+open class ScheduleBookingAvailabilityIntegrationTest : FunSpec() {
 
     @Autowired
     private lateinit var jdbcTemplate: JdbcTemplate
@@ -35,60 +44,57 @@ class ScheduleBookingAvailabilityIntegrationTest : AbstractIntegrationTest() {
     @Autowired
     private lateinit var transactionManager: PlatformTransactionManager
 
-    @AfterEach
-    fun cleanUp() {
-        jdbcTemplate.update("DELETE FROM schedule WHERE performance_id = ?", PERFORMANCE_ID)
-    }
+    init {
+        isolationMode = IsolationMode.SingleInstance
+        extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-    @Test
-    fun availabilityQueryUsesOneDatabaseClockForEverySchedule() {
-        val databaseNow = jdbcTemplate.queryForObject(
-            "SELECT CURRENT_TIMESTAMP(6)",
-            LocalDateTime::class.java,
-        )!!
-        insertSchedule(databaseNow.plusDays(1), databaseNow.plusDays(1).plusHours(2), 10, 0, "FIRST")
-        insertSchedule(databaseNow.minusHours(2), databaseNow.minusSeconds(1), 10, 0, "SECOND")
-        insertSchedule(databaseNow.plusDays(1), databaseNow.plusDays(1).plusHours(2), 10, 10, "THIRD")
+        afterTest {
+            jdbcTemplate.update("DELETE FROM schedule WHERE performance_id = ?", PERFORMANCE_ID)
+        }
 
-        val schedules: List<PerformanceScheduleAvailabilityReadModel> =
-            scheduleAvailabilityReader.findAllByPerformanceId(PERFORMANCE_ID)
-        val schedulesByNumber = schedules.associateBy { it.scheduleNumber }
+        test("availabilityQueryUsesOneDatabaseClockForEverySchedule") {
+            val databaseNow = jdbcTemplate.queryForObject(
+                "SELECT CURRENT_TIMESTAMP(6)",
+                LocalDateTime::class.java,
+            )!!
+            insertSchedule(databaseNow.plusDays(1), databaseNow.plusDays(1).plusHours(2), 10, 0, "FIRST")
+            insertSchedule(databaseNow.minusHours(2), databaseNow.minusSeconds(1), 10, 0, "SECOND")
+            insertSchedule(databaseNow.plusDays(1), databaseNow.plusDays(1).plusHours(2), 10, 10, "THIRD")
 
-        assertEquals(3, schedules.size)
-        assertTrue(schedulesByNumber.getValue("FIRST").isBooking)
-        assertFalse(schedulesByNumber.getValue("SECOND").isBooking)
-        assertFalse(schedulesByNumber.getValue("THIRD").isBooking)
-        assertEquals(1L, schedules.map { it.evaluatedAt }.distinct().count().toLong())
+            val schedules: List<PerformanceScheduleAvailabilityReadModel> =
+                scheduleAvailabilityReader.findAllByPerformanceId(PERFORMANCE_ID)
+            val schedulesByNumber = schedules.associateBy { it.scheduleNumber }
 
-        jdbcTemplate.update(
-            """
-            UPDATE schedule
-            SET booking_close_at = DATE_ADD(CURRENT_TIMESTAMP(6), INTERVAL 1 HOUR)
-            WHERE performance_id = ? AND schedule_number = 'SECOND'
-            """.trimIndent(),
-            PERFORMANCE_ID,
-        )
+            schedules.size shouldBe 3
+            schedulesByNumber.getValue("FIRST").isBooking shouldBe true
+            schedulesByNumber.getValue("SECOND").isBooking shouldBe false
+            schedulesByNumber.getValue("THIRD").isBooking shouldBe false
+            schedules.map { it.evaluatedAt }.distinct().count().toLong() shouldBe 1L
 
-        val extendedSchedules: Map<String, PerformanceScheduleAvailabilityReadModel> =
-            scheduleAvailabilityReader
-                .findAllByPerformanceId(PERFORMANCE_ID)
-                .associateBy { it.scheduleNumber }
-        assertTrue(extendedSchedules.getValue("SECOND").isBooking)
-    }
+            jdbcTemplate.update(
+                """
+                UPDATE schedule
+                SET booking_close_at = DATE_ADD(CURRENT_TIMESTAMP(6), INTERVAL 1 HOUR)
+                WHERE performance_id = ? AND schedule_number = 'SECOND'
+                """.trimIndent(),
+                PERFORMANCE_ID,
+            )
 
-    @Test
-    fun closeTimeIsRecheckedAfterLockWaitUnderRepeatableRead() {
-        assertEquals(
-            "REPEATABLE-READ",
-            jdbcTemplate.queryForObject("SELECT @@transaction_isolation", String::class.java),
-        )
-        val databaseNow = jdbcTemplate.queryForObject(
-            "SELECT CURRENT_TIMESTAMP(6)",
-            LocalDateTime::class.java,
-        )!!
-        val scheduleId = insertSchedule(databaseNow, databaseNow.plusSeconds(2), 10, 0, "FIRST")
-        assertEquals(
-            1L,
+            val extendedSchedules: Map<String, PerformanceScheduleAvailabilityReadModel> =
+                scheduleAvailabilityReader
+                    .findAllByPerformanceId(PERFORMANCE_ID)
+                    .associateBy { it.scheduleNumber }
+            extendedSchedules.getValue("SECOND").isBooking shouldBe true
+        }
+
+        test("closeTimeIsRecheckedAfterLockWaitUnderRepeatableRead") {
+            jdbcTemplate.queryForObject("SELECT @@transaction_isolation", String::class.java) shouldBe
+                "REPEATABLE-READ"
+            val databaseNow = jdbcTemplate.queryForObject(
+                "SELECT CURRENT_TIMESTAMP(6)",
+                LocalDateTime::class.java,
+            )!!
+            val scheduleId = insertSchedule(databaseNow, databaseNow.plusSeconds(1), 10, 0, "FIRST")
             jdbcTemplate.queryForObject(
                 """
                 SELECT CURRENT_TIMESTAMP(6) < booking_close_at
@@ -97,36 +103,43 @@ class ScheduleBookingAvailabilityIntegrationTest : AbstractIntegrationTest() {
                 """.trimIndent(),
                 Long::class.java,
                 scheduleId,
-            ),
-        )
-        val lockAcquired = CountDownLatch(1)
-        val executor: ExecutorService = Executors.newFixedThreadPool(2)
+            ) shouldBe 1L
+            val lockAcquired = CountDownLatch(1)
+            val waitingRequestStarted = CountDownLatch(1)
+            val releaseLock = CountDownLatch(1)
+            val executor: ExecutorService = Executors.newFixedThreadPool(2)
 
-        try {
-            val lockHolder: Future<*> = executor.submit(
-                Runnable {
-                    TransactionTemplate(transactionManager).executeWithoutResult {
-                        scheduleRepository.lockById(scheduleId).orElseThrow()
-                        lockAcquired.countDown()
-                        holdLockPastCloseTime()
-                    }
-                },
-            )
-            assertTrue(lockAcquired.await(5, TimeUnit.SECONDS))
+            try {
+                val lockHolder: Future<*> = executor.submit(
+                    Runnable {
+                        TransactionTemplate(transactionManager).executeWithoutResult {
+                            checkNotNull(scheduleRepository.lockById(scheduleId))
+                            lockAcquired.countDown()
+                            check(releaseLock.await(5, TimeUnit.SECONDS))
+                        }
+                    },
+                )
+                lockAcquired.await(5, TimeUnit.SECONDS) shouldBe true
 
-            val waitingRequest: Future<Boolean> = executor.submit(
-                Callable {
-                    TransactionTemplate(transactionManager).execute { _ ->
-                        scheduleRepository.lockById(scheduleId).orElseThrow()
-                        scheduleRepository.isBeforeBookingCloseAt(scheduleId)
-                    }
-                },
-            )
+                val waitingRequest: Future<Boolean> = executor.submit(
+                    Callable {
+                        waitingRequestStarted.countDown()
+                        TransactionTemplate(transactionManager).execute { _ ->
+                            checkNotNull(scheduleRepository.lockById(scheduleId))
+                            scheduleRepository.isBeforeBookingCloseAt(scheduleId)
+                        }
+                    },
+                )
 
-            lockHolder.get(5, TimeUnit.SECONDS)
-            assertFalse(waitingRequest.get(5, TimeUnit.SECONDS))
-        } finally {
-            executor.shutdownNow()
+                waitingRequestStarted.await(5, TimeUnit.SECONDS) shouldBe true
+                awaitBookingCloseAt(scheduleId)
+                releaseLock.countDown()
+                lockHolder.get(5, TimeUnit.SECONDS)
+                waitingRequest.get(5, TimeUnit.SECONDS) shouldBe false
+            } finally {
+                releaseLock.countDown()
+                executor.shutdownNow()
+            }
         }
     }
 
@@ -163,13 +176,20 @@ class ScheduleBookingAvailabilityIntegrationTest : AbstractIntegrationTest() {
         )!!
     }
 
-    private fun holdLockPastCloseTime() {
-        try {
-            Thread.sleep(3_000)
-        } catch (exception: InterruptedException) {
-            Thread.currentThread().interrupt()
-            throw IllegalStateException(exception)
+    private fun awaitBookingCloseAt(scheduleId: Long) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        while (System.nanoTime() < deadline) {
+            val isClosed = jdbcTemplate.queryForObject(
+                "SELECT CURRENT_TIMESTAMP(6) >= booking_close_at FROM schedule WHERE id = ?",
+                Long::class.java,
+                scheduleId,
+            ) == 1L
+            if (isClosed) {
+                return
+            }
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10))
         }
+        error("booking_close_at did not elapse within 5 seconds")
     }
 
     private companion object {

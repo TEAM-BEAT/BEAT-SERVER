@@ -11,7 +11,7 @@ import com.beat.apis.performance.api.response.PerformanceResponse
 import com.beat.apis.performance.api.response.PerformanceSuccessCode
 import com.beat.apis.performance.facade.PerformanceFacade
 import com.beat.support.security.CurrentMember
-import com.beat.global.support.response.SuccessResponse
+import com.beat.apis.response.SuccessResponse
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

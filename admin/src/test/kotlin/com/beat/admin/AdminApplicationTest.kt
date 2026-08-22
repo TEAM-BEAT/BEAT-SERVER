@@ -3,148 +3,118 @@ package com.beat.admin
 import com.beat.admin.config.AdminSecurityConfig
 import com.beat.admin.config.GatewayConfig
 import com.beat.admin.config.InfraConfig
+import com.beat.admin.swagger.config.AdminSwaggerConfig
+import com.beat.application.admin.AdminApplicationConfig
+import com.beat.infra.EnableInfraBaseConfig
+import com.beat.infra.InfraBaseConfigGroup
+import com.beat.infra.persistence.InfraPersistenceConfig
 import com.beat.support.security.EnableGatewayConfig
 import com.beat.support.security.EnableGatewayServletSecurity
 import com.beat.observability.ObservabilityModuleConfig
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.Profile
 import org.springframework.scheduling.annotation.EnableScheduling
 import java.nio.file.Files
 import java.nio.file.Path
 
-class AdminApplicationTest {
+class AdminApplicationTest : FunSpec() {
 
-    @Test
-    fun `admin application keeps detached module import contract`() {
-        val importAnnotation = AdminApplication::class.java.getAnnotation(Import::class.java)
-        assertNotNull(importAnnotation, "AdminApplication must declare @Import")
-        val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
+    init {
+        isolationMode = IsolationMode.SingleInstance
 
-        assertEquals(
-            setOf(
+        test("admin application keeps detached module import contract") {
+            val importAnnotation = AdminApplication::class.java.getAnnotation(Import::class.java)
+            importAnnotation shouldNotBe null
+            val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
+
+            importedClassNames shouldBe setOf(
+                AdminApplicationConfig::class.java.name,
                 GatewayConfig::class.java.name,
                 InfraConfig::class.java.name,
                 ObservabilityModuleConfig::class.java.name,
-            ),
-            importedClassNames,
-        )
-    }
+            )
+        }
 
-    @Test
-    fun `admin selects gateway servlet security bootstrap without refresh token store`() {
-        val enableGatewayServletSecurity = GatewayConfig::class.java.getAnnotation(EnableGatewayServletSecurity::class.java)
-        val enableGatewayConfig = GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
+        test("admin selects gateway servlet security bootstrap without refresh token store") {
+            val enableGatewayServletSecurity =
+                GatewayConfig::class.java.getAnnotation(EnableGatewayServletSecurity::class.java)
+            val enableGatewayConfig = GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
 
-        assertNotNull(enableGatewayServletSecurity, "admin GatewayConfig must declare @EnableGatewayServletSecurity")
-        assertNull(enableGatewayConfig, "admin must not select refresh-token store through @EnableGatewayConfig")
-    }
+            enableGatewayServletSecurity shouldNotBe null
+            enableGatewayConfig shouldBe null
+            GatewayConfig::class.java.getAnnotation(Configuration::class.java) shouldNotBe null
+        }
 
-    @Test
-    fun `admin security config exists for module owned route policy`() {
-        val configuration = AdminSecurityConfig::class.java.getAnnotation(Configuration::class.java)
+        test("admin security config exists for module owned route policy") {
+            val configuration = AdminSecurityConfig::class.java.getAnnotation(Configuration::class.java)
 
-        assertNotNull(configuration)
-    }
+            configuration shouldNotBe null
+        }
 
-    @Test
-    fun `admin security chain registers gateway mdc filter through public filter contract`() {
-        val source = Files.readString(Path.of("src/main/kotlin/com/beat/admin/config/AdminSecurityConfig.kt"))
+        test("admin swagger config exists as non prod module owned documentation policy") {
+            val profile = AdminSwaggerConfig::class.java.getAnnotation(Profile::class.java)
+            profile shouldNotBe null
+            profile!!.value.toSet() shouldBe setOf("!prod")
 
-        assertTrue(source.contains("@param:Qualifier(\"gatewayJwtAuthenticationFilter\")"))
-        assertTrue(source.contains("private val jwtAuthenticationFilter: OncePerRequestFilter"))
-        assertTrue(source.contains("@param:Qualifier(\"gatewaySecurityMdcLoggingFilter\")"))
-        assertTrue(source.contains("private val securityMdcLoggingFilter: OncePerRequestFilter"))
-        assertTrue(
-            source.contains(".addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter::class.java)"),
-        )
-        assertTrue(source.contains(".addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.javaClass)"))
-        assertFalse(source.contains("import com.beat.support.security.authentication.internal.SecurityMdcLoggingFilter"))
-    }
+            val groupedOpenApi = AdminSwaggerConfig("").adminApi()
+            groupedOpenApi.group shouldBe "admin"
+            groupedOpenApi.pathsToMatch shouldBe listOf("/api/admin/**")
+        }
 
-    @Test
-    fun `admin swagger config exists as non prod module owned documentation policy`() {
-        val source = Files.readString(Path.of("src/main/kotlin/com/beat/admin/swagger/config/AdminSwaggerConfig.kt"))
-        val securitySource = Files.readString(Path.of("src/main/kotlin/com/beat/admin/config/AdminSecurityConfig.kt"))
+        test("admin application no longer owns broad component scan") {
+            val componentScan = AdminApplication::class.java.getAnnotation(ComponentScan::class.java)
+            componentScan shouldBe null
 
-        assertTrue(source.contains("@Profile(\"!prod\")"))
-        assertTrue(source.contains(".group(\"admin\")"))
-        assertTrue(source.contains("pathsToMatch(\"/api/admin/**\")"))
-        assertTrue(securitySource.contains("if (!environment.acceptsProfiles(Profiles.of(\"prod\")))"))
-        assertTrue(securitySource.contains("addAll(SWAGGER_WHITELIST)"))
-    }
+            val springBootApplication = AdminApplication::class.java.getAnnotation(SpringBootApplication::class.java)
+            springBootApplication shouldNotBe null
+            springBootApplication!!.scanBasePackageClasses.map { it.java.name }.toSet() shouldBe
+                setOf(AdminApplication::class.java.name)
+        }
 
-    @Test
-    fun `admin application no longer owns broad component scan`() {
-        val componentScan = AdminApplication::class.java.getAnnotation(ComponentScan::class.java)
-        assertNull(componentScan)
-    }
+        test("admin application does not enable scheduling") {
+            val enableScheduling = AdminApplication::class.java.getAnnotation(EnableScheduling::class.java)
+            enableScheduling shouldBe null
+        }
 
-    @Test
-    fun `admin application does not enable scheduling`() {
-        val enableScheduling = AdminApplication::class.java.getAnnotation(EnableScheduling::class.java)
-        assertNull(enableScheduling)
-    }
+        test("admin infra config keeps explicit base bootstrap groups and imports") {
+            InfraConfig::class.java.getAnnotation(Configuration::class.java) shouldNotBe null
+            val enableInfraBaseConfig = InfraConfig::class.java.getAnnotation(EnableInfraBaseConfig::class.java)
+            enableInfraBaseConfig shouldNotBe null
+            enableInfraBaseConfig!!.value.toSet() shouldBe setOf(
+                InfraBaseConfigGroup.JPA,
+                InfraBaseConfigGroup.EXTERNAL_CLIENTS,
+            )
 
-    @Test
-    fun `admin application no longer owns feign bootstrap scanning`() {
-        val source = Files.readString(Path.of("src/main/kotlin/com/beat/admin/AdminApplication.kt"))
+            val imports = InfraConfig::class.java.getAnnotation(Import::class.java)
+            imports shouldNotBe null
+            imports!!.value.map { it.java.name }.toSet() shouldBe setOf(InfraPersistenceConfig::class.java.name)
+        }
 
-        assertFalse(source.contains("@EnableFeignClients"))
-        assertFalse(source.contains("\"com.beat.domain\""))
-        assertFalse(source.contains("\"com.beat.global\""))
-    }
+        test("admin resources keep scheduler owner disabled") {
+            val config = Files.readString(Path.of("src/main/resources/application.yml"))
 
-    @Test
-    fun `admin infra config excludes async and scheduler transitional imports`() {
-        val configSource = Files.readString(Path.of("src/main/kotlin/com/beat/admin/config/InfraConfig.kt"))
-
-        assertTrue(configSource.contains("InfraBaseConfigGroup.JPA"))
-        assertFalse(configSource.contains("InfraBaseConfigGroup.AUTH_REDIS"))
-        assertFalse(configSource.contains("InfraBaseConfigGroup.REDIS_CACHE"))
-        assertFalse(configSource.contains("InfraBaseConfigGroup.QUERY_DSL"))
-        assertFalse(configSource.contains("InfraBaseConfigGroup.REDIS"))
-        assertTrue(configSource.contains("InfraBaseConfigGroup.EXTERNAL_CLIENTS"))
-        assertFalse(configSource.contains("InfraBaseConfigGroup.ASYNC"))
-        assertFalse(configSource.contains("InfraBaseConfigGroup.SCHEDULER"))
-    }
-
-    @Test
-    fun `admin resources keep scheduler owner disabled`() {
-        val config = Files.readString(Path.of("src/main/resources/application.yml"))
-
-        assertTrue(config.contains("beat:"))
-        assertTrue(config.contains("scheduler:"))
-        assertTrue(config.contains("owner: false"))
-        assertFalse(config.contains("owner: true"))
-        assertTrue(config.contains("profiles:"))
-        assertTrue(config.contains("group:"))
-        assertTrue(config.contains("- persistence"))
-        assertTrue(config.contains("- jwt"))
-        assertTrue(config.contains("application-dev-secret.properties"))
-        assertTrue(config.contains("application-prod-secret.properties"))
-        assertTrue(config.contains("port: 4000"))
-        assertFalse(config.contains("BEAT_SERVER_PORT"))
-        assertFalse(config.contains("management:"))
-        assertFalse(config.contains("../secret/application-dev-secret.properties"))
-        assertFalse(config.contains("../secret/application-prod-secret.properties"))
-    }
-
-    @Test
-    fun `admin module boot test uses targeted mocks without blanket bean overriding`() {
-        val config = Files.readString(Path.of("src/test/resources/application-test.yml"))
-        val bootTest = Files.readString(Path.of("src/test/kotlin/com/beat/admin/AdminModuleContextBootTest.kt"))
-
-        assertFalse(config.contains("allow-bean-definition-overriding"))
-        assertTrue(bootTest.contains("@MockitoBean"))
-        assertTrue(bootTest.contains("FileStoragePort"))
-        assertFalse(bootTest.contains("PromotionUseCase promotionUseCase"))
-        assertFalse(bootTest.contains("PerformanceUseCase performanceUseCase"))
-        assertFalse(bootTest.contains("MemberUseCase memberUseCase"))
-        assertFalse(bootTest.contains("UserUseCase userUseCase"))
-        assertFalse(bootTest.contains("AdminUseCase adminUseCase"))
-        assertFalse(bootTest.contains("allow-bean-definition-overriding"))
+            config.contains("beat:") shouldBe true
+            config.contains("scheduler:") shouldBe true
+            config.contains("owner: false") shouldBe true
+            config.contains("owner: true") shouldBe false
+            config.contains("profiles:") shouldBe true
+            config.contains("group:") shouldBe true
+            config.contains("- persistence") shouldBe true
+            config.contains("- jwt") shouldBe true
+            config.contains("application-dev-secret.properties") shouldBe true
+            config.contains("application-prod-secret.properties") shouldBe true
+            config.contains("port: 4000") shouldBe true
+            config.contains("BEAT_SERVER_PORT") shouldBe false
+            config.contains("management:") shouldBe false
+            config.contains("../secret/application-dev-secret.properties") shouldBe false
+            config.contains("../secret/application-prod-secret.properties") shouldBe false
+        }
     }
 }

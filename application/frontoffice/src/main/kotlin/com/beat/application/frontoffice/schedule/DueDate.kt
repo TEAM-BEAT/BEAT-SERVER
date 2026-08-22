@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
 fun calculateDueDate(today: LocalDate, schedule: Schedule): Int =
-    calculateDueDate(today, schedule.getPerformanceDate())
+    calculateDueDate(today, schedule.performanceDate)
 
 fun calculateDueDate(today: LocalDate, performanceDate: LocalDateTime): Int =
     ChronoUnit.DAYS.between(today, performanceDate.toLocalDate()).toInt()

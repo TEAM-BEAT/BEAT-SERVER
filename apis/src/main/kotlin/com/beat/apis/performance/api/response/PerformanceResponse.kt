@@ -3,7 +3,7 @@ package com.beat.apis.performance.api.response
 import com.beat.apis.performance.api.type.BankNameType
 import com.beat.apis.performance.api.type.GenreType
 import com.beat.application.frontoffice.performance.maker.PerformanceMutationResult
-import com.beat.global.support.jackson.CdnImageUrl
+import com.beat.apis.web.jackson.CdnImageUrl
 
 @ConsistentCopyVisibility
 data class PerformanceResponse private constructor(

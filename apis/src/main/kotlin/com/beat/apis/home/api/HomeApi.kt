@@ -3,7 +3,7 @@ package com.beat.apis.home.api
 import com.beat.apis.home.api.response.HomeFindAllResponse
 import com.beat.apis.home.api.type.HomeGenreType
 import com.beat.apis.swagger.annotation.DisableSwaggerSecurity
-import com.beat.global.support.response.SuccessResponse
+import com.beat.apis.response.SuccessResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses

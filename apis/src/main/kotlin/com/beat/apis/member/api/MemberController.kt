@@ -6,7 +6,7 @@ import com.beat.apis.member.api.response.MemberLoginResponse
 import com.beat.apis.member.api.response.MemberSuccessCode
 import com.beat.apis.member.facade.MemberFacade
 import com.beat.support.security.CurrentMember
-import com.beat.global.support.response.SuccessResponse
+import com.beat.apis.response.SuccessResponse
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.springframework.http.ResponseCookie

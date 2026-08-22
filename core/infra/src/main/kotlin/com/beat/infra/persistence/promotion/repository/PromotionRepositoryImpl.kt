@@ -5,10 +5,11 @@ import com.beat.domain.promotion.model.Promotion
 import com.beat.domain.promotion.repository.PromotionRepository
 import com.beat.infra.persistence.promotion.mapper.PromotionPersistenceMapper
 import org.springframework.stereotype.Repository
-import java.util.Optional
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Repository
-class PromotionRepositoryImpl(
+internal class PromotionRepositoryImpl(
     private val promotionJpaRepository: PromotionJpaRepository,
     private val promotionPersistenceMapper: PromotionPersistenceMapper,
 ) : PromotionRepository {
@@ -16,8 +17,26 @@ class PromotionRepositoryImpl(
     override fun findAll(): List<Promotion> =
         promotionJpaRepository.findAll().map(promotionPersistenceMapper::toDomain)
 
-    override fun findById(promotionId: Long?): Optional<Promotion> =
-        promotionJpaRepository.findById(requireRepositoryId(promotionId)).map(promotionPersistenceMapper::toDomain)
+    override fun lockAll(): List<Promotion> {
+        check(TransactionSynchronizationManager.isActualTransactionActive()) {
+            "Promotion mutation lock requires an active transaction"
+        }
+        check(promotionJpaRepository.acquireMutationLock(MUTATION_LOCK_NAME, LOCK_TIMEOUT_SECONDS) == 1) {
+            "Failed to acquire Promotion mutation lock"
+        }
+        TransactionSynchronizationManager.registerSynchronization(object : TransactionSynchronization {
+            override fun afterCompletion(status: Int) {
+                check(promotionJpaRepository.releaseMutationLock(MUTATION_LOCK_NAME) == 1) {
+                    "Failed to release Promotion mutation lock"
+                }
+            }
+        })
+        return promotionJpaRepository.lockAll().map(promotionPersistenceMapper::toDomain)
+    }
+
+    override fun findById(promotionId: Long): Promotion? =
+        promotionJpaRepository.findById(promotionId)
+            .map(promotionPersistenceMapper::toDomain).orElse(null)
 
     override fun save(promotion: Promotion): Promotion =
         promotionJpaRepository.save(promotionPersistenceMapper.toEntity(promotion))
@@ -31,13 +50,15 @@ class PromotionRepositoryImpl(
         promotionJpaRepository.deleteByPromotionIds(promotionIds)
     }
 
-    override fun deleteByPerformanceId(performanceId: Long?) {
+    override fun deleteByPerformanceId(performanceId: Long) {
         promotionJpaRepository.deleteByPerformanceId(performanceId)
     }
 
-    override fun findByCarouselNumber(carouselNumber: CarouselNumber): Optional<Promotion> =
-        promotionJpaRepository.findByCarouselNumber(carouselNumber).map(promotionPersistenceMapper::toDomain)
+    override fun findByCarouselNumber(carouselNumber: CarouselNumber): Promotion? =
+        promotionJpaRepository.findByCarouselNumber(carouselNumber)?.let(promotionPersistenceMapper::toDomain)
 
-    private fun requireRepositoryId(id: Long?): Long =
-        requireNotNull(id) { "The given id must not be null" }
+    private companion object {
+        const val MUTATION_LOCK_NAME = "beat:promotion:carousel"
+        const val LOCK_TIMEOUT_SECONDS = 10
+    }
 }

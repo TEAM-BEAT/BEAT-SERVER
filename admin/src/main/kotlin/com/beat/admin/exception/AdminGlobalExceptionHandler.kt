@@ -1,8 +1,8 @@
 package com.beat.admin.exception
 
-import com.beat.domain.exception.DomainErrorType
-import com.beat.domain.exception.DomainException
-import com.beat.global.support.response.ErrorResponse
+import com.beat.application.admin.exception.AdminApplicationErrorType
+import com.beat.application.admin.exception.AdminApplicationException
+import com.beat.admin.response.ErrorResponse
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
 import org.springframework.beans.TypeMismatchException
@@ -25,14 +25,6 @@ import org.springframework.web.servlet.resource.NoResourceFoundException
 
 @RestControllerAdvice
 class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
-
-    @ExceptionHandler(DomainException::class)
-    fun handleDomainException(exception: DomainException): ResponseEntity<ErrorResponse> {
-        val status = toV1DomainStatus(exception)
-        log.info("Domain failure: code={}, status={}", exception.errorCode.code, status.value())
-        return ResponseEntity.status(status)
-            .body(ErrorResponse.of(status.value(), toV1DomainMessage(exception)))
-    }
 
     override fun handleMethodArgumentNotValid(
         ex: MethodArgumentNotValidException,
@@ -145,18 +137,18 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         request: HttpServletRequest,
     ): ResponseEntity<ErrorResponse> {
         val errorCode = exception.errorCode
-        val type = errorCode.getType()
+        val type = errorCode.type
         val status = toHttpStatus(type)
         when {
-            type == ApplicationErrorType.INTERNAL_ERROR -> {
-                log.error("Application failure: code={}, status={}", errorCode.getCode(), status.value(), exception)
+            type == AdminApplicationErrorType.INTERNAL_ERROR -> {
+                log.error("Application failure: code={}, status={}", errorCode.code, status.value(), exception)
                 markObservationError(request, exception)
             }
             status.is5xxServerError ->
-                log.error("Upstream application failure: code={}, status={}", errorCode.getCode(), status.value())
-            else -> log.info("Application failure: code={}, status={}", errorCode.getCode(), status.value())
+                log.error("Upstream application failure: code={}, status={}", errorCode.code, status.value())
+            else -> log.info("Application failure: code={}, status={}", errorCode.code, status.value())
         }
-        return ResponseEntity.status(status).body(ErrorResponse.of(status.value(), errorCode.getMessage()))
+        return ResponseEntity.status(status).body(ErrorResponse.of(status.value(), errorCode.message))
     }
 
     private fun clientErrorResponse(
@@ -175,43 +167,16 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
     companion object {
         private val log = LoggerFactory.getLogger(AdminGlobalExceptionHandler::class.java)
 
-        private fun toV1DomainMessage(exception: DomainException): String = when (exception.errorCode.code) {
-            "BOOKING_INVALID_PURCHASE_TICKET_COUNT",
-            "BOOKING_INVALID_REFUND_ACCOUNT",
-            "BOOKING_PAYMENT_CONFIRMATION_NOT_ALLOWED",
-            "BOOKING_REFUND_REQUEST_NOT_ALLOWED",
-            "PERFORMANCE_NON_POSITIVE_RUNNING_TIME",
-            "PERFORMANCE_NEGATIVE_SCHEDULE_COUNT",
-            "SCHEDULE_INVALID_BOOKING_WINDOW",
-            "SCHEDULE_NEGATIVE_TICKET_COUNT",
-            "SCHEDULE_NON_POSITIVE_TICKET_COUNT",
-            -> "잘못된 데이터 형식입니다."
-            "SCHEDULE_TOO_MANY_SCHEDULES" -> "공연 회차는 최대 10개까지 추가할 수 있습니다."
-            "SCHEDULE_ALLOCATED_TICKETS_EXCEED_TOTAL" ->
-                "판매된 티켓 수보다 적은 수로 판매할 티켓 매수를 수정할 수 없습니다."
-            else -> exception.errorCode.message
-        }
-
-        private fun toV1DomainStatus(exception: DomainException): HttpStatus = when (exception.errorCode.code) {
-            "BOOKING_PAYMENT_CONFIRMATION_NOT_ALLOWED",
-            "BOOKING_REFUND_REQUEST_NOT_ALLOWED",
-            -> HttpStatus.BAD_REQUEST
-            else -> when (exception.errorCode.type) {
-                DomainErrorType.INVALID_INPUT -> HttpStatus.BAD_REQUEST
-                DomainErrorType.STATE_CONFLICT -> HttpStatus.CONFLICT
-            }
-        }
-
-        private fun toHttpStatus(type: ApplicationErrorType): HttpStatus = when (type) {
-            ApplicationErrorType.INVALID_INPUT -> HttpStatus.BAD_REQUEST
-            ApplicationErrorType.UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED
-            ApplicationErrorType.FORBIDDEN -> HttpStatus.FORBIDDEN
-            ApplicationErrorType.NOT_FOUND -> HttpStatus.NOT_FOUND
-            ApplicationErrorType.STATE_CONFLICT -> HttpStatus.CONFLICT
-            ApplicationErrorType.UPSTREAM_FAILURE -> HttpStatus.BAD_GATEWAY
-            ApplicationErrorType.UPSTREAM_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE
-            ApplicationErrorType.UPSTREAM_TIMEOUT -> HttpStatus.GATEWAY_TIMEOUT
-            ApplicationErrorType.INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR
+        private fun toHttpStatus(type: AdminApplicationErrorType): HttpStatus = when (type) {
+            AdminApplicationErrorType.INVALID_INPUT -> HttpStatus.BAD_REQUEST
+            AdminApplicationErrorType.UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED
+            AdminApplicationErrorType.FORBIDDEN -> HttpStatus.FORBIDDEN
+            AdminApplicationErrorType.NOT_FOUND -> HttpStatus.NOT_FOUND
+            AdminApplicationErrorType.STATE_CONFLICT -> HttpStatus.CONFLICT
+            AdminApplicationErrorType.UPSTREAM_FAILURE -> HttpStatus.BAD_GATEWAY
+            AdminApplicationErrorType.UPSTREAM_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE
+            AdminApplicationErrorType.UPSTREAM_TIMEOUT -> HttpStatus.GATEWAY_TIMEOUT
+            AdminApplicationErrorType.INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR
         }
     }
 }

@@ -16,7 +16,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 @EntityScan(basePackageClasses = [InfraPersistenceMarker::class])
 @EnableJpaRepositories(basePackageClasses = [InfraPersistenceMarker::class])
 @Import(InfraPersistenceConfig::class)
-class JpaConfig : InfraBaseConfig {
+internal class JpaConfig : InfraBaseConfig {
     @Bean
     fun jpqlRenderContext(): JpqlRenderContext = JpqlRenderContext()
 }

@@ -2,7 +2,7 @@ package com.beat.infra.external.notification.slack.vo.text
 
 import com.beat.infra.external.notification.slack.vo.SlackConstant.TEXT_TYPE_PLAIN
 
-data class PlainText(
+internal data class PlainText(
     override val type: String,
     val text: String,
     val emoji: Boolean,

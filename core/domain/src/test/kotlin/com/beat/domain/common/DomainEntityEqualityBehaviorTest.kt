@@ -19,25 +19,41 @@ import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.performance.model.Staff
 import com.beat.domain.user.model.Role
 import com.beat.domain.user.model.Users
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Test
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-class DomainEntityEqualityBehaviorTest {
-    @Test
-    fun allEntitiesUseIdentityEqualityAndInstanceEqualityWhileTransient() {
-        entityCases().forEach { case ->
-            assertEquals(case.persisted, case.sameIdentityWithDifferentState, "${case.name} same identity")
-            assertEquals(
-                case.persisted.hashCode(),
-                case.sameIdentityWithDifferentState.hashCode(),
-                "${case.name} hash contract",
-            )
-            assertNotEquals(case.persisted, case.differentIdentity, "${case.name} different identity")
-            assertNotEquals(case.transient, case.otherTransient, "${case.name} transient identity")
-            assertEquals(case.transient, case.transient, "${case.name} same transient instance")
+class DomainEntityEqualityBehaviorTest : FunSpec() {
+    init {
+        isolationMode = IsolationMode.SingleInstance
+
+        test("영속 Entity는 식별자로, transient Entity는 같은 instance로만 동등하다") {
+            entityCases().forEach { case ->
+                withClue("${case.name} same identity") {
+                    case.persisted shouldBe case.sameIdentityWithDifferentState
+                }
+                withClue("${case.name} hash contract") {
+                    case.persisted.hashCode() shouldBe case.sameIdentityWithDifferentState.hashCode()
+                }
+                withClue("${case.name} different identity") {
+                    case.persisted shouldNotBe case.differentIdentity
+                }
+                withClue("${case.name} transient identity") {
+                    case.transient shouldNotBe case.otherTransient
+                }
+                withClue("${case.name} same transient instance") {
+                    case.transient shouldBe case.transient
+                }
+            }
+        }
+
+        test("Value Object는 구조적 동등성을 유지한다") {
+            RunningTime.of(90) shouldBe RunningTime.of(90)
+            RunningTime.of(90) shouldNotBe RunningTime.of(100)
         }
     }
 

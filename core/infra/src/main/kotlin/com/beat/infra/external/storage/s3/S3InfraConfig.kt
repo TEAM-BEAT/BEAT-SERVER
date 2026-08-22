@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
 
 @Configuration(proxyBeanMethods = false)
-class S3InfraConfig {
+internal class S3InfraConfig {
     @field:Value("\${cloud.aws.credentials.access-key}")
     private lateinit var accessKey: String
 

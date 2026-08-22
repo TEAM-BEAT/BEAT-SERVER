@@ -13,7 +13,6 @@ data class RefundAccount private constructor(
     override fun toString(): String = "RefundAccount(REDACTED)"
 
     companion object {
-        @JvmStatic
         fun of(bankName: BankName?, accountNumber: String?, accountHolder: String?): RefundAccount {
             if (bankName == null || bankName == BankName.NONE || accountNumber.isNullOrBlank() ||
                 accountHolder.isNullOrBlank()
@@ -23,7 +22,6 @@ data class RefundAccount private constructor(
             return RefundAccount(bankName, accountNumber, accountHolder)
         }
 
-        @JvmStatic
         fun fromNullable(bankName: BankName?, accountNumber: String?, accountHolder: String?): RefundAccount? {
             if (bankName == null && accountNumber == null && accountHolder == null) {
                 return null

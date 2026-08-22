@@ -1,6 +1,6 @@
 package com.beat.apis.ticket
 
-import com.beat.apis.support.AbstractIntegrationTest
+import com.beat.apis.support.BeatTestContainersConfig
 import com.beat.application.frontoffice.ticket.maker.command.TicketBookingStatus
 import com.beat.application.frontoffice.ticket.maker.command.TicketCommandService
 import com.beat.application.frontoffice.ticket.maker.command.TicketStatusUpdate
@@ -23,17 +23,27 @@ import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.schedule.repository.ScheduleRepository
 import com.beat.domain.user.model.Users
 import com.beat.domain.user.repository.UserRepository
-import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import io.kotest.core.annotation.Tags
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.extensions.spring.SpringExtension
+import io.kotest.extensions.spring.SpringTestLifecycleMode
+import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
+import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-class TicketBulkLockOrderingIntegrationTest : AbstractIntegrationTest() {
+@SpringBootTest
+@ActiveProfiles("test")
+@Import(BeatTestContainersConfig::class)
+@Tags("integration", "correctness")
+open class TicketBulkLockOrderingIntegrationTest : FunSpec() {
 
     @Autowired
     private lateinit var ticketCommandService: TicketCommandService
@@ -58,128 +68,131 @@ class TicketBulkLockOrderingIntegrationTest : AbstractIntegrationTest() {
     private lateinit var firstBooking: Booking
     private lateinit var secondBooking: Booking
 
-    @BeforeEach
-    fun setUp() {
-        val maker = userRepository.save(Users.create())
-        val makerUserId = requireNotNull(maker.getId())
-        makerMember = memberRepository.save(
-            Member.create(
-                nickname = "ticket-lock-maker-$makerUserId",
-                email = "ticket-lock-maker-$makerUserId@example.com",
-                userId = makerUserId,
-                socialIdentity = SocialIdentity.of(SocialType.KAKAO, 8_000_000_000L + makerUserId),
-            ),
-        )
-        performance = performanceRepository.save(
-            Performance.create(
-                performanceTitle = "Ticket lock ordering performance $makerUserId",
-                genre = Genre.BAND,
-                runningTime = RunningTime.of(120),
-                performanceDescription = "description",
-                performanceAttentionNote = "attention",
-                paymentAccount = null,
-                posterImage = "poster.jpg",
-                performanceTeamName = "team",
-                performanceVenue = "venue",
-                roadAddressName = "road",
-                placeDetailAddress = "detail",
-                latitude = "37.0",
-                longitude = "127.0",
-                performanceContact = "010-0000-0000",
-                performancePeriod = PerformancePeriod.of(
-                    LocalDate.now().plusDays(1),
-                    LocalDate.now().plusDays(2),
+    init {
+        isolationMode = IsolationMode.SingleInstance
+        extension(SpringExtension(SpringTestLifecycleMode.Test))
+
+        beforeTest {
+            val maker = userRepository.save(Users.create())
+            val makerUserId = requireNotNull(maker.id)
+            makerMember = memberRepository.save(
+                Member.create(
+                    nickname = "ticket-lock-maker-$makerUserId",
+                    email = "ticket-lock-maker-$makerUserId@example.com",
+                    userId = makerUserId,
+                    socialIdentity = SocialIdentity.of(SocialType.KAKAO, 8_000_000_000L + makerUserId),
                 ),
-                ticketPrice = TicketPrice.of(10_000),
-                totalScheduleCount = 2,
-                userId = makerUserId,
-            ),
-        )
-        val performanceId = requireNotNull(performance.getId())
-        val scheduleStart = LocalDateTime.now().plusDays(1)
-        val firstSchedule = scheduleRepository.save(
-            Schedule.create(
-                performanceDate = scheduleStart,
-                bookingCloseAt = scheduleStart.plusHours(2),
-                totalTicketCount = 10,
-                scheduleNumber = ScheduleNumber.FIRST,
-                performanceId = performanceId,
-            ),
-        )
-        val secondSchedule = scheduleRepository.save(
-            Schedule.create(
-                performanceDate = scheduleStart.plusHours(4),
-                bookingCloseAt = scheduleStart.plusHours(6),
-                totalTicketCount = 10,
-                scheduleNumber = ScheduleNumber.SECOND,
-                performanceId = performanceId,
-            ),
-        )
-        val createdAt = LocalDateTime.now()
-        firstBooking = bookingRepository.save(
-            Booking.create(
-                purchaseTicketCount = 1,
-                bookerName = "first-booker",
-                bookerPhoneNumber = "010-0000-0001",
-                birthDate = null,
-                password = null,
-                scheduleId = requireNotNull(firstSchedule.getId()),
-                userId = makerUserId,
-                createdAt = createdAt,
-                totalPaymentAmount = 0,
-            ),
-        )
-        secondBooking = bookingRepository.save(
-            Booking.create(
-                purchaseTicketCount = 1,
-                bookerName = "second-booker",
-                bookerPhoneNumber = "010-0000-0002",
-                birthDate = null,
-                password = null,
-                scheduleId = requireNotNull(secondSchedule.getId()),
-                userId = makerUserId,
-                createdAt = createdAt,
-                totalPaymentAmount = 0,
-            ),
-        )
-    }
-
-    @Test
-    fun `bulk ticket updates with opposite booking order complete without deadlock`() {
-        val memberId = requireNotNull(makerMember.getId())
-        val performanceId = requireNotNull(performance.getId())
-        val ready = CountDownLatch(2)
-        val start = CountDownLatch(1)
-        executor = Executors.newFixedThreadPool(2)
-        val firstRequest = updateTask(
-            ready = ready,
-            start = start,
-            memberId = memberId,
-            performanceId = performanceId,
-            bookingIds = listOf(requireNotNull(firstBooking.getId()), requireNotNull(secondBooking.getId())),
-        )
-        val secondRequest = updateTask(
-            ready = ready,
-            start = start,
-            memberId = memberId,
-            performanceId = performanceId,
-            bookingIds = listOf(requireNotNull(secondBooking.getId()), requireNotNull(firstBooking.getId())),
-        )
-
-        try {
-            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue()
-            start.countDown()
-
-            assertThat(firstRequest.get(10, TimeUnit.SECONDS)).isTrue()
-            assertThat(secondRequest.get(10, TimeUnit.SECONDS)).isTrue()
-        } finally {
-            executor.shutdownNow()
+            )
+            performance = performanceRepository.save(
+                Performance.create(
+                    performanceTitle = "Ticket lock ordering performance $makerUserId",
+                    genre = Genre.BAND,
+                    runningTime = RunningTime.of(120),
+                    performanceDescription = "description",
+                    performanceAttentionNote = "attention",
+                    paymentAccount = null,
+                    posterImage = "poster.jpg",
+                    performanceTeamName = "team",
+                    performanceVenue = "venue",
+                    roadAddressName = "road",
+                    placeDetailAddress = "detail",
+                    latitude = "37.0",
+                    longitude = "127.0",
+                    performanceContact = "010-0000-0000",
+                    performancePeriod = PerformancePeriod.of(
+                        LocalDate.now().plusDays(1),
+                        LocalDate.now().plusDays(2),
+                    ),
+                    ticketPrice = TicketPrice.of(10_000),
+                    totalScheduleCount = 2,
+                    userId = makerUserId,
+                ),
+            )
+            val performanceId = requireNotNull(performance.id)
+            val scheduleStart = LocalDateTime.now().plusDays(1)
+            val firstSchedule = scheduleRepository.save(
+                Schedule.create(
+                    performanceDate = scheduleStart,
+                    bookingCloseAt = scheduleStart.plusHours(2),
+                    totalTicketCount = 10,
+                    scheduleNumber = ScheduleNumber.FIRST,
+                    performanceId = performanceId,
+                ),
+            )
+            val secondSchedule = scheduleRepository.save(
+                Schedule.create(
+                    performanceDate = scheduleStart.plusHours(4),
+                    bookingCloseAt = scheduleStart.plusHours(6),
+                    totalTicketCount = 10,
+                    scheduleNumber = ScheduleNumber.SECOND,
+                    performanceId = performanceId,
+                ),
+            )
+            val createdAt = LocalDateTime.now()
+            firstBooking = bookingRepository.save(
+                Booking.create(
+                    purchaseTicketCount = 1,
+                    bookerName = "first-booker",
+                    bookerPhoneNumber = "010-0000-0001",
+                    birthDate = null,
+                    password = null,
+                    scheduleId = requireNotNull(firstSchedule.id),
+                    userId = makerUserId,
+                    createdAt = createdAt,
+                    totalPaymentAmount = 0,
+                ),
+            )
+            secondBooking = bookingRepository.save(
+                Booking.create(
+                    purchaseTicketCount = 1,
+                    bookerName = "second-booker",
+                    bookerPhoneNumber = "010-0000-0002",
+                    birthDate = null,
+                    password = null,
+                    scheduleId = requireNotNull(secondSchedule.id),
+                    userId = makerUserId,
+                    createdAt = createdAt,
+                    totalPaymentAmount = 0,
+                ),
+            )
         }
 
-        assertThat(bookingRepository.findById(firstBooking.getId()).orElseThrow().getBookingStatus())
-            .isEqualTo(BookingStatus.BOOKING_CONFIRMED)
-        assertThat(bookingRepository.findById(secondBooking.getId()).orElseThrow().getBookingStatus())
-            .isEqualTo(BookingStatus.BOOKING_CONFIRMED)
+        test("bulk ticket updates with opposite booking order complete without deadlock") {
+            val memberId = requireNotNull(makerMember.id)
+            val performanceId = requireNotNull(performance.id)
+            val ready = CountDownLatch(2)
+            val start = CountDownLatch(1)
+            executor = Executors.newFixedThreadPool(2)
+            val firstRequest = updateTask(
+                ready = ready,
+                start = start,
+                memberId = memberId,
+                performanceId = performanceId,
+                bookingIds = listOf(requireNotNull(firstBooking.id), requireNotNull(secondBooking.id)),
+            )
+            val secondRequest = updateTask(
+                ready = ready,
+                start = start,
+                memberId = memberId,
+                performanceId = performanceId,
+                bookingIds = listOf(requireNotNull(secondBooking.id), requireNotNull(firstBooking.id)),
+            )
+
+            try {
+                ready.await(5, TimeUnit.SECONDS) shouldBe true
+                start.countDown()
+
+                firstRequest.get(10, TimeUnit.SECONDS) shouldBe true
+                secondRequest.get(10, TimeUnit.SECONDS) shouldBe true
+            } finally {
+                executor.shutdownNow()
+            }
+
+            checkNotNull(bookingRepository.findById(checkNotNull(firstBooking.id))).bookingStatus shouldBe
+                BookingStatus.BOOKING_CONFIRMED
+            checkNotNull(bookingRepository.findById(checkNotNull(secondBooking.id))).bookingStatus shouldBe
+                BookingStatus.BOOKING_CONFIRMED
+        }
     }
 
     private fun updateTask(

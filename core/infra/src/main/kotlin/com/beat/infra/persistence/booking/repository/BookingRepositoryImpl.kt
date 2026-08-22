@@ -6,10 +6,9 @@ import com.beat.domain.booking.repository.BookingRepository
 import com.beat.infra.persistence.booking.mapper.BookingPersistenceMapper
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
-import java.util.Optional
 
 @Repository
-class BookingRepositoryImpl(
+internal class BookingRepositoryImpl(
     private val bookingJpaRepository: BookingJpaRepository,
     private val bookingPersistenceMapper: BookingPersistenceMapper,
 ) : BookingRepository {
@@ -18,9 +17,9 @@ class BookingRepositoryImpl(
             bookingJpaRepository.save(bookingPersistenceMapper.toEntity(booking)),
         )
 
-    override fun findById(id: Long?): Optional<Booking> =
-        bookingJpaRepository.findById(requireNotNull(id) { "The given id must not be null" })
-            .map(bookingPersistenceMapper::toDomain)
+    override fun findById(id: Long): Booking? =
+        bookingJpaRepository.findById(id)
+            .map(bookingPersistenceMapper::toDomain).orElse(null)
 
     override fun findScheduleIdsByIds(ids: Collection<Long>): List<Long> {
         if (ids.isEmpty()) {
@@ -29,8 +28,8 @@ class BookingRepositoryImpl(
         return bookingJpaRepository.findScheduleIdsByIds(ids)
     }
 
-    override fun lockById(id: Long?): Optional<Booking> =
-        bookingJpaRepository.lockById(id).map(bookingPersistenceMapper::toDomain)
+    override fun lockById(id: Long): Booking? =
+        bookingJpaRepository.lockById(id)?.let(bookingPersistenceMapper::toDomain)
 
     override fun findAll(): List<Booking> =
         bookingJpaRepository.findAll().map(bookingPersistenceMapper::toDomain)
@@ -49,7 +48,7 @@ class BookingRepositoryImpl(
     override fun replaceGuestPassword(userId: Long, encodedPassword: String): Int =
         bookingJpaRepository.replaceGuestPassword(userId, encodedPassword)
 
-    override fun findByUserId(userId: Long?): List<Booking> =
+    override fun findByUserId(userId: Long): List<Booking> =
         bookingJpaRepository.findByUserId(userId).map(bookingPersistenceMapper::toDomain)
 
     override fun existsActiveBookingByScheduleIds(
@@ -59,7 +58,7 @@ class BookingRepositoryImpl(
         if (scheduleIds.isEmpty()) {
             return false
         }
-        return bookingJpaRepository.existsActiveBookingByScheduleIds(scheduleIds, excludedStatuses)
+        return bookingJpaRepository.findActiveBookingsForUpdate(scheduleIds, excludedStatuses).isNotEmpty()
     }
 
     override fun deleteInactiveBookingsByScheduleIds(

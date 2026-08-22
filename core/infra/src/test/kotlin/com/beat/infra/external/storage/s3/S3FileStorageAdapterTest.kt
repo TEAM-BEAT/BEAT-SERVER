@@ -3,55 +3,44 @@ package com.beat.infra.external.storage.s3
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.AmazonS3Exception
 import com.amazonaws.services.s3.model.ObjectMetadata
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.Mock
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import org.mockito.Mockito
-import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.test.util.ReflectionTestUtils
 
-@ExtendWith(MockitoExtension::class)
-class S3FileStorageAdapterTest {
-    @Mock
-    private lateinit var amazonS3: AmazonS3
-
-    @Test
-    fun findImageObjectMetadataReturnsHeadObjectMetadata() {
-        val adapter = adapter()
+class S3FileStorageAdapterTest : FunSpec({
+    test("Promotion image object가 현재 environment에 존재하면 true를 반환한다") {
+        val amazonS3 = Mockito.mock(AmazonS3::class.java)
+        val adapter = adapter(amazonS3)
         val metadata = ObjectMetadata().apply {
             contentType = "image/png"
             contentLength = 1024L
         }
         Mockito.`when`(amazonS3.getObjectMetadata("bucket", "dev/carousel/image.png")).thenReturn(metadata)
 
-        val result = adapter.findImageObjectMetadata("dev/carousel/image.png")
-
-        assertEquals("image/png", result?.contentType)
-        assertEquals(1024L, result?.contentLength)
+        adapter.exists("dev/carousel/image.png") shouldBe true
     }
 
-    @Test
-    fun findImageObjectMetadataReturnsNullWhenObjectDoesNotExist() {
-        val adapter = adapter()
+    test("S3가 404를 반환하면 Promotion image가 존재하지 않는 것으로 해석한다") {
+        val amazonS3 = Mockito.mock(AmazonS3::class.java)
+        val adapter = adapter(amazonS3)
         val exception = AmazonS3Exception("not found").apply { statusCode = 404 }
         Mockito.`when`(amazonS3.getObjectMetadata("bucket", "dev/carousel/missing.png")).thenThrow(exception)
 
-        assertNull(adapter.findImageObjectMetadata("dev/carousel/missing.png"))
+        adapter.exists("dev/carousel/missing.png") shouldBe false
     }
 
-    @Test
-    fun findImageObjectMetadataRejectsOtherEnvironmentsWithoutHeadObject() {
-        val adapter = adapter()
+    test("다른 environment key는 S3 조회 없이 거부한다") {
+        val amazonS3 = Mockito.mock(AmazonS3::class.java)
+        val adapter = adapter(amazonS3)
 
-        assertNull(adapter.findImageObjectMetadata("prod/poster/poster.png"))
+        adapter.exists("prod/poster/poster.png") shouldBe false
         Mockito.verifyNoInteractions(amazonS3)
     }
+})
 
-    private fun adapter(): S3FileStorageAdapter =
-        S3FileStorageAdapter(amazonS3).also {
-            ReflectionTestUtils.setField(it, "bucket", "bucket")
-            ReflectionTestUtils.setField(it, "keyPrefix", "dev")
-        }
-}
+private fun adapter(amazonS3: AmazonS3): S3FileStorageAdapter =
+    S3FileStorageAdapter(amazonS3).also {
+        ReflectionTestUtils.setField(it, "bucket", "bucket")
+        ReflectionTestUtils.setField(it, "keyPrefix", "dev")
+    }

@@ -1,10 +1,10 @@
 package com.beat.apis.performance.api.response
 
-import com.beat.global.support.response.SuccessCode
+import com.beat.apis.response.SuccessCode
 
 enum class PerformanceSuccessCode(
-    private val status: Int,
-    private val message: String,
+    override val status: Int,
+    override val message: String,
 ) : SuccessCode {
     PERFORMANCE_UPDATE_SUCCESS(200, "공연이 성공적으로 수정되었습니다."),
     PERFORMANCE_RETRIEVE_SUCCESS(200, "공연 상세 정보 조회가 성공적으로 완료되었습니다."),
@@ -15,7 +15,4 @@ enum class PerformanceSuccessCode(
     PERFORMANCE_CREATE_SUCCESS(201, "공연이 성공적으로 생성되었습니다.")
     ;
 
-    override fun getStatus(): Int = status
-
-    override fun getMessage(): String = message
 }

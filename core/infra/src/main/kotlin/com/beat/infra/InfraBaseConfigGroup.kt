@@ -6,7 +6,7 @@ import com.beat.infra.config.JpaConfig
 import com.beat.infra.config.RedisCacheConfig
 
 enum class InfraBaseConfigGroup(
-    val configClass: Class<out InfraBaseConfig>,
+    internal val configClass: Class<*>,
 ) {
     ASYNC(AsyncConfig::class.java),
     EXTERNAL_CLIENTS(ExternalClientConfig::class.java),

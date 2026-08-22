@@ -1,14 +1,14 @@
 package com.beat.infra.redis.auth.guest
 
-import com.beat.contracts.auth.guest.GuestAccessThrottlePort
+import com.beat.application.frontoffice.booking.booker.command.GuestAccessThrottle
 import java.time.Duration
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.redis.core.script.RedisScript
 
-class RedisGuestAccessThrottleAdapter(
+internal class RedisGuestAccessThrottleAdapter(
     private val redisTemplate: StringRedisTemplate,
     private val recordGuestAccessFailureScript: RedisScript<Long>,
-) : GuestAccessThrottlePort {
+) : GuestAccessThrottle {
 
     override fun isBlocked(keyMaterial: String): Boolean {
         val attempts = redisTemplate.opsForValue().get(key(keyMaterial)) ?: return false

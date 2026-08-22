@@ -9,13 +9,11 @@ import jakarta.validation.constraints.NotNull
 
 private const val INVALID_REQUEST_MESSAGE = "잘못된 요청 형식입니다."
 
-@JvmRecord
 data class CarouselHandleRequest(
     @field:NotNull(message = INVALID_REQUEST_MESSAGE)
     @field:Valid
     val carousels: List<@NotNull(message = INVALID_REQUEST_MESSAGE) @Valid PromotionHandleRequest?>?,
 ) {
-    @JvmRecord
     data class PromotionModifyRequest(
         @field:NotNull(message = INVALID_REQUEST_MESSAGE)
         val promotionId: Long?,
@@ -32,7 +30,6 @@ data class CarouselHandleRequest(
         val performanceId: Long?,
     ) : PromotionHandleRequest
 
-    @JvmRecord
     data class PromotionGenerateRequest(
         @field:NotNull(message = INVALID_REQUEST_MESSAGE)
         val carouselNumber: AdminCarouselNumber?,

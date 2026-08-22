@@ -25,19 +25,21 @@
 - [x] PR dependency graph recorded
 - [x] Every PR has boundary rationale, risks, tests, dependencies, rollback, and DoD
 - [x] Quarantined experimental changes re-diffed and mapped to the revised PR boundaries
+- [x] Test Constitution read and repository-wide test inventory/risk ownership plan recorded
+- [x] Post-PR9 execution graph revised from the superseded PR10~19 hypothesis through final PR-24
 
 ## Migration implementation
 
-- [ ] Correctness/characterization prerequisites complete
+- [x] Correctness/characterization prerequisites complete
   - [x] Member Booking response identity corrected and verified on the migration branch
   - [x] Snapshot, rehydration, Guest identity, and concurrency decisions resolved
     - [x] Legacy null amount/current payment destination behavior preserved and explicitly classified as compatibility behavior, not historical snapshot truth
     - [x] Rehydration validation held behind a read-only production data audit instead of changing historical read behavior blindly
     - [x] Ambiguous guest identity fails closed with focused regression coverage
 - [x] Target Gradle skeleton and initial graph guards complete
-- [ ] Final executable dependency and source-boundary guards complete
-- [ ] Booking reference Capability collaboration corrected and fully verified
-- [ ] Remaining frontoffice capabilities migrated and verified
+- [x] Final executable dependency and source-boundary guards complete
+- [x] Booking reference Capability collaboration corrected and fully verified
+- [x] Remaining frontoffice capabilities migrated and verified
   - [x] PR-6 Ticket authoritative owner authorization is verified
   - [x] PR-6 Ticket commands use scalar identity before acquiring locks
   - [x] PR-6 Schedule-to-Booking lock ordering is sorted and verified
@@ -63,40 +65,106 @@
   - [x] Testcontainers 2.0.5 artifact/package migration compiled and integration-tested
   - [x] API/Admin RestClient runtime dependency declared without compile-surface expansion
   - [x] Full clean check, three boot jars, and dependency build health verified
-- [ ] PR-10 Kotest FunSpec foundation and mixed-runner discovery verified
-- [ ] PR-11 migrated Domain/Frontoffice pure tests rewritten invariant-by-invariant
-- [ ] PR-12 Spring integration/acceptance and Testcontainers lifecycle standardized
-- [ ] Admin workflows migrated and verified
-- [ ] System/batch workflows migrated and verified
-- [ ] Infrastructure consolidated with internal implementations
-- [ ] Security and observability boundaries normalized
-- [ ] `module-contracts` consumers migrated and module retired
-- [ ] Kotlin-owned APIs modernized after caller audit
-- [ ] Legacy architecture tests replaced and retired
+- [x] PR-10 Test platform and JUnit/Kotest coexistence pilot verified
+  - [x] Kotest 6.2.4 runner/assertions coexist with Jupiter on JUnit Platform
+  - [x] `fastTest`, `integrationTest`, `correctnessTest`, and `acceptanceTest` tasks registered without new source sets
+  - [x] Domain/Application/Spring FunSpec pilots duplicate existing assertions without deleting legacy owners
+  - [x] `SingleInstance` and `SpringTestLifecycleMode.Test` leaf semantics are explicit
+  - [x] JUnit and Kotest tag selection verified; Fixture Monkey and MockK were not introduced
+- [x] PR-11 Critical Booking/Performance/Schedule/Ticket transaction and lock semantics characterized
+  - [x] Price modification-first and Booking creation-first serialization outcomes verified with real MySQL
+  - [x] Active-Booking price guard changed from stale snapshot count to authoritative locking read
+  - [x] Schedule close-time lock wait rewritten without fixed sleeps and checked against DB time
+  - [x] Guest overselling credentials made deterministic; final Booking/Schedule state remains authoritative
+  - [x] Ticket multi-row and Schedule sorted lock-order owners assigned to the correctness lane
+- [x] PR-12 Domain fast-risk tests rewritten with one owner per invariant
+  - [x] Booking creation, lifecycle, refund-account, and privacy risks split by semantic owner
+  - [x] Performance aggregate/value-object and Schedule aggregate/domain-service risks rewritten as FunSpec
+  - [x] Promotion carousel/eligibility, entity equality, and sensitive `toString` owners migrated
+  - [x] Domain Java/JUnit owners retired only after focused and full fast-suite verification
+- [x] PR-13 Real MySQL/Redis adapter slices and context-aligned container lifecycle verified
+  - [x] Redis slice owners compile for refresh-token, guest-session, throttle TTL, and Lua atomicity risks
+  - [x] MySQL query slice owners compile for Booker Booking, Schedule aggregation, and Maker Ticket projection risks
+  - [x] Booking scalar/guest-credential queries, Member unique-constraint translation, and MySQL KST session contracts compile as focused slices
+  - [x] Spring-managed MySQL/Redis container configurations contain no manual lifecycle hooks
+  - [x] Focused MySQL/Redis runtime suites pass against a responsive Docker daemon
+  - [x] Legacy broad/manual-container owners retire only after replacement runtime evidence is green
+- [x] PR-14 Frontoffice Application risk-owner tests rewritten without Spring
+  - [x] Booking Booker query/creation/lifecycle/credential risks rewritten as semantic FunSpec owners
+  - [x] Auth/Member orchestration and failure-language risks rewritten without Spring context
+  - [x] Performance/Schedule presentation, storage, image-key, and lock-order intent rewritten at capability ownership
+  - [x] Ticket Maker command/query tests retain authorization, orchestration, translation, and side-effect ownership without duplicating persistence fidelity
+  - [x] Frontoffice Java behavior tests retired; fast, correctness, and module check gates pass
+- [x] PR-15 Web/authorization/OpenAPI/acceptance foundation verified
+  - [x] Broken API Java drafts retired only after exception, event-privacy, and real registration-concurrency owners passed
+  - [x] All 24 Frontoffice and 5 Admin operations are covered by exact endpoint/role authorization matrices
+  - [x] API/Admin acceptance contexts use Spring-managed MySQL/Redis lifecycles and explicit Kotest Spring lifecycle policy
+  - [x] Reviewed general/admin OpenAPI baselines match the actual operation sets and pinned breaking diffs pass
+  - [x] JSON aliases, validation, error envelopes, File binding, and Ticket adapter mapping retain focused compatibility owners
+- [x] PR-16 Home Booker projection migrated with Application/MySQL/Web owners
+  - [x] Home query ownership moved from the API adapter into `application:frontoffice/home/booker/query`
+  - [x] Performance/Schedule/Promotion read composition folded into one consumer-owned `HomeProjectionReader`
+  - [x] Application, real-MySQL projection, and Web contract owners pass without a Home aggregate or central replacement contract
+  - [x] Carousel ordering defect from `EnumType.STRING` lexical ordering fixed against `CarouselNumber.number`
+- [x] PR-17 Admin User workflow and security lane migrated
+  - [x] Admin User query workflow and failure language moved to `application:admin/user/query`
+  - [x] Admin lane keeps capability-first ownership without a redundant Admin actor package or new thin Port
+  - [x] Admin composition root explicitly imports the narrow `AdminApplicationConfig` bootstrap API
+  - [x] Spring-free Application and focused Web owners preserve member validation, User-id projection, route, JSON, and delegation
+- [x] PR-18 Admin Promotion workflow and referential concurrency migrated
+  - [x] Promotion command/query/failure ownership moved to `application:admin/promotion`
+  - [x] Command reference correctness uses sorted authoritative Performance locks instead of a mixed read projection
+  - [x] Promotion image storage/cache seams use Admin Promotion vocabulary and retired the central storage/CDN contracts
+  - [x] Existing-row, empty-carousel, and concurrent Performance-delete outcomes verified with real MySQL
+  - [x] Application/Web/S3/MySQL/OpenAPI/module/boot replacement gates pass
+- [x] PR-19 System/Batch workflows migrated with production transaction/runtime behavior preserved
+  - [x] Maintenance workflows moved to `application:system/{booking,promotion}/command` without a redundant System actor package
+  - [x] Batch jobs reduced to scheduler adapters; forwarding facades and Batch-owned business services removed
+  - [x] Fixed `Clock`, production transactions, and Performance → Schedule → Promotion authoritative lock order verified
+  - [x] Kotlin jobs/use cases, real-MySQL maintenance integration, Batch boot/actuator/scheduler/module gates pass
+- [x] PR-20 Observability/global-support ownership and focused tests migrated
+  - [x] API/Admin response envelopes and API CDN serialization moved to their inbound-adapter owners
+  - [x] Promotion image-key parsing moved to Admin Promotion without a replacement shared utility module
+  - [x] `global-support` project/dependencies/sources removed after focused serialization and application checks passed
+- [x] PR-21 Infrastructure visibility enforced and `module-contracts` retired
+  - [x] Guest session/throttle and Booking notification contracts moved to their actual Application consumers
+  - [x] `OptionalLong` and the duplicate Booking notification DTO removed at the migrated Kotlin boundary
+  - [x] Infrastructure implementations made `internal`; only explicit composition-root configuration remains public
+  - [x] `module-contracts` project/dependencies/sources removed after adapter, app, graph, and boot verification
+- [x] PR-22 Kotlin interop and legacy test/architecture guard debt retired
+  - [x] Kotlin-owned repositories use nullable results and non-null lookup IDs; unnecessary `@Jvm*` compatibility removed
+  - [x] Remaining behavior tests rewritten to FunSpec; compiled Gradle/ArchUnit guards replace legacy source-scanning architecture owners
+  - [x] Root deployment/runtime contracts retained as three executable Kotlin risk owners
+- [x] PR-23 Application failure boundary enforced and API/Admin direct Domain dependency retired
+  - [x] All Frontoffice/Admin `@Service` entry points translate Domain failures inside the Application transaction boundary
+  - [x] Domain service beans moved to their owning Application configuration
+  - [x] API/Admin main Domain imports/dependencies/handlers removed; compiled and Gradle guards enforce the boundary
+- [x] PR-24 CI optimized from discovery evidence and all final migration gates verified
 
 ## Final verification
 
 - [x] `./gradlew check` passes
 - [x] Applicable unit/application/infrastructure/security/batch/API tests pass
 - [x] All three apps build and remain independently executable
-- [ ] Final Gradle dependency graph inspected
-- [ ] Application public APIs inspected and minimized
-- [ ] No `module-contracts` or legacy module references remain
-- [ ] Remaining Java sources and `@Jvm*`/`Optional` usages justified
-- [ ] Source-string architecture assertions removed or justified
-- [ ] Command-to-read-model correctness dependencies absent or justified
-- [ ] Cross-Application-Service calls absent or justified
-- [ ] Public infrastructure implementations absent or justified
-- [ ] Temporary migration adapters absent or justified
-- [ ] Final migration report complete
+- [x] Final Gradle dependency graph inspected
+- [x] Application public APIs inspected and minimized
+- [x] No active `module-contracts` or legacy Gradle/source dependency remains; negative guards and historical records are justified
+- [x] Remaining Java sources and `@Jvm*`/`Optional` usages justified
+- [x] Source-string architecture assertions removed or justified
+- [x] Command-to-read-model correctness dependencies absent or justified
+- [x] Cross-Application-Service calls absent or justified
+- [x] Public infrastructure implementations absent or justified
+- [x] Temporary migration adapters absent or justified
+- [x] Final migration report complete
 
 ## Evidence log
 
-- Baseline source: clean `develop` Git object `eb007147f6aa3824073b108407ea3ae47748aa40`. It contains only the legacy projects; target-project aliases/application lanes in the current worktree are experimental changes and are not baseline evidence.
+- Baseline source: clean `develop` Git object `eb007147f6aa3824073b108407ea3ae47748aa40`. It contains only the legacy projects; target-project aliases/application lanes were experimental at the baseline audit and became accepted migration evidence only after the later PR-boundary verification recorded below.
 - Clean baseline verification: `./gradlew check verifyModuleBootJars --no-daemon --max-workers=1` passed in 3m 28s with 98 executed tasks. Three Infra Kotlin compiler warnings remain recorded as debt.
 - Application ownership: Booker Booking/Schedule/Home, Booker+Maker Performance, Maker Ticket, Member/Auth, Admin Promotion/User, and System Booking/Promotion maintenance were identified. File upload preparation belongs semantically to Performance Maker, not an independent Domain capability.
-- Constitution re-audit, source inventory, revised 19-PR graph, contract disposition, and reopened collaboration decision: `docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md`.
-- Actor/test Constitution decision: Frontoffice actor-specific use cases explicitly retain Booker/Maker even when only one actor currently exists; Member/Auth remain actor-neutral because their policy is shared, while Admin/System lanes already encode actor. JUnit Platform remains the execution contract and new/reworked Kotlin tests use Kotest FunSpec; runtime/BOM, test foundation, pure semantic rewrite, and Spring/Testcontainers lifecycle are separated into PR-9~12.
+- Constitution re-audit, source inventory, revised 22-PR graph, contract disposition, and reopened collaboration decision: `docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md`.
+- Test source hierarchy: `BEAT-SERVER-CQRS-MULTIMODULE-ARCHITECTURE-FINAL.md` owns macro boundaries; `BEAT_TEST_ARCHITECTURE_FINAL.md` owns test-specific decisions; `BEAT_TEST_REWRITE_PLAN.md` owns repository inventory/risk-based rewrite order; this artifact records completion evidence only.
+- Actor/test Constitution decision: Frontoffice actor-specific use cases explicitly retain Booker/Maker even when only one actor currently exists; Member/Auth remain actor-neutral because their policy is shared, while Admin/System lanes already encode actor. JUnit Platform remains the execution contract and new/reworked Kotlin tests use Kotest FunSpec. Runtime alignment is PR-9; platform pilot, critical correctness characterization, risk-owner rewrite, capability migration, and final retirement are independently rollbackable PR-10~22 boundaries.
 - Guest password hashing correction: it is a `support:security` public technical API with an internal BCrypt implementation, not an Application output port. Revised PR-4 owns this transition and forbids `support:security → application`.
 - Rejected `application.frontoffice.performance.api`/offer experiment and its package guard were removed. Booking now uses the approved authoritative Domain repository collaboration; no `performance/api` remains.
 - Concurrency correction: preliminary `Schedule.findById` caused stale JPA first-level-cache inventory and reproduced 30/30 successes where only 5 were valid. It was replaced by `ScheduleRepository.findPerformanceIdById(Long): Long?`; locked Schedule membership/inventory remains the final authority. The focused concurrency test then passed.
@@ -104,7 +172,7 @@
 - Full current-boundary verification: `./gradlew check verifyModuleBootJars --no-daemon --max-workers=1` passed in 2m 49s; 118 tasks, all three executable boot jars verified. These gates must be rerun after later PRs.
 - Correctness: the current Performance summary adapter reads primary DB state, but its mixed `@ReadModel` contract is unsafe for money/authorization commands. Member response identity, Booking lock ordering, and ambiguous guest authorization are corrected. Legacy amount/payment destination behavior is preserved pending authoritative data/product evidence; strict rehydration validation is gated by a recorded DB audit. Promotion referential concurrency remains a later prerequisite.
 - Guest identity correction: password-matching candidates authenticate only when they resolve to exactly one distinct `userId`; duplicate rows for the same user remain compatible, while multi-user ambiguity returns the existing authentication-failure outcome. Four focused Kotlin tests passed.
-- Current correctness verification: all `application:frontoffice` and `support:security` tests, API bootstrap/JSON contract tests, and `verifyTargetModuleGraph` passed (67 tasks). The full API integration task could not initialize Testcontainers because Docker Desktop's Unix socket timed out on a direct 5-second `/_ping`; no test assertion failed before the run was stopped.
+- Historical intermediate verification: all `application:frontoffice` and `support:security` tests, API bootstrap/JSON contract tests, and `verifyTargetModuleGraph` passed (67 tasks). At that point the full API integration task could not initialize Testcontainers because Docker Desktop's Unix socket timed out on a direct 5-second `/_ping`; no test assertion failed before the run was stopped. Later clean PR-boundary verification records below supersede this environment incident.
 - The rejected Performance API experiment is no longer quarantined because it was deleted. Remaining migration changes are accepted only at their individual verified PR boundary; unrelated pre-existing untracked files remain untouched.
 - PR-5 ownership gate: Performance detail schedule projection belongs to `performance/booker/query`; Schedule availability decision remains an authoritative Schedule query; child ownership lookup remains a Maker command diagnostic reader to preserve foreign-vs-missing 403/404; Performance Maker gets one object-storage output seam; poster CDN prewarm is an infrastructure subscriber to the committed Performance event. No `performance/api` or thin cache port is introduced.
 - PR-7 ownership gate: Member owns social login/registration and its provider/notifier vocabulary; Auth owns login-session issuance and the Redis `RefreshTokenStore`; `support:security` owns public password/token technical APIs and internal BCrypt/JWT/Spring Security implementations. Member collaborates only through `LoginSessionIssuer`, not a concrete Auth service or support token vocabulary.
@@ -115,6 +183,58 @@
 - PR-9 runtime decision: Boot 4.1 is not adopted while the used Spring Cloud `2025.1.x` line officially supports Boot `4.0.x`; latest Cloud `2025.1.3` declares Boot `4.0.8`. PR-9 aligns that supported pair plus Kotlin `2.3.21` and Testcontainers `2.0.5`; Boot 4.1 remains conditional on a compatible Cloud train or separately justified OpenFeign retirement.
 - PR-9 dependency correction: Cloud Context `5.0.1` had accidentally supplied `spring-boot-restclient`; `5.0.3` exposed the hidden dependency. API/Admin external-client runtime now declares the RestClient starter explicitly, restoring the existing `ImageCacheAdapter` bean without changing its behavior.
 - PR-9 clean verification: `~/.sober/scripts/verify.sh` passed in a detached worktree with 112 actionable tasks after the final runtime-only dependency scope change. `verifyModuleBootJars buildHealth` then passed with all three executable jars and 471 dependency-analysis tasks; existing non-fatal advice remains, and no RestClient advice was introduced. Resolved runtime versions include Tomcat `11.0.24`, Jackson `3.1.5`/`2.21.5`, Netty `4.2.17.Final`, OpenFeign `5.0.3`, and Testcontainers `2.0.5`. Only the OpenFeign `commons-fileupload:1.6.0` CVE pin remains in the app convention because Boot does not manage it.
+- PR-10 platform evidence: version catalog and `beat.test` convention add Kotest `6.2.4` runner/assertions while preserving `useJUnitPlatform()`. Risk tasks reuse `src/test`; `fastTest` excludes `integration/correctness/acceptance`, and the tagged tasks propagate both JUnit Platform and Kotest filters. The Infrastructure module alone adds the Spring extension; MockK, Fixture Monkey, property testing, and production dependencies remain unchanged.
+- PR-10 discovery evidence: `:domain:fastTest` executed 11 suites including the Kotest Domain pilot and legacy Jupiter suites; `:infrastructure:integrationTest --rerun-tasks` executed the Kotest Spring pilot (1 leaf) and Jupiter Redis integration owner (3 tests), all green. `:infrastructure:correctnessTest` and `:infrastructure:acceptanceTest` are executable and intentionally have no risk owners until PR-11/PR-15 assigns them.
+- PR-10 lifecycle correction: Kotest `6.2.4` names leaf lifecycle mode `SpringTestLifecycleMode.Test`, not `Leaf`; the Test Constitution and Rewrite Plan were corrected to match the resolved library API. The Spring pilot explicitly uses `SingleInstance`, `SpringExtension(Test)`, and an `integration` tag.
+- PR-10 clean boundary verification: in a detached HEAD `af04273b` worktree containing only the PR-10 build/test diff, `python3 .github/scripts/check_unused_version_catalog_aliases.py` reported no unused aliases and `./gradlew check verifyModuleBootJars --no-daemon --max-workers=1` passed in 4m56s with 119 executed tasks and all three executable jars. The same command in the shared worktree is not evidence because pre-existing untracked API test drafts do not compile after earlier package moves; those user-owned drafts were not modified.
+- PR-11 defect evidence: under MySQL `REPEATABLE READ`, Performance modification can establish a snapshot while waiting for the Performance lock and then miss a newly committed Booking through the former non-locking `COUNT` query. `BookingJpaRepository.findActiveBookingsForUpdate` now performs a current locking read after sorted Schedule locks; Schedule locks prevent new rows while that decision is made.
+- PR-11 concurrency evidence: `PerformanceBookingPriceConcurrencySpec` proves both serialization orders with production transaction proxies and real MySQL. Modification-first stores the new price in Booking; Booking-first stores the old price and rejects the later price change with `PRICE_UPDATE_NOT_ALLOWED`. Both cases assert final Performance price, Schedule allocation, Booking count, and stored amount.
+- PR-11 deterministic evidence: Schedule close-time recheck now uses bounded latches and polls MySQL `CURRENT_TIMESTAMP(6)` before releasing the held row lock; no fixed sleep remains. Guest overselling uses request-unique deterministic credentials instead of random passwords. No test-level transaction wraps worker threads.
+- PR-11 clean correctness verification: in the isolated worktree, `:apps:api:correctnessTest :application:frontoffice:correctnessTest --rerun-tasks` passed in 1m31s. Owners executed: price/Booking serialization 2, Schedule DB-clock 2, guest overselling 1, Ticket bulk lock 1, and Schedule sorted lock order 1; all failures/errors were zero.
+- PR-11 boundary retry note: an additional isolated `check verifyModuleBootJars` passed Domain, Infrastructure, Frontoffice, Admin, and API checks, then stalled in the pre-existing Batch `AbstractBatchIntegrationTest` static Testcontainers startup while Docker `inspect` did not return for more than four minutes. The run was terminated; this is not counted as a green full-boundary result and must be retried when Docker is responsive or retired by PR13's context-aligned container lifecycle work.
+- PR-12 evidence: all eight legacy Java domain test files were replaced or merged into ten Kotlin FunSpec owners. Booking was separated into creation, lifecycle, and `RefundAccount` risks; Booking privacy moved to the existing sensitive-`toString` owner. No Spring, MockK, JUnit API, wall-clock time, randomness, or sleeps remain in Domain tests.
+- PR-12 verification: `./gradlew :domain:fastTest --rerun-tasks` passed with 63 tests, zero failures/errors/skips; `compileTestJava NO-SOURCE` and an empty `core/domain/src/test/java` confirm Java owner retirement. Focused Booking (26 tests), Promotion (6 tests), Performance, Schedule, equality, and privacy owners also passed before legacy deletion was accepted.
+- PR-13 compile evidence: `./gradlew :infrastructure:compileTestKotlin --rerun-tasks` passes after adding focused Data Redis/JPA slices and Spring-managed Redis/MySQL container configurations. Static checks found no manual `.start()`, `@Container`, `DynamicPropertySource`, `@JvmStatic`, fixed sleeps, or full-context bootstrapping in the new owners. The Member constraint spec explicitly disables the Data JPA wrapper transaction so a failed flush cannot contaminate its count/lookup assertions; committed fixture cleanup uses the real Spring Data transaction.
+- PR-13 fast-regression evidence: before legacy retirement, `./gradlew :infrastructure:fastTest --rerun-tasks` passed with 66 tests and zero failures/errors. After retirement, the complete risk-lane run executed 45 fast tests, 19 integration tests, and 1 correctness test with zero failures/errors.
+- PR-13 ownership correction: real MySQL owns the Member social-identity constraint and `DuplicateSocialIdentityException` translation. The losing registration's newly created User rollback remains a separate `MemberRegistrar` use-case transaction risk; the untracked broad draft is not treated as Infrastructure evidence.
+- PR-13 runtime gate: Docker Desktop was restarted after its Unix socket stopped answering. A direct socket ping then succeeded, focused Redis, Redis correctness, and six MySQL slice runs passed, and `./gradlew :infrastructure:fastTest :infrastructure:integrationTest :infrastructure:correctnessTest --rerun-tasks` passed in 1m15s. The final lane totals were 45 fast, 19 integration, and 1 correctness execution with zero failures/errors.
+- PR-13 replacement gate correction: the tracked Redis integration owner was first restored when premature deletion was detected. Only after the new five-case refresh-token slice and the remaining Redis/MySQL replacements passed against real infrastructure were nine obsolete broad/mock/manual owners removed. `./gradlew :infrastructure:check --rerun-tasks --no-daemon --max-workers=1` then passed with 65 tests.
+- PR-13 boundary note: `application:frontoffice` Kotlin tests and `apps:api` Kotlin tests compile after moving three stale helper tests to their semantic owner and correcting one Ticket result import. The API Java test compilation still fails only in three untracked, explicitly unadopted drafts (`MemberRegistrationConcurrencyTest`, `TicketPaymentConfirmedEventListenerTest`, `ApiGlobalExceptionHandlerTest`); PR14/PR15 must rewrite or retire them with their recorded risk owner before a shared-worktree full gate can be green.
+- PR-14 ownership evidence: 18 Frontoffice behavior/pilot tests were rewritten or merged into 16 semantic Kotlin FunSpec owners under Capability → Actor → Command/Query packages. Shared Performance/Schedule presentation policy remains at the capability root because both Booker and Maker consume it. The ArchUnit guard remains a separate JUnit owner pending the architecture-guard PR.
+- PR-14 duplication control: three Booking creation leaves that only repeated Domain ticket-count/capacity invariants were retired. Application owners retain authoritative lookup/lock intent, actor authorization, failure translation, stored output, inventory/event side effects, and consumer mapping; real lock/query outcomes remain with PR11/PR13.
+- PR-14 test-double decision: new MockK adoption is deferred because BEAT targets Java 25 and upstream MockK still tracks Java 25 compatibility as open. Tests use real objects first and narrow per-leaf Mockito boundary doubles; Kotlin-null-unsafe generic matchers were removed in favor of deterministic default answers/invocation inspection.
+- PR-14 verification: `compileTestKotlin` passes and `compileTestJava NO-SOURCE` confirms Java behavior-test retirement. `:application:frontoffice:fastTest :application:frontoffice:correctnessTest --rerun-tasks` passed with 89 fast and 1 correctness execution, and `:application:frontoffice:check --rerun-tasks` passed in 1m06s. No Spring/JUnit annotations remain in the rewritten behavior specs.
+- PR-15 ownership evidence: the three broken API Java drafts were retired only after `ApiExceptionHttpContractSpec`, the Ticket event privacy leaf, and `MemberRegistrationConcurrencySpec` passed. File and Ticket direct/delegation tests were replaced by focused Web slices; API/Admin DTO fragments were merged into 6-case and 5-case JSON compatibility owners; Admin/API exception mappings are real standalone-MockMvc contracts.
+- PR-15 security/API evidence: `ApisAuthorizationMatrixSpec` derives and checks the exact 24-operation Frontoffice handler set; `AdminAuthorizationMatrixSpec` does the same for all 5 Admin operations. API acceptance ran five boot/security tests and Admin acceptance ran five boot/security tests with zero failures. The unmatched `/api/notifications/**` whitelist remains an explicit later security-hardening question because no current controller owns it.
+- PR-15 OpenAPI evidence: Springdoc generated 24 general operations across 22 paths and 5 Admin operations across 4 paths, exactly matching the authorization matrices. Reviewed baselines live under `docs/openapi/baseline`; pinned oasdiff `v1.28.0` assets are checksum-verified and both `breaking --fail-on ERR` comparisons report no changes. The CI task regenerates both documents before the diff.
+- PR-15 verification: focused API/Admin compatibility owners passed; `:apps:api:check :apps:admin:check` passed after one obsolete source-scanning boot-test leaf was removed in favor of the real context owner. `git diff --check`, unused version-catalog alias validation, the OpenAPI script, and `verifyModuleBootJars` for api/admin/batch all pass.
+- PR-16 ownership evidence: Home remains a Booker query capability, not a Domain aggregate. `HomeQueryService` and its results moved from the API adapter to `application:frontoffice/home/booker/query`; one consumer-owned `HomeProjectionReader` now hides the combined Performance/Schedule/Promotion query strategy. Apps retain only HTTP/facade/JSON mapping, and Schedule, Performance, and Promotion Domain ownership is unchanged.
+- PR-16 correctness evidence: the real-MySQL projection spec exposed `EnumType.STRING` ordering as `ONE, THREE, TWO`. The adapter no longer delegates semantic carousel order to lexical SQL ordering and sorts typed `CarouselNumber` rows by the Domain `number` property before mapping. Application tests own genre/time forwarding, period formatting, due-date ordering, and empty/null mapping; MySQL owns projection fidelity and promotion order; Web owns query binding and JSON/status.
+- PR-16 retirement evidence: `HomePromotionReadPort`/read model, mixed `ScheduleReadPort`/minimum-date model, old Home/Schedule query adapters, and API-owned Home workflow/results were removed only after replacement tests passed. Home-specific source-string assertions were retired; the remaining temporary `module-contracts` marker guard was redirected to a still-live Performance contract until PR-21/22.
+- PR-16 verification: focused Home Application/MySQL/Web tests passed; root `test` plus `:application:frontoffice:check :infrastructure:check :apps:api:check` passed with 106 executed tasks; `verifyModuleBootJars`, both OpenAPI breaking comparisons, and `git diff --check` pass.
+- PR-17 ownership evidence: `AdminUserQueryService`, results, and User failure language now live in `application:admin/user/query`; the Admin lane already identifies the actor, so no redundant actor package or speculative output Port was introduced. `UserRepository` remains the authoritative User collection and `MemberRepository` retains the existing caller-existence check.
+- PR-17 compatibility evidence: the HTTP adapter still returns the persisted `Users.id`, matching the existing response/OpenAPI contract, and the exact Admin authorization matrix continues to own `ROLE_ADMIN` access. The facade is now mapping/delegation only; old Admin-owned workflow/failure files and the delegation-only test were retired after replacements passed.
+- PR-17 verification: Spring-free Application and focused Web specs pass, the real Admin context boots through the new narrow `AdminApplicationConfig` composition import, `:application:admin:check`, `:apps:admin:check`, `transitionBoundaryTest`, `verifyTargetModuleGraph`, `verifyModuleBootJars`, both OpenAPI breaking comparisons, and `git diff --check` pass.
+- PR-18 ownership evidence: Admin Promotion workflow/results/failure language moved to `application:admin/promotion/{command,query}` without a redundant Admin actor or `api` package. The command no longer consumes `PerformanceSummaryReadPort`; it locks distinct referenced Performance ids in ascending order through the authoritative Domain repository. Promotion image upload/existence and CDN pre-warm are now consumer-owned `PromotionImageStorage`/`PromotionImageCache` seams implemented by Infrastructure.
+- PR-18 correctness evidence: real MySQL proved that row locking serializes an existing carousel but does not serialize two writers when the Promotion table is empty. `PromotionRepositoryImpl` now acquires the cross-instance MySQL advisory lock `beat:promotion:carousel` inside the command transaction, retains row locks for current aggregate state, and releases the advisory lock after transaction completion. The replacement spec proves existing-row serialization, empty-carousel serialization, and Promotion-create/Performance-delete serialization through the shared authoritative Performance lock.
+- PR-18 retirement evidence: central `PerformanceSummaryReadPort`/read model/query, storage transfer contracts/`FileStoragePort`, and `ImageCachePort` were deleted after Application/Web/S3/MySQL replacements passed. Unnecessary Promotion `@JvmRecord`/`@JvmStatic` compatibility was removed after caller audit. `application:admin → global-support` remains explicitly temporary only for `ImageKeyExtractor` until PR-20.
+- PR-18 verification: `:application:admin:check :infrastructure:check :apps:admin:check :apps:admin:openApiTest transitionBoundaryTest verifyTargetModuleGraph verifyModuleBootJars --rerun-tasks --no-daemon --max-workers=1` passed with 93 tasks; the focused three-case MySQL correctness spec, pinned OpenAPI breaking diff, and `git diff --check` also pass.
+- PR-19 ownership evidence: ticket cleanup is a System-owned Booking command and carousel maintenance is a System-owned Promotion command. The physical `application:system` lane already identifies the actor, so no redundant actor or speculative API/Port package was introduced. Batch owns only scheduler/bootstrap adapters and imports the narrow `SystemApplicationConfig` surface.
+- PR-19 correctness evidence: both use cases inject `Clock` and own their production transaction. Promotion maintenance acquires sorted authoritative Performance locks, then sorted Schedule locks, then the Promotion namespace/row lock before deciding eligibility; a reference discovered after the locked snapshot is deliberately deferred to the next run instead of being decided from unlocked state. Real MySQL verifies the exact Booking cutoff and Promotion deletion/reorder behavior.
+- PR-19 retirement evidence: four Batch Java production files, two forwarding facades, their delegation tests, and Batch `DomainServiceConfig` were removed after Kotlin replacements passed. Batch production no longer depends on `module-contracts`, `domain`, or `global-support`; the unrelated untracked `DbJobQueueContentionProbeTest.java` remains untouched and is not migration-owned evidence.
+- PR-19 verification: `:application:system:check`, `:apps:batch:check`, the focused real-MySQL `SystemMaintenanceIntegrationSpec`, `transitionBoundaryTest`, `verifyTargetModuleGraph`, `verifyModuleBootJars`, and `git diff --check` pass. Batch production Kotlin compiles with `compileJava NO-SOURCE`.
+- PR-20 ownership evidence: HTTP response envelopes are duplicated deliberately at the API/Admin delivery boundary because their status-code vocabularies are consumer-owned. CDN URL serialization is API Web/Jackson policy. The image-key helper moved beside its sole Admin Promotion consumer and is `internal`; no catch-all support module replaced `global-support`.
+- PR-20 verification: focused API/Admin JSON, CDN serializer, Promotion image-key, support-security/observability, app checks, target graph, and all three boot jars pass. The focused observability owners remain valid Jupiter tests and are retained for PR-22's final authoring audit rather than rewritten without a risk gain.
+- PR-21 contract evidence: Redis guest session/throttle abstractions hide real distributed-state volatility and remain Booking-owned output contracts. Slack notification consumes the existing `BookingCreatedEvent`, so the duplicate central notification DTO was deleted. Infrastructure adapters/entities/repositories/clients are `internal`; apps import only the explicit bootstrap configuration allowlist.
+- PR-21 verification: `:application:frontoffice:check :infrastructure:check :support:security:check :apps:api:check :apps:admin:check :apps:batch:check transitionBoundaryTest verifyTargetModuleGraph verifyModuleBootJars --rerun-tasks --no-daemon --max-workers=1` passed with 97 executed tasks. The Batch integration owner was rewritten to use Domain repositories plus JDBC cleanup, so no app test imports infrastructure implementation types.
+- PR-22 ownership evidence: Domain repository lookup APIs now use Kotlin nullability and non-null IDs; Domain/API/Admin Java compatibility accessors became Kotlin read-only properties; 54 `@JvmStatic`, 6 `@JvmOverloads`, and 6 `@JvmSuppressWildcards` annotations were removed after tracked Java callers reached zero. `@JvmInline` remains only for nine value classes. Remaining `get*` functions are semantic HTTP/query operations or framework overrides, not property accessors. API/Admin/Batch/Frontoffice source-string architecture guards moved to compiled ArchUnit/Gradle ownership. Thirteen non-code deployment/runtime risks were retained in three Kotlin root specs; root applies `beat.kotlin-base` only so those verification sources execute and remains non-executable with no production source.
+- PR-22 verification: all ten module `check` tasks passed in 4m35s (93 tasks); root `compileTestKotlin` and `transitionBoundaryTest --rerun-tasks` passed with 83 executed tasks; target graph and all three boot jars passed. The sole Java source is the unrelated user-owned Batch contention probe and remains untouched.
+- PR-23 ownership evidence: every Frontoffice/Admin `@Service` public entry point translates `DomainException` to its lane Application language inside the method body, so Spring transaction rollback still observes a runtime Application failure. Compiled ArchUnit guards require each service class to depend on the translator. `ScheduleSequenceDomainService` and `PromotionCarouselDomainService` beans are composed by their owning Application configurations. API/Admin main source has zero Domain imports and zero main Domain dependency; test-only Domain dependencies remain explicit for integration-fixture construction.
+- PR-23 compatibility decision: Frontoffice preserves the reachable Booking/Performance/Schedule V1 code/status/message overrides. Admin does not reproduce the old handler's unreachable Booking/Performance/Schedule special table; actual Admin services expose Promotion/User only, and the reachable Promotion invariant preserves its Domain code/message with Application-owned type translation.
+- PR-23 verification: Frontoffice/Admin Application checks passed; forced API/Admin checks passed in 2m56s, including booking overselling and Performance price-lock concurrency. Target graph, three boot jars, API/Admin OpenAPI tests, and the compatibility script passed in 2m46s.
+- PR-24 final evidence: `./gradlew check transitionBoundaryTest verifyTargetModuleGraph verifyModuleBootJars --rerun-tasks --no-daemon --max-workers=1` passed in 5m09s with 115 executed tasks. `buildHealth` passed in 41s with 451 tasks; its reflection/public-ABI advice was reviewed and deliberately not auto-applied. General/Admin OpenAPI checksum and breaking diff, `actionlint`, unused version-catalog audit, and `git diff --check` pass.
+- PR-24 final audit: target Gradle project graph contains exactly the ten Constitution projects; Apps main→Domain, cross-Application lane, Application→Infrastructure, Infrastructure→Apps, concrete Application-Service graph, production source-scanning guards, active legacy contracts, temporary adapters, Kotlin `Optional`, unnecessary `@Jvm*`, and Java compatibility property accessors are zero. Infrastructure exposes only four bootstrap configuration types. `PerformanceContentOwnershipReader` is retained solely as a primary-DB 403/404 diagnostic and never as mutation correctness input. Booking, Ticket, and Home actor alignment is enforced by compiled ArchUnit; Performance preserves its real Booker/Maker lanes and Schedule keeps capability-shared policy outside its Booker query lane.
+- Final report: `docs/architecture/BEAT-SERVER-MIGRATION-FINAL-REPORT.md`. The sole Java source is the untouched opt-in Batch contention probe; nine semantic `@JvmInline` value classes remain. Deployment-compatible filesystem paths are explicitly mapped to target Gradle identities under ADR-MIG-009.
 
 ## Quarantined experimental work
 

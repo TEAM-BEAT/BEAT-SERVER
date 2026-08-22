@@ -8,16 +8,15 @@ import com.beat.infra.persistence.member.mapper.MemberPersistenceMapper
 import org.hibernate.exception.ConstraintViolationException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Repository
-import java.util.Optional
 
 @Repository
-class MemberRepositoryImpl(
+internal class MemberRepositoryImpl(
     private val memberJpaRepository: MemberJpaRepository,
     private val memberPersistenceMapper: MemberPersistenceMapper,
 ) : MemberRepository {
-    override fun findById(id: Long?): Optional<Member> =
-        memberJpaRepository.findById(requireNotNull(id) { "The given id must not be null" })
-            .map(memberPersistenceMapper::toDomain)
+    override fun findById(id: Long): Member? =
+        memberJpaRepository.findById(id)
+            .map(memberPersistenceMapper::toDomain).orElse(null)
 
     override fun save(member: Member): Member {
         val entity = memberPersistenceMapper.toEntity(member)
@@ -38,23 +37,20 @@ class MemberRepositoryImpl(
             .any { expectedIdentifier.equals(normalizeConstraintName(it.constraintName), ignoreCase = true) }
     }
 
-    override fun findBySocialIdentity(socialIdentity: SocialIdentity): Optional<Member> =
+    override fun findBySocialIdentity(socialIdentity: SocialIdentity): Member? =
         memberJpaRepository.findBySocialTypeAndSocialId(
             socialIdentity.socialId,
             socialIdentity.socialType,
-        ).map(memberPersistenceMapper::toDomain)
+        )?.let(memberPersistenceMapper::toDomain)
 
     override fun count(): Long = memberJpaRepository.count()
 
-    companion object {
-        @JvmStatic
-        fun normalizeConstraintName(constraintName: String?): String? {
-            if (constraintName == null) {
-                return null
-            }
-
-            val unqualified = constraintName.trim().substringAfterLast('.')
-            return unqualified.trim('`', '\'', '"').trim().ifEmpty { null }
+    private fun normalizeConstraintName(constraintName: String?): String? {
+        if (constraintName == null) {
+            return null
         }
+
+        val unqualified = constraintName.trim().substringAfterLast('.')
+        return unqualified.trim('`', '\'', '"').trim().ifEmpty { null }
     }
 }

@@ -1,6 +1,7 @@
 package com.beat.domain.common
 
 import com.beat.domain.booking.vo.RefundAccount
+import com.beat.domain.booking.model.Booking
 import com.beat.domain.member.model.Member
 import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.vo.SocialIdentity
@@ -11,19 +12,31 @@ import com.beat.domain.performance.vo.PaymentAccount
 import com.beat.domain.performance.vo.PerformancePeriod
 import com.beat.domain.performance.vo.RunningTime
 import com.beat.domain.performance.vo.TicketPrice
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import java.time.LocalDate
 
-class SensitiveDomainToStringTest {
-    @Test
-    fun sensitiveValuesAreNotExposedByToString() {
+class SensitiveDomainToStringTest : FunSpec() {
+    init {
+        isolationMode = IsolationMode.SingleInstance
+
+        test("민감한 값은 Domain toString에 노출되지 않는다") {
         val accountNumber = "123-456-789"
         val accountHolder = "sensitive-holder"
         val email = "sensitive@example.com"
         val socialId = 987654321L
         val socialIdentity = SocialIdentity.of(SocialType.KAKAO, socialId)
+        val booking = Booking.create(
+            purchaseTicketCount = 1,
+            bookerName = "private-booker",
+            bookerPhoneNumber = "010-9876-5432",
+            birthDate = "990101",
+            password = "secret-password",
+            scheduleId = 2L,
+            userId = 3L,
+            createdAt = java.time.LocalDateTime.of(2026, 1, 1, 12, 0),
+        )
         val values = listOf(
             PaymentAccount.of(BankName.KAKAOBANK, accountNumber, accountHolder),
             RefundAccount.of(BankName.KAKAOBANK, accountNumber, accountHolder),
@@ -57,11 +70,18 @@ class SensitiveDomainToStringTest {
 
         values.forEach { value ->
             val rendered = value.toString()
-            assertTrue(rendered.isNotBlank())
-            assertFalse(rendered.contains(accountNumber))
-            assertFalse(rendered.contains(accountHolder))
-            assertFalse(rendered.contains(email))
-            assertFalse(rendered.contains(socialId.toString()))
+            rendered.isNotBlank() shouldBe true
+            rendered.contains(accountNumber) shouldBe false
+            rendered.contains(accountHolder) shouldBe false
+            rendered.contains(email) shouldBe false
+            rendered.contains(socialId.toString()) shouldBe false
+        }
+
+        val bookingRendered = booking.toString()
+        bookingRendered.contains("private-booker") shouldBe false
+        bookingRendered.contains("010-9876-5432") shouldBe false
+        bookingRendered.contains("990101") shouldBe false
+        bookingRendered.contains("secret-password") shouldBe false
         }
     }
 }

@@ -1,6 +1,5 @@
 package com.beat.admin.promotion.facade
 
-import com.beat.admin.exception.AdminApplicationException
 import com.beat.admin.promotion.api.request.CarouselHandleRequest
 import com.beat.admin.promotion.api.request.CarouselHandleRequest.PromotionGenerateRequest
 import com.beat.admin.promotion.api.request.CarouselHandleRequest.PromotionModifyRequest
@@ -9,13 +8,14 @@ import com.beat.admin.promotion.api.response.BannerPresignedUrlFindResponse
 import com.beat.admin.promotion.api.response.CarouselFindAllResponse
 import com.beat.admin.promotion.api.response.CarouselHandleAllResponse
 import com.beat.admin.promotion.api.response.CarouselPresignedUrlFindAllResponse
-import com.beat.admin.promotion.application.command.AdminPromotionCommandService
-import com.beat.admin.promotion.application.command.CarouselHandleCommand
-import com.beat.admin.promotion.application.command.CarouselHandleCommand.PromotionGenerateCommand
-import com.beat.admin.promotion.application.command.CarouselHandleCommand.PromotionModifyCommand
-import com.beat.admin.promotion.application.command.PromotionHandleCommand
-import com.beat.admin.promotion.application.query.AdminPromotionQueryService
-import com.beat.admin.promotion.exception.PromotionApplicationErrorCode
+import com.beat.application.admin.exception.AdminApplicationException
+import com.beat.application.admin.promotion.command.AdminPromotionCommandService
+import com.beat.application.admin.promotion.command.CarouselHandleCommand
+import com.beat.application.admin.promotion.command.CarouselHandleCommand.PromotionGenerateCommand
+import com.beat.application.admin.promotion.command.CarouselHandleCommand.PromotionModifyCommand
+import com.beat.application.admin.promotion.command.PromotionHandleCommand
+import com.beat.application.admin.promotion.exception.PromotionApplicationErrorCode
+import com.beat.application.admin.promotion.query.AdminPromotionQueryService
 import org.springframework.stereotype.Service
 
 @Service
@@ -50,11 +50,11 @@ class AdminPromotionFacade(
 
     private fun toCarouselHandleCommand(request: CarouselHandleRequest): CarouselHandleCommand {
         val carousels = request.carousels ?: throw invalidRequest()
-        return CarouselHandleCommand.from(carousels.map { toPromotionHandleCommand(it) })
+        return CarouselHandleCommand(carousels.map { toPromotionHandleCommand(it) })
     }
 
     private fun toPromotionHandleCommand(request: PromotionHandleRequest?): PromotionHandleCommand = when (request) {
-        is PromotionModifyRequest -> PromotionModifyCommand.of(
+        is PromotionModifyRequest -> PromotionModifyCommand(
             requireField(request.promotionId),
             requireField(request.carouselNumber).name,
             requireField(request.newImageUrl),
@@ -62,7 +62,7 @@ class AdminPromotionFacade(
             requireField(request.redirectUrl),
             request.performanceId,
         )
-        is PromotionGenerateRequest -> PromotionGenerateCommand.of(
+        is PromotionGenerateRequest -> PromotionGenerateCommand(
             requireField(request.carouselNumber).name,
             requireField(request.newImageUrl),
             requireField(request.isExternal),

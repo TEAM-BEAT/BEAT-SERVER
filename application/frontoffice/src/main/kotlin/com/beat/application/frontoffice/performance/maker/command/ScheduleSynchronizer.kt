@@ -28,7 +28,7 @@ internal class ScheduleSynchronizer(
         val scheduleIds = scheduleRepository.findIdsByPerformanceId(performanceId)
         scheduleIds.distinct().sorted().forEach { scheduleId ->
             scheduleRepository.lockById(scheduleId)
-                .orElseThrow { FrontofficeApplicationException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND) }
+                ?: throw FrontofficeApplicationException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND)
         }
         return bookingRepository.existsActiveBookingByScheduleIds(
             scheduleIds,
@@ -40,7 +40,7 @@ internal class ScheduleSynchronizer(
         requests: List<ScheduleModifyCommand>,
         performance: Performance,
     ): List<ScheduleResult> {
-        val performanceId = checkNotNull(performance.getId())
+        val performanceId = checkNotNull(performance.id)
         val requestIds = requests.mapNotNull(ScheduleModifyCommand::scheduleId)
         val idsToDelete = scheduleRepository.findIdsByPerformanceId(performanceId).filterNot(requestIds::contains)
         deleteSchedules(idsToDelete)
@@ -54,17 +54,17 @@ internal class ScheduleSynchronizer(
         val today = LocalDate.now(clock)
         return numberedSchedules.map { schedule ->
             ScheduleResult(
-                schedule.getId(),
-                schedule.getPerformanceDate(),
-                schedule.getTotalTicketCount(),
+                schedule.id,
+                schedule.performanceDate,
+                schedule.totalTicketCount,
                 calculateDueDate(today, schedule),
-                schedule.getScheduleNumber().name,
+                schedule.scheduleNumber.name,
             )
         }
     }
 
     private fun addSchedule(request: ScheduleModifyCommand, performance: Performance): Schedule {
-        val performanceId = checkNotNull(performance.getId())
+        val performanceId = checkNotNull(performance.id)
         scheduleSequenceDomainService.validateScheduleCount(
             scheduleRepository.countByPerformanceId(performanceId).toLong() + 1,
         )
@@ -82,8 +82,8 @@ internal class ScheduleSynchronizer(
 
     private fun updateSchedule(request: ScheduleModifyCommand, performance: Performance): Schedule {
         val schedule = scheduleRepository.lockById(checkNotNull(request.scheduleId))
-            .orElseThrow { FrontofficeApplicationException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND) }
-        if (!schedule.belongsTo(checkNotNull(performance.getId()))) {
+            ?: throw FrontofficeApplicationException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND)
+        if (!schedule.belongsTo(checkNotNull(performance.id))) {
             throw FrontofficeApplicationException(ScheduleApplicationErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE)
         }
         return scheduleRepository.save(
@@ -91,7 +91,7 @@ internal class ScheduleSynchronizer(
                 request.performanceDate,
                 performance.calculateEndAt(request.performanceDate),
                 request.totalTicketCount,
-                schedule.getScheduleNumber(),
+                schedule.scheduleNumber,
                 LocalDateTime.now(clock),
             ),
         )
@@ -106,7 +106,7 @@ internal class ScheduleSynchronizer(
         bookingRepository.deleteInactiveBookingsByScheduleIds(scheduleIds, inactiveStatuses)
         scheduleIds.forEach { scheduleId ->
             val schedule = scheduleRepository.findById(scheduleId)
-                .orElseThrow { FrontofficeApplicationException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND) }
+                ?: throw FrontofficeApplicationException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND)
             scheduleRepository.delete(schedule)
         }
     }

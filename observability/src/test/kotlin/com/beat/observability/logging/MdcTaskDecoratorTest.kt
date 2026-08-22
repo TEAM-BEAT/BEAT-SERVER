@@ -1,57 +1,52 @@
 package com.beat.observability.logging
 
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.nulls.shouldBeNull
 import org.slf4j.MDC
 
-class MdcTaskDecoratorTest {
+class MdcTaskDecoratorTest : FunSpec() {
 
     private val decorator = MdcTaskDecorator()
 
-    @AfterEach
-    fun clearMdc() {
-        MDC.clear()
-    }
+    init {
+        afterTest { MDC.clear() }
 
-    @Test
-    fun `copies parent MDC context into decorated task`() {
-        MDC.put("traceId", "trace-123")
-        MDC.put("userId", "member-1")
+        test("copies parent MDC context into decorated task") {
+            MDC.put("traceId", "trace-123")
+            MDC.put("userId", "member-1")
 
-        val decorated = decorator.decorate(
-            Runnable {
-                assertEquals("trace-123", MDC.get("traceId"))
-                assertEquals("member-1", MDC.get("userId"))
-                assertNull(MDC.get("workerOnly"))
-            },
-        )
+            val decorated = decorator.decorate(
+                Runnable {
+                    MDC.get("traceId") shouldBe "trace-123"
+                    MDC.get("userId") shouldBe "member-1"
+                    MDC.get("workerOnly").shouldBeNull()
+                },
+            )
 
-        MDC.clear()
-        MDC.put("workerOnly", "keep-me")
+            MDC.clear()
+            MDC.put("workerOnly", "keep-me")
 
-        decorated.run()
+            decorated.run()
 
-        assertNull(MDC.get("traceId"))
-        assertNull(MDC.get("userId"))
-        assertEquals("keep-me", MDC.get("workerOnly"))
-    }
+            MDC.get("traceId").shouldBeNull()
+            MDC.get("userId").shouldBeNull()
+            MDC.get("workerOnly") shouldBe "keep-me"
+        }
 
-    @Test
-    fun `clears task MDC when parent has no context and restores worker context after execution`() {
-        MDC.clear()
-        val decorated = decorator.decorate(
-            Runnable {
-                assertTrue(MDC.getCopyOfContextMap().isNullOrEmpty())
-            },
-        )
+        test("clears task MDC when parent has no context and restores worker context after execution") {
+            MDC.clear()
+            val decorated = decorator.decorate(
+                Runnable {
+                    MDC.getCopyOfContextMap().isNullOrEmpty() shouldBe true
+                },
+            )
 
-        MDC.put("workerOnly", "keep-me")
+            MDC.put("workerOnly", "keep-me")
 
-        decorated.run()
+            decorated.run()
 
-        assertEquals("keep-me", MDC.get("workerOnly"))
+            MDC.get("workerOnly") shouldBe "keep-me"
+        }
     }
 }

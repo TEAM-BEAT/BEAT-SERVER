@@ -1,15 +1,12 @@
 package com.beat.observability.sentry
 
 import io.sentry.SentryOptions
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 
-class SentryConfigTest {
+class SentryConfigTest : FunSpec({
 
-    @Test
-    fun `disables Sentry SDK when DSN is blank`() {
+    test("disables Sentry SDK when DSN is blank") {
         val config = SentryConfig("beat-apis")
         val options = SentryOptions().apply {
             dsn = ""
@@ -18,11 +15,10 @@ class SentryConfigTest {
 
         config.beatSentryOptionsConfiguration(config.beatSentryEventProcessor()).configure(options)
 
-        assertFalse(options.isEnabled)
+        options.isEnabled shouldBe false
     }
 
-    @Test
-    fun `keeps Sentry enabled and registers processor when DSN exists`() {
+    test("keeps Sentry enabled and registers processor when DSN exists") {
         val config = SentryConfig("beat-apis")
         val options = SentryOptions().apply {
             dsn = "https://public@example.ingest.sentry.io/1"
@@ -31,12 +27,11 @@ class SentryConfigTest {
 
         config.beatSentryOptionsConfiguration(config.beatSentryEventProcessor()).configure(options)
 
-        assertTrue(options.isEnabled)
-        assertTrue(options.eventProcessors.any { it is BeatSentryEventProcessor })
+        options.isEnabled shouldBe true
+        options.eventProcessors.any { it is BeatSentryEventProcessor } shouldBe true
     }
 
-    @Test
-    fun `uses configured release when SDK option has no release`() {
+    test("uses configured release when SDK option has no release") {
         val config = SentryConfig("beat-apis", configuredRelease = "beat-server@abc123")
         val options = SentryOptions().apply {
             dsn = "https://public@example.ingest.sentry.io/1"
@@ -44,7 +39,7 @@ class SentryConfigTest {
 
         config.beatSentryOptionsConfiguration(config.beatSentryEventProcessor()).configure(options)
 
-        assertTrue(options.isEnabled)
-        assertEquals("beat-server@abc123", options.release)
+        options.isEnabled shouldBe true
+        options.release shouldBe "beat-server@abc123"
     }
-}
+})

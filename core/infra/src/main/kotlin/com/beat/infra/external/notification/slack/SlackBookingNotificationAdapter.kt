@@ -1,7 +1,7 @@
 package com.beat.infra.external.notification.slack
 
-import com.beat.contracts.notification.BookingNotification
-import com.beat.contracts.notification.BookingNotificationPort
+import com.beat.application.frontoffice.booking.booker.event.BookingCreatedEvent
+import com.beat.application.frontoffice.booking.booker.event.BookingNotificationSender
 import com.beat.infra.external.notification.slack.client.BookingSlackClient
 import com.beat.infra.external.notification.slack.vo.SlackConstant.BRAND_COLOR
 import com.beat.infra.external.notification.slack.vo.block.DividerBlock
@@ -13,34 +13,34 @@ import org.springframework.stereotype.Component
 import java.time.format.DateTimeFormatter
 
 @Component
-class SlackBookingNotificationAdapter(
+internal class SlackBookingNotificationAdapter(
     private val bookingSlackClient: BookingSlackClient,
-) : BookingNotificationPort {
-    override fun send(notification: BookingNotification) {
-        bookingSlackClient.sendMessage(buildMessage(notification))
+) : BookingNotificationSender {
+    override fun send(event: BookingCreatedEvent) {
+        bookingSlackClient.sendMessage(buildMessage(event))
     }
 
-    private fun buildMessage(notification: BookingNotification): SlackMessage =
+    private fun buildMessage(event: BookingCreatedEvent): SlackMessage =
         SlackMessage.newInstance(
             listOf(
                 HeaderBlock.newInstance("🎟️ BEAT 예매 발생 🎟️"),
                 SectionBlock.newInstanceWithFields(
                     listOf(
-                        MarkdownText.newInstance("*📅 예매일시*\n${notification.bookingDateTime.format(DATE_FORMATTER)}"),
-                        MarkdownText.newInstance("*🎭 공연명*\n${notification.performanceTitle}"),
+                        MarkdownText.newInstance("*📅 예매일시*\n${event.bookingDateTime.format(DATE_FORMATTER)}"),
+                        MarkdownText.newInstance("*🎭 공연명*\n${event.performanceTitle}"),
                     ),
                 ),
                 SectionBlock.newInstanceWithFields(
                     listOf(
-                        MarkdownText.newInstance("*🔢 예매매수*\n${notification.purchaseTicketCount}매"),
-                        MarkdownText.newInstance("*🙋 예매자*\n${notification.bookerName}"),
+                        MarkdownText.newInstance("*🔢 예매매수*\n${event.purchaseTicketCount}매"),
+                        MarkdownText.newInstance("*🙋 예매자*\n${event.bookerName}"),
                     ),
                 ),
                 SectionBlock.newInstanceWithFields(
                     listOf(
-                        MarkdownText.newInstance("*🎬 회차*\n${notification.scheduleDisplayName}"),
+                        MarkdownText.newInstance("*🎬 회차*\n${event.scheduleDisplayName}"),
                         MarkdownText.newInstance(
-                            "*🔔 예매현황*\n${notification.currentSoldTicketCount}/${notification.totalTicketCount}매",
+                            "*🔔 예매현황*\n${event.currentSoldTicketCount}/${event.totalTicketCount}매",
                         ),
                     ),
                 ),

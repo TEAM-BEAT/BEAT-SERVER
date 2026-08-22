@@ -6,28 +6,31 @@ import org.apache.logging.log4j.core.LogEvent
 import org.apache.logging.log4j.core.LoggerContext
 import org.apache.logging.log4j.core.appender.AbstractAppender
 import org.apache.logging.log4j.core.config.Property
-import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import java.util.concurrent.CopyOnWriteArrayList
 
-class ScheduledTaskErrorHandlerTest {
+class ScheduledTaskErrorHandlerTest : FunSpec() {
 
     private val handler = ScheduledTaskErrorHandler()
 
-    @Test
-    fun logsErrorWithThrowableAndDoesNotRethrow() {
-        val failure = IllegalStateException("scheduled-boom")
+    init {
+        isolationMode = IsolationMode.SingleInstance
 
-        val events = captureLogEvents(ScheduledTaskErrorHandler::class.java.name) {
-            assertDoesNotThrow { handler.handleError(failure) }
+        test("logsErrorWithThrowableAndDoesNotRethrow") {
+            val failure = IllegalStateException("scheduled-boom")
+
+            val events = captureLogEvents(ScheduledTaskErrorHandler::class.java.name) {
+                handler.handleError(failure)
+            }
+
+            events.size shouldBe 1
+            val event = events.first()
+            event.level shouldBe Level.ERROR
+            event.message.formattedMessage shouldBe "Batch task execution failed"
+            event.thrown shouldBe failure
         }
-
-        assertThat(events).hasSize(1)
-        val event = events.first()
-        assertThat(event.level).isEqualTo(Level.ERROR)
-        assertThat(event.message.formattedMessage).isEqualTo("Batch task execution failed")
-        assertThat(event.thrown).isSameAs(failure)
     }
 
     /**

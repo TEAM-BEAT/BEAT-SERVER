@@ -10,7 +10,6 @@ data class SocialIdentity private constructor(
     override fun toString(): String = "SocialIdentity(REDACTED)"
 
     companion object {
-        @JvmStatic
         fun of(socialType: SocialType, socialId: Long): SocialIdentity = SocialIdentity(
             socialType = socialType,
             socialId = socialId,

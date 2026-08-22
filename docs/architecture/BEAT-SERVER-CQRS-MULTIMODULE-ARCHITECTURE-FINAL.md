@@ -437,9 +437,11 @@ Maker
 = 공연·회차를 생성/수정하고 예매자를 관리하는 행위 주체
 ```
 
-`application:frontoffice`는 lane 자체가 Actor를 표현하지 않으므로, Use Case가 Booker 또는 Maker의 행위임이 분명하면 현재 한 Actor만 존재해도 Actor package를 명시한다. Actor 생략 근거는 "현재 한 명만 사용"이 아니라 "특정 Actor의 policy가 아닌 frontoffice 공통 capability"여야 한다.
+`application:frontoffice`는 lane 자체가 Actor를 표현하지 않으므로, Use Case가 Booker 또는 Maker의 행위임이 분명하면 현재 한 Actor만 존재해도 Actor
+package를 명시한다. Actor 생략 근거는 "현재 한 명만 사용"이 아니라 "특정 Actor의 policy가 아닌 frontoffice 공통 capability"여야 한다.
 
-`member`, `auth`는 Booker/Maker 모두가 사용하는 identity/session capability이며 현재 actor-specific policy가 없으므로 Actor-neutral 예외로 둔다. 향후 Actor별 policy가 실제로 분기될 때만 하위 Actor를 추가한다.
+`member`, `auth`는 Booker/Maker 모두가 사용하는 identity/session capability이며 현재 actor-specific policy가 없으므로 Actor-neutral 예외로
+둔다. 향후 Actor별 policy가 실제로 분기될 때만 하위 Actor를 추가한다.
 
 `application:admin`, `application:system`은 physical lane이 Actor를 이미 표현하므로 `admin`, `system` package를 반복하지 않는다.
 
@@ -1223,6 +1225,26 @@ Web Adapter가 이를:
 
 # 34. Test Architecture
 
+이 절은 전체 module/domain/application 경계 안에서 지켜야 할 test macro-policy를 정의한다. 세부 test taxonomy와 lifecycle decision은
+`BEAT_TEST_ARCHITECTURE_FINAL.md`, 실제 repository inventory와 rewrite 순서는 `BEAT_TEST_REWRITE_PLAN.md`가 소유한다.
+
+```text
+BEAT-SERVER-CQRS-MULTIMODULE-ARCHITECTURE-FINAL.md
+→ 전체 Architecture Constitution
+
+BEAT_TEST_ARCHITECTURE_FINAL.md
+→ Test Constitution
+
+BEAT_TEST_REWRITE_PLAN.md
+→ develop source/test inventory 기반 실행 계획
+
+BEAT-SERVER-MIGRATION-EXECUTION.md / task_artifact.md
+→ PR 실행 순서와 진행 상태
+```
+
+하위 문서는 이 문서의 Business Capability ownership, dependency direction, authoritative consistency invariant를 변경할 수 없다. 반대로 이
+문서는 repository-specific test inventory, PR 번호, CI task 세부 구현을 중복 소유하지 않는다.
+
 ## 34.1 Execution / authoring contract
 
 ```text
@@ -1239,7 +1261,8 @@ Optional test tools
 → Kotest Spring Extension: Spring TestContext가 필요한 spec만
 ```
 
-`useJUnitPlatform()`은 모든 모듈의 공통 실행 계약으로 유지한다. 최종 Kotlin test authoring style은 `FunSpec`으로 통일한다. JUnit Jupiter/Mockito로 작성된 기존 Java/Kotlin test는 migration 중 temporary compatibility로만 남기고, 각 protected invariant의 대체 coverage를 확인한 뒤 제거한다.
+`useJUnitPlatform()`은 모든 모듈의 공통 실행 계약으로 유지한다. 최종 Kotlin test authoring style은 `FunSpec`으로 통일한다. JUnit Jupiter/Mockito로
+작성된 기존 Java/Kotlin test는 migration 중 temporary compatibility로만 남기고, 각 protected invariant의 대체 coverage를 확인한 뒤 제거한다.
 
 FunSpec의 표준 형태:
 
@@ -1255,7 +1278,8 @@ class BookingSpec : FunSpec({
 })
 ```
 
-`context/test`는 scenario tree를 표현하고, leaf body의 Given/When/Then은 행위 흐름을 표현한다. `describe/context/it`, `given/when/then` taxonomy를 모든 test에 강제하지 않는다.
+`context/test`는 scenario tree를 표현하고, leaf body의 Given/When/Then은 행위 흐름을 표현한다. `describe/context/it`, `given/when/then`
+taxonomy를 모든 test에 강제하지 않는다.
 
 ## 34.2 Test double policy
 
@@ -1265,7 +1289,8 @@ real object
 → MockK stub/mock
 ```
 
-순서로 선택한다. MockK 채택은 모든 dependency의 interaction mocking을 의미하지 않는다. 상태/결과를 우선 검증하고, 외부 system·비결정적 시간·파괴적 side effect·실패 분기 제어처럼 분리 가치가 명확한 경계에만 test double을 사용한다. Test 편의를 위해 production Port를 생성하지 않는다.
+순서로 선택한다. MockK 채택은 모든 dependency의 interaction mocking을 의미하지 않는다. 상태/결과를 우선 검증하고, 외부 system·비결정적 시간·파괴적 side effect·실패
+분기 제어처럼 분리 가치가 명확한 경계에만 test double을 사용한다. Test 편의를 위해 production Port를 생성하지 않는다.
 
 ## Domain
 
@@ -1317,7 +1342,8 @@ external adapter contract
 
 FakeRepository로 persistence correctness를 증명하지 않는다.
 
-BEAT의 production DB semantic은 MySQL이므로 money/inventory/locking/transaction test를 H2/PostgreSQL로 대체하지 않는다. HTTP external adapter는 실제 client + controllable local server로 serialization, timeout, status mapping을 검증한다.
+BEAT의 production DB semantic은 MySQL이므로 money/inventory/locking/transaction test를 H2/PostgreSQL로 대체하지 않는다. HTTP external
+adapter는 실제 client + controllable local server로 serialization, timeout, status mapping을 검증한다.
 
 ## Apps
 
@@ -1333,9 +1359,12 @@ bootstrap/context
 
 ## 34.3 Spring / acceptance policy
 
-Spring이 필요 없는 Domain/Application test에 `@SpringBootTest`를 사용하지 않는다. Spring integration/acceptance test도 FunSpec을 유지하되 Kotest Spring Extension을 명시적으로 등록한다.
+Spring이 필요 없는 Domain/Application test에 `@SpringBootTest`를 사용하지 않는다. Spring integration/acceptance test도 FunSpec을 유지하되
+Kotest Spring Extension을 명시적으로 등록한다.
 
-Spring TestContext event는 method model과 Kotest nested-function model이 1:1이 아니다. Lifecycle mode 지정은 framework 사용의 기술적 필수사항은 아니지만, BEAT는 nested-test와 transaction semantics를 암묵적 default에 맡기지 않는 정책을 채택한다. 기본 acceptance/integration policy는 leaf test별 lifecycle/transaction rollback이며, root mode나 `@Commit`은 scenario가 요구할 때만 선택하고 근거를 남긴다.
+Spring TestContext event는 method model과 Kotest nested-function model이 1:1이 아니다. Lifecycle mode 지정은 framework 사용의 기술적
+필수사항은 아니지만, BEAT는 nested-test와 transaction semantics를 암묵적 default에 맡기지 않는 정책을 채택한다. 기본 acceptance/integration policy는
+leaf test별 lifecycle/transaction rollback이며, root mode나 `@Commit`은 scenario가 요구할 때만 선택하고 근거를 남긴다.
 
 User-facing critical journey는 `apps:api` test source가 소유하는 공통 `@BeatAcceptanceTest`로 context configuration을 통일한다.
 
@@ -1347,11 +1376,16 @@ Kotest Spring Extension
 stable TestExecutionListener set
 ```
 
-이 meta-annotation의 목적은 annotation ceremony가 아니라 Spring TestContext cache key 안정화와 black-box journey 표준화다. Spec별 `@MockkBean`/context property/configuration 변형을 기본 전략으로 삼지 않고 stable fake/configuration을 우선한다. Admin/Batch는 각 runtime lane의 필요가 증명될 때 lane-local meta-annotation을 두며 중앙 `test-common`에 합치지 않는다.
+이 meta-annotation의 목적은 annotation ceremony가 아니라 Spring TestContext cache key 안정화와 black-box journey 표준화다. Spec별
+`@MockkBean`/context property/configuration 변형을 기본 전략으로 삼지 않고 stable fake/configuration을 우선한다. Admin/Batch는 각 runtime
+lane의 필요가 증명될 때 lane-local meta-annotation을 두며 중앙 `test-common`에 합치지 않는다.
 
 ## 34.4 Testcontainers / concurrency policy
 
-Spring ApplicationContext와 함께 재사용되는 integration/acceptance container는 lifecycle을 context cache lifetime과 정렬한다. 이 범위에서는 모듈-local `@TestConfiguration` bean + `@ServiceConnection` 또는 `@ImportTestcontainers`를 우선하고, cached context와 분리된 static initializer의 수동 `start()`를 최종 구조로 두지 않는다. Spring Context를 사용하지 않거나 test별 독립 lifecycle이 더 자연스러운 repository/adapter test까지 Spring bean 방식으로 강제하지 않는다.
+Spring ApplicationContext와 함께 재사용되는 integration/acceptance container는 lifecycle을 context cache lifetime과 정렬한다. 이 범위에서는
+모듈-local `@TestConfiguration` bean + `@ServiceConnection` 또는 `@ImportTestcontainers`를 우선하고, cached context와 분리된 static
+initializer의 수동 `start()`를 최종 구조로 두지 않는다. Spring Context를 사용하지 않거나 test별 독립 lifecycle이 더 자연스러운 repository/adapter test까지
+Spring bean 방식으로 강제하지 않는다.
 
 Concurrency/locking test:
 
@@ -1377,21 +1411,27 @@ protected invariant inventory
 → JUnit Jupiter/Mockito authoring dependency 최종 제거
 ```
 
-Spring Boot/Kotlin/Testcontainers major/minor alignment은 Kotest authoring migration과 별도 PR로 검증한다. Spring Boot 4.1 baseline 채택 시 Boot BOM이 관리하는 Kotlin 2.3.21/Testcontainers 2.0.5 정렬을 우선하고, explicit version override는 근거가 있을 때만 남긴다.
+Spring Boot/Kotlin/Testcontainers version alignment은 Kotest authoring migration과 별도 PR로 검증한다. 채택한 Spring Boot baseline의
+BOM 정렬을 우선하고, 실제 runtime compatibility 때문에 필요한 explicit override만 Execution Record에 근거와 함께 남긴다.
 
 ## 34.6 Decision evidence
 
 Normative framework evidence:
 
-- [Kotest Spring Extension](https://kotest.io/docs/extensions/spring.html): `TestContextManager`, constructor injection, lifecycle mode, Spring transaction mapping.
-- [Spring Boot Testcontainers](https://docs.spring.io/spring-boot/reference/testing/testcontainers.html): context-managed container bean, `@ServiceConnection`, `@ImportTestcontainers` lifecycle.
-- [Spring Boot managed dependencies](https://docs.spring.io/spring-boot/appendix/dependency-versions/coordinates.html): adopted Boot baseline의 BOM versions.
+- [Kotest Spring Extension](https://kotest.io/docs/extensions/spring.html): `TestContextManager`, constructor injection,
+  lifecycle mode, Spring transaction mapping.
+- [Spring Boot Testcontainers](https://docs.spring.io/spring-boot/reference/testing/testcontainers.html):
+  context-managed container bean, `@ServiceConnection`, `@ImportTestcontainers` lifecycle.
+- [Spring Boot managed dependencies](https://docs.spring.io/spring-boot/appendix/dependency-versions/coordinates.html):
+  adopted Boot baseline의 BOM versions.
 
 Industry evidence:
 
-- [토스 — 가치있는 테스트를 위한 전략과 구현](https://toss.tech/article/test-strategy-server): FunSpec 기반 Domain/Acceptance test, real object 우선, acceptance meta-annotation과 Spring TestContext cache 관리 사례.
+- [토스 — 가치있는 테스트를 위한 전략과 구현](https://toss.tech/article/test-strategy-server): FunSpec 기반 Domain/Acceptance test, real
+  object 우선, acceptance meta-annotation과 Spring TestContext cache 관리 사례.
 
-Industry 사례는 BEAT Architecture의 Source of Truth가 아니다. 이 결정의 기준은 BEAT의 Kotlin-first 목표, MySQL/Redis production semantics, test ownership, feedback speed, rollback 가능한 migration boundary다.
+Industry 사례는 BEAT Architecture의 Source of Truth가 아니다. 이 결정의 기준은 BEAT의 Kotlin-first 목표, MySQL/Redis production semantics,
+test ownership, feedback speed, rollback 가능한 migration boundary다.
 
 ---
 
@@ -1407,6 +1447,10 @@ test-utils
 같은 dumping ground를 만들지 않는다.
 
 기본은 capability-local fixture다.
+
+Critical scenario의 기본 fixture authoring은 의미가 드러나는 named Kotlin fixture DSL이다. Fixture Monkey는 필드가 많고 중첩이 깊은 DTO/object
+graph 또는 bulk persistence data처럼 중요한 scenario 값을 가리지 않는 범위에서만 선택한다. Kotest Property는 값 경계와 invariant 탐색에 사용하며 object
+graph 생성 도구와 같은 용도로 취급하지 않는다. 구체적인 도입 기준과 randomness/null policy는 Test Constitution을 따른다.
 
 Stable test API가 실제 여러 Gradle project에서 재사용될 때만 별도 test-fixture mechanism을 검토한다.
 
@@ -1511,18 +1555,18 @@ Convention plugin 역시 실제 capability를 표현할 때만 만든다.
 
 # 39. BootJar Policy
 
-| Module | Type | bootJar |
-|---|---|---:|
-| `apps:api` | Spring Boot executable | true |
-| `apps:admin` | Spring Boot executable | true |
-| `apps:batch` | Spring Boot executable | true |
-| `application:frontoffice` | Spring library | false |
-| `application:admin` | Spring library | false |
-| `application:system` | Spring library | false |
-| `domain` | Kotlin library | false |
-| `infrastructure` | Spring adapter library | false |
-| `support:security` | Spring library | false |
-| `support:observability` | Spring library | false |
+| Module                    | Type                   | bootJar |
+|---------------------------|------------------------|--------:|
+| `apps:api`                | Spring Boot executable |    true |
+| `apps:admin`              | Spring Boot executable |    true |
+| `apps:batch`              | Spring Boot executable |    true |
+| `application:frontoffice` | Spring library         |   false |
+| `application:admin`       | Spring library         |   false |
+| `application:system`      | Spring library         |   false |
+| `domain`                  | Kotlin library         |   false |
+| `infrastructure`          | Spring adapter library |   false |
+| `support:security`        | Spring library         |   false |
+| `support:observability`   | Spring library         |   false |
 
 Library에는 Boot application plugin을 기본 적용하지 않는다.
 
@@ -1590,57 +1634,75 @@ Architecture가 Domain Model을 대신 결정하지 않는다.
 # 42. Architecture Constitution
 
 ## Principle 1 — Apps are Adapters
+
 Apps는 inbound adapter와 composition root만 소유한다.
 
 ## Principle 2 — Application owns Use Cases
+
 Application은 Use Case orchestration과 Application policy를 소유한다.
 
 ## Principle 3 — Domain owns Business Invariants
+
 Business invariant는 Domain이 소유한다.
 
 ## Principle 4 — Capability is Logical Ownership
+
 Business Capability가 logical/change ownership의 1차 축이다.
 
 ## Principle 5 — Physical Layers are Dependency Boundaries
+
 `apps/application/domain/infrastructure`는 dependency responsibility를 표현한다.
 
 ## Principle 6 — Domain Service Must Earn Its Existence
+
 Aggregate/VO가 자연스럽게 소유할 수 없는 규칙에만 Domain Service를 만든다.
 
 ## Principle 7 — Command Protects Correctness
+
 Command correctness는 authoritative state를 사용한다.
 
 ## Principle 8 — Query Optimizes for Consumers
+
 Query는 consumer-specific projection과 read optimization을 허용한다.
 
 ## Principle 9 — Ports Must Earn Their Existence
+
 Port는 실제 volatility/seam을 숨길 때만 만든다.
 
 ## Principle 10 — Consumer Owns Output Port
+
 Output Port의 language는 consumer/use case가 소유한다.
 
 ## Principle 11 — No Application Service Graph
+
 다른 Capability concrete Application Service 직접 호출을 기본 금지한다.
 
 ## Principle 12 — Capability Owns Authoritative State
+
 Command에서 다른 Capability persistence를 임의 우회하지 않는다.
 
 ## Principle 13 — Application Public API is Minimal
+
 Inbound Use Case API와 필요한 Output Port 외에는 기본 `internal`.
 
 ## Principle 14 — Infrastructure is Hidden
+
 Infrastructure implementation은 기본 `internal`.
 
 ## Principle 15 — Transaction Boundary is Application
+
 Command transaction ownership은 Application Use Case가 기본이다.
 
 ## Principle 16 — Shared Modules Must Earn Their Existence
+
 Shared/support module은 중복이라는 이유만으로 만들지 않는다.
 
 ## Principle 17 — Gradle Module Must Earn Its Existence
+
 Compile/change/test/dependency isolation의 실익이 있어야 존재한다.
 
 ## Principle 18 — Architecture is Enforced
+
 Compiler, Gradle, Kotlin visibility, ArchUnit, tests, review 중 가능한 가장 강한 mechanism을 우선한다.
 
 ---
@@ -1944,7 +2006,8 @@ Cross-cutting:
 support:security / support:observability
 ```
 
-Business Capability가 logical/change ownership의 1차 축이며, physical Gradle modules는 dependency responsibility와 compile isolation을 표현한다.
+Business Capability가 logical/change ownership의 1차 축이며, physical Gradle modules는 dependency responsibility와 compile
+isolation을 표현한다.
 
 Application은 Use Case와 필요한 Output Port를 소유하고 Infrastructure가 이를 구현한다.
 
@@ -1954,7 +2017,8 @@ Command와 Query는 비대칭적으로 설계하고, Command correctness는 auth
 
 Application Service graph와 Command의 ReadModel correctness dependency를 기본 금지한다.
 
-Spring Modulith은 필요 시 application project 내부 logical capability verification에 사용하며 Architecture의 목적이나 physical module model을 결정하지 않는다.
+Spring Modulith은 필요 시 application project 내부 logical capability verification에 사용하며 Architecture의 목적이나 physical module
+model을 결정하지 않는다.
 
 ---
 
@@ -2013,6 +2077,7 @@ Actor/runtime 변경
 
 PR은 module별/API별로 미리 고정하지 않는다.
 
-**Implementation agent가 실제 dependency graph, correctness risk, testability, reviewability를 분석해 가장 안전하고 논리적인 multi-PR migration graph를 설계한다.**
+**Implementation agent가 실제 dependency graph, correctness risk, testability, reviewability를 분석해 가장 안전하고 논리적인 multi-PR
+migration graph를 설계한다.**
 
 이 문서를 BEAT-SERVER Target Architecture Baseline 및 migration 판단 기준으로 채택한다.

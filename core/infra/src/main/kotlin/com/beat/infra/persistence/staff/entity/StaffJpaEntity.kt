@@ -9,7 +9,7 @@ import jakarta.persistence.Table
 
 @Entity(name = "Staff")
 @Table(name = "staff")
-class StaffJpaEntity private constructor(
+internal class StaffJpaEntity private constructor(
     id: Long?,
     staffName: String,
     staffRole: String,

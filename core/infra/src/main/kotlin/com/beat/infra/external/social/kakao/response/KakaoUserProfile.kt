@@ -2,7 +2,7 @@ package com.beat.infra.external.social.kakao.response
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-data class KakaoUserProfile(
+internal data class KakaoUserProfile(
     @param:JsonProperty("nickname")
     val nickname: String?,
     @param:JsonProperty("thumbnail_image_url")

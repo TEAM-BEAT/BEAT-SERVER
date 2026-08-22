@@ -5,7 +5,7 @@ import com.beat.infra.persistence.cast.entity.CastJpaEntity
 import org.springframework.stereotype.Component
 
 @Component
-class CastPersistenceMapper {
+internal class CastPersistenceMapper {
     fun toDomain(entity: CastJpaEntity): Cast = Cast.rehydrate(
         entity.id,
         entity.castName,
@@ -14,7 +14,7 @@ class CastPersistenceMapper {
     )
 
     fun toEntity(cast: Cast, performanceId: Long): CastJpaEntity = CastJpaEntity.rehydrate(
-        cast.getId(),
+        cast.id,
         cast.castName,
         cast.castRole,
         cast.castPhoto,

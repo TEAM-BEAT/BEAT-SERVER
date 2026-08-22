@@ -44,4 +44,4 @@ import org.springframework.context.annotation.Import
         ),
     ],
 )
-class ExternalClientConfig : InfraBaseConfig
+internal class ExternalClientConfig : InfraBaseConfig

@@ -3,7 +3,7 @@ package com.beat.apis.file.api
 import com.beat.apis.file.api.response.FileSuccessCode
 import com.beat.apis.file.api.response.PerformanceMakerPresignedUrlFindAllResponse
 import com.beat.apis.file.facade.FileFacade
-import com.beat.global.support.response.SuccessResponse
+import com.beat.apis.response.SuccessResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping

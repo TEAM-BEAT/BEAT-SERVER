@@ -14,7 +14,7 @@ import com.beat.apis.booking.api.response.MemberBookingResponse
 import com.beat.apis.booking.api.response.MemberBookingRetrieveResponse
 import com.beat.apis.booking.facade.BookingFacade
 import com.beat.support.security.CurrentMember
-import com.beat.global.support.response.SuccessResponse
+import com.beat.apis.response.SuccessResponse
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid

@@ -1,6 +1,7 @@
 package com.beat.application.frontoffice.performance.maker.command
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.application.frontoffice.performance.exception.PerformanceApplicationErrorCode
 import com.beat.application.frontoffice.schedule.exception.ScheduleApplicationErrorCode
 import com.beat.domain.booking.model.BookingStatus
@@ -23,11 +24,12 @@ class PerformanceDeleteCommandService(
 ) {
     @Transactional
     fun deletePerformance(memberId: Long, performanceId: Long) {
+        translateDomainFailure {
         val member = memberRepository.findById(memberId)
-            .orElseThrow { FrontofficeApplicationException(PerformanceApplicationErrorCode.MEMBER_NOT_FOUND) }
+            ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.MEMBER_NOT_FOUND)
         val performance = performanceRepository.lockById(performanceId)
-            .orElseThrow { FrontofficeApplicationException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND) }
-        if (!performance.isOwnedBy(member.getUserId())) {
+            ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND)
+        if (!performance.isOwnedBy(member.userId)) {
             throw FrontofficeApplicationException(PerformanceApplicationErrorCode.NOT_PERFORMANCE_OWNER)
         }
 
@@ -47,13 +49,14 @@ class PerformanceDeleteCommandService(
 
         scheduleRepository.deleteByPerformanceId(performanceId)
         promotionRepository.deleteByPerformanceId(performanceId)
-        performanceRepository.deleteById(checkNotNull(performance.getId()))
+        performanceRepository.deleteById(checkNotNull(performance.id))
+        }
     }
 
     private fun lockSchedules(scheduleIds: List<Long>) {
         scheduleIds.distinct().sorted().forEach { scheduleId ->
             scheduleRepository.lockById(scheduleId)
-                .orElseThrow { FrontofficeApplicationException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND) }
+                ?: throw FrontofficeApplicationException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND)
         }
     }
 

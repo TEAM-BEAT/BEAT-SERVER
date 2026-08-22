@@ -4,7 +4,7 @@ import com.beat.infra.external.notification.slack.vo.SlackConstant.BLOCK_TYPE_HE
 import com.beat.infra.external.notification.slack.vo.text.PlainText
 import com.beat.infra.external.notification.slack.vo.text.Text
 
-data class HeaderBlock(
+internal data class HeaderBlock(
     override val type: String,
     val text: Text,
 ) : Block {

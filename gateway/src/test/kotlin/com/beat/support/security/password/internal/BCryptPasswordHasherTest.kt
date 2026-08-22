@@ -1,41 +1,41 @@
 package com.beat.support.security.password.internal
 
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 
-class BCryptPasswordHasherTest {
+class BCryptPasswordHasherTest : FunSpec() {
 
     private val passwordHasher = BCryptPasswordHasher()
 
-    @Test
-    fun `bcrypt password matches only the original password`() {
-        val encoded = passwordHasher.encode("secret")
+    init {
+        isolationMode = IsolationMode.SingleInstance
 
-        assertTrue(passwordHasher.matches("secret", encoded))
-        assertFalse(passwordHasher.matches("wrong", encoded))
-        assertFalse(passwordHasher.needsUpgrade(encoded))
-    }
+        test("bcrypt password matches only the original password") {
+            val encoded = passwordHasher.encode("secret")
 
-    @Test
-    fun `blank stored password is rejected`() {
-        assertFalse(passwordHasher.matches("secret", ""))
-        assertFalse(passwordHasher.matches("secret", "   "))
-    }
+            passwordHasher.matches("secret", encoded) shouldBe true
+            passwordHasher.matches("wrong", encoded) shouldBe false
+            passwordHasher.needsUpgrade(encoded) shouldBe false
+        }
 
-    @Test
-    fun `legacy plaintext password is supported and marked for upgrade`() {
-        assertTrue(passwordHasher.matches("legacy", "legacy"))
-        assertFalse(passwordHasher.matches("wrong", "legacy"))
-        assertTrue(passwordHasher.needsUpgrade("legacy"))
-    }
+        test("blank stored password is rejected") {
+            passwordHasher.matches("secret", "") shouldBe false
+            passwordHasher.matches("secret", "   ") shouldBe false
+        }
 
-    @Test
-    fun `encoding produces a new bcrypt password`() {
-        val encoded = passwordHasher.encode("secret")
+        test("legacy plaintext password is supported and marked for upgrade") {
+            passwordHasher.matches("legacy", "legacy") shouldBe true
+            passwordHasher.matches("wrong", "legacy") shouldBe false
+            passwordHasher.needsUpgrade("legacy") shouldBe true
+        }
 
-        assertTrue(encoded.startsWith("\$2"))
-        assertNotEquals("secret", encoded)
+        test("encoding produces a new bcrypt password") {
+            val encoded = passwordHasher.encode("secret")
+
+            encoded.startsWith("\$2") shouldBe true
+            encoded shouldNotBe "secret"
+        }
     }
 }

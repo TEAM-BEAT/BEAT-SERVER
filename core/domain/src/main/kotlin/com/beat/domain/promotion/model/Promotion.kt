@@ -11,7 +11,11 @@ class Promotion private constructor(
     val isExternal: Boolean,
     val carouselNumber: CarouselNumber,
 ) : AggregateRoot {
-    fun getId(): Long? = promotionId?.value
+    val id: Long?
+        get() = promotionId?.value
+
+    val performanceId: Long?
+        get() = linkedPerformanceId?.value
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -21,9 +25,7 @@ class Promotion private constructor(
 
     override fun hashCode(): Int = promotionId?.hashCode() ?: System.identityHashCode(this)
 
-    override fun toString(): String = "Promotion(id=${getId()})"
-
-    fun getPerformanceId(): Long? = linkedPerformanceId?.value
+    override fun toString(): String = "Promotion(id=$id)"
 
     fun updatePromotionDetails(
         carouselNumber: CarouselNumber,
@@ -52,16 +54,13 @@ class Promotion private constructor(
     @JvmInline
     value class Id private constructor(val value: Long) {
         companion object {
-            @JvmStatic
             fun from(value: Long): Id = Id(value)
 
-            @JvmStatic
             fun fromNullable(value: Long?): Id? = value?.let(::from)
         }
     }
 
     companion object {
-        @JvmStatic
         fun create(
             promotionPhoto: String,
             performanceId: Long?,
@@ -77,7 +76,6 @@ class Promotion private constructor(
             carouselNumber = carouselNumber,
         )
 
-        @JvmStatic
         fun rehydrate(
             id: Long?,
             promotionPhoto: String,

@@ -15,10 +15,10 @@ class Performance private constructor(
     private val performanceId: Id?,
     val performanceTitle: String,
     val genre: Genre,
-    private val runningTimeValue: RunningTime,
+    val runningTimeValue: RunningTime,
     val performanceDescription: String,
     val performanceAttentionNote: String,
-    private val paymentAccountValue: PaymentAccount?,
+    val paymentAccount: PaymentAccount?,
     val posterImage: String,
     val performanceTeamName: String,
     val performanceVenue: String,
@@ -27,15 +27,43 @@ class Performance private constructor(
     val latitude: String,
     val longitude: String,
     val performanceContact: String,
-    private val performancePeriodValue: PerformancePeriod,
-    private val ticketPriceValue: TicketPrice,
+    val performancePeriodValue: PerformancePeriod,
+    val ticketPriceValue: TicketPrice,
     val totalScheduleCount: Int,
     private val linkedUserId: Users.Id,
-    private val casts: List<Cast>,
-    private val staffs: List<Staff>,
-    private val images: List<PerformanceImage>,
+    private val castValues: List<Cast>,
+    private val staffValues: List<Staff>,
+    private val imageValues: List<PerformanceImage>,
 ) : AggregateRoot {
-    fun getId(): Long? = performanceId?.value
+    val id: Long?
+        get() = performanceId?.value
+
+    val userId: Long
+        get() = linkedUserId.value
+
+    val runningTime: Int
+        get() = runningTimeValue.minutes
+
+    val bankName: BankName?
+        get() = paymentAccount?.bankName
+
+    val accountNumber: String?
+        get() = paymentAccount?.accountNumber
+
+    val accountHolder: String?
+        get() = paymentAccount?.accountHolder
+
+    val ticketPrice: Int
+        get() = ticketPriceValue.amount
+
+    val casts: List<Cast>
+        get() = castValues.toList()
+
+    val staffs: List<Staff>
+        get() = staffValues.toList()
+
+    val images: List<PerformanceImage>
+        get() = imageValues.toList()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -45,33 +73,7 @@ class Performance private constructor(
 
     override fun hashCode(): Int = performanceId?.hashCode() ?: System.identityHashCode(this)
 
-    override fun toString(): String = "Performance(id=${getId()})"
-
-    fun getUserId(): Long = linkedUserId.value
-
-    fun getRunningTime(): Int = runningTimeValue.minutes
-
-    fun getRunningTimeValue(): RunningTime = runningTimeValue
-
-    fun getPaymentAccount(): PaymentAccount? = paymentAccountValue
-
-    fun getBankName(): BankName? = paymentAccountValue?.bankName
-
-    fun getAccountNumber(): String? = paymentAccountValue?.accountNumber
-
-    fun getAccountHolder(): String? = paymentAccountValue?.accountHolder
-
-    fun getPerformancePeriodValue(): PerformancePeriod = performancePeriodValue
-
-    fun getTicketPrice(): Int = ticketPriceValue.amount
-
-    fun getTicketPriceValue(): TicketPrice = ticketPriceValue
-
-    fun getCasts(): List<Cast> = casts.toList()
-
-    fun getStaffs(): List<Staff> = staffs.toList()
-
-    fun getImages(): List<PerformanceImage> = images.toList()
+    override fun toString(): String = "Performance(id=$id)"
 
     fun replaceContent(
         casts: List<Cast>,
@@ -105,7 +107,7 @@ class Performance private constructor(
             runningTimeValue = runningTime,
             performanceDescription = performanceDescription,
             performanceAttentionNote = performanceAttentionNote,
-            paymentAccountValue = paymentAccount,
+            paymentAccount = paymentAccount,
             posterImage = posterImage,
             performanceTeamName = performanceTeamName,
             performanceVenue = performanceVenue,
@@ -118,17 +120,15 @@ class Performance private constructor(
             ticketPriceValue = ticketPriceValue,
             totalScheduleCount = totalScheduleCount,
             linkedUserId = linkedUserId,
-            casts = casts,
-            staffs = staffs,
-            images = images,
+            castValues = castValues,
+            staffValues = staffValues,
+            imageValues = imageValues,
         )
     }
 
-    @JvmOverloads
     fun updateTicketPrice(newTicketPrice: Int, hasActiveBooking: Boolean = false): Performance =
         updateTicketPrice(TicketPrice.of(newTicketPrice), hasActiveBooking)
 
-    @JvmOverloads
     fun updateTicketPrice(newTicketPrice: TicketPrice, hasActiveBooking: Boolean = false): Performance {
         if (hasActiveBooking && ticketPriceValue != newTicketPrice) {
             throw DomainException(PerformanceErrorCode.PRICE_UPDATE_NOT_ALLOWED)
@@ -148,9 +148,9 @@ class Performance private constructor(
 
     private fun copy(
         ticketPrice: TicketPrice = ticketPriceValue,
-        casts: List<Cast> = this.casts,
-        staffs: List<Staff> = this.staffs,
-        images: List<PerformanceImage> = this.images,
+        casts: List<Cast> = this.castValues,
+        staffs: List<Staff> = this.staffValues,
+        images: List<PerformanceImage> = this.imageValues,
     ): Performance = Performance(
         performanceId = performanceId,
         performanceTitle = performanceTitle,
@@ -158,7 +158,7 @@ class Performance private constructor(
         runningTimeValue = runningTimeValue,
         performanceDescription = performanceDescription,
         performanceAttentionNote = performanceAttentionNote,
-        paymentAccountValue = paymentAccountValue,
+        paymentAccount = paymentAccount,
         posterImage = posterImage,
         performanceTeamName = performanceTeamName,
         performanceVenue = performanceVenue,
@@ -171,25 +171,21 @@ class Performance private constructor(
         ticketPriceValue = ticketPrice,
         totalScheduleCount = totalScheduleCount,
         linkedUserId = linkedUserId,
-        casts = casts.toList(),
-        staffs = staffs.toList(),
-        images = images.toList(),
+        castValues = casts.toList(),
+        staffValues = staffs.toList(),
+        imageValues = images.toList(),
     )
 
     @JvmInline
     value class Id private constructor(val value: Long) {
         companion object {
-            @JvmStatic
             fun from(value: Long): Id = Id(value)
 
-            @JvmStatic
             fun fromNullable(value: Long?): Id? = value?.let(::from)
         }
     }
 
     companion object {
-        @JvmStatic
-        @JvmOverloads
         fun create(
             performanceTitle: String,
             genre: Genre,
@@ -219,12 +215,10 @@ class Performance private constructor(
                 paymentAccount, posterImage, performanceTeamName, performanceVenue, roadAddressName,
                 placeDetailAddress, latitude, longitude, performanceContact, performancePeriod, ticketPrice,
                 totalScheduleCount, linkedUserId = Users.Id.from(userId),
-                casts = casts.toList(), staffs = staffs.toList(), images = images.toList(),
+                castValues = casts.toList(), staffValues = staffs.toList(), imageValues = images.toList(),
             )
         }
 
-        @JvmStatic
-        @JvmOverloads
         fun rehydrate(
             id: Long?,
             performanceTitle: String,
@@ -253,7 +247,7 @@ class Performance private constructor(
             paymentAccount, posterImage, performanceTeamName, performanceVenue, roadAddressName, placeDetailAddress,
             latitude, longitude, performanceContact, performancePeriod, ticketPrice, totalScheduleCount,
             linkedUserId = Users.Id.from(userId),
-            casts = casts.toList(), staffs = staffs.toList(), images = images.toList(),
+            castValues = casts.toList(), staffValues = staffs.toList(), imageValues = images.toList(),
         )
 
         private fun validateTotalScheduleCount(totalScheduleCount: Int) {

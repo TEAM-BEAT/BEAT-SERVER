@@ -2,7 +2,7 @@ package com.beat.infra.external.social.kakao.response
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-data class KakaoAccount(
+internal data class KakaoAccount(
     @param:JsonProperty("profile_nickname_needs_agreement")
     val profileNicknameNeedsAgreement: Boolean?,
     @param:JsonProperty("profile")

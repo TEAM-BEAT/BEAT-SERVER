@@ -3,19 +3,13 @@ package com.beat.infra.persistence.promotion.mapper
 import com.beat.domain.promotion.model.CarouselNumber
 import com.beat.domain.promotion.model.Promotion
 import com.beat.infra.persistence.promotion.entity.PromotionJpaEntity
-import org.junit.jupiter.api.Assertions.assertAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 
-class PromotionPersistenceMapperTest {
+class PromotionPersistenceMapperTest : FunSpec({
+    val mapper = PromotionPersistenceMapper()
 
-    private val mapper = PromotionPersistenceMapper()
-
-    @Test
-    fun toDomainPreservesJpaEntityFieldsUsedByJavaCallers() {
+    test("toDomainPreservesJpaEntityFields") {
         val entity = PromotionJpaEntity.rehydrate(
             11L,
             "https://example.com/promotion.png",
@@ -27,18 +21,15 @@ class PromotionPersistenceMapperTest {
 
         val promotion = mapper.toDomain(entity)
 
-        assertAll(
-            { assertEquals(11L, promotion.getId()) },
-            { assertEquals("https://example.com/promotion.png", promotion.promotionPhoto) },
-            { assertEquals(22L, promotion.getPerformanceId()) },
-            { assertEquals("https://example.com/performance", promotion.redirectUrl) },
-            { assertTrue(promotion.isExternal) },
-            { assertEquals(CarouselNumber.THREE, promotion.carouselNumber) },
-        )
+        promotion.id shouldBe 11L
+        promotion.promotionPhoto shouldBe "https://example.com/promotion.png"
+        promotion.performanceId shouldBe 22L
+        promotion.redirectUrl shouldBe "https://example.com/performance"
+        promotion.isExternal shouldBe true
+        promotion.carouselNumber shouldBe CarouselNumber.THREE
     }
 
-    @Test
-    fun toEntityKeepsGeneratedIdNullForNewPromotion() {
+    test("toEntityKeepsGeneratedIdNullForNewPromotion") {
         val promotion = Promotion.create(
             "https://example.com/new.png",
             44L,
@@ -49,16 +40,13 @@ class PromotionPersistenceMapperTest {
 
         val entity = mapper.toEntity(promotion)
 
-        assertAll(
-            { assertNull(promotion.getId()) },
-            { assertNull(entity.id) },
-            { assertEquals(44L, entity.performanceId) },
-            { assertEquals(CarouselNumber.TWO, entity.carouselNumber) },
-        )
+        promotion.id shouldBe null
+        entity.id shouldBe null
+        entity.performanceId shouldBe 44L
+        entity.carouselNumber shouldBe CarouselNumber.TWO
     }
 
-    @Test
-    fun toEntityPreservesDomainFieldsAndJavaVisiblePromotionJpaEntityContract() {
+    test("toEntityPreservesDomainFields") {
         val promotion = Promotion.rehydrate(
             31L,
             "https://example.com/internal.png",
@@ -70,13 +58,11 @@ class PromotionPersistenceMapperTest {
 
         val entity = mapper.toEntity(promotion)
 
-        assertAll(
-            { assertEquals(31L, entity.id) },
-            { assertEquals("https://example.com/internal.png", entity.promotionPhoto) },
-            { assertNull(entity.performanceId) },
-            { assertEquals("/notices/31", entity.redirectUrl) },
-            { assertFalse(entity.isExternal) },
-            { assertEquals(CarouselNumber.ONE, entity.carouselNumber) },
-        )
+        entity.id shouldBe 31L
+        entity.promotionPhoto shouldBe "https://example.com/internal.png"
+        entity.performanceId shouldBe null
+        entity.redirectUrl shouldBe "/notices/31"
+        entity.isExternal shouldBe false
+        entity.carouselNumber shouldBe CarouselNumber.ONE
     }
-}
+})

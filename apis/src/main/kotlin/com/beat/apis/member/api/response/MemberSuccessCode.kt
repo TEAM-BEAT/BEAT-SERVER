@@ -1,10 +1,10 @@
 package com.beat.apis.member.api.response
 
-import com.beat.global.support.response.SuccessCode
+import com.beat.apis.response.SuccessCode
 
 enum class MemberSuccessCode(
-    private val status: Int,
-    private val message: String,
+    override val status: Int,
+    override val message: String,
 ) : SuccessCode {
     SIGN_UP_SUCCESS(200, "로그인 성공"),
     ISSUE_ACCESS_TOKEN_SUCCESS(200, "엑세스토큰 발급 성공"),
@@ -13,7 +13,4 @@ enum class MemberSuccessCode(
     USER_DELETE_SUCCESS(200, "회원 탈퇴 성공")
     ;
 
-    override fun getStatus(): Int = status
-
-    override fun getMessage(): String = message
 }

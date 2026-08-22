@@ -1,6 +1,6 @@
 package com.beat.infra.external.notification.slack.vo
 
-object SlackConstant {
+internal object SlackConstant {
     const val BRAND_COLOR = "#FF006B"
     const val BLOCK_TYPE_HEADER = "header"
     const val BLOCK_TYPE_SECTION = "section"

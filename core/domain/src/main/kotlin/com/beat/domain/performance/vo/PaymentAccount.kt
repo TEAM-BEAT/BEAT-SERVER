@@ -13,7 +13,6 @@ data class PaymentAccount private constructor(
     override fun toString(): String = "PaymentAccount(REDACTED)"
 
     companion object {
-        @JvmStatic
         fun of(bankName: BankName, accountNumber: String, accountHolder: String): PaymentAccount {
             if (bankName == BankName.NONE || accountNumber.isBlank() || accountHolder.isBlank()) {
                 throw DomainException(PerformanceErrorCode.INCOMPLETE_PAYMENT_ACCOUNT)
@@ -21,7 +20,6 @@ data class PaymentAccount private constructor(
             return PaymentAccount(bankName, accountNumber, accountHolder)
         }
 
-        @JvmStatic
         fun fromNullable(
             bankName: BankName?,
             accountNumber: String?,

@@ -83,7 +83,6 @@ jobs:
     # alloy 재시작은 app deploy/foundation과 같은 dev runtime concurrency group으로 묶어 직렬화
     concurrency:
       group: dev-runtime
-      queue: max
       cancel-in-progress: false
     uses: ./.github/workflows/_ansible-exec.yml
     with:

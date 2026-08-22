@@ -5,7 +5,7 @@ import com.beat.infra.persistence.staff.entity.StaffJpaEntity
 import org.springframework.stereotype.Component
 
 @Component
-class StaffPersistenceMapper {
+internal class StaffPersistenceMapper {
     fun toDomain(entity: StaffJpaEntity): Staff = Staff.rehydrate(
         entity.id,
         entity.staffName,
@@ -14,7 +14,7 @@ class StaffPersistenceMapper {
     )
 
     fun toEntity(staff: Staff, performanceId: Long): StaffJpaEntity = StaffJpaEntity.rehydrate(
-        staff.getId(),
+        staff.id,
         staff.staffName,
         staff.staffRole,
         staff.staffPhoto,

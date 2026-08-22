@@ -6,8 +6,8 @@ import com.beat.admin.promotion.api.response.CarouselFindAllResponse
 import com.beat.admin.promotion.api.response.CarouselHandleAllResponse
 import com.beat.admin.promotion.api.response.CarouselPresignedUrlFindAllResponse
 import com.beat.support.security.CurrentMember
-import com.beat.global.support.response.ErrorResponse
-import com.beat.global.support.response.SuccessResponse
+import com.beat.admin.response.ErrorResponse
+import com.beat.admin.response.SuccessResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema

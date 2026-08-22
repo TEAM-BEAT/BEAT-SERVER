@@ -1,12 +1,11 @@
 package com.beat.application.frontoffice.ticket.maker.command
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.application.frontoffice.ticket.maker.exception.TicketApplicationErrorCode
 import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.model.BookingStatus
-import com.beat.domain.booking.exception.BookingErrorCode
 import com.beat.domain.booking.repository.BookingRepository
-import com.beat.domain.exception.DomainException
 import com.beat.domain.member.model.Member
 import com.beat.domain.member.repository.MemberRepository
 import com.beat.domain.performance.model.Performance
@@ -30,6 +29,7 @@ class TicketCommandService(
 ) {
     @Transactional
     fun updateTickets(memberId: Long, command: TicketUpdateCommand) {
+        translateDomainFailure {
         val details = command.bookingList
         if (details.map(TicketStatusUpdate::bookingId).distinct().size != details.size) {
             throw FrontofficeApplicationException(TicketApplicationErrorCode.DUPLICATE_BOOKING_ID)
@@ -40,24 +40,26 @@ class TicketCommandService(
         val (bookings, _) = lockSchedulesThenBookings(detailsByBookingId.keys, performance)
 
         bookings.forEach { booking ->
-            val detail = requireNotNull(detailsByBookingId[booking.getId()])
+            val detail = requireNotNull(detailsByBookingId[booking.id])
             val requestedStatus = BookingStatus.valueOf(detail.bookingStatus.name)
-            val updated = translateBookingDomainFailure { booking.transitionTo(requestedStatus) }
+            val updated = booking.transitionTo(requestedStatus)
             if (updated === booking) return@forEach
             bookingRepository.save(updated)
             eventPublisher.publishEvent(
                 TicketPaymentConfirmedEvent(
-                    bookingId = checkNotNull(booking.getId()),
-                    bookerName = booking.getBookerName(),
-                    bookerPhoneNumber = booking.getBookerPhoneNumber(),
+                    bookingId = checkNotNull(booking.id),
+                    bookerName = booking.bookerName,
+                    bookerPhoneNumber = booking.bookerPhoneNumber,
                     performanceTitle = performance.performanceTitle,
                 ),
             )
+        }
         }
     }
 
     @Transactional
     fun refundTicketsByBookingIds(memberId: Long, command: TicketBookingIdsCommand) {
+        translateDomainFailure {
         val performance = findOwnedPerformance(memberId, command.performanceId)
         val (bookings, schedules) = lockSchedulesThenBookings(
             command.bookingIds,
@@ -67,19 +69,21 @@ class TicketCommandService(
         bookings.forEach { original ->
             val shouldReleaseTickets = original.hasActiveTicketAllocation()
             val booking = bookingRepository.save(
-                translateBookingDomainFailure { original.completeRefund(LocalDateTime.now(clock)) },
+                original.completeRefund(LocalDateTime.now(clock)),
             )
             if (shouldReleaseTickets) {
-                val schedule = requireNotNull(schedules[booking.getScheduleId()])
-                schedules[booking.getScheduleId()] = scheduleRepository.save(
-                    schedule.releaseTickets(booking.getPurchaseTicketCount()),
+                val schedule = requireNotNull(schedules[booking.scheduleId])
+                schedules[booking.scheduleId] = scheduleRepository.save(
+                    schedule.releaseTickets(booking.purchaseTicketCount),
                 )
             }
+        }
         }
     }
 
     @Transactional
     fun deleteTicketsByBookingIds(memberId: Long, command: TicketBookingIdsCommand) {
+        translateDomainFailure {
         val performance = findOwnedPerformance(memberId, command.performanceId)
         val (bookings, schedules) = lockSchedulesThenBookings(
             command.bookingIds,
@@ -87,16 +91,17 @@ class TicketCommandService(
         )
 
         bookings.forEach { original ->
-            val deleted = translateBookingDomainFailure { original.deleteByMaker(LocalDateTime.now(clock)) }
+            val deleted = original.deleteByMaker(LocalDateTime.now(clock))
             val shouldReleaseTickets =
                 original.hasActiveTicketAllocation() && !deleted.hasActiveTicketAllocation()
             val booking = bookingRepository.save(deleted)
             if (shouldReleaseTickets) {
-                val schedule = requireNotNull(schedules[booking.getScheduleId()])
-                schedules[booking.getScheduleId()] = scheduleRepository.save(
-                    schedule.releaseTickets(booking.getPurchaseTicketCount()),
+                val schedule = requireNotNull(schedules[booking.scheduleId])
+                schedules[booking.scheduleId] = scheduleRepository.save(
+                    schedule.releaseTickets(booking.purchaseTicketCount),
                 )
             }
+        }
         }
     }
 
@@ -112,9 +117,9 @@ class TicketCommandService(
         val schedules = lockAndValidateSchedules(scheduleIds, performance)
         val bookings = distinctBookingIds.map { bookingId ->
             bookingRepository.lockById(bookingId)
-                .orElseThrow { FrontofficeApplicationException(TicketApplicationErrorCode.NO_BOOKING_FOUND) }
+                ?: throw FrontofficeApplicationException(TicketApplicationErrorCode.NO_BOOKING_FOUND)
         }
-        if (bookings.any { it.getScheduleId() !in schedules }) {
+        if (bookings.any { it.scheduleId !in schedules }) {
             throw FrontofficeApplicationException(TicketApplicationErrorCode.NO_SCHEDULE_FOUND)
         }
         return bookings to schedules
@@ -127,8 +132,8 @@ class TicketCommandService(
         val schedules = mutableMapOf<Long, Schedule>()
         scheduleIds.distinct().sorted().forEach { scheduleId ->
             val schedule = scheduleRepository.lockById(scheduleId)
-                .orElseThrow { FrontofficeApplicationException(TicketApplicationErrorCode.NO_SCHEDULE_FOUND) }
-            if (!schedule.belongsTo(requireNotNull(performance.getId()))) {
+                ?: throw FrontofficeApplicationException(TicketApplicationErrorCode.NO_SCHEDULE_FOUND)
+            if (!schedule.belongsTo(requireNotNull(performance.id))) {
                 throw FrontofficeApplicationException(TicketApplicationErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE)
             }
             schedules[scheduleId] = schedule
@@ -139,8 +144,8 @@ class TicketCommandService(
     private fun findOwnedPerformance(memberId: Long, performanceId: Long): Performance {
         val member = findMember(memberId)
         val performance = performanceRepository.findById(performanceId)
-            .orElseThrow { FrontofficeApplicationException(TicketApplicationErrorCode.PERFORMANCE_NOT_FOUND) }
-        if (performance.getUserId() != member.getUserId()) {
+            ?: throw FrontofficeApplicationException(TicketApplicationErrorCode.PERFORMANCE_NOT_FOUND)
+        if (performance.userId != member.userId) {
             throw FrontofficeApplicationException(TicketApplicationErrorCode.NOT_PERFORMANCE_OWNER)
         }
         return performance
@@ -148,32 +153,6 @@ class TicketCommandService(
 
     private fun findMember(memberId: Long): Member =
         memberRepository.findById(memberId)
-            .orElseThrow { FrontofficeApplicationException(TicketApplicationErrorCode.MEMBER_NOT_FOUND) }
+            ?: throw FrontofficeApplicationException(TicketApplicationErrorCode.MEMBER_NOT_FOUND)
 
-    private fun <T> translateBookingDomainFailure(block: () -> T): T =
-        try {
-            block()
-        } catch (exception: DomainException) {
-            throw when (exception.errorCode) {
-                BookingErrorCode.CONFIRMED_STATUS_CHANGE_NOT_ALLOWED ->
-                    FrontofficeApplicationException(
-                        TicketApplicationErrorCode.PAYMENT_COMPLETED_TICKET_UPDATE_NOT_ALLOWED,
-                        exception,
-                    )
-
-                BookingErrorCode.STATUS_TRANSITION_NOT_ALLOWED ->
-                    FrontofficeApplicationException(
-                        TicketApplicationErrorCode.INVALID_BOOKING_STATUS_TRANSITION,
-                        exception,
-                    )
-
-                BookingErrorCode.REFUND_COMPLETION_NOT_ALLOWED ->
-                    FrontofficeApplicationException(TicketApplicationErrorCode.REFUND_COMPLETION_NOT_ALLOWED, exception)
-
-                BookingErrorCode.DELETION_NOT_ALLOWED ->
-                    FrontofficeApplicationException(TicketApplicationErrorCode.DELETION_NOT_ALLOWED, exception)
-
-                else -> exception
-            }
-        }
 }

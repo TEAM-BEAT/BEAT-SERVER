@@ -4,11 +4,8 @@ import com.amazonaws.HttpMethod
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.AmazonS3Exception
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest
-import com.beat.contracts.storage.BannerPresignedUrl
-import com.beat.contracts.storage.CarouselPresignedUpload
-import com.beat.contracts.storage.CarouselPresignedUrls
-import com.beat.contracts.storage.FileStoragePort
-import com.beat.contracts.storage.ImageObjectMetadata
+import com.beat.application.admin.promotion.PromotionImageStorage
+import com.beat.application.admin.promotion.PromotionImageUpload
 import com.beat.application.frontoffice.performance.maker.command.ImagePresignedUpload
 import com.beat.application.frontoffice.performance.maker.command.PerformanceImageStorage
 import com.beat.application.frontoffice.performance.maker.command.PerformancePresignedUrls
@@ -20,7 +17,7 @@ import java.util.UUID
 @Service
 internal class S3FileStorageAdapter(
     private val amazonS3: AmazonS3,
-) : FileStoragePort, PerformanceImageStorage {
+) : PerformanceImageStorage, PromotionImageStorage {
     @field:Value("\${cloud.s3.bucket}")
     private lateinit var bucket: String
 
@@ -48,21 +45,19 @@ internal class S3FileStorageAdapter(
             ImagePresignedUpload.of(amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, path)).toString(), path)
         }
 
-    override fun issueAllPresignedUrlsForCarousel(carouselImages: List<String>): CarouselPresignedUrls {
-        val uploads = carouselImages.associateWith { image ->
+    override fun issueCarouselUploads(imageNames: List<String>): Map<String, PromotionImageUpload> =
+        imageNames.associateWith { image ->
             val path = generatePath("carousel", image)
-            CarouselPresignedUpload.of(amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, path)).toString(), path)
+            PromotionImageUpload(amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, path)).toString(), path)
         }
-        return CarouselPresignedUrls(uploads)
-    }
 
-    override fun findImageObjectMetadata(imageKey: String): ImageObjectMetadata? {
+    private fun findImageObjectMetadata(imageKey: String): ObjectMetadata? {
         if (!imageKey.startsWith(imageKeyPrefix())) {
             return null
         }
         try {
             val metadata = amazonS3.getObjectMetadata(bucket, imageKey)
-            return ImageObjectMetadata.of(metadata.contentType, metadata.contentLength)
+            return ObjectMetadata(metadata.contentType, metadata.contentLength)
         } catch (exception: AmazonS3Exception) {
             if (exception.statusCode == 404) {
                 return null
@@ -73,10 +68,10 @@ internal class S3FileStorageAdapter(
 
     override fun exists(imageKey: String): Boolean = findImageObjectMetadata(imageKey) != null
 
-    override fun issuePresignedUrlForBanner(bannerImage: String): BannerPresignedUrl {
-        val path = generatePath("banner", bannerImage)
+    override fun issueBannerUpload(imageName: String): PromotionImageUpload {
+        val path = generatePath("banner", imageName)
         val url = amazonS3.generatePresignedUrl(buildPresignedUrlRequest(bucket, path))
-        return BannerPresignedUrl(url.toString(), path)
+        return PromotionImageUpload(url.toString(), path)
     }
 
     private fun buildPresignedUrlRequest(bucket: String, fileName: String): GeneratePresignedUrlRequest =
@@ -109,4 +104,9 @@ internal class S3FileStorageAdapter(
         val LEADING_SLASHES = Regex("^/+")
         val TRAILING_SLASHES = Regex("/+$")
     }
+
+    private data class ObjectMetadata(
+        val contentType: String?,
+        val contentLength: Long,
+    )
 }
