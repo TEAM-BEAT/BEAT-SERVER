@@ -123,3 +123,24 @@ HIGH: GuestBookingRequest/MemberBookingRequest의 scheduleNumber·totalPaymentAm
 - external.yml prod: s3.bucket=${PROD_S3_BUCKET} → 로컬 시크릿/sops 키명/ansible/aws 전부 0건. prod 컨테이너 실환경변수 확인 필요(저장소 밖 SSM 가능성). 누락 확정 시 prod 기동 실패 갭.
 - batch application.yml 잔여 beat.scheduler.owner:true 발견·제거(전수 스윙이 놓친 것 — grep -F 재검증으로 클린).
 - env_audit.py 감사 스크립트: 미해소 판정은 신뢰, '미사용' 목록은 persistence 프로필 블록 파싱 누락으로 불신.
+
+## 배치 진행 최종 상태 (2026-08-23 종료 시점)
+
+### ✅ 완료(커밋됨, 전부 green)
+A2/A3(ArchUnit 재작성) · A4/B1/B2/B3 · B4/B6/B7/B8 · R(루트계약스펙삭제) · 시간고정Clock · 테스트명한국어화(전체0잔여) · actuator경로정렬 · 앵커명시체이닝 · scheduler.owner전면제거(ansible포함) · yml컨벤션확정 · JSON스택판정(Jackson3유지) · B7완료(DTO non-null 19개·facade72→0) · C7/C8/C10/C14 · 필터검증(철희기록)
+
+### ⏭️ 미완 — 다음 세션 즉시 착수 목록(순서대로)
+1. **OpenAPI baseline 재생성 필수**(머지 전 게이트): A4/B2/B3/B7로 요청DTO 필드 삭제됨 → `openApiTest` 재생성 후 oasdiff breaking 확인. 현재 baseline은 구계약.
+2. **C6 CDN serializer**: @JsonSerialize 어노테이션 바인딩 특성상 static 패턴이 실무적 — DI 전환하려면 ObjectMapper 모듈등록 방식으로 설계 변경 필요. 결정 후 진행.
+3. **F9 MockK**: 의존성 추가→byte-buddy≥1.18 확인→Mockito 스펙 전환(약 29파일, 서브에이전트 활용 가능)
+4. **P 물리정렬(대형)**: settings.gradle.kts:39-45 projectDir 제거+디렉터리 rename(apis→apps/api 등 7곳)+워크플로우 경로필터(deploy-dev.yml:91-96 등)+루트계약스펙은 이미 삭제되어 부담 감소+Kotlin패키지 rename(com.beat.apis.*→apps.*)+ADR-FINAL-001 개정. 반드시 신선한 세션에서 단계별 커밋.
+5. **D 문서**: D1~D6 + ADR-FINAL-001 개정
+6. **최종게이트**: full check+verifyModuleBootJars+actionlint+OpenAPI diff
+
+### 금일 커밋 체인
+42e2d5ca→9e33f59d→04afa2f2→db9f8683→e02967a7→dab84154→8d4bdf3c→3b788c7b→a1001826→a2cab58b→a6ab5a22→0db47f77→87151530→1bc4fd6a→f80cf7b1→**3c947835**(복구커밋 포함 총 17개, 미푸시)
+
+### 교훈(재발방지)
+- Finding 보고 전 대상 파일 '전체' 정독(MDC/JWT 사례)
+- 문자열 일괄치환 금지→수작업 편집 or git restore 기반 복구(BookingController 사례)
+- 스윙 검증은 grep -F 고정문자+다중 확장자
