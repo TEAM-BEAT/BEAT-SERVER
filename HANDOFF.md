@@ -182,3 +182,8 @@ A2/A3(ArchUnit 재작성) · A4/B1/B2/B3 · B4/B6/B7/B8 · R(루트계약스펙�
 - 참조 치환: 워크플로우 39건, 컴포지트 액션 3건, 시크릿 스크립트, README, resolve_ansible_connection.py(기능 경로), ops 내부 자기참조(image_cdn relpath 등).
 - 검증: actionlint 전체 OK, python 구문 검증, rg 잔여 0.
 - 명명 규칙 확정: ops/=운영·프로비저닝, infrastructure/=런타임 코드 모듈. 향후 신규 운영 자산은 ops/ 아래 배치.
+
+## 루트 빌드스크립트 정리 + P 후속 검증 완료 (2026-08-23)
+- b16a0df1: 검증 태스크 2종→beat.root-verification 컨벤션 이관, deprecated subprojects/apply 제거(kotlin-base가 좌표·의존분석 전파), 중복 toolchain 제거.
+- gradle.properties에 daemon heap(-Xmx3g) 추가 — buildHealth GC 스래싱 방지. root buildHealth 재실행 통과(exit=0).
+- api booking 테스트 필터를 신규 패키지(com.beat.apps.api.*)로 갱신해 green 확인 — 이전 '2 FAILED'은 구패키지 필터 오탐이었음.
