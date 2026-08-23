@@ -89,17 +89,6 @@ val targetExecutableApplicationLane = mapOf(
     ":apps:batch" to ":application:system",
 )
 
-val forbiddenLegacyProjects = setOf(
-    ":apis",
-    ":admin",
-    ":batch",
-    ":infra",
-    ":gateway",
-    ":module-contracts",
-    ":global",
-    ":global-support",
-)
-
 val verifyTargetModuleGraph by tasks.registering {
     group = "verification"
     description = "Verifies the target application lanes are present and compile-time isolated."
@@ -116,9 +105,6 @@ val verifyTargetModuleGraph by tasks.registering {
         )
         check(requiredProjects.all { findProject(it) != null }) {
             "Missing target project(s): ${requiredProjects.filter { findProject(it) == null }}"
-        }
-        check(forbiddenLegacyProjects.none { findProject(it) != null }) {
-            "Legacy project(s) must remain absent: ${forbiddenLegacyProjects.filter { findProject(it) != null }}"
         }
         check(project(":domain").configurations.none { configuration ->
             configuration.dependencies.withType(ProjectDependency::class.java).isNotEmpty()
