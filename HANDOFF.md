@@ -176,3 +176,9 @@ A2/A3(ArchUnit 재작성) · A4/B1/B2/B3 · B4/B6/B7/B8 · R(루트계약스펙�
 - GuestSession·RefreshToken 해시의 @TypeAlias(구 gateway FQCN) 제거, 레거시 호환 테스트 2개 삭제.
 - ⚠️ 배포 시 Redis FLUSHDB 필수: 기존 키는 새 type id로 역직렬화 불가 → 전원 재로그인 발생(소유자 승인済 v2.0 정책).
 - infra/aws·ansible·db는 배포 인프라 저장소로서 현 위치 유지 확정(코드 모듈과 무관).
+
+## infra/ → ops/ 개명 완료 (2026-08-23, e995d02f)
+- 배포 인프라-as-code 저장소명을 infrastructure 코드 모듈과 구분하기 위해 ops/로 개명(aws·ansible·db 이동).
+- 참조 치환: 워크플로우 39건, 컴포지트 액션 3건, 시크릿 스크립트, README, resolve_ansible_connection.py(기능 경로), ops 내부 자기참조(image_cdn relpath 등).
+- 검증: actionlint 전체 OK, python 구문 검증, rg 잔여 0.
+- 명명 규칙 확정: ops/=운영·프로비저닝, infrastructure/=런타임 코드 모듈. 향후 신규 운영 자산은 ops/ 아래 배치.
