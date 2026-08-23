@@ -13,6 +13,7 @@ dependencies {
     implementation(project(":application:system"))
     implementation(project(":infrastructure"))
     implementation(project(":support:observability"))
+    implementation(libs.kotlin.logging.jvm)
 
     testImplementation(libs.bundles.integration.testcontainers)
     testImplementation(libs.archunit.junit5)

@@ -4,7 +4,7 @@ import com.beat.application.admin.exception.AdminApplicationErrorType
 import com.beat.application.admin.exception.AdminApplicationException
 import com.beat.apps.admin.response.ErrorResponse
 import jakarta.servlet.http.HttpServletRequest
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.beans.TypeMismatchException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -98,7 +98,7 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         request: WebRequest,
     ): ResponseEntity<Any>? {
         if (statusCode.is5xxServerError) {
-            log.error("Unexpected Spring MVC error: ", ex)
+            log.error(ex) { "Unexpected Spring MVC error" }
             if (request is ServletWebRequest) markObservationError(request.request, ex)
         }
         return super.handleExceptionInternal(ex, body, headers, statusCode, request)
@@ -125,7 +125,7 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
 
     @ExceptionHandler(Exception::class)
     fun handleException(exception: Exception, request: HttpServletRequest): ResponseEntity<ErrorResponse> {
-        log.error("Unexpected server error: ", exception)
+        log.error(exception) { "Unexpected server error" }
         markObservationError(request, exception)
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR.value(), "서버 내부 오류입니다."))
@@ -141,12 +141,12 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         val status = toHttpStatus(type)
         when {
             type == AdminApplicationErrorType.INTERNAL_ERROR -> {
-                log.error("Application failure: code={}, status={}", errorCode.code, status.value(), exception)
+                log.error(exception) { "Application failure: code=${errorCode.code}, status=${status.value()}" }
                 markObservationError(request, exception)
             }
             status.is5xxServerError ->
-                log.error("Upstream application failure: code={}, status={}", errorCode.code, status.value())
-            else -> log.info("Application failure: code={}, status={}", errorCode.code, status.value())
+                log.error { "Upstream application failure: code=${errorCode.code}, status=${status.value()}" }
+            else -> log.info { "Application failure: code=${errorCode.code}, status=${status.value()}" }
         }
         return ResponseEntity.status(status).body(ErrorResponse.of(status.value(), errorCode.message))
     }
@@ -165,7 +165,7 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
     }
 
     companion object {
-        private val log = LoggerFactory.getLogger(AdminGlobalExceptionHandler::class.java)
+        private val log = KotlinLogging.logger {}
 
         private fun toHttpStatus(type: AdminApplicationErrorType): HttpStatus = when (type) {
             AdminApplicationErrorType.INVALID_INPUT -> HttpStatus.BAD_REQUEST

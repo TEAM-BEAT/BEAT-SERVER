@@ -1,6 +1,6 @@
 package com.beat.apps.batch.config
 
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.util.ErrorHandler
 
 /**
@@ -18,9 +18,9 @@ import org.springframework.util.ErrorHandler
  */
 class ScheduledTaskErrorHandler : ErrorHandler {
 
-    private val log = LoggerFactory.getLogger(ScheduledTaskErrorHandler::class.java)
+    private val log = KotlinLogging.logger {}
 
     override fun handleError(t: Throwable) {
-        log.error("Batch task execution failed", t)
+        log.error(t) { "Batch task execution failed" }
     }
 }

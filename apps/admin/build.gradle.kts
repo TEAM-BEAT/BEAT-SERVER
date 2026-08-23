@@ -17,6 +17,7 @@ dependencies {
     implementation(project(":support:security"))
     implementation(project(":infrastructure"))
     implementation(project(":support:observability"))
+    implementation(libs.kotlin.logging.jvm)
 
     testImplementation(project(":domain"))
     testImplementation(libs.bundles.integration.testcontainers)

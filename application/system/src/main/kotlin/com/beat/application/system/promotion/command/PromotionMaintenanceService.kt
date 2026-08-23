@@ -6,7 +6,7 @@ import com.beat.domain.promotion.repository.PromotionRepository
 import com.beat.domain.promotion.service.PromotionCarouselDomainService
 import com.beat.domain.promotion.service.PromotionEligibilityDomainService
 import com.beat.domain.schedule.repository.ScheduleRepository
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -36,7 +36,7 @@ class PromotionMaintenanceService(
 
         if (promotionIdsToDelete.isEmpty()) return
 
-        log.info("Deleting promotions: {}", promotionIdsToDelete)
+        log.info { "Deleting promotions: $promotionIdsToDelete" }
         promotionRepository.deleteByPromotionIds(promotionIdsToDelete)
         val remainingPromotions = authoritativePromotions.filterNot { it.id in promotionIdsToDelete }
         promotionRepository.saveAll(promotionCarouselDomainService.arrangeCarouselNumbers(remainingPromotions))
@@ -70,6 +70,6 @@ class PromotionMaintenanceService(
     }
 
     private companion object {
-        val log = LoggerFactory.getLogger(PromotionMaintenanceService::class.java)
+        private val log = KotlinLogging.logger {}
     }
 }
