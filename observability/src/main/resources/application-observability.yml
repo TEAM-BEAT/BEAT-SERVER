@@ -38,7 +38,8 @@ management:
         http.server.requests: 0.95, 0.99
 
   tracing:
-    enabled: false
+    export:
+      enabled: false
     sampling:
       probability: 1.0
     propagation:
@@ -85,7 +86,8 @@ management:
     web:
       base-path: ${DEV_ACTUATOR_PATH}
   tracing:
-    enabled: true
+    export:
+      enabled: true
     sampling:
       probability: 1.0
 
@@ -109,7 +111,8 @@ management:
     web:
       base-path: ${PROD_ACTUATOR_PATH}
   tracing:
-    enabled: true
+    export:
+      enabled: true
     sampling:
       probability: 1.0
 
@@ -133,7 +136,8 @@ management:
     web:
       base-path: /actuator-test
   tracing:
-    enabled: false
+    export:
+      enabled: false
 
 sentry:
   dsn: ""
