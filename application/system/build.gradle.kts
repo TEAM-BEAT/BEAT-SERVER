@@ -6,7 +6,7 @@ plugins {
 dependencies {
     implementation(platform(libs.spring.boot.dependencies))
     implementation(project(":domain"))
-    implementation("org.slf4j:slf4j-api")
+    implementation(libs.slf4j.api)
     implementation(libs.spring.context)
     implementation(libs.spring.tx)
 }

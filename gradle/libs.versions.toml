@@ -34,6 +34,7 @@ dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.r
 [libraries]
 spring-context = { module = "org.springframework:spring-context" }
 spring-tx = { module = "org.springframework:spring-tx" }
+slf4j-api = { module = "org.slf4j:slf4j-api" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
