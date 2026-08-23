@@ -6,14 +6,17 @@ import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.FunSpec
 import java.nio.file.Files
 import java.nio.file.Path
 
-class ApisArchitectureGuardTest {
-
-    private val productionClasses: JavaClasses by lazy {
+/**
+ * API composition-root contracts that neither the Gradle module graph nor Kotlin
+ * visibility can enforce. Dependency-direction rules live in verifyTargetModuleGraph;
+ * infrastructure implementation hiding is enforced by `internal`. Do not duplicate them here.
+ */
+class ApisArchitectureGuardTest : FunSpec({
+    val productionClasses: JavaClasses by lazy {
         val productionClassPaths = listOf(
             Path.of("build/classes/kotlin/main"),
             Path.of("build/classes/java/main"),
@@ -24,14 +27,14 @@ class ApisArchitectureGuardTest {
         ClassFileImporter().importPaths(productionClassPaths)
     }
 
-    @Test
-    fun `production classes stay in the api adapter owner`() {
-        classes()
-            .should()
-            .resideInAnyPackage("com.beat.apis..")
-            .because("API production classes must remain owned by the API adapter")
-            .check(productionClasses)
+    val concreteApplicationServiceOrInfrastructure =
+        object : DescribedPredicate<JavaClass>("be a concrete application service or infrastructure type") {
+            override fun test(input: JavaClass): Boolean =
+                input.packageName.startsWith("com.beat.infra.") ||
+                    (input.packageName.startsWith("com.beat.application.") && input.simpleName.endsWith("Service"))
+        }
 
+    test("controller와 facade는 각자의 어댑터 패키지에 위치한다") {
         classes()
             .that()
             .haveSimpleNameEndingWith("Controller")
@@ -49,119 +52,20 @@ class ApisArchitectureGuardTest {
             .check(productionClasses)
     }
 
-    @Test
-    fun `legacy owner packages are absent from the compiled api output`() {
-        val violations = productionClasses
-            .filter { it.packageName.startsWith("com.beat.domain.") || it.packageName.startsWith("com.beat.global.") }
-            .map(JavaClass::getFullName)
-            .sorted()
-
-        assertTrue(
-            violations.isEmpty(),
-            "API production output must not reintroduce legacy owner packages: ${violations.joinToString(", ")}",
-        )
-    }
-
-    @Test
-    fun `production classes do not depend on domain types`() {
-        noClasses()
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("com.beat.domain..")
-            .because("API production code must depend on application contracts, not Domain types")
-            .check(productionClasses)
-    }
-
-    @Test
-    fun `dto and event adapters do not depend on domain types`() {
-        noClasses()
-            .that()
-            .resideInAnyPackage(
-                "com.beat.apis..api.request..",
-                "com.beat.apis..api.response..",
-                "com.beat.apis..application.result..",
-                "com.beat.apis..application.event..",
-            )
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("com.beat.domain..")
-            .because("API transport and event contracts must not expose Domain types")
-            .check(productionClasses)
-    }
-
-    @Test
-    fun `controllers do not depend on concrete application services or infrastructure`() {
+    test("controller는 api facade를 통해서만 유즈케이스에 진입한다") {
         noClasses()
             .that()
             .haveSimpleNameEndingWith("Controller")
             .should()
             .dependOnClassesThat(concreteApplicationServiceOrInfrastructure)
-            .because("Controllers must enter use cases through API facades")
+            .because("Controllers must delegate orchestration to API facades, never call services or infrastructure directly")
             .check(productionClasses)
     }
 
-    @Test
-    fun `facades do not depend on domain or infrastructure implementations`() {
-        noClasses()
-            .that()
-            .haveSimpleNameEndingWith("Facade")
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("com.beat.domain..", "com.beat.infra..")
-            .because("Facades must delegate to application services")
-            .check(productionClasses)
-    }
-
-    @Test
-    fun `only api configuration and bootstrap may depend on public infrastructure configuration`() {
-        noClasses()
-            .that(nonBootstrapClasses)
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("com.beat.infra..")
-            .because("Infrastructure configuration is visible only to API bootstrap configuration")
-            .check(productionClasses)
-    }
-
-    @Test
-    fun `api classes do not reach gateway internals or legacy runtime lanes`() {
-        noClasses()
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage(
-                "com.beat.support.security..internal..",
-                "com.beat.batch..",
-                "com.beat.global..",
-                "com.beat.legacyroot..",
-            )
-            .because("API adapters use public support boundaries and their assigned runtime lane")
-            .check(productionClasses)
-    }
-
-    @Test
-    fun `provider specific api packages are absent`() {
-        classes()
-            .should()
-            .resideOutsideOfPackages(
-                "com.beat.apis.external.s3..",
-                "com.beat.apis.external.sms..",
-                "com.beat.apis.external.image..",
-                "com.beat.apis.external.notification.slack..",
-            )
-            .because("Provider-specific adapters belong to infrastructure")
-            .check(productionClasses)
-    }
-
-    private val concreteApplicationServiceOrInfrastructure =
-        object : DescribedPredicate<JavaClass>("be a concrete application service or infrastructure type") {
-            override fun test(input: JavaClass): Boolean {
-                return input.packageName.startsWith("com.beat.infra.") ||
-                    (input.packageName.startsWith("com.beat.application.") && input.simpleName.endsWith("Service"))
-            }
-        }
-
-    private val nonBootstrapClasses =
-        object : DescribedPredicate<JavaClass>("be an API class outside configuration/bootstrap") {
+    test("infra 공개 설정 타입은 bootstrap만 사용할 수 있다") {
+        val nonBootstrapClasses = object : DescribedPredicate<JavaClass>(
+            "be an API class outside configuration/bootstrap",
+        ) {
             override fun test(input: JavaClass): Boolean {
                 if (!input.packageName.startsWith("com.beat.apis.")) {
                     return false
@@ -169,4 +73,12 @@ class ApisArchitectureGuardTest {
                 return !input.packageName.contains(".config") && input.simpleName != "ApisApplication"
             }
         }
-}
+        noClasses()
+            .that(nonBootstrapClasses)
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("com.beat.infra..")
+            .because("Infrastructure wiring types may only be consumed by API bootstrap configuration")
+            .check(productionClasses)
+    }
+})

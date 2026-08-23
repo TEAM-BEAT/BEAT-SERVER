@@ -47,12 +47,12 @@ class SchedulingErrorHandlingIntegrationTest : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("maintenanceTaskSchedulerUsesCentralErrorHandler") {
+        test("maintenance TaskScheduler는 중앙 error handler를 사용한다") {
             ReflectionTestUtils.getField(taskScheduler, "errorHandler")
                 .shouldBeInstanceOf<ScheduledTaskErrorHandler>()
         }
 
-        test("dynamicScheduledTaskFailureIsHandledByCentralErrorHandler") {
+        test("동적 scheduled task의 실패는 중앙 error handler가 처리한다") {
             val events = captureLogEvents(ScheduledTaskErrorHandler::class.java.name) { collected ->
                 taskScheduler.schedule(
                     { throw IllegalStateException("dynamic-schedule-boom") },

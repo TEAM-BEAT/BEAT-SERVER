@@ -53,7 +53,7 @@ class TicketControllerWebSpec : FunSpec() {
             Mockito.reset(ticketQueryService, ticketCommandService)
         }
 
-        test("gets tickets with API filters mapped by the real facade") {
+        test("실제 facade로 매핑된 API 필터로 티켓 목록을 조회한다") {
             val expected = ticketResult()
             val query = TicketListQuery(null, listOf("FIRST"), listOf("CHECKING_PAYMENT"))
             Mockito.`when`(ticketQueryService.findAllTicketsByConditions(MEMBER_ID, PERFORMANCE_ID, query))
@@ -77,7 +77,7 @@ class TicketControllerWebSpec : FunSpec() {
             Mockito.verify(ticketQueryService).findAllTicketsByConditions(MEMBER_ID, PERFORMANCE_ID, query)
         }
 
-        test("searches tickets with API filters mapped by the real facade") {
+        test("실제 facade로 매핑된 API 필터로 티켓을 검색한다") {
             val expected = ticketResult()
             val query = TicketListQuery("ab", listOf("FIRST"), listOf("CHECKING_PAYMENT"))
             Mockito.`when`(ticketQueryService.searchAllTicketsByConditions(MEMBER_ID, PERFORMANCE_ID, query))

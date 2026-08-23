@@ -18,7 +18,7 @@ import java.time.LocalDate
 class PerformancePersistenceMapperTest : FunSpec({
     val mapper = PerformancePersistenceMapper()
 
-    test("roundTripsValueObjectsWithoutChangingLegacyColumns") {
+    test("레거시 컬럼을 변경하지 않고 value object를 왕복한다") {
         val domain = performance(PaymentAccount.of(BankName.KAKAOBANK, "123", "holder"))
 
         val entity = mapper.toEntity(domain)
@@ -33,14 +33,14 @@ class PerformancePersistenceMapperTest : FunSpec({
         roundTrip.ticketPriceValue shouldBe domain.ticketPriceValue
     }
 
-    test("keepsAllNullPaymentAccountAsNull") {
+    test("모두 null인 payment account는 null로 유지된다") {
         val entity = mapper.toEntity(performance(null))
 
         entity.paymentAccount shouldBe null
         mapper.toDomain(entity).paymentAccount shouldBe null
     }
 
-    test("rejectsPartiallyPopulatedPeriodColumns") {
+    test("부분적으로만 채워진 period 컬럼은 거부된다") {
         val sourceEntity = mapper.toEntity(performance(null))
         val partialPeriod = PerformancePeriodJpaValue(
             null,

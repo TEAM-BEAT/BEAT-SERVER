@@ -23,7 +23,7 @@ class BatchApplicationTest : FunSpec() {
     init {
         isolationMode = IsolationMode.SingleInstance
 
-        test("batch application keeps detached module import contract") {
+        test("batch application은 분리된 모듈 import 계약을 유지한다") {
             val importAnnotation = BatchApplication::class.java.getAnnotation(Import::class.java)
             importAnnotation shouldNotBe null
             val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
@@ -35,7 +35,7 @@ class BatchApplicationTest : FunSpec() {
             )
         }
 
-        test("batch application keeps scheduling local to the module bootstrap") {
+        test("batch application은 scheduling을 모듈 부트스트랩 안에 유지한다") {
             val springBootApplication = BatchApplication::class.java.getAnnotation(SpringBootApplication::class.java)
             val componentScan = BatchApplication::class.java.getAnnotation(ComponentScan::class.java)
             val enableScheduling = BatchApplication::class.java.getAnnotation(EnableScheduling::class.java)
@@ -47,7 +47,7 @@ class BatchApplicationTest : FunSpec() {
                 setOf(BatchApplication::class.java.name)
         }
 
-        test("batch infra config keeps explicit base bootstrap groups") {
+        test("batch infra config는 명시적인 base bootstrap group을 유지한다") {
             InfraConfig::class.java.getAnnotation(Configuration::class.java) shouldNotBe null
             val enableInfraBaseConfig = InfraConfig::class.java.getAnnotation(EnableInfraBaseConfig::class.java)
             enableInfraBaseConfig shouldNotBe null
@@ -61,7 +61,7 @@ class BatchApplicationTest : FunSpec() {
             imports!!.value.map { it.java.name }.toSet() shouldBe setOf(InfraPersistenceConfig::class.java.name)
         }
 
-        test("batch resources enable scheduler ownership by default") {
+        test("batch 리소스는 기본으로 scheduler 소유를 활성화한다") {
             val config = Files.readString(Path.of("src/main/resources/application.yml"))
 
             config.contains("beat:") shouldBe true

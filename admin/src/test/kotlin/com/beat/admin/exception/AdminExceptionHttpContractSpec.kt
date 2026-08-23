@@ -37,28 +37,28 @@ class AdminExceptionHttpContractSpec : FunSpec() {
     init {
         isolationMode = IsolationMode.SingleInstance
 
-        test("malformed JSON uses the legacy error envelope") {
+        test("형식이 잘못된 JSON은 레거시 에러 응답 형식을 사용한다") {
             mockMvc.perform(post("/test").contentType(MediaType.APPLICATION_JSON).content("{"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("잘못된 요청입니다."))
         }
 
-        test("unsupported methods preserve the Allow header") {
+        test("지원하지 않는 HTTP 메서드는 Allow 헤더를 유지한다") {
             mockMvc.perform(put("/test"))
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(header().string("Allow", "POST"))
                 .andExpect(jsonPath("$.status").value(405))
         }
 
-        test("unknown routes keep the legacy error envelope") {
+        test("알 수 없는 경로는 레거시 에러 응답 형식을 유지한다") {
             mockMvc.perform(get("/unknown-route"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("잘못된 요청입니다."))
         }
 
-        test("missing static resources keep an empty not-found body") {
+        test("존재하지 않는 정적 리소스는 빈 not-found 본문을 유지한다") {
             val response = handler.handleNoResourceFoundException(
                 NoResourceFoundException(HttpMethod.GET, "/missing-resource", "missing-resource"),
                 HttpHeaders(),
@@ -70,7 +70,7 @@ class AdminExceptionHttpContractSpec : FunSpec() {
             response?.body.shouldBeNull()
         }
 
-        test("unexpected exception messages are not exposed") {
+        test("예상치 못한 예외 메시지는 노출되지 않는다") {
             val response = handler.handleException(
                 IllegalArgumentException("internal contract detail"),
                 MockHttpServletRequest(),
@@ -81,7 +81,7 @@ class AdminExceptionHttpContractSpec : FunSpec() {
             response.body!!.message shouldBe "서버 내부 오류입니다."
         }
 
-        test("committed responses are protected by Spring MVC") {
+        test("이미 커밋된 응답은 Spring MVC가 보호한다") {
             val servletResponse = MockHttpServletResponse()
             servletResponse.isCommitted = true
 
@@ -96,7 +96,7 @@ class AdminExceptionHttpContractSpec : FunSpec() {
             response.shouldBeNull()
         }
 
-        test("application errors preserve mapped status and declared message") {
+        test("application 에러는 매핑된 상태 코드와 선언된 메시지를 유지한다") {
             val response = handler.handleApplicationException(
                 AdminApplicationException(TestApplicationErrorCode(AdminApplicationErrorType.NOT_FOUND)),
                 MockHttpServletRequest(),

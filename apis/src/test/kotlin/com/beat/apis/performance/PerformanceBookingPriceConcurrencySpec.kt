@@ -60,6 +60,9 @@ import java.util.concurrent.TimeUnit
 @Import(BeatTestContainersConfig::class, PerformanceBookingPriceConcurrencySpec.TestConfig::class)
 @Tags("correctness")
 open class PerformanceBookingPriceConcurrencySpec : FunSpec() {
+
+private val NOW: LocalDateTime = LocalDateTime.now()
+
     @Autowired
     private lateinit var guestBookingCommandService: GuestBookingCommandService
 
@@ -196,14 +199,14 @@ open class PerformanceBookingPriceConcurrencySpec : FunSpec() {
                 latitude = "37.0",
                 longitude = "127.0",
                 performanceContact = "010-0000-0000",
-                performancePeriod = PerformancePeriod.of(LocalDate.now().plusDays(1), LocalDate.now().plusDays(1)),
+                performancePeriod = PerformancePeriod.of(NOW.toLocalDate(), NOW.toLocalDate()),
                 ticketPrice = TicketPrice.of(OLD_TICKET_PRICE),
                 totalScheduleCount = 1,
                 userId = makerUserId,
             ),
         )
         val performanceId = requireNotNull(performance.id)
-        val performanceDate = LocalDateTime.now().plusDays(1)
+        val performanceDate = NOW.plusDays(1)
         val schedule = scheduleRepository.save(
             Schedule.create(
                 performanceDate = performanceDate,

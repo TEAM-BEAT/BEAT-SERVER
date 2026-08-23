@@ -36,11 +36,11 @@ class MySqlSessionTimeZoneIntegrationSpec : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("uses the configured Seoul session time zone") {
+        test("설정된 Seoul 세션 타임존을 사용한다") {
             jdbcTemplate.queryForObject("SELECT @@session.time_zone", String::class.java) shouldBe "+09:00"
         }
 
-        test("returns the current timestamp within the surrounding Seoul wall-clock interval") {
+        test("현재 타임스탬프를 감싸는 Seoul 벽시계 구간 안에서 반환한다") {
             val zone = ZoneId.of("Asia/Seoul")
             val beforeQuery = LocalDateTime.now(zone)
             val databaseNow = jdbcTemplate.queryForObject(

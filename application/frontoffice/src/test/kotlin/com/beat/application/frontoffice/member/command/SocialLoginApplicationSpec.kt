@@ -17,7 +17,7 @@ import org.mockito.Mockito
 
 class SocialLoginApplicationSpec : FunSpec({
 
-    test("provider failures map to the exact member application error, preserve cause, and stop downstream work") {
+    test("provider 실패는 정확한 member application 에러로 매핑되고 원인을 보존하며 downstream 작업을 중단한다") {
         val failures = listOf(
             SocialLoginFailure.unsupportedSocialType() to MemberApplicationErrorCode.SOCIAL_TYPE_BAD_REQUEST,
             SocialLoginFailure.authenticationFailed() to MemberApplicationErrorCode.AUTHENTICATION_CODE_EXPIRED,
@@ -52,7 +52,7 @@ class SocialLoginApplicationSpec : FunSpec({
         }
     }
 
-    test("existing member login composes the application session with the linked user role") {
+    test("기존 member 로그인은 연결된 user 역할로 application 세션을 구성한다") {
         val socialLoginProvider = Mockito.mock(SocialLoginProvider::class.java)
         val socialLoginMemberResolver = Mockito.mock(SocialLoginMemberResolver::class.java)
         val loginSessionIssuer = Mockito.mock(LoginSessionIssuer::class.java)
@@ -84,7 +84,7 @@ class SocialLoginApplicationSpec : FunSpec({
         Mockito.verify(loginSessionIssuer).issueFor(MEMBER_ID, Role.MEMBER.roleName)
     }
 
-    test("missing linked user maps to not found and does not issue a session") {
+    test("연결된 user가 없으면 not found로 매핑하고 세션을 발급하지 않는다") {
         val socialLoginProvider = Mockito.mock(SocialLoginProvider::class.java)
         val socialLoginMemberResolver = Mockito.mock(SocialLoginMemberResolver::class.java)
         val loginSessionIssuer = Mockito.mock(LoginSessionIssuer::class.java)

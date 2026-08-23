@@ -7,15 +7,18 @@ import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.FunSpec
 import org.springframework.scheduling.annotation.Scheduled
 import java.nio.file.Files
 import java.nio.file.Path
 
-class BatchArchitectureGuardTest {
-
-    private val productionClasses: JavaClasses by lazy {
+/**
+ * Batch composition-root contracts. Module-level isolation (only :application:system,
+ * :infrastructure, :support:observability on the classpath) is enforced by the Gradle
+ * graph; these rules cover what remains invisible to the build.
+ */
+class BatchArchitectureGuardTest : FunSpec({
+    val productionClasses: JavaClasses by lazy {
         val productionClassPaths = listOf(
             Path.of("build/classes/kotlin/main"),
             Path.of("build/classes/java/main"),
@@ -26,30 +29,7 @@ class BatchArchitectureGuardTest {
         ClassFileImporter().importPaths(productionClassPaths)
     }
 
-    @Test
-    fun `production classes stay in the batch owner`() {
-        classes()
-            .should()
-            .resideInAnyPackage("com.beat.batch..")
-            .because("Batch production classes must remain owned by the batch adapter")
-            .check(productionClasses)
-    }
-
-    @Test
-    fun `legacy owner packages are absent from the compiled batch output`() {
-        val violations = productionClasses
-            .filter { it.packageName.startsWith("com.beat.domain.") || it.packageName.startsWith("com.beat.global.") }
-            .map(JavaClass::getFullName)
-            .sorted()
-
-        assertTrue(
-            violations.isEmpty(),
-            "Batch production output must not reintroduce legacy owner packages: ${violations.joinToString(", ")}",
-        )
-    }
-
-    @Test
-    fun `scheduled entrypoints live in batch job packages`() {
+    test("@Scheduled 진입점은 batch job 패키지에만 위치한다") {
         methods()
             .that()
             .areAnnotatedWith(Scheduled::class.java)
@@ -60,17 +40,7 @@ class BatchArchitectureGuardTest {
             .check(productionClasses)
     }
 
-    @Test
-    fun `batch jobs depend on System application and not Domain or infrastructure implementations`() {
-        classes()
-            .that()
-            .resideInAnyPackage("com.beat.batch..job..")
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("com.beat.application.system..")
-            .because("Batch jobs must enter use cases through the System application boundary")
-            .check(productionClasses)
-
+    test("batch job은 System application 경계로만 워크플로우에 진입한다") {
         noClasses()
             .that()
             .resideInAnyPackage("com.beat.batch..job..")
@@ -79,46 +49,17 @@ class BatchArchitectureGuardTest {
             .resideInAnyPackage(
                 "com.beat.application.frontoffice..",
                 "com.beat.application.admin..",
-                "com.beat.domain..",
+                "com.beat.support.security..",
                 "com.beat.infra..",
-                "com.beat.support.security..",
             )
-            .because("Batch jobs must not bypass the System application boundary")
+            .because("Batch jobs must reach business workflows exclusively via application:system use cases")
             .check(productionClasses)
     }
 
-    @Test
-    fun `batch classes do not reach root or other runtime lanes`() {
-        noClasses()
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage(
-                "com.beat.BeatApplication",
-                "com.beat.legacyroot..",
-                "com.beat.global..",
-                "com.beat.support.security..",
-                "com.beat.apis..",
-                "com.beat.admin..",
-                "com.beat.application.frontoffice..",
-                "com.beat.application.admin..",
-            )
-            .because("Batch must remain an isolated runtime lane")
-            .check(productionClasses)
-    }
-
-    @Test
-    fun `only batch configuration and bootstrap may depend on infrastructure configuration`() {
-        noClasses()
-            .that(nonBootstrapClasses)
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("com.beat.infra..")
-            .because("Infrastructure configuration is visible only to batch bootstrap configuration")
-            .check(productionClasses)
-    }
-
-    private val nonBootstrapClasses =
-        object : DescribedPredicate<JavaClass>("be a batch class outside configuration/bootstrap") {
+    test("infra 공개 설정 타입은 bootstrap만 사용할 수 있다") {
+        val nonBootstrapClasses = object : DescribedPredicate<JavaClass>(
+            "be a batch class outside configuration/bootstrap",
+        ) {
             override fun test(input: JavaClass): Boolean {
                 if (!input.packageName.startsWith("com.beat.batch.")) {
                     return false
@@ -126,4 +67,12 @@ class BatchArchitectureGuardTest {
                 return !input.packageName.contains(".config") && input.simpleName != "BatchApplication"
             }
         }
-}
+        noClasses()
+            .that(nonBootstrapClasses)
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("com.beat.infra..")
+            .because("Infrastructure wiring types may only be consumed by batch bootstrap configuration")
+            .check(productionClasses)
+    }
+})

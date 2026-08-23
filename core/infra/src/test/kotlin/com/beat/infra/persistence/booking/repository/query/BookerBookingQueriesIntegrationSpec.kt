@@ -58,7 +58,7 @@ class BookerBookingQueriesIntegrationSpec : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("maps multiple bookings with enum stored amount and nullable payment account on MySQL") {
+        test("MySQL에서 enum으로 저장된 금액과 nullable payment account를 가진 여러 booking을 매핑한다") {
             val paidPerformance = performanceRepository.saveAndFlush(
                 performance("Paid", PaymentAccountJpaValue(BankName.KAKAOBANK, "123", "BEAT")),
             )

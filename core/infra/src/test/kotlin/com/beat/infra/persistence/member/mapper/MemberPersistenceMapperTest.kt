@@ -14,7 +14,7 @@ import java.time.LocalDateTime
 class MemberPersistenceMapperTest : FunSpec({
     val mapper = MemberPersistenceMapper()
 
-    test("toDomainPreservesSocialIdentityAndScalarUserId") {
+    test("toDomain은 social identity와 scalar userId를 보존한다") {
         val deletedAt = LocalDateTime.of(2026, 7, 16, 12, 30)
         val entity = MemberJpaEntity.rehydrate(
             11L,
@@ -36,7 +36,7 @@ class MemberPersistenceMapperTest : FunSpec({
         member.socialIdentity shouldBe SocialIdentity.of(SocialType.KAKAO, 33L)
     }
 
-    test("roundTripPreservesNewMemberAndGeneratedIdRemainsNull") {
+    test("왕복 시 신규 member를 보존하고 생성 id는 null로 유지된다") {
         val socialIdentity = SocialIdentity.of(SocialType.KAKAO, 44L)
         val member = Member.create("new-member", null, 55L, socialIdentity)
 
@@ -50,7 +50,7 @@ class MemberPersistenceMapperTest : FunSpec({
         roundTrip.socialIdentity shouldBe socialIdentity
     }
 
-    test("invalidStoredSocialIdentityIsTranslatedToPersistenceFailure") {
+    test("저장된 social identity가 유효하지 않으면 persistence failure로 변환된다") {
         val corrupted = mock(MemberJpaEntity::class.java)
 
         shouldThrow<PersistenceMappingException> { mapper.toDomain(corrupted) }

@@ -29,7 +29,7 @@ class AdminApplicationTest : FunSpec() {
     init {
         isolationMode = IsolationMode.SingleInstance
 
-        test("admin application keeps detached module import contract") {
+        test("admin application은 분리된 모듈 import 계약을 유지한다") {
             val importAnnotation = AdminApplication::class.java.getAnnotation(Import::class.java)
             importAnnotation shouldNotBe null
             val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
@@ -42,7 +42,7 @@ class AdminApplicationTest : FunSpec() {
             )
         }
 
-        test("admin selects gateway servlet security bootstrap without refresh token store") {
+        test("admin은 refresh token store 없이 gateway servlet security 부트스트랩을 선택한다") {
             val enableGatewayServletSecurity =
                 GatewayConfig::class.java.getAnnotation(EnableGatewayServletSecurity::class.java)
             val enableGatewayConfig = GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
@@ -52,13 +52,13 @@ class AdminApplicationTest : FunSpec() {
             GatewayConfig::class.java.getAnnotation(Configuration::class.java) shouldNotBe null
         }
 
-        test("admin security config exists for module owned route policy") {
+        test("admin 소유 경로 정책을 위해 AdminSecurityConfig가 존재한다") {
             val configuration = AdminSecurityConfig::class.java.getAnnotation(Configuration::class.java)
 
             configuration shouldNotBe null
         }
 
-        test("admin swagger config exists as non prod module owned documentation policy") {
+        test("prod 외 환경용 admin 소유 문서화 정책으로 AdminSwaggerConfig가 존재한다") {
             val profile = AdminSwaggerConfig::class.java.getAnnotation(Profile::class.java)
             profile shouldNotBe null
             profile!!.value.toSet() shouldBe setOf("!prod")
@@ -68,7 +68,7 @@ class AdminApplicationTest : FunSpec() {
             groupedOpenApi.pathsToMatch shouldBe listOf("/api/admin/**")
         }
 
-        test("admin application no longer owns broad component scan") {
+        test("admin application은 더 이상 광범위한 component scan을 소유하지 않는다") {
             val componentScan = AdminApplication::class.java.getAnnotation(ComponentScan::class.java)
             componentScan shouldBe null
 
@@ -78,12 +78,12 @@ class AdminApplicationTest : FunSpec() {
                 setOf(AdminApplication::class.java.name)
         }
 
-        test("admin application does not enable scheduling") {
+        test("admin application은 scheduling을 활성화하지 않는다") {
             val enableScheduling = AdminApplication::class.java.getAnnotation(EnableScheduling::class.java)
             enableScheduling shouldBe null
         }
 
-        test("admin infra config keeps explicit base bootstrap groups and imports") {
+        test("admin infra config는 명시적인 base bootstrap group과 import를 유지한다") {
             InfraConfig::class.java.getAnnotation(Configuration::class.java) shouldNotBe null
             val enableInfraBaseConfig = InfraConfig::class.java.getAnnotation(EnableInfraBaseConfig::class.java)
             enableInfraBaseConfig shouldNotBe null
@@ -97,7 +97,7 @@ class AdminApplicationTest : FunSpec() {
             imports!!.value.map { it.java.name }.toSet() shouldBe setOf(InfraPersistenceConfig::class.java.name)
         }
 
-        test("admin resources keep scheduler owner disabled") {
+        test("admin 리소스는 scheduler owner 비활성 설정을 유지한다") {
             val config = Files.readString(Path.of("src/main/resources/application.yml"))
 
             config.contains("beat:") shouldBe true

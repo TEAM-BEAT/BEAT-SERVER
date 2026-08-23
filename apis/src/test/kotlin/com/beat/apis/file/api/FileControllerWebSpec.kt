@@ -32,7 +32,7 @@ class FileControllerWebSpec : FunSpec() {
             Mockito.reset(fileFacade)
         }
 
-        test("canonical performanceImages parameter is forwarded") {
+        test("canonical performanceImages 파라미터가 전달된다") {
             mockMvc.perform(
                 get("/api/files/presigned-url")
                     .param("posterImage", "poster.png")
@@ -47,38 +47,7 @@ class FileControllerWebSpec : FunSpec() {
             )
         }
 
-        test("legacy performImages parameter is forwarded") {
-            mockMvc.perform(
-                get("/api/files/presigned-url")
-                    .param("posterImage", "poster.png")
-                    .param("performImages", "performance.png"),
-            ).andExpect(status().isOk)
-
-            Mockito.verify(fileFacade).issueAllPresignedUrlsForPerformanceMaker(
-                "poster.png",
-                null,
-                null,
-                listOf("performance.png"),
-            )
-        }
-
-        test("canonical performanceImages takes precedence over legacy alias") {
-            mockMvc.perform(
-                get("/api/files/presigned-url")
-                    .param("posterImage", "poster.png")
-                    .param("performanceImages", "canonical.png")
-                    .param("performImages", "legacy.png"),
-            ).andExpect(status().isOk)
-
-            Mockito.verify(fileFacade).issueAllPresignedUrlsForPerformanceMaker(
-                "poster.png",
-                null,
-                null,
-                listOf("canonical.png"),
-            )
-        }
-
-        test("empty performanceImages placeholder is bound as an empty list") {
+        test("빈 performanceImages 값은 빈 리스트로 바인딩된다") {
             mockMvc.perform(
                 get("/api/files/presigned-url")
                     .param("posterImage", "poster.png")

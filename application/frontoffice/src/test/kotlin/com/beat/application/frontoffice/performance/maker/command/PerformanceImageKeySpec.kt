@@ -14,7 +14,7 @@ class PerformanceImageKeySpec : FunSpec({
         performanceImageStorage = Mockito.mock(PerformanceImageStorage::class.java)
     }
 
-    test("validates an absolute image URL after extracting its storage key") {
+    test("storage key를 추출한 뒤 절대 image URL을 검증한다") {
         val imageKey = "dev/poster/poster.png"
         Mockito.`when`(performanceImageStorage.exists(imageKey)).thenReturn(true)
 
@@ -27,7 +27,7 @@ class PerformanceImageKeySpec : FunSpec({
         result shouldBe imageKey
     }
 
-    test("rejects an uploaded image from another category") {
+    test("다른 카테고리에서 업로드된 image는 거부된다") {
         val exception = shouldThrow<FrontofficeApplicationException> {
             validateStoredPerformanceImage(performanceImageStorage, "dev/staff/staff.png", "cast")
         }
@@ -36,7 +36,7 @@ class PerformanceImageKeySpec : FunSpec({
         Mockito.verifyNoInteractions(performanceImageStorage)
     }
 
-    test("rejects an image missing from object storage") {
+    test("object storage에 없는 image는 거부된다") {
         val imageKey = "dev/performance/detail.png"
         Mockito.`when`(performanceImageStorage.exists(imageKey)).thenReturn(false)
 
@@ -47,7 +47,7 @@ class PerformanceImageKeySpec : FunSpec({
         exception.errorCode shouldBe PerformanceApplicationErrorCode.INVALID_IMAGE_KEY
     }
 
-    test("allows an empty optional image without object storage access") {
+    test("빈 선택 image는 object storage 접근 없이 허용된다") {
         val result = validateStoredPerformanceImage(
             performanceImageStorage = performanceImageStorage,
             value = "",

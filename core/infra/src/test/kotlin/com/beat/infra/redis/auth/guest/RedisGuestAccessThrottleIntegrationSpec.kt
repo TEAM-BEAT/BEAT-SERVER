@@ -32,7 +32,7 @@ class RedisGuestAccessThrottleIntegrationSpec : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("guest access failures block at five attempts and reset removes the block") {
+        test("guest 접근 실패는 5회 시도에서 차단되고 reset으로 차단이 해제된다") {
             val key = redisKey(KEY_MATERIAL)
             try {
                 guestAccessThrottlePort.isBlocked(KEY_MATERIAL).shouldBeFalse()

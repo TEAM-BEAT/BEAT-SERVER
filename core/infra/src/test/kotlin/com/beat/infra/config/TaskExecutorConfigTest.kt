@@ -18,7 +18,7 @@ class TaskExecutorConfigTest : FunSpec({
             .withConfiguration(AutoConfigurations.of(TaskExecutionAutoConfiguration::class.java))
             .withUserConfiguration(TaskExecutorConfig::class.java)
 
-    test("beat async executor is configured with thread pool properties") {
+    test("beat async executor는 thread pool 속성으로 구성된다") {
         contextRunner
             .withPropertyValues(
                 "thread-pool.core-size=3",
@@ -41,7 +41,7 @@ class TaskExecutorConfigTest : FunSpec({
             }
     }
 
-    test("available task decorator beans are applied to beat async executor") {
+    test("등록된 task decorator bean이 beat async executor에 적용된다") {
         val decorated = AtomicBoolean(false)
         val taskDecorator = TaskDecorator { runnable ->
             Runnable {
@@ -68,7 +68,7 @@ class TaskExecutorConfigTest : FunSpec({
             }
     }
 
-    test("beat async executor is excluded from default injection candidate") {
+    test("beat async executor는 기본 주입 후보에서 제외된다") {
         contextRunner
             .withPropertyValues(
                 "thread-pool.core-size=3",

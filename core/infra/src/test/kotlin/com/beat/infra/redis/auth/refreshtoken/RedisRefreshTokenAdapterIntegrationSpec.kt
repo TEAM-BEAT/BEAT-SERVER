@@ -33,7 +33,7 @@ class RedisRefreshTokenAdapterIntegrationSpec : FunSpec() {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
         context("refresh token Redis adapter") {
-            test("round trip preserves the legacy type alias and configured ttl") {
+            test("왕복 시 레거시 type alias와 설정된 ttl을 보존한다") {
                 try {
                     refreshTokenStore.save(MEMBER_ID, REFRESH_TOKEN)
 
@@ -47,7 +47,7 @@ class RedisRefreshTokenAdapterIntegrationSpec : FunSpec() {
                 }
             }
 
-            test("deletion removes the stored value and indexed lookup") {
+            test("삭제 시 저장된 값과 인덱스 조회가 제거된다") {
                 try {
                     refreshTokenStore.save(MEMBER_ID, REFRESH_TOKEN)
 
@@ -59,7 +59,7 @@ class RedisRefreshTokenAdapterIntegrationSpec : FunSpec() {
                 }
             }
 
-            test("lookup of an unstored refresh token returns null") {
+            test("저장되지 않은 refresh token 조회는 null을 반환한다") {
                 try {
                     refreshTokenStore.findMemberIdByRefreshToken(MISSING_REFRESH_TOKEN) shouldBe null
                 } finally {
@@ -67,7 +67,7 @@ class RedisRefreshTokenAdapterIntegrationSpec : FunSpec() {
                 }
             }
 
-            test("deleting an unstored member returns false without creating Redis keys or indexes") {
+            test("저장되지 않은 member 삭제는 Redis key나 인덱스를 만들지 않고 false를 반환한다") {
                 try {
                     refreshTokenStore.delete(MISSING_MEMBER_ID).shouldBeFalse()
                     redisTemplate.hasKey(MISSING_REDIS_KEY).shouldBeFalse()
@@ -80,7 +80,7 @@ class RedisRefreshTokenAdapterIntegrationSpec : FunSpec() {
                 }
             }
 
-            test("reads and deletes a legacy gateway hash") {
+            test("레거시 gateway 해시를 읽고 삭제한다") {
                 try {
                     redisTemplate.opsForHash<String, String>().putAll(
                         REDIS_KEY,

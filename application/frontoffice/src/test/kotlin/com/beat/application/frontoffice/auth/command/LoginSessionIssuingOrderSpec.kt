@@ -10,7 +10,7 @@ import org.mockito.Mockito
 class LoginSessionIssuingOrderSpec : FunSpec({
     isolationMode = IsolationMode.SingleInstance
 
-    test("saves the refresh token before issuing the access token and returns the session") {
+    test("access token 발급 전에 refresh token을 저장하고 세션을 반환한다") {
         val tokenIssuer = Mockito.mock(TokenIssuer::class.java)
         val refreshTokenStore = Mockito.mock(RefreshTokenStore::class.java)
         val subject = TokenSubject(MEMBER_ID, ROLE_NAME)

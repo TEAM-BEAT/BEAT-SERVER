@@ -23,7 +23,7 @@ class GeneralOpenApiCompatibilitySpec : FunSpec() {
     init {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("generates the general OpenAPI compatibility document") {
+        test("general OpenAPI 호환성 문서를 생성한다") {
             val result = mockMvc.perform(get("/v3/api-docs/general"))
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.openapi").exists())

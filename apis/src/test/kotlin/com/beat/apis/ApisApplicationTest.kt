@@ -45,7 +45,7 @@ class ApisApplicationTest : FunSpec() {
     init {
         isolationMode = IsolationMode.SingleInstance
 
-        test("apis application keeps detached module import contract") {
+        test("apis application은 분리된 모듈 import 계약을 유지한다") {
             val importAnnotation = ApisApplication::class.java.getAnnotation(Import::class.java)
             importAnnotation shouldNotBe null
             val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
@@ -58,14 +58,14 @@ class ApisApplicationTest : FunSpec() {
             )
         }
 
-        test("apis application scans only the module owner namespace") {
+        test("apis application은 모듈 소유 네임스페이스만 스캔한다") {
             val springBootApplication = ApisApplication::class.java.getAnnotation(SpringBootApplication::class.java)
             springBootApplication shouldNotBe null
             springBootApplication!!.scanBasePackageClasses.map { it.java.name }.toSet() shouldBe
                 setOf(ApisApplication::class.java.name)
         }
 
-        test("apis selects gateway servlet security bootstrap with guest password hash") {
+        test("apis는 guest password hash와 함께 gateway servlet security 부트스트랩을 선택한다") {
             val enableGatewayServletSecurity =
                 GatewayConfig::class.java.getAnnotation(EnableGatewayServletSecurity::class.java)
             val enableGatewayConfig = GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
@@ -91,11 +91,11 @@ class ApisApplicationTest : FunSpec() {
                 }
         }
 
-        test("apis security config exists for module owned route policy") {
+        test("apis 소유 경로 정책을 위해 ApisSecurityConfig가 존재한다") {
             ApisSecurityConfig::class.java.getAnnotation(Configuration::class.java) shouldNotBe null
         }
 
-        test("apis swagger config keeps only general grouped docs ownership") {
+        test("apis swagger config는 general 그룹 문서 소유권만 유지한다") {
             val profile = SwaggerConfig::class.java.getAnnotation(Profile::class.java)
             profile shouldNotBe null
             profile!!.value.toSet() shouldBe setOf("!prod")
@@ -105,11 +105,11 @@ class ApisApplicationTest : FunSpec() {
             groupedOpenApi.pathsToMatch shouldBe listOf("/**")
         }
 
-        test("apis application keeps only module-owned component scan") {
+        test("apis application은 모듈 소유 component scan만 유지한다") {
             ApisApplication::class.java.getAnnotation(ComponentScan::class.java) shouldBe null
         }
 
-        test("apis infra config keeps explicit base bootstrap groups and imports") {
+        test("apis infra config는 명시적인 base bootstrap group과 import를 유지한다") {
             InfraConfig::class.java.getAnnotation(Configuration::class.java) shouldNotBe null
             val enableInfraBaseConfig = InfraConfig::class.java.getAnnotation(EnableInfraBaseConfig::class.java)
             enableInfraBaseConfig shouldNotBe null
@@ -127,11 +127,11 @@ class ApisApplicationTest : FunSpec() {
             )
         }
 
-        test("apis application does not enable scheduling") {
+        test("apis application은 scheduling을 활성화하지 않는다") {
             ApisApplication::class.java.getAnnotation(EnableScheduling::class.java) shouldBe null
         }
 
-        test("apis resources keep scheduler owner disabled") {
+        test("apis 리소스는 scheduler owner 비활성 설정을 유지한다") {
             val config = Files.readString(Path.of("src/main/resources/application.yml"))
 
             config.contains("beat:") shouldBe true
@@ -164,7 +164,7 @@ class ApisApplicationTest : FunSpec() {
             ) shouldBe true
         }
 
-        test("guest cookie mutation requires an allowed origin") {
+        test("guest cookie 변경은 허용된 origin에서만 가능하다") {
             val filter = GuestSessionOriginFilter(
                 arrayOf("https://client.example"),
                 AccessDeniedHandler { _, response, _ -> response.sendError(HttpStatus.FORBIDDEN.value()) },

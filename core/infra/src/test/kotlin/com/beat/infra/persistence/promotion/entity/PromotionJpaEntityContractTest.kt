@@ -6,7 +6,7 @@ import java.lang.reflect.Modifier
 
 class PromotionJpaEntityContractTest : FunSpec({
 
-    test("kotlinJpaPluginKeepsEntityOpenAndInstantiableForJpa") {
+    test("kotlin jpa plugin은 entity를 JPA를 위해 open하고 인스턴스화 가능하게 유지한다") {
         val entityClass = PromotionJpaEntity::class.java
         val noArgConstructor = entityClass.getDeclaredConstructor()
 

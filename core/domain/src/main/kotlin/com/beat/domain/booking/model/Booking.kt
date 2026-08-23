@@ -176,15 +176,13 @@ class Booking private constructor(
             bookerPhoneNumber: String,
             birthDate: String?,
             password: String?,
-            scheduleId: Long?,
-            userId: Long?,
+            scheduleId: Long,
+            userId: Long,
             createdAt: LocalDateTime,
             totalPaymentAmount: Int? = null,
         ): Booking {
             validatePurchaseTicketCount(purchaseTicketCount)
             validateTotalPaymentAmount(totalPaymentAmount)
-            requireNotNull(scheduleId) { "scheduleId must not be null" }
-            requireNotNull(userId) { "userId must not be null" }
 
             return Booking(
                 bookingId = null,
@@ -218,12 +216,10 @@ class Booking private constructor(
             birthDate: String?,
             password: String?,
             refundAccount: RefundAccount?,
-            scheduleId: Long?,
-            userId: Long?,
+            scheduleId: Long,
+            userId: Long,
             totalPaymentAmount: Int? = null,
         ): Booking {
-            requireNotNull(scheduleId) { "scheduleId must not be null" }
-            requireNotNull(userId) { "userId must not be null" }
             validateTotalPaymentAmount(totalPaymentAmount)
 
             return Booking(

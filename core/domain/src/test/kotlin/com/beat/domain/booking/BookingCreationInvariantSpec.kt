@@ -37,40 +37,6 @@ class BookingCreationInvariantSpec : FunSpec({
         booking(totalPaymentAmount = null).bookingStatus shouldBe BookingStatus.CHECKING_PAYMENT
     }
 
-    test("scheduleId가 null이면 정확한 예외 메시지로 거부한다") {
-        val exception = shouldThrow<IllegalArgumentException> {
-            Booking.create(
-                purchaseTicketCount = 1,
-                bookerName = "booker",
-                bookerPhoneNumber = "010-1234-5678",
-                birthDate = "990101",
-                password = "1234",
-                scheduleId = null,
-                userId = USER_ID,
-                createdAt = CREATED_AT,
-            )
-        }
-
-        exception.message shouldBe "scheduleId must not be null"
-    }
-
-    test("userId가 null이면 정확한 예외 메시지로 거부한다") {
-        val exception = shouldThrow<IllegalArgumentException> {
-            Booking.create(
-                purchaseTicketCount = 1,
-                bookerName = "booker",
-                bookerPhoneNumber = "010-1234-5678",
-                birthDate = "990101",
-                password = "1234",
-                scheduleId = SCHEDULE_ID,
-                userId = null,
-                createdAt = CREATED_AT,
-            )
-        }
-
-        exception.message shouldBe "userId must not be null"
-    }
-
     test("rehydrate는 저장된 예매 필드를 복원한다") {
         val cancellationDate = LocalDateTime.of(2026, 4, 30, 19, 0)
         val refundAccount = RefundAccount.of(BankName.KAKAOBANK, "111-222", "holder")

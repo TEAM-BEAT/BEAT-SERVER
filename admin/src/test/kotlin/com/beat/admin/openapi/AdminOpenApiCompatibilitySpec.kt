@@ -23,7 +23,7 @@ class AdminOpenApiCompatibilitySpec : FunSpec() {
     init {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("generates the admin OpenAPI compatibility document") {
+        test("admin OpenAPI 호환성 문서를 생성한다") {
             val result = mockMvc.perform(get("/api/admin/v3/api-docs/admin"))
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.openapi").exists())

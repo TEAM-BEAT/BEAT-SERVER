@@ -28,7 +28,7 @@ class MemberBookingCommandService(
     private val eventPublisher: ApplicationEventPublisher,
     private val clock: Clock,
 ) {
-    @Transactional(timeout = 200)
+    @Transactional(timeout = BOOKING_TX_TIMEOUT_SECONDS)
     fun createMemberBooking(memberId: Long, command: MemberBookingCommand): BookingCreationResult {
         return translateDomainFailure {
             val scheduleId = command.scheduleId
@@ -54,7 +54,7 @@ class MemberBookingCommandService(
             )
             var booking = Booking.create(
                 command.purchaseTicketCount, booker.name,
-                booker.phoneNumber, null, null, schedule.id, member.userId,
+                booker.phoneNumber, null, null, requireNotNull(schedule.id), member.userId,
                 LocalDateTime.now(clock), totalAmount,
             )
             booking = bookingRepository.save(booking)
@@ -83,5 +83,11 @@ class MemberBookingCommandService(
 
     private companion object {
         val log = KotlinLogging.logger {}
+
+        /**
+         * Performance/Schedule row-lock 대기가 포함된 예매 트랜잭션의 최후 방어선.
+         * DB lock wait timeout(기본 50s)보다 길게 잡아 DB 단위 실패를 우선시한다.
+         */
+        const val BOOKING_TX_TIMEOUT_SECONDS = 200
     }
 }

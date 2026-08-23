@@ -18,7 +18,7 @@ class ScheduledTaskErrorHandlerTest : FunSpec() {
     init {
         isolationMode = IsolationMode.SingleInstance
 
-        test("logsErrorWithThrowableAndDoesNotRethrow") {
+        test("throwable을 ERROR 로그로 남기고 다시 던지지 않는다") {
             val failure = IllegalStateException("scheduled-boom")
 
             val events = captureLogEvents(ScheduledTaskErrorHandler::class.java.name) {

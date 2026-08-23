@@ -39,7 +39,7 @@ class HomeControllerWebSpec : FunSpec() {
             Mockito.reset(homeQueryService)
         }
 
-        test("gets home data and maps the requested genre through the real facade") {
+        test("요청한 genre로 home 데이터를 조회하고 실제 facade를 통해 매핑한다") {
             Mockito.`when`(homeQueryService.findHomePerformanceList(HomeGenreType.BAND.name))
                 .thenReturn(homeResult())
 
@@ -67,7 +67,7 @@ class HomeControllerWebSpec : FunSpec() {
             Mockito.verify(homeQueryService).findHomePerformanceList(HomeGenreType.BAND.name)
         }
 
-        test("maps a missing genre to null and preserves empty home lists") {
+        test("genre 파라미터가 없으면 null로 매핑하고 빈 home 목록을 유지한다") {
             Mockito.`when`(homeQueryService.findHomePerformanceList(null))
                 .thenReturn(HomeFindAllResult(emptyList(), emptyList()))
 

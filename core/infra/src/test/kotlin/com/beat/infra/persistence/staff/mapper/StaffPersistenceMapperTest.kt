@@ -8,7 +8,7 @@ import io.kotest.matchers.shouldBe
 class StaffPersistenceMapperTest : FunSpec({
     val mapper = StaffPersistenceMapper()
 
-    test("toDomainPreservesJpaEntityFieldsIncludingScalarPerformanceId") {
+    test("toDomain은 scalar performanceId를 포함해 JPA entity 필드를 보존한다") {
         val entity = StaffJpaEntity.rehydrate(
             11L,
             "staff-name",
@@ -25,7 +25,7 @@ class StaffPersistenceMapperTest : FunSpec({
         staff.staffPhoto shouldBe "https://example.com/staff.png"
     }
 
-    test("toEntityKeepsGeneratedIdNullForNewStaff") {
+    test("toEntity는 신규 staff의 생성 id를 null로 유지한다") {
         val staff = Staff.create(
             "new-staff",
             "new-role",
@@ -42,7 +42,7 @@ class StaffPersistenceMapperTest : FunSpec({
         entity.performanceId shouldBe 44L
     }
 
-    test("toEntityPreservesRehydratedDomainFields") {
+    test("toEntity는 재구성된 domain 필드를 보존한다") {
         val staff = Staff.rehydrate(
             31L,
             "existing-staff",

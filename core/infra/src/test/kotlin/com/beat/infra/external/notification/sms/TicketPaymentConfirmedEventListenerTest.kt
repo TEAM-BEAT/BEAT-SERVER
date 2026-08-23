@@ -10,7 +10,7 @@ import org.springframework.transaction.event.TransactionPhase
 import org.springframework.transaction.event.TransactionalEventListener
 
 class TicketPaymentConfirmedEventListenerTest : FunSpec({
-    test("sends exact recipient and confirmation message") {
+    test("정확한 수신자와 결제 확인 메시지를 전송한다") {
         val coolSmsAdapter = Mockito.mock(CoolSmsAdapter::class.java)
         val listener = TicketPaymentConfirmedEventListener(coolSmsAdapter)
 
@@ -19,7 +19,7 @@ class TicketPaymentConfirmedEventListenerTest : FunSpec({
         Mockito.verify(coolSmsAdapter).send(PHONE_NUMBER, MESSAGE)
     }
 
-    test("swallows runtime exception from sms adapter") {
+    test("sms adapter의 runtime exception을 삼킨다") {
         val coolSmsAdapter = Mockito.mock(CoolSmsAdapter::class.java)
         val listener = TicketPaymentConfirmedEventListener(coolSmsAdapter)
         Mockito.doThrow(RuntimeException("SMS provider unavailable"))
@@ -29,7 +29,7 @@ class TicketPaymentConfirmedEventListenerTest : FunSpec({
         shouldNotThrowAny { listener.sendConfirmation(event()) }
     }
 
-    test("listens after commit on beat async executor") {
+    test("commit 후 beat async executor에서 수신한다") {
         val method =
             TicketPaymentConfirmedEventListener::class.java.getDeclaredMethod(
                 "sendConfirmation",

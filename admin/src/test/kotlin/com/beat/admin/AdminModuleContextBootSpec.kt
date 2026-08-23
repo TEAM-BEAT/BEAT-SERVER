@@ -33,7 +33,7 @@ class AdminModuleContextBootSpec : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("boots only the admin composition and persistence infrastructure") {
+        test("admin 구성과 persistence 인프라만 부팅한다") {
             val groupedOpenApis = applicationContext.getBeansOfType(GroupedOpenApi::class.java).values
             groupedOpenApis.size shouldBe 1
             groupedOpenApis.single().group shouldBe "admin"
@@ -51,7 +51,7 @@ class AdminModuleContextBootSpec : FunSpec() {
             applicationContext.containsBean("redisGuestAccessThrottleAdapter") shouldBe false
         }
 
-        test("serves the grouped admin OpenAPI document outside production") {
+        test("prod 외 환경에서 그룹화된 admin OpenAPI 문서를 제공한다") {
             mockMvc.perform(get("/api/admin/v3/api-docs/admin"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.openapi").exists())

@@ -45,6 +45,9 @@ import java.util.concurrent.TimeUnit
 @Tags("integration", "correctness")
 open class TicketBulkLockOrderingIntegrationTest : FunSpec() {
 
+private val NOW: LocalDateTime = LocalDateTime.now()
+
+
     @Autowired
     private lateinit var ticketCommandService: TicketCommandService
 
@@ -100,8 +103,8 @@ open class TicketBulkLockOrderingIntegrationTest : FunSpec() {
                     longitude = "127.0",
                     performanceContact = "010-0000-0000",
                     performancePeriod = PerformancePeriod.of(
-                        LocalDate.now().plusDays(1),
-                        LocalDate.now().plusDays(2),
+                        NOW.toLocalDate(),
+                        NOW.toLocalDate().plusDays(1),
                     ),
                     ticketPrice = TicketPrice.of(10_000),
                     totalScheduleCount = 2,
@@ -109,7 +112,7 @@ open class TicketBulkLockOrderingIntegrationTest : FunSpec() {
                 ),
             )
             val performanceId = requireNotNull(performance.id)
-            val scheduleStart = LocalDateTime.now().plusDays(1)
+            val scheduleStart = NOW.plusDays(1)
             val firstSchedule = scheduleRepository.save(
                 Schedule.create(
                     performanceDate = scheduleStart,
@@ -157,7 +160,7 @@ open class TicketBulkLockOrderingIntegrationTest : FunSpec() {
             )
         }
 
-        test("bulk ticket updates with opposite booking order complete without deadlock") {
+        test("예매 순서가 반대인 bulk ticket 갱신은 deadlock 없이 완료된다") {
             val memberId = requireNotNull(makerMember.id)
             val performanceId = requireNotNull(performance.id)
             val ready = CountDownLatch(2)

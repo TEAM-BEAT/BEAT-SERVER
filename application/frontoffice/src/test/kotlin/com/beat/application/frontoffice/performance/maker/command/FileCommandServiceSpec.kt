@@ -14,7 +14,7 @@ class FileCommandServiceSpec : FunSpec({
         fileService = FileCommandService(performanceImageStorage)
     }
 
-    test("issueAllPresignedUrls normalizes nullable lists before calling storage") {
+    test("issueAllPresignedUrls는 storage 호출 전에 null 리스트를 정규화한다") {
         val presignedUrls = PerformancePresignedUrls(
             mapOf(
                 "poster" to mapOf(
@@ -39,7 +39,7 @@ class FileCommandServiceSpec : FunSpec({
         )
     }
 
-    test("issueAllPresignedUrls ignores legacy empty list placeholders") {
+    test("issueAllPresignedUrls는 레거시 빈 리스트 placeholder를 무시한다") {
         fileService.issueAllPresignedUrlsForPerformanceMaker(
             "poster.png",
             listOf(""),
@@ -55,7 +55,7 @@ class FileCommandServiceSpec : FunSpec({
         )
     }
 
-    test("issueAllPresignedUrls rejects path-like file names before calling storage") {
+    test("issueAllPresignedUrls는 storage 호출 전에 경로 형태의 파일명을 거부한다") {
         val exception = shouldThrow<FrontofficeApplicationException> {
             fileService.issueAllPresignedUrlsForPerformanceMaker("../poster.png", null, null, null)
         }

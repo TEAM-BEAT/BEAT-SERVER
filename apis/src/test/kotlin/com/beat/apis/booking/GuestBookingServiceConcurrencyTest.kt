@@ -48,6 +48,9 @@ import java.util.concurrent.TimeoutException
 @Tags("integration", "correctness")
 open class GuestBookingServiceConcurrencyTest : FunSpec() {
 
+private val NOW: LocalDateTime = LocalDateTime.now()
+
+
     @Autowired
     private lateinit var guestBookingService: GuestBookingCommandService
 
@@ -74,7 +77,7 @@ open class GuestBookingServiceConcurrencyTest : FunSpec() {
             setup()
         }
 
-        test("concurrent guest bookings do not oversell schedules") {
+        test("동시 guest 예매는 회차 티켓을 초과 판매하지 않는다") {
             executeConcurrentGuestBookings(schedule1, 2, ScheduleNumber.FIRST) shouldBe 5L
             executeConcurrentGuestBookings(schedule2, 1, ScheduleNumber.SECOND) shouldBe 1L
             assertFinalState()
@@ -117,7 +120,7 @@ open class GuestBookingServiceConcurrencyTest : FunSpec() {
         scheduleNumber: ScheduleNumber,
         remainingTicketCount: Int,
     ): Schedule {
-        val performanceDate = LocalDateTime.now().plusDays(1)
+        val performanceDate = NOW.plusDays(1)
         return scheduleRepository.save(
             Schedule.create(
                 performanceDate = performanceDate,

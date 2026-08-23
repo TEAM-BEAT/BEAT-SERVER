@@ -8,7 +8,7 @@ import java.time.LocalDate
 
 class PerformancePeriodReadSupportTest : FunSpec({
 
-    test("falls back to the strict legacy period when normalized columns are absent") {
+    test("정규화된 period 컬럼이 없으면 엄격한 레거시 period로 대체한다") {
         val period = resolvePerformancePeriod(
             performanceId = 1L,
             startDate = null,
@@ -20,7 +20,7 @@ class PerformancePeriodReadSupportTest : FunSpec({
         period.endDate shouldBe LocalDate.of(2026, 7, 18)
     }
 
-    test("translates partially populated period columns to persistence mapping failure") {
+    test("부분적으로만 채워진 period 컬럼은 persistence mapping failure로 변환된다") {
         shouldThrow<PersistenceMappingException> {
             resolvePerformancePeriod(
                 performanceId = 1L,
@@ -31,7 +31,7 @@ class PerformancePeriodReadSupportTest : FunSpec({
         }
     }
 
-    test("translates malformed legacy period to persistence mapping failure") {
+    test("형식이 잘못된 레거시 period는 persistence mapping failure로 변환된다") {
         shouldThrow<PersistenceMappingException> {
             resolvePerformancePeriod(
                 performanceId = 1L,

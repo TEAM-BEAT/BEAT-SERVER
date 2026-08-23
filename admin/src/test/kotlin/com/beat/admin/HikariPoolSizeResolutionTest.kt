@@ -28,7 +28,7 @@ class HikariPoolSizeResolutionTest : FunSpec() {
     init {
         isolationMode = IsolationMode.SingleInstance
 
-        test("DB_HIKARI_MAX_POOL_SIZE env var overrides shared persistence default") {
+        test("DB_HIKARI_MAX_POOL_SIZE 환경 변수는 공통 persistence 기본값을 덮어쓴다") {
             val resolved = arrayOfNulls<String>(1)
 
             val app = SpringApplicationBuilder(AdminApplication::class.java)

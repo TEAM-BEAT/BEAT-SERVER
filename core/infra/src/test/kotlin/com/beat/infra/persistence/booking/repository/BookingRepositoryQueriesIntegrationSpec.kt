@@ -47,7 +47,7 @@ class BookingRepositoryQueriesIntegrationSpec : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("returns schedule ids for the selected booking ids from MySQL") {
+        test("MySQL에서 선택된 booking id들의 schedule id를 반환한다") {
             val first = bookingJpaRepository.saveAndFlush(booking(scheduleId = 101L, userId = 1L))
             val second = bookingJpaRepository.saveAndFlush(booking(scheduleId = 202L, userId = 2L))
             val third = bookingJpaRepository.saveAndFlush(booking(scheduleId = 303L, userId = 3L))
@@ -56,11 +56,11 @@ class BookingRepositoryQueriesIntegrationSpec : FunSpec() {
                 .shouldContainExactlyInAnyOrder(101L, 303L)
         }
 
-        test("returns an empty result when no booking ids are requested") {
+        test("요청한 booking id가 없으면 빈 결과를 반환한다") {
             bookingRepository.findScheduleIdsByIds(emptyList()).shouldBeEmpty()
         }
 
-        test("returns distinct non-null guest credential projections for the matching identity") {
+        test("일치하는 identity에 대해 중복 없는 null이 아닌 guest credential projection을 반환한다") {
             bookingJpaRepository.saveAllAndFlush(
                 listOf(
                     booking(

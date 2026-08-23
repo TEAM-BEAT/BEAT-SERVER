@@ -62,11 +62,11 @@ class ApisAuthorizationMatrixSpec : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("the API controller mapping exactly matches the authorization matrix routes") {
+        test("API controller 매핑은 인가 매트릭스 경로와 정확히 일치한다") {
             apiControllerEndpoints() shouldBe expectedAuthorizationMatrix.map { it.route }.toSet()
         }
 
-        test("unauthenticated requests respect the authorization matrix") {
+        test("인증되지 않은 요청은 인가 매트릭스에 따라 처리된다") {
             expectedAuthorizationMatrix.forEach { endpoint ->
                 val status = perform(endpoint).response.status
 
@@ -82,7 +82,7 @@ class ApisAuthorizationMatrixSpec : FunSpec() {
             }
         }
 
-        test("member-authenticated requests cross the security boundary for member endpoints") {
+        test("member로 인증된 요청은 member 엔드포인트의 보안 경계를 통과한다") {
             expectedAuthorizationMatrix
                 .filter { it.access == Access.MEMBER }
                 .forEach { endpoint ->

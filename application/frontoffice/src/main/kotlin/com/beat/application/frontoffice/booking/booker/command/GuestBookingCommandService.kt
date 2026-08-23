@@ -68,7 +68,7 @@ class GuestBookingCommandService internal constructor(
             var booking = Booking.create(
                 command.purchaseTicketCount, identity.bookerName, identity.phoneNumber, identity.birthDate,
                 credentialAuthenticator.encode(identity.password),
-                schedule.id, userId, LocalDateTime.now(clock), totalAmount,
+                requireNotNull(schedule.id), requireNotNull(userId), LocalDateTime.now(clock), totalAmount,
             )
             booking = bookingRepository.save(booking)
             log.info { "Guest booking created: bookingId=${booking.id}" }

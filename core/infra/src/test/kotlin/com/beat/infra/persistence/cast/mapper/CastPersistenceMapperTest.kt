@@ -8,7 +8,7 @@ import io.kotest.matchers.shouldBe
 class CastPersistenceMapperTest : FunSpec({
     val mapper = CastPersistenceMapper()
 
-    test("toDomainPreservesJpaEntityFieldsIncludingScalarPerformanceId") {
+    test("toDomain은 scalar performanceId를 포함해 JPA entity 필드를 보존한다") {
         val entity = CastJpaEntity.rehydrate(
             11L,
             "cast-name",
@@ -25,7 +25,7 @@ class CastPersistenceMapperTest : FunSpec({
         cast.castPhoto shouldBe "https://example.com/cast.png"
     }
 
-    test("toEntityKeepsGeneratedIdNullForNewCast") {
+    test("toEntity는 신규 cast의 생성 id를 null로 유지한다") {
         val cast = Cast.create(
             "new-cast",
             "new-role",
@@ -42,7 +42,7 @@ class CastPersistenceMapperTest : FunSpec({
         entity.performanceId shouldBe 44L
     }
 
-    test("toEntityPreservesRehydratedDomainFields") {
+    test("toEntity는 재구성된 domain 필드를 보존한다") {
         val cast = Cast.rehydrate(
             31L,
             "existing-cast",

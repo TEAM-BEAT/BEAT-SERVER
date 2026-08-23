@@ -23,7 +23,7 @@ class ScheduleSynchronizerSpec : FunSpec({
         bookingRepository = Mockito.mock(BookingRepository::class.java)
     }
 
-    test("locks distinct schedules in sorted order before checking active bookings") {
+    test("활성 예매 확인 전에 정렬된 순서로 서로 다른 회차를 잠근다") {
         val scheduleIds = listOf(3L, 1L, 2L, 1L)
         Mockito.`when`(scheduleRepository.findIdsByPerformanceId(9L)).thenReturn(scheduleIds)
         Mockito.`when`(scheduleRepository.lockById(1L)).thenReturn(schedule(1L))

@@ -9,7 +9,7 @@ import io.kotest.matchers.shouldBe
 class PromotionPersistenceMapperTest : FunSpec({
     val mapper = PromotionPersistenceMapper()
 
-    test("toDomainPreservesJpaEntityFields") {
+    test("toDomain은 JPA entity 필드를 보존한다") {
         val entity = PromotionJpaEntity.rehydrate(
             11L,
             "https://example.com/promotion.png",
@@ -29,7 +29,7 @@ class PromotionPersistenceMapperTest : FunSpec({
         promotion.carouselNumber shouldBe CarouselNumber.THREE
     }
 
-    test("toEntityKeepsGeneratedIdNullForNewPromotion") {
+    test("toEntity는 신규 Promotion의 생성 id를 null로 유지한다") {
         val promotion = Promotion.create(
             "https://example.com/new.png",
             44L,
@@ -46,7 +46,7 @@ class PromotionPersistenceMapperTest : FunSpec({
         entity.carouselNumber shouldBe CarouselNumber.TWO
     }
 
-    test("toEntityPreservesDomainFields") {
+    test("toEntity는 domain 필드를 보존한다") {
         val promotion = Promotion.rehydrate(
             31L,
             "https://example.com/internal.png",

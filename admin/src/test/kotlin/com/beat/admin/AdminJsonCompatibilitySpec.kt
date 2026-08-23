@@ -28,11 +28,11 @@ class AdminJsonCompatibilitySpec : FunSpec() {
     init {
         isolationMode = IsolationMode.SingleInstance
 
-        test("admin carousel numbers keep the domain enum names") {
+        test("admin carousel 번호는 domain enum 이름을 유지한다") {
             AdminCarouselNumber.entries.map { it.name } shouldBe CarouselNumber.entries.map { it.name }
         }
 
-        test("carousel requests accept canonical and temporary external field names") {
+        test("carousel 요청은 표준 필드명과 임시 외부 필드명을 모두 허용한다") {
             val json = """
                 {
                   "carousels": [
@@ -63,7 +63,7 @@ class AdminJsonCompatibilitySpec : FunSpec() {
             aliasModifyRequest.isExternal shouldBe true
         }
 
-        test("nullable carousel request fields retain validation counts and messages") {
+        test("nullable carousel 요청 필드는 검증 개수와 메시지를 유지한다") {
             val validator = Validation.buildDefaultValidatorFactory().validator
             val missingCarousels = validator.validate(CarouselHandleRequest(null))
             val missingRequiredItemFields = validator.validate(
@@ -80,7 +80,7 @@ class AdminJsonCompatibilitySpec : FunSpec() {
             missingRequiredItemFields.all { it.message == INVALID_REQUEST_MESSAGE } shouldBe true
         }
 
-        test("response JSON keeps legacy collection names") {
+        test("response JSON은 레거시 컬렉션 이름을 유지한다") {
             val userResponse = UserFindAllResponse(
                 listOf(UserFindAllResponse.UserFindResponse(1L, "ROLE_USER")),
             )
@@ -100,7 +100,7 @@ class AdminJsonCompatibilitySpec : FunSpec() {
             carouselHandleJson.has("modifiedPromotionResponses") shouldBe false
         }
 
-        test("presigned response keeps the legacy URL map and explicit upload metadata") {
+        test("presigned response는 레거시 URL 맵과 명시적인 upload 메타데이터를 유지한다") {
             val response = CarouselPresignedUrlFindAllResponse(
                 CarouselPresignedUrlsResult(
                     mapOf(

@@ -52,7 +52,7 @@ open class ScheduleBookingAvailabilityIntegrationTest : FunSpec() {
             jdbcTemplate.update("DELETE FROM schedule WHERE performance_id = ?", PERFORMANCE_ID)
         }
 
-        test("availabilityQueryUsesOneDatabaseClockForEverySchedule") {
+        test("availability 조회는 모든 회차에 하나의 데이터베이스 시계를 사용한다") {
             val databaseNow = jdbcTemplate.queryForObject(
                 "SELECT CURRENT_TIMESTAMP(6)",
                 LocalDateTime::class.java,
@@ -87,7 +87,7 @@ open class ScheduleBookingAvailabilityIntegrationTest : FunSpec() {
             extendedSchedules.getValue("SECOND").isBooking shouldBe true
         }
 
-        test("closeTimeIsRecheckedAfterLockWaitUnderRepeatableRead") {
+        test("REPEATABLE READ에서 lock 대기 후 예매 마감 시각을 다시 확인한다") {
             jdbcTemplate.queryForObject("SELECT @@transaction_isolation", String::class.java) shouldBe
                 "REPEATABLE-READ"
             val databaseNow = jdbcTemplate.queryForObject(

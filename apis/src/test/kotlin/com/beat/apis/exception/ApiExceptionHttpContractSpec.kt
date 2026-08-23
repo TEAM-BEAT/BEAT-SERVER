@@ -36,14 +36,14 @@ class ApiExceptionHttpContractSpec : FunSpec({
         .setControllerAdvice(handler)
         .build()
 
-    test("malformed JSON uses the legacy 400 error envelope") {
+    test("형식이 잘못된 JSON은 레거시 400 에러 응답 형식을 사용한다") {
         mockMvc.perform(post("/test").contentType(MediaType.APPLICATION_JSON).content("{"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.status").value(400))
             .andExpect(jsonPath("$.message").value("잘못된 요청입니다."))
     }
 
-    test("unsupported methods use the legacy 405 envelope and Allow header") {
+    test("지원하지 않는 HTTP 메서드는 레거시 405 응답 형식과 Allow 헤더를 사용한다") {
         mockMvc.perform(put("/test"))
             .andExpect(status().isMethodNotAllowed())
             .andExpect(header().string("Allow", "POST"))
@@ -51,14 +51,14 @@ class ApiExceptionHttpContractSpec : FunSpec({
             .andExpect(jsonPath("$.message").value("잘못된 요청입니다."))
     }
 
-    test("unknown routes keep the legacy 404 error envelope") {
+    test("알 수 없는 경로는 레거시 404 에러 응답 형식을 유지한다") {
         mockMvc.perform(get("/unknown-route"))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.status").value(404))
             .andExpect(jsonPath("$.message").value("잘못된 요청입니다."))
     }
 
-    test("missing static resources delegate to Spring with an empty 404 body") {
+    test("존재하지 않는 정적 리소스는 빈 404 본문으로 Spring에 위임한다") {
         val response = invokeNoResourceFoundException(
             handler,
             NoResourceFoundException(HttpMethod.GET, "/missing-resource", "missing-resource"),
@@ -71,7 +71,7 @@ class ApiExceptionHttpContractSpec : FunSpec({
         response?.body shouldBe null
     }
 
-    test("committed responses delegate protection to Spring") {
+    test("이미 커밋된 응답은 보호를 Spring에 위임한다") {
         val servletResponse = MockHttpServletResponse().apply { setCommitted(true) }
 
         val response = invokeExceptionInternal(
@@ -86,7 +86,7 @@ class ApiExceptionHttpContractSpec : FunSpec({
         response shouldBe null
     }
 
-    test("unexpected exception messages are masked") {
+    test("예상치 못한 예외 메시지는 가려진다") {
         val response = handler.handleException(
             IllegalArgumentException("internal contract detail"),
             MockHttpServletRequest(),
@@ -95,7 +95,7 @@ class ApiExceptionHttpContractSpec : FunSpec({
         assertError(response, HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류입니다.")
     }
 
-    test("migrated Booking failures keep the legacy Frontoffice HTTP contract") {
+    test("마이그레이션된 Booking 실패는 레거시 Frontoffice HTTP 계약을 유지한다") {
         val mappings = listOf(
             Triple(
                 FrontofficeBookingApplicationErrorCode.SCHEDULE_NOT_FOUND,
@@ -120,7 +120,7 @@ class ApiExceptionHttpContractSpec : FunSpec({
         }
     }
 
-    test("Frontoffice application error types include RATE_LIMITED") {
+    test("Frontoffice application 에러 타입에 RATE_LIMITED가 포함된다") {
         val expectedStatuses = mapOf(
             FrontofficeApplicationErrorType.INVALID_INPUT to HttpStatus.BAD_REQUEST,
             FrontofficeApplicationErrorType.UNAUTHENTICATED to HttpStatus.UNAUTHORIZED,

@@ -34,7 +34,7 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
             memberRepository = Mockito.mock(MemberRepository::class.java)
         }
 
-    test("maps explicit schedule and booking filters and returns non-null result") {
+    test("명시적인 회차와 예매 상태 필터를 매핑하고 null이 아닌 결과를 반환한다") {
         stubOwner()
         val schedules = listOf(schedule(200L, "FIRST", totalTickets = 100, soldTickets = 99))
         val ticket = ticket()
@@ -71,7 +71,7 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
         )
     }
 
-    test("searches with all schedules and active maker statuses when filters are omitted") {
+    test("필터가 없으면 전체 회차와 활성 maker 상태로 검색한다") {
         stubOwner()
         Mockito.`when`(makerTicketReader.findSchedules(100L)).thenReturn(
             listOf(
@@ -113,7 +113,7 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
         )
     }
 
-    test("rejects null blank and one-character search words before dependencies") {
+    test("의존성 호출 전에 null·빈 문자열·한 글자 검색어를 거부한다") {
         listOf(null, "", "a").forEach { searchWord ->
             shouldThrow<FrontofficeApplicationException> {
                 service().searchAllTicketsByConditions(1L, 100L, TicketListQuery(searchWord = searchWord))
@@ -123,7 +123,7 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
         Mockito.verifyNoInteractions(makerTicketReader, performanceRepository, memberRepository)
     }
 
-    test("rejects deleted booking status for list and search") {
+    test("목록과 검색에서 삭제 상태 필터를 거부한다") {
         val listException = shouldThrow<FrontofficeApplicationException> {
             service().findAllTicketsByConditions(
                 1L,
@@ -144,7 +144,7 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
         Mockito.verifyNoInteractions(makerTicketReader, performanceRepository, memberRepository)
     }
 
-    test("authorizes query through authoritative PerformanceRepository") {
+    test("authoritative PerformanceRepository로 조회 권한을 검증한다") {
         Mockito.`when`(memberRepository.findById(1L)).thenReturn(member(userId = 10L))
         Mockito.`when`(performanceRepository.findById(100L)).thenReturn(performance(userId = 11L))
 

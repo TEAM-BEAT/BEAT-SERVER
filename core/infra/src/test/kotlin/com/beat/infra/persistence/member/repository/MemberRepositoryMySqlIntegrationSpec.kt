@@ -47,7 +47,7 @@ class MemberRepositoryMySqlIntegrationSpec : FunSpec() {
 
         afterTest { memberJpaRepository.deleteAllInBatch() }
 
-        test("translates the MySQL social identity constraint and preserves the first member") {
+        test("MySQL social identity 제약을 변환하고 첫 member를 보존한다") {
             val socialIdentity = SocialIdentity.of(SocialType.KAKAO, 2026082201L)
             val first = memberRepository.save(
                 Member.create(

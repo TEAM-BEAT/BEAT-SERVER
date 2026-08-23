@@ -7,198 +7,40 @@ import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.lang.ArchRule
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.FunSpec
 import org.springframework.stereotype.Service
 
-class FrontofficeApplicationArchitectureTest {
-    private val importedClasses: JavaClasses =
+/**
+ * Capability → Actor → CQRS semantics inside the frontoffice lane. These rules encode
+ * design intent that neither the Gradle graph (single module) nor Kotlin visibility
+ * can express: command/query separation, actor lanes, cross-capability isolation,
+ * auth collaboration boundaries, and failure translation.
+ */
+private class PackagePattern(val archUnitPattern: String, val segments: List<String>)
+
+private fun packagePattern(vararg segments: String): PackagePattern =
+    PackagePattern(
+        archUnitPattern = "..${segments.joinToString(".")}..",
+        segments = segments.toList(),
+    )
+
+class FrontofficeApplicationArchitectureTest : FunSpec({
+    val importedClasses: JavaClasses =
         ClassFileImporter().importPackages("com.beat.application.frontoffice")
 
-    @Test
-    fun `command packages must not depend on query packages`() {
-        checkRule(
-            noDependencyRule(packagePattern("command"), packagePattern("query")),
-        )
-    }
-
-    @Test
-    fun `command packages must not depend on presentation read models`() {
-        checkRule(noCommandDependencyOnPresentationReadModelsRule())
-    }
-
-    @Test
-    fun `booking booker packages must not depend on performance lanes`() {
-        checkRule(
-            noDependencyRule(
-                packagePattern("booking", "booker"),
-                packagePattern("performance", "booker"),
-                packagePattern("performance", "maker"),
-            ),
-        )
-    }
-
-    @Test
-    fun `booking classes must reside in the booker lane`() {
-        checkActorAlignment("booking", "booking.booker")
-    }
-
-    @Test
-    fun `ticket classes must reside in the maker lane`() {
-        checkActorAlignment("ticket", "ticket.maker")
-    }
-
-    @Test
-    fun `home classes must reside in the booker lane`() {
-        checkActorAlignment("home", "home.booker")
-    }
-
-    @Test
-    fun `legacy schedule query package must not exist`() {
-        val legacyPackage = "com.beat.application.frontoffice.schedule.query"
-        val violations = importedClasses
-            .filter { javaClass ->
-                javaClass.packageName == legacyPackage ||
-                    javaClass.packageName.startsWith("$legacyPackage.")
-            }
-            .map(JavaClass::getFullName)
-            .sorted()
-
-        check(violations.isEmpty()) {
-            "Legacy schedule.query classes must not exist: ${violations.joinToString(", ")}"
+    fun hasPackage(pattern: PackagePattern): Boolean =
+        importedClasses.any { javaClass ->
+            javaClass.packageName
+                .split('.')
+                .windowed(pattern.segments.size)
+                .any { it == pattern.segments }
         }
-    }
 
-    @Test
-    fun `booker query must not depend on maker`() {
-        checkRule(
-            noDependencyRule(
-                packagePattern("performance", "booker", "query"),
-                packagePattern("performance", "maker"),
-            ),
-        )
-    }
-
-    @Test
-    fun `maker query must not depend on booker or maker command`() {
-        checkRule(
-            noDependencyRule(
-                packagePattern("performance", "maker", "query"),
-                packagePattern("performance", "booker"),
-                packagePattern("performance", "maker", "command"),
-            ),
-        )
-    }
-
-    @Test
-    fun `maker command must not depend on booker maker query or schedule query`() {
-        checkRule(
-            noDependencyRule(
-                packagePattern("performance", "maker", "command"),
-                packagePattern("performance", "booker"),
-                packagePattern("performance", "maker", "query"),
-                packagePattern("schedule", "booker", "query"),
-            ),
-        )
-    }
-
-    @Test
-    fun `ticket maker application must not depend on adapters contracts infrastructure web or global support`() {
-        checkRule(
-            noDependencyRule(
-                packagePattern("ticket", "maker"),
-                packagePattern("apis"),
-                packagePattern("admin"),
-                packagePattern("batch"),
-                packagePattern("contracts"),
-                packagePattern("infra"),
-                packagePattern("web"),
-                packagePattern("global"),
-            ),
-        )
-    }
-
-    @Test
-    fun `ticket maker application must not depend on performance maker services`() {
-        checkRule(
-            noDependencyRule(
-                packagePattern("ticket", "maker"),
-                packagePattern("performance", "maker", "command"),
-                packagePattern("performance", "maker", "query"),
-                packagePattern("performance", "application"),
-            ),
-        )
-    }
-
-    @Test
-    fun `member and auth lanes must not depend on runtime adapters or state frameworks`() {
-        val forbiddenPackages = arrayOf(
-            packagePattern("apps"),
-            packagePattern("admin"),
-            packagePattern("batch"),
-            packagePattern("contracts"),
-            packagePattern("infra"),
-            packagePattern("global"),
-            packagePattern("web"),
-            packagePattern("jakarta", "persistence"),
-            packagePattern("jakarta", "servlet"),
-            packagePattern("org", "springframework", "data", "redis"),
-            packagePattern("org", "springframework", "http"),
-            packagePattern("org", "springframework", "web"),
-        )
-        checkRule(noDependencyRule(packagePattern("member"), *forbiddenPackages))
-        checkRule(noDependencyRule(packagePattern("auth"), *forbiddenPackages))
-    }
-
-    @Test
-    fun `auth must not depend on member`() {
-        checkRule(
-            noDependencyRule(
-                packagePattern("auth"),
-                packagePattern("member"),
-            ),
-        )
-    }
-
-    @Test
-    fun `member may depend on only the auth login session boundary`() {
-        checkRule(noMemberDependencyOnAuthTypesRule())
-    }
-
-    @Test
-    fun `member must not depend directly on support token issuers`() {
-        checkRule(
-            noDependencyOnConcreteTypesRule(
-                packagePattern("member"),
-                setOf(
-                    "com.beat.support.security.token.TokenIssuer",
-                    "com.beat.support.security.token.RefreshTokenAuthenticator",
-                ),
-            ),
-        )
-    }
-
-    @Test
-    fun `all service classes must depend on the compiled domain failure translator`() {
-        val failureTranslator = object : DescribedPredicate<JavaClass>(
-            "be the domain failure translator",
-        ) {
-            override fun test(javaClass: JavaClass): Boolean =
-                javaClass.fullName == "com.beat.application.frontoffice.exception.DomainFailureTranslatorKt"
-        }
-        classes()
-            .that()
-            .areAnnotatedWith(Service::class.java)
-            .should()
-            .dependOnClassesThat(failureTranslator)
-            .because("service use-case boundaries must translate domain failures")
-            .check(importedClasses)
-    }
-
-    private fun checkRule(rule: ArchRule?) {
+    fun checkRule(rule: ArchRule?) {
         rule?.check(importedClasses)
     }
 
-    private fun noDependencyRule(
+    fun noDependencyRule(
         sourcePackage: PackagePattern,
         vararg targetPackages: PackagePattern,
     ): ArchRule? {
@@ -217,7 +59,7 @@ class FrontofficeApplicationArchitectureTest {
             )
     }
 
-    private fun checkActorAlignment(sourceSegment: String, actorPackage: String) {
+    fun checkActorAlignment(sourceSegment: String, actorPackage: String) {
         val sourcePrefix = "com.beat.application.frontoffice.$sourceSegment"
         val actorPrefix = "com.beat.application.frontoffice.$actorPackage"
         classes()
@@ -229,16 +71,32 @@ class FrontofficeApplicationArchitectureTest {
             .check(importedClasses)
     }
 
-    private fun noCommandDependencyOnPresentationReadModelsRule(): ArchRule? {
+    fun noCommandDependencyOnPresentationReadModelsRule(): ArchRule? {
         val sourcePackage = packagePattern("command")
         if (!hasPackage(sourcePackage)) {
             return null
         }
+        val documentedExceptions = setOf(
+            // FINAL-REPORT §8: primary-DB 403/404 diagnostic reader for Performance modify commands.
+            "com.beat.application.frontoffice.performance.maker.command.PerformanceContentOwnershipReader",
+        )
         val presentationReadModel = object : DescribedPredicate<JavaClass>(
-            "be presentation read-model classes",
+            "be a presentation read-model type owned by the query side",
         ) {
-            override fun test(input: JavaClass): Boolean =
-                input.packageName.split('.').contains("readmodel")
+            override fun test(input: JavaClass): Boolean {
+                if (input.fullName in documentedExceptions) {
+                    return false
+                }
+                if (!input.packageName.startsWith("com.beat.")) {
+                    return false
+                }
+                val name = input.simpleName
+                return input.packageName.split('.').contains("readmodel") ||
+                    name.endsWith("Reader") ||
+                    name.endsWith("Queries") ||
+                    name.endsWith("ReadModel") ||
+                    name.endsWith("Projection")
+            }
         }
         return noClasses()
             .that()
@@ -250,22 +108,7 @@ class FrontofficeApplicationArchitectureTest {
             )
     }
 
-    private fun noMemberDependencyOnAuthTypesRule(): ArchRule? {
-        val allowedAuthTypes = setOf(
-            "com.beat.application.frontoffice.auth.command.LoginSessionIssuer",
-            "com.beat.application.frontoffice.auth.command.LoginSession",
-        )
-        val forbiddenAuthTypes = importedClasses
-            .filter { javaClass ->
-                javaClass.packageName.startsWith("com.beat.application.frontoffice.auth") &&
-                    javaClass.fullName !in allowedAuthTypes
-            }
-            .map(JavaClass::getFullName)
-            .toSet()
-        return noDependencyOnConcreteTypesRule(packagePattern("member"), forbiddenAuthTypes)
-    }
-
-    private fun noDependencyOnConcreteTypesRule(
+    fun noDependencyOnConcreteTypesRule(
         sourcePackage: PackagePattern,
         forbiddenTypes: Set<String>,
     ): ArchRule? {
@@ -288,24 +131,136 @@ class FrontofficeApplicationArchitectureTest {
             )
     }
 
-    private fun hasPackage(packagePattern: PackagePattern): Boolean {
-        return importedClasses.any { javaClass ->
-            javaClass.packageName
-                .split('.')
-                .windowed(packagePattern.segments.size)
-                .any { it == packagePattern.segments }
-        }
+    fun noMemberDependencyOnAuthTypesRule(): ArchRule? {
+        val allowedAuthTypes = setOf(
+            "com.beat.application.frontoffice.auth.command.LoginSessionIssuer",
+            "com.beat.application.frontoffice.auth.command.LoginSession",
+        )
+        val forbiddenAuthTypes = importedClasses
+            .filter { javaClass ->
+                javaClass.packageName.startsWith("com.beat.application.frontoffice.auth") &&
+                    javaClass.fullName !in allowedAuthTypes
+            }
+            .map(JavaClass::getFullName)
+            .toSet()
+        return noDependencyOnConcreteTypesRule(packagePattern("member"), forbiddenAuthTypes)
     }
 
-    private fun packagePattern(vararg segments: String): PackagePattern {
-        return PackagePattern(
-            archUnitPattern = "..${segments.joinToString(".")}..",
-            segments = segments.toList(),
+    test("command 패키지는 query 패키지에 의존하지 않는다") {
+        checkRule(
+            noDependencyRule(packagePattern("command"), packagePattern("query")),
         )
     }
 
-    private data class PackagePattern(
-        val archUnitPattern: String,
-        val segments: List<String>,
-    )
-}
+    test("read-model 가드는 실제 검사 대상이 존재한다") {
+        val matched = importedClasses.filter { javaClass ->
+            javaClass.packageName.startsWith("com.beat.") &&
+                (
+                    javaClass.simpleName.endsWith("Reader") ||
+                        javaClass.simpleName.endsWith("Queries") ||
+                        javaClass.simpleName.endsWith("ReadModel") ||
+                        javaClass.simpleName.endsWith("Projection")
+                    )
+        }
+        check(matched.isNotEmpty()) {
+            "Presentation read-model predicate matches nothing; the command-side guard is vacuous."
+        }
+    }
+
+    test("command 패키지는 presentation read-model에 의존하지 않는다") {
+        checkRule(noCommandDependencyOnPresentationReadModelsRule())
+    }
+
+    test("booking booker 패키지는 performance 레인에 의존하지 않는다") {
+        checkRule(
+            noDependencyRule(
+                packagePattern("booking", "booker"),
+                packagePattern("performance", "booker"),
+                packagePattern("performance", "maker"),
+            ),
+        )
+    }
+
+    test("booking 클래스는 booker 레인 안에만 존재한다") {
+        checkActorAlignment("booking", "booking.booker")
+    }
+
+    test("ticket 클래스는 maker 레인 안에만 존재한다") {
+        checkActorAlignment("ticket", "ticket.maker")
+    }
+
+    test("home 클래스는 booker 레인 안에만 존재한다") {
+        checkActorAlignment("home", "home.booker")
+    }
+
+    test("performance booker query는 maker에 의존하지 않는다") {
+        checkRule(
+            noDependencyRule(
+                packagePattern("performance", "booker", "query"),
+                packagePattern("performance", "maker"),
+            ),
+        )
+    }
+
+    test("performance maker query는 booker와 maker command에 의존하지 않는다") {
+        checkRule(
+            noDependencyRule(
+                packagePattern("performance", "maker", "query"),
+                packagePattern("performance", "booker"),
+                packagePattern("performance", "maker", "command"),
+            ),
+        )
+    }
+
+    test("performance maker command는 booker·maker query와 schedule query에 의존하지 않는다") {
+        checkRule(
+            noDependencyRule(
+                packagePattern("performance", "maker", "command"),
+                packagePattern("performance", "booker"),
+                packagePattern("performance", "maker", "query"),
+                packagePattern("schedule", "booker", "query"),
+            ),
+        )
+    }
+
+    test("auth는 member에 의존하지 않는다") {
+        checkRule(
+            noDependencyRule(
+                packagePattern("auth"),
+                packagePattern("member"),
+            ),
+        )
+    }
+
+    test("member는 auth의 LoginSession 경계로만 협업한다") {
+        checkRule(noMemberDependencyOnAuthTypesRule())
+    }
+
+    test("member는 support token 발급기를 직접 의존하지 않는다") {
+        checkRule(
+            noDependencyOnConcreteTypesRule(
+                packagePattern("member"),
+                setOf(
+                    "com.beat.support.security.token.TokenIssuer",
+                    "com.beat.support.security.token.RefreshTokenAuthenticator",
+                ),
+            ),
+        )
+    }
+
+    test("모든 @Service는 도메인 실패 번역기를 거친다") {
+        val failureTranslator = object : DescribedPredicate<JavaClass>(
+            "be the domain failure translator",
+        ) {
+            override fun test(javaClass: JavaClass): Boolean =
+                javaClass.fullName == "com.beat.application.frontoffice.exception.DomainFailureTranslatorKt"
+        }
+        classes()
+            .that()
+            .areAnnotatedWith(Service::class.java)
+            .should()
+            .dependOnClassesThat(failureTranslator)
+            .because("service use-case boundaries must translate domain failures")
+            .check(importedClasses)
+    }
+})

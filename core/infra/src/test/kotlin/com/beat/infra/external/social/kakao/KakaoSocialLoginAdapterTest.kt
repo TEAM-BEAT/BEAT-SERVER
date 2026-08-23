@@ -34,7 +34,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
         ReflectionTestUtils.setField(adapter, "redirectUri", "redirect-uri")
     }
 
-    test("provider server error is not misclassified as authentication failure") {
+    test("provider 서버 오류는 인증 실패로 잘못 분류되지 않는다") {
         val providerException = mock(FeignException::class.java)
         given(providerException.status()).thenReturn(503)
         given(kakaoAuthApiClient.getOAuth2AccessToken(anyString(), anyString(), anyString(), anyString()))
@@ -46,7 +46,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
         (failure.cause === providerException) shouldBe true
     }
 
-    test("provider rate limit is unavailable instead of authentication failure") {
+    test("provider rate limit은 인증 실패가 아닌 unavailable로 분류된다") {
         val rateLimitException = mock(FeignException::class.java)
         given(rateLimitException.status()).thenReturn(429)
         given(kakaoAuthApiClient.getOAuth2AccessToken(anyString(), anyString(), anyString(), anyString()))
@@ -58,7 +58,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
         (failure.cause === rateLimitException) shouldBe true
     }
 
-    test("provider configuration error is provider failure") {
+    test("provider 설정 오류는 provider failure로 분류된다") {
         val providerException = mock(FeignException::class.java)
         given(providerException.status()).thenReturn(403)
         given(kakaoAuthApiClient.getOAuth2AccessToken(anyString(), anyString(), anyString(), anyString()))
@@ -70,7 +70,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
         (failure.cause === providerException) shouldBe true
     }
 
-    test("rejected authorization code is authentication failure") {
+    test("거부된 authorization code는 인증 실패로 분류된다") {
         val authenticationException = mock(FeignException::class.java)
         given(authenticationException.status()).thenReturn(400)
         given(authenticationException.contentUTF8())
@@ -84,7 +84,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
         (failure.cause === authenticationException) shouldBe true
     }
 
-    test("provider configuration bad request is not authentication failure") {
+    test("provider 설정 bad request는 인증 실패로 분류되지 않는다") {
         val configurationException = mock(FeignException::class.java)
         given(configurationException.status()).thenReturn(400)
         given(configurationException.contentUTF8())
@@ -98,7 +98,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
         (failure.cause === configurationException) shouldBe true
     }
 
-    test("rejected provider access token is provider failure") {
+    test("거부된 provider access token은 provider failure로 분류된다") {
         val authenticationException = mock(FeignException::class.java)
         given(authenticationException.status()).thenReturn(401)
         given(kakaoAuthApiClient.getOAuth2AccessToken(anyString(), anyString(), anyString(), anyString()))
@@ -111,7 +111,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
         (failure.cause === authenticationException) shouldBe true
     }
 
-    test("user info provider error is provider failure") {
+    test("user info provider 오류는 provider failure로 분류된다") {
         val providerException = mock(FeignException::class.java)
         given(providerException.status()).thenReturn(403)
         given(kakaoAuthApiClient.getOAuth2AccessToken(anyString(), anyString(), anyString(), anyString()))
@@ -124,7 +124,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
         (failure.cause === providerException) shouldBe true
     }
 
-    test("retryable timeout is classified separately") {
+    test("재시도 가능한 timeout은 별도로 분류된다") {
         val timeoutException = mock(RetryableException::class.java)
         given(timeoutException.cause).thenReturn(SocketTimeoutException("timeout"))
         given(kakaoAuthApiClient.getOAuth2AccessToken(anyString(), anyString(), anyString(), anyString()))
@@ -136,7 +136,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
         (failure.cause === timeoutException) shouldBe true
     }
 
-    test("missing token response is provider failure") {
+    test("token 응답이 없으면 provider failure로 분류된다") {
         given(kakaoAuthApiClient.getOAuth2AccessToken(anyString(), anyString(), anyString(), anyString()))
             .thenReturn(null)
 
@@ -145,7 +145,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
         failure.reason shouldBe SocialLoginFailure.Reason.PROVIDER_FAILURE
     }
 
-    test("successful response maps member profile") {
+    test("성공 응답은 member profile로 매핑된다") {
         given(kakaoAuthApiClient.getOAuth2AccessToken(anyString(), anyString(), anyString(), anyString()))
             .thenReturn(successfulTokenResponse())
         given(kakaoApiClient.getUserInformation("Bearer access-token")).thenReturn(

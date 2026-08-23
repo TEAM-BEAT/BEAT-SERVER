@@ -9,7 +9,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 
 class DomainFailureTranslatorSpec : FunSpec({
-    test("translates a domain failure while preserving cause and domain code") {
+    test("domain failure를 원인과 domain code를 보존한 채 변환한다") {
         val domainFailure = DomainException(PromotionErrorCode.TOO_MANY_CAROUSEL_PROMOTIONS)
 
         val applicationFailure = shouldThrow<AdminApplicationException> {
@@ -22,7 +22,7 @@ class DomainFailureTranslatorSpec : FunSpec({
         applicationFailure.errorCode.message shouldBe PromotionErrorCode.TOO_MANY_CAROUSEL_PROMOTIONS.message
     }
 
-    test("maps domain error types while preserving the domain message") {
+    test("domain message는 유지한 채 domain 에러 타입을 매핑한다") {
         assertTranslation(
             TestDomainErrorCode("INVALID", DomainErrorType.INVALID_INPUT, "invalid"),
             AdminApplicationErrorType.INVALID_INPUT,

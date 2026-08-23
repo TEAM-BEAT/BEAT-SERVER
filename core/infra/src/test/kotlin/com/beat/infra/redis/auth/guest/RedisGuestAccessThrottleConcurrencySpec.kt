@@ -35,7 +35,7 @@ class RedisGuestAccessThrottleConcurrencySpec : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("twenty concurrent failures are counted atomically and block the key") {
+        test("동시 20회 실패는 원자적으로 집계되어 key를 차단한다") {
             val key = redisKey(KEY_MATERIAL)
             val executor = Executors.newFixedThreadPool(WORKER_COUNT)
             val start = CountDownLatch(1)

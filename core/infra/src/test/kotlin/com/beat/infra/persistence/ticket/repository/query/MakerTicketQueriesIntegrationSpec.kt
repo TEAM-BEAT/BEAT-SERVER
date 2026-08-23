@@ -68,7 +68,7 @@ class MakerTicketQueriesIntegrationSpec : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("maker ticket reader orders statuses and maps bank display name on MySQL") {
+        test("maker ticket reader는 MySQL에서 상태를 정렬하고 은행 표시명을 매핑한다") {
             val userId = requireNotNull(userRepository.save(Users.create()).id)
             val performanceId = requireNotNull(
                 performanceRepository.save(
@@ -181,7 +181,7 @@ class MakerTicketQueriesIntegrationSpec : FunSpec() {
             result.first().bankName shouldNotBe BankName.KAKAOBANK.name
         }
 
-        test("maker ticket reader renders and executes cross join dynamic query on MySQL") {
+        test("maker ticket reader는 MySQL에서 cross join 동적 query를 생성하고 실행한다") {
             makerTicketReader.findTickets(999_999L, emptyList(), emptyList()).shouldBeEmpty()
         }
     }

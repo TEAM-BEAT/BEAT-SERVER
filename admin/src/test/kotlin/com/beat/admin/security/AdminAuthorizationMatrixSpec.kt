@@ -43,11 +43,11 @@ class AdminAuthorizationMatrixSpec : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("the admin controller mapping exactly matches the admin authorization routes") {
+        test("admin controller 매핑은 admin 인가 경로와 정확히 일치한다") {
             adminControllerRoutes() shouldBe expectedRoutes
         }
 
-        test("unauthenticated requests are rejected by the admin boundary") {
+        test("인증되지 않은 요청은 admin 경계에서 거부된다") {
             expectedRoutes.forEach { endpoint ->
                 val status = perform(endpoint).response.status
 
@@ -55,7 +55,7 @@ class AdminAuthorizationMatrixSpec : FunSpec() {
             }
         }
 
-        test("member-authenticated requests cannot access admin routes") {
+        test("member로 인증된 요청은 admin 경로에 접근할 수 없다") {
             expectedRoutes.forEach { endpoint ->
                 val status = perform(endpoint, memberAuthentication()).response.status
 
@@ -63,7 +63,7 @@ class AdminAuthorizationMatrixSpec : FunSpec() {
             }
         }
 
-        test("admin-authenticated requests cross the admin security boundary") {
+        test("admin으로 인증된 요청은 admin 보안 경계를 통과한다") {
             expectedRoutes.forEach { endpoint ->
                 val status = perform(endpoint, adminAuthentication()).response.status
 

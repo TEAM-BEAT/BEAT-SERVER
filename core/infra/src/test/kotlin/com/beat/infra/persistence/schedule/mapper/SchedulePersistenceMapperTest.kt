@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 class SchedulePersistenceMapperTest : FunSpec({
     val mapper = SchedulePersistenceMapper()
 
-    test("invalidStoredStateIsNotExposedAsAClientDomainError") {
+    test("저장된 상태가 유효하지 않으면 client domain 에러로 노출되지 않는다") {
         val performanceDate = LocalDateTime.of(2026, 7, 17, 20, 0)
         val corruptedRow = ScheduleJpaEntity.rehydrate(
             1L,

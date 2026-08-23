@@ -17,8 +17,8 @@ import org.mockito.Mockito
 class AuthenticationCommandInvariantSpec : FunSpec({
     isolationMode = IsolationMode.SingleInstance
 
-    context("refresh token rejection mapping") {
-        test("maps every security failure to its exact application error") {
+    context("refresh token 거부 매핑") {
+        test("모든 보안 실패를 정확한 application 에러로 매핑한다") {
             val expectedCodes = mapOf(
                 TokenAuthenticationFailure.EXPIRED to TokenApplicationErrorCode.REFRESH_TOKEN_EXPIRED_ERROR,
                 TokenAuthenticationFailure.INVALID_TOKEN to TokenApplicationErrorCode.INVALID_REFRESH_TOKEN_ERROR,
@@ -42,7 +42,7 @@ class AuthenticationCommandInvariantSpec : FunSpec({
             }
         }
 
-        test("rejects an invalid token before reading stored ownership or issuing an access token") {
+        test("저장된 소유자 확인이나 access token 발급 전에 유효하지 않은 token을 거부한다") {
             val dependencies = AuthenticationDependencies()
             Mockito.`when`(dependencies.refreshTokenAuthenticator.authenticateRefreshToken(REFRESH_TOKEN))
                 .thenReturn(TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN))
@@ -56,8 +56,8 @@ class AuthenticationCommandInvariantSpec : FunSpec({
         }
     }
 
-    context("stored refresh token ownership validation") {
-        test("rejects a refresh token when its stored member is missing") {
+    context("저장된 refresh token 소유자 검증") {
+        test("저장된 member가 없으면 refresh token을 거부한다") {
             val dependencies = AuthenticationDependencies()
             stubAuthenticatedRefreshToken(dependencies)
             Mockito.`when`(dependencies.refreshTokenStore.findMemberIdByRefreshToken(REFRESH_TOKEN))
@@ -72,7 +72,7 @@ class AuthenticationCommandInvariantSpec : FunSpec({
             Mockito.verifyNoInteractions(dependencies.tokenIssuer)
         }
 
-        test("rejects a refresh token when its stored owner differs from the token subject") {
+        test("저장된 소유자가 token subject와 다르면 refresh token을 거부한다") {
             val dependencies = AuthenticationDependencies()
             stubAuthenticatedRefreshToken(dependencies, memberId = MEMBER_ID)
             Mockito.`when`(dependencies.refreshTokenStore.findMemberIdByRefreshToken(REFRESH_TOKEN))
@@ -87,7 +87,7 @@ class AuthenticationCommandInvariantSpec : FunSpec({
             Mockito.verifyNoInteractions(dependencies.tokenIssuer)
         }
 
-        test("rejects a refresh token with an invalid role claim before issuing an access token") {
+        test("access token 발급 전에 role claim이 유효하지 않은 refresh token을 거부한다") {
             val dependencies = AuthenticationDependencies()
             stubAuthenticatedRefreshToken(dependencies, roleName = "ROLE_UNKNOWN")
             Mockito.`when`(dependencies.refreshTokenStore.findMemberIdByRefreshToken(REFRESH_TOKEN))
@@ -103,8 +103,8 @@ class AuthenticationCommandInvariantSpec : FunSpec({
         }
     }
 
-    context("access token issuance") {
-        test("issues an access token after authenticating and matching stored ownership") {
+    context("access token 발급") {
+        test("인증과 저장된 소유자 확인 후 access token을 발급한다") {
             val dependencies = AuthenticationDependencies()
             val subject = TokenSubject(MEMBER_ID, "ROLE_MEMBER")
             Mockito.`when`(dependencies.refreshTokenAuthenticator.authenticateRefreshToken(REFRESH_TOKEN))
@@ -120,8 +120,8 @@ class AuthenticationCommandInvariantSpec : FunSpec({
         }
     }
 
-    context("sign-out idempotence") {
-        test("delegates deletion when the refresh token is already absent") {
+    context("sign-out 멱등성") {
+        test("refresh token이 이미 없어도 삭제를 위임한다") {
             val dependencies = AuthenticationDependencies()
             Mockito.`when`(dependencies.refreshTokenStore.delete(MEMBER_ID)).thenReturn(false)
 
@@ -130,7 +130,7 @@ class AuthenticationCommandInvariantSpec : FunSpec({
             Mockito.verify(dependencies.refreshTokenStore).delete(MEMBER_ID)
         }
 
-        test("remains idempotent across repeated deletion attempts") {
+        test("반복 삭제 시도에서도 멱등을 유지한다") {
             val dependencies = AuthenticationDependencies()
             Mockito.`when`(dependencies.refreshTokenStore.delete(MEMBER_ID)).thenReturn(true, false)
 

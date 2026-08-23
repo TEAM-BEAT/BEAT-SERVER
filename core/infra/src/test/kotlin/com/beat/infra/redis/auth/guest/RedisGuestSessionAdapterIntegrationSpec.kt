@@ -33,7 +33,7 @@ class RedisGuestSessionAdapterIntegrationSpec : FunSpec() {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
         context("guest session Redis adapter") {
-            test("issued session round trip uses a hashed key, legacy alias, and configured ttl") {
+            test("발급된 session 왕복은 해시 key와 레거시 alias, 설정된 ttl을 사용한다") {
                 val token = guestSessionStore.issue(USER_ID)
                 val tokenHash = Sha256Hasher.hashToBase64Url(token)
                 val redisKey = "$REDIS_KEY_PREFIX:$tokenHash"
@@ -51,7 +51,7 @@ class RedisGuestSessionAdapterIntegrationSpec : FunSpec() {
                 }
             }
 
-            test("reads a legacy gateway guest session hash") {
+            test("레거시 gateway guest session 해시를 읽는다") {
                 val tokenHash = Sha256Hasher.hashToBase64Url(LEGACY_TOKEN)
                 val redisKey = "$REDIS_KEY_PREFIX:$tokenHash"
 

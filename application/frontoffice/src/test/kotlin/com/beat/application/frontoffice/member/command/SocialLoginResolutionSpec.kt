@@ -14,7 +14,7 @@ import org.mockito.Mockito
 
 class SocialLoginResolutionSpec : FunSpec({
 
-    test("existing member login returns its authentication result without registering another user") {
+    test("기존 member 로그인은 다른 user를 등록하지 않고 인증 결과를 반환한다") {
         val memberRepository = Mockito.mock(MemberRepository::class.java)
         val memberRegistrar = Mockito.mock(MemberRegistrar::class.java)
         val identity = SocialIdentity.of(SocialType.KAKAO, PROFILE.socialId)
@@ -27,7 +27,7 @@ class SocialLoginResolutionSpec : FunSpec({
         Mockito.verifyNoInteractions(memberRegistrar)
     }
 
-    test("new member registration reloads the persisted member by registrar result") {
+    test("신규 member 등록은 registrar 결과로 저장된 member를 다시 조회한다") {
         val memberRepository = Mockito.mock(MemberRepository::class.java)
         val memberRegistrar = Mockito.mock(MemberRegistrar::class.java)
         val identity = SocialIdentity.of(SocialType.KAKAO, PROFILE.socialId)
@@ -43,7 +43,7 @@ class SocialLoginResolutionSpec : FunSpec({
         Mockito.verify(memberRepository).findById(11L)
     }
 
-    test("duplicate identity registration race reloads the winning member") {
+    test("동일 identity 등록 경쟁 시 이기 member를 다시 조회한다") {
         val memberRepository = Mockito.mock(MemberRepository::class.java)
         val memberRegistrar = Mockito.mock(MemberRegistrar::class.java)
         val identity = SocialIdentity.of(SocialType.KAKAO, PROFILE.socialId)
@@ -59,7 +59,7 @@ class SocialLoginResolutionSpec : FunSpec({
         Mockito.verify(memberRepository, Mockito.times(2)).findBySocialIdentity(identity)
     }
 
-    test("missing post-registration member maps to member not found") {
+    test("등록 후 member 조회 실패는 member not found로 매핑된다") {
         val memberRepository = Mockito.mock(MemberRepository::class.java)
         val memberRegistrar = Mockito.mock(MemberRegistrar::class.java)
         val identity = SocialIdentity.of(SocialType.KAKAO, PROFILE.socialId)

@@ -8,15 +8,17 @@ import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import java.nio.file.Files
 import java.nio.file.Path
 
-class AdminArchitectureGuardTest {
-
-    private val productionClasses: JavaClasses by lazy {
+/**
+ * Admin composition-root contracts. Module-level isolation is enforced by the Gradle
+ * graph and Kotlin `internal`; these rules cover composition-root discipline only.
+ */
+class AdminArchitectureGuardTest : FunSpec({
+    val productionClasses: JavaClasses by lazy {
         val productionClassPaths = listOf(
             Path.of("build/classes/kotlin/main"),
             Path.of("build/classes/java/main"),
@@ -27,14 +29,14 @@ class AdminArchitectureGuardTest {
         ClassFileImporter().importPaths(productionClassPaths)
     }
 
-    @Test
-    fun `production classes stay in the admin adapter owner`() {
-        classes()
-            .should()
-            .resideInAnyPackage("com.beat.admin..")
-            .because("Admin production classes must remain owned by the admin adapter")
-            .check(productionClasses)
+    val concreteApplicationServiceOrInfrastructure =
+        object : DescribedPredicate<JavaClass>("be a concrete application service or infrastructure type") {
+            override fun test(input: JavaClass): Boolean =
+                input.packageName.startsWith("com.beat.infra.") ||
+                    (input.packageName.startsWith("com.beat.application.") && input.simpleName.endsWith("Service"))
+        }
 
+    test("controller와 facade는 각자의 어댑터 패키지에 위치한다") {
         classes()
             .that()
             .haveSimpleNameEndingWith("Controller")
@@ -52,137 +54,20 @@ class AdminArchitectureGuardTest {
             .check(productionClasses)
     }
 
-    @Test
-    fun `legacy owner packages are absent from the compiled admin output`() {
-        val violations = productionClasses
-            .filter { it.packageName.startsWith("com.beat.domain.") || it.packageName.startsWith("com.beat.global.") }
-            .map(JavaClass::getFullName)
-            .sorted()
-
-        assertTrue(
-            violations.isEmpty(),
-            "Admin production output must not reintroduce legacy owner packages: ${violations.joinToString(", ")}",
-        )
-    }
-
-    @Test
-    fun `production classes do not depend on domain types`() {
-        noClasses()
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("com.beat.domain..")
-            .because("Admin production code must not depend on the Domain module")
-            .check(productionClasses)
-    }
-
-    @Test
-    fun `dto adapters do not depend on domain types`() {
-        noClasses()
-            .that()
-            .resideInAnyPackage(
-                "com.beat.admin..api.request..",
-                "com.beat.admin..api.response..",
-                "com.beat.admin..application.result..",
-            )
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("com.beat.domain..")
-            .because("Admin transport contracts must not expose Domain types")
-            .check(productionClasses)
-    }
-
-    @Test
-    fun `controllers do not depend on concrete application services or infrastructure`() {
+    test("controller는 admin facade를 통해서만 유즈케이스에 진입한다") {
         noClasses()
             .that()
             .haveSimpleNameEndingWith("Controller")
             .should()
             .dependOnClassesThat(concreteApplicationServiceOrInfrastructure)
-            .because("Admin controllers must enter use cases through facades")
+            .because("Controllers must delegate orchestration to admin facades, never call services or infrastructure directly")
             .check(productionClasses)
     }
 
-    @Test
-    fun `facades do not depend on domain or infrastructure implementations`() {
-        noClasses()
-            .that()
-            .haveSimpleNameEndingWith("Facade")
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("com.beat.domain..", "com.beat.infra..")
-            .because("Admin facades must delegate to application services")
-            .check(productionClasses)
-    }
-
-    @Test
-    fun `only admin configuration and bootstrap may depend on public infrastructure configuration`() {
-        noClasses()
-            .that(nonBootstrapClasses)
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("com.beat.infra..")
-            .because("Infrastructure configuration is visible only to admin bootstrap configuration")
-            .check(productionClasses)
-    }
-
-    @Test
-    fun `admin classes do not reach gateway internals or legacy runtime lanes`() {
-        noClasses()
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage(
-                "com.beat.support.security..internal..",
-                "com.beat.batch..",
-                "com.beat.global..",
-                "com.beat.legacyroot..",
-            )
-            .because("Admin adapters use public support boundaries and their assigned runtime lane")
-            .check(productionClasses)
-    }
-
-    @Test
-    fun `transitional admin packages and mapper ownership are absent from compiled output`() {
-        val transitionalPackages = listOf(
-            "com.beat.admin.adapter",
-            "com.beat.admin.controller",
-            "com.beat.admin.port.in",
-            "com.beat.admin.application.service",
-        )
-        val transitionalViolations = productionClasses
-            .filter { javaClass -> transitionalPackages.any { packageName ->
-                javaClass.packageName == packageName || javaClass.packageName.startsWith("$packageName.")
-            } }
-            .map(JavaClass::getFullName)
-
-        val mapperViolations = productionClasses
-            .filter { it.simpleName.endsWith("Mapper") }
-            .map(JavaClass::getFullName)
-
-        assertTrue(
-            transitionalViolations.isEmpty() && mapperViolations.isEmpty(),
-            "Transitional admin classes or mapper implementations remain: " +
-                (transitionalViolations + mapperViolations).joinToString(", "),
-        )
-    }
-
-    @Test
-    fun `admin application error codes remain unique`() {
-        val codes = PromotionApplicationErrorCode.entries.map { it.code } +
-            UserApplicationErrorCode.entries.map { it.code }
-
-        assertEquals(codes.size, codes.distinct().size)
-    }
-
-    private val concreteApplicationServiceOrInfrastructure =
-        object : DescribedPredicate<JavaClass>("be a concrete application service or infrastructure type") {
-            override fun test(input: JavaClass): Boolean {
-                return input.packageName.startsWith("com.beat.infra.") ||
-                    (input.packageName.startsWith("com.beat.application.") && input.simpleName.endsWith("Service"))
-            }
-        }
-
-    private val nonBootstrapClasses =
-        object : DescribedPredicate<JavaClass>("be an admin class outside configuration/bootstrap") {
+    test("infra 공개 설정 타입은 bootstrap만 사용할 수 있다") {
+        val nonBootstrapClasses = object : DescribedPredicate<JavaClass>(
+            "be an admin class outside configuration/bootstrap",
+        ) {
             override fun test(input: JavaClass): Boolean {
                 if (!input.packageName.startsWith("com.beat.admin.")) {
                     return false
@@ -190,4 +75,19 @@ class AdminArchitectureGuardTest {
                 return !input.packageName.contains(".config") && input.simpleName != "AdminApplication"
             }
         }
-}
+        noClasses()
+            .that(nonBootstrapClasses)
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("com.beat.infra..")
+            .because("Infrastructure wiring types may only be consumed by admin bootstrap configuration")
+            .check(productionClasses)
+    }
+
+    test("admin application 에러 코드는 전체에서 고유하다") {
+        val codes = PromotionApplicationErrorCode.entries.map { it.code } +
+            UserApplicationErrorCode.entries.map { it.code }
+
+        codes.size shouldBe codes.distinct().size
+    }
+})

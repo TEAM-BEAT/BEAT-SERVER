@@ -35,7 +35,7 @@ open class ApisModuleContextBootSpec : FunSpec() {
     init {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("api context wires general OpenAPI and frontoffice booking/ticket capabilities without admin or batch") {
+        test("api context는 admin과 batch 없이 general OpenAPI와 frontoffice booking/ticket 기능을 구성한다") {
             applicationContext.getBeansOfType(GroupedOpenApi::class.java).size shouldBe 1
             applicationContext.getBeansOfType(OpenAPI::class.java).size shouldBe 1
             applicationContext.containsBean("generalApi") shouldBe true
@@ -52,7 +52,7 @@ open class ApisModuleContextBootSpec : FunSpec() {
             applicationContext.getBeansOfType(TicketQueryService::class.java).size shouldBe 1
         }
 
-        test("serves the general OpenAPI document") {
+        test("general OpenAPI 문서를 제공한다") {
             mockMvc.perform(get("/v3/api-docs/general"))
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.openapi").exists())

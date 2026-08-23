@@ -59,7 +59,7 @@ class HomeProjectionQueriesIntegrationSpec : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("filters by genre and selects the authoritative home performance date") {
+        test("genre로 필터링하고 authoritative home 공연 날짜를 선택한다") {
             val futurePerformance = performanceRepository.save(
                 performance(
                     title = "Future performance",
@@ -130,7 +130,7 @@ class HomeProjectionQueriesIntegrationSpec : FunSpec() {
             noSchedule.periodEndDate shouldBe LocalDate.of(2026, 9, 30)
         }
 
-        test("projects promotions in carousel order without losing nullable fields") {
+        test("nullable 필드를 잃지 않고 carousel 순서로 promotion을 projection한다") {
             val firstPerformance = performance(
                 title = "Carousel performance",
                 genre = Genre.BAND,

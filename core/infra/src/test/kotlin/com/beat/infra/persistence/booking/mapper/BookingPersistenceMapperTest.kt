@@ -13,7 +13,7 @@ import java.time.LocalDateTime
 class BookingPersistenceMapperTest : FunSpec({
     val mapper = BookingPersistenceMapper()
 
-    test("toDomainPreservesJpaEntityFields") {
+    test("toDomain은 JPA entity 필드를 보존한다") {
         val createdAt = LocalDateTime.of(2026, 4, 29, 19, 10)
         val cancellationDate = LocalDateTime.of(2026, 4, 30, 19, 10)
         val entity = BookingJpaEntity.rehydrate(
@@ -49,7 +49,7 @@ class BookingPersistenceMapperTest : FunSpec({
         booking.userId shouldBe 33L
     }
 
-    test("toEntityKeepsGeneratedIdNullForNewBooking") {
+    test("toEntity는 신규 booking의 생성 id를 null로 유지한다") {
         val booking = Booking.create(
             1,
             "new-booker",
@@ -73,7 +73,7 @@ class BookingPersistenceMapperTest : FunSpec({
         entity.userId shouldBe 55L
     }
 
-    test("roundTripPreservesRefundFields") {
+    test("왕복 시 환불 필드를 보존한다") {
         val createdAt = LocalDateTime.of(2026, 4, 29, 19, 20)
         val booking = Booking.rehydrate(
             31L,

@@ -11,14 +11,14 @@ class CdnImageUrlSerializerSpec : FunSpec({
         CdnImageUrlSerializer.initialize(null)
     }
 
-    test("relative image key is serialized with the configured CDN domain") {
+    test("상대 경로 image key는 설정된 CDN 도메인과 함께 직렬화된다") {
         CdnImageUrlSerializer.initialize("https://cdn.beatlive.kr/")
 
         objectMapper.writeValueAsString(ImageResponse("/prod/poster/image.jpg")) shouldBe
             """{"imageUrl":"https://cdn.beatlive.kr/prod/poster/image.jpg"}"""
     }
 
-    test("absolute URL and blank value remain unchanged") {
+    test("절대 URL과 빈 값은 그대로 유지된다") {
         CdnImageUrlSerializer.initialize("https://cdn.beatlive.kr")
 
         objectMapper.writeValueAsString(ImageResponse("https://external.test/image.jpg")) shouldBe

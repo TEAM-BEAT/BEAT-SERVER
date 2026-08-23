@@ -18,11 +18,6 @@ java {
     }
 }
 
-dependencies {
-    testImplementation(libs.junit.jupiter)
-    testRuntimeOnly(libs.junit.platform.launcher)
-}
-
 tasks.named<Jar>("jar") {
     description = "Builds the non-executable root coordination artifact."
     enabled = true
@@ -57,19 +52,6 @@ fun registerVerificationTask(
         group = "verification"
         this.description = description
         dependsOn(*dependencies)
-    }
-}
-
-val transitionBoundaryTest by tasks.registering(Test::class) {
-    group = "verification"
-    description = "Runs the root transition boundary guard tests only."
-    testClassesDirs = sourceSets["test"].output.classesDirs
-    classpath = sourceSets["test"].runtimeClasspath
-    useJUnitPlatform()
-    filter {
-        includeTestsMatching("com.beat.RuntimeConfigurationContractSpec")
-        includeTestsMatching("com.beat.DeploymentContractSpec")
-        includeTestsMatching("com.beat.BuildToolingContractSpec")
     }
 }
 

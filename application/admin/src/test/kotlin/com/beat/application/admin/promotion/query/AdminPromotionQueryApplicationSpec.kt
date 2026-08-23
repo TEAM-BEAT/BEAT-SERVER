@@ -82,7 +82,7 @@ class AdminPromotionQueryApplicationSpec : FunSpec({
         }
     }
 
-    test("translates a domain failure raised while reading promotions") {
+    test("promotion 조회 중 발생한 domain failure를 변환한다") {
         val domainFailure = DomainException(PromotionErrorCode.TOO_MANY_CAROUSEL_PROMOTIONS)
         val service = AdminPromotionQueryService(
             promotionImageStorage = RecordingQueryImageStorage(),

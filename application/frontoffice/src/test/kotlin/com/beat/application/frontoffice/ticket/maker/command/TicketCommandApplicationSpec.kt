@@ -50,7 +50,7 @@ class TicketCommandApplicationSpec : FunSpec() {
             eventPublisher = Mockito.mock(ApplicationEventPublisher::class.java)
         }
 
-    test("rejects duplicate booking ids before loading authoritative state") {
+    test("authoritative 상태 조회 전에 중복 booking id를 거부한다") {
         val detail = statusUpdate(300L, TicketBookingStatus.BOOKING_CONFIRMED)
 
         val exception = shouldThrow<FrontofficeApplicationException> {
@@ -68,7 +68,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         )
     }
 
-    test("authorizes the maker through authoritative PerformanceRepository") {
+    test("authoritative PerformanceRepository로 maker 권한을 검증한다") {
         Mockito.`when`(memberRepository.findById(1L)).thenReturn(member(userId = 10L))
         Mockito.`when`(performanceRepository.findById(100L)).thenReturn(performance(userId = 11L))
 
@@ -83,7 +83,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         Mockito.verifyNoInteractions(bookingRepository, scheduleRepository, eventPublisher)
     }
 
-    test("rejects a booking whose schedule belongs to another performance") {
+    test("다른 공연에 속한 회차의 booking은 거부한다") {
         stubOwnerOnly()
         Mockito.`when`(bookingRepository.findScheduleIdsByIds(listOf(300L))).thenReturn(listOf(200L))
         Mockito.`when`(scheduleRepository.lockById(200L))
@@ -101,7 +101,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         Mockito.verifyNoInteractions(eventPublisher)
     }
 
-    test("looks up scalar schedule ids then locks schedules ascending and bookings ascending") {
+    test("scalar schedule id를 조회한 뒤 회차와 booking을 오름차순으로 잠근다") {
         val firstBooking = booking(id = 300L, scheduleId = 202L)
         val secondBooking = booking(id = 301L, scheduleId = 201L)
         stubOwnerOnly()
@@ -131,7 +131,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         order.verify(bookingRepository).lockById(301L)
     }
 
-    test("rejects a missing scalar schedule row before locking") {
+    test("locking 전에 누락된 scalar schedule row는 거부한다") {
         stubOwnerOnly()
         Mockito.`when`(bookingRepository.findScheduleIdsByIds(listOf(300L))).thenReturn(emptyList())
 
@@ -146,7 +146,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         Mockito.verify(bookingRepository, Mockito.never()).lockById(Mockito.anyLong())
     }
 
-    test("revalidates the schedule id on each locked booking") {
+    test("잠긴 각 booking에서 schedule id를 재검증한다") {
         val bookingWithChangedSchedule = booking(id = 300L, scheduleId = 999L)
         stubOwnerOnly()
         Mockito.`when`(bookingRepository.findScheduleIdsByIds(listOf(300L))).thenReturn(listOf(200L))
@@ -164,7 +164,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         Mockito.verifyNoInteractions(eventPublisher)
     }
 
-    test("publishes confirmation event with committed booking payload") {
+    test("저장된 booking payload로 결제 확인 event를 발행한다") {
         val booking = booking(id = 300L, scheduleId = 200L, status = BookingStatus.CHECKING_PAYMENT)
         stubOwner(booking)
 
@@ -181,7 +181,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         event.performanceTitle shouldBe "title"
     }
 
-    test("confirmation event toString exposes only the opaque booking id") {
+    test("confirmation event의 toString은 불투명한 booking id만 노출한다") {
         val event = TicketPaymentConfirmedEvent(
             bookingId = 1L,
             bookerName = "booker",
@@ -196,7 +196,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         rendered.contains("performance") shouldBe false
     }
 
-    test("translates unsupported status transition while preserving v1 message and type") {
+    test("v1 message와 타입을 유지하며 지원하지 않는 상태 전환을 변환한다") {
         val booking = booking(status = BookingStatus.CHECKING_PAYMENT)
         stubOwner(booking)
 
@@ -216,7 +216,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         Mockito.verifyNoInteractions(eventPublisher)
     }
 
-    test("translates confirmed status change while preserving v1 message and type") {
+    test("v1 message와 타입을 유지하며 확정 상태 변경을 변환한다") {
         val booking = booking(status = BookingStatus.BOOKING_CONFIRMED)
         stubOwner(booking)
 
@@ -234,7 +234,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         )
     }
 
-    test("refund completion releases allocated tickets") {
+    test("환불 완료 시 할당된 티켓을 반납한다") {
         val booking = booking(status = BookingStatus.REFUND_REQUESTED, totalPaymentAmount = 10_000)
         stubOwner(booking)
         stubSaveOperations(booking)
@@ -245,7 +245,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         savedSchedule().allocatedTicketCount shouldBe 0
     }
 
-    test("refund completion translates invalid status while preserving v1 message and type") {
+    test("환불 완료는 v1 message와 타입을 유지하며 유효하지 않은 상태를 변환한다") {
         val booking = booking(status = BookingStatus.BOOKING_CONFIRMED, totalPaymentAmount = 10_000)
         stubOwner(booking)
 
@@ -262,7 +262,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         assertNoInvocation(scheduleRepository, "save")
     }
 
-    test("deletion releases allocation for unpaid booking") {
+    test("삭제는 미입금 예매의 티켓 할당을 반납한다") {
         val booking = booking(status = BookingStatus.CHECKING_PAYMENT, totalPaymentAmount = 10_000)
         stubOwner(booking)
         stubSaveOperations(booking)
@@ -273,7 +273,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         savedSchedule().allocatedTicketCount shouldBe 0
     }
 
-    test("deletion releases allocation for confirmed free booking") {
+    test("삭제는 무료 확정 예매의 티켓 할당을 반납한다") {
         val booking = booking(status = BookingStatus.BOOKING_CONFIRMED, totalPaymentAmount = 0)
         stubOwner(booking)
         stubSaveOperations(booking)
@@ -283,7 +283,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         hasInvocation(scheduleRepository, "save") shouldBe true
     }
 
-    test("deletion does not release already inactive allocation") {
+    test("삭제는 이미 비활성인 할당을 반납하지 않는다") {
         val booking = booking(status = BookingStatus.BOOKING_CANCELLED)
         stubOwner(booking)
         stubBookingSave(booking)
@@ -293,7 +293,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         assertNoInvocation(scheduleRepository, "save")
     }
 
-    test("deletion is idempotent for deleted booking") {
+    test("삭제는 삭제된 예매에 대해 멱등이다") {
         val booking = booking(status = BookingStatus.BOOKING_DELETED)
         stubOwner(booking)
         stubBookingSave(booking)
@@ -304,7 +304,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         assertNoInvocation(scheduleRepository, "save")
     }
 
-    test("deletion translates an invalid status while preserving v1 message and type") {
+    test("삭제는 v1 message와 타입을 유지하며 유효하지 않은 상태를 변환한다") {
         val booking = booking(status = BookingStatus.REFUND_REQUESTED)
         stubOwner(booking)
 
@@ -321,7 +321,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         assertNoInvocation(scheduleRepository, "save")
     }
 
-    test("deletion rejects confirmed paid booking without releasing allocation") {
+    test("삭제는 할당을 반납하지 않고 유료 확정 예매를 거부한다") {
         val booking = booking(status = BookingStatus.BOOKING_CONFIRMED, totalPaymentAmount = 10_000)
         stubOwner(booking)
 

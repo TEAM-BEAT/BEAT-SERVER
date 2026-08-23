@@ -2,15 +2,17 @@ package com.beat.support.security.architecture
 
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
-import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
-import org.junit.jupiter.api.Test
+import io.kotest.core.spec.style.FunSpec
 import java.nio.file.Files
 import java.nio.file.Path
 
-class SupportSecurityArchitectureTest {
-
-    private val productionClasses: JavaClasses by lazy {
+/**
+ * Kotlin `internal` only blocks cross-module access; inside this module the public
+ * technical APIs could legally reach internals. This suite guards that boundary.
+ */
+class SupportSecurityArchitectureTest : FunSpec({
+    val productionClasses: JavaClasses by lazy {
         val productionClassPaths = listOf(
             Path.of("build/classes/kotlin/main"),
             Path.of("build/classes/java/main"),
@@ -21,17 +23,7 @@ class SupportSecurityArchitectureTest {
         ClassFileImporter().importPaths(productionClassPaths)
     }
 
-    @Test
-    fun `production classes stay under support security package`() {
-        classes()
-            .should()
-            .resideInAnyPackage("com.beat.support.security..")
-            .because("support security production classes must not reintroduce com.beat.gateway packages")
-            .check(productionClasses)
-    }
-
-    @Test
-    fun `public technical APIs must not depend on internal implementations`() {
+    test("공개 기술 API는 internal 구현에 의존하지 않는다") {
         noClasses()
             .that()
             .resideInAnyPackage("com.beat.support.security.token..")
@@ -50,4 +42,4 @@ class SupportSecurityArchitectureTest {
             .because("PasswordHasher must not expose or depend on internal implementations")
             .check(productionClasses)
     }
-}
+})

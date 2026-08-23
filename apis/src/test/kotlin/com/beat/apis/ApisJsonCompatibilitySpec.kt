@@ -6,6 +6,7 @@ import com.beat.apis.booking.api.request.MemberBookingRequest
 import com.beat.apis.booking.api.response.GuestBookingResponse
 import com.beat.apis.booking.api.response.MemberBookingResponse
 import com.beat.apis.booking.api.type.BookingStatusType
+import java.time.LocalDateTime
 import com.beat.apis.home.api.response.HomeFindAllResponse
 import com.beat.apis.home.api.type.HomeGenreType
 import com.beat.application.frontoffice.home.booker.query.HomeFindAllResult
@@ -47,14 +48,14 @@ class ApisJsonCompatibilitySpec : FunSpec({
 
     val objectMapper = jacksonObjectMapper()
 
-    test("required request collections reject null") {
+    test("필수 request 컬렉션은 null을 거부한다") {
         val validator = Validation.buildDefaultValidatorFactory().validator
         val request = com.beat.apis.ticket.api.request.TicketRefundRequest(1L, null)
 
         validator.validate(request).size shouldBe 1
     }
 
-    test("api enum names stay compatible across api boundary migration") {
+    test("api 경계 마이그레이션 전후로 api enum 이름이 호환된다") {
         withClue("API enum names") {
             enumNames(SocialTypeRequest.entries.toTypedArray()) shouldBe listOf("KAKAO")
             enumNames(GenreType.entries.toTypedArray()) shouldBe listOf("BAND", "PLAY", "DANCE", "ETC")
@@ -87,26 +88,19 @@ class ApisJsonCompatibilitySpec : FunSpec({
         }
     }
 
-    test("domain enum request json string values stay compatible across api boundary migration") {
+    test("api 경계 마이그레이션 전후로 domain enum request JSON 문자열 값이 호환된다") {
         val memberLoginRequest = MemberLoginRequest(SocialTypeRequest.KAKAO)
         val bookingRefundRequest = BookingRefundRequest(1L, BankNameType.KAKAOBANK, "123", "holder")
         val guestBookingRequest = GuestBookingRequest(
-            1L, 2, ScheduleNumberType.FIRST, "booker", "010-0000-0000", "990101", "password", 20000,
-            BookingStatusType.CHECKING_PAYMENT,
+            1L, 2, "booker", "010-0000-0000", "990101", "password",
         )
         val memberBookingRequest = MemberBookingRequest(
-            1L, ScheduleNumberType.FIRST, 2, "booker", "010-0000-0000", BookingStatusType.CHECKING_PAYMENT, 20000,
+            1L, 2, "booker", "010-0000-0000",
         )
 
         withClue("request enum serialization") {
             assertTextField(objectMapper.valueToTree(memberLoginRequest), "socialType", "KAKAO")
             assertTextField(objectMapper.valueToTree(bookingRefundRequest), "bankName", "KAKAOBANK")
-            val guestBookingJson = objectMapper.valueToTree<JsonNode>(guestBookingRequest)
-            assertTextField(guestBookingJson, "scheduleNumber", "FIRST")
-            assertTextField(guestBookingJson, "bookingStatus", "CHECKING_PAYMENT")
-            val memberBookingJson = objectMapper.valueToTree<JsonNode>(memberBookingRequest)
-            assertTextField(memberBookingJson, "scheduleNumber", "FIRST")
-            assertTextField(memberBookingJson, "bookingStatus", "CHECKING_PAYMENT")
         }
 
         withClue("request enum deserialization") {
@@ -116,26 +110,26 @@ class ApisJsonCompatibilitySpec : FunSpec({
                 BookingRefundRequest::class.java,
             ).bankName shouldBe BankNameType.KAKAOBANK
 
+            // Legacy clients still send retired fields (scheduleNumber/totalPaymentAmount/bookingStatus);
+            // unknown properties must stay tolerated on the request boundary.
             val parsedGuestBookingRequest = objectMapper.readValue(
                 """{"scheduleId":1,"purchaseTicketCount":2,"scheduleNumber":"FIRST","bookerName":"booker",""" +
                     """"bookerPhoneNumber":"010-0000-0000","birthDate":"990101","password":"password",""" +
                     """"totalPaymentAmount":20000,"bookingStatus":"CHECKING_PAYMENT"}""",
                 GuestBookingRequest::class.java,
             )
-            parsedGuestBookingRequest.scheduleNumber shouldBe ScheduleNumberType.FIRST
-            parsedGuestBookingRequest.bookingStatus shouldBe BookingStatusType.CHECKING_PAYMENT
+            parsedGuestBookingRequest.purchaseTicketCount shouldBe 2
 
             val parsedMemberBookingRequest = objectMapper.readValue(
                 """{"scheduleId":1,"scheduleNumber":"FIRST","purchaseTicketCount":2,"bookerName":"booker",""" +
                     """"bookerPhoneNumber":"010-0000-0000","bookingStatus":"CHECKING_PAYMENT","totalPaymentAmount":20000}""",
                 MemberBookingRequest::class.java,
             )
-            parsedMemberBookingRequest.scheduleNumber shouldBe ScheduleNumberType.FIRST
-            parsedMemberBookingRequest.bookingStatus shouldBe BookingStatusType.CHECKING_PAYMENT
+            parsedMemberBookingRequest.purchaseTicketCount shouldBe 2
         }
     }
 
-    test("booking response json string values stay compatible across api boundary migration") {
+    test("api 경계 마이그레이션 전후로 booking response JSON 문자열 값이 호환된다") {
         val creationResult = BookingCreationResult(
             bookingId = 10L,
             scheduleId = 1L,
@@ -148,7 +142,7 @@ class ApisJsonCompatibilitySpec : FunSpec({
             bankName = "KAKAOBANK",
             accountNumber = "123",
             totalPaymentAmount = 20000,
-            createdAt = null,
+            createdAt = LocalDateTime.parse("2026-04-01T12:00:00"),
         )
         val guestBookingResponse = GuestBookingResponse.from(creationResult)
         val memberBookingResponse = MemberBookingResponse.from(creationResult)
@@ -167,7 +161,7 @@ class ApisJsonCompatibilitySpec : FunSpec({
         }
     }
 
-    test("home response json field names and enum values stay compatible") {
+    test("home response의 JSON 필드명과 enum 값이 호환된다") {
         val response = HomeFindAllResponse.from(
             HomeFindAllResult(
                 promotionList = listOf(
@@ -199,7 +193,7 @@ class ApisJsonCompatibilitySpec : FunSpec({
         }
     }
 
-    test("boolean response json field names stay compatible") {
+    test("boolean response의 JSON 필드명이 호환된다") {
         val availability = TicketAvailabilityResponse.from(
             TicketAvailabilityResult(1L, "FIRST", 10, 2, 8, 1, true),
         )
