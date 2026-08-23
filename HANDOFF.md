@@ -187,3 +187,7 @@ A2/A3(ArchUnit 재작성) · A4/B1/B2/B3 · B4/B6/B7/B8 · R(루트계약스펙�
 - b16a0df1: 검증 태스크 2종→beat.root-verification 컨벤션 이관, deprecated subprojects/apply 제거(kotlin-base가 좌표·의존분석 전파), 중복 toolchain 제거.
 - gradle.properties에 daemon heap(-Xmx3g) 추가 — buildHealth GC 스래싱 방지. root buildHealth 재실행 통과(exit=0).
 - api booking 테스트 필터를 신규 패키지(com.beat.apps.api.*)로 갱신해 green 확인 — 이전 '2 FAILED'은 구패키지 필터 오탐이었음.
+
+## 로깅 통일 + security 빌드 정리 (2026-08-23)
+- slf4j 직접사용 3파일→KotlinLogging 전환. system: kotlin.logging+slf4j-api 병행 선언(kotlin-logging-jvm은 slf4j 전이 미제공 실증 — NoClassDefFoundError로 확인).
+- security: lombok 0사용 제거, springdoc compileOnly는 CurrentMember @Parameter 실사용으로 유지(주석).
