@@ -9,20 +9,16 @@ import org.slf4j.MDC
 import org.springframework.http.HttpMethod
 import org.springframework.web.servlet.HandlerMapping
 
-internal open class AccessLogEmitter(
-    private val actuatorBasePath: String = DEFAULT_ACTUATOR_BASE_PATH,
-) {
+internal open class AccessLogEmitter {
 
     fun markStart(request: HttpServletRequest) {
         request.setAttribute(START_NANOS_ATTR, System.nanoTime())
     }
 
-    private val skipPathPrefixes = setOf("$actuatorBasePath/health")
-
+    // actuator는 모든 프로필에서 별도 management 포트로 분리돼 있어 이 필터 체인에 도달하지 않는다.
+    // 따라서 경로 기반 스킵은 존재하지 않는다(포트 기반 제외는 SecurityMdcLoggingFilter.shouldNotFilter 소유).
     fun shouldEmit(request: HttpServletRequest): Boolean =
-        ACCESS_LOG_ENABLED &&
-            request.method !in SKIP_HTTP_METHODS &&
-            skipPathPrefixes.none(request.requestURI::startsWith)
+        ACCESS_LOG_ENABLED && request.method !in SKIP_HTTP_METHODS
 
     open fun emit(request: HttpServletRequest, response: HttpServletResponse) {
         val startNanos = request.getAttribute(START_NANOS_ATTR) as? Long ?: System.nanoTime()
@@ -66,12 +62,6 @@ internal open class AccessLogEmitter(
         private const val NANOS_PER_MILLI = 1_000_000L
 
         private val SKIP_HTTP_METHODS = setOf(HttpMethod.OPTIONS.name())
-
-        // Defensive against local-profile actuator on the same port. prod/dev expose
-        // actuator on a separate management port, so paths never reach this filter there.
-        // 접두사는 management.endpoints.web.base-path 설정(/actuator-test)을 따른다.
-
-        private const val DEFAULT_ACTUATOR_BASE_PATH = "/actuator"
 
         private val logger: Logger = LoggerFactory.getLogger(LOGGER_NAME)
     }

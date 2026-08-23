@@ -75,15 +75,15 @@ class AccessLogAsyncListenerTest : FunSpec() {
             newAsyncContext.addedListeners[0] shouldBeSameInstanceAs listener
         }
 
-        test("skip 경로는 emit을 건너뛰지만 logged flag는 설정한다") {
+        test("일반 경로는 emit되고 logged flag가 설정된다") {
             val emitter = RecordingEmitter()
-            val request = request(uri = "/actuator/health")
+            val request = request(uri = "/api/main")
             val response = MockHttpServletResponse()
             val listener = AccessLogAsyncListener(emitter, mdcSnapshot = emptyMap())
 
             listener.onComplete(event(request, response))
 
-            emitter.emitCount shouldBe 0
+            emitter.emitCount shouldBe 1
             (request.getAttribute("beat.access.logged") as? Boolean) shouldBe true
         }
 

@@ -67,20 +67,6 @@ class AccessLogEmitterTest : FunSpec() {
             emitter.shouldEmit(request(method = "OPTIONS")) shouldBe false
         }
 
-        test("기본 actuator health 접두사 경로에 대해 shouldEmit은 false를 반환한다") {
-            listOf("/actuator/health", "/actuator/health/liveness", "/actuator/health/customGroup").forEach { path ->
-                emitter.shouldEmit(request(uri = path)) shouldBe false
-            }
-        }
-
-        test("설정된 base-path(test는 /actuator-test, prod/dev는 시크릿 값)의 health도 emit하지 않는다") {
-            val configuredEmitter = AccessLogEmitter(actuatorBasePath = "/actuator-test")
-            listOf("/actuator-test/health", "/actuator-test/health/liveness").forEach { path ->
-                configuredEmitter.shouldEmit(request(uri = path)) shouldBe false
-            }
-            configuredEmitter.shouldEmit(request()) shouldBe true
-        }
-
         test("일반 GET request에 대해 shouldEmit은 true를 반환한다") {
             emitter.shouldEmit(request()) shouldBe true
         }
