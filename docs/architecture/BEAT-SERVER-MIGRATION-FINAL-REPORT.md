@@ -246,3 +246,13 @@ Dependency-analysis advice was reviewed, not auto-applied. Spring/Kotest reflect
 8. Gradle dependency-analysis recommendations remain advisory for the reasons in §15.
 
 These are documented follow-up risks, not hidden temporary migration adapters. None weakens the verified dependency graph or current observable API/runtime behavior.
+
+## 17. ADR-FINAL-001 실행 기록 — 물리정렬 완료 (2026-08-23)
+
+§14에서 보류했던 디렉터리 정렬을 실행했다(`1d716d5a`).
+
+- 7개 projectDir 매핑 제거, 디렉터리가 Gradle identity 관례 위치로 이동(ap→apps/api 등).
+- Kotlin 패키지도 identity에 수렴: `com.beat.{apis,admin,batch}` → `com.beat.apps.{api,admin,batch}`.
+- 배포 식별자(아카이브명 `apis-*`, 이미지 태그, matrix 키)는 호출 계약이라 유지 — 향후 인프라 교체 시 과제.
+- deploy 워크플로우 shared 필터의 `apps/**`·`support/**` 잔여 글롭은 모듈별 필터를 삼켜 제거.
+- 검증: projects 10 · 전모듈 컴파일 · ArchGuard · verifyTargetModuleGraph · verifyModuleBootJars · openApiTest · actionlint 통과.
