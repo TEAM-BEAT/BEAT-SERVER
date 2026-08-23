@@ -4,7 +4,6 @@ import com.tngtech.archunit.base.DescribedPredicate
 import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
-import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
 import io.kotest.core.spec.style.FunSpec

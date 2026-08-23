@@ -2,8 +2,6 @@ package com.beat.batch
 
 import com.beat.application.system.booking.command.TicketCleanupService
 import com.beat.application.system.promotion.command.PromotionMaintenanceService
-import com.beat.batch.booking.job.TicketCleanupJob
-import com.beat.batch.promotion.job.PromotionMaintenanceJob
 import com.beat.batch.support.BeatBatchAcceptanceTest
 import com.beat.domain.promotion.repository.PromotionRepository
 import com.beat.domain.schedule.repository.ScheduleRepository
@@ -17,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.core.env.Environment
 import org.springframework.scheduling.TaskScheduler
-import org.springframework.test.util.ReflectionTestUtils
 
 @BeatBatchAcceptanceTest
 @Tags("acceptance")

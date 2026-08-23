@@ -68,7 +68,8 @@ class SystemMaintenanceIntegrationSpec : FunSpec() {
 
         test("1년보다 오래된 취소 Booking만 실제 MySQL에서 삭제한다") {
             val oldCancelled = bookingRepository.save(booking(BookingStatus.BOOKING_CANCELLED, "2025-08-22T08:59:59"))
-            val boundaryCancelled = bookingRepository.save(booking(BookingStatus.BOOKING_CANCELLED, "2025-08-23T09:00:00"))
+            val boundaryCancelled =
+                bookingRepository.save(booking(BookingStatus.BOOKING_CANCELLED, "2025-08-23T09:00:00"))
             val oldConfirmed = bookingRepository.save(booking(BookingStatus.BOOKING_CONFIRMED, "2025-01-01T00:00:00"))
 
             ticketCleanupService.deleteOldCancelledBookings()
