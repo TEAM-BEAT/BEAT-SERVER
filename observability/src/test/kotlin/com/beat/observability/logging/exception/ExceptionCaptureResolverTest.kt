@@ -14,7 +14,7 @@ class ExceptionCaptureResolverTest : FunSpec() {
     private val resolver = ExceptionCaptureResolver()
 
     init {
-        test("stores the exception on the request attribute used by AccessLogEmitter") {
+        test("AccessLogEmitter가 사용하는 request attribute에 exception을 저장한다") {
             val request = MockHttpServletRequest("POST", "/api/bookings")
             val cause = RuntimeException("db timeout")
 
@@ -24,7 +24,7 @@ class ExceptionCaptureResolverTest : FunSpec() {
             result.shouldBeNull()
         }
 
-        test("runs before all other HandlerExceptionResolvers") {
+        test("모든 다른 HandlerExceptionResolver보다 먼저 실행된다") {
             // Required to capture the exception before @ControllerAdvice resolves and swallows it.
             resolver.order shouldBe Ordered.HIGHEST_PRECEDENCE
         }

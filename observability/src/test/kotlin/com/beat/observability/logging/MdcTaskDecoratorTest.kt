@@ -12,7 +12,7 @@ class MdcTaskDecoratorTest : FunSpec() {
     init {
         afterTest { MDC.clear() }
 
-        test("copies parent MDC context into decorated task") {
+        test("decorated task에 부모의 MDC context를 복사한다") {
             MDC.put("traceId", "trace-123")
             MDC.put("userId", "member-1")
 
@@ -34,7 +34,7 @@ class MdcTaskDecoratorTest : FunSpec() {
             MDC.get("workerOnly") shouldBe "keep-me"
         }
 
-        test("clears task MDC when parent has no context and restores worker context after execution") {
+        test("부모 context가 없으면 task의 MDC를 비우고 실행 후 worker context를 복원한다") {
             MDC.clear()
             val decorated = decorator.decorate(
                 Runnable {

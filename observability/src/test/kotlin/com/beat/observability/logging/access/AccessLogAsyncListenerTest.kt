@@ -18,7 +18,7 @@ class AccessLogAsyncListenerTest : FunSpec() {
     init {
         afterTest { MDC.clear() }
 
-        test("onComplete emits access log exactly once for the request lifecycle") {
+        test("onComplete은 request lifecycle 동안 access log를 정확히 한 번 emit한다") {
             val emitter = RecordingEmitter()
             val request = request()
             val response = MockHttpServletResponse().apply { status = 200 }
@@ -30,7 +30,7 @@ class AccessLogAsyncListenerTest : FunSpec() {
             (request.getAttribute("beat.access.logged") as? Boolean) shouldBe true
         }
 
-        test("subsequent onComplete after onTimeout does not double-emit") {
+        test("onTimeout 이후 이어지는 onComplete은 중복으로 emit하지 않는다") {
             val emitter = RecordingEmitter()
             val request = request()
             val response = MockHttpServletResponse().apply { status = 504 }
@@ -42,7 +42,7 @@ class AccessLogAsyncListenerTest : FunSpec() {
             emitter.emitCount shouldBe 1
         }
 
-        test("onError stores event throwable on request attribute when none was captured yet") {
+        test("아직 capture된 exception이 없으면 onError는 event의 throwable을 request attribute에 저장한다") {
             val cause = IllegalStateException("downstream broke")
             val request = request()
             val response = MockHttpServletResponse().apply { status = 500 }
@@ -53,7 +53,7 @@ class AccessLogAsyncListenerTest : FunSpec() {
             request.getAttribute(AccessLogEmitter.EXCEPTION_ATTR) shouldBeSameInstanceAs cause
         }
 
-        test("onError preserves exception already captured by ExceptionCaptureResolver") {
+        test("onError는 ExceptionCaptureResolver가 이미 capture한 exception을 유지한다") {
             val captured = RuntimeException("primary")
             val asyncCause = IllegalStateException("secondary")
             val request = request().apply { setAttribute(AccessLogEmitter.EXCEPTION_ATTR, captured) }
@@ -65,7 +65,7 @@ class AccessLogAsyncListenerTest : FunSpec() {
             request.getAttribute(AccessLogEmitter.EXCEPTION_ATTR) shouldBeSameInstanceAs captured
         }
 
-        test("onStartAsync registers itself on the new async context so chained async cycles are covered") {
+        test("onStartAsync는 자기 자신을 새 async context에 등록해 이어지는 async cycle도 커버한다") {
             val newAsyncContext = RecordingAsyncContext()
             val listener = AccessLogAsyncListener(RecordingEmitter(), mdcSnapshot = emptyMap())
 
@@ -75,7 +75,7 @@ class AccessLogAsyncListenerTest : FunSpec() {
             newAsyncContext.addedListeners[0] shouldBeSameInstanceAs listener
         }
 
-        test("skip paths bypass emission but still set the logged flag") {
+        test("skip 경로는 emit을 건너뛰지만 logged flag는 설정한다") {
             val emitter = RecordingEmitter()
             val request = request(uri = "/actuator/health")
             val response = MockHttpServletResponse()
@@ -87,7 +87,7 @@ class AccessLogAsyncListenerTest : FunSpec() {
             (request.getAttribute("beat.access.logged") as? Boolean) shouldBe true
         }
 
-        test("MDC snapshot is installed during emit and restored afterwards") {
+        test("emit 중에는 MDC snapshot을 적용하고 emit이 끝나면 복원한다") {
             val capturedMdcDuringEmit = mutableMapOf<String, String>()
             val emitter = object : AccessLogEmitter() {
                 override fun emit(request: HttpServletRequest, response: HttpServletResponse) {
@@ -107,7 +107,7 @@ class AccessLogAsyncListenerTest : FunSpec() {
             MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY).shouldBeNull()
         }
 
-        test("previous MDC of the worker thread is preserved across emit") {
+        test("worker thread의 기존 MDC는 emit 과정에서 보존한다") {
             MDC.put("unrelated", "preserved")
             val listener = AccessLogAsyncListener(
                 RecordingEmitter(),

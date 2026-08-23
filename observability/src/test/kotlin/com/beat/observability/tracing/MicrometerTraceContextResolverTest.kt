@@ -12,7 +12,7 @@ import org.mockito.Mockito.`when`
 class MicrometerTraceContextResolverTest : FunSpec() {
 
     init {
-        test("returns null when tracer has no active span") {
+        test("tracer에 active span이 없으면 null을 반환한다") {
             val tracer = mock(Tracer::class.java)
             `when`(tracer.currentSpan()).thenReturn(null)
 
@@ -21,7 +21,7 @@ class MicrometerTraceContextResolverTest : FunSpec() {
             resolved.shouldBeNull()
         }
 
-        test("returns null when traceId is blank") {
+        test("traceId가 blank이면 null을 반환한다") {
             val tracer = mockTracer(traceId = "   ", spanId = "abc")
 
             val resolved = MicrometerTraceContextResolver(tracer).resolve()
@@ -29,7 +29,7 @@ class MicrometerTraceContextResolverTest : FunSpec() {
             resolved.shouldBeNull()
         }
 
-        test("returns null when traceId is the OTel noop id") {
+        test("traceId가 OTel noop id이면 null을 반환한다") {
             val tracer = mockTracer(
                 traceId = "00000000000000000000000000000000",
                 spanId = "0000000000000000",
@@ -40,7 +40,7 @@ class MicrometerTraceContextResolverTest : FunSpec() {
             resolved.shouldBeNull()
         }
 
-        test("returns resolved context for a real active span") {
+        test("실제 active span이 있으면 resolved context를 반환한다") {
             val tracer = mockTracer(
                 traceId = "abcdef0123456789abcdef0123456789",
                 spanId = "fedcba9876543210",

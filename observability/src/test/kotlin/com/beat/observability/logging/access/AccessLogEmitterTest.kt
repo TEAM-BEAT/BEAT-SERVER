@@ -17,7 +17,7 @@ class AccessLogEmitterTest : FunSpec() {
     init {
         afterTest { MDC.clear() }
 
-        test("emit sets status and elapsed MDC fields") {
+        test("emit은 status와 elapsed MDC 필드를 설정한다") {
             val request = request().apply {
                 setAttribute(AccessLogEmitter.START_NANOS_ATTR, System.nanoTime() - 10_000_000L)
             }
@@ -31,7 +31,7 @@ class AccessLogEmitterTest : FunSpec() {
             (elapsed >= 0) shouldBe true
         }
 
-        test("emit falls back to request attribute when MDC route pattern is absent") {
+        test("MDC route pattern이 없으면 emit은 request attribute로 fallback한다") {
             val request = request(uri = "/api/concerts/1").apply {
                 setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/concerts/{id}")
                 setAttribute(AccessLogEmitter.START_NANOS_ATTR, System.nanoTime())
@@ -43,7 +43,7 @@ class AccessLogEmitterTest : FunSpec() {
             MDC.get(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY) shouldBe "GET /api/concerts/{id}"
         }
 
-        test("emit uses DEFAULT_ROUTE_PATTERN when neither MDC nor request attribute has route") {
+        test("MDC와 request attribute 모두 route가 없으면 emit은 DEFAULT_ROUTE_PATTERN을 사용한다") {
             val request = request().apply { setAttribute(AccessLogEmitter.START_NANOS_ATTR, System.nanoTime()) }
 
             emitter.emit(request, MockHttpServletResponse())
@@ -51,7 +51,7 @@ class AccessLogEmitterTest : FunSpec() {
             MDC.get(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY) shouldBe BaseMdcLoggingFilter.DEFAULT_ROUTE_PATTERN
         }
 
-        test("emit keeps interceptor-set route pattern over request attribute fallback") {
+        test("emit은 interceptor가 설정한 route pattern을 request attribute fallback보다 우선 사용한다") {
             val request = request(uri = "/api/concerts/1").apply {
                 setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/concerts/{id}")
                 setAttribute(AccessLogEmitter.START_NANOS_ATTR, System.nanoTime())
@@ -63,21 +63,29 @@ class AccessLogEmitterTest : FunSpec() {
             MDC.get(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY) shouldBe "GET /api/concerts/{concertId}"
         }
 
-        test("shouldEmit returns false for OPTIONS request") {
+        test("OPTIONS request에 대해 shouldEmit은 false를 반환한다") {
             emitter.shouldEmit(request(method = "OPTIONS")) shouldBe false
         }
 
-        test("shouldEmit returns false for actuator health prefix paths") {
+        test("기본 actuator health 접두사 경로에 대해 shouldEmit은 false를 반환한다") {
             listOf("/actuator/health", "/actuator/health/liveness", "/actuator/health/customGroup").forEach { path ->
                 emitter.shouldEmit(request(uri = path)) shouldBe false
             }
         }
 
-        test("shouldEmit returns true for ordinary GET request") {
+        test("설정된 base-path(test는 /actuator-test, prod/dev는 시크릿 값)의 health도 emit하지 않는다") {
+            val configuredEmitter = AccessLogEmitter(actuatorBasePath = "/actuator-test")
+            listOf("/actuator-test/health", "/actuator-test/health/liveness").forEach { path ->
+                configuredEmitter.shouldEmit(request(uri = path)) shouldBe false
+            }
+            configuredEmitter.shouldEmit(request()) shouldBe true
+        }
+
+        test("일반 GET request에 대해 shouldEmit은 true를 반환한다") {
             emitter.shouldEmit(request()) shouldBe true
         }
 
-        test("markStart records nanos on request attribute") {
+        test("markStart는 nano timing을 request attribute에 기록한다") {
             val request = request()
             emitter.markStart(request)
             (request.getAttribute(AccessLogEmitter.START_NANOS_ATTR) as? Long).shouldNotBeNull()

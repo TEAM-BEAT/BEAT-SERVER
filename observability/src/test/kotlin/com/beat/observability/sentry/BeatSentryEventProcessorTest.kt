@@ -22,7 +22,7 @@ class BeatSentryEventProcessorTest : FunSpec() {
     init {
         afterTest { MDC.clear() }
 
-        test("enriches sentry events with MDC context and scrubs credentials") {
+        test("sentry event에 MDC context를 enrich하고 credential은 scrub한다") {
             MDC.put(BaseMdcLoggingFilter.TRACE_ID_KEY, "trace-123")
             MDC.put(BaseMdcLoggingFilter.SPAN_ID_KEY, "span-abc")
             MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, "42")
@@ -65,7 +65,7 @@ class BeatSentryEventProcessorTest : FunSpec() {
             processed.getExtra("safe") shouldBe "bearer ${BeatSentryEventProcessor.REDACTED}"
         }
 
-        test("enriches sentry logs with MDC attributes and scrubs sensitive log attributes") {
+        test("sentry log에 MDC attribute를 enrich하고 민감한 log attribute는 scrub한다") {
             MDC.put(BaseMdcLoggingFilter.TRACE_ID_KEY, "trace-456")
             MDC.put(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY, "GET /api/main")
 

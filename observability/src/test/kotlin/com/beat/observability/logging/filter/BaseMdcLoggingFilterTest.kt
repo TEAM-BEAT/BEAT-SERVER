@@ -20,7 +20,7 @@ class BaseMdcLoggingFilterTest : FunSpec() {
     init {
         afterTest { MDC.clear() }
 
-        test("uses sanitized request id header as trace id and writes it to response") {
+        test("sanitized된 request id header를 trace id로 사용하고 response에 기록한다") {
             val filter = testFilter("42")
             val request = request()
             request.addHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER, " trace-from-client_1.2:3 ")
@@ -35,7 +35,7 @@ class BaseMdcLoggingFilterTest : FunSpec() {
             assertMdcCleared()
         }
 
-        test("generates trace id when request id header contains unsupported characters") {
+        test("request id header가 지원하지 않는 문자를 포함하면 trace id를 생성한다") {
             val response = MockHttpServletResponse()
             val request = request().apply {
                 addHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER, "trace id with spaces")
@@ -49,7 +49,7 @@ class BaseMdcLoggingFilterTest : FunSpec() {
             assertMdcCleared()
         }
 
-        test("generates trace id when request id header is too long") {
+        test("request id header가 너무 길면 trace id를 생성한다") {
             val response = MockHttpServletResponse()
             val request = request().apply {
                 addHeader(BaseMdcLoggingFilter.TRACE_ID_HEADER, "a".repeat(129))
@@ -62,7 +62,7 @@ class BaseMdcLoggingFilterTest : FunSpec() {
             assertMdcCleared()
         }
 
-        test("generates trace id when request id header is missing") {
+        test("request id header가 없으면 trace id를 생성한다") {
             val response = MockHttpServletResponse()
             testFilter(null).doFilter(request(), response) { _, _ ->
                 val traceId = MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY).shouldNotBeNull()
@@ -71,7 +71,7 @@ class BaseMdcLoggingFilterTest : FunSpec() {
             assertMdcCleared()
         }
 
-        test("uses first forwarded for ip before real ip and remote addr") {
+        test("forwarded for ip 목록의 첫 번째 값을 real ip와 remote addr보다 우선 사용한다") {
             val request = request().apply {
                 addHeader(BaseMdcLoggingFilter.X_FORWARDED_FOR_HEADER, "10.0.0.1, 10.0.0.2")
                 addHeader(BaseMdcLoggingFilter.X_REAL_IP_HEADER, "10.0.0.3")
@@ -83,7 +83,7 @@ class BaseMdcLoggingFilterTest : FunSpec() {
             assertMdcCleared()
         }
 
-        test("uses real ip when forwarded for is missing") {
+        test("forwarded for가 없으면 real ip를 사용한다") {
             val request = request().apply { addHeader(BaseMdcLoggingFilter.X_REAL_IP_HEADER, "10.0.0.3") }
 
             testFilter(null).doFilter(request, MockHttpServletResponse()) { _, _ ->
@@ -92,7 +92,7 @@ class BaseMdcLoggingFilterTest : FunSpec() {
             assertMdcCleared()
         }
 
-        test("uses remote addr when proxy headers are missing") {
+        test("proxy header가 없으면 remote addr를 사용한다") {
             val request = request().apply { remoteAddr = "127.0.0.1" }
 
             testFilter(null).doFilter(request, MockHttpServletResponse()) { _, _ ->
@@ -101,7 +101,7 @@ class BaseMdcLoggingFilterTest : FunSpec() {
             assertMdcCleared()
         }
 
-        test("stores request info and falls back to guest user when resolver returns blank") {
+        test("resolver가 blank를 반환하면 request info를 저장하고 guest user로 fallback한다") {
             testFilter(" ").doFilter(request(method = "POST", uri = "/api/bookings"), MockHttpServletResponse()) { _, _ ->
                 MDC.get(BaseMdcLoggingFilter.REQUEST_INFO_KEY) shouldBe "POST /api/bookings"
                 MDC.get(BaseMdcLoggingFilter.USER_ID_KEY) shouldBe BaseMdcLoggingFilter.DEFAULT_GUEST_USER
@@ -109,7 +109,7 @@ class BaseMdcLoggingFilterTest : FunSpec() {
             assertMdcCleared()
         }
 
-        test("uses resolved traceId and spanId when active span is available") {
+        test("active span이 있으면 resolver가 반환한 traceId와 spanId를 사용한다") {
             val otelTraceId = "abcdef0123456789abcdef0123456789"
             val otelSpanId = "fedcba9876543210"
             val response = MockHttpServletResponse()
@@ -122,7 +122,7 @@ class BaseMdcLoggingFilterTest : FunSpec() {
             assertMdcCleared()
         }
 
-        test("falls back to UUID traceId and omits spanId when resolver returns null") {
+        test("resolver가 null을 반환하면 UUID traceId로 fallback하고 spanId는 생략한다") {
             testFilter(null, NoOpTraceContextResolver).doFilter(request(), MockHttpServletResponse()) { _, _ ->
                 val traceId = MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY).shouldNotBeNull()
                 traceId.length shouldBe 32
@@ -131,7 +131,7 @@ class BaseMdcLoggingFilterTest : FunSpec() {
             assertMdcCleared()
         }
 
-        test("refreshUserIdInMdc updates MDC with current resolved userId") {
+        test("refreshUserIdInMdc는 현재 resolved userId로 MDC를 갱신한다") {
             var resolvedId: String? = null
             val filter = object : BaseMdcLoggingFilter(NoOpTraceContextResolver) {
                 override fun resolveUserId(): String? = resolvedId
@@ -144,13 +144,13 @@ class BaseMdcLoggingFilterTest : FunSpec() {
             MDC.get(BaseMdcLoggingFilter.USER_ID_KEY) shouldBe "99"
         }
 
-        test("refreshUserIdInMdc falls back to GUEST when resolveUserId returns blank") {
+        test("resolveUserId가 blank를 반환하면 refreshUserIdInMdc는 GUEST로 fallback한다") {
             MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, "stale")
             testFilter("  ").refreshUserIdInMdc()
             MDC.get(BaseMdcLoggingFilter.USER_ID_KEY) shouldBe BaseMdcLoggingFilter.DEFAULT_GUEST_USER
         }
 
-        test("exception thrown by filter chain is stored as request attribute and rethrown") {
+        test("filter chain에서 던져진 exception은 request attribute에 저장된 뒤 다시 던져진다") {
             val cause = RuntimeException("db timeout")
             val request = request()
 
@@ -162,7 +162,7 @@ class BaseMdcLoggingFilterTest : FunSpec() {
             assertMdcCleared()
         }
 
-        test("MDC is cleared even when filter chain throws") {
+        test("filter chain이 예외를 던져도 MDC는 clear된다") {
             runCatching {
                 testFilter(null).doFilter(request(), MockHttpServletResponse(), FilterChain { _, _ -> throw RuntimeException() })
             }

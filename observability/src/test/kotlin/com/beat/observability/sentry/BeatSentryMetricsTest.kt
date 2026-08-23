@@ -12,7 +12,7 @@ class BeatSentryMetricsTest : FunSpec() {
     private val beatMetrics = BeatSentryMetrics(fakeMetrics)
 
     init {
-        test("emits metrics through wrapper with controlled names and tags") {
+        test("wrapper를 통해 통제된 metric 이름과 tag로 metrics를 emit한다") {
             beatMetrics.count("booking.created.count", tags = mapOf("module" to "apis"))
             beatMetrics.gauge("booking.queue_size", 42.0, tags = mapOf("securityLevel" to "internal"))
             beatMetrics.distribution("booking.amount.distribution", 15000.0)
@@ -24,7 +24,7 @@ class BeatSentryMetricsTest : FunSpec() {
             )
         }
 
-        test("rejects invalid metric names and high cardinality tags") {
+        test("잘못된 metric 이름과 high cardinality tag는 거부한다") {
             shouldThrow<IllegalArgumentException> {
                 beatMetrics.count("Booking Created")
             }

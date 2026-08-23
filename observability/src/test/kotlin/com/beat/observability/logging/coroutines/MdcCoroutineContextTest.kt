@@ -15,7 +15,7 @@ class MdcCoroutineContextTest : FunSpec() {
     init {
         afterTest { MDC.clear() }
 
-        test("current context propagates MDC when coroutine switches dispatcher") {
+        test("coroutine이 dispatcher를 전환해도 current context가 MDC를 전파한다") {
             runBlocking {
                 MDC.put("traceId", "trace-123")
                 MDC.put("userId", "member-1")
@@ -30,7 +30,7 @@ class MdcCoroutineContextTest : FunSpec() {
             }
         }
 
-        test("with current context propagates MDC to nested dispatcher switch") {
+        test("withCurrent는 중첩된 dispatcher 전환에도 MDC를 전파한다") {
             runBlocking {
                 MDC.put("traceId", "trace-456")
 
@@ -46,7 +46,7 @@ class MdcCoroutineContextTest : FunSpec() {
             }
         }
 
-        test("MDC updates inside coroutine are not implicitly captured after suspension") {
+        test("suspension 이후 coroutine 내부의 MDC 변경은 암묵적으로 capture되지 않는다") {
             runBlocking {
                 MDC.put("traceId", "trace-original")
 

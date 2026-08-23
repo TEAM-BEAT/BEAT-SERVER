@@ -16,7 +16,7 @@ class RoutePatternMdcInterceptorTest : FunSpec() {
     init {
         afterTest { MDC.clear() }
 
-        test("stores method and best matching route pattern in MDC") {
+        test("method와 best matching route pattern을 MDC에 저장한다") {
             val request = MockHttpServletRequest("GET", "/api/performances/detail/19")
             request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/performances/detail/{performanceId}")
 
@@ -25,7 +25,7 @@ class RoutePatternMdcInterceptorTest : FunSpec() {
             MDC.get(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY) shouldBe "GET /api/performances/detail/{performanceId}"
         }
 
-        test("uses no route fallback when handler mapping pattern is unavailable") {
+        test("handler mapping pattern이 없으면 no route fallback을 사용한다") {
             val request = MockHttpServletRequest("GET", "/scanner/no-match")
 
             interceptor.preHandle(request, MockHttpServletResponse(), Any())
@@ -33,7 +33,7 @@ class RoutePatternMdcInterceptorTest : FunSpec() {
             MDC.get(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY) shouldBe BaseMdcLoggingFilter.DEFAULT_ROUTE_PATTERN
         }
 
-        test("afterCompletion does not remove route pattern from MDC") {
+        test("afterCompletion은 MDC에서 route pattern을 제거하지 않는다") {
             // MDC cleanup is the sole responsibility of BaseMdcLoggingFilter.doFilterInternal finally.
             // The interceptor must leave routePattern intact so the access log (emitted in filter
             // finally, which runs AFTER interceptor afterCompletion) can include the route field.

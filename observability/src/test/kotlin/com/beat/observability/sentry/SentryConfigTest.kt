@@ -6,7 +6,7 @@ import io.kotest.matchers.shouldBe
 
 class SentryConfigTest : FunSpec({
 
-    test("disables Sentry SDK when DSN is blank") {
+    test("DSN이 blank이면 Sentry SDK를 비활성화한다") {
         val config = SentryConfig("beat-apis")
         val options = SentryOptions().apply {
             dsn = ""
@@ -18,7 +18,7 @@ class SentryConfigTest : FunSpec({
         options.isEnabled shouldBe false
     }
 
-    test("keeps Sentry enabled and registers processor when DSN exists") {
+    test("DSN이 있으면 Sentry를 활성화 상태로 유지하고 processor를 등록한다") {
         val config = SentryConfig("beat-apis")
         val options = SentryOptions().apply {
             dsn = "https://public@example.ingest.sentry.io/1"
@@ -31,7 +31,7 @@ class SentryConfigTest : FunSpec({
         options.eventProcessors.any { it is BeatSentryEventProcessor } shouldBe true
     }
 
-    test("uses configured release when SDK option has no release") {
+    test("SDK option에 release가 없으면 설정된 release를 사용한다") {
         val config = SentryConfig("beat-apis", configuredRelease = "beat-server@abc123")
         val options = SentryOptions().apply {
             dsn = "https://public@example.ingest.sentry.io/1"

@@ -25,19 +25,19 @@ class Log4j2PatternContractTest : FunSpec() {
         xpath.evaluate(expr, doc, XPathConstants.NODESET) as NodeList
 
     init {
-        test("LOG_PATTERN exposes all required MDC context fields") {
+        test("LOG_PATTERN은 필요한 모든 MDC context field를 노출한다") {
             val pattern = string("//Properties/Property[@name='LOG_PATTERN']")
             listOf("traceId", "spanId", "userId", "clientIp", "requestInfo", "routePattern").forEach { key ->
                 pattern.contains("%X{$key}") shouldBe true
             }
         }
 
-        test("SentryAppender is defined with ERROR as minimum event level") {
+        test("SentryAppender는 minimum event level로 ERROR를 사용한다") {
             val level = string("//Appenders/Sentry/@minimumEventLevel")
             level shouldBe "ERROR"
         }
 
-        test("access logger is defined in prod and dev profiles and never references SentryAppender") {
+        test("access logger는 prod와 dev profile에 정의되고 SentryAppender를 참조하지 않는다") {
             listOf("prod", "dev").forEach { profile ->
                 val accessLoggers = nodeList(
                     "//springProfile[contains(@name,'$profile')]" +
@@ -52,7 +52,7 @@ class Log4j2PatternContractTest : FunSpec() {
             sentryRefs.length shouldBe 0
         }
 
-        test("com-beat business logger references SentryAppender in dev and prod profiles") {
+        test("com-beat business logger는 dev와 prod profile에서 SentryAppender를 참조한다") {
             listOf("dev", "prod").forEach { profile ->
                 val refs = nodeList(
                     "//springProfile[contains(@name,'$profile')]" +
@@ -63,17 +63,17 @@ class Log4j2PatternContractTest : FunSpec() {
             }
         }
 
-        test("root logger never references SentryAppender") {
+        test("root logger는 SentryAppender를 참조하지 않는다") {
             val rootRefs = nodeList("//Root//AppenderRef[@ref='SentryAppender']")
             rootRefs.length shouldBe 0
         }
 
-        test("JsonConsoleAppender uses beat event template") {
+        test("JsonConsoleAppender는 beat event template을 사용한다") {
             val uri = string("//Appenders/Console[@name='JsonConsoleAppender']/JsonTemplateLayout/@eventTemplateUri")
             uri shouldBe "classpath:beat-log-event-template.json"
         }
 
-        test("prod profile uses always-JSON JsonConsoleAppender for all loggers") {
+        test("prod profile은 모든 logger에 항상 JSON인 JsonConsoleAppender를 사용한다") {
             listOf("com.beat.observability.logging.access", "com.beat").forEach { loggerName ->
                 val refs = nodeList(
                     "//springProfile[contains(@name,'prod')]" +
@@ -88,7 +88,7 @@ class Log4j2PatternContractTest : FunSpec() {
             (rootRef.length > 0) shouldBe true
         }
 
-        test("dev profile uses env-switching ConsoleAppender for all loggers") {
+        test("dev profile은 모든 logger에 env로 전환되는 ConsoleAppender를 사용한다") {
             listOf("com.beat.observability.logging.access", "com.beat").forEach { loggerName ->
                 val refs = nodeList(
                     "//springProfile[contains(@name,'dev')]" +
@@ -103,7 +103,7 @@ class Log4j2PatternContractTest : FunSpec() {
             (rootRef.length > 0) shouldBe true
         }
 
-        test("ConsoleAppender defaults to PatternLayout and switches to JSON only when BEAT_LOG_FORMAT=json") {
+        test("ConsoleAppender는 기본값으로 PatternLayout을 사용하고 BEAT_LOG_FORMAT=json일 때만 JSON으로 전환한다") {
             // 로컬 기본값(env 없음): DefaultArbiter 가 PatternLayout — 개발자 무설정.
             val pretty = nodeList(
                 "//Appenders/Console[@name='ConsoleAppender']//DefaultArbiter//PatternLayout",
@@ -119,7 +119,7 @@ class Log4j2PatternContractTest : FunSpec() {
             (json.length > 0) shouldBe true
         }
 
-        test("beat event template exposes all required fields for LogQL queries") {
+        test("beat event template은 LogQL query에 필요한 모든 field를 노출한다") {
             val template = tools.jackson.databind.json.JsonMapper.builder().build()
                 .readTree(File("src/main/resources/beat-log-event-template.json"))
             listOf(
