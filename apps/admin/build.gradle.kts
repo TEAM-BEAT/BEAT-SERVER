@@ -17,6 +17,7 @@ dependencies {
     implementation(project(":support:security"))
     implementation(project(":infrastructure"))
     implementation(project(":support:observability"))
+    runtimeOnly(libs.slf4j.api)
     implementation(libs.kotlin.logging.jvm)
 
     testImplementation(project(":domain"))
