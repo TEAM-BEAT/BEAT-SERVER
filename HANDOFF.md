@@ -113,3 +113,8 @@ HIGH: GuestBookingRequest/MemberBookingRequest의 scheduleNumber·totalPaymentAm
 - 결론: Kotlin 타입=필수성, Bean Validation=범위/형식(@Size 등) 역할 분담이 권장(하이브리드). @NotNull 전면 퇴출 완료, jakarta-validation 의존성은 @Size/@Valid cascade 위해 유지. 근거: spring.io Kotlin Annotations 문서, jackson-module-kotlin 동작(Baeldung), SO 41993706/54797207.
 - ApisSecurityConfig JWT 앵커를 guestSessionOriginFilter로 명시 체이닝(a2cab58b) — fail-fast 개선, matrix 스펙 green.
 - Loki elapsed_ms는 문자열 저장 — 숫자 비교 쿼리 시 duration() 변환 사용(운영 팁, 코드 변경 불요).
+
+## scheduler.owner 제거 + yml 컨벤션 (2026-08-23, 0db47f77+87151530)
+- beat.scheduler.owner 전면 제거: 잡 2개 가드/주입, batch test yml(삭제), BootSpec ownership 단언, job 스펙 2개→단일 위임 계약, ansible env 조건+bluegreen/stopstart 변수+dev/prod inventory 4줄. 근거: @Scheduled는 ArchUnit이 batch 전용 보장, 플래그는 레플리카 HA 미해결 가짜 안전감. HA 필요 시 ShedLock/리더선출 별도 설계.
+- yml 배치 실태: 앱별 src/test/resources/application-test.yml 이미 표준 구조(batch는 flag만 있어 삭제). main yml엔 test 인라인 없음 ✅. 공유 기본값은 observability 라이브러리 프로필 블록(정당한 예외).
+- AGENTS.md는 gitignore라 컨벤션 문구는 본 문서로 대체: "앱 고유 테스트 오버라이드=src/test/resources/application-test.yml / 공유 기본값=observability 프로필 블록 / main yml에 on-profile:test 인라인 금지".
