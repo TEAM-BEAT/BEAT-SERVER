@@ -154,3 +154,10 @@ A2/A3(ArchUnit 재작성) · A4/B1/B2/B3 · B4/B6/B7/B8 · R(루트계약스펙�
 - 24파일 변환, Spring @MockitoBean Web 스펙 5개 유저(프레임워크 어노테이션이라 유지 정당), 잔여 org.mockito=Web스펙 4파일의 @MockitoBean뿐.
 - byte-buddy: Boot BOM 제약 모듈 1.17.8 / 타모듈 1.18.x — 둘 다 JDK25 지원선(≥1.17) 충족, 368 tests green.
 - ⏭️ 유일 대형 잔여: P 물리정렬(settings projectDir·디렉터리 rename·워크플로우 경로·패키지명·ADR-FINAL-001 개정). 신선한 세션에서 단계별 실행 필수.
+
+## 독립 전수 재검증 통과 (2026-08-23, 리뷰 에이전트)
+- Constitution 조항별 대조: §4/6/7-9/10/13/16-17/23/26/28-30/34/37/39/40/43 **위반 0건**.
+- §37 가드 발화 불가 결함 해소 확인(비공문 방지 테스트 존재), §40 Optional 소비 0건(c843cec6) 재확인.
+- 직접 실행: 전모듈 컴파일 EXIT=0, domain/application×3/batch/api/admin/security/observability 테스트 SUCCESS, openApiTest SUCCESS, bootJar 3앱 생성 SUCCESS.
+- 잔여(Low): ①@MockitoBean Web스펙 5개 유지 결정 문서화됨 ②PerformanceContentOwnershipReader 네이밍(화이트리스트 정당) ③junk 파일 소유자 재량 ④§8/§9 sketch 드리프트=D단계 개정 대상.
+- 남은 오픈: C6 결정, P 물리정렬(사용자 제외 요청), actionlint/full-check 최종 확인.
