@@ -91,7 +91,12 @@ jobs:
         run: |
           mkdir -p staged-jars
           for module in apis admin batch; do
-            JAR=$(find "${module}/build/libs" -maxdepth 1 -name "${module}-*.jar" ! -name '*-plain.jar' | head -n 1)
+            case "$module" in
+              apis) module_dir=apps/api ;;
+              admin) module_dir=apps/admin ;;
+              batch) module_dir=apps/batch ;;
+            esac
+            JAR=$(find "${module_dir}/build/libs" -maxdepth 1 -name "${module}-*.jar" ! -name '*-plain.jar' | head -n 1)
             [ -n "$JAR" ] || { echo "No bootJar produced for ${module}" >&2; exit 1; }
             cp "$JAR" "staged-jars/${module}.jar"
           done

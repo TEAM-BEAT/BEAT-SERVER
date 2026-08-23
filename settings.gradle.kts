@@ -35,11 +35,3 @@ include(
     "support:security",
     "support:observability",
 )
-
-project(":apps:api").projectDir = file("apis")
-project(":apps:admin").projectDir = file("admin")
-project(":apps:batch").projectDir = file("batch")
-project(":domain").projectDir = file("core/domain")
-project(":infrastructure").projectDir = file("core/infra")
-project(":support:security").projectDir = file("gateway")
-project(":support:observability").projectDir = file("observability")

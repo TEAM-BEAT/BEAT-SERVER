@@ -63,7 +63,7 @@ check_compatibility() {
 
 check_compatibility \
     "${repository_root}/docs/openapi/baseline/general.json" \
-    "${repository_root}/apis/build/openapi/general.json"
+    "${repository_root}/apps/api/build/openapi/general.json"
 check_compatibility \
     "${repository_root}/docs/openapi/baseline/admin.json" \
-    "${repository_root}/admin/build/openapi/admin.json"
+    "${repository_root}/apps/admin/build/openapi/admin.json"
