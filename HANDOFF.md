@@ -98,3 +98,8 @@ HIGH: GuestBookingRequest/MemberBookingRequest의 scheduleNumber·totalPaymentAm
 - 현행(MDC first, finally에서 refreshUserIdInMdc)은 의도된 모범 사례. 근거: BaseMdcLoggingFilter.finally 주석+코드, SheldonIp 블로그(로깅필터는 security chain 앞에), Spring Security Architecture(사용자 필요시 인증필터 뒤=late binding), GH#31142(이중등록 방지 패턴 일치).
 - 스왑 금지: JWT 선배치 시 Rejected(401) 요청이 MDC/access-log 체인 미도달로 관측성 상실.
 - 비회원=GUEST 기본값/회원=finally late-binding 설계 확인. 재플래깅 금지.
+
+## Filter chain verification (2026-08-23)
+- 필터 전수 해설·플로우별 검증 완료(회원/비회원/거절/프로브). 현행 순서=MDC-first(관측)→guestOrigin(api)→JWT(인증)→Authorization. finally late-binding으로 userId 해결. Finding 철회 확정(8d4bdf3c).
+- B7 커밋 3b788c7b: 요청 DTO non-null화(19개)+facade requireNotNull 72→0+응답 userId tightening+JSON스펙 매퍼 프로덕션 정렬. apis 테스트 green.
+- ⏭️ 남음: C6(CDN serializer DI)/C7(TTL·쿠키 상수)/C8(origin filter 경로)/C10(cleanup 청킹)/C14(domain junit 제거)/F9 MockK/P 물리정렬/D문서/OpenAPI 재생성/최종게이트
