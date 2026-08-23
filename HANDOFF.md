@@ -191,3 +191,7 @@ A2/A3(ArchUnit 재작성) · A4/B1/B2/B3 · B4/B6/B7/B8 · R(루트계약스펙�
 ## 로깅 통일 + security 빌드 정리 (2026-08-23)
 - slf4j 직접사용 3파일→KotlinLogging 전환. system: kotlin.logging+slf4j-api 병행 선언(kotlin-logging-jvm은 slf4j 전이 미제공 실증 — NoClassDefFoundError로 확인).
 - security: lombok 0사용 제거, springdoc compileOnly는 CurrentMember @Parameter 실사용으로 유지(주석).
+
+## 후속 과제 메모 (2026-08-23 질의 응답)
+- [선택] @CurrentMember+Resolver → Spring 표준 @AuthenticationPrincipal 전환 가능(principal=Long 직접 바인딩). 단 Web 스펙 FixedResolver 방식 전면 수정 수반 → 별도 소형 PR 권장.
+- 확인: testImplementation(project(":domain")) 3개 앱은 문서 의도 예외(test fixture) — 유지. FAIL_ON_PROJECT_REPOS @Incubating 경고는 Gradle API 성숙도 라벨로 무시. rootProject.name="beat-server" 유지(IDEA 라벨+배포신원, 패키지와 무관).
