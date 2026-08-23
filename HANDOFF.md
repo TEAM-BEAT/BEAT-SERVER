@@ -144,3 +144,8 @@ A2/A3(ArchUnit 재작성) · A4/B1/B2/B3 · B4/B6/B7/B8 · R(루트계약스펙�
 - Finding 보고 전 대상 파일 '전체' 정독(MDC/JWT 사례)
 - 문자열 일괄치환 금지→수작업 편집 or git restore 기반 복구(BookingController 사례)
 - 스윙 검증은 grep -F 고정문자+다중 확장자
+
+## OpenAPI gate 통과 (2026-08-23, ef882ca0)
+- baseline 갱신 완료(general/admin): 죽은 필드·performImages 제거 반영. oasdiff "No changes detected"×2.
+- 구 baseline 대비 제거분은 전부 warning 등급(ERR=0) → 하위호환 실증.
+- ⏭️ 진짜 잔여는 F9(MockK 전환)와 P(물리정렬)뿐 — 둘 다 대형이라 신선한 세션 필수. HANDOFF 상단 착수 목록 참조.
