@@ -215,3 +215,11 @@ infra/ansible/inventories/**/group_vars/all.local.sops.yml
 /docs/architecture/ticket-payment-confirmation-outbox-sqs.md
 /docs/observability/BATCH_LOKI_LOG_DIAGNOSIS.md
 /docs/observability/TRACE_LOG_CORRELATION.md
+
+# Constitution·마이그레이션 계열 문서 — 로컬 보존(소유자 결정: 추후 정리)
+/docs/architecture/BEAT-SERVER-CQRS-MULTIMODULE-ARCHITECTURE-FINAL.md
+/docs/architecture/BEAT_TEST_ARCHITECTURE_FINAL.md
+/docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md
+/docs/architecture/BEAT-SERVER-MIGRATION-FINAL-REPORT.md
+/docs/architecture/BEAT_TEST_REWRITE_PLAN.md
+/MIGRATION.md
