@@ -166,3 +166,8 @@ A2/A3(ArchUnit 재작성) · A4/B1/B2/B3 · B4/B6/B7/B8 · R(루트계약스펙�
 - 1d716d5a(458 files): 디렉터리 7곳+패키지 rename 503건+워크플로우 경로+shared 글롭 수정. 검증 7항목 EXIT=0(projects/컴파일/ArchGuard/graph/bootJars/openApi/actionlint).
 - ef882ca0 이어 ADR 개정 커밋. 배포 식별자(archivesName/apis-* 이미지/matrix키)는 의도적 유지 — 인프라 교체 시 정리 과제.
 - ⏭️ 진짜 마지막: 전체 full check 재실행 권장 + D문서(D1~D6) 마무리. 머지 가능 상태.
+
+## 🎉 P-4 패키지 수렴까지 완료 — 전 모듈 identity 일치 (2026-08-23)
+- infrastructure: com.beat.infra→com.beat.infrastructure(334건), observability: →com.beat.support.observability(74건). 172파일.
+- 이제 디렉터리·패키지·Gradle project 3중 완전 일치. 레거시 @TypeAlias 2곳만 의도 보존(Redis 기존데이터, 제거 시 전원 재로그인 — 소유자 결정 대기).
+- 검증 6항목 EXIT=0. TypeAlias 외 레거시/fallback main 소스 0건 재확인.
