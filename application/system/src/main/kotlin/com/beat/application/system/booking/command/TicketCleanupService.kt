@@ -19,6 +19,8 @@ class TicketCleanupService(
             BookingStatus.BOOKING_CANCELLED,
             cutoff,
         )
-        bookingRepository.deleteAll(oldCancelledBookings)
+        oldCancelledBookings.chunked(500).forEach { chunk ->
+            bookingRepository.deleteAll(chunk)
+        }
     }
 }
