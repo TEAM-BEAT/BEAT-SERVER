@@ -149,3 +149,8 @@ A2/A3(ArchUnit 재작성) · A4/B1/B2/B3 · B4/B6/B7/B8 · R(루트계약스펙�
 - baseline 갱신 완료(general/admin): 죽은 필드·performImages 제거 반영. oasdiff "No changes detected"×2.
 - 구 baseline 대비 제거분은 전부 warning 등급(ERR=0) → 하위호환 실증.
 - ⏭️ 진짜 잔여는 F9(MockK 전환)와 P(물리정렬)뿐 — 둘 다 대형이라 신선한 세션 필수. HANDOFF 상단 착수 목록 참조.
+
+## F9 MockK 전환 완료 (2026-08-23)
+- 24파일 변환, Spring @MockitoBean Web 스펙 5개 유저(프레임워크 어노테이션이라 유지 정당), 잔여 org.mockito=Web스펙 4파일의 @MockitoBean뿐.
+- byte-buddy: Boot BOM 제약 모듈 1.17.8 / 타모듈 1.18.x — 둘 다 JDK25 지원선(≥1.17) 충족, 368 tests green.
+- ⏭️ 유일 대형 잔여: P 물리정렬(settings projectDir·디렉터리 rename·워크플로우 경로·패키지명·ADR-FINAL-001 개정). 신선한 세션에서 단계별 실행 필수.
