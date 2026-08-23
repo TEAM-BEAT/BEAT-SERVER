@@ -47,7 +47,7 @@ class ApisSecurityConfig(
             }
             .addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter::class.java)
             .addFilterAfter(guestSessionOriginFilter, securityMdcLoggingFilter.javaClass)
-            .addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.javaClass)
+            .addFilterAfter(jwtAuthenticationFilter, guestSessionOriginFilter.javaClass)
         return http.build()
     }
 
