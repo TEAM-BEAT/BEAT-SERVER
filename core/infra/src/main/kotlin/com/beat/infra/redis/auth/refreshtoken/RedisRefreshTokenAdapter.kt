@@ -1,6 +1,7 @@
 package com.beat.infra.redis.auth.refreshtoken
 
 import com.beat.application.frontoffice.auth.command.RefreshTokenStore
+import org.springframework.data.repository.findByIdOrNull
 
 internal class RedisRefreshTokenAdapter(
     private val refreshTokenRepository: RefreshTokenRedisRepository,
@@ -14,7 +15,7 @@ internal class RedisRefreshTokenAdapter(
         refreshTokenRepository.findByRefreshToken(refreshToken)?.id
 
     override fun delete(memberId: Long): Boolean {
-        val token = refreshTokenRepository.findById(memberId).orElse(null) ?: return false
+        val token = refreshTokenRepository.findByIdOrNull(memberId) ?: return false
         refreshTokenRepository.delete(token)
         return true
     }

@@ -14,6 +14,7 @@ import com.beat.infra.persistence.performanceimage.repository.PerformanceImageJp
 import com.beat.infra.persistence.staff.mapper.StaffPersistenceMapper
 import com.beat.infra.persistence.staff.repository.StaffJpaRepository
 import org.springframework.stereotype.Repository
+import org.springframework.data.repository.findByIdOrNull
 
 @Repository
 internal class PerformanceRepositoryImpl(
@@ -27,7 +28,7 @@ internal class PerformanceRepositoryImpl(
     private val performanceImagePersistenceMapper: PerformanceImagePersistenceMapper,
 ) : PerformanceRepository {
     override fun findById(id: Long): Performance? =
-        performanceJpaRepository.findById(id).map(::toAggregate).orElse(null)
+        performanceJpaRepository.findByIdOrNull(id)?.let(::toAggregate)
 
     override fun lockById(id: Long): Performance? =
         performanceJpaRepository.lockById(id)?.let(::toAggregate)

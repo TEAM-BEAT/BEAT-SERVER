@@ -7,6 +7,7 @@ import com.beat.infra.persistence.promotion.mapper.PromotionPersistenceMapper
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.support.TransactionSynchronization
 import org.springframework.transaction.support.TransactionSynchronizationManager
+import org.springframework.data.repository.findByIdOrNull
 
 @Repository
 internal class PromotionRepositoryImpl(
@@ -35,8 +36,7 @@ internal class PromotionRepositoryImpl(
     }
 
     override fun findById(promotionId: Long): Promotion? =
-        promotionJpaRepository.findById(promotionId)
-            .map(promotionPersistenceMapper::toDomain).orElse(null)
+        promotionJpaRepository.findByIdOrNull(promotionId)?.let(promotionPersistenceMapper::toDomain)
 
     override fun save(promotion: Promotion): Promotion =
         promotionJpaRepository.save(promotionPersistenceMapper.toEntity(promotion))

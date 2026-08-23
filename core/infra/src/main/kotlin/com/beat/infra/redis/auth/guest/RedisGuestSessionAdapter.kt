@@ -3,6 +3,7 @@ package com.beat.infra.redis.auth.guest
 import com.beat.application.frontoffice.booking.booker.command.GuestSessionStore
 import java.security.SecureRandom
 import java.util.Base64
+import org.springframework.data.repository.findByIdOrNull
 
 internal class RedisGuestSessionAdapter(
     private val guestSessionRepository: GuestSessionRedisRepository,
@@ -20,9 +21,7 @@ internal class RedisGuestSessionAdapter(
         if (token.isBlank()) {
             return null
         }
-        return guestSessionRepository.findById(Sha256Hasher.hashToBase64Url(token))
-            .map { it.userId }
-            .orElse(null)
+        return guestSessionRepository.findByIdOrNull(Sha256Hasher.hashToBase64Url(token))?.userId
     }
 
     private fun generateToken(): String {

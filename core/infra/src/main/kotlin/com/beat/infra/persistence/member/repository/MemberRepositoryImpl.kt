@@ -8,6 +8,7 @@ import com.beat.infra.persistence.member.mapper.MemberPersistenceMapper
 import org.hibernate.exception.ConstraintViolationException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Repository
+import org.springframework.data.repository.findByIdOrNull
 
 @Repository
 internal class MemberRepositoryImpl(
@@ -15,8 +16,7 @@ internal class MemberRepositoryImpl(
     private val memberPersistenceMapper: MemberPersistenceMapper,
 ) : MemberRepository {
     override fun findById(id: Long): Member? =
-        memberJpaRepository.findById(id)
-            .map(memberPersistenceMapper::toDomain).orElse(null)
+        memberJpaRepository.findByIdOrNull(id)?.let(memberPersistenceMapper::toDomain)
 
     override fun save(member: Member): Member {
         val entity = memberPersistenceMapper.toEntity(member)

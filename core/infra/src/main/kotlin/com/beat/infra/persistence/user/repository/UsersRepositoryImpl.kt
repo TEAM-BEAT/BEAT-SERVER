@@ -4,6 +4,7 @@ import com.beat.domain.user.model.Users
 import com.beat.domain.user.repository.UserRepository
 import com.beat.infra.persistence.user.mapper.UsersPersistenceMapper
 import org.springframework.stereotype.Repository
+import org.springframework.data.repository.findByIdOrNull
 
 @Repository
 internal class UsersRepositoryImpl(
@@ -11,8 +12,7 @@ internal class UsersRepositoryImpl(
     private val usersPersistenceMapper: UsersPersistenceMapper,
 ) : UserRepository {
     override fun findById(id: Long): Users? =
-        usersJpaRepository.findById(id)
-            .map(usersPersistenceMapper::toDomain).orElse(null)
+        usersJpaRepository.findByIdOrNull(id)?.let(usersPersistenceMapper::toDomain)
 
     override fun findAll(): List<Users> =
         usersJpaRepository.findAll().map(usersPersistenceMapper::toDomain)

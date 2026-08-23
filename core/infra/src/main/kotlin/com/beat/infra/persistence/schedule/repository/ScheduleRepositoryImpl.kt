@@ -4,6 +4,7 @@ import com.beat.domain.schedule.model.Schedule
 import com.beat.domain.schedule.repository.ScheduleRepository
 import com.beat.infra.persistence.schedule.mapper.SchedulePersistenceMapper
 import org.springframework.stereotype.Repository
+import org.springframework.data.repository.findByIdOrNull
 
 @Repository
 internal class ScheduleRepositoryImpl(
@@ -12,7 +13,7 @@ internal class ScheduleRepositoryImpl(
 ) : ScheduleRepository {
 
     override fun findById(id: Long): Schedule? =
-        scheduleJpaRepository.findById(id).map(schedulePersistenceMapper::toDomain).orElse(null)
+        scheduleJpaRepository.findByIdOrNull(id)?.let(schedulePersistenceMapper::toDomain)
 
     override fun findPerformanceIdById(id: Long): Long? =
         scheduleJpaRepository.findPerformanceIdById(id)

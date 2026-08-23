@@ -6,6 +6,7 @@ import com.beat.domain.booking.repository.BookingRepository
 import com.beat.infra.persistence.booking.mapper.BookingPersistenceMapper
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
+import org.springframework.data.repository.findByIdOrNull
 
 @Repository
 internal class BookingRepositoryImpl(
@@ -18,8 +19,7 @@ internal class BookingRepositoryImpl(
         )
 
     override fun findById(id: Long): Booking? =
-        bookingJpaRepository.findById(id)
-            .map(bookingPersistenceMapper::toDomain).orElse(null)
+        bookingJpaRepository.findByIdOrNull(id)?.let(bookingPersistenceMapper::toDomain)
 
     override fun findScheduleIdsByIds(ids: Collection<Long>): List<Long> {
         if (ids.isEmpty()) {
