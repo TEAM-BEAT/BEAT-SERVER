@@ -161,3 +161,8 @@ A2/A3(ArchUnit 재작성) · A4/B1/B2/B3 · B4/B6/B7/B8 · R(루트계약스펙�
 - 직접 실행: 전모듈 컴파일 EXIT=0, domain/application×3/batch/api/admin/security/observability 테스트 SUCCESS, openApiTest SUCCESS, bootJar 3앱 생성 SUCCESS.
 - 잔여(Low): ①@MockitoBean Web스펙 5개 유지 결정 문서화됨 ②PerformanceContentOwnershipReader 네이밍(화이트리스트 정당) ③junk 파일 소유자 재량 ④§8/§9 sketch 드리프트=D단계 개정 대상.
 - 남은 오픈: C6 결정, P 물리정렬(사용자 제외 요청), actionlint/full-check 최종 확인.
+
+## 🎉 P 물리정렬 완료 (2026-08-23)
+- 1d716d5a(458 files): 디렉터리 7곳+패키지 rename 503건+워크플로우 경로+shared 글롭 수정. 검증 7항목 EXIT=0(projects/컴파일/ArchGuard/graph/bootJars/openApi/actionlint).
+- ef882ca0 이어 ADR 개정 커밋. 배포 식별자(archivesName/apis-* 이미지/matrix키)는 의도적 유지 — 인프라 교체 시 정리 과제.
+- ⏭️ 진짜 마지막: 전체 full check 재실행 권장 + D문서(D1~D6) 마무리. 머지 가능 상태.
