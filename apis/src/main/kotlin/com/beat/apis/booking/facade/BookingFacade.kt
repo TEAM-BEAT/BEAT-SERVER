@@ -41,10 +41,10 @@ class BookingFacade(
             memberBookingCommandService.createMemberBooking(
                 memberId,
                 MemberBookingCommand.of(
-                    scheduleId = requireNotNull(request.scheduleId),
-                    purchaseTicketCount = requireNotNull(request.purchaseTicketCount),
-                    bookerName = requireNotNull(request.bookerName),
-                    bookerPhoneNumber = requireNotNull(request.bookerPhoneNumber),
+                    scheduleId = request.scheduleId,
+                    purchaseTicketCount = request.purchaseTicketCount,
+                    bookerName = request.bookerName,
+                    bookerPhoneNumber = request.bookerPhoneNumber,
                 ),
             ),
         )
@@ -56,18 +56,18 @@ class BookingFacade(
         val response = GuestBookingResponse.from(
             guestBookingCommandService.createGuestBooking(
                 GuestBookingCommand.of(
-                    scheduleId = requireNotNull(request.scheduleId),
-                    purchaseTicketCount = requireNotNull(request.purchaseTicketCount),
-                    bookerName = requireNotNull(request.bookerName),
-                    bookerPhoneNumber = requireNotNull(request.bookerPhoneNumber),
-                    birthDate = requireNotNull(request.birthDate),
-                    password = requireNotNull(request.password),
+                    scheduleId = request.scheduleId,
+                    purchaseTicketCount = request.purchaseTicketCount,
+                    bookerName = request.bookerName,
+                    bookerPhoneNumber = request.bookerPhoneNumber,
+                    birthDate = request.birthDate,
+                    password = request.password,
                 ),
             ),
         )
         return GuestBookingSessionOutcome(
             response = response,
-            sessionToken = issueGuestSessionOrNull(requireNotNull(response.userId)),
+            sessionToken = issueGuestSessionOrNull(response.userId),
         )
     }
 
@@ -77,10 +77,10 @@ class BookingFacade(
     ): GuestBookingSessionOutcome<List<GuestBookingRetrieveResponse>> {
         val userId = guestBookingAuthenticationCommandService.authenticate(
             GuestBookingAuthenticationCommand.of(
-                bookerName = requireNotNull(request.bookerName),
-                birthDate = requireNotNull(request.birthDate),
-                bookerPhoneNumber = requireNotNull(request.bookerPhoneNumber),
-                password = requireNotNull(request.password),
+                bookerName = request.bookerName,
+                birthDate = request.birthDate,
+                bookerPhoneNumber = request.bookerPhoneNumber,
+                password = request.password,
             ),
             clientAddress,
         )
@@ -98,7 +98,7 @@ class BookingFacade(
         bookingCancellationCommandService.refundBooking(
             guestBookingSessionCommandService.resolveActorUserId(memberId, guestSessionToken),
             BookingRefundCommand.of(
-                bookingId = requireNotNull(request.bookingId),
+                bookingId = request.bookingId,
                 bankName = request.bankName?.name,
                 accountNumber = request.accountNumber,
                 accountHolder = request.accountHolder,
@@ -113,7 +113,7 @@ class BookingFacade(
     ): BookingCancelResponse = BookingCancelResponse.from(
         bookingCancellationCommandService.cancelBooking(
             guestBookingSessionCommandService.resolveActorUserId(memberId, guestSessionToken),
-            BookingCancelCommand.from(requireNotNull(request.bookingId)),
+            BookingCancelCommand.from(request.bookingId),
         ),
     )
 

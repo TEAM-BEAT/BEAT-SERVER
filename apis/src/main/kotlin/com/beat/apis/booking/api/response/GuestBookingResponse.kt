@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 data class GuestBookingResponse private constructor(
     val bookingId: Long?,
     val scheduleId: Long?,
-    val userId: Long?,
+    val userId: Long,
     val purchaseTicketCount: Int,
     val scheduleNumber: ScheduleNumberType?,
     val bookerName: String?,

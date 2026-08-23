@@ -10,16 +10,15 @@ import org.springframework.security.core.context.SecurityContextHolder
  * SecurityContext의 principal을 MDC `userId`로 노출한다.
  * management port 요청은 access log/MDC 대상에서 제외한다.
  */
-internal class SecurityMdcLoggingFilter constructor(
+internal class SecurityMdcLoggingFilter(
     traceContextResolver: TraceContextResolver,
     private val managementPort: Int = NO_MANAGEMENT_PORT,
-    actuatorBasePath: String = "/actuator",
-) : BaseMdcLoggingFilter(traceContextResolver, actuatorBasePath) {
+) : BaseMdcLoggingFilter(traceContextResolver) {
 
     override fun shouldNotFilter(request: HttpServletRequest): Boolean =
         managementPort > 0 && request.localPort == managementPort
 
-    protected override fun resolveUserId(): String? {
+    override fun resolveUserId(): String? {
         val authentication = SecurityContextHolder.getContext().authentication
             ?.takeIf { it !is AnonymousAuthenticationToken }
             ?: return null

@@ -58,11 +58,11 @@ class TicketFacade(
         ticketCommandService.updateTickets(
             memberId,
             TicketUpdateCommand(
-                performanceId = requireNotNull(request.performanceId),
-                bookingList = requireNotNull(request.bookingList).map { detail ->
+                performanceId = request.performanceId,
+                bookingList = request.bookingList.map { detail ->
                     TicketStatusUpdate(
-                        bookingId = requireNotNull(detail.bookingId),
-                        bookingStatus = TicketBookingStatus.valueOf(requireNotNull(detail.bookingStatus).name),
+                        bookingId = detail.bookingId,
+                        bookingStatus = TicketBookingStatus.valueOf(detail.bookingStatus.name),
                     )
                 },
             ),
@@ -72,8 +72,8 @@ class TicketFacade(
         ticketCommandService.refundTicketsByBookingIds(
             memberId,
             TicketBookingIdsCommand(
-                performanceId = requireNotNull(request.performanceId),
-                bookingIds = requireNotNull(request.bookingList).map { requireNotNull(it.bookingId) },
+                performanceId = request.performanceId,
+                bookingIds = request.bookingList.map { it.bookingId },
             ),
         )
 
@@ -81,8 +81,8 @@ class TicketFacade(
         ticketCommandService.deleteTicketsByBookingIds(
             memberId,
             TicketBookingIdsCommand(
-                performanceId = requireNotNull(request.performanceId),
-                bookingIds = requireNotNull(request.bookingList).map { requireNotNull(it.bookingId) },
+                performanceId = request.performanceId,
+                bookingIds = request.bookingList.map { it.bookingId },
             ),
         )
 }

@@ -24,8 +24,7 @@ internal class SecurityFilterConfig {
     fun gatewaySecurityMdcLoggingFilter(
         traceContextResolver: TraceContextResolver,
         @Value("\${management.server.port}") managementPort: Int,
-        @Value("\${management.endpoints.web.base-path:/actuator}") actuatorBasePath: String,
-    ): SecurityMdcLoggingFilter = SecurityMdcLoggingFilter(traceContextResolver, managementPort, actuatorBasePath)
+    ): SecurityMdcLoggingFilter = SecurityMdcLoggingFilter(traceContextResolver, managementPort)
 
     @Bean
     fun gatewaySecurityMdcLoggingFilterRegistration(

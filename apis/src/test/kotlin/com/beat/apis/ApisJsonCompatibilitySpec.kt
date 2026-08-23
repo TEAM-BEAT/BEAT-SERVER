@@ -38,21 +38,29 @@ import com.beat.domain.performance.model.Genre
 import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.sharedkernel.vo.BankName
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.beat.apis.ticket.api.request.TicketRefundRequest
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import jakarta.validation.Validation
 
 class ApisJsonCompatibilitySpec : FunSpec({
 
+    // 프로덕션 Boot ObjectMapper와 동일한 계약으로 고정: unknown field 허용 + JSR310 지원.
     val objectMapper = jacksonObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .findAndRegisterModules()
 
-    test("필수 request 컬렉션은 null을 거부한다") {
-        val validator = Validation.buildDefaultValidatorFactory().validator
-        val request = com.beat.apis.ticket.api.request.TicketRefundRequest(1L, null)
-
-        validator.validate(request).size shouldBe 1
+    test("필수 request 컬렉션은 역직렬화 단계에서 누락과 null을 거부한다") {
+        // Kotlin non-null 프로퍼티는 타입 시스템이 필수성을 보증한다(Bean Validation 불필요).
+        shouldThrow<Exception> {
+            objectMapper.readValue("""{"performanceId":1}""", TicketRefundRequest::class.java)
+        }
+        shouldThrow<Exception> {
+            objectMapper.readValue("""{"performanceId":1,"bookingList":null}""", TicketRefundRequest::class.java)
+        }
     }
 
     test("api 경계 마이그레이션 전후로 api enum 이름이 호환된다") {

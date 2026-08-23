@@ -62,70 +62,70 @@ class PerformanceFacade(
 }
 
 private fun PerformanceRequest.toCommand(): PerformanceCreateCommand = PerformanceCreateCommand.of(
-    performanceTitle = requireNotNull(performanceTitle),
-    genre = PerformanceGenre.valueOf(requireNotNull(genre).name),
-    runningTime = requireNotNull(runningTime),
-    performanceDescription = requireNotNull(performanceDescription),
-    performanceAttentionNote = requireNotNull(performanceAttentionNote),
+    performanceTitle = performanceTitle,
+    genre = PerformanceGenre.valueOf(genre.name),
+    runningTime = runningTime,
+    performanceDescription = performanceDescription,
+    performanceAttentionNote = performanceAttentionNote,
     bankName = bankName?.let { PerformanceBankName.valueOf(it.name) },
     accountNumber = accountNumber,
     accountHolder = accountHolder,
-    posterImage = requireNotNull(posterImage),
-    performanceTeamName = requireNotNull(performanceTeamName),
-    performanceVenue = requireNotNull(performanceVenue),
-    roadAddressName = requireNotNull(roadAddressName),
-    placeDetailAddress = requireNotNull(placeDetailAddress),
-    latitude = requireNotNull(latitude),
-    longitude = requireNotNull(longitude),
-    performanceContact = requireNotNull(performanceContact),
-    ticketPrice = requireNotNull(ticketPrice),
-    schedules = requireNotNull(scheduleList).map {
+    posterImage = posterImage,
+    performanceTeamName = performanceTeamName,
+    performanceVenue = performanceVenue,
+    roadAddressName = roadAddressName,
+    placeDetailAddress = placeDetailAddress,
+    latitude = latitude,
+    longitude = longitude,
+    performanceContact = performanceContact,
+    ticketPrice = ticketPrice,
+    schedules = scheduleList.map {
         ScheduleCreateCommand.of(
-            requireNotNull(it.performanceDate),
-            requireNotNull(it.totalTicketCount),
-            PerformanceScheduleNumber.valueOf(requireNotNull(it.scheduleNumber).name),
+            it.performanceDate,
+            it.totalTicketCount,
+            PerformanceScheduleNumber.valueOf(it.scheduleNumber.name),
         )
     },
-    casts = requireNotNull(castList).map {
-        CastCreateCommand.of(requireNotNull(it.castName), requireNotNull(it.castRole), requireNotNull(it.castPhoto))
+    casts = castList.map {
+        CastCreateCommand.of(it.castName, it.castRole, it.castPhoto)
     },
-    staffs = requireNotNull(staffList).map {
-        StaffCreateCommand.of(requireNotNull(it.staffName), requireNotNull(it.staffRole), requireNotNull(it.staffPhoto))
+    staffs = staffList.map {
+        StaffCreateCommand.of(it.staffName, it.staffRole, it.staffPhoto)
     },
-    images = requireNotNull(performanceImageList).map {
-        PerformanceImageCreateCommand.from(requireNotNull(it.performanceImage))
+    images = performanceImageList.map {
+        PerformanceImageCreateCommand.from(it.performanceImage)
     },
 )
 
 private fun PerformanceModifyRequest.toCommand(): PerformanceModifyCommand = PerformanceModifyCommand.of(
-    performanceId = requireNotNull(performanceId),
-    performanceTitle = requireNotNull(performanceTitle),
-    genre = PerformanceGenre.valueOf(requireNotNull(genre).name),
-    runningTime = requireNotNull(runningTime),
-    performanceDescription = requireNotNull(performanceDescription),
-    performanceAttentionNote = requireNotNull(performanceAttentionNote),
+    performanceId = performanceId,
+    performanceTitle = performanceTitle,
+    genre = PerformanceGenre.valueOf(genre.name),
+    runningTime = runningTime,
+    performanceDescription = performanceDescription,
+    performanceAttentionNote = performanceAttentionNote,
     bankName = bankName?.let { PerformanceBankName.valueOf(it.name) },
     accountNumber = accountNumber,
     accountHolder = accountHolder,
-    posterImage = requireNotNull(posterImage),
-    performanceTeamName = requireNotNull(performanceTeamName),
-    performanceVenue = requireNotNull(performanceVenue),
-    roadAddressName = requireNotNull(roadAddressName),
-    placeDetailAddress = requireNotNull(placeDetailAddress),
-    latitude = requireNotNull(latitude),
-    longitude = requireNotNull(longitude),
-    performanceContact = requireNotNull(performanceContact),
-    ticketPrice = requireNotNull(ticketPrice),
-    schedules = requireNotNull(scheduleModifyRequests).map {
-        ScheduleModifyCommand.of(it.scheduleId, requireNotNull(it.performanceDate), requireNotNull(it.totalTicketCount))
+    posterImage = posterImage,
+    performanceTeamName = performanceTeamName,
+    performanceVenue = performanceVenue,
+    roadAddressName = roadAddressName,
+    placeDetailAddress = placeDetailAddress,
+    latitude = latitude,
+    longitude = longitude,
+    performanceContact = performanceContact,
+    ticketPrice = ticketPrice,
+    schedules = scheduleModifyRequests.map {
+        ScheduleModifyCommand.of(it.scheduleId, it.performanceDate, it.totalTicketCount)
     },
-    casts = requireNotNull(castModifyRequests).map {
-        CastModifyCommand.of(it.castId, requireNotNull(it.castName), requireNotNull(it.castRole), requireNotNull(it.castPhoto))
+    casts = castModifyRequests.map {
+        CastModifyCommand.of(it.castId, it.castName, it.castRole, it.castPhoto)
     },
-    staffs = requireNotNull(staffModifyRequests).map {
-        StaffModifyCommand.of(it.staffId, requireNotNull(it.staffName), requireNotNull(it.staffRole), requireNotNull(it.staffPhoto))
+    staffs = staffModifyRequests.map {
+        StaffModifyCommand.of(it.staffId, it.staffName, it.staffRole, it.staffPhoto)
     },
-    images = requireNotNull(performanceImageModifyRequests).map {
-        PerformanceImageModifyCommand.of(it.performanceImageId, requireNotNull(it.performanceImage))
+    images = performanceImageModifyRequests.map {
+        PerformanceImageModifyCommand.of(it.performanceImageId, it.performanceImage)
     },
 )
