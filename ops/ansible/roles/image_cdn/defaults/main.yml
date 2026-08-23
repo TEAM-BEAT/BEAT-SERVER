@@ -7,9 +7,9 @@ image_cdn_region: "ap-northeast-2"
 image_cdn_cloudformation_role_arn: "arn:aws:iam::637423615550:role/beat-image-cdn-cloudformation-execution"
 
 # Paths (relative to repo root) of source artifacts.
-image_cdn_template_relpath: "infra/aws/cloudformation/image-cdn.yml"
-image_cdn_function_relpath: "infra/aws/cloudfront-functions/image-cdn-viewer-request.js"
-image_cdn_lambda_src_relpath: "infra/aws/lambda/image-processing"
+image_cdn_template_relpath: "ops/aws/cloudformation/image-cdn.yml"
+image_cdn_function_relpath: "ops/aws/cloudfront-functions/image-cdn-viewer-request.js"
+image_cdn_lambda_src_relpath: "ops/aws/lambda/image-processing"
 
 # Where to upload the Lambda deployment zip. Bucket must exist beforehand
 # and live in the same region as the Lambda function.

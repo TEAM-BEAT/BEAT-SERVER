@@ -141,7 +141,7 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 | Executable | `:apps:api`, `:apps:admin`, `:apps:batch` | inbound adapter/composition root. Sources remain in deployment-compatible `apis`, `admin`, `batch` directories ([API](apis/README.md), [Admin](admin/README.md), [Batch](batch/README.md)) |
 | Application | `:application:frontoffice`, `:application:admin`, `:application:system` | capability-owned use cases, transactions, output ports, query readers |
 | Domain | `:domain` | framework-free aggregates, value objects, domain services/events, aggregate repositories ([domain](core/domain/README.md)) |
-| Adapter | `:infrastructure` | internal JPA/Redis/external adapters and narrow public bootstrap configuration ([infrastructure](core/infra/README.md)) |
+| Adapter | `:infrastructure` | internal JPA/Redis/external adapters and narrow public bootstrap configuration ([infrastructure](core/ops/README.md)) |
 | Cross-cutting | `:support:security`, `:support:observability` | narrow security and observability technical APIs. Sources remain in `gateway`, `observability` directories ([security](gateway/README.md), [observability](observability/README.md)) |
 
 `build-logic`는 Gradle included build이며 application project module은 아닙니다.
@@ -158,7 +158,7 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 - DB 제약, lock, idempotency, expand/contract migration과 contract/concurrency test로 애플리케이션 규칙을 보강합니다.
 
 Architecture 정본은 [CQRS multi-module Constitution](docs/architecture/BEAT-SERVER-CQRS-MULTIMODULE-ARCHITECTURE-FINAL.md)입니다.
-세부 현행 가이드는 [domain](core/domain/README.md), [infrastructure](core/infra/README.md), [API](apis/README.md),
+세부 현행 가이드는 [domain](core/domain/README.md), [infrastructure](core/ops/README.md), [API](apis/README.md),
 [security](gateway/README.md), [error handling](docs/architecture/error-handling.md)을 따릅니다.
 
 ### Backend migration baseline

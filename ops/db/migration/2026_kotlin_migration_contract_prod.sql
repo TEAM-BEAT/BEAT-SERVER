@@ -1,18 +1,18 @@
 -- =============================================================================
--- BEAT Kotlin 마이그레이션 CONTRACT — beatDev (지금 실행하지 말 것)
+-- BEAT Kotlin 마이그레이션 CONTRACT — beatProd (지금 실행하지 말 것)
 -- MySQL 8.0 / DDL·DML·DCL·TCL 만 사용 (클라이언트 메타 명령 없음)
 -- =============================================================================
--- 이 파일은 infra/db/migration/2026_kotlin_migration_contract_prod.sql 과 반드시
+-- 이 파일은 ops/db/migration/2026_kotlin_migration_contract_dev.sql 과 반드시
 -- 동일한 본문(STEP 1)을 유지해야 한다. beatDev/beatProd 는 완전히 분리된 별도 DB
 -- 경로이며 이 두 파일을 이어주는 접속 정보나 인클루드 지시어는 존재하지 않는다.
 -- 본문을 수정할 때는 두 파일에 반드시 동일하게 반영할 것.
 --
--- 실행 시점: EXPAND(2026_kotlin_migration_expand_dev.sql) 배포·안정화 +
+-- 실행 시점: EXPAND(2026_kotlin_migration_expand_prod.sql) 배포·안정화 +
 --           롤백 윈도우 종료 이후에만 실행한다. 지금 실행하면 이 컬럼을 모르는
 --           "구버전 앱"으로 롤백했을 때 INSERT 가 깨져 롤백이 불가능해진다.
 --
 -- 실행:
---   mysql -h <dev-db-endpoint> -u <user> -p beatDev < infra/db/migration/2026_kotlin_migration_contract_dev.sql
+--   mysql -h <prod-db-endpoint> -u <user> -p beatProd < ops/db/migration/2026_kotlin_migration_contract_prod.sql
 -- =============================================================================
 
 

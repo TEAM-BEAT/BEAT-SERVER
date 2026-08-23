@@ -25,7 +25,7 @@ CloudFront, Lambda, S3 등 AWS 네이티브 리소스를 정의하는 CloudForma
 ## 1. 디렉토리 구조
 
 ```text
-infra/aws/
+ops/aws/
 ├── cloudformation/
 │   └── image-cdn.yml                       # Phase 1 — 이미지 전송 스택
 ├── cloudfront-functions/
@@ -101,7 +101,7 @@ aws s3 mb s3://<deploy-artifacts-bucket-name> --region ap-northeast-2
 
 #### ② SOPS 시크릿에 알람 이메일 추가
 
-각 환경의 `infra/ansible/inventories/{dev,prod}/group_vars/all/secrets.sops.yml`
+각 환경의 `ops/ansible/inventories/{dev,prod}/group_vars/all/secrets.sops.yml`
 파일을 `sops` 로 열어 다음 키를 추가합니다.
 
 ```yaml
@@ -156,7 +156,7 @@ OIDC role 로 임시 자격증명을 주입하고, runner 에서
 ### 로컬 디버깅 실행
 
 > [!IMPORTANT]
-> `ansible.cfg` 의 `roles_path` 가 상대경로이므로 **반드시 `infra/ansible/`
+> `ansible.cfg` 의 `roles_path` 가 상대경로이므로 **반드시 `ops/ansible/`
 > 디렉토리에서 실행** 해야 합니다.
 
 dev/prod 는 같은 AWS 계정을 사용합니다. 옛 dev 계정 profile 은 사용하지 말고,
@@ -164,7 +164,7 @@ dev/prod 는 같은 AWS 계정을 사용합니다. 옛 dev 계정 profile 은 �
 실제 버킷명과 계정별 값은 Ansible inventory 값을 기준으로 확인합니다.
 
 ```bash
-cd infra/ansible
+cd ops/ansible
 
 # dev
 AWS_PROFILE=beat-prod ansible-playbook \

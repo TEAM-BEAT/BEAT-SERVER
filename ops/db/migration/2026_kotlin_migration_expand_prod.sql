@@ -2,7 +2,7 @@
 -- BEAT Kotlin 마이그레이션 선행 스키마 EXPAND — beatProd
 -- MySQL 8.0 / 멱등(재실행 안전) / DDL·DML·DCL·TCL 만 사용 (클라이언트 메타 명령 없음)
 -- =============================================================================
--- 이 파일은 infra/db/migration/2026_kotlin_migration_expand_dev.sql 과 반드시
+-- 이 파일은 ops/db/migration/2026_kotlin_migration_expand_dev.sql 과 반드시
 -- 동일한 본문(STEP 0 ~ STEP 9)을 유지해야 한다. beatDev/beatProd 는 완전히
 -- 분리된 별도 DB 경로이며 이 두 파일을 이어주는 접속 정보나 인클루드 지시어는
 -- 존재하지 않는다. 본문을 수정할 때는 두 파일에 반드시 동일하게 반영할 것.
@@ -25,7 +25,7 @@
 --   - MySQL 은 DDL 이 암묵적 커밋된다. 실행 전 booking / performance / member 백업 권장.
 --
 -- 실행 (이 파일이 연결된 beatProd 커넥션에서 그대로):
---   mysql -h <prod-db-endpoint> -u <user> -p beatProd < infra/db/migration/2026_kotlin_migration_expand_prod.sql
+--   mysql -h <prod-db-endpoint> -u <user> -p beatProd < ops/db/migration/2026_kotlin_migration_expand_prod.sql
 --
 -- 배포 순서(반드시 지킬 것):
 --   [1] dev EXPAND(2026_kotlin_migration_expand_dev.sql) 실행, 앱 배포·관측 완료 후

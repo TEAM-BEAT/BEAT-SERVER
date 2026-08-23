@@ -17,10 +17,10 @@
 
 | 영역 | 내용 |
 | --- | --- |
-| IaC | `infra/aws/cloudformation/image-cdn.yml` (단일 CFN 템플릿) |
-| Lambda 변환기 | `infra/aws/lambda/image-processing/index.mjs` (Sharp + S3) |
-| CloudFront Function | `infra/aws/cloudfront-functions/image-cdn-viewer-request.js` |
-| 배포 자동화 | `infra/ansible/roles/image_cdn/` + `playbooks/image_cdn.yml` |
+| IaC | `ops/aws/cloudformation/image-cdn.yml` (단일 CFN 템플릿) |
+| Lambda 변환기 | `ops/aws/lambda/image-processing/index.mjs` (Sharp + S3) |
+| CloudFront Function | `ops/aws/cloudfront-functions/image-cdn-viewer-request.js` |
+| 배포 자동화 | `ops/ansible/roles/image_cdn/` + `playbooks/image_cdn.yml` |
 | 환경 변수 | `inventories/{dev,prod}/group_vars/all/image_cdn.yml` |
 | 시크릿 | `inventories/{dev,prod}/group_vars/all/secrets.sops.yml` 에
   `image_cdn_alarm_email` 추가 |
@@ -31,7 +31,7 @@
 > → Origin Group (Primary: transformed-images S3 / Fallback: Lambda Function URL)
 > → Lambda(Sharp)가 originals 에서 GET → 변환 → transformed 에 PUT → 응답
 
-자세한 그림과 의사결정 근거는 `infra/aws/README.md` 와 ADR (#510) 참조.
+자세한 그림과 의사결정 근거는 `ops/aws/README.md` 와 ADR (#510) 참조.
 
 ---
 
@@ -76,7 +76,7 @@
 `ansible-playbook` 을 BEAT-SERVER 루트에서 호출하면 `<repo>/roles` 로
 해석되어 못 찾음.
 
-**해결**: README 의 실행 가이드를 `cd infra/ansible` 으로 시작하도록
+**해결**: README 의 실행 가이드를 `cd ops/ansible` 으로 시작하도록
 수정. 기존 BEAT 의 모든 ansible 호출이 동일 패턴.
 
 ---
@@ -86,14 +86,14 @@
 **원인**: pipx 로 설치한 ansible venv 에 `amazon.aws.cloudformation` /
 `amazon.aws.s3_object` 모듈이 의존하는 boto3 가 없음.
 
-**해결**: `infra/ansible/requirements.txt`에 `boto3`, `botocore` 의존성을 정의하고 `setup-ansible-tooling` 액션에서 설치하도록 구성. (로컬 환경은 `pip install -r infra/ansible/requirements.txt` 또는 `pipx inject ansible boto3 botocore`)
+**해결**: `ops/ansible/requirements.txt`에 `boto3`, `botocore` 의존성을 정의하고 `setup-ansible-tooling` 액션에서 설치하도록 구성. (로컬 환경은 `pip install -r ops/ansible/requirements.txt` 또는 `pipx inject ansible boto3 botocore`)
 
 ---
 
-### 함정 ③: 경로가 `infra/infra/aws/...` 로 깨짐
+### 함정 ③: 경로가 `ops/ops/aws/...` 로 깨짐
 
 **원인**: tasks/main.yml 의 `image_cdn_repo_root` 산정이 `dirname` 을
-2회만 적용 → `playbook_dir` (`.../infra/ansible/playbooks`) 에서 두 번
+2회만 적용 → `playbook_dir` (`.../ops/ansible/playbooks`) 에서 두 번
 올라가서 `.../infra` 에서 멈춤. 한 번 더 올라가야 BEAT-SERVER 루트.
 
 **해결 (commit `b7377663`)**: `dirname` 3회로 수정.
@@ -154,7 +154,7 @@ Allow. bucket policy 는 `Principal: "*"` + `Allow GetObject`. 모든 것
 - Lambda role 소속 = 같은 account
 - 즉 cross-account 이슈 아님
 
-**진짜 원인**: BEAT 의 백엔드(`infra/src/.../S3InfraConfig.java`)가 발급한
+**진짜 원인**: BEAT 의 백엔드(`ops/src/.../S3InfraConfig.java`)가 발급한
 Pre-signed URL 로 클라이언트가 PUT 한 객체들의 **ACL 이 private**
 (default) 이고 **owner 가 PUT 발급한 IAM user**. S3 의 legacy ACL 규칙상
 같은 account 안이라도 ACL 의 private 가 IAM policy 의 Allow 를 차단할

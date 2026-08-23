@@ -140,7 +140,7 @@ jobs:
           SOPS_AGE_KEY: ${{ secrets.AGE_SECRET_KEY }}
 
       - name: Verify prod encrypted inventory, resolver, and lint
-        working-directory: infra/ansible
+        working-directory: ops/ansible
         env:
           MODULE: ${{ matrix.module }}
           SOPS_AGE_KEY: ${{ secrets.AGE_SECRET_KEY }}
