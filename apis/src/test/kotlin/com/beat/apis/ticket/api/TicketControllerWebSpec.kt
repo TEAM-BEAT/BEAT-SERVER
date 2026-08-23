@@ -34,7 +34,7 @@ import org.springframework.web.context.request.NativeWebRequest
 
 @WebMvcTest(controllers = [TicketController::class])
 @AutoConfigureMockMvc(addFilters = false)
-@ContextConfiguration(classes = [TicketController::class, TicketFacade::class, TicketWebTestConfiguration::class])
+@ContextConfiguration(classes = [TicketController::class, TicketFacade::class, TicketWebTestConfiguration::class, com.beat.apis.exception.ApiGlobalExceptionHandler::class])
 class TicketControllerWebSpec : FunSpec() {
 
     @Autowired
@@ -101,6 +101,25 @@ class TicketControllerWebSpec : FunSpec() {
                 .andExpect(jsonPath("$.data.bookingList").isArray)
 
             Mockito.verify(ticketQueryService).searchAllTicketsByConditions(MEMBER_ID, PERFORMANCE_ID, query)
+        }
+    }
+
+    init {
+        test("본문 바인딩 실패(누락·null·깨짐)는 400과 표준 메시지로 정규화된다") {
+            listOf(
+                "필수 필드 누락" to """{"performanceId":1,"bookingList":[{"bookingId":1}]}""",
+                "명시적 null" to """{"performanceId":1,"bookingList":[{"bookingId":1,"bookingStatus":null}]}""",
+                "깨진 JSON" to """{"broken""",
+            ).forEach { (_, body) ->
+                mockMvc.perform(
+                    org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/tickets/update")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer x")
+                        .contentType("application/json")
+                        .content(body),
+                ).andExpect(status().isBadRequest)
+                    .andExpect(jsonPath("$.status").value(400))
+                    .andExpect(jsonPath("$.message").value("잘못된 요청입니다."))
+            }
         }
     }
 
