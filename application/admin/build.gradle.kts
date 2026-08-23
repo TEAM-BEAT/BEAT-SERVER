@@ -11,5 +11,5 @@ dependencies {
     implementation("org.springframework:spring-context")
     implementation("org.springframework:spring-tx")
 
-    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.0")
+    testImplementation(libs.archunit.junit5)
 }

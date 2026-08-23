@@ -19,6 +19,6 @@ dependencies {
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.boot.starter.security)
     testImplementation(libs.spring.boot.starter.web)
-    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.0")
+    testImplementation(libs.archunit.junit5)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

@@ -20,7 +20,7 @@ dependencies {
 
     testImplementation(project(":domain"))
     testImplementation(libs.bundles.integration.testcontainers)
-    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.0")
+    testImplementation(libs.archunit.junit5)
     testImplementation(libs.kotest.extensions.spring)
     testImplementation(libs.spring.security.test)
 }
