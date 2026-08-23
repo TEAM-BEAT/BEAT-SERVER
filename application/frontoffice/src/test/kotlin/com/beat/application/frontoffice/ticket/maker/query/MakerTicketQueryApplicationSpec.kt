@@ -15,7 +15,10 @@ import com.beat.domain.performance.vo.TicketPrice
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.Called
+import io.mockk.verify
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -29,23 +32,23 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
 
     init {
         beforeTest {
-            makerTicketReader = Mockito.mock(MakerTicketReader::class.java)
-            performanceRepository = Mockito.mock(PerformanceRepository::class.java)
-            memberRepository = Mockito.mock(MemberRepository::class.java)
+            makerTicketReader = mockk(relaxed = true)
+            performanceRepository = mockk(relaxed = true)
+            memberRepository = mockk(relaxed = true)
         }
 
     test("명시적인 회차와 예매 상태 필터를 매핑하고 null이 아닌 결과를 반환한다") {
         stubOwner()
         val schedules = listOf(schedule(200L, "FIRST", totalTickets = 100, soldTickets = 99))
         val ticket = ticket()
-        Mockito.`when`(makerTicketReader.findSchedules(100L)).thenReturn(schedules)
-        Mockito.`when`(
+        every { makerTicketReader.findSchedules(100L) } returns schedules
+        every {
             makerTicketReader.findTickets(
                 100L,
                 listOf(MakerTicketScheduleNumber.FIRST),
                 listOf(MakerTicketBookingStatus.CHECKING_PAYMENT),
-            ),
-        ).thenReturn(listOf(ticket))
+            )
+        } returns listOf(ticket)
 
         val result = service().findAllTicketsByConditions(
             1L,
@@ -64,22 +67,23 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
         result.performanceTeamName shouldBe "team"
         result.totalPerformanceTicketCount shouldBe 100
         result.totalPerformanceSoldTicketCount shouldBe 99
-        Mockito.verify(makerTicketReader).findTickets(
-            100L,
-            listOf(MakerTicketScheduleNumber.FIRST),
-            listOf(MakerTicketBookingStatus.CHECKING_PAYMENT),
-        )
+        verify {
+            makerTicketReader.findTickets(
+                100L,
+                listOf(MakerTicketScheduleNumber.FIRST),
+                listOf(MakerTicketBookingStatus.CHECKING_PAYMENT),
+            )
+        }
     }
 
     test("필터가 없으면 전체 회차와 활성 maker 상태로 검색한다") {
         stubOwner()
-        Mockito.`when`(makerTicketReader.findSchedules(100L)).thenReturn(
+        every { makerTicketReader.findSchedules(100L) } returns
             listOf(
                 schedule(200L, "FIRST", totalTickets = 100, soldTickets = 1),
                 schedule(201L, "SECOND", totalTickets = 100, soldTickets = 2),
-            ),
-        )
-        Mockito.`when`(
+            )
+        every {
             makerTicketReader.searchTickets(
                 100L,
                 "booker",
@@ -90,8 +94,8 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
                     MakerTicketBookingStatus.BOOKING_CONFIRMED,
                     MakerTicketBookingStatus.BOOKING_CANCELLED,
                 ),
-            ),
-        ).thenReturn(emptyList())
+            )
+        } returns emptyList()
 
         val result = service().searchAllTicketsByConditions(
             1L,
@@ -100,17 +104,19 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
         )
 
         result.bookingList shouldBe emptyList<TicketDetailResult>()
-        Mockito.verify(makerTicketReader).searchTickets(
-            100L,
-            "booker",
-            listOf(MakerTicketScheduleNumber.FIRST, MakerTicketScheduleNumber.SECOND),
-            listOf(
-                MakerTicketBookingStatus.REFUND_REQUESTED,
-                MakerTicketBookingStatus.CHECKING_PAYMENT,
-                MakerTicketBookingStatus.BOOKING_CONFIRMED,
-                MakerTicketBookingStatus.BOOKING_CANCELLED,
-            ),
-        )
+        verify {
+            makerTicketReader.searchTickets(
+                100L,
+                "booker",
+                listOf(MakerTicketScheduleNumber.FIRST, MakerTicketScheduleNumber.SECOND),
+                listOf(
+                    MakerTicketBookingStatus.REFUND_REQUESTED,
+                    MakerTicketBookingStatus.CHECKING_PAYMENT,
+                    MakerTicketBookingStatus.BOOKING_CONFIRMED,
+                    MakerTicketBookingStatus.BOOKING_CANCELLED,
+                ),
+            )
+        }
     }
 
     test("의존성 호출 전에 null·빈 문자열·한 글자 검색어를 거부한다") {
@@ -120,7 +126,9 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
             }
         }
 
-        Mockito.verifyNoInteractions(makerTicketReader, performanceRepository, memberRepository)
+        verify {
+            listOf(makerTicketReader, performanceRepository, memberRepository) wasNot Called
+        }
     }
 
     test("목록과 검색에서 삭제 상태 필터를 거부한다") {
@@ -141,19 +149,21 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
 
         assertTicketValidationFailure(listException)
         assertTicketValidationFailure(searchException)
-        Mockito.verifyNoInteractions(makerTicketReader, performanceRepository, memberRepository)
+        verify {
+            listOf(makerTicketReader, performanceRepository, memberRepository) wasNot Called
+        }
     }
 
     test("authoritative PerformanceRepository로 조회 권한을 검증한다") {
-        Mockito.`when`(memberRepository.findById(1L)).thenReturn(member(userId = 10L))
-        Mockito.`when`(performanceRepository.findById(100L)).thenReturn(performance(userId = 11L))
+        every { memberRepository.findById(1L) } returns member(userId = 10L)
+        every { performanceRepository.findById(100L) } returns performance(userId = 11L)
 
         shouldThrow<FrontofficeApplicationException> {
             service().findAllTicketsByConditions(1L, 100L, TicketListQuery())
         }
 
-        Mockito.verify(performanceRepository).findById(100L)
-        Mockito.verifyNoInteractions(makerTicketReader)
+        verify { performanceRepository.findById(100L) }
+        verify { makerTicketReader wasNot Called }
     }
 
     }
@@ -165,8 +175,8 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
     )
 
     private fun stubOwner() {
-        Mockito.`when`(memberRepository.findById(1L)).thenReturn(member())
-        Mockito.`when`(performanceRepository.findById(100L)).thenReturn(performance())
+        every { memberRepository.findById(1L) } returns member()
+        every { performanceRepository.findById(100L) } returns performance()
     }
 
     private fun assertTicketValidationFailure(exception: FrontofficeApplicationException) {

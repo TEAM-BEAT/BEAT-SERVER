@@ -9,7 +9,9 @@ import com.beat.domain.schedule.service.ScheduleSequenceDomainService
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verifyOrder
 import java.time.Clock
 import java.time.LocalDateTime
 
@@ -19,22 +21,22 @@ class ScheduleSynchronizerSpec : FunSpec({
     lateinit var bookingRepository: BookingRepository
 
     beforeTest {
-        scheduleRepository = Mockito.mock(ScheduleRepository::class.java)
-        bookingRepository = Mockito.mock(BookingRepository::class.java)
+        scheduleRepository = mockk(relaxed = true)
+        bookingRepository = mockk(relaxed = true)
     }
 
     test("활성 예매 확인 전에 정렬된 순서로 서로 다른 회차를 잠근다") {
         val scheduleIds = listOf(3L, 1L, 2L, 1L)
-        Mockito.`when`(scheduleRepository.findIdsByPerformanceId(9L)).thenReturn(scheduleIds)
-        Mockito.`when`(scheduleRepository.lockById(1L)).thenReturn(schedule(1L))
-        Mockito.`when`(scheduleRepository.lockById(2L)).thenReturn(schedule(2L))
-        Mockito.`when`(scheduleRepository.lockById(3L)).thenReturn(schedule(3L))
-        Mockito.`when`(
+        every { scheduleRepository.findIdsByPerformanceId(9L) } returns scheduleIds
+        every { scheduleRepository.lockById(1L) } returns schedule(1L)
+        every { scheduleRepository.lockById(2L) } returns schedule(2L)
+        every { scheduleRepository.lockById(3L) } returns schedule(3L)
+        every {
             bookingRepository.existsActiveBookingByScheduleIds(
                 scheduleIds,
                 BookingStatus.inactiveForTicketAllocation(),
-            ),
-        ).thenReturn(false)
+            )
+        } returns false
         val synchronizer = ScheduleSynchronizer(
             scheduleRepository,
             bookingRepository,
@@ -45,15 +47,16 @@ class ScheduleSynchronizerSpec : FunSpec({
         val result = synchronizer.lockAndCheckActiveBookings(9L)
 
         result shouldBe false
-        val order = Mockito.inOrder(scheduleRepository, bookingRepository)
-        order.verify(scheduleRepository).findIdsByPerformanceId(9L)
-        order.verify(scheduleRepository).lockById(1L)
-        order.verify(scheduleRepository).lockById(2L)
-        order.verify(scheduleRepository).lockById(3L)
-        order.verify(bookingRepository).existsActiveBookingByScheduleIds(
-            scheduleIds,
-            BookingStatus.inactiveForTicketAllocation(),
-        )
+        verifyOrder {
+            scheduleRepository.findIdsByPerformanceId(9L)
+            scheduleRepository.lockById(1L)
+            scheduleRepository.lockById(2L)
+            scheduleRepository.lockById(3L)
+            bookingRepository.existsActiveBookingByScheduleIds(
+                scheduleIds,
+                BookingStatus.inactiveForTicketAllocation(),
+            )
+        }
     }
 
 })

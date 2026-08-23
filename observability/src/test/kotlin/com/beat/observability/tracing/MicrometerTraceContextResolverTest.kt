@@ -6,15 +6,15 @@ import io.micrometer.tracing.Tracer
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
+import io.mockk.every
+import io.mockk.mockk
 
 class MicrometerTraceContextResolverTest : FunSpec() {
 
     init {
         test("tracer에 active span이 없으면 null을 반환한다") {
-            val tracer = mock(Tracer::class.java)
-            `when`(tracer.currentSpan()).thenReturn(null)
+            val tracer = mockk<Tracer>(relaxed = true)
+            every { tracer.currentSpan() } returns null
 
             val resolved = MicrometerTraceContextResolver(tracer).resolve()
 
@@ -54,13 +54,13 @@ class MicrometerTraceContextResolverTest : FunSpec() {
     }
 
     private fun mockTracer(traceId: String, spanId: String): Tracer {
-        val context = mock(TraceContext::class.java)
-        `when`(context.traceId()).thenReturn(traceId)
-        `when`(context.spanId()).thenReturn(spanId)
-        val span = mock(Span::class.java)
-        `when`(span.context()).thenReturn(context)
-        val tracer = mock(Tracer::class.java)
-        `when`(tracer.currentSpan()).thenReturn(span)
+        val context = mockk<TraceContext>(relaxed = true)
+        every { context.traceId() } returns traceId
+        every { context.spanId() } returns spanId
+        val span = mockk<Span>(relaxed = true)
+        every { span.context() } returns context
+        val tracer = mockk<Tracer>(relaxed = true)
+        every { tracer.currentSpan() } returns span
         return tracer
     }
 }

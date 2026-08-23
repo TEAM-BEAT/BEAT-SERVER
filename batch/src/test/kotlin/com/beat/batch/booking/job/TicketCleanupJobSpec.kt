@@ -3,8 +3,8 @@ package com.beat.batch.booking.job
 import com.beat.application.system.booking.command.TicketCleanupService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
+import io.mockk.mockk
+import io.mockk.verify
 import org.springframework.scheduling.annotation.Scheduled
 
 class TicketCleanupJobSpec : FunSpec({
@@ -18,10 +18,10 @@ class TicketCleanupJobSpec : FunSpec({
     }
 
     test("deleteOldCancelledBookings는 System use case를 위임 호출한다") {
-        val service = mock(TicketCleanupService::class.java)
+        val service = mockk<TicketCleanupService>(relaxed = true)
 
         TicketCleanupJob(service).deleteOldCancelledBookings()
 
-        verify(service).deleteOldCancelledBookings()
+        verify { service.deleteOldCancelledBookings() }
     }
 })

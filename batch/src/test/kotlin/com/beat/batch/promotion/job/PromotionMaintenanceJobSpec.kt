@@ -3,8 +3,8 @@ package com.beat.batch.promotion.job
 import com.beat.application.system.promotion.command.PromotionMaintenanceService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
+import io.mockk.mockk
+import io.mockk.verify
 import org.springframework.scheduling.annotation.Scheduled
 
 class PromotionMaintenanceJobSpec : FunSpec({
@@ -18,10 +18,10 @@ class PromotionMaintenanceJobSpec : FunSpec({
     }
 
     test("checkAndDeleteInvalidPromotions는 System use case를 위임 호출한다") {
-        val service = mock(PromotionMaintenanceService::class.java)
+        val service = mockk<PromotionMaintenanceService>(relaxed = true)
 
         PromotionMaintenanceJob(service).checkAndDeleteInvalidPromotions()
 
-        verify(service).checkAndDeleteInvalidPromotions()
+        verify { service.checkAndDeleteInvalidPromotions() }
     }
 })

@@ -4,27 +4,27 @@ import com.beat.application.frontoffice.ticket.maker.command.TicketPaymentConfir
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import org.springframework.scheduling.annotation.Async
 import org.springframework.transaction.event.TransactionPhase
 import org.springframework.transaction.event.TransactionalEventListener
 
 class TicketPaymentConfirmedEventListenerTest : FunSpec({
     test("정확한 수신자와 결제 확인 메시지를 전송한다") {
-        val coolSmsAdapter = Mockito.mock(CoolSmsAdapter::class.java)
+        val coolSmsAdapter = mockk<CoolSmsAdapter>(relaxed = true)
         val listener = TicketPaymentConfirmedEventListener(coolSmsAdapter)
 
         listener.sendConfirmation(event())
 
-        Mockito.verify(coolSmsAdapter).send(PHONE_NUMBER, MESSAGE)
+        verify { coolSmsAdapter.send(PHONE_NUMBER, MESSAGE) }
     }
 
     test("sms adapter의 runtime exception을 삼킨다") {
-        val coolSmsAdapter = Mockito.mock(CoolSmsAdapter::class.java)
+        val coolSmsAdapter = mockk<CoolSmsAdapter>(relaxed = true)
         val listener = TicketPaymentConfirmedEventListener(coolSmsAdapter)
-        Mockito.doThrow(RuntimeException("SMS provider unavailable"))
-            .`when`(coolSmsAdapter)
-            .send(PHONE_NUMBER, MESSAGE)
+        every { coolSmsAdapter.send(PHONE_NUMBER, MESSAGE) } throws RuntimeException("SMS provider unavailable")
 
         shouldNotThrowAny { listener.sendConfirmation(event()) }
     }

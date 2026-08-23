@@ -5,18 +5,21 @@ import com.beat.application.frontoffice.performance.exception.PerformanceApplica
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito
+import io.mockk.Called
+import io.mockk.every
+import io.mockk.verify
+import io.mockk.mockk
 
 class PerformanceImageKeySpec : FunSpec({
     lateinit var performanceImageStorage: PerformanceImageStorage
 
     beforeTest {
-        performanceImageStorage = Mockito.mock(PerformanceImageStorage::class.java)
+        performanceImageStorage = mockk(relaxed = true)
     }
 
     test("storage key를 추출한 뒤 절대 image URL을 검증한다") {
         val imageKey = "dev/poster/poster.png"
-        Mockito.`when`(performanceImageStorage.exists(imageKey)).thenReturn(true)
+        every { performanceImageStorage.exists(imageKey) } returns true
 
         val result = validateStoredPerformanceImage(
             performanceImageStorage,
@@ -33,12 +36,12 @@ class PerformanceImageKeySpec : FunSpec({
         }
 
         exception.errorCode shouldBe PerformanceApplicationErrorCode.INVALID_IMAGE_KEY
-        Mockito.verifyNoInteractions(performanceImageStorage)
+        verify { performanceImageStorage wasNot Called }
     }
 
     test("object storage에 없는 image는 거부된다") {
         val imageKey = "dev/performance/detail.png"
-        Mockito.`when`(performanceImageStorage.exists(imageKey)).thenReturn(false)
+        every { performanceImageStorage.exists(imageKey) } returns false
 
         val exception = shouldThrow<FrontofficeApplicationException> {
             validateStoredPerformanceImage(performanceImageStorage, imageKey, "performance")
@@ -56,6 +59,6 @@ class PerformanceImageKeySpec : FunSpec({
         )
 
         result shouldBe ""
-        Mockito.verifyNoInteractions(performanceImageStorage)
+        verify { performanceImageStorage wasNot Called }
     }
 })

@@ -5,87 +5,87 @@ import com.beat.support.security.password.PasswordHasher
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito
+import io.mockk.confirmVerified
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.Called
+import io.mockk.verify
 
 class GuestBookingCredentialLookupSpec : FunSpec({
     isolationMode = IsolationMode.SingleInstance
 
     test("비밀번호가 일치하는 credential이 없으면 userId를 반환하지 않는다") {
-        val bookingRepository = Mockito.mock(BookingRepository::class.java)
-        val passwordHasher = Mockito.mock(PasswordHasher::class.java)
-        val credentialRepository = Mockito.mock(GuestBookingCredentialRepository::class.java)
-        Mockito.`when`(credentialRepository.findCandidates("booker", "010", "990101"))
-            .thenReturn(listOf(GuestBookingCredential(1L, "encoded")))
-        Mockito.`when`(passwordHasher.matches("secret", "encoded")).thenReturn(false)
+        val bookingRepository = mockk<BookingRepository>(relaxed = true)
+        val passwordHasher = mockk<PasswordHasher>(relaxed = true)
+        val credentialRepository = mockk<GuestBookingCredentialRepository>(relaxed = true)
+        every { credentialRepository.findCandidates("booker", "010", "990101") } returns
+            listOf(GuestBookingCredential(1L, "encoded"))
+        every { passwordHasher.matches("secret", "encoded") } returns false
 
         val result = authenticator(bookingRepository, passwordHasher, credentialRepository)
             .findUserId("booker", "010", "990101", "secret")
 
         result shouldBe null
-        Mockito.verifyNoInteractions(bookingRepository)
+        verify { bookingRepository wasNot Called }
     }
 
     test("정확히 한 user만 password가 일치하면 해당 userId를 반환한다") {
-        val bookingRepository = Mockito.mock(BookingRepository::class.java)
-        val passwordHasher = Mockito.mock(PasswordHasher::class.java)
-        val credentialRepository = Mockito.mock(GuestBookingCredentialRepository::class.java)
-        Mockito.`when`(credentialRepository.findCandidates("booker", "010", "990101"))
-            .thenReturn(listOf(GuestBookingCredential(7L, "encoded")))
-        Mockito.`when`(passwordHasher.matches("secret", "encoded")).thenReturn(true)
-        Mockito.`when`(passwordHasher.needsUpgrade("encoded")).thenReturn(false)
+        val bookingRepository = mockk<BookingRepository>(relaxed = true)
+        val passwordHasher = mockk<PasswordHasher>(relaxed = true)
+        val credentialRepository = mockk<GuestBookingCredentialRepository>(relaxed = true)
+        every { credentialRepository.findCandidates("booker", "010", "990101") } returns
+            listOf(GuestBookingCredential(7L, "encoded"))
+        every { passwordHasher.matches("secret", "encoded") } returns true
+        every { passwordHasher.needsUpgrade("encoded") } returns false
 
         val result = authenticator(bookingRepository, passwordHasher, credentialRepository)
             .findUserId("booker", "010", "990101", "secret")
 
         result shouldBe 7L
-        Mockito.verifyNoInteractions(bookingRepository)
+        verify { bookingRepository wasNot Called }
     }
 
     test("한 user의 여러 credential이 일치하면 upgrade를 한 번만 수행한다") {
-        val bookingRepository = Mockito.mock(BookingRepository::class.java)
-        val passwordHasher = Mockito.mock(PasswordHasher::class.java)
-        val credentialRepository = Mockito.mock(GuestBookingCredentialRepository::class.java)
-        Mockito.`when`(credentialRepository.findCandidates("booker", "010", "990101"))
-            .thenReturn(
-                listOf(
-                    GuestBookingCredential(7L, "legacy"),
-                    GuestBookingCredential(7L, "encoded"),
-                ),
+        val bookingRepository = mockk<BookingRepository>(relaxed = true)
+        val passwordHasher = mockk<PasswordHasher>(relaxed = true)
+        val credentialRepository = mockk<GuestBookingCredentialRepository>(relaxed = true)
+        every { credentialRepository.findCandidates("booker", "010", "990101") } returns
+            listOf(
+                GuestBookingCredential(7L, "legacy"),
+                GuestBookingCredential(7L, "encoded"),
             )
-        Mockito.`when`(passwordHasher.matches("secret", "legacy")).thenReturn(true)
-        Mockito.`when`(passwordHasher.matches("secret", "encoded")).thenReturn(true)
-        Mockito.`when`(passwordHasher.needsUpgrade("legacy")).thenReturn(true)
-        Mockito.`when`(passwordHasher.encode("secret")).thenReturn("upgraded")
+        every { passwordHasher.matches("secret", "legacy") } returns true
+        every { passwordHasher.matches("secret", "encoded") } returns true
+        every { passwordHasher.needsUpgrade("legacy") } returns true
+        every { passwordHasher.encode("secret") } returns "upgraded"
 
         val result = authenticator(bookingRepository, passwordHasher, credentialRepository)
             .findUserId("booker", "010", "990101", "secret")
 
         result shouldBe 7L
-        Mockito.verify(bookingRepository).replaceGuestPassword(7L, "upgraded")
-        Mockito.verify(passwordHasher).encode("secret")
-        Mockito.verifyNoMoreInteractions(bookingRepository)
+        verify { bookingRepository.replaceGuestPassword(7L, "upgraded") }
+        verify { passwordHasher.encode("secret") }
+        confirmVerified(bookingRepository)
     }
 
     test("서로 다른 user가 일치하면 모호한 인증으로 처리하고 upgrade하지 않는다") {
-        val bookingRepository = Mockito.mock(BookingRepository::class.java)
-        val passwordHasher = Mockito.mock(PasswordHasher::class.java)
-        val credentialRepository = Mockito.mock(GuestBookingCredentialRepository::class.java)
-        Mockito.`when`(credentialRepository.findCandidates("booker", "010", "990101"))
-            .thenReturn(
-                listOf(
-                    GuestBookingCredential(7L, "first"),
-                    GuestBookingCredential(8L, "second"),
-                ),
+        val bookingRepository = mockk<BookingRepository>(relaxed = true)
+        val passwordHasher = mockk<PasswordHasher>(relaxed = true)
+        val credentialRepository = mockk<GuestBookingCredentialRepository>(relaxed = true)
+        every { credentialRepository.findCandidates("booker", "010", "990101") } returns
+            listOf(
+                GuestBookingCredential(7L, "first"),
+                GuestBookingCredential(8L, "second"),
             )
-        Mockito.`when`(passwordHasher.matches("secret", "first")).thenReturn(true)
-        Mockito.`when`(passwordHasher.matches("secret", "second")).thenReturn(true)
+        every { passwordHasher.matches("secret", "first") } returns true
+        every { passwordHasher.matches("secret", "second") } returns true
 
         val result = authenticator(bookingRepository, passwordHasher, credentialRepository)
             .findUserId("booker", "010", "990101", "secret")
 
         result shouldBe null
-        Mockito.verifyNoInteractions(bookingRepository)
-        Mockito.verify(passwordHasher, Mockito.never()).needsUpgrade(Mockito.anyString())
+        verify { bookingRepository wasNot Called }
+        verify(exactly = 0) { passwordHasher.needsUpgrade(any<String>()) }
     }
 })
 

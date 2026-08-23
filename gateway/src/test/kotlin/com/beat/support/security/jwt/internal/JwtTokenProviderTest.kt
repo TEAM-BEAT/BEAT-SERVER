@@ -17,9 +17,9 @@ import java.time.Instant
 import java.util.Base64
 import java.util.Date
 import javax.crypto.SecretKey
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
-import org.mockito.Mockito.`when` as given
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 
 class JwtTokenProviderTest : FunSpec() {
 
@@ -42,17 +42,17 @@ class JwtTokenProviderTest : FunSpec() {
         test("access token 인증은 한 번 파싱한 claims에서 사용자 정보를 추출한다") {
             val properties = JwtProperties(STRONG_BASE64_SECRET, ACCESS_TTL_MILLIS, REFRESH_TTL_MILLIS, KEY_ID)
             val signingKeyHolder = JwtSigningKeyHolder(properties)
-            val parser = mock(JwtTokenParser::class.java)
-            val claims = mock(Claims::class.java)
+            val parser = mockk<JwtTokenParser>(relaxed = true)
+            val claims = mockk<Claims>(relaxed = true)
             val provider = JwtTokenProvider(properties, JwtTokenIssuer(signingKeyHolder), parser)
-            given(parser.parse("access-token", JwtTokenType.ACCESS)).thenReturn(claims)
-            given(claims[JwtClaimNames.MEMBER_ID]).thenReturn(1L)
-            given(claims.get(JwtClaimNames.ROLE, String::class.java)).thenReturn("ROLE_MEMBER")
+            every { parser.parse("access-token", JwtTokenType.ACCESS) } returns claims
+            every { claims[JwtClaimNames.MEMBER_ID] } returns 1L
+            every { claims.get(JwtClaimNames.ROLE, String::class.java) } returns "ROLE_MEMBER"
 
             val result = provider.authenticateAccessToken("access-token")
 
             result shouldBe TokenAuthenticationResult.Authenticated(TokenSubject(1L, "ROLE_MEMBER"))
-            verify(parser).parse("access-token", JwtTokenType.ACCESS)
+            verify { parser.parse("access-token", JwtTokenType.ACCESS) }
         }
 
         test("refresh token은 kid와 tokenType을 담아 발급되고 검증된다") {

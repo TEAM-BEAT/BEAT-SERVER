@@ -13,7 +13,10 @@ import com.beat.domain.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.Called
+import io.mockk.verify
 
 class SocialLoginApplicationSpec : FunSpec({
 
@@ -30,11 +33,11 @@ class SocialLoginApplicationSpec : FunSpec({
         )
 
         failures.forEach { (failure, expectedCode) ->
-            val socialLoginProvider = Mockito.mock(SocialLoginProvider::class.java)
-            val socialLoginMemberResolver = Mockito.mock(SocialLoginMemberResolver::class.java)
-            val loginSessionIssuer = Mockito.mock(LoginSessionIssuer::class.java)
-            val userRepository = Mockito.mock(UserRepository::class.java)
-            Mockito.`when`(socialLoginProvider.login(PROVIDER_REQUEST)).thenThrow(failure)
+            val socialLoginProvider = mockk<SocialLoginProvider>(relaxed = true)
+            val socialLoginMemberResolver = mockk<SocialLoginMemberResolver>(relaxed = true)
+            val loginSessionIssuer = mockk<LoginSessionIssuer>(relaxed = true)
+            val userRepository = mockk<UserRepository>(relaxed = true)
+            every { socialLoginProvider.login(PROVIDER_REQUEST) } throws failure
 
             val exception = shouldThrow<FrontofficeApplicationException> {
                 service(
@@ -48,23 +51,25 @@ class SocialLoginApplicationSpec : FunSpec({
             exception.errorCode shouldBe expectedCode
             exception.errorCode.type shouldBe expectedCode.type
             exception.cause shouldBe failure
-            Mockito.verifyNoInteractions(socialLoginMemberResolver, loginSessionIssuer, userRepository)
+            verify {
+            listOf(socialLoginMemberResolver, loginSessionIssuer, userRepository) wasNot Called
+        }
         }
     }
 
     test("기존 member 로그인은 연결된 user 역할로 application 세션을 구성한다") {
-        val socialLoginProvider = Mockito.mock(SocialLoginProvider::class.java)
-        val socialLoginMemberResolver = Mockito.mock(SocialLoginMemberResolver::class.java)
-        val loginSessionIssuer = Mockito.mock(LoginSessionIssuer::class.java)
-        val userRepository = Mockito.mock(UserRepository::class.java)
+        val socialLoginProvider = mockk<SocialLoginProvider>(relaxed = true)
+        val socialLoginMemberResolver = mockk<SocialLoginMemberResolver>(relaxed = true)
+        val loginSessionIssuer = mockk<LoginSessionIssuer>(relaxed = true)
+        val userRepository = mockk<UserRepository>(relaxed = true)
         val member = MemberAuthenticationResult(memberId = MEMBER_ID, userId = USER_ID)
         val user = Users.rehydrate(USER_ID, Role.MEMBER)
         val session = LoginSession(ACCESS_TOKEN, REFRESH_TOKEN)
         val identity = SocialIdentity.of(SocialType.KAKAO, PROFILE.socialId)
-        Mockito.`when`(socialLoginProvider.login(PROVIDER_REQUEST)).thenReturn(PROFILE)
-        Mockito.`when`(socialLoginMemberResolver.findOrRegister(PROFILE, identity)).thenReturn(member)
-        Mockito.`when`(userRepository.findById(USER_ID)).thenReturn(user)
-        Mockito.`when`(loginSessionIssuer.issueFor(MEMBER_ID, Role.MEMBER.roleName)).thenReturn(session)
+        every { socialLoginProvider.login(PROVIDER_REQUEST) } returns PROFILE
+        every { socialLoginMemberResolver.findOrRegister(PROFILE, identity) } returns member
+        every { userRepository.findById(USER_ID) } returns user
+        every { loginSessionIssuer.issueFor(MEMBER_ID, Role.MEMBER.roleName) } returns session
 
         val result = service(
             socialLoginProvider,
@@ -79,21 +84,21 @@ class SocialLoginApplicationSpec : FunSpec({
             nickname = PROFILE.nickname,
             role = Role.MEMBER.roleName,
         )
-        Mockito.verify(socialLoginProvider).login(PROVIDER_REQUEST)
-        Mockito.verify(socialLoginMemberResolver).findOrRegister(PROFILE, identity)
-        Mockito.verify(loginSessionIssuer).issueFor(MEMBER_ID, Role.MEMBER.roleName)
+        verify { socialLoginProvider.login(PROVIDER_REQUEST) }
+        verify { socialLoginMemberResolver.findOrRegister(PROFILE, identity) }
+        verify { loginSessionIssuer.issueFor(MEMBER_ID, Role.MEMBER.roleName) }
     }
 
     test("연결된 user가 없으면 not found로 매핑하고 세션을 발급하지 않는다") {
-        val socialLoginProvider = Mockito.mock(SocialLoginProvider::class.java)
-        val socialLoginMemberResolver = Mockito.mock(SocialLoginMemberResolver::class.java)
-        val loginSessionIssuer = Mockito.mock(LoginSessionIssuer::class.java)
-        val userRepository = Mockito.mock(UserRepository::class.java)
+        val socialLoginProvider = mockk<SocialLoginProvider>(relaxed = true)
+        val socialLoginMemberResolver = mockk<SocialLoginMemberResolver>(relaxed = true)
+        val loginSessionIssuer = mockk<LoginSessionIssuer>(relaxed = true)
+        val userRepository = mockk<UserRepository>(relaxed = true)
         val identity = SocialIdentity.of(SocialType.KAKAO, PROFILE.socialId)
-        Mockito.`when`(socialLoginProvider.login(PROVIDER_REQUEST)).thenReturn(PROFILE)
-        Mockito.`when`(socialLoginMemberResolver.findOrRegister(PROFILE, identity))
-            .thenReturn(MemberAuthenticationResult(MEMBER_ID, USER_ID))
-        Mockito.`when`(userRepository.findById(USER_ID)).thenReturn(null)
+        every { socialLoginProvider.login(PROVIDER_REQUEST) } returns PROFILE
+        every { socialLoginMemberResolver.findOrRegister(PROFILE, identity) } returns
+            MemberAuthenticationResult(MEMBER_ID, USER_ID)
+        every { userRepository.findById(USER_ID) } returns null
 
         val exception = shouldThrow<FrontofficeApplicationException> {
             service(
@@ -106,7 +111,7 @@ class SocialLoginApplicationSpec : FunSpec({
 
         exception.errorCode shouldBe MemberApplicationErrorCode.USER_NOT_FOUND
         exception.errorCode.type shouldBe FrontofficeApplicationErrorType.NOT_FOUND
-        Mockito.verifyNoInteractions(loginSessionIssuer)
+        verify { loginSessionIssuer wasNot Called }
     }
 })
 

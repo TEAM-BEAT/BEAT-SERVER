@@ -5,7 +5,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito.mock
+import io.mockk.mockk
 import org.springframework.core.MethodParameter
 import org.springframework.security.authentication.AnonymousAuthenticationToken
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -16,7 +16,7 @@ import org.springframework.web.context.request.NativeWebRequest
 class CurrentMemberArgumentResolverTest : FunSpec() {
 
     private val resolver = CurrentMemberArgumentResolver()
-    private val webRequest = mock(NativeWebRequest::class.java)
+    private val webRequest = mockk<NativeWebRequest>(relaxed = true)
 
     init {
         isolationMode = IsolationMode.SingleInstance

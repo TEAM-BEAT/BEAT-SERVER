@@ -19,7 +19,8 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeUnique
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito
+import io.mockk.every
+import io.mockk.mockk
 import java.time.Clock
 import java.time.LocalDateTime
 
@@ -122,8 +123,8 @@ class ApplicationFailureLanguageSpec : FunSpec({
     }
 
     test("대표 service boundary는 Spring 없이 domain failure를 application failure로 변환한다") {
-        val reader = Mockito.mock(BookerBookingReader::class.java)
-        Mockito.`when`(reader.findByUserId(1L)).thenReturn(
+        val reader = mockk<BookerBookingReader>(relaxed = true)
+        every { reader.findByUserId(1L) } returns
             listOf(
                 BookerBookingReadModel(
                     userId = 1L,
@@ -151,8 +152,7 @@ class ApplicationFailureLanguageSpec : FunSpec({
                         ticketPrice = -1,
                     ),
                 ),
-            ),
-        )
+            )
 
         val exception = shouldThrow<FrontofficeApplicationException> {
             GuestBookingQueryService(reader, Clock.systemUTC()).findGuestBookings(1L)

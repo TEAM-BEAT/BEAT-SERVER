@@ -12,7 +12,10 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.Called
+import io.mockk.verify
 
 class AuthenticationCommandInvariantSpec : FunSpec({
     isolationMode = IsolationMode.SingleInstance
@@ -29,8 +32,8 @@ class AuthenticationCommandInvariantSpec : FunSpec({
 
             expectedCodes.forEach { (failure, expectedCode) ->
                 val dependencies = AuthenticationDependencies()
-                Mockito.`when`(dependencies.refreshTokenAuthenticator.authenticateRefreshToken(REFRESH_TOKEN))
-                    .thenReturn(TokenAuthenticationResult.Rejected(failure))
+                every { dependencies.refreshTokenAuthenticator.authenticateRefreshToken(REFRESH_TOKEN) } returns
+                    TokenAuthenticationResult.Rejected(failure)
 
                 val exception = shouldThrow<FrontofficeApplicationException> {
                     dependencies.service.generateAccessTokenFromRefreshToken(REFRESH_TOKEN)
@@ -38,21 +41,25 @@ class AuthenticationCommandInvariantSpec : FunSpec({
 
                 exception.errorCode shouldBe expectedCode
                 exception.errorCode.type shouldBe expectedCode.type
-                Mockito.verifyNoInteractions(dependencies.tokenIssuer, dependencies.refreshTokenStore)
+                verify {
+            listOf(dependencies.tokenIssuer, dependencies.refreshTokenStore) wasNot Called
+        }
             }
         }
 
         test("저장된 소유자 확인이나 access token 발급 전에 유효하지 않은 token을 거부한다") {
             val dependencies = AuthenticationDependencies()
-            Mockito.`when`(dependencies.refreshTokenAuthenticator.authenticateRefreshToken(REFRESH_TOKEN))
-                .thenReturn(TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN))
+            every { dependencies.refreshTokenAuthenticator.authenticateRefreshToken(REFRESH_TOKEN) } returns
+                TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN)
 
             val exception = shouldThrow<FrontofficeApplicationException> {
                 dependencies.service.generateAccessTokenFromRefreshToken(REFRESH_TOKEN)
             }
 
             exception.errorCode shouldBe TokenApplicationErrorCode.INVALID_REFRESH_TOKEN_ERROR
-            Mockito.verifyNoInteractions(dependencies.tokenIssuer, dependencies.refreshTokenStore)
+            verify {
+            listOf(dependencies.tokenIssuer, dependencies.refreshTokenStore) wasNot Called
+        }
         }
     }
 
@@ -60,8 +67,7 @@ class AuthenticationCommandInvariantSpec : FunSpec({
         test("저장된 member가 없으면 refresh token을 거부한다") {
             val dependencies = AuthenticationDependencies()
             stubAuthenticatedRefreshToken(dependencies)
-            Mockito.`when`(dependencies.refreshTokenStore.findMemberIdByRefreshToken(REFRESH_TOKEN))
-                .thenReturn(null)
+            every { dependencies.refreshTokenStore.findMemberIdByRefreshToken(REFRESH_TOKEN) } returns null
 
             val exception = shouldThrow<FrontofficeApplicationException> {
                 dependencies.service.generateAccessTokenFromRefreshToken(REFRESH_TOKEN)
@@ -69,14 +75,13 @@ class AuthenticationCommandInvariantSpec : FunSpec({
 
             exception.errorCode shouldBe TokenApplicationErrorCode.REFRESH_TOKEN_NOT_FOUND
             exception.errorCode.type shouldBe FrontofficeApplicationErrorType.NOT_FOUND
-            Mockito.verifyNoInteractions(dependencies.tokenIssuer)
+            verify { dependencies.tokenIssuer wasNot Called }
         }
 
         test("저장된 소유자가 token subject와 다르면 refresh token을 거부한다") {
             val dependencies = AuthenticationDependencies()
             stubAuthenticatedRefreshToken(dependencies, memberId = MEMBER_ID)
-            Mockito.`when`(dependencies.refreshTokenStore.findMemberIdByRefreshToken(REFRESH_TOKEN))
-                .thenReturn(STORED_MEMBER_ID)
+            every { dependencies.refreshTokenStore.findMemberIdByRefreshToken(REFRESH_TOKEN) } returns STORED_MEMBER_ID
 
             val exception = shouldThrow<FrontofficeApplicationException> {
                 dependencies.service.generateAccessTokenFromRefreshToken(REFRESH_TOKEN)
@@ -84,14 +89,13 @@ class AuthenticationCommandInvariantSpec : FunSpec({
 
             exception.errorCode shouldBe TokenApplicationErrorCode.REFRESH_TOKEN_MEMBER_ID_MISMATCH_ERROR
             exception.errorCode.type shouldBe FrontofficeApplicationErrorType.INVALID_INPUT
-            Mockito.verifyNoInteractions(dependencies.tokenIssuer)
+            verify { dependencies.tokenIssuer wasNot Called }
         }
 
         test("access token 발급 전에 role claim이 유효하지 않은 refresh token을 거부한다") {
             val dependencies = AuthenticationDependencies()
             stubAuthenticatedRefreshToken(dependencies, roleName = "ROLE_UNKNOWN")
-            Mockito.`when`(dependencies.refreshTokenStore.findMemberIdByRefreshToken(REFRESH_TOKEN))
-                .thenReturn(MEMBER_ID)
+            every { dependencies.refreshTokenStore.findMemberIdByRefreshToken(REFRESH_TOKEN) } returns MEMBER_ID
 
             val exception = shouldThrow<FrontofficeApplicationException> {
                 dependencies.service.generateAccessTokenFromRefreshToken(REFRESH_TOKEN)
@@ -99,7 +103,7 @@ class AuthenticationCommandInvariantSpec : FunSpec({
 
             exception.errorCode shouldBe TokenApplicationErrorCode.INVALID_REFRESH_TOKEN_ERROR
             exception.errorCode.type shouldBe FrontofficeApplicationErrorType.INVALID_INPUT
-            Mockito.verifyNoInteractions(dependencies.tokenIssuer)
+            verify { dependencies.tokenIssuer wasNot Called }
         }
     }
 
@@ -107,45 +111,44 @@ class AuthenticationCommandInvariantSpec : FunSpec({
         test("인증과 저장된 소유자 확인 후 access token을 발급한다") {
             val dependencies = AuthenticationDependencies()
             val subject = TokenSubject(MEMBER_ID, "ROLE_MEMBER")
-            Mockito.`when`(dependencies.refreshTokenAuthenticator.authenticateRefreshToken(REFRESH_TOKEN))
-                .thenReturn(TokenAuthenticationResult.Authenticated(subject))
-            Mockito.`when`(dependencies.refreshTokenStore.findMemberIdByRefreshToken(REFRESH_TOKEN))
-                .thenReturn(MEMBER_ID)
-            Mockito.`when`(dependencies.tokenIssuer.issueAccessToken(subject)).thenReturn(ACCESS_TOKEN)
+            every { dependencies.refreshTokenAuthenticator.authenticateRefreshToken(REFRESH_TOKEN) } returns
+                TokenAuthenticationResult.Authenticated(subject)
+            every { dependencies.refreshTokenStore.findMemberIdByRefreshToken(REFRESH_TOKEN) } returns MEMBER_ID
+            every { dependencies.tokenIssuer.issueAccessToken(subject) } returns ACCESS_TOKEN
 
             val result = dependencies.service.generateAccessTokenFromRefreshToken(REFRESH_TOKEN)
 
             result shouldBe AccessTokenResult(ACCESS_TOKEN)
-            Mockito.verify(dependencies.tokenIssuer).issueAccessToken(subject)
+            verify { dependencies.tokenIssuer.issueAccessToken(subject) }
         }
     }
 
     context("sign-out 멱등성") {
         test("refresh token이 이미 없어도 삭제를 위임한다") {
             val dependencies = AuthenticationDependencies()
-            Mockito.`when`(dependencies.refreshTokenStore.delete(MEMBER_ID)).thenReturn(false)
+            every { dependencies.refreshTokenStore.delete(MEMBER_ID) } returns false
 
             dependencies.service.signOut(MEMBER_ID)
 
-            Mockito.verify(dependencies.refreshTokenStore).delete(MEMBER_ID)
+            verify { dependencies.refreshTokenStore.delete(MEMBER_ID) }
         }
 
         test("반복 삭제 시도에서도 멱등을 유지한다") {
             val dependencies = AuthenticationDependencies()
-            Mockito.`when`(dependencies.refreshTokenStore.delete(MEMBER_ID)).thenReturn(true, false)
+            every { dependencies.refreshTokenStore.delete(MEMBER_ID) } returnsMany listOf(true, false)
 
             dependencies.service.signOut(MEMBER_ID)
             dependencies.service.signOut(MEMBER_ID)
 
-            Mockito.verify(dependencies.refreshTokenStore, Mockito.times(2)).delete(MEMBER_ID)
+            verify(exactly = 2) { dependencies.refreshTokenStore.delete(MEMBER_ID) }
         }
     }
 })
 
 private class AuthenticationDependencies {
-    val tokenIssuer: TokenIssuer = Mockito.mock(TokenIssuer::class.java)
-    val refreshTokenAuthenticator: RefreshTokenAuthenticator = Mockito.mock(RefreshTokenAuthenticator::class.java)
-    val refreshTokenStore: RefreshTokenStore = Mockito.mock(RefreshTokenStore::class.java)
+    val tokenIssuer: TokenIssuer = mockk(relaxed = true)
+    val refreshTokenAuthenticator: RefreshTokenAuthenticator = mockk(relaxed = true)
+    val refreshTokenStore: RefreshTokenStore = mockk(relaxed = true)
     val service = AuthenticationCommandService(tokenIssuer, refreshTokenAuthenticator, refreshTokenStore)
 }
 
@@ -154,8 +157,8 @@ private fun stubAuthenticatedRefreshToken(
     memberId: Long = MEMBER_ID,
     roleName: String = "ROLE_MEMBER",
 ) {
-    Mockito.`when`(dependencies.refreshTokenAuthenticator.authenticateRefreshToken(REFRESH_TOKEN))
-        .thenReturn(TokenAuthenticationResult.Authenticated(TokenSubject(memberId, roleName)))
+    every { dependencies.refreshTokenAuthenticator.authenticateRefreshToken(REFRESH_TOKEN) } returns
+        TokenAuthenticationResult.Authenticated(TokenSubject(memberId, roleName))
 }
 
 private const val REFRESH_TOKEN = "refresh-token"

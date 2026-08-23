@@ -6,7 +6,6 @@ import com.beat.application.frontoffice.exception.FrontofficeApplicationExceptio
 import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.booking.repository.BookingRepository
-import com.beat.domain.exception.DomainException
 import com.beat.domain.member.model.Member
 import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.repository.MemberRepository
@@ -26,9 +25,11 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Answers
-import org.mockito.Mockito
-import org.mockito.stubbing.Answer
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verify
+import io.mockk.verifyOrder
 import org.springframework.context.ApplicationEventPublisher
 import java.time.Clock
 import java.time.Instant
@@ -41,16 +42,19 @@ class BookingCreationFlowSpec : FunSpec({
     test("게스트 예매는 Performance와 Schedule을 authoritative lock 순서로 확인하고 snapshot을 저장한다") {
         val dependencies = CreationDependencies()
         val schedule = schedule()
+        val savedBookingSlot = slot<Booking>()
+        every { dependencies.bookingRepository.save(capture(savedBookingSlot)) } answers { savedBookingSlot.captured }
         stubPerformance(dependencies.performance)
         stubGuestCreation(dependencies, schedule)
 
         val result = dependencies.guestService().createGuestBooking(guestCommand())
 
-        val order = Mockito.inOrder(dependencies.scheduleRepository, dependencies.performanceRepository)
-        order.verify(dependencies.scheduleRepository).findPerformanceIdById(1L)
-        order.verify(dependencies.performanceRepository).lockById(20L)
-        order.verify(dependencies.scheduleRepository).lockById(1L)
-        val savedBooking = savedArgument<Booking>(dependencies.bookingRepository, "save")
+        verifyOrder {
+            dependencies.scheduleRepository.findPerformanceIdById(1L)
+            dependencies.performanceRepository.lockById(20L)
+            dependencies.scheduleRepository.lockById(1L)
+        }
+        val savedBooking = savedBookingSlot.captured
         savedBooking.bookingStatus shouldBe BookingStatus.CHECKING_PAYMENT
         savedBooking.password shouldBe "encoded-password"
         result.totalPaymentAmount shouldBe 10_000
@@ -59,19 +63,22 @@ class BookingCreationFlowSpec : FunSpec({
     test("회원 예매는 회원의 authoritative user identity와 Performance 가격 snapshot을 저장한다") {
         val dependencies = CreationDependencies()
         val schedule = schedule()
+        val savedBookingSlot = slot<Booking>()
+        every { dependencies.bookingRepository.save(capture(savedBookingSlot)) } answers { savedBookingSlot.captured }
         stubPerformance(dependencies.performance)
-        Mockito.`when`(dependencies.memberRepository.findById(10L)).thenReturn(member())
-        Mockito.`when`(dependencies.scheduleRepository.findPerformanceIdById(1L)).thenReturn(20L)
-        Mockito.`when`(dependencies.performanceRepository.lockById(20L)).thenReturn(dependencies.performance)
-        Mockito.`when`(dependencies.scheduleRepository.lockById(1L)).thenReturn(schedule)
-        Mockito.`when`(dependencies.scheduleRepository.isBeforeBookingCloseAt(1L)).thenReturn(true)
+        every { dependencies.memberRepository.findById(10L) } returns member()
+        every { dependencies.scheduleRepository.findPerformanceIdById(1L) } returns 20L
+        every { dependencies.performanceRepository.lockById(20L) } returns dependencies.performance
+        every { dependencies.scheduleRepository.lockById(1L) } returns schedule
+        every { dependencies.scheduleRepository.isBeforeBookingCloseAt(1L) } returns true
         val result = dependencies.memberService().createMemberBooking(10L, memberCommand())
 
-        val order = Mockito.inOrder(dependencies.scheduleRepository, dependencies.performanceRepository)
-        order.verify(dependencies.scheduleRepository).findPerformanceIdById(1L)
-        order.verify(dependencies.performanceRepository).lockById(20L)
-        order.verify(dependencies.scheduleRepository).lockById(1L)
-        val savedBooking = savedArgument<Booking>(dependencies.bookingRepository, "save")
+        verifyOrder {
+            dependencies.scheduleRepository.findPerformanceIdById(1L)
+            dependencies.performanceRepository.lockById(20L)
+            dependencies.scheduleRepository.lockById(1L)
+        }
+        val savedBooking = savedBookingSlot.captured
         savedBooking.bookingStatus shouldBe BookingStatus.CHECKING_PAYMENT
         savedBooking.userId shouldBe 30L
         result.userId shouldBe 30L
@@ -80,11 +87,11 @@ class BookingCreationFlowSpec : FunSpec({
 
     test("회원 예매는 database 기준 마감 이후 생성할 수 없다") {
         val dependencies = CreationDependencies()
-        Mockito.`when`(dependencies.memberRepository.findById(10L)).thenReturn(member())
-        Mockito.`when`(dependencies.scheduleRepository.findPerformanceIdById(1L)).thenReturn(20L)
-        Mockito.`when`(dependencies.performanceRepository.lockById(20L)).thenReturn(dependencies.performance)
-        Mockito.`when`(dependencies.scheduleRepository.lockById(1L)).thenReturn(schedule())
-        Mockito.`when`(dependencies.scheduleRepository.isBeforeBookingCloseAt(1L)).thenReturn(false)
+        every { dependencies.memberRepository.findById(10L) } returns member()
+        every { dependencies.scheduleRepository.findPerformanceIdById(1L) } returns 20L
+        every { dependencies.performanceRepository.lockById(20L) } returns dependencies.performance
+        every { dependencies.scheduleRepository.lockById(1L) } returns schedule()
+        every { dependencies.scheduleRepository.isBeforeBookingCloseAt(1L) } returns false
 
         val exception = shouldThrow<FrontofficeApplicationException> {
             dependencies.memberService().createMemberBooking(10L, memberCommand())
@@ -95,8 +102,8 @@ class BookingCreationFlowSpec : FunSpec({
 
     test("회원 예매는 회차가 없을 때 안정적인 회차 없음 error를 반환한다") {
         val dependencies = CreationDependencies()
-        Mockito.`when`(dependencies.memberRepository.findById(10L)).thenReturn(member())
-        Mockito.`when`(dependencies.scheduleRepository.findPerformanceIdById(1L)).thenReturn(null)
+        every { dependencies.memberRepository.findById(10L) } returns member()
+        every { dependencies.scheduleRepository.findPerformanceIdById(1L) } returns null
 
         val exception = shouldThrow<FrontofficeApplicationException> {
             dependencies.memberService().createMemberBooking(10L, memberCommand())
@@ -108,9 +115,9 @@ class BookingCreationFlowSpec : FunSpec({
 
     test("회원 예매는 공연이 없을 때 안정적인 공연 없음 error를 반환한다") {
         val dependencies = CreationDependencies()
-        Mockito.`when`(dependencies.memberRepository.findById(10L)).thenReturn(member())
-        Mockito.`when`(dependencies.scheduleRepository.findPerformanceIdById(1L)).thenReturn(20L)
-        Mockito.`when`(dependencies.performanceRepository.lockById(20L)).thenReturn(null)
+        every { dependencies.memberRepository.findById(10L) } returns member()
+        every { dependencies.scheduleRepository.findPerformanceIdById(1L) } returns 20L
+        every { dependencies.performanceRepository.lockById(20L) } returns null
 
         val exception = shouldThrow<FrontofficeApplicationException> {
             dependencies.memberService().createMemberBooking(10L, memberCommand())
@@ -122,12 +129,13 @@ class BookingCreationFlowSpec : FunSpec({
 
     test("게스트 예매는 database 기준 마감 이후 생성할 수 없다") {
         val dependencies = CreationDependencies()
-        Mockito.`when`(dependencies.scheduleRepository.findPerformanceIdById(1L)).thenReturn(20L)
-        Mockito.`when`(dependencies.performanceRepository.lockById(20L)).thenReturn(dependencies.performance)
-        Mockito.`when`(dependencies.scheduleRepository.lockById(1L)).thenReturn(schedule())
-        Mockito.`when`(dependencies.scheduleRepository.isBeforeBookingCloseAt(1L)).thenReturn(false)
-        Mockito.`when`(dependencies.credentialAuthenticator.findUserId("booker", "010-0000-0000", "990101", "1234"))
-            .thenReturn(null)
+        every { dependencies.scheduleRepository.findPerformanceIdById(1L) } returns 20L
+        every { dependencies.performanceRepository.lockById(20L) } returns dependencies.performance
+        every { dependencies.scheduleRepository.lockById(1L) } returns schedule()
+        every { dependencies.scheduleRepository.isBeforeBookingCloseAt(1L) } returns false
+        every {
+            dependencies.credentialAuthenticator.findUserId("booker", "010-0000-0000", "990101", "1234")
+        } returns null
 
         val exception = shouldThrow<FrontofficeApplicationException> {
             dependencies.guestService().createGuestBooking(guestCommand())
@@ -139,29 +147,29 @@ class BookingCreationFlowSpec : FunSpec({
     test("회원 예매는 lock한 회차의 Performance 관계가 바뀌었으면 생성하지 않는다") {
         val dependencies = CreationDependencies()
         val changedSchedule = schedule(performanceId = 21L)
-        Mockito.`when`(dependencies.memberRepository.findById(10L)).thenReturn(member())
-        Mockito.`when`(dependencies.scheduleRepository.findPerformanceIdById(1L)).thenReturn(20L)
-        Mockito.`when`(dependencies.performanceRepository.lockById(20L)).thenReturn(dependencies.performance)
-        Mockito.`when`(dependencies.scheduleRepository.lockById(1L)).thenReturn(changedSchedule)
+        every { dependencies.memberRepository.findById(10L) } returns member()
+        every { dependencies.scheduleRepository.findPerformanceIdById(1L) } returns 20L
+        every { dependencies.performanceRepository.lockById(20L) } returns dependencies.performance
+        every { dependencies.scheduleRepository.lockById(1L) } returns changedSchedule
 
         val exception = shouldThrow<FrontofficeApplicationException> {
             dependencies.memberService().createMemberBooking(10L, memberCommand())
         }
 
         exception.errorCode shouldBe BookingApplicationErrorCode.SCHEDULE_NOT_FOUND
-        verifyNoInvocation(dependencies.scheduleRepository, "isBeforeBookingCloseAt")
+        verify(exactly = 0) { dependencies.scheduleRepository.isBeforeBookingCloseAt(any()) }
     }
 })
 
 private class CreationDependencies {
-    val scheduleRepository = mockWithSavePassthrough(ScheduleRepository::class.java)
-    val bookingRepository = mockWithSavePassthrough(BookingRepository::class.java)
-    val userRepository = mockWithDeterministicUserSave()
-    val performanceRepository = Mockito.mock(PerformanceRepository::class.java)
-    val performance = Mockito.mock(Performance::class.java)
-    val memberRepository = Mockito.mock(MemberRepository::class.java)
-    val eventPublisher = Mockito.mock(ApplicationEventPublisher::class.java)
-    val credentialAuthenticator = Mockito.mock(GuestBookingCredentialAuthenticator::class.java)
+    val scheduleRepository = scheduleRepositoryWithSavePassthrough()
+    val bookingRepository = bookingRepositoryWithSavePassthrough()
+    val userRepository = userRepositoryWithDeterministicSave()
+    val performanceRepository = mockk<PerformanceRepository>(relaxed = true)
+    val performance = mockk<Performance>(relaxed = true)
+    val memberRepository = mockk<MemberRepository>(relaxed = true)
+    val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+    val credentialAuthenticator = mockk<GuestBookingCredentialAuthenticator>(relaxed = true)
 
     fun guestService(): GuestBookingCommandService = GuestBookingCommandService(
         scheduleRepository,
@@ -187,51 +195,35 @@ private fun stubGuestCreation(
     dependencies: CreationDependencies,
     schedule: Schedule,
 ) {
-    Mockito.`when`(dependencies.scheduleRepository.findPerformanceIdById(1L)).thenReturn(20L)
-    Mockito.`when`(dependencies.performanceRepository.lockById(20L)).thenReturn(dependencies.performance)
-    Mockito.`when`(dependencies.scheduleRepository.lockById(1L)).thenReturn(schedule)
-    Mockito.`when`(dependencies.scheduleRepository.isBeforeBookingCloseAt(1L)).thenReturn(true)
-    Mockito.`when`(dependencies.credentialAuthenticator.findUserId("booker", "010-0000-0000", "990101", "1234"))
-        .thenReturn(null)
-    Mockito.`when`(dependencies.credentialAuthenticator.encode("1234")).thenReturn("encoded-password")
+    every { dependencies.scheduleRepository.findPerformanceIdById(1L) } returns 20L
+    every { dependencies.performanceRepository.lockById(20L) } returns dependencies.performance
+    every { dependencies.scheduleRepository.lockById(1L) } returns schedule
+    every { dependencies.scheduleRepository.isBeforeBookingCloseAt(1L) } returns true
+    every {
+        dependencies.credentialAuthenticator.findUserId("booker", "010-0000-0000", "990101", "1234")
+    } returns null
+    every { dependencies.credentialAuthenticator.encode("1234") } returns "encoded-password"
 }
 
-private fun <T> mockWithSavePassthrough(type: Class<T>): T = Mockito.mock(
-    type,
-    Answer<Any?> { invocation ->
-        if (invocation.method.name == "save") {
-            invocation.arguments[0]
-        } else {
-            Answers.RETURNS_DEFAULTS.answer(invocation)
-        }
-    },
-)
+private fun scheduleRepositoryWithSavePassthrough(): ScheduleRepository =
+    mockk(relaxed = true) {
+        every { save(any()) } answers { firstArg() }
+    }
 
-private fun mockWithDeterministicUserSave(): UserRepository = Mockito.mock(
-    UserRepository::class.java,
-    Answer<Any?> { invocation ->
-        if (invocation.method.name == "save") {
-            Users.rehydrate(30L, Role.USER)
-        } else {
-            Answers.RETURNS_DEFAULTS.answer(invocation)
-        }
-    },
-)
+private fun bookingRepositoryWithSavePassthrough(): BookingRepository =
+    mockk(relaxed = true) {
+        every { save(any()) } answers { firstArg() }
+    }
 
-private fun verifyNoInvocation(mock: Any, methodName: String) {
-    Mockito.mockingDetails(mock).invocations.any { it.method.name == methodName } shouldBe false
-}
-
-private inline fun <reified T> savedArgument(mock: Any, methodName: String): T =
-    Mockito.mockingDetails(mock).invocations
-        .single { it.method.name == methodName }
-        .arguments[0] as T
+private fun userRepositoryWithDeterministicSave(): UserRepository =
+    mockk(relaxed = true) {
+        every { save(any()) } returns Users.rehydrate(30L, Role.USER)
+    }
 
 private fun stubPerformance(performance: Performance) {
-    Mockito.`when`(performance.ticketPriceValue).thenReturn(TicketPrice.of(10_000))
-    Mockito.`when`(performance.performanceTitle).thenReturn("Performance Title")
-    Mockito.`when`(performance.paymentAccount)
-        .thenReturn(PaymentAccount.of(BankName.BUSAN, "123-456", "holder"))
+    every { performance.ticketPriceValue } returns TicketPrice.of(10_000)
+    every { performance.performanceTitle } returns "Performance Title"
+    every { performance.paymentAccount } returns PaymentAccount.of(BankName.BUSAN, "123-456", "holder")
 }
 
 private fun member(): Member = Member.rehydrate(

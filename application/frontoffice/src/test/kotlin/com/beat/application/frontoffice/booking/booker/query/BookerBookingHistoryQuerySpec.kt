@@ -10,7 +10,8 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito
+import io.mockk.every
+import io.mockk.mockk
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
@@ -20,14 +21,13 @@ class BookerBookingHistoryQuerySpec : FunSpec({
     isolationMode = IsolationMode.SingleInstance
 
     test("게스트 예매 조회는 reader 순서와 저장된 결제 금액을 보존하고 미저장 금액만 현재 가격으로 계산한다") {
-        val reader = Mockito.mock(BookerBookingReader::class.java)
+        val reader = mockk<BookerBookingReader>(relaxed = true)
         val service = GuestBookingQueryService(reader, FIXED_CLOCK)
-        Mockito.`when`(reader.findByUserId(7L)).thenReturn(
+        every { reader.findByUserId(7L) } returns
             listOf(
                 booking(1L, 10L, 24_000, schedule(10L, 100L, "FIRST"), performance(100L, 15_000)),
                 booking(2L, 11L, null, schedule(11L, 100L, "SECOND"), performance(100L, 20_000)),
-            ),
-        )
+            )
 
         val results = service.findGuestBookings(7L)
 
@@ -38,8 +38,8 @@ class BookerBookingHistoryQuerySpec : FunSpec({
     }
 
     test("회원 예매 조회는 회원의 userId로 authoritative booking을 조회한다") {
-        val memberRepository = Mockito.mock(MemberRepository::class.java)
-        val reader = Mockito.mock(BookerBookingReader::class.java)
+        val memberRepository = mockk<MemberRepository>(relaxed = true)
+        val reader = mockk<BookerBookingReader>(relaxed = true)
         val service = MemberBookingQueryService(memberRepository, reader, FIXED_CLOCK)
         val member = Member.rehydrate(
             1L,
@@ -49,10 +49,9 @@ class BookerBookingHistoryQuerySpec : FunSpec({
             7L,
             SocialIdentity.of(SocialType.KAKAO, 123L),
         )
-        Mockito.`when`(memberRepository.findById(1L)).thenReturn(member)
-        Mockito.`when`(reader.findByUserId(7L)).thenReturn(
-            listOf(booking(1L, 10L, 20_000, schedule(10L, 100L, "FIRST"), performance(100L, 20_000))),
-        )
+        every { memberRepository.findById(1L) } returns member
+        every { reader.findByUserId(7L) } returns
+            listOf(booking(1L, 10L, 20_000, schedule(10L, 100L, "FIRST"), performance(100L, 20_000)))
 
         val result = service.findMemberBookings(1L).first()
 
@@ -61,9 +60,9 @@ class BookerBookingHistoryQuerySpec : FunSpec({
     }
 
     test("연관 회차 projection이 없으면 안정적인 회차 없음 application error를 반환한다") {
-        val reader = Mockito.mock(BookerBookingReader::class.java)
+        val reader = mockk<BookerBookingReader>(relaxed = true)
         val service = GuestBookingQueryService(reader, FIXED_CLOCK)
-        Mockito.`when`(reader.findByUserId(7L)).thenReturn(listOf(booking(1L, 10L, null, null, null)))
+        every { reader.findByUserId(7L) } returns listOf(booking(1L, 10L, null, null, null))
 
         val exception = shouldThrow<FrontofficeApplicationException> {
             service.findGuestBookings(7L)
@@ -75,11 +74,10 @@ class BookerBookingHistoryQuerySpec : FunSpec({
     }
 
     test("연관 공연 projection이 없으면 안정적인 공연 없음 application error를 반환한다") {
-        val reader = Mockito.mock(BookerBookingReader::class.java)
+        val reader = mockk<BookerBookingReader>(relaxed = true)
         val service = GuestBookingQueryService(reader, FIXED_CLOCK)
-        Mockito.`when`(reader.findByUserId(7L)).thenReturn(
-            listOf(booking(1L, 10L, null, schedule(10L, 100L, "FIRST"), null)),
-        )
+        every { reader.findByUserId(7L) } returns
+            listOf(booking(1L, 10L, null, schedule(10L, 100L, "FIRST"), null))
 
         val exception = shouldThrow<FrontofficeApplicationException> {
             service.findGuestBookings(7L)

@@ -21,7 +21,13 @@ import com.beat.domain.schedule.repository.ScheduleRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.Runs
+import io.mockk.Called
+import io.mockk.verify
+import io.mockk.verifyOrder
 import org.springframework.context.ApplicationEventPublisher
 import java.time.Clock
 import java.time.Instant
@@ -43,11 +49,20 @@ class TicketCommandApplicationSpec : FunSpec() {
 
     init {
         beforeTest {
-            bookingRepository = Mockito.mock(BookingRepository::class.java)
-            performanceRepository = Mockito.mock(PerformanceRepository::class.java)
-            memberRepository = Mockito.mock(MemberRepository::class.java)
-            scheduleRepository = Mockito.mock(ScheduleRepository::class.java)
-            eventPublisher = Mockito.mock(ApplicationEventPublisher::class.java)
+            savedBookings.clear()
+            savedSchedules.clear()
+            publishedEvents.clear()
+            bookingRepository = mockk(relaxed = true) {
+                every { save(capture(savedBookings)) } answers { lastArg() }
+            }
+            performanceRepository = mockk(relaxed = true)
+            memberRepository = mockk(relaxed = true)
+            scheduleRepository = mockk(relaxed = true) {
+                every { save(capture(savedSchedules)) } answers { lastArg() }
+            }
+            eventPublisher = mockk(relaxed = true) {
+                every { publishEvent(capture(publishedEvents)) } just Runs
+            }
         }
 
     test("authoritative 상태 조회 전에 중복 booking id를 거부한다") {
@@ -59,18 +74,14 @@ class TicketCommandApplicationSpec : FunSpec() {
 
         exception.errorCode.message shouldBe "중복된 예매 식별자는 한 번만 요청할 수 있습니다."
         exception.errorCode.type shouldBe FrontofficeApplicationErrorType.INVALID_INPUT
-        Mockito.verifyNoInteractions(
-            bookingRepository,
-            performanceRepository,
-            memberRepository,
-            scheduleRepository,
-            eventPublisher,
-        )
+        verify {
+            listOf(bookingRepository, performanceRepository, memberRepository, scheduleRepository, eventPublisher) wasNot Called
+        }
     }
 
     test("authoritative PerformanceRepository로 maker 권한을 검증한다") {
-        Mockito.`when`(memberRepository.findById(1L)).thenReturn(member(userId = 10L))
-        Mockito.`when`(performanceRepository.findById(100L)).thenReturn(performance(userId = 11L))
+        every { memberRepository.findById(1L) } returns member(userId = 10L)
+        every { performanceRepository.findById(100L) } returns performance(userId = 11L)
 
         shouldThrow<FrontofficeApplicationException> {
             service().updateTickets(
@@ -79,15 +90,17 @@ class TicketCommandApplicationSpec : FunSpec() {
             )
         }
 
-        Mockito.verify(performanceRepository).findById(100L)
-        Mockito.verifyNoInteractions(bookingRepository, scheduleRepository, eventPublisher)
+        verify { performanceRepository.findById(100L) }
+        verify {
+            listOf(bookingRepository, scheduleRepository, eventPublisher) wasNot Called
+        }
     }
 
     test("다른 공연에 속한 회차의 booking은 거부한다") {
         stubOwnerOnly()
-        Mockito.`when`(bookingRepository.findScheduleIdsByIds(listOf(300L))).thenReturn(listOf(200L))
-        Mockito.`when`(scheduleRepository.lockById(200L))
-            .thenReturn(schedule(200L, performanceId = 999L))
+        every { bookingRepository.findScheduleIdsByIds(listOf(300L)) } returns listOf(200L)
+        every { scheduleRepository.lockById(200L) }
+            .returns(schedule(200L, performanceId = 999L))
 
         val exception = shouldThrow<FrontofficeApplicationException> {
             service().updateTickets(
@@ -98,19 +111,19 @@ class TicketCommandApplicationSpec : FunSpec() {
 
         exception.errorCode.type shouldBe FrontofficeApplicationErrorType.FORBIDDEN
         exception.errorCode.message shouldBe "해당 스케줄은 해당 공연에 속해 있지 않습니다."
-        Mockito.verifyNoInteractions(eventPublisher)
+        verify { eventPublisher wasNot Called }
     }
 
     test("scalar schedule id를 조회한 뒤 회차와 booking을 오름차순으로 잠근다") {
         val firstBooking = booking(id = 300L, scheduleId = 202L)
         val secondBooking = booking(id = 301L, scheduleId = 201L)
         stubOwnerOnly()
-        Mockito.`when`(bookingRepository.findScheduleIdsByIds(listOf(300L, 301L)))
-            .thenReturn(listOf(202L, 201L))
-        Mockito.`when`(scheduleRepository.lockById(201L)).thenReturn(schedule(201L))
-        Mockito.`when`(scheduleRepository.lockById(202L)).thenReturn(schedule(202L))
-        Mockito.`when`(bookingRepository.lockById(300L)).thenReturn(firstBooking)
-        Mockito.`when`(bookingRepository.lockById(301L)).thenReturn(secondBooking)
+        every { bookingRepository.findScheduleIdsByIds(listOf(300L, 301L)) }
+            .returns(listOf(202L, 201L))
+        every { scheduleRepository.lockById(201L) } returns schedule(201L)
+        every { scheduleRepository.lockById(202L) } returns schedule(202L)
+        every { bookingRepository.lockById(300L) } returns firstBooking
+        every { bookingRepository.lockById(301L) } returns secondBooking
 
         service().updateTickets(
             1L,
@@ -123,17 +136,18 @@ class TicketCommandApplicationSpec : FunSpec() {
             ),
         )
 
-        val order = Mockito.inOrder(bookingRepository, scheduleRepository)
-        order.verify(bookingRepository).findScheduleIdsByIds(listOf(300L, 301L))
-        order.verify(scheduleRepository).lockById(201L)
-        order.verify(scheduleRepository).lockById(202L)
-        order.verify(bookingRepository).lockById(300L)
-        order.verify(bookingRepository).lockById(301L)
+        verifyOrder {
+            bookingRepository.findScheduleIdsByIds(listOf(300L, 301L))
+            scheduleRepository.lockById(201L)
+            scheduleRepository.lockById(202L)
+            bookingRepository.lockById(300L)
+            bookingRepository.lockById(301L)
+        }
     }
 
     test("locking 전에 누락된 scalar schedule row는 거부한다") {
         stubOwnerOnly()
-        Mockito.`when`(bookingRepository.findScheduleIdsByIds(listOf(300L))).thenReturn(emptyList())
+        every { bookingRepository.findScheduleIdsByIds(listOf(300L)) } returns emptyList()
 
         shouldThrow<FrontofficeApplicationException> {
             service().updateTickets(
@@ -142,16 +156,18 @@ class TicketCommandApplicationSpec : FunSpec() {
             )
         }
 
-        Mockito.verifyNoInteractions(scheduleRepository, eventPublisher)
-        Mockito.verify(bookingRepository, Mockito.never()).lockById(Mockito.anyLong())
+        verify {
+            listOf(scheduleRepository, eventPublisher) wasNot Called
+        }
+        verify(exactly = 0) { bookingRepository.lockById(any()) }
     }
 
     test("잠긴 각 booking에서 schedule id를 재검증한다") {
         val bookingWithChangedSchedule = booking(id = 300L, scheduleId = 999L)
         stubOwnerOnly()
-        Mockito.`when`(bookingRepository.findScheduleIdsByIds(listOf(300L))).thenReturn(listOf(200L))
-        Mockito.`when`(scheduleRepository.lockById(200L)).thenReturn(schedule(200L))
-        Mockito.`when`(bookingRepository.lockById(300L)).thenReturn(bookingWithChangedSchedule)
+        every { bookingRepository.findScheduleIdsByIds(listOf(300L)) } returns listOf(200L)
+        every { scheduleRepository.lockById(200L) } returns schedule(200L)
+        every { bookingRepository.lockById(300L) } returns bookingWithChangedSchedule
 
         shouldThrow<FrontofficeApplicationException> {
             service().updateTickets(
@@ -160,8 +176,8 @@ class TicketCommandApplicationSpec : FunSpec() {
             )
         }
 
-        assertNoInvocation(bookingRepository, "save")
-        Mockito.verifyNoInteractions(eventPublisher)
+        assertNoInvocation(bookingRepository)
+        verify { eventPublisher wasNot Called }
     }
 
     test("저장된 booking payload로 결제 확인 event를 발행한다") {
@@ -174,7 +190,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         )
 
         savedBooking().bookingStatus shouldBe BookingStatus.BOOKING_CONFIRMED
-        val event = lastInvocationArgument(eventPublisher, "publishEvent") as TicketPaymentConfirmedEvent
+        val event = publishedEvents.last() as TicketPaymentConfirmedEvent
         event.bookingId shouldBe 300L
         event.bookerName shouldBe "booker"
         event.bookerPhoneNumber shouldBe "010-0000-0000"
@@ -212,8 +228,8 @@ class TicketCommandApplicationSpec : FunSpec() {
             FrontofficeApplicationErrorType.INVALID_INPUT,
             "지원하지 않는 예매 상태 변경입니다.",
         )
-        assertNoInvocation(bookingRepository, "save")
-        Mockito.verifyNoInteractions(eventPublisher)
+        assertNoInvocation(bookingRepository)
+        verify { eventPublisher wasNot Called }
     }
 
     test("v1 message와 타입을 유지하며 확정 상태 변경을 변환한다") {
@@ -237,7 +253,6 @@ class TicketCommandApplicationSpec : FunSpec() {
     test("환불 완료 시 할당된 티켓을 반납한다") {
         val booking = booking(status = BookingStatus.REFUND_REQUESTED, totalPaymentAmount = 10_000)
         stubOwner(booking)
-        stubSaveOperations(booking)
 
         service().refundTicketsByBookingIds(1L, TicketBookingIdsCommand(100L, listOf(300L)))
 
@@ -258,14 +273,13 @@ class TicketCommandApplicationSpec : FunSpec() {
             FrontofficeApplicationErrorType.INVALID_INPUT,
             "환불 요청 상태인 예매만 환불 완료 처리할 수 있습니다.",
         )
-        assertNoInvocation(bookingRepository, "save")
-        assertNoInvocation(scheduleRepository, "save")
+        assertNoInvocation(bookingRepository)
+        assertNoInvocation(scheduleRepository)
     }
 
     test("삭제는 미입금 예매의 티켓 할당을 반납한다") {
         val booking = booking(status = BookingStatus.CHECKING_PAYMENT, totalPaymentAmount = 10_000)
         stubOwner(booking)
-        stubSaveOperations(booking)
 
         service().deleteTicketsByBookingIds(1L, TicketBookingIdsCommand(100L, listOf(300L)))
 
@@ -276,32 +290,29 @@ class TicketCommandApplicationSpec : FunSpec() {
     test("삭제는 무료 확정 예매의 티켓 할당을 반납한다") {
         val booking = booking(status = BookingStatus.BOOKING_CONFIRMED, totalPaymentAmount = 0)
         stubOwner(booking)
-        stubSaveOperations(booking)
 
         service().deleteTicketsByBookingIds(1L, TicketBookingIdsCommand(100L, listOf(300L)))
 
-        hasInvocation(scheduleRepository, "save") shouldBe true
+        hasInvocation(scheduleRepository) shouldBe true
     }
 
     test("삭제는 이미 비활성인 할당을 반납하지 않는다") {
         val booking = booking(status = BookingStatus.BOOKING_CANCELLED)
         stubOwner(booking)
-        stubBookingSave(booking)
 
         service().deleteTicketsByBookingIds(1L, TicketBookingIdsCommand(100L, listOf(300L)))
 
-        assertNoInvocation(scheduleRepository, "save")
+        assertNoInvocation(scheduleRepository)
     }
 
     test("삭제는 삭제된 예매에 대해 멱등이다") {
         val booking = booking(status = BookingStatus.BOOKING_DELETED)
         stubOwner(booking)
-        stubBookingSave(booking)
 
         service().deleteTicketsByBookingIds(1L, TicketBookingIdsCommand(100L, listOf(300L)))
 
         savedBooking() shouldBe booking
-        assertNoInvocation(scheduleRepository, "save")
+        assertNoInvocation(scheduleRepository)
     }
 
     test("삭제는 v1 message와 타입을 유지하며 유효하지 않은 상태를 변환한다") {
@@ -317,8 +328,8 @@ class TicketCommandApplicationSpec : FunSpec() {
             FrontofficeApplicationErrorType.INVALID_INPUT,
             "미입금, 무료 확정 또는 취소 완료 예매만 삭제할 수 있습니다.",
         )
-        assertNoInvocation(bookingRepository, "save")
-        assertNoInvocation(scheduleRepository, "save")
+        assertNoInvocation(bookingRepository)
+        assertNoInvocation(scheduleRepository)
     }
 
     test("삭제는 할당을 반납하지 않고 유료 확정 예매를 거부한다") {
@@ -334,8 +345,8 @@ class TicketCommandApplicationSpec : FunSpec() {
             FrontofficeApplicationErrorType.INVALID_INPUT,
             "미입금, 무료 확정 또는 취소 완료 예매만 삭제할 수 있습니다.",
         )
-        assertNoInvocation(bookingRepository, "save")
-        assertNoInvocation(scheduleRepository, "save")
+        assertNoInvocation(bookingRepository)
+        assertNoInvocation(scheduleRepository)
     }
 
     }
@@ -352,16 +363,16 @@ class TicketCommandApplicationSpec : FunSpec() {
     private fun stubOwner(booking: Booking? = null) {
         stubOwnerOnly()
         val target = booking ?: booking()
-        Mockito.`when`(bookingRepository.findScheduleIdsByIds(listOf(target.id!!)))
-            .thenReturn(listOf(target.scheduleId))
-        Mockito.`when`(scheduleRepository.lockById(target.scheduleId))
-            .thenReturn(schedule(target.scheduleId))
-        Mockito.`when`(bookingRepository.lockById(target.id!!)).thenReturn(target)
+        every { bookingRepository.findScheduleIdsByIds(listOf(target.id!!)) }
+            .returns(listOf(target.scheduleId))
+        every { scheduleRepository.lockById(target.scheduleId) }
+            .returns(schedule(target.scheduleId))
+        every { bookingRepository.lockById(target.id!!) } returns target
     }
 
     private fun stubOwnerOnly() {
-        Mockito.`when`(memberRepository.findById(1L)).thenReturn(member())
-        Mockito.`when`(performanceRepository.findById(100L)).thenReturn(performance())
+        every { memberRepository.findById(1L) } returns member()
+        every { performanceRepository.findById(100L) } returns performance()
     }
 
     private fun assertTicketFailure(
@@ -373,36 +384,20 @@ class TicketCommandApplicationSpec : FunSpec() {
         exception.errorCode.message shouldBe message
     }
 
-    private fun stubBookingSave(booking: Booking) {
-        Mockito.`when`(bookingRepository.save(booking)).thenReturn(booking)
-    }
-
-    private fun stubSaveOperations(booking: Booking) {
-        stubBookingSave(booking)
-        val schedule = schedule(booking.scheduleId)
-        Mockito.`when`(scheduleRepository.save(schedule)).thenReturn(schedule)
-    }
-
     private fun savedBooking(): Booking =
-        Mockito.mockingDetails(bookingRepository).invocations
-            .last { it.method.name == "save" }
-            .arguments[0] as Booking
+        savedBookings.last()
 
     private fun savedSchedule(): Schedule =
-        Mockito.mockingDetails(scheduleRepository).invocations
-            .last { it.method.name == "save" }
-            .arguments[0] as Schedule
+        savedSchedules.last()
 
-    private fun lastInvocationArgument(mock: Any, methodName: String): Any =
-        Mockito.mockingDetails(mock).invocations
-            .last { it.method.name == methodName }
-            .arguments[0]
+    private fun hasInvocation(repository: ScheduleRepository): Boolean =
+        savedSchedules.isNotEmpty()
 
-    private fun hasInvocation(mock: Any, methodName: String): Boolean =
-        Mockito.mockingDetails(mock).invocations.any { it.method.name == methodName }
-
-    private fun assertNoInvocation(mock: Any, methodName: String) {
-        hasInvocation(mock, methodName) shouldBe false
+    private fun assertNoInvocation(repository: Any) {
+        when (repository) {
+            bookingRepository -> savedBookings.isEmpty() shouldBe true
+            scheduleRepository -> savedSchedules.isEmpty() shouldBe true
+        }
     }
 
     private fun statusUpdate(id: Long, status: TicketBookingStatus) = TicketStatusUpdate(id, status)
@@ -471,5 +466,8 @@ class TicketCommandApplicationSpec : FunSpec() {
 
     private companion object {
         val fixedClock: Clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC)
+        val savedBookings = mutableListOf<Booking>()
+        val savedSchedules = mutableListOf<Schedule>()
+        val publishedEvents = mutableListOf<Any>()
     }
 }

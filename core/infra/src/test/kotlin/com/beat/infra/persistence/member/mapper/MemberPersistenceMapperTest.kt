@@ -8,7 +8,8 @@ import com.beat.infra.persistence.member.entity.MemberJpaEntity
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import org.mockito.Mockito.mock
+import io.mockk.every
+import io.mockk.mockk
 import java.time.LocalDateTime
 
 class MemberPersistenceMapperTest : FunSpec({
@@ -51,8 +52,12 @@ class MemberPersistenceMapperTest : FunSpec({
     }
 
     test("저장된 social identity가 유효하지 않으면 persistence failure로 변환된다") {
-        val corrupted = mock(MemberJpaEntity::class.java)
+        val corrupted = mockk<MemberJpaEntity>(relaxed = true)
+        every { corrupted.socialType } returns nullValue()
 
         shouldThrow<PersistenceMappingException> { mapper.toDomain(corrupted) }
     }
 })
+
+@Suppress("UNCHECKED_CAST")
+private fun <T> nullValue(): T = null as T
