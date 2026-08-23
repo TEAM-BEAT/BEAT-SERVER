@@ -108,3 +108,8 @@ HIGH: GuestBookingRequest/MemberBookingRequest의 scheduleNumber·totalPaymentAm
 - 프로덕션 바인딩 실증: MockMvc PUT /tickets/update 필수필드 누락 → **400**(TicketControllerWebSpec 일회성 프루브, 미커밋). Boot4+Jackson3+Kotlin 모듈이 non-null 파라미터를 경계에서 강제함 → B7 전제 확정.
 - kotlinx.serialization 평가: **Jackson 3 유지 확정**. Boot4 일급(tools.jackson)이라 자동설정·springdoc·컨버터 생태계 정합 / 교체 시 @JsonProperty·@JsonTypeInfo(캐러셀 판별자)·ValueSerializer(CDN) 전면 재작성 비용 / 얻는 것은 단일 서버 타겟에서 미미.
 - 잔여 추적: jackson-module-kotlin:2.21.5(Jackson2 세대)가 여전히 runtimeClasspath에 존재 — 누가 끌어오는지 추출해 퇴출 과제로.
+
+## Q2/Q3 근거 + 앵커 체이닝 (2026-08-23)
+- 결론: Kotlin 타입=필수성, Bean Validation=범위/형식(@Size 등) 역할 분담이 권장(하이브리드). @NotNull 전면 퇴출 완료, jakarta-validation 의존성은 @Size/@Valid cascade 위해 유지. 근거: spring.io Kotlin Annotations 문서, jackson-module-kotlin 동작(Baeldung), SO 41993706/54797207.
+- ApisSecurityConfig JWT 앵커를 guestSessionOriginFilter로 명시 체이닝(a2cab58b) — fail-fast 개선, matrix 스펙 green.
+- Loki elapsed_ms는 문자열 저장 — 숫자 비교 쿼리 시 duration() 변환 사용(운영 팁, 코드 변경 불요).
