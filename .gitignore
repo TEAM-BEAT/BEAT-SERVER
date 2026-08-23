@@ -203,3 +203,15 @@ infra/ansible/inventories/**/group_vars/all.local.sops.yml
 # Local agent/editor tooling state (not project source)
 .serena/
 .vscode/
+
+# 프로세스/AI 문서 — 로컬 보존, 원격 미추적(소유자 판정: 추후 정리)
+/CLAUDE.md
+/HANDOFF.md
+/docs/architecture/booking-close-processing-adr.md
+/docs/architecture/booking-platform-improvement-report.md
+/docs/architecture/boot-4.1-upgrade-notes.md
+/docs/architecture/error-handling.md
+/docs/architecture/multi-module-architecture-adr.md
+/docs/architecture/ticket-payment-confirmation-outbox-sqs.md
+/docs/observability/BATCH_LOKI_LOG_DIAGNOSIS.md
+/docs/observability/TRACE_LOG_CORRELATION.md
