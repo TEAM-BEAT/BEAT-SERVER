@@ -33,12 +33,11 @@ class RedisRefreshTokenAdapterIntegrationSpec : FunSpec() {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
         context("refresh token Redis 어댑터") {
-            test("왕복 시 레거시 type alias와 설정된 ttl을 보존한다") {
+            test("왕복 시 설정된 ttl을 보존한다") {
                 try {
                     refreshTokenStore.save(MEMBER_ID, REFRESH_TOKEN)
 
                     refreshTokenStore.findMemberIdByRefreshToken(REFRESH_TOKEN) shouldBe MEMBER_ID
-                    redisTemplate.opsForHash<String, String>().get(REDIS_KEY, "_class") shouldBe LEGACY_TYPE
                     redisTemplate.getExpire(REDIS_KEY).shouldNotBeNull().let { ttl ->
                         (ttl in 1..REFRESH_TOKEN_TTL_SECONDS).shouldBeTrue()
                     }
@@ -79,28 +78,6 @@ class RedisRefreshTokenAdapterIntegrationSpec : FunSpec() {
                     cleanupMissingRefreshTokenKeys()
                 }
             }
-
-            test("레거시 gateway 해시를 읽고 삭제한다") {
-                try {
-                    redisTemplate.opsForHash<String, String>().putAll(
-                        REDIS_KEY,
-                        mapOf(
-                            "_class" to LEGACY_TYPE,
-                            "id" to MEMBER_ID.toString(),
-                            "refreshToken" to REFRESH_TOKEN,
-                        ),
-                    )
-                    redisTemplate.opsForSet().add(REDIS_KEYSPACE_KEY, MEMBER_ID.toString())
-                    redisTemplate.opsForSet().add(REDIS_INDEX_KEY, MEMBER_ID.toString())
-                    redisTemplate.opsForSet().add(REDIS_INDEX_METADATA_KEY, REDIS_INDEX_KEY)
-
-                    refreshTokenStore.findMemberIdByRefreshToken(REFRESH_TOKEN) shouldBe MEMBER_ID
-                    refreshTokenStore.delete(MEMBER_ID).shouldBeTrue()
-                    redisTemplate.hasKey(REDIS_KEY).shouldBeFalse()
-                } finally {
-                    cleanupRefreshTokenKeys()
-                }
-            }
         }
     }
 
@@ -123,7 +100,6 @@ class RedisRefreshTokenAdapterIntegrationSpec : FunSpec() {
         const val REFRESH_TOKEN = "refresh-token-pr13"
         const val MISSING_MEMBER_ID = 404L
         const val MISSING_REFRESH_TOKEN = "missing-refresh-token-pr13"
-        const val LEGACY_TYPE = "com.beat.gateway.refreshtoken.internal.store.RefreshToken"
         const val REDIS_KEYSPACE_KEY = "refreshToken"
         const val REDIS_KEY = "refreshToken:$MEMBER_ID"
         const val REDIS_INDEX_KEY = "refreshToken:refreshToken:$REFRESH_TOKEN"
