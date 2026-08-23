@@ -71,7 +71,6 @@ modules:
     app_port: 4000
     hikari_max_pool_size: 2
     container_name: admin
-    scheduler_owner: false
     nginx_route:
       upstream_name: admin_backend
       external_path: /api/admin
@@ -82,7 +81,6 @@ modules:
     app_port: 4002
     hikari_max_pool_size: 2
     container_name: batch
-    scheduler_owner: true
 
 # observability_alloy — prod는 metrics+logs+traces 풀스택
 # t3a.small 2GB에 apis(BG)+admin+batch+redis+nginx+alloy 공존 — 보수적 256m로 시작

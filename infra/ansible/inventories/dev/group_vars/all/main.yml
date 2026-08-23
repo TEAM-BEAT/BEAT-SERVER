@@ -77,7 +77,6 @@ modules:
       JAVA_TOOL_OPTIONS: "-Xms64m -Xmx256m -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=128m -XX:+UseG1GC -Daws.java.v1.disableDeprecationAnnouncement=true"
       MALLOC_ARENA_MAX: "2"
     container_name: admin
-    scheduler_owner: false
     nginx_route:
       upstream_name: admin_backend
       external_path: /api/admin
@@ -91,7 +90,6 @@ modules:
       JAVA_TOOL_OPTIONS: "-Xms64m -Xmx192m -XX:MaxMetaspaceSize=256m -XX:ReservedCodeCacheSize=128m -XX:+UseG1GC -Daws.java.v1.disableDeprecationAnnouncement=true"
       MALLOC_ARENA_MAX: "2"
     container_name: batch
-    scheduler_owner: true
 
 # observability_alloy — dev는 이제 metrics+logs+traces 활성화 (t3.micro 1GB 환경, 메모리 주의)
 observability_alloy_mem_limit: "256m"

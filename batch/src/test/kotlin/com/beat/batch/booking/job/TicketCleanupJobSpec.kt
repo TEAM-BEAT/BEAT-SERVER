@@ -5,7 +5,6 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyNoInteractions
 import org.springframework.scheduling.annotation.Scheduled
 
 class TicketCleanupJobSpec : FunSpec({
@@ -18,19 +17,11 @@ class TicketCleanupJobSpec : FunSpec({
         scheduled.scheduler shouldBe "maintenanceTaskScheduler"
     }
 
-    test("현재 runtime이 scheduler owner이면 System use case를 호출한다") {
+    test("deleteOldCancelledBookings는 System use case를 위임 호출한다") {
         val service = mock(TicketCleanupService::class.java)
 
-        TicketCleanupJob(service, true).deleteOldCancelledBookings()
+        TicketCleanupJob(service).deleteOldCancelledBookings()
 
         verify(service).deleteOldCancelledBookings()
-    }
-
-    test("현재 runtime이 scheduler owner가 아니면 실행하지 않는다") {
-        val service = mock(TicketCleanupService::class.java)
-
-        TicketCleanupJob(service, false).deleteOldCancelledBookings()
-
-        verifyNoInteractions(service)
     }
 })

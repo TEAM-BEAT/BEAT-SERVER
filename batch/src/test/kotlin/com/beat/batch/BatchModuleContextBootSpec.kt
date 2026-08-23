@@ -32,19 +32,10 @@ class BatchModuleContextBootSpec : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("test runtime은 scheduler ownership 없이 System use case와 persistence를 조립한다") {
-            environment.getProperty("beat.scheduler.owner") shouldBe "false"
+        test("test runtime은 System use case와 persistence를 조립한다") {
             applicationContext.containsBean("taskScheduler") shouldBe false
             applicationContext.containsBean("maintenanceTaskScheduler") shouldBe true
             applicationContext.getBeansOfType(TaskScheduler::class.java).size shouldBe 1
-            ReflectionTestUtils.getField(
-                applicationContext.getBean(TicketCleanupJob::class.java),
-                "schedulerOwner",
-            ) shouldBe false
-            ReflectionTestUtils.getField(
-                applicationContext.getBean(PromotionMaintenanceJob::class.java),
-                "schedulerOwner",
-            ) shouldBe false
             applicationContext.getBeansOfType(TicketCleanupService::class.java).size shouldBe 1
             applicationContext.getBeansOfType(PromotionMaintenanceService::class.java).size shouldBe 1
             applicationContext.getBeansOfType(PromotionRepository::class.java).size shouldBe 1
