@@ -227,3 +227,6 @@ infra/ansible/inventories/**/group_vars/all.local.sops.yml
 # JVM 힙 덤프·Redis 덤프 등 대용량 로컬 아티팩트
 *.hprof
 dump.rdb
+
+# 앤서블 로컬 설치 캐시(vvenv 도구가 생성)
+/wheel_dir/
