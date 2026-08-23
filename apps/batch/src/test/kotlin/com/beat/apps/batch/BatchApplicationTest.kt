@@ -2,10 +2,10 @@ package com.beat.apps.batch
 
 import com.beat.apps.batch.config.InfraConfig
 import com.beat.application.system.SystemApplicationConfig
-import com.beat.infra.EnableInfraBaseConfig
-import com.beat.infra.InfraBaseConfigGroup
-import com.beat.infra.persistence.InfraPersistenceConfig
-import com.beat.observability.ObservabilityModuleConfig
+import com.beat.infrastructure.EnableInfraBaseConfig
+import com.beat.infrastructure.InfraBaseConfigGroup
+import com.beat.infrastructure.persistence.InfraPersistenceConfig
+import com.beat.support.observability.ObservabilityModuleConfig
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe

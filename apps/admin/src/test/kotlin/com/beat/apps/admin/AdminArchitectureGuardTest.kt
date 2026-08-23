@@ -32,7 +32,7 @@ class AdminArchitectureGuardTest : FunSpec({
     val concreteApplicationServiceOrInfrastructure =
         object : DescribedPredicate<JavaClass>("be a concrete application service or infrastructure type") {
             override fun test(input: JavaClass): Boolean =
-                input.packageName.startsWith("com.beat.infra.") ||
+                input.packageName.startsWith("com.beat.infrastructure.") ||
                     (input.packageName.startsWith("com.beat.application.") && input.simpleName.endsWith("Service"))
         }
 
@@ -79,7 +79,7 @@ class AdminArchitectureGuardTest : FunSpec({
             .that(nonBootstrapClasses)
             .should()
             .dependOnClassesThat()
-            .resideInAnyPackage("com.beat.infra..")
+            .resideInAnyPackage("com.beat.infrastructure..")
             .because("Infrastructure wiring types may only be consumed by admin bootstrap configuration")
             .check(productionClasses)
     }

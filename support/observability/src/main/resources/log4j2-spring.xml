@@ -38,7 +38,7 @@
 
     <Loggers>
         <springProfile name="prod">
-            <Logger name="com.beat.observability.logging.access" level="INFO" additivity="false">
+            <Logger name="com.beat.support.observability.logging.access" level="INFO" additivity="false">
                 <AppenderRef ref="JsonConsoleAppender"/>
             </Logger>
             <Logger name="com.beat" level="INFO" additivity="false">
@@ -56,7 +56,7 @@
             DB·앱 설정은 dev 그대로 두고 로그 표현만 바뀌므로 별도 local 프로파일 불필요.
         -->
         <springProfile name="dev">
-            <Logger name="com.beat.observability.logging.access" level="INFO" additivity="false">
+            <Logger name="com.beat.support.observability.logging.access" level="INFO" additivity="false">
                 <AppenderRef ref="ConsoleAppender"/>
             </Logger>
             <Logger name="com.beat" level="INFO" additivity="false">

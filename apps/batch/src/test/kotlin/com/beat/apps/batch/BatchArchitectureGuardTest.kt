@@ -49,7 +49,7 @@ class BatchArchitectureGuardTest : FunSpec({
                 "com.beat.application.frontoffice..",
                 "com.beat.application.admin..",
                 "com.beat.support.security..",
-                "com.beat.infra..",
+                "com.beat.infrastructure..",
             )
             .because("Batch jobs must reach business workflows exclusively via application:system use cases")
             .check(productionClasses)
@@ -70,7 +70,7 @@ class BatchArchitectureGuardTest : FunSpec({
             .that(nonBootstrapClasses)
             .should()
             .dependOnClassesThat()
-            .resideInAnyPackage("com.beat.infra..")
+            .resideInAnyPackage("com.beat.infrastructure..")
             .because("Infrastructure wiring types may only be consumed by batch bootstrap configuration")
             .check(productionClasses)
     }

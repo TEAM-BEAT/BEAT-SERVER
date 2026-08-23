@@ -1,7 +1,7 @@
 package com.beat.support.security.authentication.internal
 
-import com.beat.observability.logging.filter.BaseMdcLoggingFilter
-import com.beat.observability.tracing.NoOpTraceContextResolver
+import com.beat.support.observability.logging.filter.BaseMdcLoggingFilter
+import com.beat.support.observability.tracing.NoOpTraceContextResolver
 import jakarta.servlet.FilterChain
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec

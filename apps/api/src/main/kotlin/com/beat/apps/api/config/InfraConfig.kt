@@ -1,9 +1,9 @@
 package com.beat.apps.api.config
 
-import com.beat.infra.EnableInfraBaseConfig
-import com.beat.infra.InfraBaseConfigGroup
-import com.beat.infra.persistence.InfraPersistenceConfig
-import com.beat.infra.redis.auth.AuthRedisConfig
+import com.beat.infrastructure.EnableInfraBaseConfig
+import com.beat.infrastructure.InfraBaseConfigGroup
+import com.beat.infrastructure.persistence.InfraPersistenceConfig
+import com.beat.infrastructure.redis.auth.AuthRedisConfig
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 

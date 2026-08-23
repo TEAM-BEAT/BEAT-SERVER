@@ -1,7 +1,7 @@
 package com.beat.support.security.authentication.internal
 
-import com.beat.observability.logging.filter.BaseMdcLoggingFilter
-import com.beat.observability.tracing.TraceContextResolver
+import com.beat.support.observability.logging.filter.BaseMdcLoggingFilter
+import com.beat.support.observability.tracing.TraceContextResolver
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.security.authentication.AnonymousAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder

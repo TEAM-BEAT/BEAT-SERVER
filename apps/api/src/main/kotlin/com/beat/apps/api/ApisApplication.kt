@@ -3,7 +3,7 @@ package com.beat.apps.api
 import com.beat.application.frontoffice.FrontofficeApplicationConfig
 import com.beat.apps.api.config.GatewayConfig
 import com.beat.apps.api.config.InfraConfig
-import com.beat.observability.ObservabilityModuleConfig
+import com.beat.support.observability.ObservabilityModuleConfig
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Import

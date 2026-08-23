@@ -5,12 +5,12 @@ import com.beat.apps.admin.config.GatewayConfig
 import com.beat.apps.admin.config.InfraConfig
 import com.beat.apps.admin.swagger.config.AdminSwaggerConfig
 import com.beat.application.admin.AdminApplicationConfig
-import com.beat.infra.EnableInfraBaseConfig
-import com.beat.infra.InfraBaseConfigGroup
-import com.beat.infra.persistence.InfraPersistenceConfig
+import com.beat.infrastructure.EnableInfraBaseConfig
+import com.beat.infrastructure.InfraBaseConfigGroup
+import com.beat.infrastructure.persistence.InfraPersistenceConfig
 import com.beat.support.security.EnableGatewayConfig
 import com.beat.support.security.EnableGatewayServletSecurity
-import com.beat.observability.ObservabilityModuleConfig
+import com.beat.support.observability.ObservabilityModuleConfig
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe

@@ -6,7 +6,7 @@ spring:
   jpa:
     properties:
       hibernate:
-        dialect: com.beat.infra.config.MysqlCustomDialect
+        dialect: com.beat.infrastructure.config.MysqlCustomDialect
         format_sql: true
 
 ---

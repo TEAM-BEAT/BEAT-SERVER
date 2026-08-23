@@ -4,7 +4,7 @@ import com.beat.support.security.authentication.internal.CustomAccessDeniedHandl
 import com.beat.support.security.authentication.internal.CustomJwtAuthenticationEntryPoint
 import com.beat.support.security.authentication.internal.JwtAuthenticationFilter
 import com.beat.support.security.authentication.internal.SecurityMdcLoggingFilter
-import com.beat.observability.tracing.TraceContextResolver
+import com.beat.support.observability.tracing.TraceContextResolver
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.web.servlet.FilterRegistrationBean

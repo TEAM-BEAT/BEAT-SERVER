@@ -1,8 +1,8 @@
 package com.beat.apps.batch.config
 
-import com.beat.infra.EnableInfraBaseConfig
-import com.beat.infra.InfraBaseConfigGroup
-import com.beat.infra.persistence.InfraPersistenceConfig
+import com.beat.infrastructure.EnableInfraBaseConfig
+import com.beat.infrastructure.InfraBaseConfigGroup
+import com.beat.infrastructure.persistence.InfraPersistenceConfig
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 
