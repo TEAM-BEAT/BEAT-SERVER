@@ -1,5 +1,6 @@
 package com.beat.apis.booking.api
 
+import com.beat.apis.guest.GUEST_SESSION_COOKIE_NAME
 import com.beat.apis.booking.api.request.BookingCancelRequest
 import com.beat.apis.booking.api.request.BookingRefundRequest
 import com.beat.apis.booking.api.request.GuestBookingRequest
@@ -120,7 +121,7 @@ interface BookingApi {
     )
     fun refundBookings(
         @CurrentMember memberId: Long?,
-        @CookieValue(value = "__Host-guestSession", required = false) guestSessionToken: String?,
+        @CookieValue(value = GUEST_SESSION_COOKIE_NAME, required = false) guestSessionToken: String?,
         @RequestBody bookingRefundRequest: BookingRefundRequest,
     ): ResponseEntity<SuccessResponse<BookingRefundResponse>>
 
@@ -138,7 +139,7 @@ interface BookingApi {
     )
     fun cancelBookings(
         @CurrentMember memberId: Long?,
-        @CookieValue(value = "__Host-guestSession", required = false) guestSessionToken: String?,
+        @CookieValue(value = GUEST_SESSION_COOKIE_NAME, required = false) guestSessionToken: String?,
         @RequestBody bookingCancelRequest: BookingCancelRequest,
     ): ResponseEntity<SuccessResponse<BookingCancelResponse>>
 }

@@ -1,5 +1,6 @@
 package com.beat.apis.booking.api
 
+import com.beat.apis.guest.GUEST_SESSION_COOKIE_NAME
 import com.beat.apis.booking.api.request.BookingCancelRequest
 import com.beat.apis.booking.api.request.BookingRefundRequest
 import com.beat.apis.booking.api.request.GuestBookingRequest
@@ -20,7 +21,6 @@ import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
-import com.beat.apis.config.GuestSessionOriginFilter.Companion.GUEST_SESSION_COOKIE
 import org.springframework.http.ResponseCookie
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.CookieValue
@@ -82,7 +82,7 @@ class BookingController(
     @PatchMapping("/refund")
     override fun refundBookings(
         @CurrentMember memberId: Long?,
-        @CookieValue(value = GUEST_SESSION_COOKIE, required = false) guestSessionToken: String?,
+        @CookieValue(value = GUEST_SESSION_COOKIE_NAME, required = false) guestSessionToken: String?,
         @Valid @RequestBody bookingRefundRequest: BookingRefundRequest,
     ): ResponseEntity<SuccessResponse<BookingRefundResponse>> {
         val response = bookingFacade.refundBooking(memberId, guestSessionToken, bookingRefundRequest)
@@ -93,7 +93,7 @@ class BookingController(
     @PatchMapping("/cancel")
     override fun cancelBookings(
         @CurrentMember memberId: Long?,
-        @CookieValue(value = GUEST_SESSION_COOKIE, required = false) guestSessionToken: String?,
+        @CookieValue(value = GUEST_SESSION_COOKIE_NAME, required = false) guestSessionToken: String?,
         @Valid @RequestBody bookingCancelRequest: BookingCancelRequest,
     ): ResponseEntity<SuccessResponse<BookingCancelResponse>> {
         val response = bookingFacade.cancelBooking(memberId, guestSessionToken, bookingCancelRequest)
@@ -105,7 +105,7 @@ class BookingController(
         if (sessionToken == null) {
             return
         }
-        val cookie = ResponseCookie.from(GUEST_SESSION_COOKIE, sessionToken)
+        val cookie = ResponseCookie.from(GUEST_SESSION_COOKIE_NAME, sessionToken)
             .maxAge(GUEST_SESSION_MAX_AGE.toLong())
             .path("/")
             .secure(true)

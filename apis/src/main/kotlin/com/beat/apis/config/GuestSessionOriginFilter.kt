@@ -1,5 +1,6 @@
 package com.beat.apis.config
 
+import com.beat.apis.guest.GUEST_SESSION_COOKIE_NAME
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -20,7 +21,7 @@ class GuestSessionOriginFilter(
     override fun shouldNotFilter(request: HttpServletRequest): Boolean =
         request.method != "PATCH" ||
                 request.requestURI !in GUEST_MUTATION_PATHS ||
-                request.cookies?.none { it.name == GUEST_SESSION_COOKIE } != false
+                request.cookies?.none { it.name == GUEST_SESSION_COOKIE_NAME } != false
 
     override fun doFilterInternal(
         request: HttpServletRequest,
@@ -40,6 +41,5 @@ class GuestSessionOriginFilter(
 
         // BookingController의 게스트 변이 매핑과 수동 동기화(신규 게스트 엔드포인트 추가 시 갱신 필수)
         val GUEST_MUTATION_PATHS = setOf("/api/bookings/refund", "/api/bookings/cancel")
-        const val GUEST_SESSION_COOKIE = "__Host-guestSession"
     }
 }
