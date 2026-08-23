@@ -118,3 +118,8 @@ HIGH: GuestBookingRequest/MemberBookingRequest의 scheduleNumber·totalPaymentAm
 - beat.scheduler.owner 전면 제거: 잡 2개 가드/주입, batch test yml(삭제), BootSpec ownership 단언, job 스펙 2개→단일 위임 계약, ansible env 조건+bluegreen/stopstart 변수+dev/prod inventory 4줄. 근거: @Scheduled는 ArchUnit이 batch 전용 보장, 플래그는 레플리카 HA 미해결 가짜 안전감. HA 필요 시 ShedLock/리더선출 별도 설계.
 - yml 배치 실태: 앱별 src/test/resources/application-test.yml 이미 표준 구조(batch는 flag만 있어 삭제). main yml엔 test 인라인 없음 ✅. 공유 기본값은 observability 라이브러리 프로필 블록(정당한 예외).
 - AGENTS.md는 gitignore라 컨벤션 문구는 본 문서로 대체: "앱 고유 테스트 오버라이드=src/test/resources/application-test.yml / 공유 기본값=observability 프로필 블록 / main yml에 on-profile:test 인라인 금지".
+
+## 🚨 PROD_S3_BUCKET 미해소 (2026-08-23 감사 발견)
+- external.yml prod: s3.bucket=${PROD_S3_BUCKET} → 로컬 시크릿/sops 키명/ansible/aws 전부 0건. prod 컨테이너 실환경변수 확인 필요(저장소 밖 SSM 가능성). 누락 확정 시 prod 기동 실패 갭.
+- batch application.yml 잔여 beat.scheduler.owner:true 발견·제거(전수 스윙이 놓친 것 — grep -F 재검증으로 클린).
+- env_audit.py 감사 스크립트: 미해소 판정은 신뢰, '미사용' 목록은 persistence 프로필 블록 파싱 누락으로 불신.

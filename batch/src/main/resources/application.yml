@@ -19,10 +19,6 @@ spring:
         - observability
         - thread-pool
 
-beat:
-  scheduler:
-    owner: true
-
 ---
 spring:
   config:
