@@ -13,6 +13,7 @@ import java.util.UUID
 
 abstract class BaseMdcLoggingFilter(
     private val traceContextResolver: TraceContextResolver = NoOpTraceContextResolver,
+    actuatorBasePath: String = "/actuator",
 ) : OncePerRequestFilter() {
 
     companion object {
@@ -34,7 +35,7 @@ abstract class BaseMdcLoggingFilter(
         private val TRACE_ID_PATTERN = Regex("^[A-Za-z0-9._:-]+$")
     }
 
-    private val accessLog = AccessLogEmitter()
+    private val accessLog = AccessLogEmitter(actuatorBasePath)
 
     // OncePerRequestFilter.shouldNotFilterAsyncDispatch() defaults to true → this filter runs
     // only on DispatcherType.REQUEST. ASYNC re-dispatch never invokes us; AsyncListener does.

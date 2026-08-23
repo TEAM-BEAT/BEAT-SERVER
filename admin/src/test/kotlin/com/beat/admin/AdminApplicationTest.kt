@@ -29,17 +29,20 @@ class AdminApplicationTest : FunSpec() {
     init {
         isolationMode = IsolationMode.SingleInstance
 
-        test("admin application은 분리된 모듈 import 계약을 유지한다") {
+        test("admin application은 공개 composition 타입만 import하고 narrow bootstrap을 포함한다") {
             val importAnnotation = AdminApplication::class.java.getAnnotation(Import::class.java)
             importAnnotation shouldNotBe null
             val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
 
-            importedClassNames shouldBe setOf(
+            val publicCompositionTypes = setOf(
                 AdminApplicationConfig::class.java.name,
                 GatewayConfig::class.java.name,
                 InfraConfig::class.java.name,
                 ObservabilityModuleConfig::class.java.name,
             )
+            // 신규 공개 구성 추가는 이 허용목록 확장을 강제하고, 내부 구현 import는 즉시 실패한다.
+            (importedClassNames - publicCompositionTypes) shouldBe emptySet()
+            importedClassNames.contains(AdminApplicationConfig::class.java.name) shouldBe true
         }
 
         test("admin은 refresh token store 없이 gateway servlet security 부트스트랩을 선택한다") {

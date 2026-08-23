@@ -13,7 +13,8 @@ import org.springframework.security.core.context.SecurityContextHolder
 internal class SecurityMdcLoggingFilter constructor(
     traceContextResolver: TraceContextResolver,
     private val managementPort: Int = NO_MANAGEMENT_PORT,
-) : BaseMdcLoggingFilter(traceContextResolver) {
+    actuatorBasePath: String = "/actuator",
+) : BaseMdcLoggingFilter(traceContextResolver, actuatorBasePath) {
 
     override fun shouldNotFilter(request: HttpServletRequest): Boolean =
         managementPort > 0 && request.localPort == managementPort

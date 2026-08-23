@@ -32,7 +32,7 @@ class RedisRefreshTokenAdapterIntegrationSpec : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        context("refresh token Redis adapter") {
+        context("refresh token Redis 어댑터") {
             test("왕복 시 레거시 type alias와 설정된 ttl을 보존한다") {
                 try {
                     refreshTokenStore.save(MEMBER_ID, REFRESH_TOKEN)

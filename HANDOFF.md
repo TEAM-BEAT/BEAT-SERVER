@@ -88,3 +88,7 @@ HIGH: GuestBookingRequest/MemberBookingRequest의 scheduleNumber·totalPaymentAm
 그레이: Mockito 29spec/MockK 0(문서는 MockK 원칙), §8/§9 settlement·payment·statistics 문서에만 존재, application public≫internal.
 정리 대상: facade requireNotNull ~73(@Valid 이중), SuccessResponse 등 바이트동일 복제×3, 예외핸들러 쌍 ~180줄, Result/Results·Reader/Queries 명명 드리프트, timeout=200 매직넘버(MemberBookingCommandService.kt:31), cloud.cdn.domain 키 미설정, legacyUrls/performImages alias 무문서, hprof/dump.rdb/app.jar junk.
 클린 확인: TODO/FIXME 0, Thread.sleep(prod) 0, empty catch 0, lock order 전 준수, TX 내 외부호출 0, dead endpoint 0, domain 순수, 10-project graph/포트소유권/CQRS/에러경계 전 IMPLEMENTED.
+
+## Actuator path bug (2026-08-23)
+- 실제 base-path = /actuator-test (observability application-observability.yml:134). SecurityConfig들은 프로퍼티 주입으로 정상.
+- 버그: AccessLogEmitter.SKIP_PATH_PREFIXES 하드코딩 "/actuator/health" → 설정경로(/actuator-test/health) 미매칭, 프로브 access-log 유실(노이즈) 가능. AccessLogEmitterTest도 버그 행위를 고정 중. → base-path @Value 주입으로 접두사 생성해야 함. SecurityMdcLoggingFilterTest의 /actuator/prometheus도 동일 패턴 확인 필요(미확인).

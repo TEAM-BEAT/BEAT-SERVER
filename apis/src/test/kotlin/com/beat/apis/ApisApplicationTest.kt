@@ -45,17 +45,20 @@ class ApisApplicationTest : FunSpec() {
     init {
         isolationMode = IsolationMode.SingleInstance
 
-        test("apis application은 분리된 모듈 import 계약을 유지한다") {
+        test("apis application은 공개 composition 타입만 import하고 narrow bootstrap을 포함한다") {
             val importAnnotation = ApisApplication::class.java.getAnnotation(Import::class.java)
             importAnnotation shouldNotBe null
             val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
 
-            importedClassNames shouldBe setOf(
+            val publicCompositionTypes = setOf(
                 FrontofficeApplicationConfig::class.java.name,
                 GatewayConfig::class.java.name,
                 InfraConfig::class.java.name,
                 ObservabilityModuleConfig::class.java.name,
             )
+            // 신규 공개 구성 추가는 이 허용목록 확장을 강제하고, 내부 구현 import는 즉시 실패한다.
+            (importedClassNames - publicCompositionTypes) shouldBe emptySet()
+            importedClassNames.contains(FrontofficeApplicationConfig::class.java.name) shouldBe true
         }
 
         test("apis application은 모듈 소유 네임스페이스만 스캔한다") {

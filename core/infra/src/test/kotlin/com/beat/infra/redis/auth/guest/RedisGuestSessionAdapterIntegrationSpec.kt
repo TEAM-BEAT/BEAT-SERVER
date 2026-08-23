@@ -32,7 +32,7 @@ class RedisGuestSessionAdapterIntegrationSpec : FunSpec() {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        context("guest session Redis adapter") {
+        context("guest session Redis 어댑터") {
             test("발급된 session 왕복은 해시 key와 레거시 alias, 설정된 ttl을 사용한다") {
                 val token = guestSessionStore.issue(USER_ID)
                 val tokenHash = Sha256Hasher.hashToBase64Url(token)
