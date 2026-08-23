@@ -223,3 +223,7 @@ infra/ansible/inventories/**/group_vars/all.local.sops.yml
 /docs/architecture/BEAT-SERVER-MIGRATION-FINAL-REPORT.md
 /docs/architecture/BEAT_TEST_REWRITE_PLAN.md
 /MIGRATION.md
+
+# JVM 힙 덤프·Redis 덤프 등 대용량 로컬 아티팩트
+*.hprof
+dump.rdb
