@@ -103,3 +103,8 @@ HIGH: GuestBookingRequest/MemberBookingRequest의 scheduleNumber·totalPaymentAm
 - 필터 전수 해설·플로우별 검증 완료(회원/비회원/거절/프로브). 현행 순서=MDC-first(관측)→guestOrigin(api)→JWT(인증)→Authorization. finally late-binding으로 userId 해결. Finding 철회 확정(8d4bdf3c).
 - B7 커밋 3b788c7b: 요청 DTO non-null화(19개)+facade requireNotNull 72→0+응답 userId tightening+JSON스펙 매퍼 프로덕션 정렬. apis 테스트 green.
 - ⏭️ 남음: C6(CDN serializer DI)/C7(TTL·쿠키 상수)/C8(origin filter 경로)/C10(cleanup 청킹)/C14(domain junit 제거)/F9 MockK/P 물리정렬/D문서/OpenAPI 재생성/최종게이트
+
+## JSON 스택 판정 (2026-08-23)
+- 프로덕션 바인딩 실증: MockMvc PUT /tickets/update 필수필드 누락 → **400**(TicketControllerWebSpec 일회성 프루브, 미커밋). Boot4+Jackson3+Kotlin 모듈이 non-null 파라미터를 경계에서 강제함 → B7 전제 확정.
+- kotlinx.serialization 평가: **Jackson 3 유지 확정**. Boot4 일급(tools.jackson)이라 자동설정·springdoc·컨버터 생태계 정합 / 교체 시 @JsonProperty·@JsonTypeInfo(캐러셀 판별자)·ValueSerializer(CDN) 전면 재작성 비용 / 얻는 것은 단일 서버 타겟에서 미미.
+- 잔여 추적: jackson-module-kotlin:2.21.5(Jackson2 세대)가 여전히 runtimeClasspath에 존재 — 누가 끌어오는지 추출해 퇴출 과제로.
