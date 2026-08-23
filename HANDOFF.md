@@ -171,3 +171,8 @@ A2/A3(ArchUnit 재작성) · A4/B1/B2/B3 · B4/B6/B7/B8 · R(루트계약스펙�
 - infrastructure: com.beat.infra→com.beat.infrastructure(334건), observability: →com.beat.support.observability(74건). 172파일.
 - 이제 디렉터리·패키지·Gradle project 3중 완전 일치. 레거시 @TypeAlias 2곳만 의도 보존(Redis 기존데이터, 제거 시 전원 재로그인 — 소유자 결정 대기).
 - 검증 6항목 EXIT=0. TypeAlias 외 레거시/fallback main 소스 0건 재확인.
+
+## 레거시 Redis TypeAlias 제거 완료 (2026-08-23, 소유자 승인)
+- GuestSession·RefreshToken 해시의 @TypeAlias(구 gateway FQCN) 제거, 레거시 호환 테스트 2개 삭제.
+- ⚠️ 배포 시 Redis FLUSHDB 필수: 기존 키는 새 type id로 역직렬화 불가 → 전원 재로그인 발생(소유자 승인済 v2.0 정책).
+- infra/aws·ansible·db는 배포 인프라 저장소로서 현 위치 유지 확정(코드 모듈과 무관).
