@@ -3,7 +3,6 @@ package com.beat.apis.performance.api.request
 import com.beat.apis.performance.api.type.BankNameType
 import com.beat.apis.performance.api.type.GenreType
 import jakarta.validation.Valid
-import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
 
 data class PerformanceModifyRequest(
@@ -26,8 +25,8 @@ data class PerformanceModifyRequest(
     val latitude: String,
     val longitude: String,
     val performanceContact: String,
-    @field:NotNull val performancePeriod: String?,
-    @field:NotNull val totalScheduleCount: Int?,
+    val performancePeriod: String?,
+    val totalScheduleCount: Int?,
     val ticketPrice: Int,
     @field:Valid val scheduleModifyRequests: List<@Valid ScheduleModifyRequest>,
     @field:Valid val castModifyRequests: List<@Valid CastModifyRequest>,

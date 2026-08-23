@@ -17,9 +17,9 @@ import com.beat.admin.promotion.api.request.PromotionHandleRequest
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.kotest.core.spec.IsolationMode
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import jakarta.validation.Validation
 
 class AdminJsonCompatibilitySpec : FunSpec() {
 
@@ -63,21 +63,17 @@ class AdminJsonCompatibilitySpec : FunSpec() {
             aliasModifyRequest.isExternal shouldBe true
         }
 
-        test("nullable carousel 요청 필드는 검증 개수와 메시지를 유지한다") {
-            val validator = Validation.buildDefaultValidatorFactory().validator
-            val missingCarousels = validator.validate(CarouselHandleRequest(null))
-            val missingRequiredItemFields = validator.validate(
-                CarouselHandleRequest(
-                    listOf<PromotionHandleRequest?>(PromotionGenerateRequest(null, null, null, null, null)),
-                ),
-            )
-            val nullCarousel = validator.validate(CarouselHandleRequest(listOf<PromotionHandleRequest?>(null)))
-
-            missingCarousels.size shouldBe 1
-            missingRequiredItemFields.size shouldBe 4
-            nullCarousel.size shouldBe 1
-            missingCarousels.all { it.message == INVALID_REQUEST_MESSAGE } shouldBe true
-            missingRequiredItemFields.all { it.message == INVALID_REQUEST_MESSAGE } shouldBe true
+        test("carousel 요청의 필수 필드는 역직렬화 단계에서 누락과 null을 거부한다") {
+            // Kotlin non-null 프로퍼티가 타입으로 필수성을 보증한다(Bean Validation 불필요).
+            shouldThrow<Exception> {
+                objectMapper.readValue("""{"carousels":null}""", CarouselHandleRequest::class.java)
+            }
+            shouldThrow<Exception> {
+                objectMapper.readValue(
+                    """{"carousels":[{"type":"generate","carouselNumber":null,"newImageUrl":"u","isExternal":true,"redirectUrl":"r"}]}""",
+                    CarouselHandleRequest::class.java,
+                )
+            }
         }
 
         test("response JSON은 레거시 컬렉션 이름을 유지한다") {

@@ -4,49 +4,35 @@ import com.fasterxml.jackson.annotation.JsonAlias
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
-import jakarta.validation.Valid
-import jakarta.validation.constraints.NotNull
-
-private const val INVALID_REQUEST_MESSAGE = "잘못된 요청 형식입니다."
 
 data class CarouselHandleRequest(
-    @field:NotNull(message = INVALID_REQUEST_MESSAGE)
-    @field:Valid
-    val carousels: List<@NotNull(message = INVALID_REQUEST_MESSAGE) @Valid PromotionHandleRequest?>?,
+    val carousels: List<PromotionHandleRequest>,
 ) {
     data class PromotionModifyRequest(
-        @field:NotNull(message = INVALID_REQUEST_MESSAGE)
-        val promotionId: Long?,
-        @field:NotNull(message = INVALID_REQUEST_MESSAGE)
-        val carouselNumber: AdminCarouselNumber?,
-        @field:NotNull(message = INVALID_REQUEST_MESSAGE)
-        val newImageUrl: String?,
+        val promotionId: Long,
+        val carouselNumber: AdminCarouselNumber,
+        val newImageUrl: String,
         @param:JsonProperty("isExternal")
         @param:JsonAlias("external")
-        @field:NotNull(message = INVALID_REQUEST_MESSAGE)
-        val isExternal: Boolean?,
-        @field:NotNull(message = INVALID_REQUEST_MESSAGE)
-        val redirectUrl: String?,
+        val isExternal: Boolean,
+        val redirectUrl: String,
         val performanceId: Long?,
     ) : PromotionHandleRequest
 
     data class PromotionGenerateRequest(
-        @field:NotNull(message = INVALID_REQUEST_MESSAGE)
-        val carouselNumber: AdminCarouselNumber?,
-        @field:NotNull(message = INVALID_REQUEST_MESSAGE)
-        val newImageUrl: String?,
+        val carouselNumber: AdminCarouselNumber,
+        val newImageUrl: String,
         @param:JsonProperty("isExternal")
         @param:JsonAlias("external")
-        @field:NotNull(message = INVALID_REQUEST_MESSAGE)
-        val isExternal: Boolean?,
-        @field:NotNull(message = INVALID_REQUEST_MESSAGE)
-        val redirectUrl: String?,
+        val isExternal: Boolean,
+        val redirectUrl: String,
         val performanceId: Long?,
     ) : PromotionHandleRequest
 }
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
     property = "type",
 )
 @JsonSubTypes(

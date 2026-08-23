@@ -48,32 +48,25 @@ class AdminPromotionFacade(
             ),
         )
 
-    private fun toCarouselHandleCommand(request: CarouselHandleRequest): CarouselHandleCommand {
-        val carousels = request.carousels ?: throw invalidRequest()
-        return CarouselHandleCommand(carousels.map { toPromotionHandleCommand(it) })
-    }
+    private fun toCarouselHandleCommand(request: CarouselHandleRequest): CarouselHandleCommand =
+        CarouselHandleCommand(request.carousels.map { toPromotionHandleCommand(it) })
 
-    private fun toPromotionHandleCommand(request: PromotionHandleRequest?): PromotionHandleCommand = when (request) {
+    private fun toPromotionHandleCommand(request: PromotionHandleRequest): PromotionHandleCommand = when (request) {
         is PromotionModifyRequest -> PromotionModifyCommand(
-            requireField(request.promotionId),
-            requireField(request.carouselNumber).name,
-            requireField(request.newImageUrl),
-            requireField(request.isExternal),
-            requireField(request.redirectUrl),
+            request.promotionId,
+            request.carouselNumber.name,
+            request.newImageUrl,
+            request.isExternal,
+            request.redirectUrl,
             request.performanceId,
         )
         is PromotionGenerateRequest -> PromotionGenerateCommand(
-            requireField(request.carouselNumber).name,
-            requireField(request.newImageUrl),
-            requireField(request.isExternal),
-            requireField(request.redirectUrl),
+            request.carouselNumber.name,
+            request.newImageUrl,
+            request.isExternal,
+            request.redirectUrl,
             request.performanceId,
         )
-        else -> throw invalidRequest()
     }
 
-    private fun <T> requireField(value: T?): T = value ?: throw invalidRequest()
-
-    private fun invalidRequest(): AdminApplicationException =
-        AdminApplicationException(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT)
 }

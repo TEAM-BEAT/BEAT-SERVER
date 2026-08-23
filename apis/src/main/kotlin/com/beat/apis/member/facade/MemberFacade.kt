@@ -19,7 +19,7 @@ class MemberFacade(
         socialLoginCommandService.handleSocialLogin(
             authorizationCode,
             SocialLoginCommand(
-                socialType = requireNotNull(request.socialType).toApplicationType(),
+                socialType = request.socialType.toApplicationType(),
             ),
         ).let { result ->
             MemberLoginSession(
