@@ -7,6 +7,7 @@ dependencies {
     api(project(":support:observability"))
     implementation(libs.jjwt.api)
     implementation(libs.kotlin.logging.jvm)
+    runtimeOnly(libs.slf4j.api)
     runtimeOnly(libs.jjwt.impl)
     runtimeOnly(libs.jjwt.jackson)
     implementation(libs.spring.boot.starter.validation)

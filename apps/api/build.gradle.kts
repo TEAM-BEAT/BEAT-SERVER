@@ -13,9 +13,10 @@ base {
 }
 
 dependencies {
+    // kotlin-logging의 SLF4J 백엔드(전이 미제공)
+    runtimeOnly(libs.slf4j.api)
     implementation(libs.kotlin.logging.jvm)
     // kotlin-logging의 SLF4J 백엔드(전이 미제공 — NoClassDefFoundError 실증)
-    runtimeOnly(libs.slf4j.api)
 
     implementation(project(":application:frontoffice"))
     implementation(project(":support:security"))
