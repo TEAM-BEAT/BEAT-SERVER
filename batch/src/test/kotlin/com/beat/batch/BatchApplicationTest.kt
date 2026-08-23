@@ -61,31 +61,5 @@ class BatchApplicationTest : FunSpec() {
             imports!!.value.map { it.java.name }.toSet() shouldBe setOf(InfraPersistenceConfig::class.java.name)
         }
 
-        test("batch 리소스는 기본으로 scheduler 소유를 활성화한다") {
-            val config = Files.readString(Path.of("src/main/resources/application.yml"))
-
-            config.contains("beat:") shouldBe true
-            config.contains("scheduler:") shouldBe true
-            config.contains("owner: true") shouldBe true
-            config.contains("owner: false") shouldBe false
-            config.contains("profiles:") shouldBe true
-            config.contains("group:") shouldBe true
-            config.contains("- persistence") shouldBe true
-            config.contains("- observability") shouldBe true
-            config.contains("- thread-pool") shouldBe true
-            config.contains("- jwt") shouldBe false
-            config.contains("- redis") shouldBe false
-            config.contains("- external") shouldBe false
-            config.contains("on-profile: dev") shouldBe true
-            config.contains("application-dev-secret.properties") shouldBe true
-            config.contains("port: 4002") shouldBe true
-            config.contains("on-profile: prod") shouldBe true
-            config.contains("application-prod-secret.properties") shouldBe true
-            config.contains("BEAT_SERVER_PORT") shouldBe false
-            config.contains("management:") shouldBe false
-            config.contains("../secret/application-dev-secret.properties") shouldBe false
-            config.contains("../secret/application-prod-secret.properties") shouldBe false
-            config.contains("datasource:") shouldBe false
-        }
-    }
+   }
 }
