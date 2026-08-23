@@ -89,6 +89,12 @@ HIGH: GuestBookingRequest/MemberBookingRequest의 scheduleNumber·totalPaymentAm
 정리 대상: facade requireNotNull ~73(@Valid 이중), SuccessResponse 등 바이트동일 복제×3, 예외핸들러 쌍 ~180줄, Result/Results·Reader/Queries 명명 드리프트, timeout=200 매직넘버(MemberBookingCommandService.kt:31), cloud.cdn.domain 키 미설정, legacyUrls/performImages alias 무문서, hprof/dump.rdb/app.jar junk.
 클린 확인: TODO/FIXME 0, Thread.sleep(prod) 0, empty catch 0, lock order 전 준수, TX 내 외부호출 0, dead endpoint 0, domain 순수, 10-project graph/포트소유권/CQRS/에러경계 전 IMPLEMENTED.
 
-## Actuator path bug (2026-08-23)
-- 실제 base-path = /actuator-test (observability application-observability.yml:134). SecurityConfig들은 프로퍼티 주입으로 정상.
-- 버그: AccessLogEmitter.SKIP_PATH_PREFIXES 하드코딩 "/actuator/health" → 설정경로(/actuator-test/health) 미매칭, 프로브 access-log 유실(노이즈) 가능. AccessLogEmitterTest도 버그 행위를 고정 중. → base-path @Value 주입으로 접두사 생성해야 함. SecurityMdcLoggingFilterTest의 /actuator/prometheus도 동일 패턴 확인 필요(미확인).
+## Actuator path — 해결 완료 (2026-08-23, 커밋 9e33f59d)
+- 경로 모델(소유자 확인): test=/actuator-test(yml 고정), dev/prod=시크릿 \${DEV|PROD_ACTUATOR_PATH} ← ansible env.yml이 주입. SecurityConfig들은 프로퍼티 주입이라 원래 정상.
+- 수정: AccessLogEmitter·BaseMdcLoggingFilter·SecurityMdcLoggingFilter 체인에 basePath 전달, SecurityFilterConfig가 \${management.endpoints.web.base-path:/actuator} 주입 → 전 환경 자동 대응. AccessLogEmitterTest에 기본/설정 이중 케이스 추가. SecurityMdcLoggingFilter는 포트 기반 판정이라 경로 무관(테스트 URI는 장식).
+- 동반 커밋 04afa2f2: 관측모듈 테스트명 한국어화 61건(스캔 범위 누락분 — 소유자 지적로 발견). ApplicationTest Import 검증 허용목록 전환 포함.
+
+## MDC↔JWT 순서 — Finding 철회 (2026-08-23)
+- 현행(MDC first, finally에서 refreshUserIdInMdc)은 의도된 모범 사례. 근거: BaseMdcLoggingFilter.finally 주석+코드, SheldonIp 블로그(로깅필터는 security chain 앞에), Spring Security Architecture(사용자 필요시 인증필터 뒤=late binding), GH#31142(이중등록 방지 패턴 일치).
+- 스왑 금지: JWT 선배치 시 Rejected(401) 요청이 MDC/access-log 체인 미도달로 관측성 상실.
+- 비회원=GUEST 기본값/회원=finally late-binding 설계 확인. 재플래깅 금지.
