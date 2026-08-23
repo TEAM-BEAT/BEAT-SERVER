@@ -8,8 +8,8 @@ group = "com.beat.application"
 dependencies {
     implementation(platform(libs.spring.boot.dependencies))
     implementation(project(":domain"))
-    implementation("org.springframework:spring-context")
-    implementation("org.springframework:spring-tx")
+    implementation(libs.spring.context)
+    implementation(libs.spring.tx)
 
     testImplementation(libs.archunit.junit5)
 }
