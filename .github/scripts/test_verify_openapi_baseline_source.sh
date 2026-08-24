@@ -52,4 +52,69 @@ while IFS= read -r resolved_path; do resolved_paths+=("${resolved_path}"); done 
     exit 1
 }
 
+bootstrap_repository="${test_directory}/bootstrap-repository"
+bootstrap_output_directory="${test_directory}/bootstrap-output"
+mkdir -p "${bootstrap_repository}" "${bootstrap_output_directory}"
+git -C "${bootstrap_repository}" -c init.defaultBranch=main init --quiet
+git -C "${bootstrap_repository}" config user.email "ci@example.com"
+git -C "${bootstrap_repository}" config user.name "CI"
+: > "${bootstrap_repository}/.gitkeep"
+git -C "${bootstrap_repository}" add .gitkeep
+git -C "${bootstrap_repository}" commit --quiet -m "before baselines"
+base_without_baselines="$(git -C "${bootstrap_repository}" rev-parse HEAD)"
+
+mkdir -p "${bootstrap_repository}/docs/openapi/baseline"
+printf '%s\n' '{"source":"bootstrap-general"}' > "${bootstrap_repository}/docs/openapi/baseline/general.json"
+printf '%s\n' '{"source":"bootstrap-admin"}' > "${bootstrap_repository}/docs/openapi/baseline/admin.json"
+git -C "${bootstrap_repository}" add docs/openapi/baseline
+git -C "${bootstrap_repository}" commit --quiet -m "bootstrap baselines"
+printf '%s\n' '{"source":"bootstrap-working-tree-general"}' > "${bootstrap_repository}/docs/openapi/baseline/general.json"
+printf '%s\n' '{"source":"bootstrap-working-tree-admin"}' > "${bootstrap_repository}/docs/openapi/baseline/admin.json"
+
+export OPENAPI_BASE_REF="${base_without_baselines}"
+bootstrap_paths_file="${bootstrap_output_directory}/resolved-paths"
+resolve_openapi_baselines "${bootstrap_repository}" "${bootstrap_output_directory}" > "${bootstrap_paths_file}"
+bootstrap_paths=()
+while IFS= read -r bootstrap_path; do bootstrap_paths+=("${bootstrap_path}"); done < "${bootstrap_paths_file}"
+[[ "${#bootstrap_paths[@]}" -eq 2 ]] || {
+    echo "Expected general and admin bootstrap baseline paths" >&2
+    exit 1
+}
+[[ "$(<"${bootstrap_paths[0]}")" == '{"source":"bootstrap-general"}' ]] || {
+    echo "Bootstrap general baseline was not resolved from HEAD" >&2
+    exit 1
+}
+[[ "$(<"${bootstrap_paths[1]}")" == '{"source":"bootstrap-admin"}' ]] || {
+    echo "Bootstrap admin baseline was not resolved from HEAD" >&2
+    exit 1
+}
+[[ "$(<"${bootstrap_repository}/docs/openapi/baseline/general.json")" == '{"source":"bootstrap-working-tree-general"}' ]] || {
+    echo "The bootstrap general working-tree baseline fixture was not changed" >&2
+    exit 1
+}
+[[ "$(<"${bootstrap_repository}/docs/openapi/baseline/admin.json")" == '{"source":"bootstrap-working-tree-admin"}' ]] || {
+    echo "The bootstrap admin working-tree baseline fixture was not changed" >&2
+    exit 1
+}
+
+printf '%s\n' '{"source":"partial-general"}' > "${bootstrap_repository}/docs/openapi/baseline/general.json"
+partial_index="${test_directory}/partial-index"
+GIT_INDEX_FILE="${partial_index}" git -C "${bootstrap_repository}" read-tree "${base_without_baselines}"
+GIT_INDEX_FILE="${partial_index}" git -C "${bootstrap_repository}" add docs/openapi/baseline/general.json
+partial_tree="$(GIT_INDEX_FILE="${partial_index}" git -C "${bootstrap_repository}" write-tree)"
+partial_baseline_ref="$(printf '%s\n' 'partial baseline' | GIT_INDEX_FILE="${partial_index}" git -C "${bootstrap_repository}" commit-tree "${partial_tree}" -p "${base_without_baselines}")"
+export OPENAPI_BASE_REF="${partial_baseline_ref}"
+partial_paths_file="${bootstrap_output_directory}/partial-paths"
+if resolve_openapi_baselines "${bootstrap_repository}" "${bootstrap_output_directory}" > "${partial_paths_file}" 2>/dev/null; then
+    echo "An incomplete OpenAPI baseline pair was accepted" >&2
+    exit 1
+fi
+
+export OPENAPI_BASE_REF="does-not-exist"
+nonexistent_paths_file="${bootstrap_output_directory}/nonexistent-paths"
+if resolve_openapi_baselines "${bootstrap_repository}" "${bootstrap_output_directory}" > "${nonexistent_paths_file}" 2>/dev/null; then
+    echo "A nonexistent OpenAPI base ref was accepted" >&2
+    exit 1
+fi
+
 echo "OpenAPI baseline source test passed"
