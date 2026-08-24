@@ -59,7 +59,6 @@ private class RecordingBookingRepository(
     override fun findScheduleIdsByIds(ids: Collection<Long>): List<Long> = emptyList()
     override fun lockById(id: Long): Booking? = null
     override fun findAll(): List<Booking> = emptyList()
-    override fun replaceGuestPassword(userId: Long, encodedPassword: String): Int = 0
     override fun findByUserId(userId: Long): List<Booking> = emptyList()
     override fun existsActiveBookingByScheduleIds(
         scheduleIds: List<Long>,

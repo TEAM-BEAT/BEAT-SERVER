@@ -12,14 +12,17 @@ import com.beat.support.security.CurrentMember
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.extensions.spring.SpringTestLifecycleMode
-import org.mockito.Mockito
+import io.mockk.clearMocks
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.http.HttpHeaders
 import org.springframework.test.context.ContextConfiguration
-import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.test.context.bean.override.convention.TestBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
@@ -40,24 +43,25 @@ class TicketControllerWebSpec : FunSpec() {
     @Autowired
     private lateinit var mockMvc: MockMvc
 
-    @MockitoBean
+    @TestBean
     private lateinit var ticketQueryService: TicketQueryService
 
-    @MockitoBean
+    @TestBean
     private lateinit var ticketCommandService: TicketCommandService
 
     init {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
         beforeTest {
-            Mockito.reset(ticketQueryService, ticketCommandService)
+            clearMocks(ticketQueryService, ticketCommandService)
         }
 
         test("실제 facade로 매핑된 API 필터로 티켓 목록을 조회한다") {
             val expected = ticketResult()
             val query = TicketListQuery(null, listOf("FIRST"), listOf("CHECKING_PAYMENT"))
-            Mockito.`when`(ticketQueryService.findAllTicketsByConditions(MEMBER_ID, PERFORMANCE_ID, query))
-                .thenReturn(expected)
+            every {
+                ticketQueryService.findAllTicketsByConditions(MEMBER_ID, PERFORMANCE_ID, query)
+            } returns expected
 
             mockMvc.perform(
                 get("/api/tickets/{performanceId}", PERFORMANCE_ID)
@@ -74,14 +78,15 @@ class TicketControllerWebSpec : FunSpec() {
                 .andExpect(jsonPath("$.data.totalPerformanceSoldTicketCount").value(10))
                 .andExpect(jsonPath("$.data.bookingList").isArray)
 
-            Mockito.verify(ticketQueryService).findAllTicketsByConditions(MEMBER_ID, PERFORMANCE_ID, query)
+            verify { ticketQueryService.findAllTicketsByConditions(MEMBER_ID, PERFORMANCE_ID, query) }
         }
 
         test("실제 facade로 매핑된 API 필터로 티켓을 검색한다") {
             val expected = ticketResult()
             val query = TicketListQuery("ab", listOf("FIRST"), listOf("CHECKING_PAYMENT"))
-            Mockito.`when`(ticketQueryService.searchAllTicketsByConditions(MEMBER_ID, PERFORMANCE_ID, query))
-                .thenReturn(expected)
+            every {
+                ticketQueryService.searchAllTicketsByConditions(MEMBER_ID, PERFORMANCE_ID, query)
+            } returns expected
 
             mockMvc.perform(
                 get("/api/tickets/search/{performanceId}", PERFORMANCE_ID)
@@ -100,7 +105,7 @@ class TicketControllerWebSpec : FunSpec() {
                 .andExpect(jsonPath("$.data.totalPerformanceSoldTicketCount").value(10))
                 .andExpect(jsonPath("$.data.bookingList").isArray)
 
-            Mockito.verify(ticketQueryService).searchAllTicketsByConditions(MEMBER_ID, PERFORMANCE_ID, query)
+            verify { ticketQueryService.searchAllTicketsByConditions(MEMBER_ID, PERFORMANCE_ID, query) }
         }
     }
 
@@ -135,6 +140,12 @@ class TicketControllerWebSpec : FunSpec() {
     private companion object {
         const val MEMBER_ID = 1L
         const val PERFORMANCE_ID = 100L
+
+        @JvmStatic
+        fun ticketQueryService(): TicketQueryService = mockk()
+
+        @JvmStatic
+        fun ticketCommandService(): TicketCommandService = mockk(relaxed = true)
     }
 }
 

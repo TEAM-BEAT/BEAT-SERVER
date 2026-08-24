@@ -1,9 +1,9 @@
 package com.beat.infrastructure.persistence.booking.repository.query
 
-import com.beat.application.frontoffice.booking.booker.query.BookerBookingPerformanceReadModel
-import com.beat.application.frontoffice.booking.booker.query.BookerBookingReadModel
-import com.beat.application.frontoffice.booking.booker.query.BookerBookingReader
-import com.beat.application.frontoffice.booking.booker.query.BookerBookingScheduleReadModel
+import com.beat.application.frontoffice.booking.booker.BookingHistoryPerformanceSnapshot
+import com.beat.application.frontoffice.booking.booker.BookingHistoryReadPort
+import com.beat.application.frontoffice.booking.booker.BookingHistoryScheduleSnapshot
+import com.beat.application.frontoffice.booking.booker.BookingHistorySnapshot
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.sharedkernel.vo.BankName
@@ -22,8 +22,8 @@ import java.time.LocalDateTime
 internal class BookerBookingQueries(
     private val entityManager: EntityManager,
     private val jpqlRenderContext: JpqlRenderContext,
-) : BookerBookingReader {
-    override fun findByUserId(userId: Long): List<BookerBookingReadModel> {
+) : BookingHistoryReadPort {
+    override fun findByUserId(userId: Long): List<BookingHistorySnapshot> {
         val bookings = findBookings(userId)
         if (bookings.isEmpty()) return emptyList()
 
@@ -33,7 +33,7 @@ internal class BookerBookingQueries(
             .associateBy(PerformanceProjection::performanceId)
         return bookings.map { booking ->
             val schedule = schedules[booking.scheduleId]
-            BookerBookingReadModel(
+            BookingHistorySnapshot(
                 userId = booking.userId,
                 bookingId = checkNotNull(booking.bookingId),
                 purchaseTicketCount = booking.purchaseTicketCount,
@@ -41,8 +41,8 @@ internal class BookerBookingQueries(
                 bookingStatus = booking.bookingStatus.name,
                 createdAt = booking.createdAt,
                 totalPaymentAmount = booking.totalPaymentAmount,
-                schedule = schedule?.toReadModel(),
-                performance = schedule?.let { performances[it.performanceId]?.toReadModel() },
+                schedule = schedule?.toSnapshot(),
+                performance = schedule?.let { performances[it.performanceId]?.toSnapshot() },
             )
         }
     }
@@ -97,16 +97,16 @@ internal class BookerBookingQueries(
         return entityManager.createQuery(query, jpqlRenderContext).resultList
     }
 
-    private fun ScheduleProjection.toReadModel(): BookerBookingScheduleReadModel =
-        BookerBookingScheduleReadModel(
+    private fun ScheduleProjection.toSnapshot(): BookingHistoryScheduleSnapshot =
+        BookingHistoryScheduleSnapshot(
             scheduleId = checkNotNull(scheduleId),
             performanceId = performanceId,
             performanceDate = performanceDate,
             scheduleNumber = scheduleNumber.name,
         )
 
-    private fun PerformanceProjection.toReadModel(): BookerBookingPerformanceReadModel =
-        BookerBookingPerformanceReadModel(
+    private fun PerformanceProjection.toSnapshot(): BookingHistoryPerformanceSnapshot =
+        BookingHistoryPerformanceSnapshot(
             performanceId = checkNotNull(performanceId),
             performanceTitle = performanceTitle,
             performanceVenue = performanceVenue,

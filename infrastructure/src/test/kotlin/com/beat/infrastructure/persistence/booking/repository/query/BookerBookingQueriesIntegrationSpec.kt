@@ -1,6 +1,6 @@
 package com.beat.infrastructure.persistence.booking.repository.query
 
-import com.beat.application.frontoffice.booking.booker.query.BookerBookingReader
+import com.beat.application.frontoffice.booking.booker.BookingHistoryReadPort
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.performance.model.Genre
 import com.beat.domain.schedule.model.ScheduleNumber
@@ -43,7 +43,7 @@ import java.time.LocalDateTime
 class BookerBookingQueriesIntegrationSpec : FunSpec() {
 
     @Autowired
-    private lateinit var reader: BookerBookingReader
+    private lateinit var reader: BookingHistoryReadPort
 
     @Autowired
     private lateinit var bookingRepository: BookingJpaRepository

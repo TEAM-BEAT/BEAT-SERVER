@@ -1,9 +1,9 @@
 package com.beat.application.admin.user.query
 
 import com.beat.application.admin.exception.AdminApplicationException
+import com.beat.application.admin.fixture.adminMemberFixture
 import com.beat.application.admin.user.exception.UserApplicationErrorCode
 import com.beat.domain.member.model.Member
-import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.repository.MemberRepository
 import com.beat.domain.member.vo.SocialIdentity
 import com.beat.domain.user.model.Role
@@ -91,11 +91,4 @@ private class RecordingUserRepository(
 
 private const val MEMBER_ID = 7L
 
-private fun member(): Member = Member.rehydrate(
-    id = MEMBER_ID,
-    nickname = "admin",
-    email = "admin@example.com",
-    deletedAt = null,
-    userId = 2L,
-    socialIdentity = SocialIdentity.of(SocialType.KAKAO, 10L),
-)
+private fun member() = adminMemberFixture(id = MEMBER_ID, userId = 2L)

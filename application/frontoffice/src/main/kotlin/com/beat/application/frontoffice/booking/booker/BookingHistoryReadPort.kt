@@ -1,12 +1,13 @@
-package com.beat.application.frontoffice.booking.booker.query
+package com.beat.application.frontoffice.booking.booker
 
 import java.time.LocalDateTime
 
-fun interface BookerBookingReader {
-    fun findByUserId(userId: Long): List<BookerBookingReadModel>
+/** Output-only booking history projection; command correctness must not depend on these snapshots. */
+fun interface BookingHistoryReadPort {
+    fun findByUserId(userId: Long): List<BookingHistorySnapshot>
 }
 
-data class BookerBookingReadModel(
+data class BookingHistorySnapshot(
     val userId: Long,
     val bookingId: Long,
     val purchaseTicketCount: Int,
@@ -14,18 +15,18 @@ data class BookerBookingReadModel(
     val bookingStatus: String,
     val createdAt: LocalDateTime,
     val totalPaymentAmount: Int?,
-    val schedule: BookerBookingScheduleReadModel?,
-    val performance: BookerBookingPerformanceReadModel?,
+    val schedule: BookingHistoryScheduleSnapshot?,
+    val performance: BookingHistoryPerformanceSnapshot?,
 )
 
-data class BookerBookingScheduleReadModel(
+data class BookingHistoryScheduleSnapshot(
     val scheduleId: Long,
     val performanceId: Long,
     val performanceDate: LocalDateTime,
     val scheduleNumber: String,
 )
 
-data class BookerBookingPerformanceReadModel(
+data class BookingHistoryPerformanceSnapshot(
     val performanceId: Long,
     val performanceTitle: String,
     val performanceVenue: String,

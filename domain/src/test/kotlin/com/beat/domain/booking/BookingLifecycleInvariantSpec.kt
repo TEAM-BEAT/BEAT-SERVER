@@ -1,6 +1,7 @@
 package com.beat.domain.booking
 
 import com.beat.domain.booking.exception.BookingErrorCode
+import com.beat.domain.booking.fixture.bookingFixture
 import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.booking.vo.RefundAccount
@@ -208,15 +209,7 @@ class BookingLifecycleInvariantSpec : FunSpec({
     }
 })
 
-private fun booking(totalPaymentAmount: Int? = null): Booking = Booking.create(
-    purchaseTicketCount = 1,
-    bookerName = "booker",
-    bookerPhoneNumber = "010-1234-5678",
-    birthDate = "990101",
-    password = "1234",
-    scheduleId = SCHEDULE_ID,
-    userId = USER_ID,
-    createdAt = CREATED_AT,
+private fun booking(totalPaymentAmount: Int? = null): Booking = bookingFixture(
     totalPaymentAmount = totalPaymentAmount,
 )
 

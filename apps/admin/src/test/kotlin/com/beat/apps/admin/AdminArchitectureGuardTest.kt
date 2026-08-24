@@ -60,7 +60,7 @@ class AdminArchitectureGuardTest : FunSpec({
             .haveSimpleNameEndingWith("Controller")
             .should()
             .dependOnClassesThat(concreteApplicationServiceOrInfrastructure)
-            .because("Controllers must delegate orchestration to admin facades, never call services or infrastructure directly")
+            .because("Controllers must enter use cases through admin facades, never call ApplicationService or infrastructure directly")
             .check(productionClasses)
     }
 

@@ -178,7 +178,7 @@ com.beat.apis.<context>/
 
 ### Directional rules
 
-- `Facade`는 API 시나리오 조합과 최종 응답 반환을 맡는다. 단, raw Domain model을 받거나 반환하지 않는다.
+- `Facade`는 operation당 정확히 하나의 ApplicationService를 호출하고 application output을 최종 응답으로 매핑한다. raw Domain model을 받거나 반환하지 않는다.
 - CQRS는 상태 변경과 조회가 모두 있는 context에서 `application/command`, `application/query`로 나눈다. 단일 책임을 이유로 use-case마다 클래스를 기계적으로 만들지 않고, 응집된 변경 이유와 transaction 경계를 기준으로 분리한다.
 - Java/Kotlin 및 API 버전과 무관하게 외부 HTTP DTO는 `<context>/api/request`, `<context>/api/response`가 소유한다. `create`, `modify`, `detail` 같은 유스케이스별 하위 DTO 패키지는 만들지 않는다.
 - 모든 JSON request의 필수 필드는 누락과 명시적 `null`도 동일한 Bean Validation 계약으로 처리할 수 있도록 nullable immutable property와 `jakarta.validation` field constraint를 사용한다. Controller의 `@RequestBody`에는 `@Valid`를 적용한다.
@@ -200,7 +200,8 @@ Controller -> Facade -> ApplicationService(command/query) -> DomainService/Entit
 ```
 
 - Controller는 HTTP adapter이며 `Facade`만 호출한다. Repository, DomainService, command/query service를 직접 호출하지 않는다.
-- `Facade`는 API 시나리오의 공식 진입점이다. 여러 command/query service output을 조합하고 최종 response를 반환하지만, transaction을 열거나 repository/domain service를 직접 호출하지 않는다.
+- `Facade`는 API adapter의 공식 진입점이다. 각 operation은 request를 application input으로 변환한 뒤 정확히 하나의 ApplicationService만 호출하고, application output을 response로 매핑한다. transaction을 열거나 repository/domain service를 직접 호출하지 않는다.
+- ArchUnit은 Controller의 직접 ApplicationService/Infrastructure 의존만 실행 검사한다. Facade operation당 정확히 하나의 ApplicationService 호출은 의미 기반 규칙이므로 PR review로 집행한다.
 - `Facade`는 raw Domain model을 절대 받거나 반환하지 않는다. HTTP request를 검증된 application command/query로 변환하고, 입력/출력은 request primitive, ResponseDTO, CommandResult/QueryResult 같은 실행 모듈 내부 전달 모델로 제한한다.
 - `ApplicationService`는 command service와 query service를 의미한다. 이 계층만 유스케이스 method 내부에서 Domain model을 조회/변경/정책 판단에 사용할 수 있고, Domain model은 이 계층 밖으로 반환하지 않는다. 다른 ApplicationService에 raw Domain model을 반환하는 public helper method를 새로 만들지 않는다.
 - command service는 상태 변경 흐름과 transaction 경계를 맡습니다. repository 조회/저장, lock, event, 증명된 output port, DomainService/Entity 호출 순서를 책임집니다.
@@ -261,8 +262,8 @@ BEAT의 기본값은 command/query service가 HTTP 비의존 application result/
 
 - service 하나가 endpoint 결과를 완성해도 HTTP ResponseDTO를 반환하지 않는다.
 - Facade는 application output을 기존 JSON 계약의 ResponseDTO로 변환한다.
-- Facade가 여러 command/query service output을 다시 섞고 재가공해 하나의 API response를 만들어야 하면 각 service는 CommandResult/QueryResult를 반환하고 Facade가 최종 ResponseDTO를 만든다.
-- Result는 최종 client contract가 아니라 Facade 조합용 application output이다.
+- 여러 조회·변경 결과가 필요한 use case는 하나의 ApplicationService가 조합을 소유하고 완결된 CommandResult/QueryResult를 반환한다. Facade는 그 단일 output을 ResponseDTO로만 변환한다.
+- Result는 최종 client contract가 아니라 ApplicationService가 완결해 반환하는 application output이다.
 - Result도 raw Domain model, JPA Entity, infra projection row를 필드로 담지 않는다. primitive/JDK type, contract-local value, 실행 모듈 내부 value만 사용한다.
 - 다른 ApplicationService가 재사용해야 하는 출력이면 raw Domain model을 반환하지 말고 목적이 드러나는 Result 또는 ReadModel을 먼저 정의한다.
 - 같은 service output을 여러 response shape로 재사용해야 하거나 API response 변경으로부터 application output을 보호하고 싶을 때 Result를 둔다.
@@ -272,10 +273,8 @@ BEAT의 기본값은 command/query service가 HTTP 비의존 application result/
 단일 유스케이스:
 Controller -> Facade -> QueryService -> QueryResult -> ResponseDTO
 
-복합 API scenario:
-Controller -> Facade -> QueryService A -> QueryResult A
-                     -> QueryService B -> QueryResult B
-                     -> Final ResponseDTO
+복합 use case:
+Controller -> Facade -> ApplicationService -> Port/Domain collaborations -> ApplicationResult -> ResponseDTO
 ```
 
 ## Follow-up after this issue

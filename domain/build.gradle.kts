@@ -5,5 +5,6 @@ plugins {
 }
 
 dependencies {
+    testImplementation(libs.archunit.junit5)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

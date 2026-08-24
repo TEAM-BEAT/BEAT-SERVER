@@ -21,6 +21,35 @@ val verifyModuleBootJars by tasks.registering {
     }
 }
 
+val verifyMainResourceTestProfiles by tasks.registering {
+    group = "verification"
+    description = "Forbids test profile overrides in production resources except shared observability defaults."
+
+    val mainYamlFiles = files(
+        rootProject.allprojects.map { candidateProject ->
+            candidateProject.fileTree("src/main/resources") {
+                include("**/*.yml", "**/*.yaml")
+            }
+        },
+    ).filter { resource ->
+        resource.relativeTo(rootDir).invariantSeparatorsPath !=
+            "support/observability/src/main/resources/application-observability.yml"
+    }
+    inputs.files(mainYamlFiles)
+
+    doLast {
+        val testProfilePattern = Regex("""(?m)^\s*on-profile\s*:\s*.*\btest\b.*$""")
+        val offenders = mainYamlFiles.files
+            .filter { resource -> testProfilePattern.containsMatchIn(resource.readText()) }
+            .map { resource -> resource.relativeTo(rootDir).invariantSeparatorsPath }
+            .sorted()
+
+        check(offenders.isEmpty()) {
+            "Test profile overrides belong in module-local src/test/resources/application-test.yml: $offenders"
+        }
+    }
+}
+
 val targetApplicationProjects = setOf(
     ":application:frontoffice",
     ":application:admin",

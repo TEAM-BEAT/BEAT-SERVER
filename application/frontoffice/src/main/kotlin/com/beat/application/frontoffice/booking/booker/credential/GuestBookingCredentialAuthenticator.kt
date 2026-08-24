@@ -1,12 +1,10 @@
 package com.beat.application.frontoffice.booking.booker.credential
 
-import com.beat.domain.booking.repository.BookingRepository
 import com.beat.support.security.password.PasswordHasher
 import org.springframework.stereotype.Component
 
 @Component
 internal class GuestBookingCredentialAuthenticator(
-    private val bookingRepository: BookingRepository,
     private val passwordHasher: PasswordHasher,
     private val guestBookingCredentialRepository: GuestBookingCredentialRepository,
 ) {
@@ -27,7 +25,7 @@ internal class GuestBookingCredentialAuthenticator(
 
         val userId = matchingUserIds.single()
         if (matchedCredentials.any { passwordHasher.needsUpgrade(it.encodedPassword) }) {
-            bookingRepository.replaceGuestPassword(userId, passwordHasher.encode(rawPassword))
+            guestBookingCredentialRepository.replaceEncodedPassword(userId, passwordHasher.encode(rawPassword))
         }
         return userId
     }

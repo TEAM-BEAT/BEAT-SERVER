@@ -16,14 +16,16 @@ import java.time.LocalDateTime
 import java.time.Clock
 
 @Service
-class BookingCancellationCommandService(
+class BookingCancellationCommandService internal constructor(
     private val bookingRepository: BookingRepository,
     private val clock: Clock,
     private val scheduleRepository: ScheduleRepository,
+    private val guestBookingSessionManager: GuestBookingSessionManager,
 ) {
     @Transactional
-    fun refundBooking(actorUserId: Long, command: BookingRefundCommand): BookingRefundResult {
+    fun refundBooking(actor: BookingActorCommand, command: BookingRefundCommand): BookingRefundResult {
         return translateDomainFailure {
+            val actorUserId = guestBookingSessionManager.resolveActorUserId(actor)
             var booking = bookingRepository.lockById(command.bookingId)
                 ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.NO_BOOKING_FOUND)
             ensureOwnedBy(booking, actorUserId)
@@ -44,8 +46,9 @@ class BookingCancellationCommandService(
     }
 
     @Transactional
-    fun cancelBooking(actorUserId: Long, command: BookingCancelCommand): BookingCancelResult {
+    fun cancelBooking(actor: BookingActorCommand, command: BookingCancelCommand): BookingCancelResult {
         return translateDomainFailure {
+            val actorUserId = guestBookingSessionManager.resolveActorUserId(actor)
             val snapshot = bookingRepository.findById(command.bookingId)
                 ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.NO_BOOKING_FOUND)
             ensureOwnedBy(snapshot, actorUserId)

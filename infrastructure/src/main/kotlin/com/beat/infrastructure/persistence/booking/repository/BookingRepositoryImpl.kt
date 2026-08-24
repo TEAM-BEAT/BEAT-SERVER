@@ -45,9 +45,6 @@ internal class BookingRepositoryImpl(
         bookingJpaRepository.findByBookingStatusAndCancellationDateBefore(bookingStatus, cancellationDate)
             .map(bookingPersistenceMapper::toDomain)
 
-    override fun replaceGuestPassword(userId: Long, encodedPassword: String): Int =
-        bookingJpaRepository.replaceGuestPassword(userId, encodedPassword)
-
     override fun findByUserId(userId: Long): List<Booking> =
         bookingJpaRepository.findByUserId(userId).map(bookingPersistenceMapper::toDomain)
 

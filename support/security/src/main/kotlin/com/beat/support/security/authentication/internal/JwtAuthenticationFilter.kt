@@ -69,7 +69,7 @@ internal class JwtAuthenticationFilter(
         return when (roleName) {
             ROLE_ADMIN -> AdminAuthentication(memberId, authorities)
             ROLE_MEMBER -> MemberAuthentication(memberId, authorities)
-            else -> UsernamePasswordAuthenticationToken(memberId, null, authorities)
+            else -> throw IllegalArgumentException("Unsupported role: $roleName")
         }
     }
 

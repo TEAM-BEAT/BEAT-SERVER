@@ -1,12 +1,12 @@
 package com.beat.application.admin.promotion.query
 
 import com.beat.application.admin.exception.AdminApplicationException
+import com.beat.application.admin.fixture.adminMemberFixture
 import com.beat.application.admin.promotion.PromotionImageStorage
 import com.beat.application.admin.promotion.PromotionImageUpload
 import com.beat.application.admin.promotion.exception.PromotionApplicationErrorCode
 import com.beat.domain.exception.DomainException
 import com.beat.domain.member.model.Member
-import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.repository.MemberRepository
 import com.beat.domain.member.vo.SocialIdentity
 import com.beat.domain.promotion.model.CarouselNumber
@@ -145,14 +145,7 @@ private class RecordingQueryImageStorage : PromotionImageStorage {
 
 private const val MEMBER_ID = 7L
 
-private fun member(): Member = Member.rehydrate(
-    MEMBER_ID,
-    "admin",
-    "admin@example.com",
-    null,
-    1L,
-    SocialIdentity.of(SocialType.KAKAO, 10L),
-)
+private fun member() = adminMemberFixture(id = MEMBER_ID)
 
 private fun promotion(
     id: Long,

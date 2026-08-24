@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository
 internal class GuestBookingCredentialRepositoryImpl(
     private val entityManager: EntityManager,
     private val jpqlRenderContext: JpqlRenderContext,
+    private val bookingJpaRepository: BookingJpaRepository,
 ) : GuestBookingCredentialRepository {
 
     override fun findCandidates(
@@ -41,6 +42,9 @@ internal class GuestBookingCredentialRepositoryImpl(
             )
         }
     }
+
+    override fun replaceEncodedPassword(userId: Long, encodedPassword: String): Int =
+        bookingJpaRepository.replaceGuestPassword(userId, encodedPassword)
 
     private data class GuestCredentialProjection(
         val userId: Long,

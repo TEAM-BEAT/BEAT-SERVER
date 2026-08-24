@@ -17,6 +17,11 @@ data class BookingCreationResult(
     val createdAt: LocalDateTime,
 )
 
+data class GuestBookingCreationOutcome(
+    val booking: BookingCreationResult,
+    val sessionToken: String?,
+)
+
 data class BookingRetrieveResult(
     val userId: Long?,
     val bookingId: Long?,
@@ -37,6 +42,11 @@ data class BookingRetrieveResult(
     val createdAt: LocalDateTime?,
     val posterImage: String?,
     val totalPaymentAmount: Int,
+)
+
+data class GuestBookingAccessOutcome(
+    val bookings: List<BookingRetrieveResult>,
+    val sessionToken: String?,
 )
 
 data class BookingRefundResult(

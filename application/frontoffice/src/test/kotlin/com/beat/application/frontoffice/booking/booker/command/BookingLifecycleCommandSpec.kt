@@ -34,8 +34,8 @@ class BookingLifecycleCommandSpec : FunSpec({
         every { bookingRepository.findById(1L) } returns cancelled
         every { bookingRepository.lockById(1L) } returns cancelled
 
-        BookingCancellationCommandService(bookingRepository, FIXED_CLOCK, scheduleRepository)
-            .cancelBooking(20L, BookingCancelCommand.from(1L))
+        cancellationService(bookingRepository, scheduleRepository)
+            .cancelBooking(MEMBER_ACTOR, BookingCancelCommand.from(1L))
 
         verify { bookingRepository.lockById(1L) }
         verify(exactly = 0) { scheduleRepository.lockById(any()) }
@@ -53,8 +53,8 @@ class BookingLifecycleCommandSpec : FunSpec({
         val savedScheduleSlot = slot<Schedule>()
         every { scheduleRepository.save(capture(savedScheduleSlot)) } answers { savedScheduleSlot.captured }
 
-        BookingCancellationCommandService(bookingRepository, FIXED_CLOCK, scheduleRepository)
-            .cancelBooking(20L, BookingCancelCommand.from(1L))
+        cancellationService(bookingRepository, scheduleRepository)
+            .cancelBooking(MEMBER_ACTOR, BookingCancelCommand.from(1L))
 
         savedScheduleSlot.captured.allocatedTicketCount shouldBe 1
     }
@@ -66,8 +66,8 @@ class BookingLifecycleCommandSpec : FunSpec({
         every { scheduleRepository.lockById(10L) } returns null
 
         val exception = shouldThrow<FrontofficeApplicationException> {
-            BookingCancellationCommandService(bookingRepository, FIXED_CLOCK, scheduleRepository)
-                .cancelBooking(20L, BookingCancelCommand.from(1L))
+            cancellationService(bookingRepository, scheduleRepository)
+                .cancelBooking(MEMBER_ACTOR, BookingCancelCommand.from(1L))
         }
 
         exception.errorCode.code shouldBe "SCHEDULE_NOT_FOUND"
@@ -80,8 +80,8 @@ class BookingLifecycleCommandSpec : FunSpec({
         every { bookingRepository.findById(1L) } returns booking(BookingStatus.CHECKING_PAYMENT, null)
 
         val exception = shouldThrow<FrontofficeApplicationException> {
-            BookingCancellationCommandService(bookingRepository, FIXED_CLOCK, scheduleRepository)
-                .cancelBooking(999L, BookingCancelCommand.from(1L))
+            cancellationService(bookingRepository, scheduleRepository)
+                .cancelBooking(BookingActorCommand(999L, null), BookingCancelCommand.from(1L))
         }
 
         exception.errorCode shouldBe BookingApplicationErrorCode.NO_BOOKING_FOUND
@@ -97,8 +97,8 @@ class BookingLifecycleCommandSpec : FunSpec({
         every { scheduleRepository.lockById(10L) } returns schedule()
 
     val exception = shouldThrow<FrontofficeApplicationException> {
-        BookingCancellationCommandService(bookingRepository, FIXED_CLOCK, scheduleRepository)
-            .cancelBooking(20L, BookingCancelCommand.from(1L))
+        cancellationService(bookingRepository, scheduleRepository)
+            .cancelBooking(MEMBER_ACTOR, BookingCancelCommand.from(1L))
     }
 
     exception.errorCode.code shouldBe BookingErrorCode.CANCELLATION_NOT_ALLOWED.code
@@ -113,13 +113,23 @@ class BookingLifecycleCommandSpec : FunSpec({
         val scheduleRepository = scheduleRepositoryWithSavePassthrough()
         every { bookingRepository.lockById(1L) } returns booking(BookingStatus.CHECKING_PAYMENT, null)
 
-        val result = BookingCancellationCommandService(bookingRepository, FIXED_CLOCK, scheduleRepository)
-            .refundBooking(20L, BookingRefundCommand.of(1L, "KAKAOBANK", "123-456", "holder"))
+        val result = cancellationService(bookingRepository, scheduleRepository)
+            .refundBooking(MEMBER_ACTOR, BookingRefundCommand.of(1L, "KAKAOBANK", "123-456", "holder"))
 
         result.bookingStatus shouldBe BookingStatus.REFUND_REQUESTED.name
         verify { scheduleRepository wasNot Called }
     }
 })
+
+private fun cancellationService(
+    bookingRepository: BookingRepository,
+    scheduleRepository: ScheduleRepository,
+): BookingCancellationCommandService = BookingCancellationCommandService(
+    bookingRepository,
+    FIXED_CLOCK,
+    scheduleRepository,
+    GuestBookingSessionManager(mockk(relaxed = true)),
+)
 
 private fun booking(status: BookingStatus, cancelledAt: LocalDateTime?): Booking = Booking.rehydrate(
     id = 1L,
@@ -153,6 +163,7 @@ private val FIXED_CLOCK: Clock = Clock.fixed(
     Instant.parse("2026-01-02T12:00:00Z"),
     ZoneOffset.UTC,
 )
+private val MEMBER_ACTOR = BookingActorCommand(20L, null)
 
 private fun bookingRepositoryWithSavePassthrough(): BookingRepository =
     mockk(relaxed = true) {

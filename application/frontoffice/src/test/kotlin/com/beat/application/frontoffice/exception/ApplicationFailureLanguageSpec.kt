@@ -1,11 +1,11 @@
 package com.beat.application.frontoffice.exception
 
 import com.beat.application.frontoffice.auth.exception.TokenApplicationErrorCode
-import com.beat.application.frontoffice.booking.booker.query.BookerBookingPerformanceReadModel
-import com.beat.application.frontoffice.booking.booker.query.BookerBookingReadModel
-import com.beat.application.frontoffice.booking.booker.query.BookerBookingReader
-import com.beat.application.frontoffice.booking.booker.query.BookerBookingScheduleReadModel
-import com.beat.application.frontoffice.booking.booker.query.GuestBookingQueryService
+import com.beat.application.frontoffice.booking.booker.BookingHistoryPerformanceSnapshot
+import com.beat.application.frontoffice.booking.booker.BookingHistoryReadPort
+import com.beat.application.frontoffice.booking.booker.BookingHistoryScheduleSnapshot
+import com.beat.application.frontoffice.booking.booker.BookingHistorySnapshot
+import com.beat.application.frontoffice.booking.booker.toResult
 import com.beat.application.frontoffice.member.exception.MemberApplicationErrorCode
 import com.beat.domain.booking.exception.BookingErrorCode
 import com.beat.domain.exception.DomainErrorCode
@@ -22,7 +22,10 @@ import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
 import java.time.Clock
+import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 class ApplicationFailureLanguageSpec : FunSpec({
     isolationMode = IsolationMode.SingleInstance
@@ -123,10 +126,10 @@ class ApplicationFailureLanguageSpec : FunSpec({
     }
 
     test("대표 service boundary는 Spring 없이 domain failure를 application failure로 변환한다") {
-        val reader = mockk<BookerBookingReader>(relaxed = true)
+        val reader = mockk<BookingHistoryReadPort>(relaxed = true)
         every { reader.findByUserId(1L) } returns
             listOf(
-                BookerBookingReadModel(
+                BookingHistorySnapshot(
                     userId = 1L,
                     bookingId = 2L,
                     purchaseTicketCount = 1,
@@ -134,13 +137,13 @@ class ApplicationFailureLanguageSpec : FunSpec({
                     bookingStatus = "CHECKING_PAYMENT",
                     createdAt = LocalDateTime.of(2026, 1, 1, 12, 0),
                     totalPaymentAmount = null,
-                    schedule = BookerBookingScheduleReadModel(
+                    schedule = BookingHistoryScheduleSnapshot(
                         scheduleId = 3L,
                         performanceId = 4L,
                         performanceDate = LocalDateTime.of(2026, 1, 2, 12, 0),
                         scheduleNumber = "FIRST",
                     ),
-                    performance = BookerBookingPerformanceReadModel(
+                    performance = BookingHistoryPerformanceSnapshot(
                         performanceId = 4L,
                         performanceTitle = "performance",
                         performanceVenue = "venue",
@@ -155,7 +158,10 @@ class ApplicationFailureLanguageSpec : FunSpec({
             )
 
         val exception = shouldThrow<FrontofficeApplicationException> {
-            GuestBookingQueryService(reader, Clock.systemUTC()).findGuestBookings(1L)
+            val clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC)
+            translateDomainFailure {
+                reader.findByUserId(1L).map { it.toResult(LocalDate.now(clock)) }
+            }
         }
 
         exception.cause.shouldBeInstanceOf<DomainException>()

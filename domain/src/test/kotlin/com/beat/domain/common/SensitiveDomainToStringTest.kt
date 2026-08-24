@@ -1,7 +1,7 @@
 package com.beat.domain.common
 
 import com.beat.domain.booking.vo.RefundAccount
-import com.beat.domain.booking.model.Booking
+import com.beat.domain.booking.fixture.bookingFixture
 import com.beat.domain.member.model.Member
 import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.vo.SocialIdentity
@@ -27,15 +27,10 @@ class SensitiveDomainToStringTest : FunSpec() {
         val email = "sensitive@example.com"
         val socialId = 987654321L
         val socialIdentity = SocialIdentity.of(SocialType.KAKAO, socialId)
-        val booking = Booking.create(
-            purchaseTicketCount = 1,
+        val booking = bookingFixture(
             bookerName = "private-booker",
             bookerPhoneNumber = "010-9876-5432",
-            birthDate = "990101",
             password = "secret-password",
-            scheduleId = 2L,
-            userId = 3L,
-            createdAt = java.time.LocalDateTime.of(2026, 1, 1, 12, 0),
         )
         val values = listOf(
             PaymentAccount.of(BankName.KAKAOBANK, accountNumber, accountHolder),

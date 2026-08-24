@@ -45,5 +45,5 @@ dependencyAnalysis {
 
 tasks.named("check") {
     dependsOn("verifyTargetModuleGraph")
+    dependsOn("verifyMainResourceTestProfiles")
 }
-

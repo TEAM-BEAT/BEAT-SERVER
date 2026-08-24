@@ -23,8 +23,6 @@ interface BookingRepository {
         cancellationDate: LocalDateTime,
     ): List<Booking>
 
-    fun replaceGuestPassword(userId: Long, encodedPassword: String): Int
-
     fun findByUserId(userId: Long): List<Booking>
 
     fun existsActiveBookingByScheduleIds(

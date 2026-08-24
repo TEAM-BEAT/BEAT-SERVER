@@ -20,20 +20,8 @@ import io.mockk.mockk
 import org.springframework.test.util.ReflectionTestUtils
 
 class KakaoSocialLoginAdapterTest : FunSpec({
-
-    var kakaoApiClient = mockk<KakaoApiClient>(relaxed = true)
-    var kakaoAuthApiClient = mockk<KakaoAuthApiClient>(relaxed = true)
-    var adapter = KakaoSocialLoginAdapter(kakaoApiClient, kakaoAuthApiClient)
-
-    beforeTest {
-        kakaoApiClient = mockk(relaxed = true)
-        kakaoAuthApiClient = mockk(relaxed = true)
-        adapter = KakaoSocialLoginAdapter(kakaoApiClient, kakaoAuthApiClient)
-        ReflectionTestUtils.setField(adapter, "clientId", "client-id")
-        ReflectionTestUtils.setField(adapter, "redirectUri", "redirect-uri")
-    }
-
     test("provider 서버 오류는 인증 실패로 잘못 분류되지 않는다") {
+        val (_, kakaoAuthApiClient, adapter) = kakaoDependencies()
         val providerException = mockk<FeignException>(relaxed = true)
         every { providerException.status() } returns 503
         every {
@@ -47,6 +35,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
     }
 
     test("provider rate limit은 인증 실패가 아닌 unavailable로 분류된다") {
+        val (_, kakaoAuthApiClient, adapter) = kakaoDependencies()
         val rateLimitException = mockk<FeignException>(relaxed = true)
         every { rateLimitException.status() } returns 429
         every {
@@ -60,6 +49,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
     }
 
     test("provider 설정 오류는 provider failure로 분류된다") {
+        val (_, kakaoAuthApiClient, adapter) = kakaoDependencies()
         val providerException = mockk<FeignException>(relaxed = true)
         every { providerException.status() } returns 403
         every {
@@ -73,6 +63,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
     }
 
     test("거부된 authorization code는 인증 실패로 분류된다") {
+        val (_, kakaoAuthApiClient, adapter) = kakaoDependencies()
         val authenticationException = mockk<FeignException>(relaxed = true)
         every { authenticationException.status() } returns 400
         every { authenticationException.contentUTF8() }
@@ -88,6 +79,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
     }
 
     test("provider 설정 bad request는 인증 실패로 분류되지 않는다") {
+        val (_, kakaoAuthApiClient, adapter) = kakaoDependencies()
         val configurationException = mockk<FeignException>(relaxed = true)
         every { configurationException.status() } returns 400
         every { configurationException.contentUTF8() }
@@ -103,6 +95,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
     }
 
     test("거부된 provider access token은 provider failure로 분류된다") {
+        val (kakaoApiClient, kakaoAuthApiClient, adapter) = kakaoDependencies()
         val authenticationException = mockk<FeignException>(relaxed = true)
         every { authenticationException.status() } returns 401
         every {
@@ -117,6 +110,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
     }
 
     test("user info provider 오류는 provider failure로 분류된다") {
+        val (kakaoApiClient, kakaoAuthApiClient, adapter) = kakaoDependencies()
         val providerException = mockk<FeignException>(relaxed = true)
         every { providerException.status() } returns 403
         every {
@@ -131,6 +125,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
     }
 
     test("재시도 가능한 timeout은 별도로 분류된다") {
+        val (_, kakaoAuthApiClient, adapter) = kakaoDependencies()
         val timeoutException = mockk<RetryableException>(relaxed = true)
         every { timeoutException.cause } returns SocketTimeoutException("timeout")
         every {
@@ -144,6 +139,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
     }
 
     test("token 응답이 없으면 provider failure로 분류된다") {
+        val (_, kakaoAuthApiClient, adapter) = kakaoDependencies()
         every {
             kakaoAuthApiClient.getOAuth2AccessToken(any(), any(), any(), any())
         } returns null
@@ -154,6 +150,7 @@ class KakaoSocialLoginAdapterTest : FunSpec({
     }
 
     test("성공 응답은 member profile로 매핑된다") {
+        val (kakaoApiClient, kakaoAuthApiClient, adapter) = kakaoDependencies()
         every {
             kakaoAuthApiClient.getOAuth2AccessToken(any(), any(), any(), any())
         } returns successfulTokenResponse()
@@ -181,6 +178,21 @@ class KakaoSocialLoginAdapterTest : FunSpec({
     }
 
 })
+
+private data class KakaoDependencies(
+    val kakaoApiClient: KakaoApiClient,
+    val kakaoAuthApiClient: KakaoAuthApiClient,
+    val adapter: KakaoSocialLoginAdapter,
+)
+
+private fun kakaoDependencies(): KakaoDependencies {
+    val kakaoApiClient = mockk<KakaoApiClient>(relaxed = true)
+    val kakaoAuthApiClient = mockk<KakaoAuthApiClient>(relaxed = true)
+    val adapter = KakaoSocialLoginAdapter(kakaoApiClient, kakaoAuthApiClient)
+    ReflectionTestUtils.setField(adapter, "clientId", "client-id")
+    ReflectionTestUtils.setField(adapter, "redirectUri", "redirect-uri")
+    return KakaoDependencies(kakaoApiClient, kakaoAuthApiClient, adapter)
+}
 
 private fun kakaoRequest(): SocialLoginRequest =
     SocialLoginRequest("authorization-code", SocialLoginType.KAKAO)

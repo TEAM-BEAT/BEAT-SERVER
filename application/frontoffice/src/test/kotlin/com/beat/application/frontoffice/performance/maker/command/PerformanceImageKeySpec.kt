@@ -11,13 +11,8 @@ import io.mockk.verify
 import io.mockk.mockk
 
 class PerformanceImageKeySpec : FunSpec({
-    lateinit var performanceImageStorage: PerformanceImageStorage
-
-    beforeTest {
-        performanceImageStorage = mockk(relaxed = true)
-    }
-
     test("storage key를 추출한 뒤 절대 image URL을 검증한다") {
+        val performanceImageStorage = mockk<PerformanceImageStorage>(relaxed = true)
         val imageKey = "dev/poster/poster.png"
         every { performanceImageStorage.exists(imageKey) } returns true
 
@@ -31,6 +26,8 @@ class PerformanceImageKeySpec : FunSpec({
     }
 
     test("다른 카테고리에서 업로드된 image는 거부된다") {
+        val performanceImageStorage = mockk<PerformanceImageStorage>(relaxed = true)
+
         val exception = shouldThrow<FrontofficeApplicationException> {
             validateStoredPerformanceImage(performanceImageStorage, "dev/staff/staff.png", "cast")
         }
@@ -40,6 +37,7 @@ class PerformanceImageKeySpec : FunSpec({
     }
 
     test("object storage에 없는 image는 거부된다") {
+        val performanceImageStorage = mockk<PerformanceImageStorage>(relaxed = true)
         val imageKey = "dev/performance/detail.png"
         every { performanceImageStorage.exists(imageKey) } returns false
 
@@ -51,6 +49,8 @@ class PerformanceImageKeySpec : FunSpec({
     }
 
     test("빈 선택 image는 object storage 접근 없이 허용된다") {
+        val performanceImageStorage = mockk<PerformanceImageStorage>(relaxed = true)
+
         val result = validateStoredPerformanceImage(
             performanceImageStorage = performanceImageStorage,
             value = "",

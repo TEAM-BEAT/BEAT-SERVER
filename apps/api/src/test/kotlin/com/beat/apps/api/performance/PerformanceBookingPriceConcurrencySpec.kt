@@ -3,7 +3,7 @@ package com.beat.apps.api.performance
 import com.beat.apps.api.support.BeatTestContainersConfig
 import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommand
 import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommandService
-import com.beat.application.frontoffice.booking.booker.result.BookingCreationResult
+import com.beat.application.frontoffice.booking.booker.result.GuestBookingCreationOutcome
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.application.frontoffice.performance.maker.command.PerformanceBankName
@@ -111,7 +111,7 @@ private val NOW: LocalDateTime = LocalDateTime.now()
                         }
                     }
                     check(modifierHasLock.await(5, TimeUnit.SECONDS))
-                    val bookingFuture = executor.submit<BookingCreationResult> {
+                    val bookingFuture = executor.submit<GuestBookingCreationOutcome> {
                         bookingStarted.countDown()
                         guestBookingCommandService.createGuestBooking(guestBookingCommand(fixture))
                     }
@@ -119,7 +119,7 @@ private val NOW: LocalDateTime = LocalDateTime.now()
                     modifyFuture.get(10, TimeUnit.SECONDS)
                     val bookingResult = bookingFuture.get(10, TimeUnit.SECONDS)
 
-                    bookingResult.totalPaymentAmount shouldBe NEW_TICKET_PRICE
+                    bookingResult.booking.totalPaymentAmount shouldBe NEW_TICKET_PRICE
                     assertPersistedSnapshot(fixture, NEW_TICKET_PRICE)
                 } finally {
                     executor.shutdownNow()
@@ -135,7 +135,7 @@ private val NOW: LocalDateTime = LocalDateTime.now()
                 val executor = Executors.newFixedThreadPool(2)
 
                 try {
-                    val bookingFuture = executor.submit<BookingCreationResult?> {
+                    val bookingFuture = executor.submit<GuestBookingCreationOutcome?> {
                         TransactionTemplate(transactionManager).execute {
                             checkNotNull(performanceRepository.lockById(fixture.performanceId))
                             bookingHasLock.countDown()
@@ -160,7 +160,7 @@ private val NOW: LocalDateTime = LocalDateTime.now()
                     val bookingResult = bookingFuture.get(10, TimeUnit.SECONDS)
                     val modifyFailure = modifyFuture.get(10, TimeUnit.SECONDS)
 
-                    bookingResult!!.totalPaymentAmount shouldBe OLD_TICKET_PRICE
+                    bookingResult!!.booking.totalPaymentAmount shouldBe OLD_TICKET_PRICE
                     modifyFailure.shouldBeInstanceOf<FrontofficeApplicationException>()
                     modifyFailure.errorCode.code shouldBe PerformanceErrorCode.PRICE_UPDATE_NOT_ALLOWED.code
                     modifyFailure.errorCode.type shouldBe FrontofficeApplicationErrorType.INVALID_INPUT

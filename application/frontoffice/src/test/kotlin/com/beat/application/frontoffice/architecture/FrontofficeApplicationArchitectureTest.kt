@@ -248,6 +248,17 @@ class FrontofficeApplicationArchitectureTest : FunSpec({
         )
     }
 
+    test("ApplicationService는 다른 ApplicationService에 직접 의존하지 않는다") {
+        noClasses()
+            .that()
+            .areAnnotatedWith(Service::class.java)
+            .should()
+            .dependOnClassesThat()
+            .areAnnotatedWith(Service::class.java)
+            .because("No Application Service Graph: use-case entry points must not form a concrete service graph")
+            .check(importedClasses)
+    }
+
     test("모든 @Service는 도메인 실패 번역기를 거친다") {
         val failureTranslator = object : DescribedPredicate<JavaClass>(
             "be the domain failure translator",

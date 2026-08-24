@@ -21,15 +21,3 @@ spring:
   config:
     activate:
       on-profile: prod
-
----
-spring:
-  config:
-    activate:
-      on-profile: test
-
-jwt:
-  secret: AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QA==
-  access-token-expire-time: 3600000
-  refresh-token-expire-time: 1209600000
-  key-id: test-current

@@ -10,12 +10,15 @@ import com.beat.application.frontoffice.home.booker.query.HomeQueryService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.extensions.spring.SpringTestLifecycleMode
-import org.mockito.Mockito
+import io.mockk.clearMocks
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.test.context.ContextConfiguration
-import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.test.context.bean.override.convention.TestBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -29,19 +32,18 @@ class HomeControllerWebSpec : FunSpec() {
     @Autowired
     private lateinit var mockMvc: MockMvc
 
-    @MockitoBean
+    @TestBean
     private lateinit var homeQueryService: HomeQueryService
 
     init {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
         beforeTest {
-            Mockito.reset(homeQueryService)
+            clearMocks(homeQueryService)
         }
 
         test("요청한 genre로 home 데이터를 조회하고 실제 facade를 통해 매핑한다") {
-            Mockito.`when`(homeQueryService.findHomePerformanceList(HomeGenreType.BAND.name))
-                .thenReturn(homeResult())
+            every { homeQueryService.findHomePerformanceList(HomeGenreType.BAND.name) } returns homeResult()
 
             mockMvc.perform(get("/api/main").param("genre", HomeGenreType.BAND.name))
                 .andExpect(status().isOk)
@@ -64,12 +66,12 @@ class HomeControllerWebSpec : FunSpec() {
                 .andExpect(jsonPath("$.data.performanceList[0].posterImage").exists())
                 .andExpect(jsonPath("$.data.performanceList[0].performanceVenue").value("venue"))
 
-            Mockito.verify(homeQueryService).findHomePerformanceList(HomeGenreType.BAND.name)
+            verify { homeQueryService.findHomePerformanceList(HomeGenreType.BAND.name) }
         }
 
         test("genre 파라미터가 없으면 null로 매핑하고 빈 home 목록을 유지한다") {
-            Mockito.`when`(homeQueryService.findHomePerformanceList(null))
-                .thenReturn(HomeFindAllResult(emptyList(), emptyList()))
+            every { homeQueryService.findHomePerformanceList(null) } returns
+                HomeFindAllResult(emptyList(), emptyList())
 
             mockMvc.perform(get("/api/main"))
                 .andExpect(status().isOk)
@@ -80,7 +82,7 @@ class HomeControllerWebSpec : FunSpec() {
                 .andExpect(jsonPath("$.data.performanceList").isArray)
                 .andExpect(jsonPath("$.data.performanceList").isEmpty)
 
-            Mockito.verify(homeQueryService).findHomePerformanceList(null)
+            verify { homeQueryService.findHomePerformanceList(null) }
         }
     }
 
@@ -108,4 +110,9 @@ class HomeControllerWebSpec : FunSpec() {
             ),
         ),
     )
+
+    private companion object {
+        @JvmStatic
+        fun homeQueryService(): HomeQueryService = mockk()
+    }
 }

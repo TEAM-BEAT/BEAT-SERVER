@@ -8,14 +8,17 @@ import com.beat.support.security.CurrentMember
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.extensions.spring.SpringTestLifecycleMode
-import org.mockito.Mockito
+import io.mockk.clearMocks
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.core.MethodParameter
 import org.springframework.test.context.ContextConfiguration
-import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.test.context.bean.override.convention.TestBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -36,25 +39,24 @@ class AdminUserControllerWebSpec : FunSpec() {
     @Autowired
     private lateinit var mockMvc: MockMvc
 
-    @MockitoBean
+    @TestBean
     private lateinit var adminUserQueryService: AdminUserQueryService
 
     init {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
         beforeTest {
-            Mockito.reset(adminUserQueryService)
+            clearMocks(adminUserQueryService)
         }
 
         test("관리자 회원 id를 전달하고 User 목록 response contract를 유지한다") {
-            Mockito.`when`(adminUserQueryService.findAllUsers(MEMBER_ID)).thenReturn(
+            every { adminUserQueryService.findAllUsers(MEMBER_ID) } returns
                 AdminUserResults(
                     listOf(
                         AdminUserResults.AdminUserResult(1L, "ROLE_USER"),
                         AdminUserResults.AdminUserResult(2L, "ROLE_ADMIN"),
                     ),
-                ),
-            )
+                )
 
             mockMvc.perform(get("/api/admin/users"))
                 .andExpect(status().isOk)
@@ -65,12 +67,15 @@ class AdminUserControllerWebSpec : FunSpec() {
                 .andExpect(jsonPath("$.data.users[1].id").value(2))
                 .andExpect(jsonPath("$.data.users[1].role").value("ROLE_ADMIN"))
 
-            Mockito.verify(adminUserQueryService).findAllUsers(MEMBER_ID)
+            verify { adminUserQueryService.findAllUsers(MEMBER_ID) }
         }
     }
 
     private companion object {
         const val MEMBER_ID = 7L
+
+        @JvmStatic
+        fun adminUserQueryService(): AdminUserQueryService = mockk()
     }
 }
 

@@ -74,7 +74,7 @@ flowchart TB
 | Layer | 책임 | 금지 |
 | --- | --- | --- |
 | Controller / Job | 요청/트리거를 받는 adapter | repository, domain service 직접 호출 |
-| Facade | 실행 모듈의 공식 진입점, 여러 use-case 결과 조합 | transaction, repository, domain service 직접 소유 |
+| Facade | API 입력을 application input으로 변환하고 단일 use-case output을 응답으로 매핑 | transaction, repository, domain service, 여러 use-case 결과 조합 |
 | ApplicationService | use-case 실행, transaction, 조회/저장 순서, domain 호출 | API 응답 shape에 종속된 복잡한 화면 조회 비대화 |
 | Domain | 도메인 상태, 불변식, 정책, 저장소 계약 | Spring/JPA/DTO/query 구현 |
 | Module-contracts | 모듈 간 read/external contract | domain model 직접 노출 |
@@ -325,7 +325,7 @@ QueryService는 다음 중 하나를 선택합니다.
 | 상황 | 반환 위치 |
 | --- | --- |
 | 단일 QueryService 결과가 그대로 API 응답이 됨 | QueryService가 ResponseDTO 또는 QueryResult 조립 가능 |
-| 여러 QueryService/CommandService 결과를 조합해야 함 | Facade가 최종 ResponseDTO 조립 |
+| 여러 조회·변경 결과를 조합해야 함 | 하나의 ApplicationService가 use case를 완결해 QueryResult/CommandResult 반환 |
 | infra query adapter가 반환한 read model이 있음 | QueryService가 ReadModel을 API/application shape로 변환 |
 
 금지:
@@ -352,13 +352,13 @@ MakerTicketListQueryResult getMakerTickets(...)
 
 ### Facade 반환
 
-Facade는 Controller/Job-facing 경계입니다.
+Facade는 Controller-facing adapter 경계입니다.
 
-Facade는 다음 경우 최종 ResponseDTO를 조립할 수 있습니다.
+Facade는 operation마다 정확히 하나의 ApplicationService를 호출하고, 완결된 application output을 최종 ResponseDTO로 매핑합니다.
 
-- 여러 CommandService/QueryService 결과를 조합해야 할 때
-- API scenario에 맞는 최종 응답 shape가 필요할 때
-- 사용자 API와 admin API가 같은 use-case 결과를 서로 다른 응답으로 보여줘야 할 때
+- Facade는 여러 CommandService/QueryService 결과를 조합하지 않는다.
+- 여러 조회·변경 결과가 필요한 use case는 하나의 ApplicationService가 조합을 소유한다.
+- 사용자 API와 admin API는 같은 application output을 서로 다른 response로 매핑할 수 있다.
 
 Facade가 직접 하면 안 되는 것:
 

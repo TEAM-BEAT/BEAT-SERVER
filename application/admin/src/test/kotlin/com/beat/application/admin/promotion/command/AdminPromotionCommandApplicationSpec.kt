@@ -1,13 +1,13 @@
 package com.beat.application.admin.promotion.command
 
 import com.beat.application.admin.exception.AdminApplicationException
+import com.beat.application.admin.fixture.adminMemberFixture
 import com.beat.application.admin.promotion.PromotionImageStorage
 import com.beat.application.admin.promotion.PromotionImageUpload
 import com.beat.application.admin.promotion.command.CarouselHandleCommand.PromotionGenerateCommand
 import com.beat.application.admin.promotion.command.CarouselHandleCommand.PromotionModifyCommand
 import com.beat.application.admin.promotion.exception.PromotionApplicationErrorCode
 import com.beat.domain.member.model.Member
-import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.repository.MemberRepository
 import com.beat.domain.member.vo.SocialIdentity
 import com.beat.domain.performance.model.Genre
@@ -267,14 +267,7 @@ private class RecordingPromotionImageCache : PromotionImageCache {
 private const val MEMBER_ID = 7L
 private const val PERFORMANCE_ID = 11L
 
-private fun member(): Member = Member.rehydrate(
-    MEMBER_ID,
-    "admin",
-    "admin@example.com",
-    null,
-    1L,
-    SocialIdentity.of(SocialType.KAKAO, 10L),
-)
+private fun member() = adminMemberFixture(id = MEMBER_ID)
 
 private fun promotion(
     id: Long,

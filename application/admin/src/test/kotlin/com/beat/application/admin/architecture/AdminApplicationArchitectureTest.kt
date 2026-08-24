@@ -3,6 +3,7 @@ package com.beat.application.admin.architecture
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
+import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
 import io.kotest.core.spec.style.FunSpec
 import org.springframework.stereotype.Service
 import java.nio.file.Files
@@ -18,6 +19,17 @@ class AdminApplicationArchitectureTest : FunSpec({
             "Admin application production class output is missing"
         }
         ClassFileImporter().importPaths(productionClassPaths)
+    }
+
+    test("ApplicationService는 다른 ApplicationService에 직접 의존하지 않는다") {
+        noClasses()
+            .that()
+            .areAnnotatedWith(Service::class.java)
+            .should()
+            .dependOnClassesThat()
+            .areAnnotatedWith(Service::class.java)
+            .because("No Application Service Graph: use-case entry points must not form a concrete service graph")
+            .check(productionClasses)
     }
 
     test("모든 admin @Service는 도메인 실패 번역기를 거친다") {

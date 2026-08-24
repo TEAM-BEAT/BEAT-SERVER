@@ -3,7 +3,6 @@ package com.beat.apps.api.booking
 import com.beat.apps.api.support.BeatTestContainersConfig
 import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommand
 import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommandService
-import com.beat.application.frontoffice.booking.booker.result.BookingCreationResult
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.domain.booking.repository.BookingRepository
@@ -172,10 +171,10 @@ private val NOW: LocalDateTime = LocalDateTime.now()
         requestIndex: Int,
     ): Boolean {
         return try {
-            val response: BookingCreationResult = guestBookingService.createGuestBooking(
+            val outcome = guestBookingService.createGuestBooking(
                 createGuestBookingRequest(schedule, purchaseTicketCount, scheduleNumber, requestIndex),
             )
-            checkNotNull(response)
+            checkNotNull(outcome.booking)
             true
         } catch (e: FrontofficeApplicationException) {
             if (e.errorCode.code == ScheduleErrorCode.INSUFFICIENT_TICKETS.code &&

@@ -60,7 +60,7 @@ flowchart TB
 - 관리자/백오피스 HTTP API entrypoint
 - 관리자 전용 security, CORS, Swagger/OpenAPI 정책
 - 관리자 request/response DTO
-- 관리자 use-case orchestration
+- 관리자 use-case 입출력 매핑
 - 관리자 application error/success response language
 - 관리자 JSON compatibility test와 architecture guard
 
@@ -321,7 +321,8 @@ sequenceDiagram
 
 - 관리자 API scenario의 공식 진입점입니다.
 - Controller 입력을 use-case 호출 단위로 정규화합니다.
-- 여러 command/query service를 조합할 수 있습니다.
+- 각 operation은 정확히 하나의 ApplicationService만 호출하고 application output을 response로 매핑합니다.
+- operation당 하나의 ApplicationService 호출은 의미 기반 규칙이므로 PR review로 집행합니다.
 - transaction, repository, domain service를 직접 소유하지 않습니다.
 - raw Domain model을 받거나 반환하지 않습니다.
 
@@ -398,12 +399,10 @@ flowchart LR
 Controller -> Facade -> QueryService -> QueryResult -> ResponseDTO
 ```
 
-단일/복합 scenario 모두 ApplicationService는 HTTP 비의존 Result/ReadModel을 반환하고 Facade가 ResponseDTO를 만듭니다.
+단일/복합 scenario 모두 하나의 ApplicationService가 use case를 완결해 HTTP 비의존 Result/ReadModel을 반환하고 Facade가 ResponseDTO로 매핑합니다.
 
 ```text
-Controller -> Facade -> QueryService A -> QueryResult A
-                    -> CommandService B -> CommandResult B
-                    -> Final ResponseDTO
+Controller -> Facade -> ApplicationService -> Port/Domain collaborations -> ApplicationResult -> ResponseDTO
 ```
 
 규칙:

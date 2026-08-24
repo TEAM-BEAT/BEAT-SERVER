@@ -2,6 +2,7 @@ package com.beat.application.frontoffice.member.command
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.fixture.frontofficeMemberFixture
 import com.beat.domain.member.exception.DuplicateSocialIdentityException
 import com.beat.domain.member.model.Member
 import com.beat.domain.member.model.SocialType
@@ -83,13 +84,12 @@ private fun resolver(
     memberRegistrar: MemberRegistrar,
 ): SocialLoginMemberResolver = SocialLoginMemberResolver(memberRepository, memberRegistrar)
 
-private fun member(id: Long, userId: Long): Member = Member.rehydrate(
+private fun member(id: Long, userId: Long): Member = frontofficeMemberFixture(
     id = id,
     nickname = PROFILE.nickname,
     email = PROFILE.email,
-    deletedAt = null,
     userId = userId,
-    socialIdentity = SocialIdentity.of(SocialType.KAKAO, PROFILE.socialId),
+    socialId = PROFILE.socialId,
 )
 
 private val PROFILE = SocialLoginProfile(123L, "nickname", "email@test.com")

@@ -3,17 +3,15 @@ package com.beat.application.frontoffice.booking.booker.command
 import com.beat.application.frontoffice.booking.booker.BookingApplicationErrorCode
 import com.beat.application.frontoffice.booking.booker.credential.GuestBookingCredentialAuthenticator
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.fixture.frontofficeMemberFixture
+import com.beat.application.frontoffice.fixture.frontofficePerformanceFixture
 import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.booking.repository.BookingRepository
 import com.beat.domain.member.model.Member
-import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.repository.MemberRepository
-import com.beat.domain.member.vo.SocialIdentity
-import com.beat.domain.performance.model.Performance
 import com.beat.domain.performance.repository.PerformanceRepository
 import com.beat.domain.performance.vo.PaymentAccount
-import com.beat.domain.performance.vo.TicketPrice
 import com.beat.domain.schedule.model.Schedule
 import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.schedule.repository.ScheduleRepository
@@ -44,8 +42,8 @@ class BookingCreationFlowSpec : FunSpec({
         val schedule = schedule()
         val savedBookingSlot = slot<Booking>()
         every { dependencies.bookingRepository.save(capture(savedBookingSlot)) } answers { savedBookingSlot.captured }
-        stubPerformance(dependencies.performance)
         stubGuestCreation(dependencies, schedule)
+        every { dependencies.guestSessionStore.issue(30L) } returns "guest-session"
 
         val result = dependencies.guestService().createGuestBooking(guestCommand())
 
@@ -57,7 +55,20 @@ class BookingCreationFlowSpec : FunSpec({
         val savedBooking = savedBookingSlot.captured
         savedBooking.bookingStatus shouldBe BookingStatus.CHECKING_PAYMENT
         savedBooking.password shouldBe "encoded-password"
-        result.totalPaymentAmount shouldBe 10_000
+        result.booking.totalPaymentAmount shouldBe 10_000
+        result.sessionToken shouldBe "guest-session"
+    }
+
+    test("게스트 session 발급이 실패해도 생성된 예매 결과를 반환한다") {
+        val dependencies = CreationDependencies()
+        val schedule = schedule()
+        stubGuestCreation(dependencies, schedule)
+        every { dependencies.guestSessionStore.issue(30L) } throws IllegalStateException("redis unavailable")
+
+        val result = dependencies.guestService().createGuestBooking(guestCommand())
+
+        result.booking.userId shouldBe 30L
+        result.sessionToken shouldBe null
     }
 
     test("회원 예매는 회원의 authoritative user identity와 Performance 가격 snapshot을 저장한다") {
@@ -65,7 +76,6 @@ class BookingCreationFlowSpec : FunSpec({
         val schedule = schedule()
         val savedBookingSlot = slot<Booking>()
         every { dependencies.bookingRepository.save(capture(savedBookingSlot)) } answers { savedBookingSlot.captured }
-        stubPerformance(dependencies.performance)
         every { dependencies.memberRepository.findById(10L) } returns member()
         every { dependencies.scheduleRepository.findPerformanceIdById(1L) } returns 20L
         every { dependencies.performanceRepository.lockById(20L) } returns dependencies.performance
@@ -166,10 +176,16 @@ private class CreationDependencies {
     val bookingRepository = bookingRepositoryWithSavePassthrough()
     val userRepository = userRepositoryWithDeterministicSave()
     val performanceRepository = mockk<PerformanceRepository>(relaxed = true)
-    val performance = mockk<Performance>(relaxed = true)
+    val performance = frontofficePerformanceFixture(
+        id = 20L,
+        performanceTitle = "Performance Title",
+        ticketPrice = 10_000,
+        paymentAccount = PaymentAccount.of(BankName.BUSAN, "123-456", "holder"),
+    )
     val memberRepository = mockk<MemberRepository>(relaxed = true)
     val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
     val credentialAuthenticator = mockk<GuestBookingCredentialAuthenticator>(relaxed = true)
+    val guestSessionStore = mockk<GuestSessionStore>(relaxed = true)
 
     fun guestService(): GuestBookingCommandService = GuestBookingCommandService(
         scheduleRepository,
@@ -178,6 +194,7 @@ private class CreationDependencies {
         performanceRepository,
         eventPublisher,
         credentialAuthenticator,
+        GuestBookingSessionManager(guestSessionStore),
         FIXED_CLOCK,
     )
 
@@ -220,19 +237,12 @@ private fun userRepositoryWithDeterministicSave(): UserRepository =
         every { save(any()) } returns Users.rehydrate(30L, Role.USER)
     }
 
-private fun stubPerformance(performance: Performance) {
-    every { performance.ticketPriceValue } returns TicketPrice.of(10_000)
-    every { performance.performanceTitle } returns "Performance Title"
-    every { performance.paymentAccount } returns PaymentAccount.of(BankName.BUSAN, "123-456", "holder")
-}
-
-private fun member(): Member = Member.rehydrate(
-    10L,
-    "nickname",
-    "email@test.com",
-    null,
-    30L,
-    SocialIdentity.of(SocialType.KAKAO, 123L),
+private fun member(): Member = frontofficeMemberFixture(
+    id = 10L,
+    nickname = "nickname",
+    email = "email@test.com",
+    userId = 30L,
+    socialId = 123L,
 )
 
 private fun memberCommand(): MemberBookingCommand = MemberBookingCommand.of(

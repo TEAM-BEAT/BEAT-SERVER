@@ -14,7 +14,10 @@ import com.beat.support.security.CurrentMember
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.extensions.spring.SpringTestLifecycleMode
-import org.mockito.Mockito
+import io.mockk.clearMocks
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -22,7 +25,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.core.MethodParameter
 import org.springframework.http.MediaType
 import org.springframework.test.context.ContextConfiguration
-import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.test.context.bean.override.convention.TestBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
@@ -44,33 +47,30 @@ class AdminPromotionControllerWebSpec : FunSpec() {
     @Autowired
     private lateinit var mockMvc: MockMvc
 
-    @MockitoBean
+    @TestBean
     private lateinit var queryService: AdminPromotionQueryService
 
-    @MockitoBean
+    @TestBean
     private lateinit var commandService: AdminPromotionCommandService
 
     init {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
         beforeTest {
-            Mockito.reset(queryService, commandService)
+            clearMocks(queryService, commandService)
         }
 
         test("관리자 Promotion 조회와 upload route가 Application query 결과를 기존 JSON으로 매핑한다") {
-            Mockito.`when`(queryService.findAllPromotionsSortedByCarouselNumber(MEMBER_ID)).thenReturn(
+            every { queryService.findAllPromotionsSortedByCarouselNumber(MEMBER_ID) } returns
                 AdminPromotionResults(
                     listOf(AdminPromotionResult(1L, "ONE", "image", false, "redirect", 11L)),
-                ),
-            )
-            Mockito.`when`(queryService.issueAllPresignedUrlsForCarousel(MEMBER_ID, listOf("carousel.png"))).thenReturn(
+                )
+            every { queryService.issueAllPresignedUrlsForCarousel(MEMBER_ID, listOf("carousel.png")) } returns
                 CarouselPresignedUrlsResult(
                     mapOf("carousel.png" to PromotionImageUpload("upload", "dev/carousel/carousel.png")),
-                ),
-            )
-            Mockito.`when`(queryService.issuePresignedUrlForBanner(MEMBER_ID, "banner.png")).thenReturn(
-                BannerPresignedUrlResult("banner-upload", "dev/banner/banner.png"),
-            )
+                )
+            every { queryService.issuePresignedUrlForBanner(MEMBER_ID, "banner.png") } returns
+                BannerPresignedUrlResult("banner-upload", "dev/banner/banner.png")
 
             mockMvc.perform(get("/api/admin/carousels"))
                 .andExpect(status().isOk)
@@ -88,20 +88,19 @@ class AdminPromotionControllerWebSpec : FunSpec() {
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.data.bannerPresignedUrl").value("banner-upload"))
 
-            Mockito.verify(queryService).findAllPromotionsSortedByCarouselNumber(MEMBER_ID)
-            Mockito.verify(queryService).issueAllPresignedUrlsForCarousel(MEMBER_ID, listOf("carousel.png"))
-            Mockito.verify(queryService).issuePresignedUrlForBanner(MEMBER_ID, "banner.png")
+            verify { queryService.findAllPromotionsSortedByCarouselNumber(MEMBER_ID) }
+            verify { queryService.issueAllPresignedUrlsForCarousel(MEMBER_ID, listOf("carousel.png")) }
+            verify { queryService.issuePresignedUrlForBanner(MEMBER_ID, "banner.png") }
         }
 
         test("polymorphic carousel request를 Kotlin command로 변환하고 기존 response shape를 유지한다") {
             val command = CarouselHandleCommand(
                 listOf(PromotionGenerateCommand("ONE", "prod/carousel/new", false, "/performances/11", 11L)),
             )
-            Mockito.`when`(commandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, command)).thenReturn(
+            every { commandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, command) } returns
                 AdminPromotionResults(
                     listOf(AdminPromotionResult(3L, "ONE", "prod/carousel/new", false, "/performances/11", 11L)),
-                ),
-            )
+                )
 
             mockMvc.perform(
                 put("/api/admin/carousels")
@@ -114,12 +113,18 @@ class AdminPromotionControllerWebSpec : FunSpec() {
                 .andExpect(jsonPath("$.data.modifiedPromotions[0].promotionId").value(3))
                 .andExpect(jsonPath("$.data.modifiedPromotions[0].carouselNumber").value("ONE"))
 
-            Mockito.verify(commandService).processAllPromotionsSortedByCarouselNumber(MEMBER_ID, command)
+            verify { commandService.processAllPromotionsSortedByCarouselNumber(MEMBER_ID, command) }
         }
     }
 
     private companion object {
         const val MEMBER_ID = 7L
+
+        @JvmStatic
+        fun queryService(): AdminPromotionQueryService = mockk()
+
+        @JvmStatic
+        fun commandService(): AdminPromotionCommandService = mockk()
     }
 }
 

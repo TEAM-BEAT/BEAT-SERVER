@@ -1,9 +1,8 @@
 package com.beat.application.frontoffice.performance.maker.command
 
+import com.beat.application.frontoffice.fixture.frontofficeScheduleFixture
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.booking.repository.BookingRepository
-import com.beat.domain.schedule.model.Schedule
-import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.schedule.repository.ScheduleRepository
 import com.beat.domain.schedule.service.ScheduleSequenceDomainService
 import io.kotest.core.annotation.Tags
@@ -13,24 +12,19 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verifyOrder
 import java.time.Clock
-import java.time.LocalDateTime
+import java.time.Instant
+import java.time.ZoneOffset
 
 @Tags("correctness")
 class ScheduleSynchronizerSpec : FunSpec({
-    lateinit var scheduleRepository: ScheduleRepository
-    lateinit var bookingRepository: BookingRepository
-
-    beforeTest {
-        scheduleRepository = mockk(relaxed = true)
-        bookingRepository = mockk(relaxed = true)
-    }
-
     test("활성 예매 확인 전에 정렬된 순서로 서로 다른 회차를 잠근다") {
+        val scheduleRepository = mockk<ScheduleRepository>(relaxed = true)
+        val bookingRepository = mockk<BookingRepository>(relaxed = true)
         val scheduleIds = listOf(3L, 1L, 2L, 1L)
         every { scheduleRepository.findIdsByPerformanceId(9L) } returns scheduleIds
-        every { scheduleRepository.lockById(1L) } returns schedule(1L)
-        every { scheduleRepository.lockById(2L) } returns schedule(2L)
-        every { scheduleRepository.lockById(3L) } returns schedule(3L)
+        every { scheduleRepository.lockById(1L) } returns frontofficeScheduleFixture(id = 1L, performanceId = 9L)
+        every { scheduleRepository.lockById(2L) } returns frontofficeScheduleFixture(id = 2L, performanceId = 9L)
+        every { scheduleRepository.lockById(3L) } returns frontofficeScheduleFixture(id = 3L, performanceId = 9L)
         every {
             bookingRepository.existsActiveBookingByScheduleIds(
                 scheduleIds,
@@ -41,7 +35,7 @@ class ScheduleSynchronizerSpec : FunSpec({
             scheduleRepository,
             bookingRepository,
             ScheduleSequenceDomainService(),
-            Clock.systemUTC(),
+            Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC),
         )
 
         val result = synchronizer.lockAndCheckActiveBookings(9L)
@@ -60,16 +54,3 @@ class ScheduleSynchronizerSpec : FunSpec({
     }
 
 })
-
-private fun schedule(id: Long): Schedule {
-    val performanceDate = LocalDateTime.of(2026, 1, 2, 12, 0)
-    return Schedule.rehydrate(
-        id,
-        performanceDate,
-        performanceDate.plusHours(1),
-        10,
-        0,
-        ScheduleNumber.FIRST,
-        9L,
-    )
-}

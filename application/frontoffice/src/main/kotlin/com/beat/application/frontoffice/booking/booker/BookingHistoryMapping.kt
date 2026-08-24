@@ -1,14 +1,12 @@
-package com.beat.application.frontoffice.booking.booker.query
+package com.beat.application.frontoffice.booking.booker
 
-import com.beat.application.frontoffice.booking.booker.BookingApplicationErrorCode
-import com.beat.application.frontoffice.booking.booker.calculatePaymentAmountForRead
 import com.beat.application.frontoffice.booking.booker.result.BookingRetrieveResult
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.domain.performance.vo.TicketPrice
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-internal fun BookerBookingReadModel.toResult(today: LocalDate): BookingRetrieveResult {
+internal fun BookingHistorySnapshot.toResult(today: LocalDate): BookingRetrieveResult {
     val schedule = schedule
         ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.SCHEDULE_NOT_FOUND)
     val performance = performance

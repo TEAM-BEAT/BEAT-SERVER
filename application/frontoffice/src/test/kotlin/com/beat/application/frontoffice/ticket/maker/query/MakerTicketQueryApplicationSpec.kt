@@ -2,16 +2,10 @@ package com.beat.application.frontoffice.ticket.maker.query
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
-import com.beat.domain.member.model.Member
-import com.beat.domain.member.model.SocialType
+import com.beat.application.frontoffice.fixture.frontofficeMemberFixture
+import com.beat.application.frontoffice.fixture.frontofficePerformanceFixture
 import com.beat.domain.member.repository.MemberRepository
-import com.beat.domain.member.vo.SocialIdentity
-import com.beat.domain.performance.model.Genre
-import com.beat.domain.performance.model.Performance
 import com.beat.domain.performance.repository.PerformanceRepository
-import com.beat.domain.performance.vo.PerformancePeriod
-import com.beat.domain.performance.vo.RunningTime
-import com.beat.domain.performance.vo.TicketPrice
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -19,26 +13,13 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.Called
 import io.mockk.verify
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 class MakerTicketQueryApplicationSpec : FunSpec() {
-
-    private lateinit var makerTicketReader: MakerTicketReader
-
-    private lateinit var performanceRepository: PerformanceRepository
-
-    private lateinit var memberRepository: MemberRepository
-
     init {
-        beforeTest {
-            makerTicketReader = mockk(relaxed = true)
-            performanceRepository = mockk(relaxed = true)
-            memberRepository = mockk(relaxed = true)
-        }
-
     test("명시적인 회차와 예매 상태 필터를 매핑하고 null이 아닌 결과를 반환한다") {
-        stubOwner()
+        val (makerTicketReader, performanceRepository, memberRepository) = makerTicketDependencies()
+        stubOwner(memberRepository, performanceRepository)
         val schedules = listOf(schedule(200L, "FIRST", totalTickets = 100, soldTickets = 99))
         val ticket = ticket()
         every { makerTicketReader.findSchedules(100L) } returns schedules
@@ -50,7 +31,7 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
             )
         } returns listOf(ticket)
 
-        val result = service().findAllTicketsByConditions(
+        val result = service(makerTicketReader, performanceRepository, memberRepository).findAllTicketsByConditions(
             1L,
             100L,
             TicketListQuery(
@@ -77,7 +58,8 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
     }
 
     test("필터가 없으면 전체 회차와 활성 maker 상태로 검색한다") {
-        stubOwner()
+        val (makerTicketReader, performanceRepository, memberRepository) = makerTicketDependencies()
+        stubOwner(memberRepository, performanceRepository)
         every { makerTicketReader.findSchedules(100L) } returns
             listOf(
                 schedule(200L, "FIRST", totalTickets = 100, soldTickets = 1),
@@ -97,7 +79,7 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
             )
         } returns emptyList()
 
-        val result = service().searchAllTicketsByConditions(
+        val result = service(makerTicketReader, performanceRepository, memberRepository).searchAllTicketsByConditions(
             1L,
             100L,
             TicketListQuery(searchWord = "booker"),
@@ -120,9 +102,12 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
     }
 
     test("의존성 호출 전에 null·빈 문자열·한 글자 검색어를 거부한다") {
+        val (makerTicketReader, performanceRepository, memberRepository) = makerTicketDependencies()
+
         listOf(null, "", "a").forEach { searchWord ->
             shouldThrow<FrontofficeApplicationException> {
-                service().searchAllTicketsByConditions(1L, 100L, TicketListQuery(searchWord = searchWord))
+                service(makerTicketReader, performanceRepository, memberRepository)
+                    .searchAllTicketsByConditions(1L, 100L, TicketListQuery(searchWord = searchWord))
             }
         }
 
@@ -132,15 +117,17 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
     }
 
     test("목록과 검색에서 삭제 상태 필터를 거부한다") {
+        val (makerTicketReader, performanceRepository, memberRepository) = makerTicketDependencies()
+
         val listException = shouldThrow<FrontofficeApplicationException> {
-            service().findAllTicketsByConditions(
+            service(makerTicketReader, performanceRepository, memberRepository).findAllTicketsByConditions(
                 1L,
                 100L,
                 TicketListQuery(bookingStatuses = listOf("BOOKING_DELETED")),
             )
         }
         val searchException = shouldThrow<FrontofficeApplicationException> {
-            service().searchAllTicketsByConditions(
+            service(makerTicketReader, performanceRepository, memberRepository).searchAllTicketsByConditions(
                 1L,
                 100L,
                 TicketListQuery(searchWord = "ab", bookingStatuses = listOf("BOOKING_DELETED")),
@@ -155,11 +142,13 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
     }
 
     test("authoritative PerformanceRepository로 조회 권한을 검증한다") {
+        val (makerTicketReader, performanceRepository, memberRepository) = makerTicketDependencies()
         every { memberRepository.findById(1L) } returns member(userId = 10L)
         every { performanceRepository.findById(100L) } returns performance(userId = 11L)
 
         shouldThrow<FrontofficeApplicationException> {
-            service().findAllTicketsByConditions(1L, 100L, TicketListQuery())
+            service(makerTicketReader, performanceRepository, memberRepository)
+                .findAllTicketsByConditions(1L, 100L, TicketListQuery())
         }
 
         verify { performanceRepository.findById(100L) }
@@ -168,13 +157,20 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
 
     }
 
-    private fun service() = TicketQueryService(
+    private fun service(
+        makerTicketReader: MakerTicketReader,
+        performanceRepository: PerformanceRepository,
+        memberRepository: MemberRepository,
+    ) = TicketQueryService(
         makerTicketReader = makerTicketReader,
         performanceRepository = performanceRepository,
         memberRepository = memberRepository,
     )
 
-    private fun stubOwner() {
+    private fun stubOwner(
+        memberRepository: MemberRepository,
+        performanceRepository: PerformanceRepository,
+    ) {
         every { memberRepository.findById(1L) } returns member()
         every { performanceRepository.findById(100L) } returns performance()
     }
@@ -184,35 +180,18 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
         exception.errorCode.message shouldBe "삭제된 예매자를 조회할 수 없습니다."
     }
 
-    private fun member(userId: Long = 10L) = Member.rehydrate(
-        1L,
-        "maker",
-        null,
-        null,
-        userId,
-        SocialIdentity.of(SocialType.KAKAO, 123L),
+    private fun member(userId: Long = 10L) = frontofficeMemberFixture(
+        id = 1L,
+        nickname = "maker",
+        email = null,
+        userId = userId,
+        socialId = 123L,
     )
 
-    private fun performance(userId: Long = 10L) = Performance.rehydrate(
-        100L,
-        "title",
-        Genre.BAND,
-        RunningTime.of(120),
-        "description",
-        "attention",
-        null,
-        "poster",
-        "team",
-        "venue",
-        "road",
-        "detail",
-        "37.0",
-        "127.0",
-        "contact",
-        PerformancePeriod.of(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1)),
-        TicketPrice.of(10_000),
-        2,
-        userId,
+    private fun performance(userId: Long = 10L) = frontofficePerformanceFixture(
+        id = 100L,
+        userId = userId,
+        totalScheduleCount = 2,
     )
 
     private fun schedule(
@@ -241,3 +220,11 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
         true,
     )
 }
+
+private data class MakerTicketDependencies(
+    val makerTicketReader: MakerTicketReader = mockk(relaxed = true),
+    val performanceRepository: PerformanceRepository = mockk(relaxed = true),
+    val memberRepository: MemberRepository = mockk(relaxed = true),
+)
+
+private fun makerTicketDependencies() = MakerTicketDependencies()

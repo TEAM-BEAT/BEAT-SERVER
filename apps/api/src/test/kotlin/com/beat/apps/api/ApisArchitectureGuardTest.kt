@@ -58,7 +58,7 @@ class ApisArchitectureGuardTest : FunSpec({
             .haveSimpleNameEndingWith("Controller")
             .should()
             .dependOnClassesThat(concreteApplicationServiceOrInfrastructure)
-            .because("Controllers must delegate orchestration to API facades, never call services or infrastructure directly")
+            .because("Controllers must enter use cases through API facades, never call ApplicationService or infrastructure directly")
             .check(productionClasses)
     }
 

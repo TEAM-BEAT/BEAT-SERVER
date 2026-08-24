@@ -43,17 +43,3 @@ logging:
   level:
     org.hibernate.SQL: WARN
     org.hibernate.orm.jdbc.bind: WARN
-
----
-spring:
-  config:
-    activate:
-      on-profile: test
-  datasource:
-    hikari:
-      maximum-pool-size: 10
-      connection-timeout: 30000
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: false

@@ -121,6 +121,34 @@ class BookingRepositoryQueriesIntegrationSpec : FunSpec() {
                     GuestBookingCredential(22L, "hash-c"),
                 )
         }
+
+        test("guest credential 비밀번호를 같은 user의 모든 guest booking에 교체한다") {
+            bookingJpaRepository.saveAllAndFlush(
+                listOf(
+                    booking(
+                        scheduleId = 501L,
+                        userId = 55L,
+                        bookerName = TARGET_NAME,
+                        phoneNumber = TARGET_PHONE,
+                        birthDate = TARGET_BIRTH_DATE,
+                        password = "legacy-a",
+                    ),
+                    booking(
+                        scheduleId = 502L,
+                        userId = 55L,
+                        bookerName = TARGET_NAME,
+                        phoneNumber = TARGET_PHONE,
+                        birthDate = TARGET_BIRTH_DATE,
+                        password = "legacy-b",
+                    ),
+                    booking(scheduleId = 503L, userId = 55L, password = "member-password"),
+                ),
+            )
+
+            guestBookingCredentialRepository.replaceEncodedPassword(55L, "upgraded") shouldBe 2
+            guestBookingCredentialRepository.findCandidates(TARGET_NAME, TARGET_PHONE, TARGET_BIRTH_DATE)
+                .shouldContainExactlyInAnyOrder(GuestBookingCredential(55L, "upgraded"))
+        }
     }
 
     private fun booking(

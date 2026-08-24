@@ -2,23 +2,18 @@ package com.beat.application.frontoffice.ticket.maker.command
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.fixture.frontofficeMemberFixture
+import com.beat.application.frontoffice.fixture.frontofficePerformanceFixture
+import com.beat.application.frontoffice.fixture.frontofficeScheduleFixture
 import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.model.BookingStatus
-import com.beat.domain.member.model.Member
-import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.repository.MemberRepository
-import com.beat.domain.member.vo.SocialIdentity
-import com.beat.domain.performance.model.Genre
-import com.beat.domain.performance.model.Performance
 import com.beat.domain.performance.repository.PerformanceRepository
-import com.beat.domain.performance.vo.PerformancePeriod
-import com.beat.domain.performance.vo.RunningTime
-import com.beat.domain.performance.vo.TicketPrice
 import com.beat.domain.booking.repository.BookingRepository
 import com.beat.domain.schedule.model.Schedule
-import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.schedule.repository.ScheduleRepository
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.every
@@ -31,39 +26,32 @@ import io.mockk.verifyOrder
 import org.springframework.context.ApplicationEventPublisher
 import java.time.Clock
 import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
 class TicketCommandApplicationSpec : FunSpec() {
+    private val savedBookings = mutableListOf<Booking>()
+    private val savedSchedules = mutableListOf<Schedule>()
+    private val publishedEvents = mutableListOf<Any>()
 
-    private lateinit var bookingRepository: BookingRepository
+    private val bookingRepository: BookingRepository = mockk(relaxed = true) {
+        every { save(capture(savedBookings)) } answers { lastArg() }
+    }
 
-    private lateinit var performanceRepository: PerformanceRepository
+    private val performanceRepository: PerformanceRepository = mockk(relaxed = true)
 
-    private lateinit var memberRepository: MemberRepository
+    private val memberRepository: MemberRepository = mockk(relaxed = true)
 
-    private lateinit var scheduleRepository: ScheduleRepository
+    private val scheduleRepository: ScheduleRepository = mockk(relaxed = true) {
+        every { save(capture(savedSchedules)) } answers { lastArg() }
+    }
 
-    private lateinit var eventPublisher: ApplicationEventPublisher
+    private val eventPublisher: ApplicationEventPublisher = mockk(relaxed = true) {
+        every { publishEvent(capture(publishedEvents)) } just Runs
+    }
 
     init {
-        beforeTest {
-            savedBookings.clear()
-            savedSchedules.clear()
-            publishedEvents.clear()
-            bookingRepository = mockk(relaxed = true) {
-                every { save(capture(savedBookings)) } answers { lastArg() }
-            }
-            performanceRepository = mockk(relaxed = true)
-            memberRepository = mockk(relaxed = true)
-            scheduleRepository = mockk(relaxed = true) {
-                every { save(capture(savedSchedules)) } answers { lastArg() }
-            }
-            eventPublisher = mockk(relaxed = true) {
-                every { publishEvent(capture(publishedEvents)) } just Runs
-            }
-        }
+        isolationMode = IsolationMode.InstancePerTest
 
     test("authoritative 상태 조회 전에 중복 booking id를 거부한다") {
         val detail = statusUpdate(300L, TicketBookingStatus.BOOKING_CONFIRMED)
@@ -402,35 +390,17 @@ class TicketCommandApplicationSpec : FunSpec() {
 
     private fun statusUpdate(id: Long, status: TicketBookingStatus) = TicketStatusUpdate(id, status)
 
-    private fun member(userId: Long = 10L) = Member.rehydrate(
-        1L,
-        "maker",
-        null,
-        null,
-        userId,
-        SocialIdentity.of(SocialType.KAKAO, 123L),
+    private fun member(userId: Long = 10L) = frontofficeMemberFixture(
+        id = 1L,
+        nickname = "maker",
+        email = null,
+        userId = userId,
+        socialId = 123L,
     )
 
-    private fun performance(userId: Long = 10L) = Performance.rehydrate(
-        100L,
-        "title",
-        Genre.BAND,
-        RunningTime.of(120),
-        "description",
-        "attention",
-        null,
-        "poster",
-        "team",
-        "venue",
-        "road",
-        "detail",
-        "37.0",
-        "127.0",
-        "contact",
-        PerformancePeriod.of(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1)),
-        TicketPrice.of(10_000),
-        1,
-        userId,
+    private fun performance(userId: Long = 10L) = frontofficePerformanceFixture(
+        id = 100L,
+        userId = userId,
     )
 
     private fun booking(
@@ -454,20 +424,15 @@ class TicketCommandApplicationSpec : FunSpec() {
         totalPaymentAmount,
     )
 
-    private fun schedule(id: Long, performanceId: Long = 100L) = Schedule.rehydrate(
-        id,
-        LocalDateTime.of(2026, 1, 1, 19, 0),
-        LocalDateTime.of(2026, 1, 1, 21, 0),
-        100,
-        1,
-        ScheduleNumber.FIRST,
-        performanceId,
+    private fun schedule(id: Long, performanceId: Long = 100L) = frontofficeScheduleFixture(
+        id = id,
+        performanceId = performanceId,
+        performanceDate = LocalDateTime.of(2026, 1, 1, 19, 0),
+        totalTicketCount = 100,
+        allocatedTicketCount = 1,
     )
 
     private companion object {
         val fixedClock: Clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC)
-        val savedBookings = mutableListOf<Booking>()
-        val savedSchedules = mutableListOf<Schedule>()
-        val publishedEvents = mutableListOf<Any>()
     }
 }

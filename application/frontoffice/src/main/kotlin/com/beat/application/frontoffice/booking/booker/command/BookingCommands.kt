@@ -72,6 +72,11 @@ data class GuestBookingAuthenticationCommand private constructor(
     }
 }
 
+data class BookingActorCommand(
+    val memberId: Long?,
+    val guestSessionToken: String?,
+)
+
 @ConsistentCopyVisibility
 data class BookingRefundCommand private constructor(
     val bookingId: Long,

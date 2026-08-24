@@ -10,15 +10,9 @@ import io.mockk.Called
 import io.mockk.verify
 
 class FileCommandServiceSpec : FunSpec({
-    lateinit var performanceImageStorage: PerformanceImageStorage
-    lateinit var fileService: FileCommandService
-
-    beforeTest {
-        performanceImageStorage = mockk(relaxed = true)
-        fileService = FileCommandService(performanceImageStorage)
-    }
-
     test("issueAllPresignedUrls는 storage 호출 전에 null 리스트를 정규화한다") {
+        val performanceImageStorage = mockk<PerformanceImageStorage>(relaxed = true)
+        val fileService = FileCommandService(performanceImageStorage)
         val presignedUrls = PerformancePresignedUrls(
             mapOf(
                 "poster" to mapOf(
@@ -46,6 +40,9 @@ class FileCommandServiceSpec : FunSpec({
     }
 
     test("issueAllPresignedUrls는 레거시 빈 리스트 placeholder를 무시한다") {
+        val performanceImageStorage = mockk<PerformanceImageStorage>(relaxed = true)
+        val fileService = FileCommandService(performanceImageStorage)
+
         fileService.issueAllPresignedUrlsForPerformanceMaker(
             "poster.png",
             listOf(""),
@@ -64,6 +61,9 @@ class FileCommandServiceSpec : FunSpec({
     }
 
     test("issueAllPresignedUrls는 storage 호출 전에 경로 형태의 파일명을 거부한다") {
+        val performanceImageStorage = mockk<PerformanceImageStorage>(relaxed = true)
+        val fileService = FileCommandService(performanceImageStorage)
+
         val exception = shouldThrow<FrontofficeApplicationException> {
             fileService.issueAllPresignedUrlsForPerformanceMaker("../poster.png", null, null, null)
         }

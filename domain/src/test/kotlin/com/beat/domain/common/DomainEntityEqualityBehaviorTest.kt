@@ -1,6 +1,7 @@
 package com.beat.domain.common
 
 import com.beat.domain.booking.model.Booking
+import com.beat.domain.booking.fixture.bookingFixture
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.performance.model.Cast
 import com.beat.domain.member.model.Member
@@ -101,8 +102,14 @@ class DomainEntityEqualityBehaviorTest : FunSpec() {
         id, 1, name, "010-0000-0000", BookingStatus.CHECKING_PAYMENT, BASE_TIME, null, null, null, null, 1, 1,
     )
 
-    private fun newBooking(): Booking = Booking.create(
-        1, "name", "010-0000-0000", null, null, 1, 1, BASE_TIME,
+    private fun newBooking(): Booking = bookingFixture(
+        bookerName = "name",
+        bookerPhoneNumber = "010-0000-0000",
+        birthDate = null,
+        password = null,
+        scheduleId = 1,
+        userId = 1,
+        createdAt = BASE_TIME,
     )
 
     private fun cast(id: Long, name: String): Cast = Cast.rehydrate(id, name, "role", "photo")

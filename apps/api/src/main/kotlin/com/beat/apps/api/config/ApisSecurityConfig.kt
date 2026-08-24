@@ -43,7 +43,7 @@ class ApisSecurityConfig(
             .authorizeHttpRequests {
                 it.requestMatchers(*authWhitelist()).permitAll()
                     .requestMatchers(*AUTH_ADMIN_ONLY).hasAuthority(ROLE_ADMIN)
-                    .anyRequest().authenticated()
+                    .anyRequest().hasAnyAuthority(ROLE_MEMBER, ROLE_ADMIN)
             }
             .addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter::class.java)
             .addFilterAfter(guestSessionOriginFilter, securityMdcLoggingFilter.javaClass)
@@ -74,6 +74,7 @@ class ApisSecurityConfig(
 
     private companion object {
         const val ROLE_ADMIN = "ROLE_ADMIN"
+        const val ROLE_MEMBER = "ROLE_MEMBER"
         val SWAGGER_WHITELIST = arrayOf("/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**")
         val AUTH_ADMIN_ONLY = arrayOf("/api/admin/**")
     }

@@ -5,6 +5,7 @@ import com.beat.application.frontoffice.booking.booker.BookingApplicationErrorCo
 import com.beat.application.frontoffice.booking.booker.credential.GuestBookingCredentialAuthenticator
 import com.beat.application.frontoffice.booking.booker.event.BookingCreatedEvent
 import com.beat.application.frontoffice.booking.booker.result.BookingCreationResult
+import com.beat.application.frontoffice.booking.booker.result.GuestBookingCreationOutcome
 import com.beat.application.frontoffice.booking.booker.validateGuestBookingIdentity
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.application.frontoffice.exception.translateDomainFailure
@@ -29,10 +30,11 @@ class GuestBookingCommandService internal constructor(
     private val performanceRepository: PerformanceRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val credentialAuthenticator: GuestBookingCredentialAuthenticator,
+    private val guestBookingSessionManager: GuestBookingSessionManager,
     private val clock: Clock,
 ) {
     @Transactional
-    fun createGuestBooking(command: GuestBookingCommand): BookingCreationResult {
+    fun createGuestBooking(command: GuestBookingCommand): GuestBookingCreationOutcome {
         return translateDomainFailure {
             val identity = validateGuestBookingIdentity(
                 command.bookerName,
@@ -83,12 +85,16 @@ class GuestBookingCommandService internal constructor(
                     totalTicketCount = schedule.totalTicketCount,
                 ),
             )
-            BookingCreationResult(
+            val result = BookingCreationResult(
                 booking.id, schedule.id, booking.userId, booking.purchaseTicketCount,
                 schedule.scheduleNumber.name, booking.bookerName,
                 booking.bookerPhoneNumber, booking.bookingStatus.name,
                 performance.paymentAccount?.bankName?.name, performance.paymentAccount?.accountNumber, totalAmount,
                 booking.createdAt,
+            )
+            GuestBookingCreationOutcome(
+                booking = result,
+                sessionToken = guestBookingSessionManager.issueOrNull(booking.userId),
             )
         }
     }

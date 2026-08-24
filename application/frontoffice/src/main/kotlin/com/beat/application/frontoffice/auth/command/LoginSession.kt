@@ -1,6 +1,6 @@
 package com.beat.application.frontoffice.auth.command
 
-data class LoginSession(
+internal data class LoginSession(
     val accessToken: String,
     val refreshToken: String,
 )

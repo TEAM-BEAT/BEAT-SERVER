@@ -131,7 +131,7 @@ private val NOW: LocalDateTime = LocalDateTime.now()
                     performanceId = performanceId,
                 ),
             )
-            val createdAt = LocalDateTime.now()
+            val createdAt = NOW
             firstBooking = bookingRepository.save(
                 Booking.create(
                     purchaseTicketCount = 1,

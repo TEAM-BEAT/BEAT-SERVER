@@ -19,14 +19,3 @@ spring:
       host: ${PROD_REDIS_HOST}
       port: ${PROD_REDIS_PORT}
       password: ${PROD_REDIS_PASSWORD}
-
----
-spring:
-  config:
-    activate:
-      on-profile: test
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      password:

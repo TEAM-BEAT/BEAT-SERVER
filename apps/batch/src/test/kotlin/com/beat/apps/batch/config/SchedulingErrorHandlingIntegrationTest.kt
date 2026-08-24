@@ -56,7 +56,7 @@ class SchedulingErrorHandlingIntegrationTest : FunSpec() {
             val events = captureLogEvents(ScheduledTaskErrorHandler::class.java.name) { collected ->
                 taskScheduler.schedule(
                     { throw IllegalStateException("dynamic-schedule-boom") },
-                    Instant.now(),
+                    Instant.parse("2020-01-01T00:00:00Z"),
                 )
 
                 await().atMost(Duration.ofSeconds(5)).until { collected().isNotEmpty() }

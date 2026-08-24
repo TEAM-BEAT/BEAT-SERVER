@@ -123,7 +123,7 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
     - root bootstrap lane 참조 금지
     - legacy owner package 선언 재도입 금지
     - `@Scheduled` / `ApplicationReadyEvent` runtime entrypoint는 `job/` package에서만 소유
-    - `job/` entrypoint가 application/domain/infra/contract를 직접 호출하지 않고 facade boundary만 호출하는지 확인
+    - `job/` entrypoint가 frontoffice/admin/security/infra를 직접 호출하지 않고 `application:system` 경계로만 진입하는지 확인
 - `BatchModuleContextBootTest`
     - module context boot smoke test
     - test profile에서 `beat.scheduler.owner=false`가 실제로 적용되는지 확인
@@ -138,7 +138,6 @@ Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 �
 ```text
 com.beat.batch.<context>/
   job/
-  facade/
   application/
     service/
       command/
@@ -150,10 +149,10 @@ com.beat.batch.<context>/
 
 ## 서비스 / CQRS 규칙
 
-- `Facade`는 batch context/job scenario의 공식 진입점이며 실행 시나리오 조합을 맡는다. Job/Runner는 facade만 호출하고, facade는 필요한 ApplicationService를 호출한다. 단, raw Domain model을 받거나 반환하지 않는다.
+- Job/Runner는 batch adapter의 공식 진입점이며 operation마다 정확히 하나의 `application:system` ApplicationService를 호출한다. 별도 Facade에서 여러 use case를 조합하지 않으며 raw Domain model을 받거나 반환하지 않는다.
 - 실제 잡 실행은 대부분 command 성격이므로 `application/command`를 기본으로 둔다.
 - 배치 조회/리포트/통계가 필요할 때만 `application/query`를 추가한다.
-- DTO는 command/query로 나누지 않고 `application/dto` 아래에서 관리한다. Facade 조합용 내부 결과가 필요할 때만 `application/dto/result`를 추가한다.
+- DTO는 command/query로 나누지 않고 `application/dto` 아래에서 관리한다. ApplicationService output이 필요할 때만 `application/dto/result`를 추가한다.
 - Batch job은 `application:system` command만 호출합니다. 저장/수정 transaction과 Domain repository 사용은 System Application이 소유하며 Batch는 Infrastructure 구현을 직접 호출하지 않습니다.
 - 배치 애플리케이션 문맥의 에러 코드는 `<context>/exception`에 둔다. repository lookup 실패, batch flow 실패, 외부 adapter 실패 번역을 domain ErrorCode로 표현하지 않는다.
 - batch는 HTTP response success code가 기본적으로 필요하지 않다. 배치 결과 메시지가 필요해질 때는 batch-local result/response boundary가 소유하고 domain에는 `SuccessCode`를 추가하지 않는다.
@@ -164,21 +163,21 @@ com.beat.batch.<context>/
 
 현재 `batch` 모듈은 Spring Batch가 아니라 Spring Scheduling / Spring Boot auto-configured `TaskScheduler` 기반으로 동작한다.
 
-- 단순 정기 유지보수 작업은 `@Scheduled` / auto-configured `TaskScheduler` + `Job -> Facade -> ApplicationService` 구조를 기본으로 둔다.
+- 단순 정기 유지보수 작업은 `@Scheduled` / auto-configured `TaskScheduler` + `Job -> ApplicationService` 구조를 기본으로 둔다.
 - 대량 chunk processing, restartability, execution metadata, step orchestration이 실제 요구사항으로 생길 때만 Spring Batch 도입을 검토한다.
-- Spring Batch를 도입하더라도 batch module boundary는 유지한다. Spring Batch `Job/Step`은 실행 adapter이고, 비즈니스 유스케이스는 Facade/ApplicationService로 위임한다.
+- Spring Batch를 도입하더라도 batch module boundary는 유지한다. Spring Batch `Job/Step`은 실행 adapter이고, 비즈니스 유스케이스는 ApplicationService로 위임한다.
 
 ### Layer boundary standard
 
 BEAT의 batch lane은 HTTP Controller 대신 Job/Runner가 entrypoint인 점만 다르고, 내부 계층 의미는 실행 모듈 표준을 따른다.
 
 ```text
-Job/Runner -> Facade -> ApplicationService(command/query) -> DomainService/Entity/RepositoryPort/ReadPort
+Job/Runner -> ApplicationService(command/query) -> DomainService/Entity/RepositoryPort/ReadPort
 ```
 
-- Job/Runner는 scheduler/launcher adapter이며 `Facade`만 호출한다.
-- `Facade`는 배치 실행 시나리오의 공식 진입점이다. 여러 command/query service output을 조합하지만, transaction/repository/domain service를 직접 소유하지 않는다.
-- `Facade`는 raw Domain model을 절대 받거나 반환하지 않는다. Facade 입력/출력은 primitive, 실행 결과 DTO, CommandResult/QueryResult 같은 batch 내부 전달 모델로 제한한다.
+- Job/Runner는 scheduler/launcher adapter이며 operation마다 정확히 하나의 ApplicationService를 호출한다.
+- Job/Runner는 transaction/repository/domain service를 직접 소유하지 않는다.
+- Job/Runner 입력/출력은 primitive와 trigger metadata로 제한하며 raw Domain model을 받거나 반환하지 않는다.
 - `ApplicationService`는 command service와 query service를 의미한다. 이 계층만 유스케이스 method 내부에서 Domain model을 조회/변경/정책 판단에 사용할 수 있고, Domain model은 이 계층 밖으로 반환하지 않는다. 다른 ApplicationService에 raw Domain model을 반환하는 public helper method를 새로 만들지 않는다.
 - batch 흐름은 대부분 command service로 시작한다. 리포트/통계/read-model이 필요할 때만 query service를 추가한다.
 - ApplicationService는 순수 도메인 정책을 직접 구현하지 않고 `domain.<context>.service`의 DomainService 또는 Entity/VO method에 위임한다.
@@ -189,7 +188,7 @@ Job/Runner -> Facade -> ApplicationService(command/query) -> DomainService/Entit
 
 - BEAT의 batch CQRS는 잡 실행 흐름을 command service로, 리포트/통계/조회 흐름을 query service로 분리하는 것부터 시작한다.
 - command service는 Domain model 중심으로 cleanup, 상태 변경, 저장/삭제 흐름을 수행한다.
-- query service는 배치 리포트/통계/read-model 조립을 맡지만 Domain model을 Facade, Job/Runner, 다른 ApplicationService로 반환하지 않는다.
+- query service는 배치 리포트/통계/read-model 조립을 맡지만 Domain model을 Job/Runner나 다른 ApplicationService로 반환하지 않는다.
 - 단순 조회는 domain repository contract를 사용할 수 있다. 다만 리포트/통계/목록/projection 조회가 되면 domain repository를 키우지 않고 read-model로 분리한다.
 - Infrastructure가 구현할 조회 계약은 consumer인 `application:system`에 두며 실제 volatility와 deletion test를 통과할 때만 만듭니다.
 - batch 내부에서만 쓰는 조립 결과는 `batch.<context>.application.dto.result` 또는 query service 내부 result로 둔다.
@@ -198,34 +197,32 @@ Job/Runner -> Facade -> ApplicationService(command/query) -> DomainService/Entit
 ### Response and domain exposure rule
 
 - 배치 command/query service는 필요한 실행 결과 DTO 또는 result를 반환한다.
-- 여러 command/query service output을 조합하는 배치 scenario에서만 Facade가 최종 실행 결과를 만든다.
-- Job/Runner와 Facade에는 raw Domain model을 절대 올리지 않는다.
+- 여러 조회·변경 결과가 필요한 batch use case는 하나의 ApplicationService가 조합을 소유하고 최종 실행 결과를 반환한다.
+- Job/Runner에는 raw Domain model을 절대 올리지 않는다.
 - ApplicationService 간 공유도 raw Domain model이 아니라 primitive/value/result/read model로 한다.
 - DTO, CommandResult, QueryResult는 Domain model을 필드로 담지 않는다.
-- `apps:api`, `apps:admin`, `apps:batch` 간 DTO/ApplicationService/Facade를 공유하지 않습니다. 협력이 필요하면 Domain collaboration이나 consumer-owned narrow seam을 검토하고 중앙 contracts module을 만들지 않습니다.
+- `apps:api`, `apps:admin`, `apps:batch` 간 DTO/ApplicationService를 공유하지 않습니다. 협력이 필요하면 Domain collaboration이나 consumer-owned narrow seam을 검토하고 중앙 contracts module을 만들지 않습니다.
 
 
 ### ResponseDTO vs Result selection rule
 
-Batch는 HTTP ResponseDTO보다 실행 결과 DTO/result가 중심이다. 그래도 선택 기준은 동일하다. 기본값은 command/query service가 필요한 실행 결과를 완성해 반환하는 것이고, Result는 Facade 조합이 필요한 순간에만 추가한다.
+Batch는 HTTP ResponseDTO보다 실행 결과 DTO/result가 중심이다. 그래도 선택 기준은 동일하다. 기본값은 command/query service가 필요한 실행 결과를 완성해 반환하는 것이고, Result는 ApplicationService가 외부에 명시적 실행 결과를 반환해야 할 때만 추가한다.
 
 - service 하나가 job 실행 결과를 완성할 수 있으면 command/query service가 실행 결과 DTO 또는 void를 반환한다.
-- Facade가 받은 값을 그대로 반환하거나 Job/Runner가 결과를 쓰지 않으면 별도 Result를 만들지 않는다.
-- Facade가 여러 command/query service output을 다시 섞고 재가공해 하나의 batch execution result를 만들어야 하면 각 service는 CommandResult/QueryResult를 반환하고 Facade가 최종 실행 결과를 만든다.
-- Result는 Facade 조합용 application output이다.
+- Job/Runner가 결과를 사용하지 않으면 별도 Result를 만들지 않는다.
+- 여러 조회·변경 결과가 필요한 batch use case는 하나의 ApplicationService가 조합을 소유하고 완결된 CommandResult/QueryResult를 반환한다.
+- Result는 ApplicationService가 완결해 반환하는 application output이다.
 - Result도 raw Domain model, JPA Entity, infra projection row를 필드로 담지 않는다. primitive/JDK type, contract-local value, batch 내부 value만 사용한다.
 - 다른 ApplicationService가 재사용해야 하는 출력이면 raw Domain model을 반환하지 말고 목적이 드러나는 Result 또는 ReadModel을 먼저 정의한다.
-- 배치 리포트/통계 결과를 여러 job/facade에서 재사용해야 하거나 외부 알림/로그/파일 출력 shape와 내부 결과를 분리하고 싶을 때 Result를 둔다.
+- 배치 리포트/통계 결과를 여러 job에서 재사용해야 하거나 외부 알림/로그/파일 출력 shape와 내부 결과를 분리하고 싶을 때 Result를 둔다.
 - 단일 job command와 1:1인 단순 cleanup 흐름에 Result를 만들지 않는다.
 
 ```text
 단일 batch command:
-Job/Runner -> Facade -> CommandService -> void or ExecutionDTO
+Job/Runner -> CommandService -> void or ExecutionDTO
 
-복합 batch scenario:
-Job/Runner -> Facade -> CommandService A -> CommandResult A
-                    -> QueryService B   -> QueryResult B
-                    -> Final ExecutionDTO
+복합 batch use case:
+Job/Runner -> ApplicationService -> Port/Domain collaborations -> ExecutionDTO
 ```
 
 ## Follow-up after this issue

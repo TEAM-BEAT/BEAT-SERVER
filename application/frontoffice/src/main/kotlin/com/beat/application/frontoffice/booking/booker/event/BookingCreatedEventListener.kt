@@ -7,7 +7,7 @@ import org.springframework.transaction.event.TransactionPhase
 import org.springframework.transaction.event.TransactionalEventListener
 
 @Component
-class BookingCreatedEventListener(
+internal class BookingCreatedEventListener(
     private val bookingNotificationSender: BookingNotificationSender,
 ) {
     @Async("beatAsyncExecutor")
