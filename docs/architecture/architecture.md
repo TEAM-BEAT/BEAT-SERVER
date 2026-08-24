@@ -37,7 +37,7 @@ Product subproject 10개. 숫자는 목표가 아니다.
 |---|---|---|---|
 | `apps:api` `apps:admin` `apps:batch` | Spring Boot executable | `true` | Inbound Adapter + Composition Root. Controller, DTO, Validation, OpenAPI, Security wiring만 소유 |
 | `application:frontoffice` `application:admin` `application:system` | Spring library | `false` | Use Case, 트랜잭션, Output Port 소유. `frontoffice=Booker+Maker`, `admin=Admin`, `system=Batch` lane |
-| `domain` | Kotlin library | `false` | Aggregate, Value Object, DomainService, 불변식만. Spring, JPA, Web 의존 금지 |
+| `domain` | Kotlin library | `false` | Aggregate, Entity/VO, DomainService, Domain Event/Failure, Domain-language Repository, 불변식만. Spring, JPA, Web 의존 금지 |
 | `infrastructure` | Spring adapter library | `false` | `persistence + redis + external + config` Driven Adapter. 단일 모듈로 유지 |
 | `support:security` `support:observability` | Spring library | `false` | JWT/필터, Logging/Metrics/Tracing plumbing |
 
@@ -108,8 +108,14 @@ flowchart TB
     system --> dom
     infra --> frontoffice
     infra --> adminApp
-    infra --> system
+    infra -.-> system
     infra --> dom
+    api --> infra
+    adminApi --> infra
+    batch --> infra
+    api --> obs
+    adminApi --> obs
+    batch --> obs
     sec --> obs
     frontoffice -.-> sec
     api -.-> sec
@@ -121,27 +127,34 @@ flowchart TB
     style sec fill:#fce4ec,stroke:#c2185b
 ```
 
-텍스트로 보면:
+텍스트로 보면 (실선=필수, 점선=허용/선택):
 
 ```
 apps:api      ──> application:frontoffice ──> domain
 apps:admin    ──> application:admin       ──┘
 apps:batch    ──> application:system      ──┘
                          ▲
-infrastructure ──────────┴──> domain          (DIP, 정상: infra가 app을 안다)
+infrastructure ──> domain + frontoffice, admin (필수) ─┘
+         -.-> application:system (허용, Port 생기면 추가)   (DIP, 정상)
 support:security ──> support:observability (유일한 허용 의존)
 support:observability ──> (BEAT 프로젝트 의존 없음)
+apps:* ──> infrastructure, observability (+ api는 security)  // Composition Root
 ```
 
-**허용/금지 (실제 `beat.root-verification`이 CI에서 검증하는 규칙 그대로)**
+**허용/금지 — 10개 전체, 실제 `beat.root-verification` `allowedProjectDependencies`와 1:1 (CI가 그대로 검증)**
 
-| 모듈 | 의존해도 되는 것 | 의존하면 CI 실패 (`verifyTargetModuleGraph`) |
-|---|---|---|
-| `domain` | 아무 BEAT 프로젝트도 의존 불가 | `Spring`, `Application`, `Infrastructure`, `Apps`, `Web/JPA/Redis` 외부 모듈 직접 의존 시 실패 |
-| `application:frontoffice` | `domain`, `support:security` | `application:admin`, `application:system`, `infrastructure`, `apps:*` 의존 금지 (lane 격리) |
-| `infrastructure` | `domain` + 3개 `application` lane | `apps:*` 의존 금지 |
-| `support:security` | `support:observability`만 허용 | `domain`, `application:*`, `infrastructure`, `apps:*` 의존 금지 |
-| `support:observability` | BEAT 프로젝트 의존 불가 (외부 `spring-boot-opentelemetry`, `sentry`만) | `domain`, `support:security`, `application:*`, `infrastructure`, `apps:*` 의존 금지 |
+| 모듈 | 허용 (`allowed`, 모든 configuration) | 필수 (`required`, main) | 금지 시 CI |
+|---|---|---|---|
+| `domain` | 없음 | 없음 | BEAT 프로젝트 의존 시 실패 |
+| `application:frontoffice` | `domain`, `support:security` | 없음 | `admin/system/infra/apps` 의존 시 실패 |
+| `application:admin` | `domain` | 없음 | `frontoffice/system/infra/apps` 의존 시 실패 |
+| `application:system` | `domain` | 없음 | `frontoffice/admin/infra/apps` 의존 시 실패 |
+| `infrastructure` | `domain`, `frontoffice`, `admin`, `system` | `domain`, `frontoffice`, `admin` | `system`은 허용이나 필수는 아님, `apps` 의존 시 실패 |
+| `support:security` | `support:observability` | 없음 | `domain`, `application:*`, `infrastructure`, `apps` 의존 시 실패 |
+| `support:observability` | 없음 | 없음 | BEAT 프로젝트 의존 시 실패 |
+| `apps:api` | `frontoffice`, `infra`, `security`, `observability`, `domain(test)` | `frontoffice` | `admin/system` lane 의존 시 실패, `domain`은 main에서 금지 |
+| `apps:admin` | `admin`, `infra`, `security`, `observability`, `domain(test)` | `admin` | `frontoffice/system` lane 의존 시 실패 |
+| `apps:batch` | `system`, `infra`, `observability`, `domain(test)` | `system` | `frontoffice/admin` lane 의존 시 실패 |
 
 * `support:security`는 JWT 파싱, 검증, 필터, principal 처리를 소유한다. `Maker가 Performance owner인가` 같은 업무적 권한 검사는 `application/domain`이 소유한다 — `security`에 두면 ArchUnit에서 차단된다.
 * `support:observability`는 Logging, MDC, Metrics, Tracing을 소유한다. `domain`에 의존하지 않는다.
@@ -422,9 +435,10 @@ apps ─┬─> application
 
 ## 6. Existing Architecture Guards — 실제로 CI가 집행하는 것만 적는다
 
-> 현재 CI는 `./gradlew check` 실행 시 `build-logic/beat.root-verification`의 `verifyTargetModuleGraph`, `verifyModuleBootJars`, `verifyMainResourceTestProfiles` 3개와 각 모듈의 `*ArchitectureTest`를 실행한다. 문서에 적고 CI가 안 돌리면 거짓 정본이므로, 아래 표는 실제 코드에 존재하는 Guard만 나열한다.
+> 현재 CI는 `./gradlew check` 실행 시 `build-logic/beat.root-verification`의 `verifyTargetModuleGraph`, `verifyModuleBootJars`, `verifyMainResourceTestProfiles`, `verifyMockFrameworkIsNotGlobalDefault` 4개와 각 모듈의 `*ArchitectureTest`를 실행한다. 문서에 적고 CI가 안 돌리면 거짓 정본이므로, 아래 표는 실제 코드에 존재하는 Guard만 나열한다.
+> Enforcement Level: `[CI]=Gradle/ArchUnit 자동, [COMPILER]=Kotlin internal, [REVIEW]=코드리뷰/도메인 모델링, [TARGET]=채택됐으나 migration 미완료`
 
-**Gradle이 막는 것 (`beat.root-verification` — PR에서 즉시 실패)**
+**Gradle이 막는 것 (`beat.root-verification` — PR에서 즉시 실패) [CI]**
 
 | Guard | 실제 검증 위치 | 위반 예 |
 |---|---|---|
@@ -437,7 +451,7 @@ apps ─┬─> application
 | `apps:api`는 `application:frontoffice`를, `apps:admin`은 `application:admin`을 반드시 의존 | `verifyTargetModuleGraph` | `apps:api`가 `application:frontoffice` 없이 빌드 |
 | `apps` 라이브러리(`domain`, `application:*` 등)는 `bootJar` 비활성 | `verifyModuleBootJars` | `application:frontoffice`에 `bootJar` 활성화 |
 
-**ArchUnit이 막는 것 (각 모듈 `src/test/...ArchitectureTest` — `./gradlew :<module>:test`에서 실패)**
+**ArchUnit이 막는 것 (각 모듈 `src/test/...ArchitectureTest` — `./gradlew :<module>:test`에서 실패) [CI]**
 
 | Guard | 실제 검증 위치 | 위반 예 |
 |---|---|---|
@@ -446,7 +460,7 @@ apps ─┬─> application
 | `Application Service`가 다른 Capability의 concrete `@Service`를 참조하지 않는다 | 동위 | `CreateBooking`이 `GetPerformanceUseCase` 직접 호출 |
 | `DomainService`가 `Repository`나 `Port`를 참조하지 않는다 | `domain/src/test/...` | `DomainService`가 `BookingRepository` 호출 |
 | `support:security`가 `application`/`infrastructure`를 참조하지 않는다 | `support:security/src/test/...SupportSecurityArchitectureTest` | `security`에 `BookingRepository` import |
-| `Web Adapter`가 `Infrastructure` 구현체를 참조하지 않는다 | `apps:api/src/test/...ApisArchitectureGuardTest` (코멘트로 명시, 실제 `verifyTargetModuleGraph`가 의존 방향으로 간접 차단) | Controller가 `JpaBookingRepository` 주입 |
+| `Web Adapter`가 `Infrastructure` 구현체를 참조하지 않는다 | `apps:api/src/test/...ApisArchitectureGuardTest` `apps:admin/...AdminArchitectureGuardTest` | Controller가 `JpaBookingRepository` 주입 |
 
 **아직 CI가 안 막는 것 (문서에 적지 않거나 `TODO`로만 둔다)**
 

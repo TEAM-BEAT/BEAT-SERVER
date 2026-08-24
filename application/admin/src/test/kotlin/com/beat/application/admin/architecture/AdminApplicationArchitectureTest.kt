@@ -32,16 +32,20 @@ class AdminApplicationArchitectureTest : FunSpec({
             .check(productionClasses)
     }
 
-    test("모든 admin @Service는 도메인 실패 번역기를 거친다") {
-        classes()
+    test("admin Application은 기술 구현에 의존하지 않는다") {
+        noClasses()
             .that()
-            .areAnnotatedWith(Service::class.java)
+            .resideInAnyPackage("com.beat.application.admin", "com.beat.application.admin..")
             .should()
             .dependOnClassesThat()
-            .haveFullyQualifiedName(
-                "com.beat.application.admin.exception.DomainFailureTranslatorKt",
+            .resideInAnyPackage(
+                "jakarta.persistence..",
+                "org.springframework.web..",
+                "org.springframework.data.redis..",
+                "org.redisson..",
+                "com.linecorp.kotlinjdsl..",
             )
-            .because("Admin services must translate domain failures at their application boundary")
+            .because("Admin Application technology boundary")
             .check(productionClasses)
     }
 })

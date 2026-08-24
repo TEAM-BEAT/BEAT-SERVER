@@ -30,4 +30,21 @@ class SystemApplicationArchitectureTest : FunSpec({
             .because("No Application Service Graph: use-case entry points must not form a concrete service graph")
             .check(productionClasses)
     }
+
+    test("system Application은 기술 구현에 의존하지 않는다") {
+        noClasses()
+            .that()
+            .resideInAnyPackage("com.beat.application.system", "com.beat.application.system..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "jakarta.persistence..",
+                "org.springframework.web..",
+                "org.springframework.data.redis..",
+                "org.redisson..",
+                "com.linecorp.kotlinjdsl..",
+            )
+            .because("System Application technology boundary")
+            .check(productionClasses)
+    }
 })

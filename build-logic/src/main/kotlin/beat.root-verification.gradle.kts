@@ -89,169 +89,128 @@ val verifyMainResourceTestProfiles by tasks.registering {
     }
 }
 
+// ── POLICY — single source of truth, SSOT §2.1 ──
 val targetApplicationProjects = setOf(
     ":application:frontoffice",
     ":application:admin",
     ":application:system",
 )
-
 val targetExecutableProjects = targetRuntimeArchiveNames.keys
 val targetExecutableApplicationLane = mapOf(
     ":apps:api" to ":application:frontoffice",
     ":apps:admin" to ":application:admin",
     ":apps:batch" to ":application:system",
 )
+val mainConfigurations = setOf("api", "implementation", "compileOnly", "runtimeOnly")
+
+// Allowed = any configuration (including test) may depend on these; anything else is CI failure
+val allowedProjectDependencies: Map<String, Set<String>> = mapOf(
+    ":domain" to emptySet(),
+    ":application:frontoffice" to setOf(":domain", ":support:security"),
+    ":application:admin" to setOf(":domain"),
+    ":application:system" to setOf(":domain"),
+    ":infrastructure" to setOf(
+        ":domain",
+        ":application:frontoffice",
+        ":application:admin",
+        ":application:system",
+    ),
+    ":support:security" to setOf(":support:observability"),
+    ":support:observability" to emptySet(),
+    ":apps:api" to setOf(
+        ":application:frontoffice",
+        ":infrastructure",
+        ":support:security",
+        ":support:observability",
+        ":domain", // testImplementation for ArchUnit guards
+    ),
+    ":apps:admin" to setOf(
+        ":application:admin",
+        ":infrastructure",
+        ":support:security",
+        ":support:observability",
+        ":domain",
+    ),
+    ":apps:batch" to setOf(
+        ":application:system",
+        ":infrastructure",
+        ":support:observability",
+        ":domain",
+    ),
+)
+// Required = must be present in main (runtime) configurations
+val requiredMainProjectDependencies: Map<String, Set<String>> = mapOf(
+    ":infrastructure" to setOf(":domain", ":application:frontoffice", ":application:admin"),
+    ":apps:api" to setOf(":application:frontoffice"),
+    ":apps:admin" to setOf(":application:admin"),
+    ":apps:batch" to setOf(":application:system"),
+)
 
 val verifyTargetModuleGraph by tasks.registering {
     group = "verification"
-    description = "Verifies the target application lanes are present and compile-time isolated."
+    description = "Verifies the target module graph is exactly the SSOT allowlist."
 
     doLast {
-        val actualLeafProjects = rootProject.subprojects
-            .filter { project -> project.childProjects.isEmpty() }
-            .map { project -> project.path }
-            .toSet()
-        val missingLeafProjects = canonicalTargetLeafProjects - actualLeafProjects
-        val unexpectedLeafProjects = actualLeafProjects - canonicalTargetLeafProjects
-        check(actualLeafProjects == canonicalTargetLeafProjects) {
-            "Target leaf project set mismatch. Missing: $missingLeafProjects; Unexpected: $unexpectedLeafProjects"
-        }
-        val projectDependenciesOf: (String) -> Set<String> = { projectPath ->
+        // ── HELPERS ──
+        val allProjectDependenciesOf: (String) -> Set<String> = { projectPath ->
             project(projectPath).configurations
-                .flatMap { configuration -> configuration.dependencies.withType(ProjectDependency::class.java) }
-                .map { dependency -> dependency.path }
-                .toSet()
+                .flatMap { it.dependencies.withType(ProjectDependency::class.java) }
+                .map { it.path }.toSet()
         }
-        check(projectDependenciesOf(":domain").isEmpty()) {
-            "domain must not depend on another BEAT project"
+        val mainProjectDependenciesOf: (String) -> Set<String> = { projectPath ->
+            project(projectPath).configurations
+                .filter { it.name in mainConfigurations }
+                .flatMap { it.dependencies.withType(ProjectDependency::class.java) }
+                .map { it.path }.toSet()
         }
-        targetApplicationProjects.forEach { applicationProject ->
-            val dependencies = projectDependenciesOf(applicationProject)
-            val forbiddenProjects =
-                (targetApplicationProjects - applicationProject) +
-                    setOf(":infrastructure") +
-                    targetExecutableProjects
-            check(dependencies.intersect(forbiddenProjects).isEmpty()) {
-                "$applicationProject must not depend on another application lane, infrastructure, or an executable app: $dependencies"
-            }
+
+        // ── CHECKS ──
+        // 1. Exact leaf projects
+        val actualLeafProjects = rootProject.subprojects
+            .filter { it.childProjects.isEmpty() }.map { it.path }.toSet()
+        check(actualLeafProjects == canonicalTargetLeafProjects) {
+            "Target leaf project set mismatch. Missing: ${canonicalTargetLeafProjects - actualLeafProjects}; Unexpected: ${actualLeafProjects - canonicalTargetLeafProjects}"
         }
-        val infrastructureDependencies = projectDependenciesOf(":infrastructure")
-        check(infrastructureDependencies.intersect(targetExecutableProjects).isEmpty()) {
-            ":infrastructure must not depend on an executable app: $infrastructureDependencies"
-        }
-        val mainConfigurations = setOf("api", "implementation", "compileOnly", "runtimeOnly")
-        // Allowlist is SSOT: docs/architecture/architecture.md §2.1
-        // Any BEAT project dependency not in this map is a CI failure.
-        val allowedMainProjectDependencies: Map<String, Set<String>> = mapOf(
-            ":domain" to emptySet(),
-            ":application:frontoffice" to setOf(":domain", ":support:security"),
-            ":application:admin" to setOf(":domain"),
-            ":application:system" to setOf(":domain"),
-            ":infrastructure" to setOf(
-                ":domain",
-                ":application:frontoffice",
-                ":application:admin",
-                ":application:system",
-            ),
-            ":support:security" to setOf(":support:observability"),
-            ":support:observability" to emptySet(),
-            ":apps:api" to setOf(
-                ":application:frontoffice",
-                ":infrastructure",
-                ":support:security",
-                ":support:observability",
-                ":domain", // testImplementation for ArchUnit guards
-            ),
-            ":apps:admin" to setOf(
-                ":application:admin",
-                ":infrastructure",
-                ":support:security",
-                ":support:observability",
-                ":domain",
-            ),
-            ":apps:batch" to setOf(
-                ":application:system",
-                ":infrastructure",
-                ":support:observability",
-                ":domain",
-            ),
-        )
-        // Required dependencies — must be present in main configurations
-        val requiredMainProjectDependencies: Map<String, Set<String>> = mapOf(
-            ":infrastructure" to setOf(":domain", ":application:frontoffice", ":application:admin"),
-            ":apps:api" to setOf(":application:frontoffice"),
-            ":apps:admin" to setOf(":application:admin"),
-            ":apps:batch" to setOf(":application:system"),
-        )
-        // Enforce allowlist: actual ⊆ allowed
+
+        // 2. Allowlist: actual ⊆ allowed (all configurations)
         canonicalTargetLeafProjects.forEach { projectPath ->
-            val actual = projectDependenciesOf(projectPath)
-            val allowed = allowedMainProjectDependencies[projectPath] ?: emptySet()
+            val actual = allProjectDependenciesOf(projectPath)
+            val allowed = allowedProjectDependencies[projectPath] ?: emptySet()
             val unexpected = actual - allowed
             check(unexpected.isEmpty()) {
                 "$projectPath has unexpected BEAT project dependencies not in allowlist $allowed: $unexpected (actual: $actual)"
             }
         }
-        // Enforce required: required ⊆ actual (in main configurations)
+
+        // 3. Required: required ⊆ actualMain (main configurations)
         requiredMainProjectDependencies.forEach { (projectPath, required) ->
-            val actualMain = project(projectPath).configurations
-                .filter { it.name in mainConfigurations }
-                .flatMap { it.dependencies.withType(ProjectDependency::class.java) }
-                .map { it.path }.toSet()
+            val actualMain = mainProjectDependenciesOf(projectPath)
             val missing = required - actualMain
             check(missing.isEmpty()) {
                 "$projectPath is missing required BEAT project dependencies $required (actual main: $actualMain)"
             }
         }
+
+        // 4. Domain external tech ban
         val forbiddenDomainExternalDependencies = project(":domain").configurations
-            .filter { configuration -> configuration.name in mainConfigurations }
-            .flatMap { configuration -> configuration.dependencies }
-            .filter { dependency ->
-                if (dependency is ProjectDependency) {
-                    false
-                } else {
-                    val group = dependency.group.orEmpty()
-                    val module = dependency.name.lowercase()
-                    group.startsWith("org.springframework") ||
-                        group.startsWith("jakarta.persistence") ||
-                        group.startsWith("org.hibernate") ||
-                        group.startsWith("org.redisson") ||
-                        module.contains("redis") ||
-                        module.contains("web") ||
-                        module.contains("jpa")
+            .filter { it.name in mainConfigurations }
+            .flatMap { it.dependencies }
+            .filter { dep ->
+                if (dep is ProjectDependency) false else {
+                    val g = dep.group.orEmpty(); val m = dep.name.lowercase()
+                    g.startsWith("org.springframework") || g.startsWith("jakarta.persistence") ||
+                        g.startsWith("org.hibernate") || g.startsWith("org.redisson") ||
+                        m.contains("redis") || m.contains("web") || m.contains("jpa")
                 }
-            }
-            .map { dependency -> "${dependency.group}:${dependency.name}" }
-            .toSet()
+            }.map { "${it.group}:${it.name}" }.toSet()
         check(forbiddenDomainExternalDependencies.isEmpty()) {
-            "domain must not depend directly on framework, persistence, Redis, web, or JPA external modules: " +
-                forbiddenDomainExternalDependencies
+            "domain must not depend directly on framework, persistence, Redis, web, or JPA: $forbiddenDomainExternalDependencies"
         }
-        targetExecutableApplicationLane.keys.forEach { executableProject ->
-            val mainDependencies = project(executableProject).configurations
-                .filter { configuration -> configuration.name in mainConfigurations }
-                .flatMap { configuration -> configuration.dependencies.withType(ProjectDependency::class.java) }
-                .map { dependency -> dependency.path }
-                .toSet()
-            check(":domain" !in mainDependencies) {
-                "$executableProject must not depend directly on :domain in main configurations: $mainDependencies"
-            }
-        }
-        targetExecutableApplicationLane.forEach { (executableProject, allowedApplicationProject) ->
-            val dependencies = projectDependenciesOf(executableProject)
-            val mainDependencies = project(executableProject).configurations
-                .filter { configuration -> configuration.name in mainConfigurations }
-                .flatMap { configuration -> configuration.dependencies.withType(ProjectDependency::class.java) }
-                .map { dependency -> dependency.path }
-                .toSet()
-            check(allowedApplicationProject in mainDependencies) {
-                "$executableProject must depend on its designated application lane $allowedApplicationProject: $mainDependencies"
-            }
-            val forbiddenProjects =
-                (targetExecutableProjects - executableProject) +
-                    (targetApplicationProjects - allowedApplicationProject)
-            check(dependencies.intersect(forbiddenProjects).isEmpty()) {
-                "$executableProject has a cross-runtime or wrong-lane dependency: $dependencies"
+
+        // 5. Apps must not depend directly on domain in main (even if allowlist permits test)
+        targetExecutableApplicationLane.keys.forEach { exe ->
+            check(":domain" !in mainProjectDependenciesOf(exe)) {
+                "$exe must not depend directly on :domain in main configurations: ${mainProjectDependenciesOf(exe)}"
             }
         }
     }
