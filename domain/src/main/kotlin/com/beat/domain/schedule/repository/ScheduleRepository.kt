@@ -1,0 +1,30 @@
+package com.beat.domain.schedule.repository
+
+import com.beat.domain.schedule.model.Schedule
+
+
+interface ScheduleRepository {
+    fun findById(id: Long): Schedule?
+
+    fun findPerformanceIdById(id: Long): Long?
+
+    fun lockById(id: Long): Schedule?
+
+    fun isBeforeBookingCloseAt(id: Long): Boolean
+
+    fun findAllByPerformanceId(performanceId: Long): List<Schedule>
+
+    fun findAllById(ids: Collection<Long>): List<Schedule>
+
+    fun findIdsByPerformanceId(performanceId: Long): List<Long>
+
+    fun countByPerformanceId(performanceId: Long): Int
+
+    fun save(schedule: Schedule): Schedule
+
+    fun saveAll(schedules: List<Schedule>): List<Schedule>
+
+    fun delete(schedule: Schedule)
+
+    fun deleteByPerformanceId(performanceId: Long)
+}

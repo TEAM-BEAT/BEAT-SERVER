@@ -139,7 +139,7 @@ jobs:
           SOPS_AGE_KEY: ${{ secrets.sops_age_key }}
         run: |
           export SOPS_AGE_KEY
-          cd infra/ansible
+          cd ops/ansible
           cmd=(ansible-playbook "$PLAYBOOK" -i "$INVENTORY_PATH" -e "module=$MODULE")
           if [[ -n "${EXTRA_VARS_PATH:-}" && -s "$EXTRA_VARS_PATH" ]]; then
             cmd+=(--extra-vars "@$EXTRA_VARS_PATH")
