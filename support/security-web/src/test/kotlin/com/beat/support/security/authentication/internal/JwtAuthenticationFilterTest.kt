@@ -1,17 +1,17 @@
 package com.beat.support.security.authentication.internal
 
-import com.beat.support.security.jwt.internal.AccessTokenAuthenticationFailure
-import com.beat.support.security.jwt.internal.AccessTokenAuthenticationResult
-import com.beat.support.security.jwt.internal.AccessTokenAuthenticator
 import com.beat.support.observability.logging.filter.BaseMdcLoggingFilter
-import jakarta.servlet.FilterChain
-import jakarta.servlet.http.HttpServletResponse
+import com.beat.support.security.access.AccessTokenAuthenticationFailure
+import com.beat.support.security.access.AccessTokenAuthenticationResult
+import com.beat.support.security.access.AccessTokenAuthenticator
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import jakarta.servlet.FilterChain
+import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.MDC
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse

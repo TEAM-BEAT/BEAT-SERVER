@@ -1,4 +1,4 @@
-package com.beat.support.security.jwt.internal
+package com.beat.support.security.access
 
 sealed interface AccessTokenAuthenticationResult {
 

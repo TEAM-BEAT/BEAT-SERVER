@@ -3,6 +3,8 @@ package com.beat.support.security.jwt.internal
 import com.beat.application.frontoffice.security.TokenAuthenticationFailure
 import com.beat.application.frontoffice.security.TokenAuthenticationResult
 import com.beat.application.frontoffice.security.TokenSubject
+import com.beat.support.security.access.AccessTokenAuthenticationFailure
+import com.beat.support.security.access.AccessTokenAuthenticationResult
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jws
 import io.jsonwebtoken.Jwts
@@ -13,15 +15,15 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.Base64
 import java.util.Date
 import javax.crypto.SecretKey
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
 
 class JwtTokenProviderTest : FunSpec() {
 
