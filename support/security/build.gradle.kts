@@ -4,6 +4,7 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":application:frontoffice"))
     implementation(project(":support:observability"))
     implementation(libs.jjwt.api)
     implementation(libs.kotlin.logging.jvm)

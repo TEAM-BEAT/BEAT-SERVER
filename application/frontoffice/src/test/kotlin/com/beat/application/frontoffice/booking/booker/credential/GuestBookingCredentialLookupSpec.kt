@@ -1,6 +1,6 @@
 package com.beat.application.frontoffice.booking.booker.credential
 
-import com.beat.support.security.password.PasswordHasher
+import com.beat.application.frontoffice.security.PasswordHasher
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe

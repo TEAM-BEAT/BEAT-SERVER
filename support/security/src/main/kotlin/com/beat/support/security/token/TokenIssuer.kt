@@ -1,8 +1,3 @@
 package com.beat.support.security.token
 
-interface TokenIssuer {
-
-    fun issueAccessToken(subject: TokenSubject): String
-
-    fun issueRefreshToken(subject: TokenSubject): String
-}
+typealias TokenIssuer = com.beat.application.frontoffice.security.TokenIssuer

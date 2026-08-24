@@ -1,8 +1,8 @@
 package com.beat.support.security.authentication.internal
 
 import com.beat.support.security.jwt.internal.AccessTokenAuthenticator
-import com.beat.support.security.token.TokenAuthenticationFailure
-import com.beat.support.security.token.TokenAuthenticationResult
+import com.beat.application.frontoffice.security.TokenAuthenticationFailure
+import com.beat.application.frontoffice.security.TokenAuthenticationResult
 import com.beat.support.observability.logging.filter.BaseMdcLoggingFilter
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.servlet.FilterChain

@@ -255,8 +255,8 @@ class FrontofficeApplicationArchitectureTest : FunSpec({
             noDependencyOnConcreteTypesRule(
                 packagePattern("member"),
                 setOf(
-                    "com.beat.support.security.token.TokenIssuer",
-                    "com.beat.support.security.token.RefreshTokenAuthenticator",
+                    "com.beat.application.frontoffice.security.TokenIssuer",
+                    "com.beat.application.frontoffice.security.RefreshTokenAuthenticator",
                 ),
             ),
         )

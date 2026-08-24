@@ -1,6 +1,3 @@
 package com.beat.support.security.token
 
-interface RefreshTokenAuthenticator {
-
-    fun authenticateRefreshToken(token: String): TokenAuthenticationResult
-}
+typealias RefreshTokenAuthenticator = com.beat.application.frontoffice.security.RefreshTokenAuthenticator

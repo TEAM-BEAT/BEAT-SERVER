@@ -106,7 +106,7 @@ val mainConfigurations = setOf("api", "implementation", "compileOnly", "runtimeO
 // Allowed = any configuration (including test) may depend on these; anything else is CI failure
 val allowedProjectDependencies: Map<String, Set<String>> = mapOf(
     ":domain" to emptySet(),
-    ":application:frontoffice" to setOf(":domain", ":support:security"),
+    ":application:frontoffice" to setOf(":domain"),
     ":application:admin" to setOf(":domain"),
     ":application:system" to setOf(":domain"),
     ":infrastructure" to setOf(
@@ -115,7 +115,7 @@ val allowedProjectDependencies: Map<String, Set<String>> = mapOf(
         ":application:admin",
         ":application:system",
     ),
-    ":support:security" to setOf(":support:observability"),
+    ":support:security" to setOf(":application:frontoffice", ":support:observability"),
     ":support:observability" to emptySet(),
     ":apps:api" to setOf(
         ":application:frontoffice",

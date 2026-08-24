@@ -3,11 +3,11 @@ package com.beat.application.frontoffice.auth.command
 import com.beat.application.frontoffice.auth.exception.TokenApplicationErrorCode
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
-import com.beat.support.security.token.RefreshTokenAuthenticator
-import com.beat.support.security.token.TokenAuthenticationFailure
-import com.beat.support.security.token.TokenAuthenticationResult
-import com.beat.support.security.token.TokenIssuer
-import com.beat.support.security.token.TokenSubject
+import com.beat.application.frontoffice.security.RefreshTokenAuthenticator
+import com.beat.application.frontoffice.security.TokenAuthenticationFailure
+import com.beat.application.frontoffice.security.TokenAuthenticationResult
+import com.beat.application.frontoffice.security.TokenIssuer
+import com.beat.application.frontoffice.security.TokenSubject
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec

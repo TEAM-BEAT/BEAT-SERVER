@@ -1,6 +1,6 @@
 package com.beat.support.security.jwt.internal
 
-import com.beat.support.security.token.TokenSubject
+import com.beat.application.frontoffice.security.TokenSubject
 import io.jsonwebtoken.Jwts
 import java.time.Clock
 import java.util.Date

@@ -1,6 +1,3 @@
 package com.beat.support.security.token
 
-data class TokenSubject(
-    val memberId: Long,
-    val roleName: String,
-)
+typealias TokenSubject = com.beat.application.frontoffice.security.TokenSubject

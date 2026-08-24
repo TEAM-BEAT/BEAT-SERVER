@@ -1,6 +1,6 @@
 package com.beat.support.security.jwt.internal
 
-import com.beat.support.security.token.TokenAuthenticationResult
+import com.beat.application.frontoffice.security.TokenAuthenticationResult
 
 /**
  * Access token 1회 파싱으로 인증 결과를 반환하는 gateway 내부 계약.

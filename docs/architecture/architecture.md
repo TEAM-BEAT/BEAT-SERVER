@@ -110,16 +110,16 @@ flowchart TB
     infra --> adminApp
     infra -.-> system
     infra --> dom
+    sec --> frontoffice
+    sec --> obs
     api --> infra
     adminApi --> infra
     batch --> infra
+    api --> sec
+    adminApi --> sec
+    batch --> obs
     api --> obs
     adminApi --> obs
-    batch --> obs
-    sec --> obs
-    frontoffice -.-> sec
-    api -.-> sec
-    adminApi -.-> sec
 
     style dom fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style infra fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
@@ -127,30 +127,32 @@ flowchart TB
     style sec fill:#fce4ec,stroke:#c2185b
 ```
 
-텍스트로 보면 (실선=필수, 점선=허용/선택):
+텍스트로 보면 (실선=필수, 점선=허용/선택) — 순혈 BP:
 
 ```
-apps:api      ──> application:frontoffice ──> domain
-apps:admin    ──> application:admin       ──┘
-apps:batch    ──> application:system      ──┘
+application:frontoffice ──> domain
+application:admin       ──> domain
+application:system      ──> domain
                          ▲
+support:security ──> application:frontoffice + observability  // Port 구현, DIP 역전
 infrastructure ──> domain + frontoffice, admin (필수) ─┘
-         -.-> application:system (허용, Port 생기면 추가)   (DIP, 정상)
-support:security ──> support:observability (유일한 허용 의존)
+         -.-> application:system (허용, Port 생기면 추가)   // DIP
+apps:api      ──> frontoffice + infra + security + observability
+apps:admin    ──> admin + infra + security + observability
+apps:batch    ──> system + infra + observability
 support:observability ──> (BEAT 프로젝트 의존 없음)
-apps:* ──> infrastructure, observability (+ api는 security)  // Composition Root
 ```
 
-**허용/금지 — 10개 전체, 실제 `beat.root-verification` `allowedProjectDependencies`와 1:1 (CI가 그대로 검증)**
+**허용/금지 — 10개 전체, 실제 `beat.root-verification` `allowedProjectDependencies`와 1:1 (CI가 그대로 검증) — 순혈 BP**
 
 | 모듈 | 허용 (`allowed`, 모든 configuration) | 필수 (`required`, main) | 금지 시 CI |
 |---|---|---|---|
 | `domain` | 없음 | 없음 | BEAT 프로젝트 의존 시 실패 |
-| `application:frontoffice` | `domain`, `support:security` | 없음 | `admin/system/infra/apps` 의존 시 실패 |
+| `application:frontoffice` | `domain` | 없음 | `security`, `admin/system/infra/apps` 의존 시 실패 (Port 소유) |
 | `application:admin` | `domain` | 없음 | `frontoffice/system/infra/apps` 의존 시 실패 |
 | `application:system` | `domain` | 없음 | `frontoffice/admin/infra/apps` 의존 시 실패 |
 | `infrastructure` | `domain`, `frontoffice`, `admin`, `system` | `domain`, `frontoffice`, `admin` | `system`은 허용이나 필수는 아님, `apps` 의존 시 실패 |
-| `support:security` | `support:observability` | 없음 | `domain`, `application:*`, `infrastructure`, `apps` 의존 시 실패 |
+| `support:security` | `application:frontoffice`, `support:observability` | 없음 | `domain`, `admin/system`, `infrastructure`, `apps` 의존 시 실패 (Port 구현) |
 | `support:observability` | 없음 | 없음 | BEAT 프로젝트 의존 시 실패 |
 | `apps:api` | `frontoffice`, `infra`, `security`, `observability`, `domain(test)` | `frontoffice` | `admin/system` lane 의존 시 실패, `domain`은 main에서 금지 |
 | `apps:admin` | `admin`, `infra`, `security`, `observability`, `domain(test)` | `admin` | `frontoffice/system` lane 의존 시 실패 |
