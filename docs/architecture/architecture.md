@@ -1,110 +1,104 @@
-# BEAT-SERVER Architecture v4
+# BEAT-SERVER Architecture — Final SSOT
 
-**Status:** Final / Adopted Architecture
-**Architecture baseline date:** 2026-08-25
-**Target repository:** TEAM-BEAT/BEAT-SERVER
-**Primary branch:** develop
-**Architecture style:** Pragmatic Clean Architecture + Ports & Adapters + CQRS
-**Decision:** 11 product modules freeze
-**Audience:** Backend engineers, reviewers, AI coding agents
+> **Status:** Final / Adopted  
+> **Baseline:** 2026-08-25 · `TEAM-BEAT/BEAT-SERVER` · `develop`  
+> **Style:** Pragmatic Clean Architecture + Ports & Adapters + CQRS  
+> **Decision:** 11 Product Modules Freeze  
+> **Audience:** Backend engineers, reviewers, AI coding agents
 
-## 0. Executive Verdict
+---
 
-BEAT-SERVER는 11개 Product Module에서 멈춘다.
+# AI Summary — Read First
 
-핵심 의존성 원칙은 다음과 같다.
+> 아래 YAML은 빠른 판단용이다. 정본은 Axis 1~7의 MUST / MUST NOT 규칙이다.
 
+```yaml
+architecture:
+  status: ADOPTED
+  product_modules: 11
+  graph: DAG
+  runtime_transitive_classpath_full_isolation: NOT_A_GOAL
+  framework_free_application: NOT_A_GOAL
+
+direct_dependencies:
+  domain: []
+  application:frontoffice: [domain]
+  application:admin: [domain]
+  application:system: [domain]
+  support:security: [application:frontoffice, support:observability]
+  support:security-web: [support:security, support:observability]
+  support:observability: []
+  infrastructure:
+    required: [domain, application:frontoffice, application:admin]
+    conditional:
+      application:system: real_system_port_implementation_exists
+  apps:api: [application:frontoffice, infrastructure, support:security-web, support:observability]
+  apps:admin: [application:admin, infrastructure, support:security-web, support:observability]
+  apps:batch: [application:system, infrastructure, support:observability]
+
+test_only_dependencies:
+  apps:api: [domain]
+  apps:admin: [domain]
+  apps:batch: [domain]
+
+port_contract:
+  owner: consumer
+  signature_types_allowed: [owning_application_lane, domain, JDK_or_Kotlin_standard]
+  signature_types_forbidden: [support, infrastructure, framework, external_SDK]
+
+security:
+  business_authentication_workflow: application:frontoffice
+  web_independent_security_and_port_adapter: support:security
+  spring_security_servlet_integration: support:security-web
+  route_role_policy: apps
+  business_authorization: application_or_domain
+  infrastructure_security_module: NOT_ADOPTED
+  twelfth_security_core_module: DEFERRED
+
+cqrs:
+  classification: business_intent
+  aggregate_read: JPA
+  decision_read: JPA
+  view_read: jOOQ
+  command_may_select: true
+  query_side_location: infrastructure/persistence/query
+  jooq_type_escape: FORBIDDEN
 ```
-domain
-    -> (없음)
 
-application:frontoffice
-    -> domain
+### AI placement rule
 
-application:admin
-    -> domain
+```text
+Invariant / Aggregate / Entity / VO
+  -> domain
 
-application:system
-    -> domain
+Use Case / transaction / Port / ReadModel
+  -> application:<lane>
 
-support:security
-    -> application:frontoffice
-    -> support:observability
+HTTP DTO / Controller / Facade / OpenAPI / route policy
+  -> apps:<runtime>
 
-support:security-web
-    -> support:security
-    -> support:observability
-    # TokenAuthenticationResult 등 3개 타입이 application:frontoffice에 있어 security-web도 frontoffice를 간접적으로 보게 되나, 직접 의존은 security에만 둔다
+JWT / BCrypt / token mechanism /
+Frontoffice security Port implementation
+  -> support:security
 
-support:observability
-    -> (없음)
+Spring Security Filter / SecurityContext /
+CurrentMember / Servlet integration
+  -> support:security-web
 
-infrastructure
-    -> domain
-    -> application:frontoffice
-    -> application:admin
-    -> application:system     # 실제 Port가 생길 때만 사용
+JPA / jOOQ / Redis / S3 / SMS / external API adapter
+  -> infrastructure
 
-apps:api
-    -> application:frontoffice
-    -> infrastructure
-    -> support:security-web
-    -> support:observability
-    -> domain                 # test scope only
-
-apps:admin
-    -> application:admin
-    -> infrastructure
-    -> support:security-web
-    -> support:observability
-    -> domain                 # test scope only
-
-apps:batch
-    -> application:system
-    -> infrastructure
-    -> support:observability
-    -> domain                 # test scope only
+Logging / MDC / tracing / metrics
+  -> support:observability
 ```
 
-이 구조는 다음을 달성한다.
+---
 
-- Domain은 완전 독립
-- Application은 Domain만 의존
-- Application은 Infrastructure / Security 구현을 모름
-- Security는 Application-owned Port를 구현하는 바깥 adapter
-- Web Security는 별도 module로 분리
-- Infrastructure는 Persistence / Redis / External adapter를 소유
-- apps:*는 Inbound Adapter + Composition Root
-- 전체 Gradle graph는 DAG
-- lane 직접 의존은 금지
-- runtime/transitive classpath 완전 격리는 현재 목표가 아님
-- CQRS는 business intent로 분류
-- Command/Aggregate/Decision persistence는 JPA
-- View Query는 jOOQ
+# Axis 1. System Shape & Dependency Direction
 
-## 1. Architecture Goal
+## 1.1 11 Product Modules — ADOPTED
 
-BEAT의 목표는 "책에 가장 가까운 module 수"가 아니다.
-
-목표는 다음 세 가지의 균형이다.
-
-1. Dependency Direction
-2. Compile-time Boundary Enforcement
-3. Team Simplicity
-
-따라서 다음 철학을 채택한다.
-
-안쪽 정책은 바깥 구현을 모른다.
-바깥 구현이 안쪽 Port를 구현한다.
-하지만 독립 배포/재사용 실익이 없는 경계까지 Gradle module로 쪼개지는 않는다.
-
-BEAT는 순수한 textbook Clean Architecture보다 Pragmatic Clean Architecture를 선택한다.
-
-## 2. Product Module Freeze
-
-최종 Product Module은 11개다.
-
-```
+```text
 apps
 ├── api
 ├── admin
@@ -124,11 +118,11 @@ support
 └── observability
 ```
 
-build-logic은 included build이며 Product Module 수에 포함하지 않는다.
+`build-logic`은 included build이며 Product Module 수에 포함하지 않는다.
 
-다음 module은 현재 만들지 않는다.
+현재 만들지 않는 module:
 
-```
+```text
 support:security-core
 adapter:security
 infrastructure:security
@@ -138,573 +132,181 @@ bootstrap:batch
 module-contracts
 ```
 
-이들은 실제 독립 경계가 필요해질 때만 검토한다.
+## 1.2 Dependency Rule — MUST
 
-## 3. Rule 0 — Gradle Graph Must Be a DAG
-
-모든 Gradle project dependency는 DAG여야 한다.
-
-금지:
-
-```
-A -> B -> A
-A -> B -> C -> A
-```
-
-허용:
-
-```
-A -> B -> C
-A -> C
-```
-
-직접 cycle과 간접 cycle 모두 금지한다.
-
-verifyTargetModuleGraph는 최소 다음을 검증해야 한다.
-
-- target project set
-- allowed direct dependencies
-- cycle absence
-- forbidden cross-lane direct dependency
-
-DAG 검증과 lane isolation 검증은 별개다.
-
-## 4. Clean Architecture Dependency Rule
-
-정본 방향:
-
-```
+```text
 Outer Adapter
-      ↓
+    ↓
 Application
-      ↓
+    ↓
 Domain
 ```
 
-Runtime flow와 compile dependency는 같을 필요가 없다.
+Runtime 호출 방향과 compile dependency는 같을 필요가 없다.
 
-예:
+```text
+Runtime:
+AuthenticationCommandService
+  -> TokenIssuer
+  -> JwtTokenProvider
 
-Runtime
-
-```
-ApplicationService
-    -> TokenIssuer
-    -> JwtTokenProvider
-```
-
-compile dependency는:
-
-```
+Compile:
 support:security
-    -> application:frontoffice
+  -> application:frontoffice
 ```
 
-이다.
+Application은 `JwtTokenProvider`를 import하지 않는다.
 
-Application이 Security implementation을 import하지 않는다.
+## 1.3 Canonical Direct Dependency Graph
 
-이것이 Dependency Inversion이다.
+> **이 절이 Gradle direct dependency의 단일 정본이다.**
 
-## 5. Final Dependency Matrix
+```text
+domain
+    -> (없음)
 
-### 5.1 Domain
+application:frontoffice
+    -> domain
 
-```
-domain -> (없음)
-```
+application:admin
+    -> domain
 
-Domain은 모든 BEAT module로부터 독립적이다.
+application:system
+    -> domain
 
-금지:
-
-```
-domain -> application
-domain -> infrastructure
-domain -> support
-domain -> apps
-```
-
-### 5.2 Application
-
-```
-application:frontoffice -> domain
-application:admin       -> domain
-application:system      -> domain
-```
-
-Application은 오직 Domain만 의존한다.
-
-금지:
-
-```
-application:* -> infrastructure
-application:* -> support:security
-application:* -> support:security-web
-application:* -> support:observability
-application:* -> apps:*
-application lane -> another application lane
-```
-
-### 5.3 Support Security
-
-```
 support:security
     -> application:frontoffice
     -> support:observability
-```
 
-support:security는 Web-independent Security Capability + Security Outbound Adapter다.
-
-즉 이 module은 Application이 소유한 security-related Port를 구현한다.
-
-예:
-
-```
-application:frontoffice
-└── TokenIssuer
-└── RefreshTokenAuthenticator
-└── PasswordHasher / PasswordVerifier
-
-support:security
-└── JwtTokenProvider
-└── BCryptPasswordHasher
-```
-
-핵심은:
-
-```
-support:security -> application:frontoffice
-```
-
-이며,
-
-```
-application:frontoffice -> support:security
-```
-
-는 금지한다.
-
-### 5.4 Support Security Web
-
-```
 support:security-web
     -> support:security
     -> support:observability
-```
 
-역할:
+support:observability
+    -> (없음)
 
-```
-JwtAuthenticationFilter
-SecurityMdcLoggingFilter
-CurrentMember
-CurrentMemberArgumentResolver
-MemberAuthentication
-AdminAuthentication
-AuthenticationEntryPoint
-AccessDeniedHandler
-Spring Security / Servlet bootstrap
-```
-
-금지:
-
-```
-security-web -> application:* 직접 의존
-security-web -> infrastructure
-security-web -> apps:*
-```
-
-### 5.5 Observability
-
-```
-support:observability -> (없음)
-```
-
-소유:
-
-```
-logging
-MDC
-tracing
-metrics
-request correlation
-OpenTelemetry/Sentry support
-```
-
-금지:
-
-```
-business rule
-application use case
-repository
-security policy
-domain dependency
-```
-
-### 5.6 Infrastructure
-
-```
 infrastructure
     -> domain
     -> application:frontoffice
     -> application:admin
-    -> application:system   # 실제 Port가 있을 때만
-```
+    -> application:system      # conditional: 실제 System Port 구현이 있을 때만
 
-Infrastructure는 Application/Domain Port를 구현하는 driven adapter module이다.
-
-소유:
-
-```
-Persistence
-Redis
-External API
-Storage
-SMS
-jOOQ Query adapter
-Spring Data implementation
-```
-
-Security implementation을 Infrastructure로 옮기는 것은 현재 채택하지 않는다.
-
-### 5.7 Apps
-
-```
 apps:api
     -> application:frontoffice
     -> infrastructure
     -> support:security-web
     -> support:observability
+    -> domain                  # test only
 
 apps:admin
     -> application:admin
     -> infrastructure
     -> support:security-web
     -> support:observability
+    -> domain                  # test only
 
 apps:batch
     -> application:system
     -> infrastructure
     -> support:observability
+    -> domain                  # test only
 ```
 
-test scope에서는 Domain fixture/assertion을 위해 domain 의존을 허용할 수 있다.
+`infrastructure -> application:system`은 **Allowed Conditional Dependency**다. 실제 System Port 구현이 없으면 dependency도 추가하지 않는다.
 
-## 6. Why support:security -> application:frontoffice Is Correct
+## 1.4 Graph & Lane Invariants
 
-이 의존은 Clean Architecture 위반이 아니다.
+MUST:
+- 전체 Gradle graph는 DAG다.
+- Application lane은 서로 직접 의존하지 않는다.
+- Apps는 자신의 Application lane만 직접 의존한다.
 
-Application이 Port를 소유하고 Security가 구현하기 때문이다.
+MUST NOT:
 
-예:
+```text
+application:frontoffice -> application:admin/system
+application:admin       -> application:frontoffice/system
+application:system      -> application:frontoffice/admin
 
-```kotlin
-// application:frontoffice
-interface TokenIssuer {
-    fun issueAccessToken(...)
-    fun issueRefreshToken(...)
-}
-
-// support:security — TokenIssuer 구현체는 public으로 둔다 (application이 Port를 소유하므로 internal이면 주입 불가)
-class JwtTokenProvider(
-    ...
-) : TokenIssuer
+apps:api   -> application:admin/system
+apps:admin -> application:frontoffice/system
+apps:batch -> application:frontoffice/admin
 ```
 
-source dependency는:
+### Transitive classpath
 
-```
-support:security
-    -> application:frontoffice
-```
+**Status: NOT_A_GOAL**
 
-이다.
+다음 transitive path 자체는 허용한다.
 
-즉:
-
-```
-Outer Implementation
-    -> Inner Port
-```
-
-으로 정확한 Dependency Inversion이다.
-
-## 7. Why Security Is Not in Infrastructure
-
-BEAT에서 infrastructure는 다음 역할로 고정한다.
-
-```
-Persistence
-Redis
-External API
-Storage
-External driven adapters
-```
-
-Security를 infrastructure/security에 두는 것은 Clean Architecture상 가능하지만 필수는 아니다.
-
-BEAT는 Security를 별도 Support Capability로 유지한다.
-
-이유:
-
-1. Security는 DB/Redis/External과 다른 cross-cutting capability다.
-2. Web Security와 Web-independent Security를 별도 module로 관리하기 쉽다.
-3. 현재 구조로 이미 Dependency Inversion이 달성된다.
-4. Infrastructure로 옮겨도 의존 방향은 달라지지 않는다.
-5. 팀이 Security ownership을 더 명확하게 이해할 수 있다.
-
-따라서 v4에서는 다음을 명시적으로 채택한다.
-
-```
-support:security
-support:security-web
-```
-
-그리고 다음은 채택하지 않는다.
-
-```
-infrastructure/security
-```
-
-## 8. Why We Stop at 11 Modules
-
-12번째 support:security-core를 추가하면 다음 구조가 가능하다.
-
-```
-support:security-core
-    -> (없음)
-
-support:security
-    -> application:frontoffice
-    -> security-core
-
-support:security-web
-    -> security-core
-```
-
-그러면 security-core는 JWT signer/parser 같은 primitive만 가진 독립 library가 된다.
-
-그러나 현재 BEAT에서는 이 실익이 작다.
-
-현재 11개 구조에서 이미 달성한 것:
-
-- application -> security 금지
-- application -> infrastructure 금지
-- application -> domain only
-- security adapter -> application Port
-- Web Security 분리
-- DAG
-- direct lane isolation
-
-12번째 module이 새로 주는 핵심 이득은:
-
-- security primitive의 BEAT dependency 0
-- 독립 artifact화
-- 타 서비스 재사용
-- 독립 lifecycle/versioning
-
-이다.
-
-현재 BEAT에는 이 요구가 없다.
-
-따라서:
-
-> Module Purity보다 Team Simplicity를 우선한다.
-
-## 9. Deferred Option — Future security-core
-
-다음 조건 중 하나가 실제 발생할 때만 12번째 module을 검토한다.
-
-1. JWT/password primitive를 다른 서비스에서 재사용
-2. Security primitive를 독립 artifact로 배포
-3. security primitive와 BEAT adapter의 release lifecycle 분리 필요
-4. independent versioning 필요
-5. security module build/test cost가 독립 경계로 분리할 가치가 생김
-
-그 전에는 만들지 않는다.
-
-즉:
-
-```
-support:security-core
-```
-
-는 Future Target이 아니라 Deferred Option이다.
-
-## 10. Transitive Dependency Policy
-
-현재 구조에는 다음 transitive path가 존재할 수 있다.
-
-```
+```text
 apps:admin
-    -> support:security-web
-    -> support:security
-    -> application:frontoffice
+  -> support:security-web
+  -> support:security
+  -> application:frontoffice
 ```
 
-또한:
-
-```
+```text
 apps:admin
-    -> infrastructure
-    -> application:frontoffice
+  -> infrastructure
+  -> application:frontoffice
 ```
 
-도 가능하다.
+BEAT가 강제하는 것은 **direct Gradle dependency / direct source dependency / package-level dependency**다. Classpath에 타입이 존재하는 것과 해당 source가 그 타입을 사용하도록 허용하는 것은 다르다.
 
-이것은 v4에서 의도적으로 허용한다.
+---
 
-중요:
+# Axis 2. Module Ownership
 
-BEAT의 목표는 runtime classpath의 완전한 lane isolation이 아니다.
+| Module | Owns | Must Not Know / Own |
+|---|---|---|
+| `domain` | Aggregate, Entity, VO, pure Domain Service, invariant | Spring, JPA, jOOQ, Redis, HTTP, Security, Application, Infrastructure |
+| `application:*` | Use Case, transaction, consumer-owned Port, ReadModel, orchestration | JPA/jOOQ/Redis, SecurityContext, Servlet, HTTP DTO, outer implementation |
+| `infrastructure` | JPA, jOOQ View Query, Redis, S3, SMS, external adapters | Apps, Security Web |
+| `support:security` | Web-independent JWT/password capability + Frontoffice Security Port implementation | Web/Servlet responsibility, business workflow |
+| `support:security-web` | Spring Security/Servlet inbound integration | Application direct dependency, Domain, Infrastructure |
+| `support:observability` | logging, MDC, tracing, metrics | business rule, use case, repository, security policy |
+| `apps:*` | HTTP/batch entrypoint, DTO, Controller/Facade, route policy, Composition Root | business invariant, direct persistence logic |
 
-대신 다음을 엄격히 금지한다.
+## 2.1 Application rules
 
-```
-apps:admin source
-    -> application:frontoffice 직접 사용
+Application MAY use:
 
-application:admin
-    -> application:frontoffice
-
-apps:api
-    -> application:admin
-```
-
-즉 보호 대상은:
-
-- Direct source dependency
-- Direct Gradle dependency
-- Package-level dependency
-
-이다.
-
-## 11. Enforcement Strategy
-
-BEAT의 architecture enforcement는 3단계다.
-
-1. Gradle project dependency allowlist
-2. Kotlin internal / module visibility
-3. ArchUnit package dependency rules
-
-예:
-
-```
-apps:admin
-    -> security-web
+```text
+@Service
+@Transactional
+Spring DI
+java.time.Clock
+Domain Repository
+Application-owned Port
+Application-owned ReadModel
 ```
 
-때문에 transitive classpath에 Frontoffice type이 존재하더라도,
+Application MUST NOT use:
 
-```
-apps:admin source -> frontoffice package
-```
-
-는 ArchUnit으로 금지한다.
-
-따라서 runtime classpath와 source ownership을 구분한다.
-
-## 12. Composition Root
-
-apps:*는 두 역할을 동시에 가진다.
-
-1. Inbound Adapter
-2. Composition Root
-
-따라서:
-
-```
-apps:api -> infrastructure
+```text
+JPA Entity / Spring Data Repository / EntityManager
+DSLContext / jOOQ generated type
+RedisTemplate
+AWS SDK / external client implementation
+Spring Security / SecurityContext
+Servlet
+HTTP Request / Response DTO
+support:security implementation
+infrastructure implementation
 ```
 
-는 허용한다.
+Frontoffice package ownership:
 
-이 dependency는 wiring 목적이다.
-
-금지:
-
-```kotlin
-@RestController
-class BookingController(
-    private val repository: BookingJpaRepository,
-)
-```
-
-허용:
-
-```
-Controller
- -> Facade
- -> Application
-```
-
-Infrastructure implementation을 Controller/Facade가 직접 사용하지 않는다.
-
-## 13. Facade
-
-현재 Controller -> Facade 구조를 유지한다.
-
-Facade 역할:
-
-- HTTP Request -> Application input mapping
-- Application Result -> HTTP Response mapping
-- thin HTTP-level orchestration
-
-금지:
-
-- transaction
-- business invariant
-- business authorization
-- repository access
-- JPA
-- jOOQ
-- Redis
-
-Facade는 architectural layer가 아니라 delivery helper다.
-
-## 14. Application Layer
-
-Application은 Use Case orchestration layer다.
-
-허용:
-
-- @Service
-- @Transactional
-- Spring DI
-- Clock
-- Domain Repository
-- Application-owned Port
-- Domain orchestration
-- transaction boundary
-
-금지:
-
-- JPA Entity
-- Spring Data Repository
-- EntityManager
-- DSLContext
-- jOOQ generated type
-- RedisTemplate
-- AWS SDK
-- Spring Security
-- SecurityContext
-- Servlet
-- HTTP DTO
-
-## 15. Application Ownership
-
-기본 package ownership:
-
-```
+```text
 Capability
- -> Actor
-   -> command / query
+  -> Actor
+      -> command / query
 ```
 
 예:
 
-```
+```text
 application/frontoffice
 ├── booking/booker/{command,query}
 ├── performance/booker/query
@@ -716,52 +318,60 @@ application/frontoffice
 └── auth
 ```
 
-admin, system은 lane 자체가 actor/execution context이므로 불필요한 actor package를 중복하지 않는다.
+`admin`, `system`은 lane 자체가 actor/execution context이므로 actor package를 기계적으로 중복하지 않는다.
 
-## 16. Domain Layer
+## 2.2 Apps = Inbound Adapter + Composition Root
 
-Domain은 가장 안쪽 Business Policy다.
+`apps:* -> infrastructure`는 wiring 목적으로 허용한다.
 
-포함:
+Controller/Facade는 Infrastructure implementation을 직접 business collaborator로 사용하면 안 된다.
 
-- Aggregate
-- Entity
-- Value Object
-- Domain Service
-- Invariant
-- Business behavior
-
-금지:
-
-- Spring
-- JPA
-- jOOQ
-- Redis
-- Security
-- HTTP
-- External Client
-- Application Service
-
-Domain Service는 pure domain logic이어야 한다.
-
-## 17. Port Ownership
-
-Port는 consumer가 소유한다.
-
-예:
-
+```kotlin
+@RestController
+class BookingController(
+    private val bookingJpaRepository: BookingJpaRepository, // MUST NOT
+)
 ```
+
+정상 흐름:
+
+```text
+Controller
+  -> Facade
+  -> Application Use Case
+```
+
+Facade는 delivery helper다.
+
+MAY:
+- Request -> Application input mapping
+- Application Result -> Response mapping
+- thin transport-level coordination
+
+MUST NOT:
+- transaction
+- invariant
+- business authorization
+- Repository/JPA/jOOQ/Redis access
+
+---
+
+# Axis 3. Port & Security Boundaries
+
+## 3.1 Consumer Owns Port — MUST
+
+```text
 application:frontoffice
 ├── TokenIssuer
 ├── RefreshTokenAuthenticator
-├── PasswordHasher
+├── PasswordHasher / PasswordVerifier
 ├── RefreshTokenStore
 └── GuestSessionStore
 ```
 
-구현:
+Adapter examples:
 
-```
+```text
 support:security
 ├── JwtTokenProvider
 └── BCryptPasswordHasher
@@ -771,255 +381,426 @@ infrastructure
 └── RedisGuestSessionAdapter
 ```
 
-핵심:
+정본:
 
-> Consumer owns Port.
-> Adapter depends on Port owner.
+```text
+Consumer owns Port.
+Adapter depends on Port owner.
+```
 
-## 18. Security Responsibility
+## 3.2 Port Signature Ownership — MUST
 
-Security를 세 책임으로 구분한다.
+Port interface의 위치만 Application에 두는 것으로는 충분하지 않다. Parameter / return type도 contract owner가 통제한다.
 
-### 18.1 Business Authentication Workflow
+ALLOWED:
 
-소유:
+```text
+same Application lane-owned type
+Domain type
+JDK / Kotlin standard type
+```
 
-- application:frontoffice
+FORBIDDEN:
 
-예:
+```text
+support-owned DTO/value
+infrastructure-owned DTO/value
+JPA/jOOQ/Redis type
+Spring Security/Servlet type
+external SDK type
+```
 
-- login
-- logout
-- refresh
-- guest credential workflow
+잘못된 예:
 
-### 18.2 Web-independent Security Mechanism + Adapter
+```kotlin
+interface TokenIssuer {
+    fun issue(subject: SupportOwnedTokenSubject): String
+}
+```
 
-소유:
+올바른 예:
 
-- support:security
+```kotlin
+data class TokenIssueCommand(
+    val memberId: Long,
+    val role: String,
+)
 
-예:
+data class IssuedTokens(
+    val accessToken: String,
+    val refreshToken: String,
+)
 
-- JwtTokenProvider
-- JwtTokenIssuer
-- JwtTokenParser
-- JwtSigningKeyHolder
-- BCryptPasswordHasher
-- TokenSubject
-- TokenAuthenticationResult
+interface TokenIssuer {
+    fun issue(command: TokenIssueCommand): IssuedTokens
+}
+```
 
-Application-owned Port 구현체를 포함할 수 있다.
+### Security-like contract types
 
-### 18.3 Web Security
+다음 타입이 Application Port signature에 등장한다면 이름과 무관하게 **`application:frontoffice`가 소유**한다.
 
-소유:
+```text
+TokenSubject
+TokenAuthenticationResult
+TokenAuthenticationFailure
+```
 
-- support:security-web
+`support:security`는 별도의 internal JWT claims / parser result 같은 technical model을 가질 수 있다.
 
-예:
+```text
+Application contract
+    ↓ mapping
+support:security internal technical model
+```
 
-- JwtAuthenticationFilter
-- CurrentMember
-- ArgumentResolver
-- Authentication
-- EntryPoint
-- AccessDeniedHandler
-- SecurityMdcLoggingFilter
+Outer technical type이 Application Port boundary를 역으로 통과하면 안 된다.
 
-## 19. Authentication vs Authorization
+## 3.3 `support:security`
 
-세 층으로 구분한다.
+정의:
 
-- **Authentication** "누구인가?" -> support:security + security-web
-- **Coarse Authorization** "ROLE_ADMIN인가?" "로그인 route인가?" -> apps:* + security-web
-- **Business Authorization** "이 Maker가 이 Performance를 소유하는가?" "이 Booking이 취소 가능한가?" -> application + domain
+> **Web-independent Security Capability + Frontoffice Security Port Adapter**
+
+MAY own:
+
+```text
+JwtTokenProvider
+JwtTokenIssuer
+JwtTokenParser
+JwtSigningKeyHolder
+BCryptPasswordHasher
+JWT claims / crypto internal model
+Web-facing security technical API
+```
+
+Dependency:
+
+```text
+support:security
+  -> application:frontoffice
+  -> support:observability
+```
+
+이것은 Outer Adapter가 Inner Port를 구현하는 정상 Dependency Inversion이다.
+
+```text
+application:frontoffice -> support:security   MUST NOT
+```
+
+## 3.4 Security Public Surface Separation — MUST
+
+`support:security`의 소비 방향을 분리한다.
+
+```text
+A. Application-facing adapter implementation
+   - Frontoffice Port 구현
+   - Application-owned contract 사용
+
+B. Security-Web-facing technical capability
+   - security-web이 소비
+   - support:security-owned technical type 사용
+```
+
+MUST NOT:
+
+```text
+support:security의 Web-facing API
+  -> Application Port type 노출
+  -> security-web이 application:frontoffice를 직접 알아야 함
+```
+
+`support:security-web -> support:security`만으로 compile 가능한 API surface를 유지한다.
+
+## 3.5 `support:security-web`
+
+Owns:
+
+```text
+JwtAuthenticationFilter
+SecurityMdcLoggingFilter
+CurrentMember
+CurrentMemberArgumentResolver
+MemberAuthentication
+AdminAuthentication
+AuthenticationEntryPoint
+AccessDeniedHandler
+SecurityFilterChain bootstrap
+Servlet / Web MVC integration
+```
+
+Direct dependency:
+
+```text
+support:security
+support:observability
+```
+
+MUST NOT directly depend on:
+
+```text
+application:*
+domain
+infrastructure
+apps:*
+```
+
+## 3.6 Authentication / Authorization Ownership
+
+```text
+Business authentication workflow
+  -> application:frontoffice
+
+Web-independent token/password mechanism
+  -> support:security
+
+HTTP authentication
+  -> support:security-web
+
+Coarse route/role authorization
+  -> apps:* + support:security-web
+
+Business authorization
+  -> application + domain
+```
 
 Business authorization을 Spring Security annotation으로 대체하지 않는다.
 
-## 20. Route Policy Ownership
+Route/role policy는 각 runtime이 소유한다.
 
-다음은 security-web이 소유하지 않는다.
-
-- /api/admin/**
-- public whitelist
-- swagger whitelist
-- actuator whitelist
-
-각 runtime이 소유한다.
-
-```
+```text
 apps:api/config/*SecurityConfig
 apps:admin/config/*SecurityConfig
 ```
 
-## 21. CQRS Classification
+## 3.7 Security placement decision
 
-Command / Query는 SQL verb가 아니라 business intent로 분류한다.
+```text
+support:security         ADOPTED
+support:security-web     ADOPTED
 
-Read는 세 종류다.
+infrastructure:security  NOT_ADOPTED
+adapter:security         NOT_ADOPTED
+```
 
-- Aggregate Read
-- Decision Read
-- View Read
+Security를 Infrastructure에 두는 것도 Clean Architecture상 가능한 해석이지만 BEAT는 별도 Support Capability를 사용한다.
 
-## 22. Aggregate Read
+**이름보다 dependency direction과 Port ownership이 우선한다.**
 
-Command 수행을 위해 authoritative Aggregate를 로드한다.
+---
 
-- Command Side
-- JPA
+# Axis 4. Runtime Composition
 
-## 23. Decision Read
+## 4.1 Inbound Authentication
 
-Command correctness를 위해 authoritative fact를 읽는다.
+```text
+HTTP
+  ↓
+support:security-web
+  ↓
+support:security
+  ↓
+apps Controller / Facade
+  ↓
+application
+```
 
-예:
+이 그림은 runtime 요청 인증 흐름이다.
 
-- ownership
-- membership
-- availability
-- existence
+## 4.2 Outbound Ports
 
-- Command Side
-- JPA 기본
+```text
+Application Use Case
+  ↓
+Application-owned Port
+  ↓ runtime dispatch
+  ├─ support:security adapter
+  │    └─ JWT / BCrypt
+  │
+  └─ infrastructure adapter
+       ├─ JPA
+       ├─ Redis
+       └─ External API
+```
 
-SELECT라고 해서 Query Side가 아니다.
+Compile dependency는 반대로 Outer -> Inner contract owner를 향한다.
 
-## 24. View Read
+## 4.3 Apps runtime responsibilities
 
-Consumer-facing projection이다.
+```text
+apps:api
+  -> Frontoffice HTTP API / route policy / wiring
 
-- Query Side
-- jOOQ
-- ReadModel
+apps:admin
+  -> Admin HTTP API / route policy / wiring
 
-예:
+apps:batch
+  -> batch/scheduled entrypoint / System use case triggering / wiring
+```
 
-- home
-- booking history
-- maker dashboard
-- admin view
-- cross-table projection
+`apps:batch`는 `support:security-web`을 의존하지 않는다.
 
-## 25. CQRS Persistence Strategy
+## 4.4 Test-only Domain dependency
 
-기본 선택:
+```text
+apps:* main -> domain    MUST NOT
+apps:* test -> domain    MAY
+```
 
-- Command / Aggregate / Decision persistence = JPA
-- View Query                                = jOOQ
+Architecture assertion, fixture, domain test helper에만 허용한다.
 
-모든 SELECT를 jOOQ로 바꾸지 않는다.
+---
 
-## 26. Command Correctness
+# Axis 5. CQRS & Persistence
 
-Command correctness는 다음에 의존하면 안 된다.
+## 5.1 Classification
 
-- Presentation ReadModel
-- Replica
-- Eventual Cache
-- Search Projection
+Command / Query는 **business intent**로 분류한다.
 
-Command response는:
+```text
+SELECT == Query Side
+```
 
-- changed Aggregate
-- authoritative fact
-- CommandResult
+가 아니다.
 
-에서 생성한다.
+## 5.2 Read Taxonomy
+
+| Read | Meaning | Side | Default |
+|---|---|---|---|
+| Aggregate Read | Command를 위한 authoritative Aggregate load | Command | JPA |
+| Decision Read | Command correctness를 위한 authoritative fact | Command | JPA |
+| View Read | consumer-facing projection | Query | jOOQ |
+
+Decision Read examples:
+
+```text
+ownership
+membership
+availability
+existence
+```
+
+View Read examples:
+
+```text
+home
+booking history
+maker dashboard
+admin view
+cross-table projection
+```
+
+## 5.3 Command Correctness — MUST
+
+Command correctness가 다음에 의존하면 안 된다.
+
+```text
+Presentation ReadModel
+Replica
+Eventual Cache
+Search Projection
+```
+
+Command response는 다음에서 만든다.
+
+```text
+changed Aggregate
+authoritative fact
+CommandResult
+```
 
 Query Side read-after-write는 기본 패턴이 아니다.
 
-## 27. ReadModel
+## 5.4 ReadModel Boundary
 
+```text
 ReadModel != HTTP Response
+```
 
 Application:
 
-- BookingHistoryReadModel
+```text
+BookingHistoryReadModel
+```
 
 Apps:
 
-- BookingHistoryResponse
+```text
+BookingHistoryResponse
+```
 
-Query identity는 endpoint가 아니라 semantic use case 기준이다.
+Query identity는 endpoint path가 아니라 semantic use case 기준이다.
 
-## 28. Query Naming
+## 5.5 Naming
 
 View Read:
 
-- *QueryService
-- *Reader
-- *ReadPort
-- *ReadModel
-- *Projection
-- *Queries
+```text
+*QueryService
+*Reader
+*ReadPort
+*ReadModel
+*Projection
+*Queries
+```
 
 Decision Read:
 
-- *Provider
-- *Availability
-- *Membership
-- *Ownership
-- *Policy
-
-기존 이름이 Query-style이어도 semantic을 우선한다.
-
-## 29. Infrastructure Persistence Target
-
-```
-infrastructure/persistence
-├── booking
-├── performance
-├── cast
-├── staff
-├── performanceimage
-├── schedule
-├── promotion
-├── member
-├── user
-└── query
-    ├── booking/booker
-    ├── performance/booker
-    ├── performance/maker
-    ├── schedule/booker
-    ├── home/booker
-    └── ticket/maker
+```text
+*Provider
+*Availability
+*Membership
+*Ownership
+*Policy
 ```
 
-persistence/query는 SELECT 모음이 아니다.
+이름보다 semantic classification이 우선한다.
 
-View Read / jOOQ Query Side 전용이다.
+## 5.6 View Query Physical Location
 
-## 30. jOOQ Boundary
+```text
+infrastructure/persistence/query
+├── booking/booker
+├── performance/booker
+├── performance/maker
+├── schedule/booker
+├── home/booker
+└── ticket/maker
+```
 
-다음 타입은 Infrastructure 밖으로 나가면 안 된다.
+`persistence/query`는 **View Read / jOOQ Query Side 전용**이다.
 
-- DSLContext
-- generated Table
-- generated Record
-- Condition
-- Select*
-- jOOQ Result
+Aggregate / Decision SELECT는 authoritative JPA adapter에 남는다.
 
-Infrastructure 안에서 즉시 Application-owned ReadModel로 변환한다.
+## 5.7 jOOQ Boundary — MUST
 
-## 31. Aggregate Ownership vs Persistence Package
+Infrastructure 밖으로 유출 금지:
 
-Domain Aggregate boundary와 persistence package nesting을 동일시하지 않는다.
+```text
+DSLContext
+generated Table
+generated Record
+Condition
+Select*
+jOOQ Result
+```
+
+Infrastructure에서 즉시 Application-owned ReadModel로 매핑한다.
+
+## 5.8 Aggregate Ownership != Persistence Package
 
 예:
 
-```
+```text
 Performance
 ├── Cast
 ├── Staff
 └── PerformanceImage
 ```
 
-이들이 독립 Aggregate가 아니어도 persistence package는 sibling일 수 있다.
+독립 Aggregate가 아니어도 persistence package는 sibling일 수 있다.
 
-```
+```text
 persistence
 ├── performance
 ├── cast
@@ -1027,242 +808,193 @@ persistence
 └── performanceimage
 ```
 
-Package가 sibling이라는 이유로 독립 Domain Repository/Application Port를 만들지 않는다.
+Package가 sibling이라는 이유로 독립 Domain Repository / Application Port를 만들지 않는다.
 
 Authoritative lifecycle은 Aggregate Repository adapter가 소유한다.
 
-## 32. Application Lane Policy
+---
 
-직접 lane cross dependency는 금지한다.
+# Axis 6. Enforcement & AI Review Gates
 
-```
-application:frontoffice -> application:admin    X
-application:admin -> application:frontoffice    X
-application:system -> application:frontoffice   X
+## 6.1 Status Model
 
-apps:api -> application:admin                   X
-apps:admin -> application:frontoffice           X
-apps:batch -> application:frontoffice           X
-```
+Architecture decision과 enforcement를 분리한다.
 
-단, shared outer module을 통한 transitive classpath는 현재 허용한다.
+Decision:
 
-## 33. Infrastructure Fan-in Policy
-
-Infrastructure는 여러 Application lane Port를 구현할 수 있다.
-
-```
-infrastructure
- -> frontoffice
- -> admin
- -> system
+```text
+ADOPTED      확정
+DEFERRED     Trigger 전까지 의도적으로 하지 않음
+NOT_A_GOAL   현재 목표가 아님
+NOT_ADOPTED  검토했으나 현재 채택하지 않음
 ```
 
-그러나 실제 구현이 없으면 dependency를 추가하지 않는다.
+Enforcement:
 
-특히:
+```text
+AUTOMATED
+  자동 실패 장치가 존재.
 
-```
-infrastructure -> application:system
-```
+MANUAL_REVIEW
+  결정은 확정됐지만 자동 검증 범위 밖.
 
-은 System Port 구현이 생길 때만 활성화한다.
-
-미래 확장성만으로 dependency를 넣지 않는다.
-
-## 34. Test-only Domain Dependency
-
-Apps module의 test source가 Domain fixture 또는 architecture assertion을 위해 Domain을 참조하는 것은 허용한다.
-
-그러나 main source는 Domain을 직접 사용하지 않는다.
-
-```
-apps:* main -> domain       X
-apps:* test -> domain       O
+CONDITIONAL_AUTOMATION
+  해당 기술/경계 도입 시 Guard를 함께 추가해야 함.
 ```
 
-## 35. Architecture Guard Requirements
+> **`ENFORCED`라는 표현은 자동 실패 장치와 evidence가 있을 때만 사용한다.**
 
-Gradle:
+## 6.2 Enforcement Matrix
 
-- [ ] product module count = 11
-- [ ] graph is DAG
-- [ ] domain dependency = 0
-- [ ] application:* -> domain only
-- [ ] no direct application lane crossing
-- [ ] support:security -> frontoffice + observability only
-- [ ] security-web -> security + observability only
-- [ ] infrastructure -> apps/security-web 금지
-- [ ] apps:* direct dependency는 자신의 application lane만
-- [ ] batch -> security-web 금지
+| ID | Rule | Decision | Enforcement | Evidence |
+|---|---|---|---|---|
+| E-01 | Product Module = 11 | ADOPTED | AUTOMATED | `verifyTargetModuleGraph` project allowlist |
+| E-02 | Gradle graph = DAG | ADOPTED | AUTOMATED | `verifyTargetModuleGraph` cycle validation |
+| E-03 | Direct dependency allowlist | ADOPTED | AUTOMATED | `verifyTargetModuleGraph` allowed graph |
+| E-04 | `application:* -> domain only` | ADOPTED | AUTOMATED | Gradle guard + Application architecture tests |
+| E-05 | Application technical dependency ban | ADOPTED | AUTOMATED | Application ArchUnit rules |
+| E-06 | Direct lane crossing ban | ADOPTED | AUTOMATED | Gradle guard + ArchUnit |
+| E-07 | Controller/Facade -> Infra implementation ban | ADOPTED | AUTOMATED | Apps architecture guards |
+| E-08 | jOOQ containment | ADOPTED | CONDITIONAL_AUTOMATION | jOOQ 도입/확대 시 boundary guard 필수 |
+| E-09 | Port owner = consumer | ADOPTED | MANUAL_REVIEW | Architecture review gate |
+| E-10 | Port signature outer-type leakage ban | ADOPTED | MANUAL_REVIEW | Architecture review gate |
+| E-11 | `security-web` direct Application dependency ban | ADOPTED | AUTOMATED | Gradle guard + Security architecture tests |
+| E-12 | Minimum implementation visibility | ADOPTED | MANUAL_REVIEW | Kotlin visibility/package review |
 
-ArchUnit:
+### Visibility invariant
 
-- [ ] Application -> infrastructure import 금지
-- [ ] Application -> support.security import 금지
-- [ ] Application -> JPA/jOOQ/Redis/Security/Servlet 금지
-- [ ] Domain -> Spring/JPA/Web/Security 금지
-- [ ] Controller/Facade -> infrastructure implementation 직접 import 금지
-- [ ] apps:admin -> frontoffice package 직접 import 금지
-- [ ] apps:api -> admin/system application package 직접 import 금지
-- [ ] jOOQ generated type Infrastructure 밖 유출 금지
+`internal` 자체가 Architecture invariant는 아니다.
 
-## 36. AI Agent Placement Rule
+정본:
 
-새 코드를 만들기 전에:
+> **Outer implementation은 wiring에 필요한 최소 visibility만 공개한다.**
 
-- Business invariant? -> domain
-- Use Case / transaction / consumer-owned Port? -> application:<lane>
-- HTTP DTO / Controller / OpenAPI / route policy? -> apps:<runtime>
-- JWT/password Web-independent implementation? -> support:security
-- Spring Security Filter / CurrentMember / Servlet integration? -> support:security-web
-- DB/Redis/S3/SMS/external implementation? -> infrastructure
-- logging / MDC / tracing / metrics? -> support:observability
+```text
+internal로 wiring 가능
+  -> internal 권장
 
-애매하면 기술 이름이 아니라 Port consumer와 runtime responsibility를 기준으로 결정한다.
-
-## 37. Non-Goals
-
-현재 선도입하지 않는다.
-
-- 12번째 security-core module
-- infrastructure/security
-- adapter:security
-- bootstrap:* module
-- module-contracts
-- Aggregate별 Gradle module
-- capability별 infrastructure module
-- Command/Query DB 물리 분리
-- 모든 SELECT의 jOOQ 전환
-- Application에서 Spring annotation 완전 제거
-
-## 38. Final Compile Dependency Diagram
-
-```mermaid
-flowchart TB
-    D[domain]
-
-    AF[application:frontoffice]
-    AA[application:admin]
-    AS[application:system]
-
-    S[support:security]
-    SW[support:security-web]
-    O[support:observability]
-
-    I[infrastructure]
-
-    API[apps:api]
-    ADM[apps:admin]
-    BAT[apps:batch]
-
-    AF --> D
-    AA --> D
-    AS --> D
-
-    S --> AF
-    S --> O
-
-    SW --> S
-    SW --> O
-
-    I --> D
-    I --> AF
-    I --> AA
-    I -. only when real ports exist .-> AS
-
-    API --> AF
-    API --> I
-    API --> SW
-    API --> O
-
-    ADM --> AA
-    ADM --> I
-    ADM --> SW
-    ADM --> O
-
-    BAT --> AS
-    BAT --> I
-    BAT --> O
+composition/wiring에 public이 실제 필요
+  -> public 허용
 ```
 
-이 diagram은 compile/source dependency를 표현한다.
+“모든 Adapter는 무조건 internal”로 해석하지 않는다.
 
-Runtime flow가 아니다.
+## 6.3 AI Review Algorithm
 
-## 39. Runtime Flow
-
-일반 API:
-
-```
-HTTP
- ↓
-support:security-web
- ↓
-support:security
- ↓
-apps Controller / Facade
- ↓
-application
- ↓
-Port
- ↓ runtime dispatch
-infrastructure / security adapter
- ↓
-DB / Redis / External
+```text
+1. capability / actor / command-query는 무엇인가?
+2. contract consumer는 어느 module인가?
+3. Port가 필요한가?
+4. Port interface를 consumer가 소유하는가?
+5. parameter/return type도 Application/Domain/JDK ownership인가?
+6. 새 direct dependency가 Axis 1.3 graph에 있는가?
+7. conditional dependency라면 trigger가 실제 충족됐는가?
+8. 다른 Application lane을 source에서 직접 참조하는가?
+9. 기술/framework 타입이 Application/Domain으로 새는가?
+10. Read는 Aggregate / Decision / View 중 무엇인가?
+11. View가 아닌데 persistence/query로 보내고 있지 않은가?
+12. 새 module/dependency가 실제 문제보다 미래 추측 때문에 생기는가?
 ```
 
-로그인:
+위반이 있으면 구현보다 boundary 수정이 먼저다.
 
+---
+
+# Axis 7. Deferred Decisions & Change Protocol
+
+| Decision | Status | Trigger |
+|---|---|---|
+| 12th `support:security-core` | DEFERRED | JWT/password primitive의 타 서비스 재사용, 독립 artifact/lifecycle/versioning 필요 |
+| Runtime classpath full lane isolation | NOT_A_GOAL | runtime dependency conflict, 독립 deployment, 보안상 classpath isolation 필요 |
+| `bootstrap:*` modules | DEFERRED | Composition Root의 독립 ownership/lifecycle 필요 |
+| Physical Command/Query DB split | DEFERRED | 실제 scale/consistency 요구 발생 |
+
+## 7.1 12th `security-core`
+
+현재 얻을 수 있는 추가 실익은:
+
+```text
+security primitive의 BEAT dependency 0
+독립 artifact
+타 서비스 재사용
+독립 lifecycle/versioning
 ```
-AuthenticationCommandService
- ↓
-TokenIssuer Port
- ↑ implements
-support:security/JwtTokenProvider
+
+이 실익이 실제로 발생하기 전에는 `support:security`에서 유지한다.
+
+## 7.2 Physical CQRS
+
+현재:
+
+```text
+CQRS = semantic / code boundary
+not necessarily separate database
 ```
 
-## 40. Clean Architecture Verdict
+Replica, 별도 Query DB, event projection은 실제 요구가 있을 때 설계한다.
 
-| 항목 | 판정 |
-|---|---|
-| Domain independence | PASS |
-| Application -> Domain only | PASS |
-| Dependency inversion | PASS |
-| Application -> Security 금지 | PASS |
-| Application -> Infrastructure 금지 | PASS |
-| Security/Web responsibility split | PASS |
-| Direct lane isolation | PASS |
-| DAG | MUST PASS |
-| Runtime classpath full lane isolation | Not a goal |
-| 12-module security primitive purity | Deferred |
-| Team complexity | Optimized for BEAT |
+## 7.3 Module Addition Protocol
 
-## 41. Final Rules
+MUST NOT:
 
-- RULE 0: Gradle graph는 반드시 DAG다.
-- RULE 1: domain은 BEAT project dependency 0이다.
-- RULE 2: application:*은 domain만 의존한다.
-- RULE 3: Port는 consumer가 소유한다.
-- RULE 4: support:security는 frontoffice-owned Security Port를 구현하는 Web-independent adapter다.
-- RULE 5: support:security-web은 Spring Security/Servlet integration을 소유한다.
-- RULE 6: Application은 security/security-web/infrastructure를 의존하지 않는다.
-- RULE 7: Infrastructure는 Persistence/Redis/External Port 구현을 소유한다.
-- RULE 8: Security를 infrastructure/security로 옮기지 않는다.
-- RULE 9: apps:*는 Inbound Adapter + Composition Root다.
-- RULE 10: apps:* -> infrastructure는 wiring 목적으로 허용한다.
-- RULE 11: Controller/Facade가 Infrastructure 구현을 직접 사용하지 않는다.
-- RULE 12: 직접 application lane crossing은 금지한다.
-- RULE 13: shared outer module로 인한 transitive runtime classpath는 현재 허용한다.
-- RULE 14: source/package-level lane crossing은 Gradle + Kotlin internal + ArchUnit으로 차단한다.
-- RULE 15: Command/Aggregate/Decision persistence는 JPA를 기본으로 한다.
-- RULE 16: View Query는 jOOQ를 기본으로 한다.
-- RULE 17: SELECT라는 이유만으로 Query Side로 분류하지 않는다.
-- RULE 18: View Read만 persistence/query에 둔다.
-- RULE 19: Aggregate ownership과 persistence package nesting을 동일시하지 않는다.
-- RULE 20: 12번째 security-core는 독립 재사용/배포 실익이 생길 때만 검토한다.
-- RULE 21: 미래 확장성만으로 module/dependency를 추가하지 않는다.
+```text
+"나중에 필요할 것 같아서"
+"더 Clean해 보여서"
+"책에서 layer가 하나 더 있어서"
+```
 
-## 42. One-line Architecture Definition
+MUST:
 
-BEAT-SERVER v4는 Domain을 완전 독립시키고, Application이 Domain과 consumer-owned Port만 소유하며, Security/Infrastructure 같은 바깥 adapter가 Application Port를 구현하고, Web Security를 별도 support module로 분리하며, apps:*가 Composition Root로 전체 runtime을 조립하는 11-module Pragmatic Clean Architecture다.
+새 Gradle module이 아래 중 최소 하나를 실제로 강제해야 한다.
+
+```text
+독립 ownership
+독립 lifecycle
+독립 dependency set
+독립 deployment
+명확한 compile-time isolation value
+```
+
+11-module Freeze 변경은 Architecture Decision 변경이 선행되어야 한다.
+
+---
+
+# Final Architecture Invariants
+
+```text
+I-01  Product Module = 11.
+I-02  Gradle graph = DAG.
+I-03  domain -> BEAT project = none.
+I-04  application:* -> domain only.
+I-05  Application lane direct crossing = forbidden.
+
+I-06  Port owner = consumer.
+I-07  Port signature owner = Application / Domain / JDK.
+I-08  Outer/framework type leakage into Port = forbidden.
+
+I-09  support:security = Web-independent Security + Frontoffice Port Adapter.
+I-10  support:security-web = Spring Security / Servlet inbound integration.
+I-11  security-web -> application:* direct dependency = forbidden.
+I-12  infrastructure:security = not adopted.
+
+I-13  apps:* = Inbound Adapter + Composition Root.
+I-14  Controller/Facade -> Infrastructure implementation = forbidden.
+I-15  Shared outer-module transitive classpath = allowed.
+I-16  Direct source/package lane crossing = forbidden.
+
+I-17  Aggregate/Decision Read default = JPA.
+I-18  View Read default = jOOQ.
+I-19  SELECT != Query Side.
+I-20  persistence/query = View Read only.
+I-21  jOOQ type escape from Infrastructure = forbidden.
+I-22  Aggregate ownership != persistence package nesting.
+
+I-23  Implementation visibility = minimum required for wiring.
+I-24  Future speculation alone cannot justify a module/dependency.
+```
+
+---
+
+# One-line Definition
+
+> **BEAT-SERVER는 Domain을 완전 독립시키고, Application이 Domain과 consumer-owned Port만 소유하며, Security/Infrastructure 같은 바깥 Adapter가 그 Port를 구현하고, Web Security를 별도 Support module로 분리하며, `apps:*`가 Composition Root로 runtime을 조립하는 11-module Pragmatic Clean Architecture다.**
