@@ -1,6 +1,7 @@
 package com.beat.application.frontoffice.performance.maker.query
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.application.frontoffice.performance.formatPerformancePeriod
 import com.beat.application.frontoffice.performance.exception.PerformanceApplicationErrorCode
 import com.beat.application.frontoffice.schedule.calculateDueDate
@@ -13,16 +14,17 @@ import java.time.Clock
 
 @Service
 @Transactional(readOnly = true)
-class MakerPerformanceListQueryService(
+class MakerPerformanceListQueryService internal constructor(
     private val memberRepository: MemberRepository,
     private val makerPerformanceListReader: MakerPerformanceListReader,
     private val clock: Clock,
 ) {
     fun getMemberPerformances(memberId: Long): MakerPerformanceListResult {
+        return translateDomainFailure {
         val member = memberRepository.findById(memberId)
-            .orElseThrow { FrontofficeApplicationException(PerformanceApplicationErrorCode.MEMBER_NOT_FOUND) }
+            ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.MEMBER_NOT_FOUND)
         val today = LocalDate.now(clock)
-        val details = makerPerformanceListReader.findByUserId(member.getUserId()).map { performance ->
+        val details = makerPerformanceListReader.findByUserId(member.userId).map { performance ->
             val minDueDate = performance.representativePerformanceDate
                 ?.let { calculateDueDate(today, it) }
                 ?: Int.MAX_VALUE
@@ -37,6 +39,7 @@ class MakerPerformanceListQueryService(
         }
         val sorted = details.filter { it.minDueDate >= 0 }.sortedBy { it.minDueDate } +
             details.filter { it.minDueDate < 0 }.sortedByDescending { it.minDueDate }
-        return MakerPerformanceListResult(member.getUserId(), sorted)
+        MakerPerformanceListResult(member.userId, sorted)
+        }
     }
 }
