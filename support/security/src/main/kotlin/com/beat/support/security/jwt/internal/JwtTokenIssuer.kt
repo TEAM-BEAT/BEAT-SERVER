@@ -8,7 +8,7 @@ import java.util.Date
 /**
  * JWT 발급만 담당한다.
  */
-internal class JwtTokenIssuer(
+class JwtTokenIssuer(
     private val signingKeyHolder: JwtSigningKeyHolder,
     private val clock: Clock,
 ) {

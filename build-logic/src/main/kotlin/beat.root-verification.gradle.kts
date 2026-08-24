@@ -16,6 +16,7 @@ val canonicalTargetLeafProjects = setOf(
     ":domain",
     ":infrastructure",
     ":support:security",
+    ":support:security-web",
     ":support:observability",
 )
 val canonicalTargetLibraryProjects = canonicalTargetLeafProjects - targetRuntimeArchiveNames.keys
@@ -116,18 +117,19 @@ val allowedProjectDependencies: Map<String, Set<String>> = mapOf(
         ":application:system",
     ),
     ":support:security" to setOf(":application:frontoffice", ":support:observability"),
+    ":support:security-web" to setOf(":application:frontoffice", ":support:security", ":support:observability"),
     ":support:observability" to emptySet(),
     ":apps:api" to setOf(
         ":application:frontoffice",
         ":infrastructure",
-        ":support:security",
+        ":support:security-web",
         ":support:observability",
         ":domain", // testImplementation for ArchUnit guards
     ),
     ":apps:admin" to setOf(
         ":application:admin",
         ":infrastructure",
-        ":support:security",
+        ":support:security-web",
         ":support:observability",
         ":domain",
     ),

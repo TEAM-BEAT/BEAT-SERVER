@@ -6,7 +6,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
-internal class BCryptPasswordHasher : PasswordHasher {
+class BCryptPasswordHasher : PasswordHasher {
 
     private val passwordEncoder: PasswordEncoder = BCryptPasswordEncoder()
 

@@ -16,7 +16,7 @@
 
 ---
 
-## 1. Module Map — 물리 경계 10개 고정, 승격은 측정 후
+## 1. Module Map — 물리 경계 11개 고정, 승격은 측정 후
 
 ### 1.1 Gradle Project
 
@@ -27,11 +27,11 @@ include(
     "apps:api", "apps:admin", "apps:batch",
     "application:frontoffice", "application:admin", "application:system",
     "domain", "infrastructure",
-    "support:security", "support:observability",
+    "support:security", "support:security-web", "support:observability",
 )
 ```
 
-Product subproject 10개. 숫자는 목표가 아니다.
+Product subproject 11개. `support:security`(Port 구현, JWT/Password) + `support:security-web`(Filter/CurrentMember) 분리가 10→11 증가의 전부다. 숫자는 목표가 아니다.
 
 | Module | Type | `bootJar` | 역할 |
 |---|---|---|---|
@@ -39,7 +39,9 @@ Product subproject 10개. 숫자는 목표가 아니다.
 | `application:frontoffice` `application:admin` `application:system` | Spring library | `false` | Use Case, 트랜잭션, Output Port 소유. `frontoffice=Booker+Maker`, `admin=Admin`, `system=Batch` lane |
 | `domain` | Kotlin library | `false` | Aggregate, Entity/VO, DomainService, Domain Event/Failure, Domain-language Repository, 불변식만. Spring, JPA, Web 의존 금지 |
 | `infrastructure` | Spring adapter library | `false` | `persistence + redis + external + config` Driven Adapter. 단일 모듈로 유지 |
-| `support:security` `support:observability` | Spring library | `false` | JWT/필터, Logging/Metrics/Tracing plumbing |
+| `support:security` | Spring library | `false` | `PasswordHasher`, `TokenIssuer` 등 Security Capability 구현. `application:frontoffice` Port를 구현, `support:observability`만 의존 |
+| `support:security-web` | Spring library | `false` | `JwtAuthenticationFilter`, `CurrentMember`, `SecurityFilterChain` 등 Web Security Adapter. `security` + `observability`만 의존 |
+| `support:observability` | Spring library | `false` | Logging/Metrics/Tracing plumbing |
 
 `domain`은 `Kotlin library`, `application/infrastructure/support`는 `Spring library`, `apps`만 `Spring Boot`로 구분한다.
 

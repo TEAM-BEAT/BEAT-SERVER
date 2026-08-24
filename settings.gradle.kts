@@ -33,5 +33,6 @@ include(
     "domain",
     "infrastructure",
     "support:security",
+    "support:security-web",
     "support:observability",
 )

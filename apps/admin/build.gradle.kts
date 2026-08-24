@@ -14,7 +14,7 @@ base {
 
 dependencies {
     implementation(project(":application:admin"))
-    implementation(project(":support:security"))
+    implementation(project(":support:security-web"))
     implementation(project(":infrastructure"))
     implementation(project(":support:observability"))
     runtimeOnly(libs.slf4j.api)

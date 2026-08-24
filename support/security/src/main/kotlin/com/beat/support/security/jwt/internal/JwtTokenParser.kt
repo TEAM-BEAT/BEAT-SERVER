@@ -7,7 +7,7 @@ import io.jsonwebtoken.Jwts
  * JWT 서명 검증과 `tokenType` claim 계약 검증만 담당한다.
  * 검증 실패는 예외로 올리고, 결과 코드 변환은 [JwtTokenProvider]가 수행한다.
  */
-internal class JwtTokenParser(
+class JwtTokenParser(
     private val signingKeyHolder: JwtSigningKeyHolder,
 ) {
 

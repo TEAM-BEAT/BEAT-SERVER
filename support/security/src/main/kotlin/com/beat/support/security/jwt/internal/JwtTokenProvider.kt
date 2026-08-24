@@ -15,7 +15,7 @@ import io.jsonwebtoken.security.SignatureException
  * 발급/파싱은 [JwtTokenIssuer]·[JwtTokenParser]에 위임하고,
  * 이 클래스는 예외를 [TokenAuthenticationResult]로 변환하는 책임만 갖는다.
  */
-internal class JwtTokenProvider(
+class JwtTokenProvider(
     private val jwtProperties: JwtProperties,
     private val jwtTokenIssuer: JwtTokenIssuer,
     private val jwtTokenParser: JwtTokenParser,

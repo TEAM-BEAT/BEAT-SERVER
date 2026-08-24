@@ -19,7 +19,7 @@ dependencies {
     // kotlin-logging의 SLF4J 백엔드(전이 미제공 — NoClassDefFoundError 실증)
 
     implementation(project(":application:frontoffice"))
-    implementation(project(":support:security"))
+    implementation(project(":support:security-web"))
     implementation(project(":infrastructure"))
     implementation(project(":support:observability"))
     runtimeOnly(libs.spring.boot.starter.data.redis)

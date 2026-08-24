@@ -12,7 +12,7 @@ import java.time.Clock
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(JwtProperties::class)
-internal class JwtConfig {
+class JwtConfig {
 
     @Bean
     fun jwtSigningKeyHolder(jwtProperties: JwtProperties): JwtSigningKeyHolder =

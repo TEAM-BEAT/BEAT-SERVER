@@ -11,7 +11,7 @@ import javax.crypto.SecretKey
  * 값 자체의 존재/범위 검증은 [JwtProperties]의 Bean Validation이 담당하고,
  * 이 클래스는 "그 값으로 실제 서명 키를 만들 수 있는지"만 기동 시점에 검증한다.
  */
-internal class JwtSigningKeyHolder(
+class JwtSigningKeyHolder(
     private val jwtProperties: JwtProperties,
 ) {
 

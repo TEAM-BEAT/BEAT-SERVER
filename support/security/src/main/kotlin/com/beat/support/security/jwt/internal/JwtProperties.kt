@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Positive
 
 @Validated
 @ConfigurationProperties(prefix = "jwt")
-internal data class JwtProperties(
+data class JwtProperties(
     @field:NotBlank
     val secret: String,
     @field:Positive
