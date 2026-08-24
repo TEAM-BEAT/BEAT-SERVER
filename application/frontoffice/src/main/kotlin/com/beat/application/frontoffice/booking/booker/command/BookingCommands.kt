@@ -8,7 +8,6 @@ data class MemberBookingCommand private constructor(
     val bookerPhoneNumber: String,
 ) {
     companion object {
-        @JvmStatic
         fun of(
             scheduleId: Long,
             purchaseTicketCount: Int,
@@ -33,7 +32,6 @@ data class GuestBookingCommand private constructor(
     val password: String,
 ) {
     companion object {
-        @JvmStatic
         fun of(
             scheduleId: Long,
             purchaseTicketCount: Int,
@@ -60,7 +58,6 @@ data class GuestBookingAuthenticationCommand private constructor(
     val password: String,
 ) {
     companion object {
-        @JvmStatic
         fun of(
             bookerName: String,
             birthDate: String,
@@ -75,6 +72,11 @@ data class GuestBookingAuthenticationCommand private constructor(
     }
 }
 
+data class BookingActorCommand(
+    val memberId: Long?,
+    val guestSessionToken: String?,
+)
+
 @ConsistentCopyVisibility
 data class BookingRefundCommand private constructor(
     val bookingId: Long,
@@ -83,7 +85,6 @@ data class BookingRefundCommand private constructor(
     val accountHolder: String?,
 ) {
     companion object {
-        @JvmStatic
         fun of(
             bookingId: Long,
             bankName: String?,
@@ -103,7 +104,6 @@ data class BookingCancelCommand private constructor(
     val bookingId: Long,
 ) {
     companion object {
-        @JvmStatic
         fun from(bookingId: Long): BookingCancelCommand = BookingCancelCommand(bookingId)
     }
 }

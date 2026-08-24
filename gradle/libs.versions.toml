@@ -1,4 +1,5 @@
 [versions]
+archunit = "1.5.0"
 spring-boot = "4.0.8"
 dependency-management = "1.1.7"
 kotlin = "2.3.21"
@@ -8,7 +9,6 @@ sonarqube = "7.2.3.7755"
 kover = "0.9.7"
 spring-cloud = "2025.1.3"
 springdoc = "3.0.2"
-jackson3 = "3.1.5"
 commons-fileupload = "1.6.0"
 jjwt = "0.13.0"
 aws-sdk-v1 = "1.12.797"
@@ -21,6 +21,8 @@ sentry-gradle-plugin = "6.6.0"
 # Kotlin migration may add Kotest/MockK as an optional Kotlin test layer on top of this baseline,
 # not as a replacement for the shared JUnit Platform execution contract.
 junit = "6.0.3"
+kotest = "6.2.4"
+mockk = "1.14.11"
 dependency-analysis = "3.11.0"
 kotlin-jdsl = "3.8.2"
 
@@ -30,8 +32,15 @@ kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependency-analysis" }
 
 [libraries]
+spring-context = { module = "org.springframework:spring-context" }
+spring-tx = { module = "org.springframework:spring-tx" }
+slf4j-api = { module = "org.slf4j:slf4j-api" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit" }
-junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5-jvm", version.ref = "kotest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core-jvm", version.ref = "kotest" }
+kotest-extensions-spring = { module = "io.kotest:kotest-extensions-spring", version.ref = "kotest" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlin-logging" }
@@ -56,15 +65,18 @@ spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-depe
 spring-boot-persistence = { module = "org.springframework.boot:spring-boot-persistence", version.ref = "spring-boot" }
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
+spring-boot-starter-webmvc-test = { module = "org.springframework.boot:spring-boot-starter-webmvc-test", version.ref = "spring-boot" }
 spring-boot-starter-restclient = { module = "org.springframework.boot:spring-boot-starter-restclient", version.ref = "spring-boot" }
 spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
 spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa", version.ref = "spring-boot" }
+spring-boot-data-jpa-test = { module = "org.springframework.boot:spring-boot-data-jpa-test", version.ref = "spring-boot" }
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "spring-boot" }
 spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security", version.ref = "spring-boot" }
+spring-security-test = { module = "org.springframework.security:spring-security-test" }
 spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis", version.ref = "spring-boot" }
+spring-boot-data-redis-test = { module = "org.springframework.boot:spring-boot-data-redis-test", version.ref = "spring-boot" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
 spring-boot-starter-log4j2 = { module = "org.springframework.boot:spring-boot-starter-log4j2", version.ref = "spring-boot" }
-jackson3-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson3" }
 commons-fileupload = { module = "commons-fileupload:commons-fileupload", version.ref = "commons-fileupload" }
 
 spring-cloud-dependencies = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "spring-cloud" }

@@ -10,7 +10,7 @@ on:
       - develop
       - main
     paths:
-      - "infra/ansible/**"
+      - "ops/ansible/**"
       - ".github/workflows/ansible-lint.yml"
       - ".github/workflows/deploy-dev.yml"
       - ".github/workflows/deploy-prod.yml"
@@ -32,7 +32,7 @@ jobs:
         uses: ./.github/actions/setup-ansible-tooling
 
       - name: Run ansible-lint
-        working-directory: infra/ansible
+        working-directory: ops/ansible
         env:
           ANSIBLE_VARS_ENABLED: host_group_vars
         run: |

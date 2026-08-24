@@ -9,10 +9,10 @@ on:
     branches:
       - develop
     paths:
-      - 'infra/ansible/roles/observability_alloy/**'
-      - 'infra/ansible/playbooks/observability.yml'
-      - 'infra/ansible/inventories/dev/group_vars/all/main.yml'
-      - 'infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml'
+      - 'ops/ansible/roles/observability_alloy/**'
+      - 'ops/ansible/playbooks/observability.yml'
+      - 'ops/ansible/inventories/dev/group_vars/all/main.yml'
+      - 'ops/ansible/inventories/dev/group_vars/all/secrets.sops.yml'
       - '.github/workflows/deploy-observability-dev.yml'
       - '.github/workflows/_ansible-exec.yml'
   workflow_dispatch:
@@ -83,7 +83,6 @@ jobs:
     # alloy 재시작은 app deploy/foundation과 같은 dev runtime concurrency group으로 묶어 직렬화
     concurrency:
       group: dev-runtime
-      queue: max
       cancel-in-progress: false
     uses: ./.github/workflows/_ansible-exec.yml
     with:

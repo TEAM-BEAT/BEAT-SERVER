@@ -1,7 +1,9 @@
 package com.beat.application.frontoffice.performance.maker.query
 
+import com.beat.application.frontoffice.query.PresentationReadModel
 import java.time.LocalDateTime
 
+@PresentationReadModel
 data class PerformanceEditFormReadModel(
     val performanceId: Long,
     val userId: Long,
@@ -31,6 +33,7 @@ data class PerformanceEditFormReadModel(
     val images: List<PerformanceEditImageReadModel>,
 )
 
+@PresentationReadModel
 data class PerformanceEditScheduleReadModel(
     val id: Long,
     val performanceDate: LocalDateTime,
@@ -38,6 +41,7 @@ data class PerformanceEditScheduleReadModel(
     val scheduleNumber: String,
 )
 
+@PresentationReadModel
 data class PerformanceEditCastReadModel(
     val id: Long,
     val name: String,
@@ -45,6 +49,7 @@ data class PerformanceEditCastReadModel(
     val photo: String,
 )
 
+@PresentationReadModel
 data class PerformanceEditStaffReadModel(
     val id: Long,
     val name: String,
@@ -52,6 +57,7 @@ data class PerformanceEditStaffReadModel(
     val photo: String,
 )
 
+@PresentationReadModel
 data class PerformanceEditImageReadModel(
     val id: Long,
     val url: String,

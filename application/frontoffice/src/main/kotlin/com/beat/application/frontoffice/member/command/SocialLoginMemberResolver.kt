@@ -2,7 +2,6 @@ package com.beat.application.frontoffice.member.command
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.application.frontoffice.member.exception.MemberApplicationErrorCode
-import com.beat.domain.member.exception.DuplicateSocialIdentityException
 import com.beat.domain.member.model.Member
 import com.beat.domain.member.repository.MemberRepository
 import com.beat.domain.member.vo.SocialIdentity
@@ -18,23 +17,20 @@ internal class SocialLoginMemberResolver(
         socialIdentity: SocialIdentity,
     ): MemberAuthenticationResult {
         val existingMember = memberRepository.findBySocialIdentity(socialIdentity)
-        if (existingMember.isPresent) return existingMember.get().toAuthenticationResult()
-        return try {
-            val memberId = memberRegistrar.registerMemberWithUserInfo(socialLoginProfile, socialIdentity)
-            findById(memberId)
-        } catch (duplicate: DuplicateSocialIdentityException) {
-            memberRepository.findBySocialIdentity(socialIdentity)
-                .map { member -> member.toAuthenticationResult() }
-                .orElseThrow { duplicate }
-        }
+        existingMember?.let { return it.toAuthenticationResult() }
+        val memberId = memberRegistrar.registerMemberWithUserInfo(socialLoginProfile, socialIdentity)
+        return findById(memberId)
     }
 
-    private fun findById(memberId: Long): MemberAuthenticationResult = memberRepository.findById(memberId)
-        .map { member -> member.toAuthenticationResult() }
-        .orElseThrow { FrontofficeApplicationException(MemberApplicationErrorCode.MEMBER_NOT_FOUND) }
+    fun findExisting(socialIdentity: SocialIdentity): MemberAuthenticationResult? =
+        memberRepository.findBySocialIdentity(socialIdentity)?.toAuthenticationResult()
+
+    private fun findById(memberId: Long): MemberAuthenticationResult =
+        memberRepository.findById(memberId)?.toAuthenticationResult()
+            ?: throw FrontofficeApplicationException(MemberApplicationErrorCode.MEMBER_NOT_FOUND)
 
     private fun Member.toAuthenticationResult(): MemberAuthenticationResult = MemberAuthenticationResult(
-        memberId = requireNotNull(getId()),
-        userId = getUserId(),
+        memberId = requireNotNull(id),
+        userId = userId,
     )
 }

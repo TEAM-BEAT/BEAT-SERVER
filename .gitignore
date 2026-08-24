@@ -202,4 +202,33 @@ infra/ansible/inventories/**/group_vars/all.local.sops.yml
 
 # Local agent/editor tooling state (not project source)
 .serena/
+.gitnexus/
 .vscode/
+
+# 프로세스/AI 문서 — 로컬 보존, 원격 미추적(소유자 판정: 추후 정리)
+/CLAUDE.md
+/HANDOFF.md
+/task_artifact.md
+/docs/architecture/booking-close-processing-adr.md
+/docs/architecture/booking-platform-improvement-report.md
+/docs/architecture/boot-4.1-upgrade-notes.md
+/docs/architecture/error-handling.md
+/docs/architecture/multi-module-architecture-adr.md
+/docs/architecture/ticket-payment-confirmation-outbox-sqs.md
+/docs/observability/BATCH_LOKI_LOG_DIAGNOSIS.md
+/docs/observability/TRACE_LOG_CORRELATION.md
+
+# Constitution·마이그레이션 계열 문서 — 로컬 보존(소유자 결정: 추후 정리)
+/docs/architecture/BEAT-SERVER-CQRS-MULTIMODULE-ARCHITECTURE-FINAL.md
+/docs/architecture/BEAT_TEST_ARCHITECTURE_FINAL.md
+/docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md
+/docs/architecture/BEAT-SERVER-MIGRATION-FINAL-REPORT.md
+/docs/architecture/BEAT_TEST_REWRITE_PLAN.md
+/MIGRATION.md
+
+# JVM 힙 덤프·Redis 덤프 등 대용량 로컬 아티팩트
+*.hprof
+dump.rdb
+
+# 앤서블 로컬 설치 캐시(vvenv 도구가 생성)
+/wheel_dir/

@@ -1,7 +1,9 @@
 package com.beat.application.frontoffice.ticket.maker.query
 
+import com.beat.application.frontoffice.query.PresentationReadModel
 import java.time.LocalDateTime
 
+@PresentationReadModel
 data class MakerTicketListItemReadModel(
     val bookingId: Long,
     val bookerName: String,
