@@ -81,7 +81,7 @@ class TicketQueryService internal constructor(
     }
 
     private fun requireSearchWord(searchWord: String?): String =
-        searchWord?.takeIf { it.length >= 2 }
+        searchWord?.trim()?.takeIf { it.length >= 2 }
             ?: throw FrontofficeApplicationException(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT)
 
     private fun validateDeletedTicketsAreNotRequested(bookingStatuses: List<String>) {

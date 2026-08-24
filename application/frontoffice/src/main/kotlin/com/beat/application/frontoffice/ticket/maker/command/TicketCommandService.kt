@@ -40,14 +40,15 @@ class TicketCommandService internal constructor(
         val (bookings, _) = lockSchedulesThenBookings(detailsByBookingId.keys, performance)
 
         bookings.forEach { booking ->
-            val detail = requireNotNull(detailsByBookingId[booking.id])
+            val bookingId = checkNotNull(booking.id)
+            val detail = requireNotNull(detailsByBookingId[bookingId])
             val requestedStatus = BookingStatus.valueOf(detail.bookingStatus.name)
             val updated = booking.transitionTo(requestedStatus)
             if (updated === booking) return@forEach
             bookingRepository.save(updated)
             eventPublisher.publishEvent(
                 TicketPaymentConfirmedEvent(
-                    bookingId = checkNotNull(booking.id),
+                    bookingId = bookingId,
                     bookerName = booking.bookerName,
                     bookerPhoneNumber = booking.bookerPhoneNumber,
                     performanceTitle = performance.performanceTitle,

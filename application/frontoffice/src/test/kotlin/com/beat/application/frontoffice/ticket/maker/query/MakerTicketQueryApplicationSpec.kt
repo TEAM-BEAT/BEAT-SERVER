@@ -82,7 +82,7 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
         val result = service(makerTicketReader, performanceRepository, memberRepository).searchAllTicketsByConditions(
             1L,
             100L,
-            TicketListQuery(searchWord = "booker"),
+            TicketListQuery(searchWord = " booker "),
         )
 
         result.bookingList shouldBe emptyList<TicketDetailResult>()
@@ -101,10 +101,10 @@ class MakerTicketQueryApplicationSpec : FunSpec() {
         }
     }
 
-    test("의존성 호출 전에 null·빈 문자열·한 글자 검색어를 거부한다") {
+    test("의존성 호출 전에 null·빈 문자열·공백·한 글자 검색어를 거부한다") {
         val (makerTicketReader, performanceRepository, memberRepository) = makerTicketDependencies()
 
-        listOf(null, "", "a").forEach { searchWord ->
+        listOf(null, "", "  ", "a", " a ").forEach { searchWord ->
             shouldThrow<FrontofficeApplicationException> {
                 service(makerTicketReader, performanceRepository, memberRepository)
                     .searchAllTicketsByConditions(1L, 100L, TicketListQuery(searchWord = searchWord))

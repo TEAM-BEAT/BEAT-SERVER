@@ -188,6 +188,14 @@ val verifyTargetModuleGraph by tasks.registering {
         }
         targetExecutableApplicationLane.forEach { (executableProject, allowedApplicationProject) ->
             val dependencies = projectDependenciesOf(executableProject)
+            val mainDependencies = project(executableProject).configurations
+                .filter { configuration -> configuration.name in mainConfigurations }
+                .flatMap { configuration -> configuration.dependencies.withType(ProjectDependency::class.java) }
+                .map { dependency -> dependency.path }
+                .toSet()
+            check(allowedApplicationProject in mainDependencies) {
+                "$executableProject must depend on its designated application lane $allowedApplicationProject: $mainDependencies"
+            }
             val forbiddenProjects =
                 (targetExecutableProjects - executableProject) +
                     (targetApplicationProjects - allowedApplicationProject)
