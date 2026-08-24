@@ -1,0 +1,10 @@
+package com.beat.support.security
+
+import com.beat.support.security.authentication.internal.config.ServletSecurityConfig
+import org.springframework.context.annotation.Import
+
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.RUNTIME)
+@MustBeDocumented
+@Import(ServletSecurityConfig::class)
+annotation class EnableGatewayServletSecurity
