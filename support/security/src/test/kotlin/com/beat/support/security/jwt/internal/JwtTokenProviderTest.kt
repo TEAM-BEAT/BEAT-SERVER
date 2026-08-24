@@ -38,7 +38,7 @@ class JwtTokenProviderTest : FunSpec() {
             parsed.header.keyId shouldBe KEY_ID
             parsed.payload.get(JwtClaimNames.TOKEN_TYPE, String::class.java) shouldBe "ACCESS"
             jwtTokenProvider.authenticateAccessToken(accessToken) shouldBe
-                TokenAuthenticationResult.Authenticated(subject())
+                AccessTokenAuthenticationResult.Authenticated(1L, "ROLE_MEMBER")
         }
 
         test("access token 인증은 한 번 파싱한 claims에서 사용자 정보를 추출한다") {
@@ -53,7 +53,7 @@ class JwtTokenProviderTest : FunSpec() {
 
             val result = provider.authenticateAccessToken("access-token")
 
-            result shouldBe TokenAuthenticationResult.Authenticated(TokenSubject(1L, "ROLE_MEMBER"))
+            result shouldBe AccessTokenAuthenticationResult.Authenticated(1L, "ROLE_MEMBER")
             verify { parser.parse("access-token", JwtTokenType.ACCESS) }
         }
 
@@ -72,7 +72,7 @@ class JwtTokenProviderTest : FunSpec() {
             val refreshToken = jwtTokenProvider.issueRefreshToken(subject())
 
             jwtTokenProvider.authenticateAccessToken(refreshToken) shouldBe
-                TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN)
+                AccessTokenAuthenticationResult.Rejected(AccessTokenAuthenticationFailure.INVALID_TOKEN)
         }
 
         test("access token은 refresh 검증을 통과하지 못한다") {
@@ -108,7 +108,7 @@ class JwtTokenProviderTest : FunSpec() {
                 .compact()
 
             jwtTokenProvider.authenticateAccessToken(token) shouldBe
-                TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN)
+                AccessTokenAuthenticationResult.Rejected(AccessTokenAuthenticationFailure.INVALID_TOKEN)
         }
     }
 

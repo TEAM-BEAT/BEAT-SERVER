@@ -1,9 +1,8 @@
 package com.beat.support.security.authentication.internal
 
+import com.beat.support.security.jwt.internal.AccessTokenAuthenticationFailure
+import com.beat.support.security.jwt.internal.AccessTokenAuthenticationResult
 import com.beat.support.security.jwt.internal.AccessTokenAuthenticator
-import com.beat.application.frontoffice.security.TokenAuthenticationFailure
-import com.beat.application.frontoffice.security.TokenAuthenticationResult
-import com.beat.application.frontoffice.security.TokenSubject
 import com.beat.support.observability.logging.filter.BaseMdcLoggingFilter
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletResponse
@@ -27,7 +26,7 @@ class JwtAuthenticationFilterTest : FunSpec() {
             MDC.put(BaseMdcLoggingFilter.TRACE_ID_KEY, "trace-123")
             MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, BaseMdcLoggingFilter.DEFAULT_GUEST_USER)
             every { accessTokenAuthenticator.authenticateAccessToken("valid-token") } returns
-                TokenAuthenticationResult.Authenticated(TokenSubject(42L, "ROLE_MEMBER"))
+                AccessTokenAuthenticationResult.Authenticated(42L, "ROLE_MEMBER")
             val request = requestWithBearer("valid-token")
             val response = MockHttpServletResponse()
             val chain = FilterChain { _, _ ->
@@ -46,7 +45,7 @@ class JwtAuthenticationFilterTest : FunSpec() {
         test("ADMIN 토큰은 관리자 Authentication으로 인증된다") {
             val (accessTokenAuthenticator, filter) = jwtFilterDependencies()
             every { accessTokenAuthenticator.authenticateAccessToken("admin-token") } returns
-                TokenAuthenticationResult.Authenticated(TokenSubject(7L, "ROLE_ADMIN"))
+                AccessTokenAuthenticationResult.Authenticated(7L, "ROLE_ADMIN")
             val request = requestWithBearer("admin-token")
             val response = MockHttpServletResponse()
             val chain = FilterChain { _, _ ->
@@ -68,7 +67,7 @@ class JwtAuthenticationFilterTest : FunSpec() {
             listOf("ROLE_USER", "ROLE_UNKNOWN").forEach { role ->
                 val token = role.lowercase()
                 every { accessTokenAuthenticator.authenticateAccessToken(token) } returns
-                    TokenAuthenticationResult.Authenticated(TokenSubject(42L, role))
+                    AccessTokenAuthenticationResult.Authenticated(42L, role)
                 val request = requestWithBearer(token)
                 val response = MockHttpServletResponse()
                 val chain = mockk<FilterChain>(relaxed = true)
@@ -86,7 +85,7 @@ class JwtAuthenticationFilterTest : FunSpec() {
             MDC.put(BaseMdcLoggingFilter.TRACE_ID_KEY, "trace-123")
             MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, BaseMdcLoggingFilter.DEFAULT_GUEST_USER)
             every { accessTokenAuthenticator.authenticateAccessToken("expired-token") } returns
-                TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.EXPIRED)
+                AccessTokenAuthenticationResult.Rejected(AccessTokenAuthenticationFailure.EXPIRED)
             val request = requestWithBearer("expired-token")
             val response = MockHttpServletResponse()
             val chain = mockk<FilterChain>(relaxed = true)
@@ -103,7 +102,7 @@ class JwtAuthenticationFilterTest : FunSpec() {
         test("유효하지 않은 토큰은 400으로 단축 응답한다") {
             val (accessTokenAuthenticator, filter) = jwtFilterDependencies()
             every { accessTokenAuthenticator.authenticateAccessToken("broken-token") } returns
-                TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_SIGNATURE)
+                AccessTokenAuthenticationResult.Rejected(AccessTokenAuthenticationFailure.INVALID_SIGNATURE)
             val response = MockHttpServletResponse()
             val chain = mockk<FilterChain>(relaxed = true)
 

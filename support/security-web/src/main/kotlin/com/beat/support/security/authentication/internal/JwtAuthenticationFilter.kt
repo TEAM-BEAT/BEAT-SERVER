@@ -1,8 +1,8 @@
 package com.beat.support.security.authentication.internal
 
+import com.beat.support.security.jwt.internal.AccessTokenAuthenticationFailure
+import com.beat.support.security.jwt.internal.AccessTokenAuthenticationResult
 import com.beat.support.security.jwt.internal.AccessTokenAuthenticator
-import com.beat.application.frontoffice.security.TokenAuthenticationFailure
-import com.beat.application.frontoffice.security.TokenAuthenticationResult
 import com.beat.support.observability.logging.filter.BaseMdcLoggingFilter
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.servlet.FilterChain
@@ -38,12 +38,12 @@ internal class JwtAuthenticationFilter(
 
         try {
             when (val result = accessTokenAuthenticator.authenticateAccessToken(token)) {
-                is TokenAuthenticationResult.Authenticated -> {
-                    authenticate(result, request)
+                is AccessTokenAuthenticationResult.Authenticated -> {
+                    authenticate(result.memberId, result.roleName, request)
                     filterChain.doFilter(request, response)
                 }
 
-                is TokenAuthenticationResult.Rejected -> {
+                is AccessTokenAuthenticationResult.Rejected -> {
                     response.status = result.failure.toHttpStatus()
                 }
             }
@@ -55,13 +55,13 @@ internal class JwtAuthenticationFilter(
         }
     }
 
-    private fun authenticate(result: TokenAuthenticationResult.Authenticated, request: HttpServletRequest) {
-        val authentication = createAuthentication(result.subject.memberId, result.subject.roleName).apply {
+    private fun authenticate(memberId: Long, roleName: String, request: HttpServletRequest) {
+        val authentication = createAuthentication(memberId, roleName).apply {
             details = authenticationDetailsSource.buildDetails(request)
         }
 
         SecurityContextHolder.getContext().authentication = authentication
-        MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, result.subject.memberId.toString())
+        MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, memberId.toString())
     }
 
     private fun createAuthentication(memberId: Long, roleName: String): UsernamePasswordAuthenticationToken {
@@ -76,8 +76,8 @@ internal class JwtAuthenticationFilter(
     /**
      * `EXPIRED -> 401`, 그 외 실패 -> `400`은 현재 client 호환 계약이다.
      */
-    private fun TokenAuthenticationFailure.toHttpStatus(): Int = when (this) {
-        TokenAuthenticationFailure.EXPIRED -> HttpServletResponse.SC_UNAUTHORIZED
+    private fun AccessTokenAuthenticationFailure.toHttpStatus(): Int = when (this) {
+        AccessTokenAuthenticationFailure.EXPIRED -> HttpServletResponse.SC_UNAUTHORIZED
         else -> HttpServletResponse.SC_BAD_REQUEST
     }
 

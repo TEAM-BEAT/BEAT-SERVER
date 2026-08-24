@@ -1,8 +1,8 @@
 package com.beat.apps.api.security
 
 import com.beat.apps.api.support.BeatAcceptanceTest
-import com.beat.support.security.token.TokenIssuer
-import com.beat.support.security.token.TokenSubject
+import com.beat.application.frontoffice.security.TokenIssuer
+import com.beat.application.frontoffice.security.TokenSubject
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec

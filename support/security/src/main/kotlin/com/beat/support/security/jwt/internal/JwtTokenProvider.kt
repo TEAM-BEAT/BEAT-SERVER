@@ -13,7 +13,7 @@ import io.jsonwebtoken.security.SignatureException
 
 /**
  * 발급/파싱은 [JwtTokenIssuer]·[JwtTokenParser]에 위임하고,
- * 이 클래스는 예외를 [TokenAuthenticationResult]로 변환하는 책임만 갖는다.
+ * 이 클래스는 예외를 [TokenAuthenticationResult] / [AccessTokenAuthenticationResult]로 변환하는 책임만 갖는다.
  */
 class JwtTokenProvider(
     private val jwtProperties: JwtProperties,
@@ -27,12 +27,19 @@ class JwtTokenProvider(
     override fun issueRefreshToken(subject: TokenSubject): String =
         jwtTokenIssuer.issue(subject, jwtProperties.refreshTokenExpireTime, JwtTokenType.REFRESH)
 
-    override fun authenticateAccessToken(token: String): TokenAuthenticationResult =
-        mapParsedToken(
+    override fun authenticateAccessToken(token: String): AccessTokenAuthenticationResult =
+        mapParsedAccessToken(
             token = token,
-            expectedType = JwtTokenType.ACCESS,
-            onValid = { claims -> claims.toAuthenticationResult() },
-            onInvalid = TokenAuthenticationResult::Rejected,
+            onValid = { claims ->
+                val memberId = claims.memberIdOrNull()
+                val roleName = claims.roleNameOrNull()
+                if (memberId == null || roleName == null) {
+                    AccessTokenAuthenticationResult.Rejected(AccessTokenAuthenticationFailure.INVALID_TOKEN)
+                } else {
+                    AccessTokenAuthenticationResult.Authenticated(memberId, roleName)
+                }
+            },
+            onInvalid = AccessTokenAuthenticationResult::Rejected,
         )
 
     override fun authenticateRefreshToken(token: String): TokenAuthenticationResult =
@@ -42,6 +49,26 @@ class JwtTokenProvider(
             onValid = { claims -> claims.toAuthenticationResult() },
             onInvalid = TokenAuthenticationResult::Rejected,
         )
+
+    private fun mapParsedAccessToken(
+        token: String,
+        onValid: (Claims) -> AccessTokenAuthenticationResult,
+        onInvalid: (AccessTokenAuthenticationFailure) -> AccessTokenAuthenticationResult,
+    ): AccessTokenAuthenticationResult = try {
+        onValid(jwtTokenParser.parse(token, JwtTokenType.ACCESS))
+    } catch (_: MalformedJwtException) {
+        onInvalid(AccessTokenAuthenticationFailure.INVALID_TOKEN)
+    } catch (_: ExpiredJwtException) {
+        onInvalid(AccessTokenAuthenticationFailure.EXPIRED)
+    } catch (_: UnsupportedJwtException) {
+        onInvalid(AccessTokenAuthenticationFailure.UNSUPPORTED)
+    } catch (_: InvalidTokenClaimsException) {
+        onInvalid(AccessTokenAuthenticationFailure.INVALID_TOKEN)
+    } catch (_: IllegalArgumentException) {
+        onInvalid(AccessTokenAuthenticationFailure.EMPTY)
+    } catch (_: SignatureException) {
+        onInvalid(AccessTokenAuthenticationFailure.INVALID_SIGNATURE)
+    }
 
     /**
      * 예외 catch 순서에 의존한다. [InvalidTokenClaimsException]은 [IllegalArgumentException]의
