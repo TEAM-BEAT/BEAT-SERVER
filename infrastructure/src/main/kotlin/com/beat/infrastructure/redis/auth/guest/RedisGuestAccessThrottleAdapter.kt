@@ -1,0 +1,37 @@
+package com.beat.infrastructure.redis.auth.guest
+
+import com.beat.application.frontoffice.booking.booker.command.GuestAccessThrottle
+import java.time.Duration
+import org.springframework.data.redis.core.StringRedisTemplate
+import org.springframework.data.redis.core.script.RedisScript
+
+internal class RedisGuestAccessThrottleAdapter(
+    private val redisTemplate: StringRedisTemplate,
+    private val recordGuestAccessFailureScript: RedisScript<Long>,
+) : GuestAccessThrottle {
+
+    override fun isBlocked(keyMaterial: String): Boolean {
+        val attempts = redisTemplate.opsForValue().get(key(keyMaterial)) ?: return false
+        return (attempts.toLongOrNull() ?: 0L) >= MAX_FAILURES
+    }
+
+    override fun recordFailure(keyMaterial: String) {
+        redisTemplate.execute(
+            recordGuestAccessFailureScript,
+            listOf(key(keyMaterial)),
+            WINDOW.toSeconds().toString(),
+        )
+    }
+
+    override fun reset(keyMaterial: String) {
+        redisTemplate.delete(key(keyMaterial))
+    }
+
+    private fun key(keyMaterial: String): String = KEY_PREFIX + Sha256Hasher.hashToBase64Url(keyMaterial)
+
+    private companion object {
+        const val MAX_FAILURES = 5L
+        val WINDOW: Duration = Duration.ofMinutes(10)
+        const val KEY_PREFIX = "guest-access-failure:"
+    }
+}
