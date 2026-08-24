@@ -207,6 +207,7 @@ infra/ansible/inventories/**/group_vars/all.local.sops.yml
 # 프로세스/AI 문서 — 로컬 보존, 원격 미추적(소유자 판정: 추후 정리)
 /CLAUDE.md
 /HANDOFF.md
+/task_artifact.md
 /docs/architecture/booking-close-processing-adr.md
 /docs/architecture/booking-platform-improvement-report.md
 /docs/architecture/boot-4.1-upgrade-notes.md

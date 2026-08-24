@@ -164,7 +164,7 @@ Architecture 정본은 [CQRS multi-module Constitution](docs/architecture/BEAT-S
 ### Backend migration baseline
 
 Current migration decisions and evidence are maintained in
-[BEAT-SERVER-MIGRATION-EXECUTION.md](docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md) and `task_artifact.md`.
+[BEAT-SERVER-MIGRATION-EXECUTION.md](docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md).
 Domain failures are translated to lane-owned Application failure language before Web adapters map them to HTTP.
 [MIGRATION.md](MIGRATION.md) and the ErrorCode inventory are historical pre-target records, not current architecture guidance.
 
