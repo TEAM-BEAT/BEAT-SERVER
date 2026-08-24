@@ -1,0 +1,29 @@
+package com.beat.infrastructure.persistence.promotion.mapper
+
+import com.beat.domain.promotion.model.Promotion
+import com.beat.infrastructure.persistence.promotion.entity.PromotionJpaEntity
+import org.springframework.stereotype.Component
+
+@Component
+internal class PromotionPersistenceMapper {
+
+    fun toDomain(entity: PromotionJpaEntity): Promotion =
+        Promotion.rehydrate(
+            entity.id,
+            entity.promotionPhoto,
+            entity.performanceId,
+            entity.redirectUrl,
+            entity.isExternal,
+            entity.carouselNumber,
+        )
+
+    fun toEntity(promotion: Promotion): PromotionJpaEntity =
+        PromotionJpaEntity.rehydrate(
+            promotion.id,
+            promotion.promotionPhoto,
+            promotion.performanceId,
+            promotion.redirectUrl,
+            promotion.isExternal,
+            promotion.carouselNumber,
+        )
+}

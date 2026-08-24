@@ -4,5 +4,13 @@ plugins {
 }
 
 dependencies {
+    implementation(platform(libs.spring.boot.dependencies))
     implementation(project(":domain"))
+    implementation(libs.spring.context)
+    implementation(libs.spring.tx)
+    implementation(libs.kotlin.logging.jvm)
+    runtimeOnly(libs.slf4j.api)
+    // KotlinLogging은 SLF4J 퍼사드 — 백엔드 api는 직접 선언(전이 의존 아님)
+
+    testImplementation(libs.archunit.junit5)
 }

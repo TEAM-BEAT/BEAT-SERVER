@@ -1,23 +1,19 @@
 [versions]
-spring-boot = "4.0.7"
+archunit = "1.5.0"
+spring-boot = "4.0.8"
 dependency-management = "1.1.7"
-kotlin = "2.3.20"
+kotlin = "2.3.21"
 kotlin-logging = "8.0.4"
 kotlinx-coroutines = "1.10.2"
 sonarqube = "7.2.3.7755"
 kover = "0.9.7"
-spring-cloud = "2025.1.1"
+spring-cloud = "2025.1.3"
 springdoc = "3.0.2"
-tomcat-embed = "11.0.22"
-jackson3 = "3.1.4"
-jackson2 = "2.21.4"
 commons-fileupload = "1.6.0"
-netty = "4.2.15.Final"
-bouncycastle = "1.84"
 jjwt = "0.13.0"
 aws-sdk-v1 = "1.12.797"
-testcontainers = "1.21.3"
-redis-testcontainers = "2.2.2"
+testcontainers = "2.0.5"
+redis-testcontainers = "2.2.4"
 sentry = "8.41.0"
 sentry-gradle-plugin = "6.6.0"
 # Micrometer Tracing / OpenTelemetry 버전은 Spring Boot 4.0 BOM 이 관리 (spring-boot-starter-opentelemetry 가 정렬된 transitive 제공)
@@ -25,6 +21,8 @@ sentry-gradle-plugin = "6.6.0"
 # Kotlin migration may add Kotest/MockK as an optional Kotlin test layer on top of this baseline,
 # not as a replacement for the shared JUnit Platform execution contract.
 junit = "6.0.3"
+kotest = "6.2.4"
+mockk = "1.14.11"
 dependency-analysis = "3.11.0"
 kotlin-jdsl = "3.8.2"
 
@@ -34,8 +32,15 @@ kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependency-analysis" }
 
 [libraries]
+spring-context = { module = "org.springframework:spring-context" }
+spring-tx = { module = "org.springframework:spring-tx" }
+slf4j-api = { module = "org.slf4j:slf4j-api" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit" }
-junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5-jvm", version.ref = "kotest" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core-jvm", version.ref = "kotest" }
+kotest-extensions-spring = { module = "io.kotest:kotest-extensions-spring", version.ref = "kotest" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlin-logging" }
@@ -60,23 +65,19 @@ spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-depe
 spring-boot-persistence = { module = "org.springframework.boot:spring-boot-persistence", version.ref = "spring-boot" }
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
+spring-boot-starter-webmvc-test = { module = "org.springframework.boot:spring-boot-starter-webmvc-test", version.ref = "spring-boot" }
+spring-boot-starter-restclient = { module = "org.springframework.boot:spring-boot-starter-restclient", version.ref = "spring-boot" }
 spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
 spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa", version.ref = "spring-boot" }
+spring-boot-data-jpa-test = { module = "org.springframework.boot:spring-boot-data-jpa-test", version.ref = "spring-boot" }
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "spring-boot" }
 spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security", version.ref = "spring-boot" }
+spring-security-test = { module = "org.springframework.security:spring-security-test" }
 spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis", version.ref = "spring-boot" }
+spring-boot-data-redis-test = { module = "org.springframework.boot:spring-boot-data-redis-test", version.ref = "spring-boot" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
 spring-boot-starter-log4j2 = { module = "org.springframework.boot:spring-boot-starter-log4j2", version.ref = "spring-boot" }
-tomcat-embed-core = { module = "org.apache.tomcat.embed:tomcat-embed-core", version.ref = "tomcat-embed" }
-tomcat-embed-el = { module = "org.apache.tomcat.embed:tomcat-embed-el", version.ref = "tomcat-embed" }
-tomcat-embed-websocket = { module = "org.apache.tomcat.embed:tomcat-embed-websocket", version.ref = "tomcat-embed" }
-jackson3-core = { module = "tools.jackson.core:jackson-core", version.ref = "jackson3" }
-jackson3-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson3" }
-jackson2-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson2" }
 commons-fileupload = { module = "commons-fileupload:commons-fileupload", version.ref = "commons-fileupload" }
-netty-codec-dns = { module = "io.netty:netty-codec-dns", version.ref = "netty" }
-netty-resolver-dns = { module = "io.netty:netty-resolver-dns", version.ref = "netty" }
-bouncycastle-bcprov-jdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 
 spring-cloud-dependencies = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "spring-cloud" }
 spring-cloud-starter-openfeign = { module = "org.springframework.cloud:spring-cloud-starter-openfeign" }
@@ -94,8 +95,8 @@ nurigo-java-sdk = { module = "net.nurigo:javaSDK", version = "2.2" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 # Spring Boot 4.0 OTLP tracing starter — micrometer-tracing-bridge-otel + opentelemetry-sdk + opentelemetry-exporter-otlp + opentelemetry-api 를 BOM 정렬된 버전으로 transitive 제공
 spring-boot-starter-opentelemetry = { module = "org.springframework.boot:spring-boot-starter-opentelemetry", version.ref = "spring-boot" }
-testcontainers-mysql = { module = "org.testcontainers:mysql", version.ref = "testcontainers" }
-testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
+testcontainers-mysql = { module = "org.testcontainers:testcontainers-mysql", version.ref = "testcontainers" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:testcontainers-junit-jupiter", version.ref = "testcontainers" }
 testcontainers-redis = { module = "com.redis:testcontainers-redis", version.ref = "redis-testcontainers" }
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers", version.ref = "spring-boot" }
 

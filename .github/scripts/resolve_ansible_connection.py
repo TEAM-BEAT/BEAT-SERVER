@@ -60,7 +60,7 @@ def resolve_inventory_path(raw_path: str) -> Path:
             [
                 candidate,
                 root / candidate,
-                root / "infra/ansible" / candidate,
+                root / "ops/ansible" / candidate,
             ]
         )
 
@@ -73,7 +73,7 @@ def resolve_inventory_path(raw_path: str) -> Path:
 
 def subprocess_env() -> dict[str, str]:
     env = os.environ.copy()
-    env["ANSIBLE_CONFIG"] = str(repo_root() / "infra/ansible/ansible.cfg")
+    env["ANSIBLE_CONFIG"] = str(repo_root() / "ops/ansible/ansible.cfg")
     return env
 
 

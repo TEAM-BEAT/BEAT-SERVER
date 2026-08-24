@@ -1,6 +1,0 @@
-package com.beat.apis.performance.api.type
-
-enum class BankNameType {
-    NH_NONGHYUP, KAKAOBANK, KB_KOOKMIN, TOSSBANK, SHINHAN, WOORI, IBK_GIUP, HANA,
-    SAEMAUL, BUSAN, IMBANK_DAEGU, SINHYEOP, WOOCHAEGUK, SCJEIL, SUHYEOP, NONE,
-}
