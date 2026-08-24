@@ -1,11 +1,12 @@
 import org.gradle.api.tasks.compile.JavaCompile
 
 plugins {
-    java
+    id("beat.kotlin-base")
+    alias(libs.plugins.dependency.analysis)
     alias(libs.plugins.sonarqube)
     alias(libs.plugins.kover)
-    alias(libs.plugins.dependency.analysis)
     id("beat.test")
+    id("beat.root-verification")
 }
 
 group = "com"
@@ -15,11 +16,6 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(25))
     }
-}
-
-dependencies {
-    testImplementation(libs.junit.jupiter)
-    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 tasks.named<Jar>("jar") {
@@ -47,41 +43,9 @@ dependencyAnalysis {
     }
 }
 
-fun registerVerificationTask(
-    name: String,
-    description: String,
-    vararg dependencies: Any,
-) {
-    tasks.register(name) {
-        group = "verification"
-        this.description = description
-        dependsOn(*dependencies)
-    }
-}
-
-val transitionBoundaryTest by tasks.registering(Test::class) {
-    group = "verification"
-    description = "Runs the root transition boundary guard tests only."
-    testClassesDirs = sourceSets["test"].output.classesDirs
-    classpath = sourceSets["test"].runtimeClasspath
-    useJUnitPlatform()
-    filter {
-        includeTestsMatching("com.beat.architecture.PromotionBoundaryTest")
-        includeTestsMatching("com.beat.RootRetirementContractTest")
-        includeTestsMatching("com.beat.SharedBoundaryContractTest")
-    }
-}
-
-registerVerificationTask(
-    "verifyModuleBootJars",
-    "Builds boot jars for the current executable modules.",
-    ":apis:bootJar",
-    ":admin:bootJar",
-    ":batch:bootJar",
-)
-
-subprojects {
-    group = rootProject.group
-    version = rootProject.version
-    apply(plugin = "com.autonomousapps.dependency-analysis")
+tasks.named("check") {
+    dependsOn("verifyTargetModuleGraph")
+    dependsOn("verifyModuleBootJars")
+    dependsOn("verifyMainResourceTestProfiles")
+    dependsOn("verifyMockFrameworkIsNotGlobalDefault")
 }

@@ -3,7 +3,7 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-SOPS_FILE="${SOPS_FILE:-$ROOT_DIR/infra/ansible/inventories/prod/group_vars/all/secrets.sops.yml}"
+SOPS_FILE="${SOPS_FILE:-$ROOT_DIR/ops/ansible/inventories/prod/group_vars/all/secrets.sops.yml}"
 OUTPUT_FILE="${OUTPUT_FILE:-$ROOT_DIR/secret/application-prod-secret.properties}"
 
 . "$ROOT_DIR/scripts/lib/local-vars.sh"
@@ -17,7 +17,7 @@ fi
 
 if [ ! -f "$SOPS_FILE" ]; then
   echo "Missing inventory file: $SOPS_FILE" >&2
-  echo "Provide a real encrypted prod secret vars file at infra/ansible/inventories/prod/group_vars/all/secrets.sops.yml or override SOPS_FILE." >&2
+  echo "Provide a real encrypted prod secret vars file at ops/ansible/inventories/prod/group_vars/all/secrets.sops.yml or override SOPS_FILE." >&2
   exit 1
 fi
 

@@ -1,0 +1,232 @@
+# batch module
+
+> 이 문서는 `batch` 모듈의 현재 detached bootstrap 계약, 목표 계약, 그리고 #384에서 수행하지 않는 후속 작업을 구분한다. `batch`는 root project 의존 없이 자체 classpath로 build/boot/test 되어야 한다.
+
+## Migration status
+
+| Current | Target | Deferred-to-issue |
+| --- | --- | --- |
+| Batch owns recurring scheduler entrypoints after detach/root dependency removal. System maintenance workflows live in `application:system`. Issue #428 removed the booking-close scheduler because availability is calculated from DB time. | Keep Batch as scheduler/bootstrap only and System as transaction/time-policy owner. | Spring Batch adoption remains a separate ADR if volume requires chunk/retry/history semantics. |
+
+## 역할
+
+- 스케줄러와 배치 잡의 유일한 실행 진입점이다.
+- 정기 유지보수 workflow와 transaction/time policy는 `application:system`이 소유한다.
+- 실행 흐름은 `Job/Runner -> application:system use case -> Domain`이다.
+- 외부 발송/저장 구현은 `infra`를 통해 사용한다.
+
+## 허용 의존성
+
+- `application:system`
+- `infra`
+- `observability`
+
+## 금지 규칙
+
+- `project(":")` 직접 의존 금지
+- `apis`, `admin` 직접 의존 금지
+- `gateway` 직접 의존 금지
+- 사용자용 Controller/API DTO 보유 금지
+- 전역 스캔에 기대는 구조 금지
+- 스케줄 소유권을 다른 실행 모듈과 중복 활성화 금지
+
+## Current bootstrap shape
+
+```text
+batch/
+  src/main/kotlin/com/beat/batch/
+    BatchApplication.kt
+    config/
+      InfraConfig.kt                 # @EnableInfraBaseConfig(JPA, ASYNC)
+    booking/job/TicketCleanupJob.kt
+    promotion/job/PromotionMaintenanceJob.kt
+  src/main/resources/
+    application.yml                 # beat.scheduler.owner=true
+  src/test/resources/
+    application-test.yml            # beat.scheduler.owner=false
+```
+
+### Runtime contract
+
+- `BatchApplication`은 정확히 아래 bootstrap surface만 import한다.
+    - `InfraConfig`
+    - `ObservabilityModuleConfig`
+    - `SystemApplicationConfig`
+- `@SpringBootApplication`이 batch package만 스캔한다.
+- `BatchApplication`은 Spring Boot `TaskSchedulingAutoConfiguration`을 사용하고, batch가 유일하게 `@EnableScheduling`을 켠다.
+- `batch`는 실행 모듈 중 유일하게 `@EnableScheduling`을 유지한다.
+- `batch`는 user-facing API는 소유하지 않지만, 운영용 health check를 위해 최소 HTTP/Actuator surface를 제공할 수 있다.
+- batch-owned scheduler/runtime bean은 `com.beat.batch.<context>.job.*` 아래에서 component scan으로 올라오며 business workflow는 `SystemApplicationConfig`가 제공한다.
+- executable bootstrap resource는 module-local 값과 `spring.profiles.group`만 소유하고, batch는 `persistence`, `observability`, `thread-pool` concern만 활성화한다.
+- main resources는 `beat.scheduler.owner=true`를 기본값으로 유지한다.
+- external-client / Feign runtime은 batch bootstrap이 아니라 `infra`의 `EXTERNAL_CLIENTS` 경계와 web-app lane에서만 소유한다.
+- 스케줄 메서드는 Boot 자동생성 `taskScheduler`가 아니라 명명된 `maintenanceTaskScheduler`(`SchedulingConfig`, `ThreadPoolTaskSchedulerBuilder` 기반)를 `scheduler` qualifier(Spring Framework 6.1+)로 명시해 사용한다. 무거운 배치 작업이 추가되면 별도 스케줄러 빈(예: `batchTaskScheduler`)을 새로 두고 해당 작업의 `scheduler` 값만 바꾸면 되며, 기존 정리성 작업(`PromotionMaintenanceJob`, `TicketCleanupJob`)과 `maintenanceTaskScheduler`는 건드리지 않는다. 데이터 규모가 커져 재시도/청크/작업 이력 관리가 필요해지면 Spring Batch 도입은 별도 ADR로 검토한다.
+- test profile은 `beat.scheduler.owner=false`로 내려서 detached smoke boot를 검증하고, owner-enabled contract는 별도 테스트로 검증한다.
+- scheduler/service 코드는 `batch` owner namespace 기준으로 정렬됐다.
+- 이번 PR에서 batch는 servlet MDC filter를 자동 등록하지 않는다. 필요하면 후속 PR에서 batch-local `SimpleMdcLoggingFilter`를 명시 등록한다.
+
+## Previous detached-bootstrap changes
+
+- `batch/build.gradle.kts`에서 `implementation(project(":"))`를 제거했다.
+- `batch`는 root project classpath 없이 build/boot/test 되는 방향으로 고정됐다.
+- 테스트 계약을 갱신해 detached bootstrap, non-owner smoke profile, owner-enabled schedule contract를 고정했다.
+- batch architecture guard를 추가해 root dependency 재도입과 forbidden runtime lane 참조를 막는다.
+- `batch/README.md`는 detached bootstrap 상태 기준으로 유지한다.
+
+## Current / Target / Deferred-to-issue clarity for #384
+
+Issue #384는 README/CI gate baseline만 문서화한다. 아래 표는 현재 실행 가능한 `batch` 계약과 목표 방향을 분리하고, 실제 구조 변경은 후속 이슈로 미룬다.
+
+| Area | Current in `batch` | Target direction | Deferred-to-issue |
+| --- | --- | --- | --- |
+| Executable lane ownership | scheduler/batch lane은 root bootstrap 없이 `BatchApplication`과 module-local config로 실행된다. | 계속 `batch`가 scheduler runtime, scheduled jobs, maintenance flows를 소유한다. | #384 gate baseline only |
+| Shared module ownership | `:application:system`, `:infrastructure`, `:support:observability`의 좁은 bootstrap/technical surface만 사용하고 Security/Domain에 직접 의존하지 않는다. | 같은 방향을 compiler/guard로 유지한다. | PR-21 guard closeout |
+| CQRS/package normalization | `booking`, `promotion` job은 각각 System command를 직접 호출한다. | Capability → Command ownership은 `application:system`; Batch는 inbound scheduler adapter만 유지한다. | 완료 |
+| Gateway boundary | `batch`는 gateway에 직접 의존하지 않고 사용자/관리자 HTTP lane과 분리되어 있다. | scheduler lane은 gateway 인증 구현과 계속 분리한다. | #379 |
+| Domain/persistence boundary | Batch job은 Domain repository나 persistence 구현을 직접 사용하지 않고 System use case만 호출한다. | Application transaction과 authoritative repository collaboration을 유지한다. | boundary guard로 지속 검증 |
+| Infra/query boundary | `InfraConfig`가 JPA, QueryDSL, async group을 명시적으로 import하고, `InfraPersistenceConfig`를 IDE static-analysis breadcrumb로 직접 import한다. Runtime persistence import는 여전히 `JpaConfig`가 보장하며 scheduler bean은 Spring Boot auto-configuration이 소유한다. | QueryDSL/JDSL 전환과 `JpaConfig` scan 결정은 infra-owned boundary에서 정한다. | #381 |
+| Async/scheduler handoff | 실행 모듈 중 유일하게 `@EnableScheduling`을 유지하지만 예매 마감 작업은 소유하지 않는다. | 프로모션 관리와 티켓 정리 같은 실제 유지보수 작업만 scheduler에 둔다. | #383, #428 |
+
+## Current ownership notes
+
+### In `batch`
+
+- scheduler runtime ownership
+- scheduled maintenance job entrypoints
+- batch-local scheduling bootstrap and owner flag defaults
+- module-local bootstrap config such as `beat.scheduler.owner`
+
+### Outside `batch`
+
+- `application:system`: Booking/Promotion maintenance workflow, transaction, Clock, authoritative collaboration
+- `infra`: JPA, QueryDSL, async/task-scheduler bootstrap
+- `observability`: MDC logging base filter, metrics/actuator config, tracing placeholder
+
+## Remaining transitional debt
+
+- one-line facade와 Batch-owned Application service는 제거됐고 Job은 System command만 호출한다.
+- `domain` 모듈은 JPA-free이며 기술 중립 repository port만 소유한다. `Role`은 `ROLE_*` 문자열만 소유하고 Spring Security `GrantedAuthority` bridge는 갖지 않는다.
+- root executable lane은 retire되었고, scheduler runtime owner는 `batch`로 고정됐다.
+- 남은 작업은 observability physical ownership과 최종 legacy dependency/visibility closeout이다.
+
+## Guard rails
+
+- `BatchApplicationTest`
+    - `BatchApplication` import 집합 고정
+    - narrow app bootstrap 유지
+    - batch owner source package가 `com.beat.batch.*`로 정렬됐는지 확인
+    - main/test resource owner flag 계약 고정
+    - test profile이 blanket bean override 없이 유지되는지 확인
+- `BatchArchitectureGuardTest`
+    - `batch/build.gradle.kts`의 root dependency 재추가 금지
+    - `apis`, `admin`, `gateway` 직접 의존 금지
+    - root bootstrap lane 참조 금지
+    - legacy owner package 선언 재도입 금지
+    - `@Scheduled` / `ApplicationReadyEvent` runtime entrypoint는 `job/` package에서만 소유
+    - `job/` entrypoint가 frontoffice/admin/security/infra를 직접 호출하지 않고 `application:system` 경계로만 진입하는지 확인
+- `BatchModuleContextBootTest`
+    - module context boot smoke test
+    - test profile에서 `beat.scheduler.owner=false`가 실제로 적용되는지 확인
+    - batch lane만 명시적으로 소유한 `taskScheduler`를 유지하는지 확인
+- `BatchSchedulerOwnerBootTest`
+    - owner-enabled runtime에서 프로모션 관리와 티켓 정리 job이 기동하는지 확인
+- `AbstractBatchIntegrationTest`
+    - batch 통합 테스트용 MySQL service connection bootstrap 공유
+
+## To-Be direction
+
+```text
+com.beat.batch.<context>/
+  job/
+  application/
+    service/
+      command/
+      query/   # 필요할 때만
+    dto/
+    exception/
+  config/
+```
+
+## 서비스 / CQRS 규칙
+
+- Job/Runner는 batch adapter의 공식 진입점이며 operation마다 정확히 하나의 `application:system` ApplicationService를 호출한다. 별도 Facade에서 여러 use case를 조합하지 않으며 raw Domain model을 받거나 반환하지 않는다.
+- 실제 잡 실행은 대부분 command 성격이므로 `application/command`를 기본으로 둔다.
+- 배치 조회/리포트/통계가 필요할 때만 `application/query`를 추가한다.
+- DTO는 command/query로 나누지 않고 `application/dto` 아래에서 관리한다. ApplicationService output이 필요할 때만 `application/dto/result`를 추가한다.
+- Batch job은 `application:system` command만 호출합니다. 저장/수정 transaction과 Domain repository 사용은 System Application이 소유하며 Batch는 Infrastructure 구현을 직접 호출하지 않습니다.
+- 배치 애플리케이션 문맥의 에러 코드는 `<context>/exception`에 둔다. repository lookup 실패, batch flow 실패, 외부 adapter 실패 번역을 domain ErrorCode로 표현하지 않는다.
+- batch는 HTTP response success code가 기본적으로 필요하지 않다. 배치 결과 메시지가 필요해질 때는 batch-local result/response boundary가 소유하고 domain에는 `SuccessCode`를 추가하지 않는다.
+- `adapter`, `port` 패키지는 BEAT 기본 가이드로 강제하지 않는다.
+- Repository는 지금 즉시 분리하지 않고, 복잡한 조회 전용 구현이 필요할 때만 infra `repository.query` 레이어를 추가한다. 이 레이어는 batch 리포트/통계용 read projection을 소유하고 JPA entity와 domain model을 번역하는 mapper를 재사용하지 않는다.
+
+### Spring Batch adoption rule
+
+현재 `batch` 모듈은 Spring Batch가 아니라 Spring Scheduling / Spring Boot auto-configured `TaskScheduler` 기반으로 동작한다.
+
+- 단순 정기 유지보수 작업은 `@Scheduled` / auto-configured `TaskScheduler` + `Job -> ApplicationService` 구조를 기본으로 둔다.
+- 대량 chunk processing, restartability, execution metadata, step orchestration이 실제 요구사항으로 생길 때만 Spring Batch 도입을 검토한다.
+- Spring Batch를 도입하더라도 batch module boundary는 유지한다. Spring Batch `Job/Step`은 실행 adapter이고, 비즈니스 유스케이스는 ApplicationService로 위임한다.
+
+### Layer boundary standard
+
+BEAT의 batch lane은 HTTP Controller 대신 Job/Runner가 entrypoint인 점만 다르고, 내부 계층 의미는 실행 모듈 표준을 따른다.
+
+```text
+Job/Runner -> ApplicationService(command/query) -> DomainService/Entity/RepositoryPort/ReadPort
+```
+
+- Job/Runner는 scheduler/launcher adapter이며 operation마다 정확히 하나의 ApplicationService를 호출한다.
+- Job/Runner는 transaction/repository/domain service를 직접 소유하지 않는다.
+- Job/Runner 입력/출력은 primitive와 trigger metadata로 제한하며 raw Domain model을 받거나 반환하지 않는다.
+- `ApplicationService`는 command service와 query service를 의미한다. 이 계층만 유스케이스 method 내부에서 Domain model을 조회/변경/정책 판단에 사용할 수 있고, Domain model은 이 계층 밖으로 반환하지 않는다. 다른 ApplicationService에 raw Domain model을 반환하는 public helper method를 새로 만들지 않는다.
+- batch 흐름은 대부분 command service로 시작한다. 리포트/통계/read-model이 필요할 때만 query service를 추가한다.
+- ApplicationService는 순수 도메인 정책을 직접 구현하지 않고 `domain.<context>.service`의 DomainService 또는 Entity/VO method에 위임한다.
+- 배치 리포트/통계 query가 생기면 consumer인 `application:system`이 query reader/read model을 소유하고 Infrastructure가 구현합니다.
+
+
+### CQRS query/read-model rule
+
+- BEAT의 batch CQRS는 잡 실행 흐름을 command service로, 리포트/통계/조회 흐름을 query service로 분리하는 것부터 시작한다.
+- command service는 Domain model 중심으로 cleanup, 상태 변경, 저장/삭제 흐름을 수행한다.
+- query service는 배치 리포트/통계/read-model 조립을 맡지만 Domain model을 Job/Runner나 다른 ApplicationService로 반환하지 않는다.
+- 단순 조회는 domain repository contract를 사용할 수 있다. 다만 리포트/통계/목록/projection 조회가 되면 domain repository를 키우지 않고 read-model로 분리한다.
+- Infrastructure가 구현할 조회 계약은 consumer인 `application:system`에 두며 실제 volatility와 deletion test를 통과할 때만 만듭니다.
+- batch 내부에서만 쓰는 조립 결과는 `batch.<context>.application.dto.result` 또는 query service 내부 result로 둔다.
+- query service는 JPA Entity, QueryDSL Q type, EntityManager, infra persistence mapper를 직접 사용하지 않는다.
+
+### Response and domain exposure rule
+
+- 배치 command/query service는 필요한 실행 결과 DTO 또는 result를 반환한다.
+- 여러 조회·변경 결과가 필요한 batch use case는 하나의 ApplicationService가 조합을 소유하고 최종 실행 결과를 반환한다.
+- Job/Runner에는 raw Domain model을 절대 올리지 않는다.
+- ApplicationService 간 공유도 raw Domain model이 아니라 primitive/value/result/read model로 한다.
+- DTO, CommandResult, QueryResult는 Domain model을 필드로 담지 않는다.
+- `apps:api`, `apps:admin`, `apps:batch` 간 DTO/ApplicationService를 공유하지 않습니다. 협력이 필요하면 Domain collaboration이나 consumer-owned narrow seam을 검토하고 중앙 contracts module을 만들지 않습니다.
+
+
+### ResponseDTO vs Result selection rule
+
+Batch는 HTTP ResponseDTO보다 실행 결과 DTO/result가 중심이다. 그래도 선택 기준은 동일하다. 기본값은 command/query service가 필요한 실행 결과를 완성해 반환하는 것이고, Result는 ApplicationService가 외부에 명시적 실행 결과를 반환해야 할 때만 추가한다.
+
+- service 하나가 job 실행 결과를 완성할 수 있으면 command/query service가 실행 결과 DTO 또는 void를 반환한다.
+- Job/Runner가 결과를 사용하지 않으면 별도 Result를 만들지 않는다.
+- 여러 조회·변경 결과가 필요한 batch use case는 하나의 ApplicationService가 조합을 소유하고 완결된 CommandResult/QueryResult를 반환한다.
+- Result는 ApplicationService가 완결해 반환하는 application output이다.
+- Result도 raw Domain model, JPA Entity, infra projection row를 필드로 담지 않는다. primitive/JDK type, contract-local value, batch 내부 value만 사용한다.
+- 다른 ApplicationService가 재사용해야 하는 출력이면 raw Domain model을 반환하지 말고 목적이 드러나는 Result 또는 ReadModel을 먼저 정의한다.
+- 배치 리포트/통계 결과를 여러 job에서 재사용해야 하거나 외부 알림/로그/파일 출력 shape와 내부 결과를 분리하고 싶을 때 Result를 둔다.
+- 단일 job command와 1:1인 단순 cleanup 흐름에 Result를 만들지 않는다.
+
+```text
+단일 batch command:
+Job/Runner -> CommandService -> void or ExecutionDTO
+
+복합 batch use case:
+Job/Runner -> ApplicationService -> Port/Domain collaborations -> ExecutionDTO
+```
+
+## Follow-up after this issue
+
+1. `com.beat.batch.<context>` 내부 하위 계층(`job`, `application`, `dto`)을 문맥별로 정리
+2. scheduler-related closeout docs를 batch ownership 기준으로 더 축소
+3. shared test bootstrap convergence가 필요해지면 실행 모듈 간 중복 test container setup 정리

@@ -30,7 +30,7 @@ runs:
       id: resolve
       shell: bash
       env:
-        ANSIBLE_CONFIG: infra/ansible/ansible.cfg
+        ANSIBLE_CONFIG: ops/ansible/ansible.cfg
         SOPS_AGE_KEY: ${{ inputs.SOPS_AGE_KEY }}
       run: |
         python3 .github/scripts/resolve_ansible_connection.py \
