@@ -11,6 +11,7 @@ dependencies {
     implementation(project(":domain"))
     compileOnly(libs.spring.boot.starter.data.redis)
     implementation(libs.aws.java.sdk.s3)
+    implementation("org.jooq:jooq")
     implementation(libs.kotlin.jdsl.jpql.dsl)
     implementation(libs.kotlin.jdsl.jpql.render)
     implementation(libs.kotlin.jdsl.hibernate.support)
