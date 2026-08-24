@@ -15,7 +15,7 @@ val canonicalTargetLeafProjects = setOf(
     ":application:system",
     ":domain",
     ":infrastructure",
-    ":support:security",
+    ":support:security-core",
     ":support:security-web",
     ":support:observability",
 )
@@ -116,8 +116,8 @@ val allowedProjectDependencies: Map<String, Set<String>> = mapOf(
         ":application:admin",
         ":application:system",
     ),
-    ":support:security" to setOf(":application:frontoffice", ":support:observability"),
-    ":support:security-web" to setOf(":application:frontoffice", ":support:security", ":support:observability"),
+    ":support:security-core" to setOf(":application:frontoffice", ":support:observability"),
+    ":support:security-web" to setOf(":application:frontoffice", ":support:security-core", ":support:observability"),
     ":support:observability" to emptySet(),
     ":apps:api" to setOf(
         ":application:frontoffice",

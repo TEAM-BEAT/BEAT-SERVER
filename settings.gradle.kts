@@ -32,7 +32,7 @@ include(
     "application:system",
     "domain",
     "infrastructure",
-    "support:security",
+    "support:security-core",
     "support:security-web",
     "support:observability",
 )
