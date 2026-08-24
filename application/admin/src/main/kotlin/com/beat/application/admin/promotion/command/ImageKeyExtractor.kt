@@ -1,5 +1,7 @@
 package com.beat.application.admin.promotion.command
 
+import com.beat.application.admin.exception.AdminApplicationException
+import com.beat.application.admin.promotion.exception.PromotionApplicationErrorCode
 import java.net.URI
 
 internal object ImageKeyExtractor {
@@ -30,11 +32,11 @@ internal object ImageKeyExtractor {
         val segments = key.split("/", limit = 3)
         val environmentPrefix = segments.getOrNull(0).orEmpty()
         val prefix = segments.getOrNull(1).orEmpty()
-        require(environmentPrefix in allowedEnvironmentPrefixes) {
-            "Invalid image key environment prefix: '$environmentPrefix' (allowed: $allowedEnvironmentPrefixes)"
+        if (environmentPrefix !in allowedEnvironmentPrefixes) {
+            throw AdminApplicationException(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT)
         }
-        require(prefix in allowedPrefixes) {
-            "Invalid image key prefix: '$prefix' (allowed: $allowedPrefixes)"
+        if (prefix !in allowedPrefixes) {
+            throw AdminApplicationException(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT)
         }
     }
 

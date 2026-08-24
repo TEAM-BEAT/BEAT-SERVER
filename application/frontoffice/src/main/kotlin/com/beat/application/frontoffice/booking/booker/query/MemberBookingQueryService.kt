@@ -14,7 +14,7 @@ import java.time.LocalDate
 
 @Service
 @Transactional(readOnly = true)
-class MemberBookingQueryService(
+class MemberBookingQueryService internal constructor(
     private val memberRepository: MemberRepository,
     private val bookingHistoryReadPort: BookingHistoryReadPort,
     private val clock: Clock,

@@ -2,7 +2,7 @@ package com.beat.support.security.jwt.internal
 
 import com.beat.support.security.token.TokenSubject
 import io.jsonwebtoken.Jwts
-import java.time.Instant
+import java.time.Clock
 import java.util.Date
 
 /**
@@ -10,10 +10,11 @@ import java.util.Date
  */
 internal class JwtTokenIssuer(
     private val signingKeyHolder: JwtSigningKeyHolder,
+    private val clock: Clock,
 ) {
 
     fun issue(subject: TokenSubject, expireTimeMillis: Long, tokenType: JwtTokenType): String {
-        val issuedAt = Instant.now()
+        val issuedAt = clock.instant()
         val expiration = issuedAt.plusMillis(expireTimeMillis)
 
         return Jwts.builder()

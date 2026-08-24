@@ -24,10 +24,13 @@ import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import org.testcontainers.mysql.MySQLContainer
+import java.sql.DriverManager
 import java.time.LocalDate
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.LockSupport
 
 @DataJpaTest(
     properties = [
@@ -44,6 +47,9 @@ class PromotionLockingIntegrationSpec : FunSpec() {
 
     @Autowired
     private lateinit var transactionManager: PlatformTransactionManager
+
+    @Autowired
+    private lateinit var mysqlContainer: MySQLContainer
 
     @Autowired
     private lateinit var performanceRepository: PerformanceJpaRepository
@@ -89,7 +95,8 @@ class PromotionLockingIntegrationSpec : FunSpec() {
                     }
                 }
 
-                secondLocked.await(300, TimeUnit.MILLISECONDS) shouldBe false
+                awaitNamedLockWait()
+                secondLocked.count shouldBe 1L
                 releaseFirst.countDown()
                 first.get(5, TimeUnit.SECONDS)
                 second.get(5, TimeUnit.SECONDS)
@@ -118,7 +125,8 @@ class PromotionLockingIntegrationSpec : FunSpec() {
                     }
                 }
 
-                secondLocked.await(300, TimeUnit.MILLISECONDS) shouldBe false
+                awaitNamedLockWait()
+                secondLocked.count shouldBe 1L
                 releaseFirst.countDown()
                 first.get(5, TimeUnit.SECONDS)
                 second.get(5, TimeUnit.SECONDS)
@@ -152,7 +160,8 @@ class PromotionLockingIntegrationSpec : FunSpec() {
                     }
                 }
 
-                deleterLocked.await(300, TimeUnit.MILLISECONDS) shouldBe false
+                awaitRowLockWait()
+                deleterLocked.count shouldBe 1L
                 releaseCreator.countDown()
                 creator.get(5, TimeUnit.SECONDS)
                 deleter.get(5, TimeUnit.SECONDS)
@@ -164,6 +173,40 @@ class PromotionLockingIntegrationSpec : FunSpec() {
     }
 
     private fun transaction(): TransactionTemplate = TransactionTemplate(transactionManager)
+
+    private fun awaitNamedLockWait() {
+        awaitDatabaseWait(
+            """
+                SELECT COUNT(*)
+                FROM performance_schema.metadata_locks
+                WHERE OBJECT_TYPE = 'USER LEVEL LOCK'
+                  AND OBJECT_NAME = 'beat:promotion:carousel'
+                  AND LOCK_STATUS = 'PENDING'
+            """.trimIndent(),
+        )
+    }
+
+    private fun awaitRowLockWait() {
+        awaitDatabaseWait("SELECT COUNT(*) FROM performance_schema.data_lock_waits")
+    }
+
+    private fun awaitDatabaseWait(sql: String) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        DriverManager.getConnection(mysqlContainer.jdbcUrl, "root", mysqlContainer.password).use { connection ->
+            while (System.nanoTime() < deadline) {
+                connection.createStatement().use { statement ->
+                    statement.executeQuery(sql).use { result ->
+                        result.next()
+                        if (result.getInt(1) > 0) {
+                            return
+                        }
+                    }
+                }
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10))
+            }
+        }
+        error("Timed out waiting for database lock state")
+    }
 }
 
 private fun promotion(carouselNumber: CarouselNumber, performanceId: Long?): PromotionJpaEntity =

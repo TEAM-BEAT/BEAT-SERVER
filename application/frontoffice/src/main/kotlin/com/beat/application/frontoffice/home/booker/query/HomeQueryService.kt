@@ -12,7 +12,7 @@ import kotlin.math.abs
 
 @Service
 @Transactional(readOnly = true)
-class HomeQueryService(
+class HomeQueryService internal constructor(
     private val homeProjectionReader: HomeProjectionReader,
     private val clock: Clock,
 ) {

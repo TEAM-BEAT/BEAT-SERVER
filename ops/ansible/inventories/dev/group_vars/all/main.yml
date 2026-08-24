@@ -41,7 +41,7 @@ nginx_fragments:
   route:
     fragment_file: 10-managed.conf
 
-mysql_image: mysql:8.4.5
+mysql_image: mysql:8.4.11
 mysql_container_name: mysql
 mysql_data_volume_name: mysql-data
 

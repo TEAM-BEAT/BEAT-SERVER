@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class PerformanceDeleteCommandService(
+class PerformanceDeleteCommandService internal constructor(
     private val performanceRepository: PerformanceRepository,
     private val scheduleRepository: ScheduleRepository,
     private val bookingRepository: BookingRepository,

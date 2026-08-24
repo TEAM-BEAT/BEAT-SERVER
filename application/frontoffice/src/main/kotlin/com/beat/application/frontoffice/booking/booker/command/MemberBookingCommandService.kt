@@ -20,7 +20,7 @@ import java.time.Clock
 import java.time.LocalDateTime
 
 @Service
-class MemberBookingCommandService(
+class MemberBookingCommandService internal constructor(
     private val scheduleRepository: ScheduleRepository,
     private val bookingRepository: BookingRepository,
     private val memberRepository: MemberRepository,

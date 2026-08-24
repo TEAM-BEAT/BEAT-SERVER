@@ -1,5 +1,7 @@
 package com.beat.application.admin.promotion.command
 
+import com.beat.application.admin.exception.AdminApplicationException
+import com.beat.application.admin.promotion.exception.PromotionApplicationErrorCode
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -16,8 +18,9 @@ class ImageKeyExtractorSpec : FunSpec({
     }
 
     test("환경 네임스페이스가 없는 레거시 key는 거부된다") {
-        shouldThrow<IllegalArgumentException> {
+        val exception = shouldThrow<AdminApplicationException> {
             ImageKeyExtractor.extract("poster/image.jpg")
         }
+        exception.errorCode shouldBe PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT
     }
 })

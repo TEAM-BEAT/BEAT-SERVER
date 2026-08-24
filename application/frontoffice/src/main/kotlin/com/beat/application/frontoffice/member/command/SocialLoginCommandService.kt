@@ -4,10 +4,12 @@ import com.beat.application.frontoffice.auth.command.LoginSessionIssuer
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.application.frontoffice.member.exception.MemberApplicationErrorCode
+import com.beat.domain.member.exception.DuplicateSocialIdentityException
 import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.vo.SocialIdentity
 import com.beat.domain.user.repository.UserRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.support.TransactionOperations
 
 @Service
 class SocialLoginCommandService internal constructor(
@@ -15,6 +17,7 @@ class SocialLoginCommandService internal constructor(
     private val socialLoginMemberResolver: SocialLoginMemberResolver,
     private val loginSessionIssuer: LoginSessionIssuer,
     private val userRepository: UserRepository,
+    private val transactions: TransactionOperations,
 ) {
     fun handleSocialLogin(authorizationCode: String, command: SocialLoginCommand): LoginSuccessResult =
         translateDomainFailure {
@@ -26,23 +29,46 @@ class SocialLoginCommandService internal constructor(
             } catch (failure: SocialLoginFailure) {
                 throw failure.toApplicationException()
             }
-            val member = socialLoginMemberResolver.findOrRegister(
-                socialLoginProfile,
-                SocialIdentity.of(socialType, socialLoginProfile.socialId),
-            )
-            val user = userRepository.findById(member.userId)
-                ?: throw FrontofficeApplicationException(MemberApplicationErrorCode.USER_NOT_FOUND)
+            val socialIdentity = SocialIdentity.of(socialType, socialLoginProfile.socialId)
+            val memberAndRole = try {
+                requireNotNull(
+                    transactions.execute {
+                        val member = socialLoginMemberResolver.findOrRegister(
+                            socialLoginProfile,
+                            socialIdentity,
+                        )
+                        val user = userRepository.findById(member.userId)
+                            ?: throw FrontofficeApplicationException(MemberApplicationErrorCode.USER_NOT_FOUND)
+                        MemberLoginContext(member.memberId, user.role.roleName)
+                    },
+                ) { "Social login transaction returned no member login context" }
+            } catch (duplicate: DuplicateSocialIdentityException) {
+                requireNotNull(
+                    transactions.execute {
+                        val member = socialLoginMemberResolver.findExisting(socialIdentity)
+                            ?: throw duplicate
+                        val user = userRepository.findById(member.userId)
+                            ?: throw FrontofficeApplicationException(MemberApplicationErrorCode.USER_NOT_FOUND)
+                        MemberLoginContext(member.memberId, user.role.roleName)
+                    },
+                ) { "Social login duplicate recovery transaction returned no member login context" }
+            }
             val loginSession = loginSessionIssuer.issueFor(
-                memberId = member.memberId,
-                roleName = user.role.roleName,
+                memberId = memberAndRole.memberId,
+                roleName = memberAndRole.roleName,
             )
             LoginSuccessResult(
                 accessToken = loginSession.accessToken,
                 refreshToken = loginSession.refreshToken,
                 nickname = socialLoginProfile.nickname,
-                role = user.role.roleName,
+                role = memberAndRole.roleName,
             )
         }
+
+    private data class MemberLoginContext(
+        val memberId: Long,
+        val roleName: String,
+    )
 
     private fun SocialType.toLoginType(): SocialLoginType = when (this) {
         SocialType.KAKAO -> SocialLoginType.KAKAO

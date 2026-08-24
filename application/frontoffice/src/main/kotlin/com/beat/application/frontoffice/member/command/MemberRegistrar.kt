@@ -9,7 +9,6 @@ import com.beat.domain.user.repository.UserRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 
 @Component
 internal class MemberRegistrar(
@@ -17,7 +16,6 @@ internal class MemberRegistrar(
     private val userRepository: UserRepository,
     private val memberRepository: MemberRepository,
 ) {
-    @Transactional
     fun registerMemberWithUserInfo(
         socialLoginProfile: SocialLoginProfile,
         socialIdentity: SocialIdentity,

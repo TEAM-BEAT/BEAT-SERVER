@@ -1,6 +1,9 @@
 package com.beat.apps.api.performance
 
 import com.beat.apps.api.support.BeatTestContainersConfig
+import com.beat.apps.api.fixture.performanceFixture
+import com.beat.apps.api.fixture.scheduleFixture
+import com.beat.apps.api.fixture.usersFixture
 import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommand
 import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommandService
 import com.beat.application.frontoffice.booking.booker.result.GuestBookingCreationOutcome
@@ -19,18 +22,12 @@ import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.repository.MemberRepository
 import com.beat.domain.member.vo.SocialIdentity
 import com.beat.domain.performance.exception.PerformanceErrorCode
-import com.beat.domain.performance.model.Genre
-import com.beat.domain.performance.model.Performance
 import com.beat.domain.performance.repository.PerformanceRepository
 import com.beat.domain.performance.vo.PaymentAccount
 import com.beat.domain.performance.vo.PerformancePeriod
-import com.beat.domain.performance.vo.RunningTime
-import com.beat.domain.performance.vo.TicketPrice
-import com.beat.domain.schedule.model.Schedule
 import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.schedule.repository.ScheduleRepository
 import com.beat.domain.sharedkernel.vo.BankName
-import com.beat.domain.user.model.Users
 import com.beat.domain.user.repository.UserRepository
 import io.kotest.core.NamedTag
 import io.kotest.core.annotation.Tags
@@ -49,7 +46,6 @@ import org.springframework.context.annotation.Primary
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -173,7 +169,7 @@ private val NOW: LocalDateTime = LocalDateTime.now()
     }
 
     private fun createFixture(): Fixture {
-        val maker = userRepository.save(Users.create())
+        val maker = userRepository.save(usersFixture())
         val makerUserId = requireNotNull(maker.id)
         val member = memberRepository.save(
             Member.create(
@@ -184,10 +180,8 @@ private val NOW: LocalDateTime = LocalDateTime.now()
             ),
         )
         val performance = performanceRepository.save(
-            Performance.create(
+            performanceFixture(
                 performanceTitle = "Price lock performance $makerUserId",
-                genre = Genre.BAND,
-                runningTime = RunningTime.of(120),
                 performanceDescription = "description",
                 performanceAttentionNote = "attention",
                 paymentAccount = PaymentAccount.of(BankName.BUSAN, "123-456", "maker"),
@@ -200,7 +194,7 @@ private val NOW: LocalDateTime = LocalDateTime.now()
                 longitude = "127.0",
                 performanceContact = "010-0000-0000",
                 performancePeriod = PerformancePeriod.of(NOW.toLocalDate(), NOW.toLocalDate()),
-                ticketPrice = TicketPrice.of(OLD_TICKET_PRICE),
+                ticketPrice = OLD_TICKET_PRICE,
                 totalScheduleCount = 1,
                 userId = makerUserId,
             ),
@@ -208,7 +202,7 @@ private val NOW: LocalDateTime = LocalDateTime.now()
         val performanceId = requireNotNull(performance.id)
         val performanceDate = NOW.plusDays(1)
         val schedule = scheduleRepository.save(
-            Schedule.create(
+            scheduleFixture(
                 performanceDate = performanceDate,
                 bookingCloseAt = performanceDate.plusHours(2),
                 totalTicketCount = 10,

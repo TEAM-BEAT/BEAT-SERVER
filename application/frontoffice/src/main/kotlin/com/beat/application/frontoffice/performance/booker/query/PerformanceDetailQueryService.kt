@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class PerformanceDetailQueryService(
+class PerformanceDetailQueryService internal constructor(
     private val performanceRepository: PerformanceRepository,
     private val scheduleAvailabilityReader: PerformanceScheduleAvailabilityReader,
 ) {

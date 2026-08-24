@@ -1157,7 +1157,7 @@ flowchart TB
         ApisGreen["apis-green<br/>:4001<br/>(배포 시만)"]
         Admin["admin<br/>:4000"]
         Batch["batch<br/>:4002"]
-        MySQL["mysql:8.4.5<br/>:3306<br/>(dev only)"]
+        MySQL["mysql:8.4.11<br/>:3306<br/>(dev only)"]
         Redis["redis:alpine"]
     end
 

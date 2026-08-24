@@ -4,7 +4,7 @@ plugins {
 }
 
 dependencies {
-    api(project(":support:observability"))
+    implementation(project(":support:observability"))
     implementation(libs.jjwt.api)
     implementation(libs.kotlin.logging.jvm)
     runtimeOnly(libs.slf4j.api)
@@ -20,5 +20,6 @@ dependencies {
     testImplementation(libs.spring.boot.starter.security)
     testImplementation(libs.spring.boot.starter.web)
     testImplementation(libs.archunit.junit5)
+    testImplementation(libs.mockk)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

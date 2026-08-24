@@ -1,24 +1,23 @@
 package com.beat.apps.api.booking
 
 import com.beat.apps.api.support.BeatTestContainersConfig
+import com.beat.apps.api.fixture.performanceFixture
+import com.beat.apps.api.fixture.scheduleFixture
+import com.beat.apps.api.fixture.usersFixture
 import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommand
 import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommandService
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.domain.booking.repository.BookingRepository
 import com.beat.domain.performance.model.Genre
-import com.beat.domain.performance.model.Performance
 import com.beat.domain.performance.repository.PerformanceRepository
 import com.beat.domain.performance.vo.PaymentAccount
 import com.beat.domain.performance.vo.PerformancePeriod
-import com.beat.domain.performance.vo.RunningTime
-import com.beat.domain.performance.vo.TicketPrice
 import com.beat.domain.schedule.exception.ScheduleErrorCode
 import com.beat.domain.schedule.model.Schedule
 import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.schedule.repository.ScheduleRepository
 import com.beat.domain.sharedkernel.vo.BankName
-import com.beat.domain.user.model.Users
 import com.beat.domain.user.repository.UserRepository
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.IsolationMode
@@ -47,9 +46,6 @@ import java.util.concurrent.TimeoutException
 @Tags("integration", "correctness")
 open class GuestBookingServiceConcurrencyTest : FunSpec() {
 
-private val NOW: LocalDateTime = LocalDateTime.now()
-
-
     @Autowired
     private lateinit var guestBookingService: GuestBookingCommandService
 
@@ -65,31 +61,40 @@ private val NOW: LocalDateTime = LocalDateTime.now()
     @Autowired
     private lateinit var userRepository: UserRepository
 
-    private lateinit var schedule1: Schedule
-    private lateinit var schedule2: Schedule
-
     init {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        beforeTest {
-            setup()
-        }
-
         test("동시 guest 예매는 회차 티켓을 초과 판매하지 않는다") {
-            executeConcurrentGuestBookings(schedule1, 2, ScheduleNumber.FIRST) shouldBe 5L
-            executeConcurrentGuestBookings(schedule2, 1, ScheduleNumber.SECOND) shouldBe 1L
-            assertFinalState()
+            val fixture = createFixture()
+            val executor = Executors.newFixedThreadPool(CONCURRENT_REQUEST_COUNT)
+            try {
+                executeConcurrentGuestBookings(
+                    schedule = fixture.firstSchedule,
+                    purchaseTicketCount = 2,
+                    scheduleNumber = ScheduleNumber.FIRST,
+                    executor = executor,
+                ) shouldBe 5L
+                executeConcurrentGuestBookings(
+                    schedule = fixture.secondSchedule,
+                    purchaseTicketCount = 1,
+                    scheduleNumber = ScheduleNumber.SECOND,
+                    executor = executor,
+                ) shouldBe 1L
+                assertFinalState(fixture)
+            } finally {
+                executor.shutdownNow()
+            }
         }
     }
 
-    private fun setup() {
-        val maker = userRepository.save(Users.create())
+    private fun createFixture(): Fixture {
+        val maker = userRepository.save(usersFixture())
+        val makerUserId = requireNotNull(maker.id)
         val performance = performanceRepository.save(
-            Performance.create(
+            performanceFixture(
                 performanceTitle = "Performance Title",
                 genre = Genre.BAND,
-                runningTime = RunningTime.of(120),
                 performanceDescription = "Performance Description",
                 performanceAttentionNote = "Performance Attention Note",
                 paymentAccount = PaymentAccount.of(BankName.BUSAN, "2342-234234-2344", "이동훈"),
@@ -105,28 +110,31 @@ private val NOW: LocalDateTime = LocalDateTime.now()
                     LocalDate.of(2024, 1, 1),
                     LocalDate.of(2024, 12, 31),
                 ),
-                ticketPrice = TicketPrice.of(10_000),
+                ticketPrice = 10_000,
                 totalScheduleCount = 30,
-                userId = requireNotNull(maker.id),
+                userId = makerUserId,
             ),
         )
-        schedule1 = createSchedule(performance, ScheduleNumber.FIRST, 10)
-        schedule2 = createSchedule(performance, ScheduleNumber.SECOND, 1)
-    }
-
-    private fun createSchedule(
-        performance: Performance,
-        scheduleNumber: ScheduleNumber,
-        remainingTicketCount: Int,
-    ): Schedule {
+        val performanceId = requireNotNull(performance.id)
         val performanceDate = NOW.plusDays(1)
-        return scheduleRepository.save(
-            Schedule.create(
-                performanceDate = performanceDate,
-                bookingCloseAt = performanceDate.plusMinutes(performance.runningTime.toLong()),
-                totalTicketCount = remainingTicketCount,
-                scheduleNumber = scheduleNumber,
-                performanceId = requireNotNull(performance.id),
+        return Fixture(
+            firstSchedule = scheduleRepository.save(
+                scheduleFixture(
+                    performanceDate = performanceDate,
+                    bookingCloseAt = performanceDate.plusMinutes(performance.runningTime.toLong()),
+                    totalTicketCount = 10,
+                    scheduleNumber = ScheduleNumber.FIRST,
+                    performanceId = performanceId,
+                ),
+            ),
+            secondSchedule = scheduleRepository.save(
+                scheduleFixture(
+                    performanceDate = performanceDate,
+                    bookingCloseAt = performanceDate.plusMinutes(performance.runningTime.toLong()),
+                    totalTicketCount = 1,
+                    scheduleNumber = ScheduleNumber.SECOND,
+                    performanceId = performanceId,
+                ),
             ),
         )
     }
@@ -135,8 +143,8 @@ private val NOW: LocalDateTime = LocalDateTime.now()
         schedule: Schedule,
         purchaseTicketCount: Int,
         scheduleNumber: ScheduleNumber,
+        executor: ExecutorService,
     ): Long {
-        val executor = Executors.newFixedThreadPool(CONCURRENT_REQUEST_COUNT)
         val ready = CountDownLatch(CONCURRENT_REQUEST_COUNT)
         val start = CountDownLatch(1)
         val futures = ArrayList<Future<Boolean>>(CONCURRENT_REQUEST_COUNT)
@@ -156,12 +164,11 @@ private val NOW: LocalDateTime = LocalDateTime.now()
                 throw AssertionError("Concurrent booking tasks did not become ready")
             }
         } catch (e: InterruptedException) {
-            executor.shutdownNow()
             Thread.currentThread().interrupt()
             throw AssertionError("Concurrent booking task setup interrupted", e)
         }
         start.countDown()
-        return awaitExecutors(futures, executor)
+        return awaitExecutors(futures)
     }
 
     private fun createGuestBooking(
@@ -203,19 +210,7 @@ private val NOW: LocalDateTime = LocalDateTime.now()
 
     private fun awaitExecutors(
         futures: List<Future<Boolean>>,
-        executor: ExecutorService,
     ): Long {
-        executor.shutdown()
-
-        try {
-            if (!executor.awaitTermination(EXECUTOR_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                executor.shutdownNow()
-            }
-        } catch (e: InterruptedException) {
-            executor.shutdownNow()
-            Thread.currentThread().interrupt()
-        }
-
         var successCount = 0L
         futures.forEach { future ->
             try {
@@ -236,9 +231,9 @@ private val NOW: LocalDateTime = LocalDateTime.now()
         return successCount
     }
 
-    private fun assertFinalState() {
-        val firstSchedule = checkNotNull(scheduleRepository.findById(requireNotNull(schedule1.id)))
-        val secondSchedule = checkNotNull(scheduleRepository.findById(requireNotNull(schedule2.id)))
+    private fun assertFinalState(fixture: Fixture) {
+        val firstSchedule = checkNotNull(scheduleRepository.findById(requireNotNull(fixture.firstSchedule.id)))
+        val secondSchedule = checkNotNull(scheduleRepository.findById(requireNotNull(fixture.secondSchedule.id)))
 
         firstSchedule.allocatedTicketCount shouldBe 10
         secondSchedule.allocatedTicketCount shouldBe 1
@@ -254,10 +249,16 @@ private val NOW: LocalDateTime = LocalDateTime.now()
         secondScheduleBookingCount shouldBe 1
     }
 
+    private data class Fixture(
+        val firstSchedule: Schedule,
+        val secondSchedule: Schedule,
+    )
+
     private companion object {
         const val CONCURRENT_REQUEST_COUNT = 30
         const val READY_TIMEOUT_SECONDS = 10L
         const val TASK_TIMEOUT_SECONDS = 10L
-        const val EXECUTOR_TIMEOUT_SECONDS = 120L
     }
 }
+
+private val NOW: LocalDateTime = LocalDateTime.now()

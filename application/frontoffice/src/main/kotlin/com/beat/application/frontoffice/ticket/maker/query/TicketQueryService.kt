@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 @Transactional(readOnly = true)
-class TicketQueryService(
+class TicketQueryService internal constructor(
     private val makerTicketReader: MakerTicketReader,
     private val performanceRepository: PerformanceRepository,
     private val memberRepository: MemberRepository,
@@ -140,7 +140,7 @@ class TicketQueryService(
         val member = findMember(memberId)
         val performance = performanceRepository.findById(performanceId)
             ?: throw FrontofficeApplicationException(TicketApplicationErrorCode.PERFORMANCE_NOT_FOUND)
-        if (performance.userId != member.userId) {
+        if (!performance.isOwnedBy(member.userId)) {
             throw FrontofficeApplicationException(TicketApplicationErrorCode.NOT_PERFORMANCE_OWNER)
         }
         return performance

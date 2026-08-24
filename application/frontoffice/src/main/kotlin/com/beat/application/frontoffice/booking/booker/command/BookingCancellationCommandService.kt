@@ -80,7 +80,7 @@ class BookingCancellationCommandService internal constructor(
     }
 
     private fun ensureOwnedBy(booking: Booking, actorUserId: Long) {
-        if (booking.userId != actorUserId) {
+        if (!booking.isOwnedBy(actorUserId)) {
             throw FrontofficeApplicationException(BookingApplicationErrorCode.NO_BOOKING_FOUND)
         }
     }

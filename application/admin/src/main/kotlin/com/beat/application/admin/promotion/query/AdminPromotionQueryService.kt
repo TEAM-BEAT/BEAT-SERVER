@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 @Transactional(readOnly = true)
-class AdminPromotionQueryService(
+class AdminPromotionQueryService internal constructor(
     private val promotionImageStorage: PromotionImageStorage,
     private val memberRepository: MemberRepository,
     private val promotionRepository: PromotionRepository,

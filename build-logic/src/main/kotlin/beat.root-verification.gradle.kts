@@ -6,6 +6,20 @@ val targetRuntimeArchiveNames = mapOf(
     ":apps:batch" to "batch",
 )
 
+val canonicalTargetLeafProjects = setOf(
+    ":apps:api",
+    ":apps:admin",
+    ":apps:batch",
+    ":application:frontoffice",
+    ":application:admin",
+    ":application:system",
+    ":domain",
+    ":infrastructure",
+    ":support:security",
+    ":support:observability",
+)
+val canonicalTargetLibraryProjects = canonicalTargetLeafProjects - targetRuntimeArchiveNames.keys
+
 val verifyModuleBootJars by tasks.registering {
     group = "verification"
     description = "Builds target executable jars and verifies deploy-compatible archive names."
@@ -13,10 +27,35 @@ val verifyModuleBootJars by tasks.registering {
 
     doLast {
         targetRuntimeArchiveNames.forEach { (projectPath, archiveName) ->
-            val bootJarOutputs = project(projectPath).tasks.getByName("bootJar").outputs.files.files
-            check(bootJarOutputs.any { output -> output.name.startsWith("$archiveName-") }) {
-                "$projectPath must produce a deploy-compatible $archiveName-*.jar: $bootJarOutputs"
+            val bootJar = project(projectPath).tasks.getByName("bootJar")
+            check(bootJar.enabled) {
+                "$projectPath must have an enabled bootJar task"
             }
+            val expectedOutputs = bootJar.outputs.files.files
+                .filter { output -> output.name.startsWith("$archiveName-") }
+            check(expectedOutputs.any { output -> output.isFile }) {
+                "$projectPath must produce a deploy-compatible $archiveName-*.jar file: expected outputs $expectedOutputs"
+            }
+        }
+        canonicalTargetLibraryProjects.forEach { projectPath ->
+            val bootJar = project(projectPath).tasks.findByName("bootJar")
+            check(bootJar == null || !bootJar.enabled) {
+                "$projectPath must not have an enabled bootJar task"
+            }
+        }
+    }
+}
+
+val verifyMockFrameworkIsNotGlobalDefault by tasks.registering {
+    group = "verification"
+    description = "Forbids MockK from becoming the global test convention default."
+
+    val testConventionFile = rootProject.file("build-logic/src/main/kotlin/beat.test.gradle.kts")
+    inputs.file(testConventionFile)
+
+    doLast {
+        check("mockk" !in testConventionFile.readText().lowercase()) {
+            "beat.test.gradle.kts must not make MockK a global test default"
         }
     }
 }
@@ -68,17 +107,14 @@ val verifyTargetModuleGraph by tasks.registering {
     description = "Verifies the target application lanes are present and compile-time isolated."
 
     doLast {
-        val requiredProjects = targetApplicationProjects + setOf(
-            ":apps:api",
-            ":apps:admin",
-            ":apps:batch",
-            ":domain",
-            ":infrastructure",
-            ":support:security",
-            ":support:observability",
-        )
-        check(requiredProjects.all { findProject(it) != null }) {
-            "Missing target project(s): ${requiredProjects.filter { findProject(it) == null }}"
+        val actualLeafProjects = rootProject.subprojects
+            .filter { project -> project.childProjects.isEmpty() }
+            .map { project -> project.path }
+            .toSet()
+        val missingLeafProjects = canonicalTargetLeafProjects - actualLeafProjects
+        val unexpectedLeafProjects = actualLeafProjects - canonicalTargetLeafProjects
+        check(actualLeafProjects == canonicalTargetLeafProjects) {
+            "Target leaf project set mismatch. Missing: $missingLeafProjects; Unexpected: $unexpectedLeafProjects"
         }
         val projectDependenciesOf: (String) -> Set<String> = { projectPath ->
             project(projectPath).configurations
@@ -108,7 +144,38 @@ val verifyTargetModuleGraph by tasks.registering {
         check(projectDependenciesOf(":support:security").intersect(forbiddenSupportSecurityProjects).isEmpty()) {
             ":support:security must not depend on an application lane, infrastructure, or an executable app"
         }
+        val forbiddenSupportObservabilityProjects =
+            targetApplicationProjects +
+                setOf(":domain", ":infrastructure", ":support:security") +
+                targetExecutableProjects
+        check(projectDependenciesOf(":support:observability").intersect(forbiddenSupportObservabilityProjects).isEmpty()) {
+            ":support:observability must not depend on domain, an application lane, infrastructure, an executable app, or support:security"
+        }
         val mainConfigurations = setOf("api", "implementation", "compileOnly", "runtimeOnly")
+        val forbiddenDomainExternalDependencies = project(":domain").configurations
+            .filter { configuration -> configuration.name in mainConfigurations }
+            .flatMap { configuration -> configuration.dependencies }
+            .filter { dependency ->
+                if (dependency is ProjectDependency) {
+                    false
+                } else {
+                    val group = dependency.group.orEmpty()
+                    val module = dependency.name.lowercase()
+                    group.startsWith("org.springframework") ||
+                        group.startsWith("jakarta.persistence") ||
+                        group.startsWith("org.hibernate") ||
+                        group.startsWith("org.redisson") ||
+                        module.contains("redis") ||
+                        module.contains("web") ||
+                        module.contains("jpa")
+                }
+            }
+            .map { dependency -> "${dependency.group}:${dependency.name}" }
+            .toSet()
+        check(forbiddenDomainExternalDependencies.isEmpty()) {
+            "domain must not depend directly on framework, persistence, Redis, web, or JPA external modules: " +
+                forbiddenDomainExternalDependencies
+        }
         targetExecutableApplicationLane.keys.forEach { executableProject ->
             val mainDependencies = project(executableProject).configurations
                 .filter { configuration -> configuration.name in mainConfigurations }

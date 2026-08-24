@@ -202,6 +202,7 @@ infra/ansible/inventories/**/group_vars/all.local.sops.yml
 
 # Local agent/editor tooling state (not project source)
 .serena/
+.gitnexus/
 .vscode/
 
 # 프로세스/AI 문서 — 로컬 보존, 원격 미추적(소유자 판정: 추후 정리)

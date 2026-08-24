@@ -20,4 +20,5 @@ dependencies {
     testImplementation(libs.archunit.junit5)
     testImplementation(libs.kotest.extensions.spring)
     testImplementation(project(":domain"))
+    testImplementation(libs.mockk)
 }

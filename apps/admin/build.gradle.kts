@@ -25,4 +25,5 @@ dependencies {
     testImplementation(libs.archunit.junit5)
     testImplementation(libs.kotest.extensions.spring)
     testImplementation(libs.spring.security.test)
+    testImplementation(libs.mockk)
 }

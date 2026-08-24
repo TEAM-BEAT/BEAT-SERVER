@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class AdminPromotionCommandService(
+class AdminPromotionCommandService internal constructor(
     private val memberRepository: MemberRepository,
     private val promotionRepository: PromotionRepository,
     private val performanceRepository: PerformanceRepository,

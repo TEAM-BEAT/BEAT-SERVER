@@ -31,5 +31,6 @@ dependencies {
     testRuntimeOnly(libs.spring.boot.starter.data.jpa)
     testImplementation(platform(libs.spring.cloud.dependencies))
     testImplementation(libs.spring.cloud.starter.openfeign)
+    testImplementation(libs.mockk)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

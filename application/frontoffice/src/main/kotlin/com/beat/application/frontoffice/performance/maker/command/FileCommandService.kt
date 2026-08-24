@@ -5,7 +5,7 @@ import com.beat.application.frontoffice.exception.translateDomainFailure
 import org.springframework.stereotype.Service
 
 @Service
-class FileCommandService(
+class FileCommandService internal constructor(
     private val performanceImageStorage: PerformanceImageStorage,
 ) {
     fun issueAllPresignedUrlsForPerformanceMaker(

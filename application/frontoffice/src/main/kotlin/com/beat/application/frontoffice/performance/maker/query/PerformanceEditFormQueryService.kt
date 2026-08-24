@@ -10,6 +10,7 @@ import com.beat.application.frontoffice.schedule.calculateDueDate
 import com.beat.application.frontoffice.performance.maker.PerformanceMutationResult
 import com.beat.application.frontoffice.performance.maker.ScheduleResult
 import com.beat.domain.member.repository.MemberRepository
+import com.beat.domain.performance.repository.PerformanceRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -17,8 +18,9 @@ import java.time.Clock
 
 @Service
 @Transactional(readOnly = true)
-class PerformanceEditFormQueryService(
+class PerformanceEditFormQueryService internal constructor(
     private val memberRepository: MemberRepository,
+    private val performanceRepository: PerformanceRepository,
     private val performanceEditFormReader: PerformanceEditFormReader,
     private val clock: Clock,
 ) {
@@ -26,11 +28,13 @@ class PerformanceEditFormQueryService(
         return translateDomainFailure {
         val member = memberRepository.findById(memberId)
             ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.MEMBER_NOT_FOUND)
-        val performance = performanceEditFormReader.findByPerformanceId(performanceId)
+        val authoritativePerformance = performanceRepository.findById(performanceId)
             ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND)
-        if (performance.userId != member.userId) {
+        if (!authoritativePerformance.isOwnedBy(member.userId)) {
             throw FrontofficeApplicationException(PerformanceApplicationErrorCode.NOT_PERFORMANCE_OWNER)
         }
+        val performance = performanceEditFormReader.findByPerformanceId(performanceId)
+            ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND)
         val today = LocalDate.now(clock)
         val schedules = performance.schedules.map { schedule ->
             ScheduleResult(

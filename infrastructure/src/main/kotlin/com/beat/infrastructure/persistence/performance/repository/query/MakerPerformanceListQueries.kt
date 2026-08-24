@@ -11,6 +11,7 @@ import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
 import com.linecorp.kotlinjdsl.support.hibernate.extension.createQuery
 import jakarta.persistence.EntityManager
 import org.springframework.stereotype.Repository
+import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -18,6 +19,7 @@ import java.time.LocalDateTime
 internal class MakerPerformanceListQueries(
     private val entityManager: EntityManager,
     private val jpqlRenderContext: JpqlRenderContext,
+    private val clock: Clock,
 ) : MakerPerformanceListReader {
 
     override fun findByUserId(userId: Long): List<MakerPerformanceListItemReadModel> {
@@ -67,7 +69,7 @@ internal class MakerPerformanceListQueries(
     }
 
     private fun findRepresentativeDates(performanceIds: List<Long>): List<RepresentativePerformanceDateProjection> {
-        val now = LocalDateTime.now()
+        val now = LocalDateTime.now(clock)
         val query = jpql {
             selectNew<RepresentativePerformanceDateProjection>(
                 path(ScheduleJpaEntity::performanceId),

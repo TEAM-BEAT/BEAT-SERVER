@@ -5,6 +5,7 @@ import com.beat.application.frontoffice.auth.command.LoginSessionIssuer
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.application.frontoffice.member.exception.MemberApplicationErrorCode
+import com.beat.domain.member.exception.DuplicateSocialIdentityException
 import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.vo.SocialIdentity
 import com.beat.domain.user.model.Role
@@ -17,6 +18,11 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.Called
 import io.mockk.verify
+import org.springframework.transaction.TransactionStatus
+import org.springframework.transaction.support.SimpleTransactionStatus
+import org.springframework.transaction.support.TransactionCallback
+import org.springframework.transaction.support.TransactionOperations
+import java.util.function.Consumer
 
 class SocialLoginApplicationSpec : FunSpec({
 
@@ -113,6 +119,41 @@ class SocialLoginApplicationSpec : FunSpec({
         exception.errorCode.type shouldBe FrontofficeApplicationErrorType.NOT_FOUND
         verify { loginSessionIssuer wasNot Called }
     }
+
+    test("등록 경쟁으로 중복 identity가 발생하면 별도 transaction에서 기존 member로 로그인한다") {
+        val socialLoginProvider = mockk<SocialLoginProvider>(relaxed = true)
+        val socialLoginMemberResolver = mockk<SocialLoginMemberResolver>(relaxed = true)
+        val loginSessionIssuer = mockk<LoginSessionIssuer>(relaxed = true)
+        val userRepository = mockk<UserRepository>(relaxed = true)
+        val member = MemberAuthenticationResult(memberId = MEMBER_ID, userId = USER_ID)
+        val user = Users.rehydrate(USER_ID, Role.MEMBER)
+        val session = LoginSession(ACCESS_TOKEN, REFRESH_TOKEN)
+        val identity = SocialIdentity.of(SocialType.KAKAO, PROFILE.socialId)
+        val duplicate = DuplicateSocialIdentityException(IllegalStateException("unique constraint"))
+        every { socialLoginProvider.login(PROVIDER_REQUEST) } returns PROFILE
+        every { socialLoginMemberResolver.findOrRegister(PROFILE, identity) } throws duplicate
+        every { socialLoginMemberResolver.findExisting(identity) } returns member
+        every { userRepository.findById(USER_ID) } returns user
+        every { loginSessionIssuer.issueFor(MEMBER_ID, Role.MEMBER.roleName) } returns session
+
+        val result = service(
+            socialLoginProvider,
+            socialLoginMemberResolver,
+            loginSessionIssuer,
+            userRepository,
+        ).handleSocialLogin(AUTHORIZATION_CODE, SocialLoginCommand(SocialLoginType.KAKAO))
+
+        result shouldBe LoginSuccessResult(
+            accessToken = ACCESS_TOKEN,
+            refreshToken = REFRESH_TOKEN,
+            nickname = PROFILE.nickname,
+            role = Role.MEMBER.roleName,
+        )
+        verify { socialLoginMemberResolver.findOrRegister(PROFILE, identity) }
+        verify { socialLoginMemberResolver.findExisting(identity) }
+        verify { userRepository.findById(USER_ID) }
+        verify { loginSessionIssuer.issueFor(MEMBER_ID, Role.MEMBER.roleName) }
+    }
 })
 
 private fun service(
@@ -125,7 +166,17 @@ private fun service(
     socialLoginMemberResolver = socialLoginMemberResolver,
     loginSessionIssuer = loginSessionIssuer,
     userRepository = userRepository,
+    transactions = ImmediateTransactionOperations,
 )
+
+private object ImmediateTransactionOperations : TransactionOperations {
+    override fun <T> execute(action: TransactionCallback<T>): T =
+        action.doInTransaction(SimpleTransactionStatus())
+
+    override fun executeWithoutResult(action: Consumer<TransactionStatus>) {
+        action.accept(SimpleTransactionStatus())
+    }
+}
 
 private const val AUTHORIZATION_CODE = "authorization-code"
 private const val MEMBER_ID = 1L

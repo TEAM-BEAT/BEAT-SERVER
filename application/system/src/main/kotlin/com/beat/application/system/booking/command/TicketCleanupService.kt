@@ -8,7 +8,7 @@ import java.time.Clock
 import java.time.LocalDateTime
 
 @Service
-class TicketCleanupService(
+class TicketCleanupService internal constructor(
     private val bookingRepository: BookingRepository,
     private val clock: Clock,
 ) {

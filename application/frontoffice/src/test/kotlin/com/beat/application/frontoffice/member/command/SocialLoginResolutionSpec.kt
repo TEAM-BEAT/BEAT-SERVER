@@ -47,19 +47,20 @@ class SocialLoginResolutionSpec : FunSpec({
         verify { memberRepository.findById(11L) }
     }
 
-    test("동일 identity 등록 경쟁 시 이기 member를 다시 조회한다") {
+    test("동일 identity 등록 경쟁 시 중복 예외를 호출자에게 전달한다") {
         val memberRepository = mockk<MemberRepository>(relaxed = true)
         val memberRegistrar = mockk<MemberRegistrar>(relaxed = true)
         val identity = SocialIdentity.of(SocialType.KAKAO, PROFILE.socialId)
-        val winner = member(id = 11L, userId = 22L)
         val duplicate = DuplicateSocialIdentityException(IllegalStateException("unique constraint"))
-        every { memberRepository.findBySocialIdentity(identity) } returnsMany listOf(null, winner)
+        every { memberRepository.findBySocialIdentity(identity) } returns null
         every { memberRegistrar.registerMemberWithUserInfo(PROFILE, identity) } throws duplicate
 
-        val result = resolver(memberRepository, memberRegistrar).findOrRegister(PROFILE, identity)
+        val exception = shouldThrow<DuplicateSocialIdentityException> {
+            resolver(memberRepository, memberRegistrar).findOrRegister(PROFILE, identity)
+        }
 
-        result shouldBe MemberAuthenticationResult(11L, 22L)
-        verify(exactly = 2) { memberRepository.findBySocialIdentity(identity) }
+        exception shouldBe duplicate
+        verify(exactly = 1) { memberRepository.findBySocialIdentity(identity) }
     }
 
     test("등록 후 member 조회 실패는 member not found로 매핑된다") {

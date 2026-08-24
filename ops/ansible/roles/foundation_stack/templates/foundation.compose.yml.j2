@@ -16,7 +16,7 @@ services:
 
 {% if foundation_mysql_enabled | default(true) %}
   mysql:
-    image: "{{ mysql_image | default('mysql:8.4.5') }}"
+    image: "{{ mysql_image | default('mysql:8.4.11') }}"
     container_name: "{{ mysql_container_name | default('mysql') }}"
     restart: unless-stopped
     command: ["--default-time-zone=+09:00"]

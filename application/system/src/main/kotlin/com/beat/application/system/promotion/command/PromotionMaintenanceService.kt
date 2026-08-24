@@ -14,7 +14,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
-class PromotionMaintenanceService(
+class PromotionMaintenanceService internal constructor(
     private val promotionRepository: PromotionRepository,
     private val performanceRepository: PerformanceRepository,
     private val scheduleRepository: ScheduleRepository,

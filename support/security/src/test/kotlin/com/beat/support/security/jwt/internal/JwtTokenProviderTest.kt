@@ -13,7 +13,9 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 import java.util.Base64
 import java.util.Date
 import javax.crypto.SecretKey
@@ -44,7 +46,7 @@ class JwtTokenProviderTest : FunSpec() {
             val signingKeyHolder = JwtSigningKeyHolder(properties)
             val parser = mockk<JwtTokenParser>(relaxed = true)
             val claims = mockk<Claims>(relaxed = true)
-            val provider = JwtTokenProvider(properties, JwtTokenIssuer(signingKeyHolder), parser)
+            val provider = JwtTokenProvider(properties, JwtTokenIssuer(signingKeyHolder, FIXED_CLOCK), parser)
             every { parser.parse("access-token", JwtTokenType.ACCESS) } returns claims
             every { claims[JwtClaimNames.MEMBER_ID] } returns 1L
             every { claims.get(JwtClaimNames.ROLE, String::class.java) } returns "ROLE_MEMBER"
@@ -115,7 +117,7 @@ class JwtTokenProviderTest : FunSpec() {
         val signingKeyHolder = JwtSigningKeyHolder(properties)
         return JwtTokenProvider(
             properties,
-            JwtTokenIssuer(signingKeyHolder),
+            JwtTokenIssuer(signingKeyHolder, FIXED_CLOCK),
             JwtTokenParser(signingKeyHolder),
         )
     }
@@ -134,8 +136,13 @@ class JwtTokenProviderTest : FunSpec() {
         private const val STRONG_BASE64_SECRET =
             "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QA=="
         private const val KEY_ID = "test-current"
-        private val NOW: Instant = Instant.parse("2099-05-15T00:00:00Z")
+        private val NOW: Instant = FIXED_CLOCK.instant()
         private const val ACCESS_TTL_MILLIS = 3_600_000L
         private const val REFRESH_TTL_MILLIS = 1_209_600_000L
     }
 }
+
+private val FIXED_CLOCK: Clock = Clock.fixed(
+    Instant.parse("2099-05-15T00:00:00Z"),
+    ZoneOffset.UTC,
+)

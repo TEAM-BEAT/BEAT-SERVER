@@ -48,6 +48,11 @@ class PerformanceInvariantSpec : FunSpec({
         }
     }
 
+    test("공연은 연결된 사용자만 소유자로 판단한다") {
+        performance().isOwnedBy(1L) shouldBe true
+        performance().isOwnedBy(2L) shouldBe false
+    }
+
     test("Cast, Staff, PerformanceImage는 독립 Aggregate가 아니며 Performance 식별자를 중복 소유하지 않는다") {
         listOf(Cast::class.java, Staff::class.java, PerformanceImage::class.java).forEach { childType ->
             AggregateRoot::class.java.isAssignableFrom(childType) shouldBe false

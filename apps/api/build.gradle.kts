@@ -31,4 +31,5 @@ dependencies {
     // runtimeOnly(본체 런타임)와 별개로 테스트 '컴파일'에도 starter 클래스가 필요해 의도적 이중 선언
     testImplementation(libs.spring.boot.starter.data.redis)
     testImplementation(libs.spring.security.test)
+    testImplementation(libs.mockk)
 }

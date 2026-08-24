@@ -21,7 +21,7 @@ class BeatBatchTestContainersConfig {
     @Bean
     @ServiceConnection
     fun mysqlContainer(): MySQLContainer =
-        MySQLContainer("mysql:8.0.39")
+        MySQLContainer("mysql:8.4.11")
             .withDatabaseName("beat_batch_test")
             .withCommand("--default-time-zone=+09:00")
 }

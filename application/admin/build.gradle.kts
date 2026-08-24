@@ -3,6 +3,7 @@ plugins {
     id("beat.sentry-source-context")
 }
 
+// Distinguishes :application:admin from :apps:admin, which otherwise share the same artifact name.
 group = "com.beat.application"
 
 dependencies {

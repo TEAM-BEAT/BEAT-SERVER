@@ -19,13 +19,32 @@ class DomainServiceArchitectureTest : FunSpec({
         ClassFileImporter().importPaths(productionClassPaths)
     }
 
+    test("domain 클래스는 기술 의존성을 갖지 않는다") {
+        noClasses()
+            .that()
+            .resideInAnyPackage("com.beat.domain", "com.beat.domain..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "org.springframework..",
+                "jakarta.persistence..",
+                "org.hibernate..",
+                "org.redisson..",
+                "org.springframework.data..",
+                "java.net..",
+                "java.sql..",
+            )
+            .because("Domain Purity: domain classes must not depend on framework, persistence, or I/O technology")
+            .check(productionClasses)
+    }
+
     test("DomainService는 repository에 의존하지 않는다") {
         noClasses()
             .that()
             .haveSimpleNameEndingWith("DomainService")
             .should()
             .dependOnClassesThat()
-            .resideInAnyPackage("..repository..")
+            .resideInAnyPackage("..repository..", "..port..")
             .because("Pure Domain Service: repository and I/O orchestration belong to ApplicationService")
             .check(productionClasses)
     }

@@ -2,9 +2,6 @@ name: ci-pr
 
 on:
   pull_request:
-    branches:
-      - develop
-      - main
 
 jobs:
   verify:
@@ -16,6 +13,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 25
         uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
@@ -35,6 +34,13 @@ jobs:
         run: python3 .github/scripts/check_unused_version_catalog_aliases.py
         shell: bash
 
+      - name: Verify database migrations on MySQL 8.0.41 and 8.4.11
+        run: |
+          chmod +x .github/scripts/verify_db_migrations.sh
+          MYSQL_IMAGE=mysql:8.0.41 .github/scripts/verify_db_migrations.sh
+          MYSQL_IMAGE=mysql:8.4.11 .github/scripts/verify_db_migrations.sh
+        shell: bash
+
       - name: Verify Gradle check
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -45,7 +51,11 @@ jobs:
         shell: bash
 
       - name: Verify OpenAPI compatibility from Gradle check artifacts
-        run: bash .github/scripts/verify_openapi_compatibility.sh
+        env:
+          OPENAPI_BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: |
+          bash .github/scripts/test_verify_openapi_baseline_source.sh
+          bash .github/scripts/verify_openapi_compatibility.sh
         shell: bash
 
       - name: Stage bootJars for downstream image build

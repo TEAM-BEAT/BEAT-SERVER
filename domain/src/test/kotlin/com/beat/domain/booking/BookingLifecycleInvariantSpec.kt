@@ -19,6 +19,11 @@ import java.time.LocalDateTime
 class BookingLifecycleInvariantSpec : FunSpec({
     isolationMode = IsolationMode.SingleInstance
 
+    test("예매는 연결된 사용자만 소유자로 판단한다") {
+        booking().isOwnedBy(USER_ID) shouldBe true
+        booking().isOwnedBy(USER_ID + 1) shouldBe false
+    }
+
     test("미입금 예매 취소는 원본을 보존하고 전달받은 시각으로 불변 복사본을 만든다") {
         val booking = booking()
         val cancelledAt = LocalDateTime.of(2026, 1, 2, 12, 0)

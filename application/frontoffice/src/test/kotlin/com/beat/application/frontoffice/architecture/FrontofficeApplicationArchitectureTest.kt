@@ -1,14 +1,20 @@
 package com.beat.application.frontoffice.architecture
 
+import com.beat.application.frontoffice.query.PresentationReadModel
 import com.tngtech.archunit.base.DescribedPredicate
 import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.lang.ArchRule
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
+import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
 import io.kotest.core.spec.style.FunSpec
+import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Capability → Actor → CQRS semantics inside the frontoffice lane. These rules encode
@@ -25,8 +31,16 @@ private fun packagePattern(vararg segments: String): PackagePattern =
     )
 
 class FrontofficeApplicationArchitectureTest : FunSpec({
-    val importedClasses: JavaClasses =
-        ClassFileImporter().importPackages("com.beat.application.frontoffice")
+    val importedClasses: JavaClasses by lazy {
+        val productionClassPaths = listOf(
+            Path.of("build/classes/kotlin/main"),
+            Path.of("build/classes/java/main"),
+        ).filter(Files::exists)
+        require(productionClassPaths.isNotEmpty()) {
+            "Frontoffice production class output is missing"
+        }
+        ClassFileImporter().importPaths(productionClassPaths)
+    }
 
     fun hasPackage(pattern: PackagePattern): Boolean =
         importedClasses.any { javaClass ->
@@ -71,43 +85,6 @@ class FrontofficeApplicationArchitectureTest : FunSpec({
             .check(importedClasses)
     }
 
-    fun noCommandDependencyOnPresentationReadModelsRule(): ArchRule? {
-        val sourcePackage = packagePattern("command")
-        if (!hasPackage(sourcePackage)) {
-            return null
-        }
-        val documentedExceptions = setOf(
-            // FINAL-REPORT §8: primary-DB 403/404 diagnostic reader for Performance modify commands.
-            "com.beat.application.frontoffice.performance.maker.command.PerformanceContentOwnershipReader",
-        )
-        val presentationReadModel = object : DescribedPredicate<JavaClass>(
-            "be a presentation read-model type owned by the query side",
-        ) {
-            override fun test(input: JavaClass): Boolean {
-                if (input.fullName in documentedExceptions) {
-                    return false
-                }
-                if (!input.packageName.startsWith("com.beat.")) {
-                    return false
-                }
-                val name = input.simpleName
-                return input.packageName.split('.').contains("readmodel") ||
-                    name.endsWith("Reader") ||
-                    name.endsWith("Queries") ||
-                    name.endsWith("ReadModel") ||
-                    name.endsWith("Projection")
-            }
-        }
-        return noClasses()
-            .that()
-            .resideInAnyPackage(sourcePackage.archUnitPattern)
-            .should()
-            .dependOnClassesThat(presentationReadModel)
-            .because(
-                "${sourcePackage.archUnitPattern} correctness code must not depend on presentation projections",
-            )
-    }
-
     fun noDependencyOnConcreteTypesRule(
         sourcePackage: PackagePattern,
         forbiddenTypes: Set<String>,
@@ -146,29 +123,66 @@ class FrontofficeApplicationArchitectureTest : FunSpec({
         return noDependencyOnConcreteTypesRule(packagePattern("member"), forbiddenAuthTypes)
     }
 
-    test("command 패키지는 query 패키지에 의존하지 않는다") {
-        checkRule(
-            noDependencyRule(packagePattern("command"), packagePattern("query")),
-        )
-    }
-
-    test("read-model 가드는 실제 검사 대상이 존재한다") {
-        val matched = importedClasses.filter { javaClass ->
-            javaClass.packageName.startsWith("com.beat.") &&
-                (
-                    javaClass.simpleName.endsWith("Reader") ||
-                        javaClass.simpleName.endsWith("Queries") ||
-                        javaClass.simpleName.endsWith("ReadModel") ||
-                        javaClass.simpleName.endsWith("Projection")
-                    )
-        }
-        check(matched.isNotEmpty()) {
-            "Presentation read-model predicate matches nothing; the command-side guard is vacuous."
-        }
-    }
-
     test("command 패키지는 presentation read-model에 의존하지 않는다") {
-        checkRule(noCommandDependencyOnPresentationReadModelsRule())
+        noClasses()
+            .that()
+            .resideInAnyPackage("..command..")
+            .should()
+            .dependOnClassesThat()
+            .areAnnotatedWith(PresentationReadModel::class.java)
+            .because("Command Correctness vs Presentation Read Model")
+            .check(importedClasses)
+    }
+
+    test("PresentationReadModel annotation은 production type에 적용된다") {
+        val annotatedProductionTypes = importedClasses.filter { javaClass ->
+            javaClass.isAnnotatedWith(PresentationReadModel::class.java)
+        }
+        check(annotatedProductionTypes.isNotEmpty()) {
+            "PresentationReadModel annotation matches no production types."
+        }
+    }
+
+    test("query ReadModel은 PresentationReadModel marker를 가진다") {
+        classes()
+            .that()
+            .resideInAnyPackage("..query..")
+            .and()
+            .areNotAnnotations()
+            .and()
+            .haveSimpleNameEndingWith("ReadModel")
+            .should()
+            .beAnnotatedWith(PresentationReadModel::class.java)
+            .because("Command Correctness vs Presentation Read Model marker coverage")
+            .check(importedClasses)
+    }
+
+    test("query Reader interface는 PresentationReadModel marker를 가진다") {
+        classes()
+            .that()
+            .resideInAnyPackage("..query..")
+            .and()
+            .areInterfaces()
+            .and()
+            .haveSimpleNameEndingWith("Reader")
+            .should()
+            .beAnnotatedWith(PresentationReadModel::class.java)
+            .because("Command Correctness vs Presentation Read Model marker coverage")
+            .check(importedClasses)
+    }
+
+    test("query Projection은 PresentationReadModel marker를 가진다") {
+        classes()
+            .that()
+            .resideInAnyPackage("..query..")
+            .and()
+            .areNotAnnotations()
+            .and()
+            .haveSimpleNameEndingWith("Projection")
+            .should()
+            .beAnnotatedWith(PresentationReadModel::class.java)
+            .because("Command Correctness vs Presentation Read Model marker coverage")
+            .check(importedClasses)
     }
 
     test("booking booker 패키지는 performance 레인에 의존하지 않는다") {
@@ -272,6 +286,37 @@ class FrontofficeApplicationArchitectureTest : FunSpec({
             .should()
             .dependOnClassesThat(failureTranslator)
             .because("service use-case boundaries must translate domain failures")
+            .check(importedClasses)
+    }
+
+    test("frontoffice Application은 기술 구현에 의존하지 않는다") {
+        noClasses()
+            .that()
+            .resideInAnyPackage("com.beat.application.frontoffice", "com.beat.application.frontoffice..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "jakarta.persistence..",
+                "org.springframework.web..",
+                "org.springframework.data.redis..",
+                "org.redisson..",
+                "com.linecorp.kotlinjdsl..",
+            )
+            .because("Frontoffice Application technology boundary")
+            .check(importedClasses)
+    }
+
+    test("Component implementation은 @Transactional 메서드를 선언하지 않는다") {
+        methods()
+            .that()
+            .areDeclaredInClassesThat()
+            .areAnnotatedWith(Component::class.java)
+            .and()
+            .areDeclaredInClassesThat()
+            .areNotAnnotatedWith(Service::class.java)
+            .should()
+            .notBeAnnotatedWith(Transactional::class.java)
+            .because("Component implementation boundaries must not own transactions")
             .check(importedClasses)
     }
 })

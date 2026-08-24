@@ -2,7 +2,6 @@ package com.beat.application.frontoffice.member.command
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.application.frontoffice.member.exception.MemberApplicationErrorCode
-import com.beat.domain.member.exception.DuplicateSocialIdentityException
 import com.beat.domain.member.model.Member
 import com.beat.domain.member.repository.MemberRepository
 import com.beat.domain.member.vo.SocialIdentity
@@ -19,15 +18,12 @@ internal class SocialLoginMemberResolver(
     ): MemberAuthenticationResult {
         val existingMember = memberRepository.findBySocialIdentity(socialIdentity)
         existingMember?.let { return it.toAuthenticationResult() }
-        return try {
-            val memberId = memberRegistrar.registerMemberWithUserInfo(socialLoginProfile, socialIdentity)
-            findById(memberId)
-        } catch (duplicate: DuplicateSocialIdentityException) {
-            memberRepository.findBySocialIdentity(socialIdentity)
-                ?.toAuthenticationResult()
-                ?: throw duplicate
-        }
+        val memberId = memberRegistrar.registerMemberWithUserInfo(socialLoginProfile, socialIdentity)
+        return findById(memberId)
     }
+
+    fun findExisting(socialIdentity: SocialIdentity): MemberAuthenticationResult? =
+        memberRepository.findBySocialIdentity(socialIdentity)?.toAuthenticationResult()
 
     private fun findById(memberId: Long): MemberAuthenticationResult =
         memberRepository.findById(memberId)?.toAuthenticationResult()

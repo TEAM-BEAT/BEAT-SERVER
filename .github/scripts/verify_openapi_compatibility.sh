@@ -2,8 +2,10 @@
 set -euo pipefail
 
 readonly oasdiff_version="v1.28.0"
-readonly platform_name="$(uname -s)"
-readonly platform_architecture="$(uname -m)"
+platform_name="$(uname -s)"
+readonly platform_name
+platform_architecture="$(uname -m)"
+readonly platform_architecture
 
 case "${platform_name}:${platform_architecture}" in
     Linux:x86_64|Linux:amd64)
@@ -22,10 +24,16 @@ esac
 
 readonly oasdiff_url="https://github.com/oasdiff/oasdiff/releases/download/${oasdiff_version}/${oasdiff_asset}"
 readonly oasdiff_sha256
-readonly repository_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
-readonly temporary_directory="$(mktemp -d)"
+script_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly script_directory
+repository_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+readonly repository_root
+temporary_directory="$(mktemp -d)"
+readonly temporary_directory
 readonly archive_path="${temporary_directory}/oasdiff.tar.gz"
 readonly oasdiff_path="${temporary_directory}/oasdiff"
+# shellcheck source=.github/scripts/resolve_openapi_baselines.sh
+source "${script_directory}/resolve_openapi_baselines.sh"
 
 trap 'rm -rf -- "${temporary_directory}"' EXIT
 
@@ -61,9 +69,18 @@ check_compatibility() {
     "${oasdiff_path}" breaking "${baseline}" "${generated}" --fail-on ERR
 }
 
+readonly baseline_paths_file="${temporary_directory}/openapi-baseline-paths"
+resolve_openapi_baselines "${repository_root}" "${temporary_directory}" > "${baseline_paths_file}"
+baseline_paths=()
+while IFS= read -r baseline_path; do baseline_paths+=("${baseline_path}"); done < "${baseline_paths_file}"
+[[ "${#baseline_paths[@]}" -eq 2 ]] || {
+    echo "Expected general and admin OpenAPI baselines" >&2
+    exit 1
+}
+
 check_compatibility \
-    "${repository_root}/docs/openapi/baseline/general.json" \
+    "${baseline_paths[0]}" \
     "${repository_root}/apps/api/build/openapi/general.json"
 check_compatibility \
-    "${repository_root}/docs/openapi/baseline/admin.json" \
+    "${baseline_paths[1]}" \
     "${repository_root}/apps/admin/build/openapi/admin.json"

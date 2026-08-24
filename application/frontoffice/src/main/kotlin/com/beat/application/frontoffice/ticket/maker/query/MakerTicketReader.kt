@@ -1,5 +1,8 @@
 package com.beat.application.frontoffice.ticket.maker.query
 
+import com.beat.application.frontoffice.query.PresentationReadModel
+
+@PresentationReadModel
 interface MakerTicketReader {
     fun findTickets(
         performanceId: Long,

@@ -34,7 +34,7 @@ import java.time.LocalDateTime
 import java.time.Clock
 
 @Service
-class PerformanceCreateCommandService(
+class PerformanceCreateCommandService internal constructor(
     private val performanceRepository: PerformanceRepository,
     private val scheduleRepository: ScheduleRepository,
     private val memberRepository: MemberRepository,

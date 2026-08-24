@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class AuthenticationCommandService(
+class AuthenticationCommandService internal constructor(
     private val tokenIssuer: TokenIssuer,
     private val refreshTokenAuthenticator: RefreshTokenAuthenticator,
     private val refreshTokenStore: RefreshTokenStore,

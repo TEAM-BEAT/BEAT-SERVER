@@ -14,7 +14,7 @@ import java.time.Clock
 
 @Service
 @Transactional(readOnly = true)
-class MakerPerformanceListQueryService(
+class MakerPerformanceListQueryService internal constructor(
     private val memberRepository: MemberRepository,
     private val makerPerformanceListReader: MakerPerformanceListReader,
     private val clock: Clock,

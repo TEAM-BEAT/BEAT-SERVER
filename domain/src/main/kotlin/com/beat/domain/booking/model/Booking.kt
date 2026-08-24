@@ -55,6 +55,8 @@ class Booking private constructor(
 
     fun hasActiveTicketAllocation(): Boolean = !bookingStatus.isInactiveForTicketAllocation()
 
+    fun isOwnedBy(userId: Long): Boolean = linkedUserId.value == userId
+
     fun transitionTo(requestedStatus: BookingStatus): Booking {
         if (bookingStatus == requestedStatus) return this
         if (bookingStatus == BookingStatus.BOOKING_CONFIRMED) {

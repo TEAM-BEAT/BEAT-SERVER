@@ -19,7 +19,7 @@ import java.time.LocalDateTime
 import java.time.Clock
 
 @Service
-class TicketCommandService(
+class TicketCommandService internal constructor(
     private val bookingRepository: BookingRepository,
     private val performanceRepository: PerformanceRepository,
     private val memberRepository: MemberRepository,
@@ -145,7 +145,7 @@ class TicketCommandService(
         val member = findMember(memberId)
         val performance = performanceRepository.findById(performanceId)
             ?: throw FrontofficeApplicationException(TicketApplicationErrorCode.PERFORMANCE_NOT_FOUND)
-        if (performance.userId != member.userId) {
+        if (!performance.isOwnedBy(member.userId)) {
             throw FrontofficeApplicationException(TicketApplicationErrorCode.NOT_PERFORMANCE_OWNER)
         }
         return performance

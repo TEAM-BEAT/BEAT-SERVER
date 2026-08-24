@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class ScheduleQueryService(
+class ScheduleQueryService internal constructor(
     private val scheduleRepository: ScheduleRepository,
 ) {
     @Transactional(readOnly = true)

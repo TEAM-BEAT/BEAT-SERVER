@@ -1,5 +1,8 @@
 package com.beat.apps.api.ticket
 
+import com.beat.apps.api.fixture.performanceFixture
+import com.beat.apps.api.fixture.scheduleFixture
+import com.beat.apps.api.fixture.usersFixture
 import com.beat.apps.api.support.BeatTestContainersConfig
 import com.beat.application.frontoffice.ticket.maker.command.TicketBookingStatus
 import com.beat.application.frontoffice.ticket.maker.command.TicketCommandService
@@ -16,12 +19,8 @@ import com.beat.domain.performance.model.Genre
 import com.beat.domain.performance.model.Performance
 import com.beat.domain.performance.repository.PerformanceRepository
 import com.beat.domain.performance.vo.PerformancePeriod
-import com.beat.domain.performance.vo.RunningTime
-import com.beat.domain.performance.vo.TicketPrice
-import com.beat.domain.schedule.model.Schedule
 import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.schedule.repository.ScheduleRepository
-import com.beat.domain.user.model.Users
 import com.beat.domain.user.repository.UserRepository
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.IsolationMode
@@ -36,7 +35,9 @@ import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 @SpringBootTest
@@ -44,9 +45,6 @@ import java.util.concurrent.TimeUnit
 @Import(BeatTestContainersConfig::class)
 @Tags("integration", "correctness")
 open class TicketBulkLockOrderingIntegrationTest : FunSpec() {
-
-private val NOW: LocalDateTime = LocalDateTime.now()
-
 
     @Autowired
     private lateinit var ticketCommandService: TicketCommandService
@@ -66,122 +64,36 @@ private val NOW: LocalDateTime = LocalDateTime.now()
     @Autowired
     private lateinit var bookingRepository: BookingRepository
 
-    private lateinit var makerMember: Member
-    private lateinit var performance: Performance
-    private lateinit var firstBooking: Booking
-    private lateinit var secondBooking: Booking
-
     init {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        beforeTest {
-            val maker = userRepository.save(Users.create())
-            val makerUserId = requireNotNull(maker.id)
-            makerMember = memberRepository.save(
-                Member.create(
-                    nickname = "ticket-lock-maker-$makerUserId",
-                    email = "ticket-lock-maker-$makerUserId@example.com",
-                    userId = makerUserId,
-                    socialIdentity = SocialIdentity.of(SocialType.KAKAO, 8_000_000_000L + makerUserId),
-                ),
-            )
-            performance = performanceRepository.save(
-                Performance.create(
-                    performanceTitle = "Ticket lock ordering performance $makerUserId",
-                    genre = Genre.BAND,
-                    runningTime = RunningTime.of(120),
-                    performanceDescription = "description",
-                    performanceAttentionNote = "attention",
-                    paymentAccount = null,
-                    posterImage = "poster.jpg",
-                    performanceTeamName = "team",
-                    performanceVenue = "venue",
-                    roadAddressName = "road",
-                    placeDetailAddress = "detail",
-                    latitude = "37.0",
-                    longitude = "127.0",
-                    performanceContact = "010-0000-0000",
-                    performancePeriod = PerformancePeriod.of(
-                        NOW.toLocalDate(),
-                        NOW.toLocalDate().plusDays(1),
-                    ),
-                    ticketPrice = TicketPrice.of(10_000),
-                    totalScheduleCount = 2,
-                    userId = makerUserId,
-                ),
-            )
-            val performanceId = requireNotNull(performance.id)
-            val scheduleStart = NOW.plusDays(1)
-            val firstSchedule = scheduleRepository.save(
-                Schedule.create(
-                    performanceDate = scheduleStart,
-                    bookingCloseAt = scheduleStart.plusHours(2),
-                    totalTicketCount = 10,
-                    scheduleNumber = ScheduleNumber.FIRST,
-                    performanceId = performanceId,
-                ),
-            )
-            val secondSchedule = scheduleRepository.save(
-                Schedule.create(
-                    performanceDate = scheduleStart.plusHours(4),
-                    bookingCloseAt = scheduleStart.plusHours(6),
-                    totalTicketCount = 10,
-                    scheduleNumber = ScheduleNumber.SECOND,
-                    performanceId = performanceId,
-                ),
-            )
-            val createdAt = NOW
-            firstBooking = bookingRepository.save(
-                Booking.create(
-                    purchaseTicketCount = 1,
-                    bookerName = "first-booker",
-                    bookerPhoneNumber = "010-0000-0001",
-                    birthDate = null,
-                    password = null,
-                    scheduleId = requireNotNull(firstSchedule.id),
-                    userId = makerUserId,
-                    createdAt = createdAt,
-                    totalPaymentAmount = 0,
-                ),
-            )
-            secondBooking = bookingRepository.save(
-                Booking.create(
-                    purchaseTicketCount = 1,
-                    bookerName = "second-booker",
-                    bookerPhoneNumber = "010-0000-0002",
-                    birthDate = null,
-                    password = null,
-                    scheduleId = requireNotNull(secondSchedule.id),
-                    userId = makerUserId,
-                    createdAt = createdAt,
-                    totalPaymentAmount = 0,
-                ),
-            )
-        }
-
         test("예매 순서가 반대인 bulk ticket 갱신은 deadlock 없이 완료된다") {
-            val memberId = requireNotNull(makerMember.id)
-            val performanceId = requireNotNull(performance.id)
+            val fixture = createFixture()
+            val memberId = requireNotNull(fixture.makerMember.id)
+            val performanceId = requireNotNull(fixture.performance.id)
+            val firstBookingId = requireNotNull(fixture.firstBooking.id)
+            val secondBookingId = requireNotNull(fixture.secondBooking.id)
             val ready = CountDownLatch(2)
             val start = CountDownLatch(1)
-            executor = Executors.newFixedThreadPool(2)
-            val firstRequest = updateTask(
-                ready = ready,
-                start = start,
-                memberId = memberId,
-                performanceId = performanceId,
-                bookingIds = listOf(requireNotNull(firstBooking.id), requireNotNull(secondBooking.id)),
-            )
-            val secondRequest = updateTask(
-                ready = ready,
-                start = start,
-                memberId = memberId,
-                performanceId = performanceId,
-                bookingIds = listOf(requireNotNull(secondBooking.id), requireNotNull(firstBooking.id)),
-            )
-
+            val executor = Executors.newFixedThreadPool(2)
             try {
+                val firstRequest = updateTask(
+                    executor = executor,
+                    ready = ready,
+                    start = start,
+                    memberId = memberId,
+                    performanceId = performanceId,
+                    bookingIds = listOf(firstBookingId, secondBookingId),
+                )
+                val secondRequest = updateTask(
+                    executor = executor,
+                    ready = ready,
+                    start = start,
+                    memberId = memberId,
+                    performanceId = performanceId,
+                    bookingIds = listOf(secondBookingId, firstBookingId),
+                )
                 ready.await(5, TimeUnit.SECONDS) shouldBe true
                 start.countDown()
 
@@ -191,20 +103,97 @@ private val NOW: LocalDateTime = LocalDateTime.now()
                 executor.shutdownNow()
             }
 
-            checkNotNull(bookingRepository.findById(checkNotNull(firstBooking.id))).bookingStatus shouldBe
+            checkNotNull(bookingRepository.findById(firstBookingId)).bookingStatus shouldBe
                 BookingStatus.BOOKING_CONFIRMED
-            checkNotNull(bookingRepository.findById(checkNotNull(secondBooking.id))).bookingStatus shouldBe
+            checkNotNull(bookingRepository.findById(secondBookingId)).bookingStatus shouldBe
                 BookingStatus.BOOKING_CONFIRMED
         }
     }
 
+    private fun createFixture(): Fixture {
+        val maker = userRepository.save(usersFixture())
+        val makerUserId = requireNotNull(maker.id)
+        val makerMember = memberRepository.save(
+            Member.create(
+                nickname = "ticket-lock-maker-$makerUserId",
+                email = "ticket-lock-maker-$makerUserId@example.com",
+                userId = makerUserId,
+                socialIdentity = SocialIdentity.of(SocialType.KAKAO, 8_000_000_000L + makerUserId),
+            ),
+        )
+        val performance = performanceRepository.save(
+            performanceFixture(
+                performanceTitle = "Ticket lock ordering performance $makerUserId",
+                genre = Genre.BAND,
+                paymentAccount = null,
+                posterImage = "poster.jpg",
+                performancePeriod = PerformancePeriod.of(
+                    NOW.toLocalDate(),
+                    NOW.toLocalDate().plusDays(1),
+                ),
+                ticketPrice = 10_000,
+                totalScheduleCount = 2,
+                userId = makerUserId,
+            ),
+        )
+        val performanceId = requireNotNull(performance.id)
+        val scheduleStart = NOW.plusDays(1)
+        val firstSchedule = scheduleRepository.save(
+            scheduleFixture(
+                performanceDate = scheduleStart,
+                bookingCloseAt = scheduleStart.plusHours(2),
+                totalTicketCount = 10,
+                scheduleNumber = ScheduleNumber.FIRST,
+                performanceId = performanceId,
+            ),
+        )
+        val secondSchedule = scheduleRepository.save(
+            scheduleFixture(
+                performanceDate = scheduleStart.plusHours(4),
+                bookingCloseAt = scheduleStart.plusHours(6),
+                totalTicketCount = 10,
+                scheduleNumber = ScheduleNumber.SECOND,
+                performanceId = performanceId,
+            ),
+        )
+        val createdAt = NOW
+        val firstBooking = bookingRepository.save(
+            Booking.create(
+                purchaseTicketCount = 1,
+                bookerName = "first-booker",
+                bookerPhoneNumber = "010-0000-0001",
+                birthDate = null,
+                password = null,
+                scheduleId = requireNotNull(firstSchedule.id),
+                userId = makerUserId,
+                createdAt = createdAt,
+                totalPaymentAmount = 0,
+            ),
+        )
+        val secondBooking = bookingRepository.save(
+            Booking.create(
+                purchaseTicketCount = 1,
+                bookerName = "second-booker",
+                bookerPhoneNumber = "010-0000-0002",
+                birthDate = null,
+                password = null,
+                scheduleId = requireNotNull(secondSchedule.id),
+                userId = makerUserId,
+                createdAt = createdAt,
+                totalPaymentAmount = 0,
+            ),
+        )
+        return Fixture(makerMember, performance, firstBooking, secondBooking)
+    }
+
     private fun updateTask(
+        executor: ExecutorService,
         ready: CountDownLatch,
         start: CountDownLatch,
         memberId: Long,
         performanceId: Long,
         bookingIds: List<Long>,
-    ) = executor.submit<Boolean> {
+    ): Future<Boolean> = executor.submit<Boolean> {
         ready.countDown()
         check(start.await(5, TimeUnit.SECONDS)) { "Concurrent ticket update did not start" }
         ticketCommandService.updateTickets(
@@ -222,5 +211,12 @@ private val NOW: LocalDateTime = LocalDateTime.now()
         true
     }
 
-    private lateinit var executor: java.util.concurrent.ExecutorService
+    private data class Fixture(
+        val makerMember: Member,
+        val performance: Performance,
+        val firstBooking: Booking,
+        val secondBooking: Booking,
+    )
 }
+
+private val NOW: LocalDateTime = LocalDateTime.now()
