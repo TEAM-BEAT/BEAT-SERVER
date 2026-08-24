@@ -34,6 +34,7 @@ support:security
 support:security-web
     -> support:security
     -> support:observability
+    # TokenAuthenticationResult 등 3개 타입이 application:frontoffice에 있어 security-web도 frontoffice를 간접적으로 보게 되나, 직접 의존은 security에만 둔다
 
 support:observability
     -> (없음)
@@ -405,8 +406,8 @@ interface TokenIssuer {
     fun issueRefreshToken(...)
 }
 
-// support:security
-internal class JwtTokenProvider(
+// support:security — TokenIssuer 구현체는 public으로 둔다 (application이 Port를 소유하므로 internal이면 주입 불가)
+class JwtTokenProvider(
     ...
 ) : TokenIssuer
 ```

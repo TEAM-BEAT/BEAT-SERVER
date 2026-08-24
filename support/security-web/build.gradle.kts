@@ -5,7 +5,7 @@ plugins {
 
 dependencies {
     implementation(project(":application:frontoffice"))
-    implementation(project(":support:security-core"))
+    implementation(project(":support:security"))
     implementation(project(":support:observability"))
     implementation(libs.kotlin.logging.jvm)
     runtimeOnly(libs.slf4j.api)
