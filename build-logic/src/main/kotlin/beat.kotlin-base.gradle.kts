@@ -4,7 +4,12 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm")
+    id("com.autonomousapps.dependency-analysis")
 }
+
+// 모듈 좌표는 루트 좌표를 따른다(모듈별 중복 선언 금지).
+group = rootProject.group.toString()
+version = rootProject.version.toString()
 
 // Policy: compile application modules with JDK 25, but emit JVM 25-compatible bytecode
 // so the transition baseline can run on a Java 25 runtime while the build stack upgrades.

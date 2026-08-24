@@ -1,5 +1,5 @@
 package com.beat.application.frontoffice.auth.command
 
-interface LoginSessionIssuer {
+internal interface LoginSessionIssuer {
     fun issueFor(memberId: Long, roleName: String): LoginSession
 }

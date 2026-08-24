@@ -5,16 +5,21 @@ import java.time.LocalDateTime
 data class BookingCreationResult(
     val bookingId: Long?,
     val scheduleId: Long?,
-    val userId: Long?,
+    val userId: Long,
     val purchaseTicketCount: Int,
-    val scheduleNumber: String?,
-    val bookerName: String?,
-    val bookerPhoneNumber: String?,
-    val bookingStatus: String?,
+    val scheduleNumber: String,
+    val bookerName: String,
+    val bookerPhoneNumber: String,
+    val bookingStatus: String,
     val bankName: String?,
     val accountNumber: String?,
     val totalPaymentAmount: Int,
-    val createdAt: LocalDateTime?,
+    val createdAt: LocalDateTime,
+)
+
+data class GuestBookingCreationOutcome(
+    val booking: BookingCreationResult,
+    val sessionToken: String?,
 )
 
 data class BookingRetrieveResult(
@@ -37,6 +42,11 @@ data class BookingRetrieveResult(
     val createdAt: LocalDateTime?,
     val posterImage: String?,
     val totalPaymentAmount: Int,
+)
+
+data class GuestBookingAccessOutcome(
+    val bookings: List<BookingRetrieveResult>,
+    val sessionToken: String?,
 )
 
 data class BookingRefundResult(

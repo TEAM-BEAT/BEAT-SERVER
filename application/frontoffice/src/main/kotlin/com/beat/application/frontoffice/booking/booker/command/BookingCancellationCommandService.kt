@@ -4,6 +4,7 @@ import com.beat.application.frontoffice.booking.booker.result.BookingCancelResul
 import com.beat.application.frontoffice.booking.booker.result.BookingRefundResult
 import com.beat.application.frontoffice.booking.booker.BookingApplicationErrorCode
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.repository.BookingRepository
 import com.beat.domain.booking.vo.RefundAccount
@@ -15,64 +16,71 @@ import java.time.LocalDateTime
 import java.time.Clock
 
 @Service
-class BookingCancellationCommandService(
+class BookingCancellationCommandService internal constructor(
     private val bookingRepository: BookingRepository,
     private val clock: Clock,
     private val scheduleRepository: ScheduleRepository,
+    private val guestBookingSessionManager: GuestBookingSessionManager,
 ) {
     @Transactional
-    fun refundBooking(actorUserId: Long, command: BookingRefundCommand): BookingRefundResult {
-        var booking = bookingRepository.lockById(command.bookingId)
-            .orElseThrow { FrontofficeApplicationException(BookingApplicationErrorCode.NO_BOOKING_FOUND) }
-        ensureOwnedBy(booking, actorUserId)
-        val refundAccount = RefundAccount.of(
-            command.bankName?.let(BankName::valueOf),
-            command.accountNumber,
-            command.accountHolder,
-        )
-        booking = bookingRepository.save(booking.requestRefund(refundAccount))
-        return BookingRefundResult(
-            requireNotNull(booking.getId()),
-            booking.getBookingStatus().name,
-            booking.getBankName()?.name,
-            booking.getAccountNumber(),
-            booking.getAccountHolder(),
-        )
+    fun refundBooking(actor: BookingActorCommand, command: BookingRefundCommand): BookingRefundResult {
+        return translateDomainFailure {
+            val actorUserId = guestBookingSessionManager.resolveActorUserId(actor)
+            var booking = bookingRepository.lockById(command.bookingId)
+                ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.NO_BOOKING_FOUND)
+            ensureOwnedBy(booking, actorUserId)
+            val refundAccount = RefundAccount.of(
+                command.bankName?.let(BankName::valueOf),
+                command.accountNumber,
+                command.accountHolder,
+            )
+            booking = bookingRepository.save(booking.requestRefund(refundAccount))
+            BookingRefundResult(
+                requireNotNull(booking.id),
+                booking.bookingStatus.name,
+                booking.bankName?.name,
+                booking.accountNumber,
+                booking.accountHolder,
+            )
+        }
     }
 
     @Transactional
-    fun cancelBooking(actorUserId: Long, command: BookingCancelCommand): BookingCancelResult {
-        val snapshot = bookingRepository.findById(command.bookingId)
-            .orElseThrow { FrontofficeApplicationException(BookingApplicationErrorCode.NO_BOOKING_FOUND) }
-        ensureOwnedBy(snapshot, actorUserId)
-        val lockedSchedule = if (snapshot.hasActiveTicketAllocation()) {
-            scheduleRepository.lockById(snapshot.getScheduleId())
-                .orElseThrow { FrontofficeApplicationException(BookingApplicationErrorCode.SCHEDULE_NOT_FOUND) }
-        } else {
-            null
-        }
-        var booking = bookingRepository.lockById(command.bookingId)
-            .orElseThrow { FrontofficeApplicationException(BookingApplicationErrorCode.NO_BOOKING_FOUND) }
-        ensureOwnedBy(booking, actorUserId)
-        if (lockedSchedule != null && booking.getScheduleId() != lockedSchedule.getId()) {
-            throw FrontofficeApplicationException(BookingApplicationErrorCode.SCHEDULE_NOT_FOUND)
-        }
+    fun cancelBooking(actor: BookingActorCommand, command: BookingCancelCommand): BookingCancelResult {
+        return translateDomainFailure {
+            val actorUserId = guestBookingSessionManager.resolveActorUserId(actor)
+            val snapshot = bookingRepository.findById(command.bookingId)
+                ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.NO_BOOKING_FOUND)
+            ensureOwnedBy(snapshot, actorUserId)
+            val lockedSchedule = if (snapshot.hasActiveTicketAllocation()) {
+                scheduleRepository.lockById(snapshot.scheduleId)
+                    ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.SCHEDULE_NOT_FOUND)
+            } else {
+                null
+            }
+            var booking = bookingRepository.lockById(command.bookingId)
+                ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.NO_BOOKING_FOUND)
+            ensureOwnedBy(booking, actorUserId)
+            if (lockedSchedule != null && booking.scheduleId != lockedSchedule.id) {
+                throw FrontofficeApplicationException(BookingApplicationErrorCode.SCHEDULE_NOT_FOUND)
+            }
 
-        val shouldReleaseTickets = booking.hasActiveTicketAllocation()
-        booking = bookingRepository.save(booking.cancelUnpaidOrFree(LocalDateTime.now(clock)))
-        if (shouldReleaseTickets) {
-            val schedule = lockedSchedule
-                ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.SCHEDULE_NOT_FOUND)
-            scheduleRepository.save(schedule.releaseTickets(booking.getPurchaseTicketCount()))
+            val shouldReleaseTickets = booking.hasActiveTicketAllocation()
+            booking = bookingRepository.save(booking.cancelUnpaidOrFree(LocalDateTime.now(clock)))
+            if (shouldReleaseTickets) {
+                val schedule = lockedSchedule
+                    ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.SCHEDULE_NOT_FOUND)
+                scheduleRepository.save(schedule.releaseTickets(booking.purchaseTicketCount))
+            }
+            BookingCancelResult(
+                requireNotNull(booking.id),
+                booking.bookingStatus.name,
+            )
         }
-        return BookingCancelResult(
-            requireNotNull(booking.getId()),
-            booking.getBookingStatus().name,
-        )
     }
 
     private fun ensureOwnedBy(booking: Booking, actorUserId: Long) {
-        if (booking.getUserId() != actorUserId) {
+        if (!booking.isOwnedBy(actorUserId)) {
             throw FrontofficeApplicationException(BookingApplicationErrorCode.NO_BOOKING_FOUND)
         }
     }

@@ -2,6 +2,7 @@ package com.beat.application.frontoffice.auth.command
 
 import com.beat.application.frontoffice.auth.exception.TokenApplicationErrorCode
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.support.security.token.RefreshTokenAuthenticator
 import com.beat.support.security.token.TokenAuthenticationFailure
 import com.beat.support.security.token.TokenAuthenticationResult
@@ -13,24 +14,28 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class AuthenticationCommandService(
+class AuthenticationCommandService internal constructor(
     private val tokenIssuer: TokenIssuer,
     private val refreshTokenAuthenticator: RefreshTokenAuthenticator,
     private val refreshTokenStore: RefreshTokenStore,
 ) {
     @Transactional
     fun generateAccessTokenFromRefreshToken(refreshToken: String): AccessTokenResult {
-        val subject = authenticateRefreshToken(refreshToken)
-        verifyStoredTokenOwner(refreshToken, subject.memberId)
-        val role = mapRole(subject.roleName)
-        return AccessTokenResult(
-            tokenIssuer.issueAccessToken(TokenSubject(subject.memberId, role.roleName)),
-        )
+        return translateDomainFailure {
+            val subject = authenticateRefreshToken(refreshToken)
+            verifyStoredTokenOwner(refreshToken, subject.memberId)
+            val role = mapRole(subject.roleName)
+            AccessTokenResult(
+                tokenIssuer.issueAccessToken(TokenSubject(subject.memberId, role.roleName)),
+            )
+        }
     }
 
     @Transactional
     fun signOut(memberId: Long) {
-        refreshTokenStore.delete(memberId)
+        translateDomainFailure {
+            refreshTokenStore.delete(memberId)
+        }
     }
 
     private fun authenticateRefreshToken(refreshToken: String) = when (

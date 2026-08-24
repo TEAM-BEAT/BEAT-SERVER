@@ -1,6 +1,7 @@
 package com.beat.application.frontoffice.ticket.maker.query
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.application.frontoffice.ticket.maker.exception.TicketApplicationErrorCode
 import com.beat.domain.member.model.Member
 import com.beat.domain.member.repository.MemberRepository
@@ -12,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 @Transactional(readOnly = true)
-class TicketQueryService(
+class TicketQueryService internal constructor(
     private val makerTicketReader: MakerTicketReader,
     private val performanceRepository: PerformanceRepository,
     private val memberRepository: MemberRepository,
@@ -22,6 +23,7 @@ class TicketQueryService(
         performanceId: Long,
         query: TicketListQuery,
     ): TicketRetrieveResult {
+        return translateDomainFailure {
         validateDeletedTicketsAreNotRequested(query.bookingStatuses)
         val performance = findOwnedPerformance(memberId, performanceId)
         val schedules = makerTicketReader.findSchedules(performanceId)
@@ -35,7 +37,8 @@ class TicketQueryService(
             toMakerTicketScheduleNumbers(query.scheduleNumbers),
             toMakerTicketBookingStatuses(query.bookingStatuses),
         )
-        return toResult(performance, schedules, tickets)
+        toResult(performance, schedules, tickets)
+        }
     }
 
     fun searchAllTicketsByConditions(
@@ -43,6 +46,7 @@ class TicketQueryService(
         performanceId: Long,
         query: TicketListQuery,
     ): TicketRetrieveResult {
+        return translateDomainFailure {
         val searchWord = requireSearchWord(query.searchWord)
         validateDeletedTicketsAreNotRequested(query.bookingStatuses)
         val performance = findOwnedPerformance(memberId, performanceId)
@@ -72,11 +76,12 @@ class TicketQueryService(
             selectedBookingStatuses,
         )
         log.info { "searchTickets result count: ${tickets.size}" }
-        return toResult(performance, schedules, tickets)
+        toResult(performance, schedules, tickets)
+        }
     }
 
     private fun requireSearchWord(searchWord: String?): String =
-        searchWord?.takeIf { it.length >= 2 }
+        searchWord?.trim()?.takeIf { it.length >= 2 }
             ?: throw FrontofficeApplicationException(TicketApplicationErrorCode.SEARCH_WORD_TOO_SHORT)
 
     private fun validateDeletedTicketsAreNotRequested(bookingStatuses: List<String>) {
@@ -134,8 +139,8 @@ class TicketQueryService(
     private fun findOwnedPerformance(memberId: Long, performanceId: Long): Performance {
         val member = findMember(memberId)
         val performance = performanceRepository.findById(performanceId)
-            .orElseThrow { FrontofficeApplicationException(TicketApplicationErrorCode.PERFORMANCE_NOT_FOUND) }
-        if (performance.getUserId() != member.getUserId()) {
+            ?: throw FrontofficeApplicationException(TicketApplicationErrorCode.PERFORMANCE_NOT_FOUND)
+        if (!performance.isOwnedBy(member.userId)) {
             throw FrontofficeApplicationException(TicketApplicationErrorCode.NOT_PERFORMANCE_OWNER)
         }
         return performance
@@ -143,7 +148,7 @@ class TicketQueryService(
 
     private fun findMember(memberId: Long): Member =
         memberRepository.findById(memberId)
-            .orElseThrow { FrontofficeApplicationException(TicketApplicationErrorCode.MEMBER_NOT_FOUND) }
+            ?: throw FrontofficeApplicationException(TicketApplicationErrorCode.MEMBER_NOT_FOUND)
     private companion object {
         val log = KotlinLogging.logger {}
     }

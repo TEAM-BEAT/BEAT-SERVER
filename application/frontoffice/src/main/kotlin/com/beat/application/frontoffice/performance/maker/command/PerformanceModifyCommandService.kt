@@ -1,6 +1,7 @@
 package com.beat.application.frontoffice.performance.maker.command
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.application.frontoffice.performance.CastResult
 import com.beat.application.frontoffice.performance.PerformanceImageResult
 import com.beat.application.frontoffice.performance.StaffResult
@@ -40,10 +41,11 @@ class PerformanceModifyCommandService internal constructor(
 
     @Transactional
     fun modifyPerformance(memberId: Long, command: PerformanceModifyCommand): PerformanceMutationResult {
+        return translateDomainFailure {
         log.info { "Starting updatePerformance for memberId: ${memberId}, performanceId: ${command.performanceId}" }
         val member = findMember(memberId)
         var performance = findPerformance(command.performanceId)
-        if (!performance.isOwnedBy(member.getUserId())) {
+        if (!performance.isOwnedBy(member.userId)) {
             throw FrontofficeApplicationException(PerformanceApplicationErrorCode.NOT_PERFORMANCE_OWNER)
         }
         validateModificationRequest(command)
@@ -60,17 +62,18 @@ class PerformanceModifyCommandService internal constructor(
         )
         performance = performanceRepository.save(performance)
         val schedules = scheduleSynchronizer.synchronize(scheduleCommands, performance)
-        val casts = performance.getCasts().map { CastResult(it.getId(), it.castName, it.castRole, it.castPhoto) }
-        val staffs = performance.getStaffs().map {
-            StaffResult(it.getId(), it.staffName, it.staffRole, it.staffPhoto)
+        val casts = performance.casts.map { CastResult(it.id, it.castName, it.castRole, it.castPhoto) }
+        val staffs = performance.staffs.map {
+            StaffResult(it.id, it.staffName, it.staffRole, it.staffPhoto)
         }
-        val images = performance.getImages().map {
-            PerformanceImageResult(it.getId(), it.performanceImageUrl)
+        val images = performance.images.map {
+            PerformanceImageResult(it.id, it.performanceImageUrl)
         }
         val result = toResult(performance, schedules, casts, staffs, images)
         eventPublisher.publishEvent(PerformancePosterChangedEvent(performance.posterImage))
         log.info { "Successfully completed updatePerformance for performanceId: ${command.performanceId}" }
-        return result
+        result
+        }
     }
 
     private fun validateModificationRequest(command: PerformanceModifyCommand) {
@@ -127,7 +130,7 @@ class PerformanceModifyCommandService internal constructor(
     }
 
     private fun synchronizeCasts(performance: Performance, commands: List<CastModifyCommand>): List<Cast> {
-        val existing = performance.getCasts().associateBy { it.getId() }
+        val existing = performance.casts.associateBy { it.id }
         return commands.map { command ->
             val castId = command.id
             if (castId == null) {
@@ -148,7 +151,7 @@ class PerformanceModifyCommandService internal constructor(
     }
 
     private fun synchronizeStaffs(performance: Performance, commands: List<StaffModifyCommand>): List<Staff> {
-        val existing = performance.getStaffs().associateBy { it.getId() }
+        val existing = performance.staffs.associateBy { it.id }
         return commands.map { command ->
             val staffId = command.id
             if (staffId == null) {
@@ -172,7 +175,7 @@ class PerformanceModifyCommandService internal constructor(
         performance: Performance,
         commands: List<PerformanceImageModifyCommand>,
     ): List<PerformanceImage> {
-        val existing = performance.getImages().associateBy { it.getId() }
+        val existing = performance.images.associateBy { it.id }
         return commands.map { command ->
             val imageId = command.id
             val imageKey = validateStoredPerformanceImage(performanceImageStorage, command.image, "performance")
@@ -219,16 +222,16 @@ class PerformanceModifyCommandService internal constructor(
         staffs: List<StaffResult>,
         images: List<PerformanceImageResult>,
     ): PerformanceMutationResult = PerformanceMutationResult(
-        userId = performance.getUserId(),
-        performanceId = performance.getId(),
+        userId = performance.userId,
+        performanceId = performance.id,
         performanceTitle = performance.performanceTitle,
         genre = performance.genre.name,
-        runningTime = performance.getRunningTime(),
+        runningTime = performance.runningTime,
         performanceDescription = performance.performanceDescription,
         performanceAttentionNote = performance.performanceAttentionNote,
-        bankName = performance.getBankName()?.name,
-        accountNumber = performance.getAccountNumber(),
-        accountHolder = performance.getAccountHolder(),
+        bankName = performance.bankName?.name,
+        accountNumber = performance.accountNumber,
+        accountHolder = performance.accountHolder,
         posterImage = performance.posterImage,
         performanceTeamName = performance.performanceTeamName,
         performanceVenue = performance.performanceVenue,
@@ -237,8 +240,8 @@ class PerformanceModifyCommandService internal constructor(
         latitude = performance.latitude,
         longitude = performance.longitude,
         performanceContact = performance.performanceContact,
-        performancePeriod = formatPerformancePeriod(performance.getPerformancePeriodValue()),
-        ticketPrice = performance.getTicketPrice(),
+        performancePeriod = formatPerformancePeriod(performance.performancePeriodValue),
+        ticketPrice = performance.ticketPrice,
         totalScheduleCount = performance.totalScheduleCount,
         schedules = schedules,
         casts = casts,
@@ -247,10 +250,10 @@ class PerformanceModifyCommandService internal constructor(
     )
 
     private fun findMember(memberId: Long): Member = memberRepository.findById(memberId)
-        .orElseThrow { FrontofficeApplicationException(PerformanceApplicationErrorCode.MEMBER_NOT_FOUND) }
+        ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.MEMBER_NOT_FOUND)
 
     private fun findPerformance(performanceId: Long): Performance = performanceRepository.lockById(performanceId)
-        .orElseThrow { FrontofficeApplicationException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND) }
+        ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND)
 
     private companion object {
         val log = KotlinLogging.logger {}
