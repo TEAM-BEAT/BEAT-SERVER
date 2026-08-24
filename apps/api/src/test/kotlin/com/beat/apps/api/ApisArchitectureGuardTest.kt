@@ -27,11 +27,10 @@ class ApisArchitectureGuardTest : FunSpec({
         ClassFileImporter().importPaths(productionClassPaths)
     }
 
-    val concreteApplicationServiceOrInfrastructure =
-        object : DescribedPredicate<JavaClass>("be a concrete application service or infrastructure type") {
+    val infrastructureType =
+        object : DescribedPredicate<JavaClass>("be an infrastructure type") {
             override fun test(input: JavaClass): Boolean =
-                input.packageName.startsWith("com.beat.infrastructure.") ||
-                    (input.packageName.startsWith("com.beat.application.") && input.simpleName.endsWith("Service"))
+                input.packageName.startsWith("com.beat.infrastructure.")
         }
 
     test("controller와 facade는 각자의 어댑터 패키지에 위치한다") {
@@ -52,13 +51,13 @@ class ApisArchitectureGuardTest : FunSpec({
             .check(productionClasses)
     }
 
-    test("controller는 api facade를 통해서만 유즈케이스에 진입한다") {
+    test("controller는 public Application API 또는 adapter-local Facade를 통해서만 유즈케이스에 진입한다") {
         noClasses()
             .that()
             .haveSimpleNameEndingWith("Controller")
             .should()
-            .dependOnClassesThat(concreteApplicationServiceOrInfrastructure)
-            .because("Controllers must enter use cases through API facades, never call ApplicationService or infrastructure directly")
+            .dependOnClassesThat(infrastructureType)
+            .because("Controllers must not depend on infrastructure directly; Facade is standard but direct public Application API is allowed")
             .check(productionClasses)
     }
 

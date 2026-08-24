@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.http.server.observation.ServerRequestObservationContext
 
 @Configuration(proxyBeanMethods = false)
-class TracingConfig {
+internal class TracingConfig {
 
     @Bean
     fun traceContextResolver(tracerProvider: ObjectProvider<Tracer>): TraceContextResolver {

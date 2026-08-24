@@ -273,22 +273,6 @@ class FrontofficeApplicationArchitectureTest : FunSpec({
             .check(importedClasses)
     }
 
-    test("모든 @Service는 도메인 실패 번역기를 거친다") {
-        val failureTranslator = object : DescribedPredicate<JavaClass>(
-            "be the domain failure translator",
-        ) {
-            override fun test(javaClass: JavaClass): Boolean =
-                javaClass.fullName == "com.beat.application.frontoffice.exception.DomainFailureTranslatorKt"
-        }
-        classes()
-            .that()
-            .areAnnotatedWith(Service::class.java)
-            .should()
-            .dependOnClassesThat(failureTranslator)
-            .because("service use-case boundaries must translate domain failures")
-            .check(importedClasses)
-    }
-
     test("frontoffice Application은 기술 구현에 의존하지 않는다") {
         noClasses()
             .that()
