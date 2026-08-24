@@ -24,6 +24,8 @@ class SupportSecurityArchitectureTest : FunSpec({
     }
 
     test("공개 기술 API는 internal 구현에 의존하지 않는다") {
+        // Token/Password Port는 application:frontoffice/security로 이동 — support:security에는 토큰 패키지가 없음
+        // ArchUnit allowEmptyShould로 빈 패키지 검증을 허용
         noClasses()
             .that()
             .resideInAnyPackage("com.beat.support.security.token..")
@@ -31,6 +33,7 @@ class SupportSecurityArchitectureTest : FunSpec({
             .dependOnClassesThat()
             .resideInAnyPackage("com.beat.support.security..internal..")
             .because("Token technical APIs must not expose or depend on internal implementations")
+            .allowEmptyShould(true)
             .check(productionClasses)
 
         noClasses()
@@ -40,6 +43,7 @@ class SupportSecurityArchitectureTest : FunSpec({
             .dependOnClassesThat()
             .resideInAnyPackage("com.beat.support.security..internal..")
             .because("PasswordHasher must not expose or depend on internal implementations")
+            .allowEmptyShould(true)
             .check(productionClasses)
     }
 })

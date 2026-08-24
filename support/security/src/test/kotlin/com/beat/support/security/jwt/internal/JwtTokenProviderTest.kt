@@ -1,8 +1,8 @@
 package com.beat.support.security.jwt.internal
 
-import com.beat.support.security.token.TokenAuthenticationFailure
-import com.beat.support.security.token.TokenAuthenticationResult
-import com.beat.support.security.token.TokenSubject
+import com.beat.application.frontoffice.security.TokenAuthenticationFailure
+import com.beat.application.frontoffice.security.TokenAuthenticationResult
+import com.beat.application.frontoffice.security.TokenSubject
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jws
 import io.jsonwebtoken.Jwts
