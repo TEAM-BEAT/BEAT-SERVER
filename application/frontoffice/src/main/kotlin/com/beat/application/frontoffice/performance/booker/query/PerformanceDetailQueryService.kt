@@ -1,6 +1,7 @@
 package com.beat.application.frontoffice.performance.booker.query
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.application.frontoffice.performance.CastResult
 import com.beat.application.frontoffice.performance.PerformanceImageResult
 import com.beat.application.frontoffice.performance.StaffResult
@@ -15,12 +16,13 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class PerformanceDetailQueryService(
+class PerformanceDetailQueryService internal constructor(
     private val performanceRepository: PerformanceRepository,
     private val scheduleAvailabilityReader: PerformanceScheduleAvailabilityReader,
 ) {
     @Transactional(readOnly = true)
     fun getPerformanceDetail(performanceId: Long): PerformanceDetailResult {
+        return translateDomainFailure {
         val performance = findPerformance(performanceId)
         val schedules = scheduleAvailabilityReader.findAllByPerformanceId(performanceId)
         val scheduleResponses = schedules.map { schedule ->
@@ -38,26 +40,26 @@ class PerformanceDetailQueryService(
         } else {
             nearestDueDate(schedules.first().evaluatedAt.toLocalDate(), schedules.map { it.performanceDate })
         }
-        val casts = performance.getCasts().map { cast ->
-            CastResult(cast.getId(), cast.castName, cast.castRole, cast.castPhoto)
+        val casts = performance.casts.map { cast ->
+            CastResult(cast.id, cast.castName, cast.castRole, cast.castPhoto)
         }
-        val staffs = performance.getStaffs().map { staff ->
-            StaffResult(staff.getId(), staff.staffName, staff.staffRole, staff.staffPhoto)
+        val staffs = performance.staffs.map { staff ->
+            StaffResult(staff.id, staff.staffName, staff.staffRole, staff.staffPhoto)
         }
-        val images = performance.getImages().map { image ->
-            PerformanceImageResult(image.getId(), image.performanceImageUrl)
+        val images = performance.images.map { image ->
+            PerformanceImageResult(image.id, image.performanceImageUrl)
         }
 
         log.info { "Successfully completed getPerformanceDetail for performanceId: ${performanceId}" }
-        return PerformanceDetailResult(
-            performanceId = performance.getId(),
+        PerformanceDetailResult(
+            performanceId = performance.id,
             performanceTitle = performance.performanceTitle,
-            performancePeriod = formatPerformancePeriod(performance.getPerformancePeriodValue()),
+            performancePeriod = formatPerformancePeriod(performance.performancePeriodValue),
             schedules = scheduleResponses,
-            ticketPrice = performance.getTicketPrice(),
+            ticketPrice = performance.ticketPrice,
             genre = performance.genre.name,
             posterImage = performance.posterImage,
-            runningTime = performance.getRunningTime(),
+            runningTime = performance.runningTime,
             performanceVenue = performance.performanceVenue,
             roadAddressName = performance.roadAddressName,
             placeDetailAddress = performance.placeDetailAddress,
@@ -72,10 +74,12 @@ class PerformanceDetailQueryService(
             minDueDate = minDueDate,
             images = images,
         )
+        }
     }
 
     @Transactional(readOnly = true)
     fun getBookingPerformanceDetail(performanceId: Long): BookingPerformanceDetailResult {
+        return translateDomainFailure {
         val performance = findPerformance(performanceId)
         val schedules = scheduleAvailabilityReader.findAllByPerformanceId(performanceId).map { schedule ->
             val dueDate = calculateDueDate(schedule.evaluatedAt.toLocalDate(), schedule.performanceDate)
@@ -88,25 +92,26 @@ class PerformanceDetailQueryService(
                 dueDate,
             )
         }
-        return BookingPerformanceDetailResult(
-            performance.getId(),
+        BookingPerformanceDetailResult(
+            performance.id,
             performance.performanceTitle,
-            formatPerformancePeriod(performance.getPerformancePeriodValue()),
+            formatPerformancePeriod(performance.performancePeriodValue),
             schedules,
-            performance.getTicketPrice(),
+            performance.ticketPrice,
             performance.genre.name,
             performance.posterImage,
             performance.performanceVenue,
             performance.performanceTeamName,
-            performance.getBankName()?.name,
-            performance.getAccountNumber(),
-            performance.getAccountHolder(),
+            performance.bankName?.name,
+            performance.accountNumber,
+            performance.accountHolder,
         )
+        }
     }
 
     private fun findPerformance(performanceId: Long): Performance =
         performanceRepository.findById(performanceId)
-            .orElseThrow { FrontofficeApplicationException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND) }
+            ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND)
 
     private companion object {
         val log = KotlinLogging.logger {}

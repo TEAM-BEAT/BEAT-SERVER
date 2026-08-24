@@ -1,0 +1,12 @@
+package com.beat.infrastructure.external.notification.slack.vo.text
+
+import com.beat.infrastructure.external.notification.slack.vo.SlackConstant.TEXT_TYPE_MARKDOWN
+
+internal data class MarkdownText(
+    override val type: String,
+    val text: String,
+) : Text {
+    companion object {
+        fun newInstance(text: String): MarkdownText = MarkdownText(TEXT_TYPE_MARKDOWN, text)
+    }
+}

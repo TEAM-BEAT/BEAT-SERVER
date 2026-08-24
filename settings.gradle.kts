@@ -21,7 +21,7 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-rootProject.name = "beat"
+rootProject.name = "beat-server"
 
 include(
     "apps:api",
@@ -34,14 +34,4 @@ include(
     "infrastructure",
     "support:security",
     "support:observability",
-    "module-contracts",
-    "global-support",
 )
-
-project(":apps:api").projectDir = file("apis")
-project(":apps:admin").projectDir = file("admin")
-project(":apps:batch").projectDir = file("batch")
-project(":domain").projectDir = file("core/domain")
-project(":infrastructure").projectDir = file("core/infra")
-project(":support:security").projectDir = file("gateway")
-project(":support:observability").projectDir = file("observability")
