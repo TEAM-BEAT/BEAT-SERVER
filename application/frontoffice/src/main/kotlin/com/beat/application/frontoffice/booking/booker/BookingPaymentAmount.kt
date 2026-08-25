@@ -4,10 +4,18 @@ import com.beat.application.frontoffice.exception.FrontofficeApplicationExceptio
 import com.beat.domain.performance.vo.TicketPrice
 
 internal fun calculatePaymentAmountForCommand(ticketPrice: TicketPrice, quantity: Int): Int =
-    calculatePaymentAmount(ticketPrice, quantity, BookingApplicationErrorCode.TOTAL_PAYMENT_AMOUNT_OUT_OF_RANGE)
+    calculatePaymentAmount(
+        ticketPrice,
+        quantity,
+        BookingApplicationErrorCode.TOTAL_PAYMENT_AMOUNT_OUT_OF_RANGE,
+    )
 
 internal fun calculatePaymentAmountForRead(ticketPrice: TicketPrice, quantity: Int): Int =
-    calculatePaymentAmount(ticketPrice, quantity, BookingApplicationErrorCode.STORED_TOTAL_PAYMENT_AMOUNT_OUT_OF_RANGE)
+    calculatePaymentAmount(
+        ticketPrice,
+        quantity,
+        BookingApplicationErrorCode.STORED_TOTAL_PAYMENT_AMOUNT_OUT_OF_RANGE,
+    )
 
 private fun calculatePaymentAmount(
     ticketPrice: TicketPrice,

@@ -8,9 +8,7 @@ import org.springframework.transaction.event.TransactionPhase
 import org.springframework.transaction.event.TransactionalEventListener
 
 @Component
-internal class TicketPaymentConfirmedEventListener(
-    private val coolSmsAdapter: CoolSmsAdapter,
-) {
+internal class TicketPaymentConfirmedEventListener(private val coolSmsAdapter: CoolSmsAdapter) {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async("beatAsyncExecutor")
     fun sendConfirmation(event: TicketPaymentConfirmedEvent) {

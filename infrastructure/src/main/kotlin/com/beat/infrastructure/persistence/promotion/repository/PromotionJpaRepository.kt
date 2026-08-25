@@ -3,8 +3,8 @@ package com.beat.infrastructure.persistence.promotion.repository
 import com.beat.domain.promotion.model.CarouselNumber
 import com.beat.infrastructure.persistence.promotion.entity.PromotionJpaEntity
 import jakarta.persistence.LockModeType
-import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -37,6 +37,6 @@ internal interface PromotionJpaRepository : JpaRepository<PromotionJpaEntity, Lo
 
     @Query("SELECT p FROM Promotion p WHERE p.carouselNumber = :carouselNumber")
     fun findByCarouselNumber(
-        @Param("carouselNumber") carouselNumber: CarouselNumber,
+        @Param("carouselNumber") carouselNumber: CarouselNumber
     ): PromotionJpaEntity?
 }

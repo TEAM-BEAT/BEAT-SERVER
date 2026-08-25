@@ -15,10 +15,11 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
 
 @DataJpaTest(
-    properties = [
-        "spring.config.import=classpath:application-persistence.yml",
-        "DB_HIKARI_MAX_POOL_SIZE=10",
-    ],
+    properties =
+        [
+            "spring.config.import=classpath:application-persistence.yml",
+            "DB_HIKARI_MAX_POOL_SIZE=10",
+        ]
 )
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(classes = [JpaConfig::class, MySqlTestContainerConfig::class])
@@ -26,22 +27,23 @@ import org.springframework.test.context.ContextConfiguration
 @Tags("integration")
 class MySqlSessionTimeZoneIntegrationSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var jdbcTemplate: JdbcTemplate
+    @Autowired private lateinit var jdbcTemplate: JdbcTemplate
 
     init {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
         test("설정된 Seoul 세션 타임존을 사용한다") {
-            jdbcTemplate.queryForObject("SELECT @@session.time_zone", String::class.java) shouldBe "+09:00"
+            jdbcTemplate.queryForObject("SELECT @@session.time_zone", String::class.java) shouldBe
+                "+09:00"
         }
 
         test("현재 타임스탬프는 UTC 기준보다 정확히 9시간 앞선다") {
-            val offsetSeconds = jdbcTemplate.queryForObject(
-                "SELECT TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(6), CURRENT_TIMESTAMP(6))",
-                Long::class.java,
-            )
+            val offsetSeconds =
+                jdbcTemplate.queryForObject(
+                    "SELECT TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(6), CURRENT_TIMESTAMP(6))",
+                    Long::class.java,
+                )
 
             offsetSeconds shouldBe 32_400L
         }

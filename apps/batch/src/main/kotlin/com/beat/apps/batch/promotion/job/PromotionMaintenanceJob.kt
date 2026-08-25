@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component
 @Component
 class PromotionMaintenanceJob(
     private val promotionMaintenanceService: PromotionMaintenanceService
-
 ) {
     @Scheduled(cron = "1 0 0 * * ?", scheduler = "maintenanceTaskScheduler")
     fun checkAndDeleteInvalidPromotions() {

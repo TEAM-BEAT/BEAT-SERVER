@@ -7,11 +7,14 @@ data class CarouselPresignedUrlFindAllResponse(
     val carouselPresignedUrls: Map<String, String>,
     val carouselPresignedUploads: Map<String, CarouselPresignedUploadResponse>,
 ) {
-    constructor(result: CarouselPresignedUrlsResult) : this(
+    constructor(
+        result: CarouselPresignedUrlsResult
+    ) : this(
         carouselPresignedUrls = result.carouselPresignedUploads.mapValues { it.value.uploadUrl },
-        carouselPresignedUploads = result.carouselPresignedUploads.mapValues {
-            CarouselPresignedUploadResponse(it.value)
-        },
+        carouselPresignedUploads =
+            result.carouselPresignedUploads.mapValues {
+                CarouselPresignedUploadResponse(it.value)
+            },
     )
 
     data class CarouselPresignedUploadResponse(

@@ -1,13 +1,13 @@
 package com.beat.apps.api.booking
 
-import com.beat.apps.api.support.BeatTestContainersConfig
-import com.beat.apps.api.fixture.performanceFixture
-import com.beat.apps.api.fixture.scheduleFixture
-import com.beat.apps.api.fixture.usersFixture
 import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommand
 import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommandService
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
+import com.beat.apps.api.fixture.performanceFixture
+import com.beat.apps.api.fixture.scheduleFixture
+import com.beat.apps.api.fixture.usersFixture
+import com.beat.apps.api.support.BeatTestContainersConfig
 import com.beat.domain.booking.repository.BookingRepository
 import com.beat.domain.performance.model.Genre
 import com.beat.domain.performance.repository.PerformanceRepository
@@ -25,10 +25,6 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.extensions.spring.SpringTestLifecycleMode
 import io.kotest.matchers.shouldBe
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
-import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.ArrayList
@@ -39,6 +35,10 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
+import org.springframework.test.context.ActiveProfiles
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -46,20 +46,15 @@ import java.util.concurrent.TimeoutException
 @Tags("integration", "correctness")
 open class GuestBookingServiceConcurrencyTest : FunSpec() {
 
-    @Autowired
-    private lateinit var guestBookingService: GuestBookingCommandService
+    @Autowired private lateinit var guestBookingService: GuestBookingCommandService
 
-    @Autowired
-    private lateinit var scheduleRepository: ScheduleRepository
+    @Autowired private lateinit var scheduleRepository: ScheduleRepository
 
-    @Autowired
-    private lateinit var performanceRepository: PerformanceRepository
+    @Autowired private lateinit var performanceRepository: PerformanceRepository
 
-    @Autowired
-    private lateinit var bookingRepository: BookingRepository
+    @Autowired private lateinit var bookingRepository: BookingRepository
 
-    @Autowired
-    private lateinit var userRepository: UserRepository
+    @Autowired private lateinit var userRepository: UserRepository
 
     init {
         isolationMode = IsolationMode.SingleInstance
@@ -91,51 +86,57 @@ open class GuestBookingServiceConcurrencyTest : FunSpec() {
     private fun createFixture(): Fixture {
         val maker = userRepository.save(usersFixture())
         val makerUserId = requireNotNull(maker.id)
-        val performance = performanceRepository.save(
-            performanceFixture(
-                performanceTitle = "Performance Title",
-                genre = Genre.BAND,
-                performanceDescription = "Performance Description",
-                performanceAttentionNote = "Performance Attention Note",
-                paymentAccount = PaymentAccount.of(BankName.BUSAN, "2342-234234-2344", "이동훈"),
-                posterImage = "poster.jpg",
-                performanceTeamName = "Performance Team",
-                performanceVenue = "Performance Venue",
-                roadAddressName = "도로명 주소",
-                placeDetailAddress = "상세 주소",
-                latitude = "123.1111",
-                longitude = "12.1234",
-                performanceContact = "010-1111-1111",
-                performancePeriod = PerformancePeriod.of(
-                    LocalDate.of(2024, 1, 1),
-                    LocalDate.of(2024, 12, 31),
-                ),
-                ticketPrice = 10_000,
-                totalScheduleCount = 30,
-                userId = makerUserId,
-            ),
-        )
+        val performance =
+            performanceRepository.save(
+                performanceFixture(
+                    performanceTitle = "Performance Title",
+                    genre = Genre.BAND,
+                    performanceDescription = "Performance Description",
+                    performanceAttentionNote = "Performance Attention Note",
+                    paymentAccount = PaymentAccount.of(BankName.BUSAN, "2342-234234-2344", "이동훈"),
+                    posterImage = "poster.jpg",
+                    performanceTeamName = "Performance Team",
+                    performanceVenue = "Performance Venue",
+                    roadAddressName = "도로명 주소",
+                    placeDetailAddress = "상세 주소",
+                    latitude = "123.1111",
+                    longitude = "12.1234",
+                    performanceContact = "010-1111-1111",
+                    performancePeriod =
+                        PerformancePeriod.of(
+                            LocalDate.of(2024, 1, 1),
+                            LocalDate.of(2024, 12, 31),
+                        ),
+                    ticketPrice = 10_000,
+                    totalScheduleCount = 30,
+                    userId = makerUserId,
+                )
+            )
         val performanceId = requireNotNull(performance.id)
         val performanceDate = NOW.plusDays(1)
         return Fixture(
-            firstSchedule = scheduleRepository.save(
-                scheduleFixture(
-                    performanceDate = performanceDate,
-                    bookingCloseAt = performanceDate.plusMinutes(performance.runningTime.toLong()),
-                    totalTicketCount = 10,
-                    scheduleNumber = ScheduleNumber.FIRST,
-                    performanceId = performanceId,
+            firstSchedule =
+                scheduleRepository.save(
+                    scheduleFixture(
+                        performanceDate = performanceDate,
+                        bookingCloseAt =
+                            performanceDate.plusMinutes(performance.runningTime.toLong()),
+                        totalTicketCount = 10,
+                        scheduleNumber = ScheduleNumber.FIRST,
+                        performanceId = performanceId,
+                    )
                 ),
-            ),
-            secondSchedule = scheduleRepository.save(
-                scheduleFixture(
-                    performanceDate = performanceDate,
-                    bookingCloseAt = performanceDate.plusMinutes(performance.runningTime.toLong()),
-                    totalTicketCount = 1,
-                    scheduleNumber = ScheduleNumber.SECOND,
-                    performanceId = performanceId,
+            secondSchedule =
+                scheduleRepository.save(
+                    scheduleFixture(
+                        performanceDate = performanceDate,
+                        bookingCloseAt =
+                            performanceDate.plusMinutes(performance.runningTime.toLong()),
+                        totalTicketCount = 1,
+                        scheduleNumber = ScheduleNumber.SECOND,
+                        performanceId = performanceId,
+                    )
                 ),
-            ),
         )
     }
 
@@ -150,13 +151,14 @@ open class GuestBookingServiceConcurrencyTest : FunSpec() {
         val futures = ArrayList<Future<Boolean>>(CONCURRENT_REQUEST_COUNT)
 
         repeat(CONCURRENT_REQUEST_COUNT) { requestIndex ->
-            futures += executor.submit<Boolean> {
-                ready.countDown()
-                check(start.await(TASK_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                    "Concurrent booking tasks did not start"
+            futures +=
+                executor.submit<Boolean> {
+                    ready.countDown()
+                    check(start.await(TASK_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                        "Concurrent booking tasks did not start"
+                    }
+                    createGuestBooking(schedule, purchaseTicketCount, scheduleNumber, requestIndex)
                 }
-                createGuestBooking(schedule, purchaseTicketCount, scheduleNumber, requestIndex)
-            }
         }
 
         try {
@@ -178,14 +180,21 @@ open class GuestBookingServiceConcurrencyTest : FunSpec() {
         requestIndex: Int,
     ): Boolean {
         return try {
-            val outcome = guestBookingService.createGuestBooking(
-                createGuestBookingRequest(schedule, purchaseTicketCount, scheduleNumber, requestIndex),
-            )
+            val outcome =
+                guestBookingService.createGuestBooking(
+                    createGuestBookingRequest(
+                        schedule,
+                        purchaseTicketCount,
+                        scheduleNumber,
+                        requestIndex,
+                    )
+                )
             checkNotNull(outcome.booking)
             true
         } catch (e: FrontofficeApplicationException) {
-            if (e.errorCode.code == ScheduleErrorCode.INSUFFICIENT_TICKETS.code &&
-                e.errorCode.type == FrontofficeApplicationErrorType.INVALID_INPUT
+            if (
+                e.errorCode.code == ScheduleErrorCode.INSUFFICIENT_TICKETS.code &&
+                    e.errorCode.type == FrontofficeApplicationErrorType.INVALID_INPUT
             ) {
                 false
             } else {
@@ -199,18 +208,17 @@ open class GuestBookingServiceConcurrencyTest : FunSpec() {
         purchaseTicketCount: Int,
         scheduleNumber: ScheduleNumber,
         requestIndex: Int,
-    ): GuestBookingCommand = GuestBookingCommand.of(
-        requireNotNull(schedule.id),
-        purchaseTicketCount,
-        "서지우",
-        "010-%04d-%04d".format(1000 + scheduleNumber.ordinal, 1000 + requestIndex),
-        "900101",
-        "1234",
-    )
+    ): GuestBookingCommand =
+        GuestBookingCommand.of(
+            requireNotNull(schedule.id),
+            purchaseTicketCount,
+            "서지우",
+            "010-%04d-%04d".format(1000 + scheduleNumber.ordinal, 1000 + requestIndex),
+            "900101",
+            "1234",
+        )
 
-    private fun awaitExecutors(
-        futures: List<Future<Boolean>>,
-    ): Long {
+    private fun awaitExecutors(futures: List<Future<Boolean>>): Long {
         var successCount = 0L
         futures.forEach { future ->
             try {
@@ -232,18 +240,22 @@ open class GuestBookingServiceConcurrencyTest : FunSpec() {
     }
 
     private fun assertFinalState(fixture: Fixture) {
-        val firstSchedule = checkNotNull(scheduleRepository.findById(requireNotNull(fixture.firstSchedule.id)))
-        val secondSchedule = checkNotNull(scheduleRepository.findById(requireNotNull(fixture.secondSchedule.id)))
+        val firstSchedule =
+            checkNotNull(scheduleRepository.findById(requireNotNull(fixture.firstSchedule.id)))
+        val secondSchedule =
+            checkNotNull(scheduleRepository.findById(requireNotNull(fixture.secondSchedule.id)))
 
         firstSchedule.allocatedTicketCount shouldBe 10
         secondSchedule.allocatedTicketCount shouldBe 1
 
-        val firstScheduleBookingCount = bookingRepository.findAll().count {
-            Objects.equals(it.scheduleId, firstSchedule.id)
-        }
-        val secondScheduleBookingCount = bookingRepository.findAll().count {
-            Objects.equals(it.scheduleId, secondSchedule.id)
-        }
+        val firstScheduleBookingCount =
+            bookingRepository.findAll().count {
+                Objects.equals(it.scheduleId, firstSchedule.id)
+            }
+        val secondScheduleBookingCount =
+            bookingRepository.findAll().count {
+                Objects.equals(it.scheduleId, secondSchedule.id)
+            }
 
         firstScheduleBookingCount shouldBe 5
         secondScheduleBookingCount shouldBe 1

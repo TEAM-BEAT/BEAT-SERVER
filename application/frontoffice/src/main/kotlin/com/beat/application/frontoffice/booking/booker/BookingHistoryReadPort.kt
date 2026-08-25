@@ -2,7 +2,9 @@ package com.beat.application.frontoffice.booking.booker
 
 import java.time.LocalDateTime
 
-/** Output-only booking history projection; command correctness must not depend on these snapshots. */
+/**
+ * Output-only booking history projection; command correctness must not depend on these snapshots.
+ */
 fun interface BookingHistoryReadPort {
     fun findByUserId(userId: Long): List<BookingHistorySnapshot>
 }

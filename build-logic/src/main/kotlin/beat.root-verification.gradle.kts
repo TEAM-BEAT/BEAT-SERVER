@@ -16,6 +16,7 @@ val canonicalTargetLeafProjects = setOf(
     ":domain",
     ":infrastructure",
     ":support:security",
+    ":support:security-web",
     ":support:observability",
 )
 val canonicalTargetLibraryProjects = canonicalTargetLeafProjects - targetRuntimeArchiveNames.keys
@@ -89,118 +90,186 @@ val verifyMainResourceTestProfiles by tasks.registering {
     }
 }
 
+// ── POLICY — single source of truth, SSOT §2.1 ──
 val targetApplicationProjects = setOf(
     ":application:frontoffice",
     ":application:admin",
     ":application:system",
 )
-
 val targetExecutableProjects = targetRuntimeArchiveNames.keys
 val targetExecutableApplicationLane = mapOf(
     ":apps:api" to ":application:frontoffice",
     ":apps:admin" to ":application:admin",
     ":apps:batch" to ":application:system",
 )
+val mainConfigurations = setOf("api", "implementation", "compileOnly", "runtimeOnly")
+
+// Allowed = any configuration (including test) may depend on these; anything else is CI failure
+val allowedProjectDependencies: Map<String, Set<String>> = mapOf(
+    ":domain" to emptySet(),
+    ":application:frontoffice" to setOf(":domain"),
+    ":application:admin" to setOf(":domain"),
+    ":application:system" to setOf(":domain"),
+    ":infrastructure" to setOf(
+        ":domain",
+        ":application:frontoffice",
+        ":application:admin",
+        ":application:system",
+    ),
+    ":support:security" to setOf(":application:frontoffice", ":support:observability"),
+    ":support:security-web" to setOf(":support:security", ":support:observability"),
+    ":support:observability" to emptySet(),
+    ":apps:api" to setOf(
+        ":application:frontoffice",
+        ":infrastructure",
+        ":support:security-web",
+        ":support:observability",
+        ":domain", // testImplementation for ArchUnit guards
+    ),
+    ":apps:admin" to setOf(
+        ":application:admin",
+        ":infrastructure",
+        ":support:security-web",
+        ":support:observability",
+        ":domain",
+    ),
+    ":apps:batch" to setOf(
+        ":application:system",
+        ":infrastructure",
+        ":support:observability",
+        ":domain",
+    ),
+)
+// Required = must be present in main (runtime) configurations
+val requiredMainProjectDependencies: Map<String, Set<String>> = mapOf(
+    ":infrastructure" to setOf(":domain", ":application:frontoffice", ":application:admin"),
+    ":apps:api" to setOf(":application:frontoffice"),
+    ":apps:admin" to setOf(":application:admin"),
+    ":apps:batch" to setOf(":application:system"),
+)
+
+val verifyJooqContainment by tasks.registering {
+    group = "verification"
+    description = "Verifies jOOQ containment — E-08: only infrastructure may depend on jOOQ and generated types."
+
+    doLast {
+        val forbiddenImportPatterns = listOf(
+            Regex("""import\s+org\.jooq\."""),
+            Regex("""import\s+com\.beat\.infrastructure\.jooq\.generated"""),
+        )
+        val allowedProjects = setOf(":infrastructure", ":build-logic")
+        val allProjects = rootProject.subprojects.filter { it.path !in allowedProjects }
+        val violations = mutableListOf<String>()
+        allProjects.forEach { proj ->
+            proj.fileTree("src/main") {
+                include("**/*.kt", "**/*.java")
+            }.forEach { file ->
+                val content = file.readText()
+                forbiddenImportPatterns.forEach { pattern ->
+                    if (pattern.containsMatchIn(content)) {
+                        violations.add("${proj.path}:${file.relativeTo(rootDir)} matches ${pattern.pattern}")
+                    }
+                }
+            }
+        }
+        check(violations.isEmpty()) {
+            "jOOQ containment violation (E-08, I-21): only infrastructure may import org.jooq / generated. Violations:\n${violations.joinToString("\n")}"
+        }
+
+        // persistence/query must not import JPA/JDSL/JdbcTemplate/EntityManager
+        val queryFiles = project(":infrastructure").fileTree("src/main/kotlin/com/beat/infrastructure/persistence/query") {
+            include("**/*.kt")
+        }
+        val forbiddenQueryPatterns = listOf(
+            Regex("""import\s+jakarta\.persistence"""),
+            Regex("""EntityManager"""),
+            Regex("""JpaRepository"""),
+            Regex("""com\.linecorp\.kotlinjdsl"""),
+            Regex("""JdbcTemplate"""),
+        )
+        val queryViolations = mutableListOf<String>()
+        queryFiles.forEach { file ->
+            val content = file.readText()
+            forbiddenQueryPatterns.forEach { pattern ->
+                if (pattern.containsMatchIn(content)) {
+                    queryViolations.add("${file.relativeTo(rootDir)} matches ${pattern.pattern}")
+                }
+            }
+        }
+        check(queryViolations.isEmpty()) {
+            "persistence/query must be jOOQ only — JPA/JDSL/JdbcTemplate forbidden (I-20):\n${queryViolations.joinToString("\n")}"
+        }
+    }
+}
 
 val verifyTargetModuleGraph by tasks.registering {
     group = "verification"
-    description = "Verifies the target application lanes are present and compile-time isolated."
+    description = "Verifies the target module graph is exactly the SSOT allowlist."
 
     doLast {
-        val actualLeafProjects = rootProject.subprojects
-            .filter { project -> project.childProjects.isEmpty() }
-            .map { project -> project.path }
-            .toSet()
-        val missingLeafProjects = canonicalTargetLeafProjects - actualLeafProjects
-        val unexpectedLeafProjects = actualLeafProjects - canonicalTargetLeafProjects
-        check(actualLeafProjects == canonicalTargetLeafProjects) {
-            "Target leaf project set mismatch. Missing: $missingLeafProjects; Unexpected: $unexpectedLeafProjects"
-        }
-        val projectDependenciesOf: (String) -> Set<String> = { projectPath ->
+        // ── HELPERS ──
+        // kover* configurations hold Kover aggregation wiring (각 대상 모듈이 자기 자신을 의존하는
+        // 마커 포함). 레인 의존성이 아니므로 그래프 검증 대상에서 제외한다.
+        val allProjectDependenciesOf: (String) -> Set<String> = { projectPath ->
             project(projectPath).configurations
-                .flatMap { configuration -> configuration.dependencies.withType(ProjectDependency::class.java) }
-                .map { dependency -> dependency.path }
-                .toSet()
+                .filter { !it.name.startsWith("kover") }
+                .flatMap { it.dependencies.withType(ProjectDependency::class.java) }
+                .map { it.path }.toSet()
         }
-        check(projectDependenciesOf(":domain").isEmpty()) {
-            "domain must not depend on another BEAT project"
+        val mainProjectDependenciesOf: (String) -> Set<String> = { projectPath ->
+            project(projectPath).configurations
+                .filter { it.name in mainConfigurations }
+                .flatMap { it.dependencies.withType(ProjectDependency::class.java) }
+                .map { it.path }.toSet()
         }
-        targetApplicationProjects.forEach { applicationProject ->
-            val dependencies = projectDependenciesOf(applicationProject)
-            val forbiddenProjects =
-                (targetApplicationProjects - applicationProject) +
-                    setOf(":infrastructure") +
-                    targetExecutableProjects
-            check(dependencies.intersect(forbiddenProjects).isEmpty()) {
-                "$applicationProject must not depend on another application lane, infrastructure, or an executable app: $dependencies"
+
+        // ── CHECKS ──
+        // 1. Exact leaf projects
+        val actualLeafProjects = rootProject.subprojects
+            .filter { it.childProjects.isEmpty() }.map { it.path }.toSet()
+        check(actualLeafProjects == canonicalTargetLeafProjects) {
+            "Target leaf project set mismatch. Missing: ${canonicalTargetLeafProjects - actualLeafProjects}; Unexpected: ${actualLeafProjects - canonicalTargetLeafProjects}"
+        }
+
+        // 2. Allowlist: actual ⊆ allowed (all configurations)
+        canonicalTargetLeafProjects.forEach { projectPath ->
+            val actual = allProjectDependenciesOf(projectPath)
+            val allowed = allowedProjectDependencies[projectPath] ?: emptySet()
+            val unexpected = actual - allowed
+            check(unexpected.isEmpty()) {
+                "$projectPath has unexpected BEAT project dependencies not in allowlist $allowed: $unexpected (actual: $actual)"
             }
         }
-        val infrastructureDependencies = projectDependenciesOf(":infrastructure")
-        check(infrastructureDependencies.intersect(targetExecutableProjects).isEmpty()) {
-            ":infrastructure must not depend on an executable app: $infrastructureDependencies"
+
+        // 3. Required: required ⊆ actualMain (main configurations)
+        requiredMainProjectDependencies.forEach { (projectPath, required) ->
+            val actualMain = mainProjectDependenciesOf(projectPath)
+            val missing = required - actualMain
+            check(missing.isEmpty()) {
+                "$projectPath is missing required BEAT project dependencies $required (actual main: $actualMain)"
+            }
         }
-        val forbiddenSupportSecurityProjects =
-            targetApplicationProjects + setOf(":infrastructure") + targetExecutableProjects
-        check(projectDependenciesOf(":support:security").intersect(forbiddenSupportSecurityProjects).isEmpty()) {
-            ":support:security must not depend on an application lane, infrastructure, or an executable app"
-        }
-        val forbiddenSupportObservabilityProjects =
-            targetApplicationProjects +
-                setOf(":domain", ":infrastructure", ":support:security") +
-                targetExecutableProjects
-        check(projectDependenciesOf(":support:observability").intersect(forbiddenSupportObservabilityProjects).isEmpty()) {
-            ":support:observability must not depend on domain, an application lane, infrastructure, an executable app, or support:security"
-        }
-        val mainConfigurations = setOf("api", "implementation", "compileOnly", "runtimeOnly")
+
+        // 4. Domain external tech ban
         val forbiddenDomainExternalDependencies = project(":domain").configurations
-            .filter { configuration -> configuration.name in mainConfigurations }
-            .flatMap { configuration -> configuration.dependencies }
-            .filter { dependency ->
-                if (dependency is ProjectDependency) {
-                    false
-                } else {
-                    val group = dependency.group.orEmpty()
-                    val module = dependency.name.lowercase()
-                    group.startsWith("org.springframework") ||
-                        group.startsWith("jakarta.persistence") ||
-                        group.startsWith("org.hibernate") ||
-                        group.startsWith("org.redisson") ||
-                        module.contains("redis") ||
-                        module.contains("web") ||
-                        module.contains("jpa")
+            .filter { it.name in mainConfigurations }
+            .flatMap { it.dependencies }
+            .filter { dep ->
+                if (dep is ProjectDependency) false else {
+                    val g = dep.group.orEmpty(); val m = dep.name.lowercase()
+                    g.startsWith("org.springframework") || g.startsWith("jakarta.persistence") ||
+                        g.startsWith("org.hibernate") || g.startsWith("org.redisson") ||
+                        m.contains("redis") || m.contains("web") || m.contains("jpa")
                 }
-            }
-            .map { dependency -> "${dependency.group}:${dependency.name}" }
-            .toSet()
+            }.map { "${it.group}:${it.name}" }.toSet()
         check(forbiddenDomainExternalDependencies.isEmpty()) {
-            "domain must not depend directly on framework, persistence, Redis, web, or JPA external modules: " +
-                forbiddenDomainExternalDependencies
+            "domain must not depend directly on framework, persistence, Redis, web, or JPA: $forbiddenDomainExternalDependencies"
         }
-        targetExecutableApplicationLane.keys.forEach { executableProject ->
-            val mainDependencies = project(executableProject).configurations
-                .filter { configuration -> configuration.name in mainConfigurations }
-                .flatMap { configuration -> configuration.dependencies.withType(ProjectDependency::class.java) }
-                .map { dependency -> dependency.path }
-                .toSet()
-            check(":domain" !in mainDependencies) {
-                "$executableProject must not depend directly on :domain in main configurations: $mainDependencies"
-            }
-        }
-        targetExecutableApplicationLane.forEach { (executableProject, allowedApplicationProject) ->
-            val dependencies = projectDependenciesOf(executableProject)
-            val mainDependencies = project(executableProject).configurations
-                .filter { configuration -> configuration.name in mainConfigurations }
-                .flatMap { configuration -> configuration.dependencies.withType(ProjectDependency::class.java) }
-                .map { dependency -> dependency.path }
-                .toSet()
-            check(allowedApplicationProject in mainDependencies) {
-                "$executableProject must depend on its designated application lane $allowedApplicationProject: $mainDependencies"
-            }
-            val forbiddenProjects =
-                (targetExecutableProjects - executableProject) +
-                    (targetApplicationProjects - allowedApplicationProject)
-            check(dependencies.intersect(forbiddenProjects).isEmpty()) {
-                "$executableProject has a cross-runtime or wrong-lane dependency: $dependencies"
+
+        // 5. Apps must not depend directly on domain in main (even if allowlist permits test)
+        targetExecutableApplicationLane.keys.forEach { exe ->
+            check(":domain" !in mainProjectDependenciesOf(exe)) {
+                "$exe must not depend directly on :domain in main configurations: ${mainProjectDependenciesOf(exe)}"
             }
         }
     }

@@ -13,9 +13,7 @@ import io.sentry.protocol.SentryTransaction
 import io.sentry.protocol.User
 import org.slf4j.MDC
 
-class BeatSentryEventProcessor(
-    private val moduleName: String,
-) : EventProcessor {
+class BeatSentryEventProcessor(private val moduleName: String) : EventProcessor {
 
     override fun process(event: SentryEvent, hint: Hint): SentryEvent = event.apply {
         enrichBaseEvent(this)
@@ -23,10 +21,11 @@ class BeatSentryEventProcessor(
         scrubEventPayload(this)
     }
 
-    override fun process(transaction: SentryTransaction, hint: Hint): SentryTransaction = transaction.apply {
-        enrichBaseEvent(this)
-        scrubBaseEvent(this)
-    }
+    override fun process(transaction: SentryTransaction, hint: Hint): SentryTransaction =
+        transaction.apply {
+            enrichBaseEvent(this)
+            scrubBaseEvent(this)
+        }
 
     override fun process(logEvent: SentryLogEvent): SentryLogEvent = logEvent.apply {
         attributes = scrubLogAttributes(attributes.orEmpty() + mdcContext().toLogAttributes())
@@ -39,28 +38,34 @@ class BeatSentryEventProcessor(
         event.setTag(SERVICE_TAG, SERVICE_NAME)
         event.setTag(MODULE_TAG, moduleName)
         mdc.forEach { (key, value) -> event.setTag(key, value) }
-        event.contexts.set(BEAT_CONTEXT, mapOf(SERVICE_TAG to SERVICE_NAME, MODULE_TAG to moduleName) + mdc)
+        event.contexts.set(
+            BEAT_CONTEXT,
+            mapOf(SERVICE_TAG to SERVICE_NAME, MODULE_TAG to moduleName) + mdc,
+        )
 
         enrichUser(event, mdc)
     }
 
     private fun enrichUser(event: SentryBaseEvent, mdc: Map<String, String>) {
-        val userId = mdc[BaseMdcLoggingFilter.USER_ID_KEY]
-            ?.takeUnless { it == BaseMdcLoggingFilter.DEFAULT_GUEST_USER }
+        val userId =
+            mdc[BaseMdcLoggingFilter.USER_ID_KEY]?.takeUnless {
+                it == BaseMdcLoggingFilter.DEFAULT_GUEST_USER
+            }
         val clientIp = mdc[BaseMdcLoggingFilter.CLIENT_IP_KEY]
 
         if (userId == null && clientIp == null) {
             return
         }
 
-        event.user = (event.user ?: User()).apply {
-            if (id.isNullOrBlank() && userId != null) {
-                id = userId
+        event.user =
+            (event.user ?: User()).apply {
+                if (id.isNullOrBlank() && userId != null) {
+                    id = userId
+                }
+                if (ipAddress.isNullOrBlank() && clientIp != null) {
+                    ipAddress = clientIp
+                }
             }
-            if (ipAddress.isNullOrBlank() && clientIp != null) {
-                ipAddress = clientIp
-            }
-        }
     }
 
     private fun scrubBaseEvent(event: SentryBaseEvent) {
@@ -104,7 +109,7 @@ class BeatSentryEventProcessor(
     }
 
     private fun scrubLogAttributes(
-        attributes: Map<String, SentryLogEventAttributeValue>,
+        attributes: Map<String, SentryLogEventAttributeValue>
     ): Map<String, SentryLogEventAttributeValue> = attributes.mapValues { (key, attribute) ->
         if (isSensitiveKey(key)) {
             redactedAttribute()
@@ -113,46 +118,52 @@ class BeatSentryEventProcessor(
         }
     }
 
-    private fun scrubUserData(data: Map<String, String>): Map<String, String> =
-        scrubStringMap(data)
+    private fun scrubUserData(data: Map<String, String>): Map<String, String> = scrubStringMap(data)
 
-    private fun scrubMap(map: Map<String, Any?>): Map<String, Any?> = map.mapValues { (key, value) ->
-        scrubKeyedValue(key, value)
-    }
+    private fun scrubMap(map: Map<String, Any?>): Map<String, Any?> =
+        map.mapValues { (key, value) ->
+            scrubKeyedValue(key, value)
+        }
 
-    private fun scrubStringMap(map: Map<String, String>): Map<String, String> = map.mapValues { (key, value) ->
-        scrubKeyedValue(key, value)?.toString().orEmpty()
-    }
+    private fun scrubStringMap(map: Map<String, String>): Map<String, String> =
+        map.mapValues { (key, value) ->
+            scrubKeyedValue(key, value)?.toString().orEmpty()
+        }
 
     private fun scrubKeyedValue(key: String, value: Any?): Any? =
         if (isSensitiveKey(key)) REDACTED else scrubValue(value)
 
-    private fun scrubValue(value: Any?): Any? = when (value) {
-        null -> null
-        is String -> scrubString(value)
-        is Map<*, *> -> value.entries.associate { (key, nestedValue) ->
-            val stringKey = key?.toString().orEmpty()
-            stringKey to scrubKeyedValue(stringKey, nestedValue)
+    private fun scrubValue(value: Any?): Any? =
+        when (value) {
+            null -> null
+            is String -> scrubString(value)
+            is Map<*, *> ->
+                value.entries.associate { (key, nestedValue) ->
+                    val stringKey = key?.toString().orEmpty()
+                    stringKey to scrubKeyedValue(stringKey, nestedValue)
+                }
+            is Iterable<*> -> value.map(::scrubValue)
+            is Array<*> -> value.map(::scrubValue)
+            else -> value
         }
-        is Iterable<*> -> value.map(::scrubValue)
-        is Array<*> -> value.map(::scrubValue)
-        else -> value
-    }
 
-    private fun scrubString(value: String?): String? =
-        SentrySensitiveDataPolicy.scrubString(value)
+    private fun scrubString(value: String?): String? = SentrySensitiveDataPolicy.scrubString(value)
 
     private fun redactedAttribute(): SentryLogEventAttributeValue =
         SentryLogEventAttributeValue(SentryAttributeType.STRING, REDACTED)
 
     private fun isSensitiveKey(key: String): Boolean = SentrySensitiveDataPolicy.isSensitiveKey(key)
 
-    private fun mdcContext(): Map<String, String> = MDC_KEYS.mapNotNull { key ->
-        MDC.get(key)?.takeIf { it.isNotBlank() }?.let { key to it }
-    }.toMap(LinkedHashMap())
+    private fun mdcContext(): Map<String, String> =
+        MDC_KEYS.mapNotNull { key ->
+                MDC.get(key)?.takeIf { it.isNotBlank() }?.let { key to it }
+            }
+            .toMap(LinkedHashMap())
 
     private fun Map<String, String>.toLogAttributes(): Map<String, SentryLogEventAttributeValue> =
-        mapValues { (_, value) -> SentryLogEventAttributeValue(SentryAttributeType.STRING, value) }
+        mapValues { (_, value) ->
+            SentryLogEventAttributeValue(SentryAttributeType.STRING, value)
+        }
 
     companion object {
         private const val SERVICE_NAME = "beat-server"
@@ -161,13 +172,14 @@ class BeatSentryEventProcessor(
         private const val BEAT_CONTEXT = "beat"
         const val REDACTED = SentrySensitiveDataPolicy.REDACTED
 
-        private val MDC_KEYS = listOf(
-            BaseMdcLoggingFilter.TRACE_ID_KEY,
-            BaseMdcLoggingFilter.SPAN_ID_KEY,
-            BaseMdcLoggingFilter.USER_ID_KEY,
-            BaseMdcLoggingFilter.CLIENT_IP_KEY,
-            BaseMdcLoggingFilter.REQUEST_INFO_KEY,
-            BaseMdcLoggingFilter.ROUTE_PATTERN_KEY,
-        )
+        private val MDC_KEYS =
+            listOf(
+                BaseMdcLoggingFilter.TRACE_ID_KEY,
+                BaseMdcLoggingFilter.SPAN_ID_KEY,
+                BaseMdcLoggingFilter.USER_ID_KEY,
+                BaseMdcLoggingFilter.CLIENT_IP_KEY,
+                BaseMdcLoggingFilter.REQUEST_INFO_KEY,
+                BaseMdcLoggingFilter.ROUTE_PATTERN_KEY,
+            )
     }
 }

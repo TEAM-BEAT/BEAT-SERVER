@@ -14,10 +14,11 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
 
 @Configuration(proxyBeanMethods = false)
 @EnableRedisRepositories(
-    basePackageClasses = [
-        RefreshTokenRedisRepository::class,
-        GuestSessionRedisRepository::class,
-    ],
+    basePackageClasses =
+        [
+            RefreshTokenRedisRepository::class,
+            GuestSessionRedisRepository::class,
+        ]
 )
 @Import(
     RedisRefreshTokenAdapter::class,

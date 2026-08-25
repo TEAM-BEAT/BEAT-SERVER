@@ -9,6 +9,10 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+    # secrets는 if: 조건식에서 직접 참조할 수 없다(GitHub 공식 문서).
+    # job-level env로 승격 후 env 컨텍스트로 검사한다.
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     steps:
       - name: Checkout code
@@ -48,6 +52,23 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew check verifyModuleBootJars --parallel --build-cache
+        shell: bash
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: SonarQube Cloud Analysis (Kover coverage, JDK 25)
+        if: ${{ env.SONAR_TOKEN != '' }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_RELEASE: beat-server@${{ github.sha }}
+        run: |
+          chmod +x gradlew
+          ./gradlew sonar --build-cache
         shell: bash
 
       - name: Verify OpenAPI compatibility from Gradle check artifacts

@@ -1,6 +1,7 @@
 package com.beat.domain.performance.model
 
-class PerformanceImage private constructor(
+class PerformanceImage
+private constructor(
     private val imageId: Id?,
     val performanceImageUrl: String,
 ) {
@@ -17,10 +18,11 @@ class PerformanceImage private constructor(
 
     override fun toString(): String = "PerformanceImage(id=$id)"
 
-    fun update(performanceImageUrl: String): PerformanceImage = PerformanceImage(
-        imageId = imageId,
-        performanceImageUrl = performanceImageUrl,
-    )
+    fun update(performanceImageUrl: String): PerformanceImage =
+        PerformanceImage(
+            imageId = imageId,
+            performanceImageUrl = performanceImageUrl,
+        )
 
     @JvmInline
     value class Id private constructor(val value: Long) {
@@ -30,14 +32,16 @@ class PerformanceImage private constructor(
     }
 
     companion object {
-        fun create(performanceImageUrl: String): PerformanceImage = PerformanceImage(
-            imageId = null,
-            performanceImageUrl = performanceImageUrl,
-        )
+        fun create(performanceImageUrl: String): PerformanceImage =
+            PerformanceImage(
+                imageId = null,
+                performanceImageUrl = performanceImageUrl,
+            )
 
-        fun rehydrate(id: Long?, performanceImageUrl: String): PerformanceImage = PerformanceImage(
-            imageId = Id.fromNullable(id),
-            performanceImageUrl = performanceImageUrl,
-        )
+        fun rehydrate(id: Long?, performanceImageUrl: String): PerformanceImage =
+            PerformanceImage(
+                imageId = Id.fromNullable(id),
+                performanceImageUrl = performanceImageUrl,
+            )
     }
 }

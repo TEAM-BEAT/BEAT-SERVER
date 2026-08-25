@@ -1,7 +1,7 @@
 package com.beat.application.frontoffice.auth.command
 
-import com.beat.support.security.token.TokenIssuer
-import com.beat.support.security.token.TokenSubject
+import com.beat.application.frontoffice.security.TokenIssuer
+import com.beat.application.frontoffice.security.TokenSubject
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Component
 

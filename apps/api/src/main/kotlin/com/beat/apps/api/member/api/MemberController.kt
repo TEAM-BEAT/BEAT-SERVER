@@ -5,8 +5,8 @@ import com.beat.apps.api.member.api.response.AccessTokenGenerateResponse
 import com.beat.apps.api.member.api.response.MemberLoginResponse
 import com.beat.apps.api.member.api.response.MemberSuccessCode
 import com.beat.apps.api.member.facade.MemberFacade
-import com.beat.support.security.CurrentMember
 import com.beat.apps.api.response.SuccessResponse
+import com.beat.support.security.CurrentMember
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.springframework.http.ResponseCookie
@@ -21,9 +21,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/users")
-class MemberController(
-    private val memberFacade: MemberFacade,
-) : MemberApi {
+class MemberController(private val memberFacade: MemberFacade) : MemberApi {
 
     @PostMapping("/sign-up")
     override fun signUp(
@@ -33,13 +31,14 @@ class MemberController(
     ): ResponseEntity<SuccessResponse<MemberLoginResponse>> {
         val loginSession = memberFacade.handleSocialLogin(authorizationCode, loginRequest)
 
-        val cookie = ResponseCookie.from(REFRESH_TOKEN, loginSession.refreshToken)
-            .maxAge(COOKIE_MAX_AGE.toLong())
-            .path("/")
-            .secure(true)
-            .sameSite("None")
-            .httpOnly(true)
-            .build()
+        val cookie =
+            ResponseCookie.from(REFRESH_TOKEN, loginSession.refreshToken)
+                .maxAge(COOKIE_MAX_AGE.toLong())
+                .path("/")
+                .secure(true)
+                .sameSite("None")
+                .httpOnly(true)
+                .build()
         httpServletResponse.setHeader("Set-Cookie", cookie.toString())
 
         return ResponseEntity.ok()
@@ -48,17 +47,20 @@ class MemberController(
 
     @GetMapping("/refresh-token")
     override fun issueAccessTokenUsingRefreshToken(
-        @CookieValue(value = REFRESH_TOKEN) refreshToken: String,
+        @CookieValue(value = REFRESH_TOKEN) refreshToken: String
     ): ResponseEntity<SuccessResponse<AccessTokenGenerateResponse>> {
         val response = memberFacade.generateAccessTokenFromRefreshToken(refreshToken)
         return ResponseEntity.ok()
-            .body(SuccessResponse.of(MemberSuccessCode.ISSUE_ACCESS_TOKEN_USING_REFRESH_TOKEN, response))
+            .body(
+                SuccessResponse.of(
+                    MemberSuccessCode.ISSUE_ACCESS_TOKEN_USING_REFRESH_TOKEN,
+                    response,
+                )
+            )
     }
 
     @PostMapping("/sign-out")
-    override fun signOut(
-        @CurrentMember memberId: Long,
-    ): ResponseEntity<SuccessResponse<Void>> {
+    override fun signOut(@CurrentMember memberId: Long): ResponseEntity<SuccessResponse<Void>> {
         memberFacade.signOut(memberId)
         return ResponseEntity.ok().body(SuccessResponse.from(MemberSuccessCode.SIGN_OUT_SUCCESS))
     }

@@ -11,25 +11,23 @@ import io.kotest.extensions.spring.SpringTestLifecycleMode
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.data.redis.test.autoconfigure.DataRedisTest
-import org.springframework.data.redis.core.StringRedisTemplate
-import org.springframework.test.context.ContextConfiguration
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.data.redis.test.autoconfigure.DataRedisTest
+import org.springframework.data.redis.core.StringRedisTemplate
+import org.springframework.test.context.ContextConfiguration
 
 @DataRedisTest
 @ContextConfiguration(classes = [AuthRedisConfig::class, RedisTestContainerConfig::class])
 @Tags("correctness")
 class RedisGuestAccessThrottleConcurrencySpec : FunSpec() {
 
-    @Autowired
-    private lateinit var guestAccessThrottlePort: GuestAccessThrottle
+    @Autowired private lateinit var guestAccessThrottlePort: GuestAccessThrottle
 
-    @Autowired
-    private lateinit var redisTemplate: StringRedisTemplate
+    @Autowired private lateinit var redisTemplate: StringRedisTemplate
 
     init {
         isolationMode = IsolationMode.SingleInstance

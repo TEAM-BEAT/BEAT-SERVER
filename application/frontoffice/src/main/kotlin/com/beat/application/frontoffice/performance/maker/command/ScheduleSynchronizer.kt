@@ -12,10 +12,10 @@ import com.beat.domain.schedule.model.Schedule
 import com.beat.domain.schedule.model.ScheduleNumber
 import com.beat.domain.schedule.repository.ScheduleRepository
 import com.beat.domain.schedule.service.ScheduleSequenceDomainService
-import org.springframework.stereotype.Component
+import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.Clock
+import org.springframework.stereotype.Component
 
 @Component
 internal class ScheduleSynchronizer(
@@ -28,7 +28,9 @@ internal class ScheduleSynchronizer(
         val scheduleIds = scheduleRepository.findIdsByPerformanceId(performanceId)
         scheduleIds.distinct().sorted().forEach { scheduleId ->
             scheduleRepository.lockById(scheduleId)
-                ?: throw FrontofficeApplicationException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND)
+                ?: throw FrontofficeApplicationException(
+                    ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND
+                )
         }
         return bookingRepository.existsActiveBookingByScheduleIds(
             scheduleIds,
@@ -42,15 +44,21 @@ internal class ScheduleSynchronizer(
     ): List<ScheduleResult> {
         val performanceId = checkNotNull(performance.id)
         val requestIds = requests.mapNotNull(ScheduleModifyCommand::scheduleId)
-        val idsToDelete = scheduleRepository.findIdsByPerformanceId(performanceId).filterNot(requestIds::contains)
+        val idsToDelete =
+            scheduleRepository.findIdsByPerformanceId(performanceId).filterNot(requestIds::contains)
         deleteSchedules(idsToDelete)
 
-        val schedules = requests.sortedBy { it.scheduleId ?: Long.MAX_VALUE }.map { request ->
-            if (request.scheduleId == null) addSchedule(request, performance) else updateSchedule(request, performance)
-        }
-        val numberedSchedules = scheduleRepository.saveAll(
-            scheduleSequenceDomainService.assignScheduleNumbers(schedules),
-        )
+        val schedules =
+            requests
+                .sortedBy { it.scheduleId ?: Long.MAX_VALUE }
+                .map { request ->
+                    if (request.scheduleId == null) addSchedule(request, performance)
+                    else updateSchedule(request, performance)
+                }
+        val numberedSchedules =
+            scheduleRepository.saveAll(
+                scheduleSequenceDomainService.assignScheduleNumbers(schedules)
+            )
         val today = LocalDate.now(clock)
         return numberedSchedules.map { schedule ->
             ScheduleResult(
@@ -66,7 +74,7 @@ internal class ScheduleSynchronizer(
     private fun addSchedule(request: ScheduleModifyCommand, performance: Performance): Schedule {
         val performanceId = checkNotNull(performance.id)
         scheduleSequenceDomainService.validateScheduleCount(
-            scheduleRepository.countByPerformanceId(performanceId).toLong() + 1,
+            scheduleRepository.countByPerformanceId(performanceId).toLong() + 1
         )
         return scheduleRepository.save(
             Schedule.createUpcoming(
@@ -76,15 +84,20 @@ internal class ScheduleSynchronizer(
                 ScheduleNumber.FIRST,
                 performanceId,
                 LocalDateTime.now(clock),
-            ),
+            )
         )
     }
 
     private fun updateSchedule(request: ScheduleModifyCommand, performance: Performance): Schedule {
-        val schedule = scheduleRepository.lockById(checkNotNull(request.scheduleId))
-            ?: throw FrontofficeApplicationException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND)
+        val schedule =
+            scheduleRepository.lockById(checkNotNull(request.scheduleId))
+                ?: throw FrontofficeApplicationException(
+                    ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND
+                )
         if (!schedule.belongsTo(checkNotNull(performance.id))) {
-            throw FrontofficeApplicationException(ScheduleApplicationErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE)
+            throw FrontofficeApplicationException(
+                ScheduleApplicationErrorCode.SCHEDULE_NOT_BELONG_TO_PERFORMANCE
+            )
         }
         return scheduleRepository.save(
             schedule.reschedule(
@@ -93,7 +106,7 @@ internal class ScheduleSynchronizer(
                 request.totalTicketCount,
                 schedule.scheduleNumber,
                 LocalDateTime.now(clock),
-            ),
+            )
         )
     }
 
@@ -101,12 +114,17 @@ internal class ScheduleSynchronizer(
         if (scheduleIds.isEmpty()) return
         val inactiveStatuses = BookingStatus.inactiveForTicketAllocation()
         if (bookingRepository.existsActiveBookingByScheduleIds(scheduleIds, inactiveStatuses)) {
-            throw FrontofficeApplicationException(PerformanceApplicationErrorCode.PERFORMANCE_DELETE_FAILED)
+            throw FrontofficeApplicationException(
+                PerformanceApplicationErrorCode.PERFORMANCE_DELETE_FAILED
+            )
         }
         bookingRepository.deleteInactiveBookingsByScheduleIds(scheduleIds, inactiveStatuses)
         scheduleIds.forEach { scheduleId ->
-            val schedule = scheduleRepository.findById(scheduleId)
-                ?: throw FrontofficeApplicationException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND)
+            val schedule =
+                scheduleRepository.findById(scheduleId)
+                    ?: throw FrontofficeApplicationException(
+                        ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND
+                    )
             scheduleRepository.delete(schedule)
         }
     }

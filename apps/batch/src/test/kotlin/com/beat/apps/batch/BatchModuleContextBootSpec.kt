@@ -19,11 +19,9 @@ import org.springframework.scheduling.TaskScheduler
 @BeatBatchAcceptanceTest
 @Tags("acceptance")
 class BatchModuleContextBootSpec : FunSpec() {
-    @Autowired
-    private lateinit var applicationContext: ApplicationContext
+    @Autowired private lateinit var applicationContext: ApplicationContext
 
-    @Autowired
-    private lateinit var environment: Environment
+    @Autowired private lateinit var environment: Environment
 
     init {
         isolationMode = IsolationMode.SingleInstance
@@ -34,7 +32,8 @@ class BatchModuleContextBootSpec : FunSpec() {
             applicationContext.containsBean("maintenanceTaskScheduler") shouldBe true
             applicationContext.getBeansOfType(TaskScheduler::class.java).size shouldBe 1
             applicationContext.getBeansOfType(TicketCleanupService::class.java).size shouldBe 1
-            applicationContext.getBeansOfType(PromotionMaintenanceService::class.java).size shouldBe 1
+            applicationContext.getBeansOfType(PromotionMaintenanceService::class.java).size shouldBe
+                1
             applicationContext.getBeansOfType(PromotionRepository::class.java).size shouldBe 1
             applicationContext.getBeansOfType(ScheduleRepository::class.java).size shouldBe 1
         }

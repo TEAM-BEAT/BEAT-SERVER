@@ -7,71 +7,42 @@ import com.beat.domain.performance.vo.PerformancePeriod
 import com.beat.domain.performance.vo.RunningTime
 import com.beat.domain.performance.vo.TicketPrice
 import com.beat.domain.sharedkernel.vo.BankName
-import com.beat.infrastructure.persistence.exception.PersistenceMappingException
-import com.beat.infrastructure.persistence.performance.entity.PerformanceJpaEntity
-import com.beat.infrastructure.persistence.performance.entity.PerformancePeriodJpaValue
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.time.LocalDate
 
-class PerformancePersistenceMapperTest : FunSpec({
-    val mapper = PerformancePersistenceMapper()
+class PerformancePersistenceMapperTest :
+    FunSpec({
+        val mapper = PerformancePersistenceMapper()
 
-    test("레거시 컬럼을 변경하지 않고 value object를 왕복한다") {
-        val domain = performance(PaymentAccount.of(BankName.KAKAOBANK, "123", "holder"))
+        test("레거시 컬럼을 변경하지 않고 value object를 왕복한다") {
+            val domain = performance(PaymentAccount.of(BankName.KAKAOBANK, "123", "holder"))
 
-        val entity = mapper.toEntity(domain)
-        val roundTrip = mapper.toDomain(entity)
+            val entity = mapper.toEntity(domain)
+            val roundTrip = mapper.toDomain(entity)
 
-        entity.paymentAccount!!.bankName shouldBe BankName.KAKAOBANK
-        entity.performancePeriodValue!!.startDate shouldBe LocalDate.of(2026, 7, 16)
-        entity.legacyPerformancePeriod shouldBe "2026.07.16~2026.07.18"
-        roundTrip.paymentAccount shouldBe domain.paymentAccount
-        roundTrip.performancePeriodValue shouldBe domain.performancePeriodValue
-        roundTrip.runningTimeValue shouldBe domain.runningTimeValue
-        roundTrip.ticketPriceValue shouldBe domain.ticketPriceValue
-    }
+            entity.paymentAccount!!.bankName shouldBe BankName.KAKAOBANK
+            entity.performancePeriodValue.startDate shouldBe LocalDate.of(2026, 7, 16)
+            roundTrip.paymentAccount shouldBe domain.paymentAccount
+            roundTrip.performancePeriodValue shouldBe domain.performancePeriodValue
+            roundTrip.runningTimeValue shouldBe domain.runningTimeValue
+            roundTrip.ticketPriceValue shouldBe domain.ticketPriceValue
+        }
 
-    test("모두 null인 payment account는 null로 유지된다") {
-        val entity = mapper.toEntity(performance(null))
+        test("모두 null인 payment account는 null로 유지된다") {
+            val entity = mapper.toEntity(performance(null))
 
-        entity.paymentAccount shouldBe null
-        mapper.toDomain(entity).paymentAccount shouldBe null
-    }
+            entity.paymentAccount shouldBe null
+            mapper.toDomain(entity).paymentAccount shouldBe null
+        }
 
-    test("부분적으로만 채워진 period 컬럼은 거부된다") {
-        val sourceEntity = mapper.toEntity(performance(null))
-        val partialPeriod = PerformancePeriodJpaValue(
-            null,
-            LocalDate.of(2026, 7, 18),
-        )
-        val entity = PerformanceJpaEntity.rehydrate(
-            sourceEntity.id,
-            sourceEntity.performanceTitle,
-            sourceEntity.genre,
-            sourceEntity.runningTime,
-            sourceEntity.performanceDescription,
-            sourceEntity.performanceAttentionNote,
-            sourceEntity.paymentAccount,
-            sourceEntity.posterImage,
-            sourceEntity.performanceTeamName,
-            sourceEntity.performanceVenue,
-            sourceEntity.roadAddressName,
-            sourceEntity.placeDetailAddress,
-            sourceEntity.latitude,
-            sourceEntity.longitude,
-            sourceEntity.performanceContact,
-            partialPeriod,
-            sourceEntity.legacyPerformancePeriod,
-            sourceEntity.ticketPrice,
-            sourceEntity.totalScheduleCount,
-            sourceEntity.userId,
-        )
+        test("CONTRACT 이후 period 컬럼은 항상 not null로 저장된다") {
+            val entity = mapper.toEntity(performance(null))
 
-        shouldThrow<PersistenceMappingException> { mapper.toDomain(entity) }
-    }
-})
+            entity.performancePeriodValue.startDate shouldBe LocalDate.of(2026, 7, 16)
+            entity.performancePeriodValue.endDate shouldBe LocalDate.of(2026, 7, 18)
+        }
+    })
 
 private fun performance(paymentAccount: PaymentAccount?): Performance =
     Performance.rehydrate(

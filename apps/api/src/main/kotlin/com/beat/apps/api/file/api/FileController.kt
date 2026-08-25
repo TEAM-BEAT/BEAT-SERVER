@@ -12,9 +12,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/files")
-class FileController(
-    private val fileFacade: FileFacade,
-) : FileApi {
+class FileController(private val fileFacade: FileFacade) : FileApi {
 
     @GetMapping("/presigned-url")
     override fun generateAllPresignedUrls(
@@ -23,12 +21,15 @@ class FileController(
         @RequestParam(required = false) staffImages: List<String>?,
         @RequestParam(required = false) performanceImages: List<String>?,
     ): ResponseEntity<SuccessResponse<PerformanceMakerPresignedUrlFindAllResponse>> {
-        val response = fileFacade.issueAllPresignedUrlsForPerformanceMaker(
-            posterImage,
-            castImages,
-            staffImages,
-            performanceImages,
+        val response =
+            fileFacade.issueAllPresignedUrlsForPerformanceMaker(
+                posterImage,
+                castImages,
+                staffImages,
+                performanceImages,
+            )
+        return ResponseEntity.ok(
+            SuccessResponse.of(FileSuccessCode.PERFORMANCE_MAKER_PRESIGNED_URL_ISSUED, response)
         )
-        return ResponseEntity.ok(SuccessResponse.of(FileSuccessCode.PERFORMANCE_MAKER_PRESIGNED_URL_ISSUED, response))
     }
 }

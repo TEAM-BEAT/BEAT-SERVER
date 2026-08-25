@@ -1,9 +1,9 @@
 package com.beat.apps.admin.user.api
 
-import com.beat.apps.admin.user.api.response.UserSuccessCode
-import com.beat.apps.admin.user.facade.AdminUserFacade
 import com.beat.application.admin.user.query.AdminUserQueryService
 import com.beat.application.admin.user.query.AdminUserResults
+import com.beat.apps.admin.user.api.response.UserSuccessCode
+import com.beat.apps.admin.user.facade.AdminUserFacade
 import com.beat.support.security.CurrentMember
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
@@ -32,15 +32,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 @WebMvcTest(controllers = [AdminUserController::class])
 @AutoConfigureMockMvc(addFilters = false)
 @ContextConfiguration(
-    classes = [AdminUserController::class, AdminUserFacade::class, AdminUserWebTestConfiguration::class],
+    classes =
+        [AdminUserController::class, AdminUserFacade::class, AdminUserWebTestConfiguration::class]
 )
 class AdminUserControllerWebSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var mockMvc: MockMvc
+    @Autowired private lateinit var mockMvc: MockMvc
 
-    @TestBean
-    private lateinit var adminUserQueryService: AdminUserQueryService
+    @TestBean private lateinit var adminUserQueryService: AdminUserQueryService
 
     init {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
@@ -55,13 +54,18 @@ class AdminUserControllerWebSpec : FunSpec() {
                     listOf(
                         AdminUserResults.AdminUserResult(1L, "ROLE_USER"),
                         AdminUserResults.AdminUserResult(2L, "ROLE_ADMIN"),
-                    ),
+                    )
                 )
 
-            mockMvc.perform(get("/api/admin/users"))
+            mockMvc
+                .perform(get("/api/admin/users"))
                 .andExpect(status().isOk)
-                .andExpect(jsonPath("$.status").value(UserSuccessCode.FETCH_ALL_USERS_SUCCESS.status))
-                .andExpect(jsonPath("$.message").value(UserSuccessCode.FETCH_ALL_USERS_SUCCESS.message))
+                .andExpect(
+                    jsonPath("$.status").value(UserSuccessCode.FETCH_ALL_USERS_SUCCESS.status)
+                )
+                .andExpect(
+                    jsonPath("$.message").value(UserSuccessCode.FETCH_ALL_USERS_SUCCESS.message)
+                )
                 .andExpect(jsonPath("$.data.users[0].id").value(1))
                 .andExpect(jsonPath("$.data.users[0].role").value("ROLE_USER"))
                 .andExpect(jsonPath("$.data.users[1].id").value(2))
@@ -74,8 +78,7 @@ class AdminUserControllerWebSpec : FunSpec() {
     private companion object {
         const val MEMBER_ID = 7L
 
-        @JvmStatic
-        fun adminUserQueryService(): AdminUserQueryService = mockk()
+        @JvmStatic fun adminUserQueryService(): AdminUserQueryService = mockk()
     }
 }
 
@@ -89,10 +92,8 @@ private class AdminUserWebTestConfiguration : WebMvcConfigurer {
 private class AdminUserCurrentMemberArgumentResolver : HandlerMethodArgumentResolver {
     override fun supportsParameter(parameter: MethodParameter): Boolean =
         parameter.hasParameterAnnotation(CurrentMember::class.java) &&
-            (
-                parameter.parameterType == Long::class.javaObjectType ||
-                    parameter.parameterType == Long::class.javaPrimitiveType
-                )
+            (parameter.parameterType == Long::class.javaObjectType ||
+                parameter.parameterType == Long::class.javaPrimitiveType)
 
     override fun resolveArgument(
         parameter: MethodParameter,

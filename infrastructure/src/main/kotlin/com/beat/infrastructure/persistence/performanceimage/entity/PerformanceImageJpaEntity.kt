@@ -9,7 +9,8 @@ import jakarta.persistence.Table
 
 @Entity(name = "PerformanceImage")
 @Table(name = "performance_image")
-internal class PerformanceImageJpaEntity private constructor(
+internal class PerformanceImageJpaEntity
+private constructor(
     id: Long?,
     performanceImageUrl: String,
     performanceId: Long,
@@ -33,10 +34,11 @@ internal class PerformanceImageJpaEntity private constructor(
             id: Long?,
             performanceImageUrl: String,
             performanceId: Long,
-        ): PerformanceImageJpaEntity = PerformanceImageJpaEntity(
-            id = id,
-            performanceImageUrl = performanceImageUrl,
-            performanceId = performanceId,
-        )
+        ): PerformanceImageJpaEntity =
+            PerformanceImageJpaEntity(
+                id = id,
+                performanceImageUrl = performanceImageUrl,
+                performanceId = performanceId,
+            )
     }
 }

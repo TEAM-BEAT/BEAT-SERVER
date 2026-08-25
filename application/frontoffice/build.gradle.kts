@@ -6,7 +6,6 @@ plugins {
 dependencies {
     implementation(platform(libs.spring.boot.dependencies))
     implementation(project(":domain"))
-    implementation(project(":support:security"))
     implementation(libs.spring.context)
     implementation(libs.spring.tx)
     implementation(libs.kotlin.logging.jvm)

@@ -20,15 +20,15 @@ class CdnImageUrlSerializer : ValueSerializer<String>() {
     }
 
     companion object {
-        @Volatile
-        private var cdnBase: String = ""
+        @Volatile private var cdnBase: String = ""
 
         fun initialize(domain: String?) {
-            cdnBase = when {
-                domain.isNullOrBlank() -> ""
-                domain.endsWith("/") -> domain.dropLast(1)
-                else -> domain
-            }
+            cdnBase =
+                when {
+                    domain.isNullOrBlank() -> ""
+                    domain.endsWith("/") -> domain.dropLast(1)
+                    else -> domain
+                }
         }
 
         private fun isAbsoluteUrl(value: String): Boolean =

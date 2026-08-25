@@ -12,10 +12,11 @@ internal fun <T> translateDomainFailure(block: () -> T): T =
     }
 
 private fun DomainErrorCode.toAdminErrorCode(): AdminApplicationErrorCode {
-    val type = when (this.type) {
-        DomainErrorType.INVALID_INPUT -> AdminApplicationErrorType.INVALID_INPUT
-        DomainErrorType.STATE_CONFLICT -> AdminApplicationErrorType.STATE_CONFLICT
-    }
+    val type =
+        when (this.type) {
+            DomainErrorType.INVALID_INPUT -> AdminApplicationErrorType.INVALID_INPUT
+            DomainErrorType.STATE_CONFLICT -> AdminApplicationErrorType.STATE_CONFLICT
+        }
     return InternalAdminApplicationErrorCode(code, type, message)
 }
 

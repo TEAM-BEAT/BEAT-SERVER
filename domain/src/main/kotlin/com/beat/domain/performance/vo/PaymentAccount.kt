@@ -1,11 +1,12 @@
 package com.beat.domain.performance.vo
 
 import com.beat.domain.exception.DomainException
-import com.beat.domain.sharedkernel.vo.BankName
 import com.beat.domain.performance.exception.PerformanceErrorCode
+import com.beat.domain.sharedkernel.vo.BankName
 
 @ConsistentCopyVisibility
-data class PaymentAccount private constructor(
+data class PaymentAccount
+private constructor(
     val bankName: BankName,
     val accountNumber: String,
     val accountHolder: String,
@@ -29,10 +30,18 @@ data class PaymentAccount private constructor(
             val normalizedAccountNumber = accountNumber?.takeUnless(String::isBlank)
             val normalizedAccountHolder = accountHolder?.takeUnless(String::isBlank)
 
-            if (normalizedBankName == null && normalizedAccountNumber == null && normalizedAccountHolder == null) {
+            if (
+                normalizedBankName == null &&
+                    normalizedAccountNumber == null &&
+                    normalizedAccountHolder == null
+            ) {
                 return null
             }
-            if (normalizedBankName == null || normalizedAccountNumber == null || normalizedAccountHolder == null) {
+            if (
+                normalizedBankName == null ||
+                    normalizedAccountNumber == null ||
+                    normalizedAccountHolder == null
+            ) {
                 throw DomainException(PerformanceErrorCode.INCOMPLETE_PAYMENT_ACCOUNT)
             }
             return of(normalizedBankName, normalizedAccountNumber, normalizedAccountHolder)

@@ -18,7 +18,8 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class AdminPromotionCommandService internal constructor(
+class AdminPromotionCommandService
+internal constructor(
     private val memberRepository: MemberRepository,
     private val promotionRepository: PromotionRepository,
     private val performanceRepository: PerformanceRepository,
@@ -40,15 +41,17 @@ class AdminPromotionCommandService internal constructor(
             lockReferencedPerformances(classifiedPromotions)
 
             val allExistingPromotions = promotionRepository.lockAll()
-            val deletePromotionIds = extractDeletePromotionIds(
-                allExistingPromotions,
-                classifiedPromotions.requestPromotionIds,
-            )
-            val changedPromotions = processPromotions(
-                classifiedPromotions.modifyRequests,
-                classifiedPromotions.generateRequests,
-                deletePromotionIds,
-            )
+            val deletePromotionIds =
+                extractDeletePromotionIds(
+                    allExistingPromotions,
+                    classifiedPromotions.requestPromotionIds,
+                )
+            val changedPromotions =
+                processPromotions(
+                    classifiedPromotions.modifyRequests,
+                    classifiedPromotions.generateRequests,
+                    deletePromotionIds,
+                )
 
             AdminPromotionResultAssembler.assemble(changedPromotions)
         }
@@ -67,17 +70,22 @@ class AdminPromotionCommandService internal constructor(
     }
 
     private fun lockReferencedPerformances(promotions: ClassifiedCarouselPromotions) {
-        val performanceIds = (promotions.modifyRequests.mapNotNull { it.performanceId } +
-            promotions.generateRequests.mapNotNull { it.performanceId })
-            .distinct()
-            .sorted()
+        val performanceIds =
+            (promotions.modifyRequests.mapNotNull { it.performanceId } +
+                    promotions.generateRequests.mapNotNull { it.performanceId })
+                .distinct()
+                .sorted()
         performanceIds.forEach { performanceId ->
             performanceRepository.lockById(performanceId)
-                ?: throw AdminApplicationException(PromotionApplicationErrorCode.PERFORMANCE_NOT_FOUND)
+                ?: throw AdminApplicationException(
+                    PromotionApplicationErrorCode.PERFORMANCE_NOT_FOUND
+                )
         }
     }
 
-    private fun classifyCarouselPromotions(command: CarouselHandleCommand): ClassifiedCarouselPromotions {
+    private fun classifyCarouselPromotions(
+        command: CarouselHandleCommand
+    ): ClassifiedCarouselPromotions {
         val modifyRequests = command.carousels.filterIsInstance<PromotionModifyCommand>()
         val generateRequests = command.carousels.filterIsInstance<PromotionGenerateCommand>()
 
@@ -99,8 +107,9 @@ class AdminPromotionCommandService internal constructor(
     }
 
     private fun validateCarouselAssignments(promotions: ClassifiedCarouselPromotions) {
-        val carouselNumbers = promotions.modifyRequests.map { toCarouselNumber(it.carouselNumber) } +
-            promotions.generateRequests.map { toCarouselNumber(it.carouselNumber) }
+        val carouselNumbers =
+            promotions.modifyRequests.map { toCarouselNumber(it.carouselNumber) } +
+                promotions.generateRequests.map { toCarouselNumber(it.carouselNumber) }
 
         if (!promotionCarouselDomainService.hasValidCarouselAssignments(carouselNumbers)) {
             throw AdminApplicationException(PromotionApplicationErrorCode.INVALID_REQUEST_FORMAT)
@@ -132,34 +141,39 @@ class AdminPromotionCommandService internal constructor(
         }
     }
 
-    private fun handlePromotionModification(modifyRequests: List<PromotionModifyCommand>): List<Promotion> =
-        modifyRequests.map { modifyRequest ->
-            val promotion = findPromotionById(modifyRequest.promotionId)
-            val imageKey = requireNotNull(ImageKeyExtractor.extract(modifyRequest.newImageUrl))
-            val updatedPromotion = promotion.updatePromotionDetails(
+    private fun handlePromotionModification(
+        modifyRequests: List<PromotionModifyCommand>
+    ): List<Promotion> = modifyRequests.map { modifyRequest ->
+        val promotion = findPromotionById(modifyRequest.promotionId)
+        val imageKey = requireNotNull(ImageKeyExtractor.extract(modifyRequest.newImageUrl))
+        val updatedPromotion =
+            promotion.updatePromotionDetails(
                 carouselNumber = toCarouselNumber(modifyRequest.carouselNumber),
                 newImageUrl = imageKey,
                 isExternal = modifyRequest.isExternal,
                 redirectUrl = modifyRequest.redirectUrl,
                 performanceId = modifyRequest.performanceId,
             )
-            promotionRepository.save(updatedPromotion).also { promotionImageCache.preWarm(imageKey) }
-        }
+        promotionRepository.save(updatedPromotion).also { promotionImageCache.preWarm(imageKey) }
+    }
 
-    private fun handlePromotionGeneration(generateRequests: List<PromotionGenerateCommand>): List<Promotion> =
-        generateRequests.map { generateRequest ->
-            val imageKey = requireNotNull(ImageKeyExtractor.extract(generateRequest.newImageUrl))
-            val newPromotion = Promotion.create(
+    private fun handlePromotionGeneration(
+        generateRequests: List<PromotionGenerateCommand>
+    ): List<Promotion> = generateRequests.map { generateRequest ->
+        val imageKey = requireNotNull(ImageKeyExtractor.extract(generateRequest.newImageUrl))
+        val newPromotion =
+            Promotion.create(
                 promotionPhoto = imageKey,
                 performanceId = generateRequest.performanceId,
                 redirectUrl = generateRequest.redirectUrl,
                 isExternal = generateRequest.isExternal,
                 carouselNumber = toCarouselNumber(generateRequest.carouselNumber),
             )
-            promotionRepository.save(newPromotion).also { promotionImageCache.preWarm(imageKey) }
-        }
+        promotionRepository.save(newPromotion).also { promotionImageCache.preWarm(imageKey) }
+    }
 
-    private fun toCarouselNumber(carouselNumber: String): CarouselNumber = CarouselNumber.valueOf(carouselNumber)
+    private fun toCarouselNumber(carouselNumber: String): CarouselNumber =
+        CarouselNumber.valueOf(carouselNumber)
 
     private fun findPromotionById(promotionId: Long): Promotion =
         promotionRepository.findById(promotionId)

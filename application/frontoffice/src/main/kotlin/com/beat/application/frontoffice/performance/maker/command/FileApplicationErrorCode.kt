@@ -8,5 +8,9 @@ enum class FileApplicationErrorCode(
     override val type: FrontofficeApplicationErrorType,
     override val message: String,
 ) : FrontofficeApplicationErrorCode {
-    INVALID_FILE_NAME("FILE_INVALID_FILE_NAME", FrontofficeApplicationErrorType.INVALID_INPUT, "파일 이름이 올바르지 않습니다."),
+    INVALID_FILE_NAME(
+        "FILE_INVALID_FILE_NAME",
+        FrontofficeApplicationErrorType.INVALID_INPUT,
+        "파일 이름이 올바르지 않습니다.",
+    )
 }

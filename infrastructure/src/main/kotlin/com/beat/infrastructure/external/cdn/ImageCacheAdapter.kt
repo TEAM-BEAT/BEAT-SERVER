@@ -1,6 +1,12 @@
 package com.beat.infrastructure.external.cdn
 
 import com.beat.application.admin.promotion.command.PromotionImageCache
+import java.net.http.HttpClient
+import java.time.Duration
+import java.util.Locale
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
@@ -8,19 +14,14 @@ import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
-import java.net.http.HttpClient
-import java.time.Duration
-import java.util.Locale
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executor
-import java.util.concurrent.Executors
 
 @Component
 internal class ImageCacheAdapter(
     restClientBuilder: RestClient.Builder,
     @Value("\${cloud.cdn.domain:}") cdnDomain: String,
 ) : PromotionImageCache {
-    private val restClient: RestClient = restClientBuilder.requestFactory(buildRequestFactory()).build()
+    private val restClient: RestClient =
+        restClientBuilder.requestFactory(buildRequestFactory()).build()
     private val cdnBase: String = normalize(cdnDomain)
 
     override fun preWarm(imageKey: String) {
@@ -35,10 +36,14 @@ internal class ImageCacheAdapter(
         val baseUrl = "$cdnBase/$normalizedKey"
         val variantTasks =
             TARGET_WIDTHS.flatMap { width ->
-                TARGET_FORMATS.map { accept ->
-                    CompletableFuture.runAsync({ warmSingleVariant(baseUrl, width, accept) }, VARIANT_EXECUTOR)
+                    TARGET_FORMATS.map { accept ->
+                        CompletableFuture.runAsync(
+                            { warmSingleVariant(baseUrl, width, accept) },
+                            VARIANT_EXECUTOR,
+                        )
+                    }
                 }
-            }.toTypedArray()
+                .toTypedArray()
         CompletableFuture.allOf(*variantTasks).join()
         log.info("CDN pre-warm completed for {} ({} variants)", baseUrl, variantTasks.size)
     }

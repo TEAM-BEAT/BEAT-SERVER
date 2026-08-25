@@ -2,17 +2,18 @@ package com.beat.application.frontoffice.home.booker.query
 
 import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.application.frontoffice.schedule.calculateDueDate
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 @Transactional(readOnly = true)
-class HomeQueryService internal constructor(
+class HomeQueryService
+internal constructor(
     private val homeProjectionReader: HomeProjectionReader,
     private val clock: Clock,
 ) {
@@ -23,30 +24,41 @@ class HomeQueryService internal constructor(
             val today = now.toLocalDate()
 
             HomeFindAllResult(
-                promotionList = projection.promotions.map { promotion ->
-                    HomePromotionResult(
-                        promotionId = promotion.promotionId,
-                        promotionPhoto = promotion.promotionPhoto,
-                        performanceId = promotion.performanceId,
-                        redirectUrl = promotion.redirectUrl,
-                        isExternal = promotion.isExternal,
-                        carouselNumber = promotion.carouselNumber,
-                    )
-                },
-                performanceList = projection.performances
-                    .map { performance ->
-                        HomePerformanceResult(
-                            performanceId = performance.performanceId,
-                            performanceTitle = performance.performanceTitle,
-                            performancePeriod = formatPeriod(performance.periodStartDate, performance.periodEndDate),
-                            ticketPrice = performance.ticketPrice,
-                            dueDate = performance.performanceDate?.let { calculateDueDate(today, it) } ?: Int.MAX_VALUE,
-                            genre = performance.genre,
-                            posterImage = performance.posterImage,
-                            performanceVenue = performance.performanceVenue,
+                promotionList =
+                    projection.promotions.map { promotion ->
+                        HomePromotionResult(
+                            promotionId = promotion.promotionId,
+                            promotionPhoto = promotion.promotionPhoto,
+                            performanceId = promotion.performanceId,
+                            redirectUrl = promotion.redirectUrl,
+                            isExternal = promotion.isExternal,
+                            carouselNumber = promotion.carouselNumber,
                         )
-                    }
-                    .sortedWith(compareBy<HomePerformanceResult> { it.dueDate < 0 }.thenBy { abs(it.dueDate) }),
+                    },
+                performanceList =
+                    projection.performances
+                        .map { performance ->
+                            HomePerformanceResult(
+                                performanceId = performance.performanceId,
+                                performanceTitle = performance.performanceTitle,
+                                performancePeriod =
+                                    formatPeriod(
+                                        performance.periodStartDate,
+                                        performance.periodEndDate,
+                                    ),
+                                ticketPrice = performance.ticketPrice,
+                                dueDate =
+                                    performance.performanceDate?.let { calculateDueDate(today, it) }
+                                        ?: Int.MAX_VALUE,
+                                genre = performance.genre,
+                                posterImage = performance.posterImage,
+                                performanceVenue = performance.performanceVenue,
+                            )
+                        }
+                        .sortedWith(
+                            compareBy<HomePerformanceResult> { it.dueDate < 0 }
+                                .thenBy { abs(it.dueDate) }
+                        ),
             )
         }
     }

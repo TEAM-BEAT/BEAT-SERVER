@@ -8,7 +8,7 @@ import org.springframework.transaction.event.TransactionalEventListener
 
 @Component
 internal class BookingCreatedEventListener(
-    private val bookingNotificationSender: BookingNotificationSender,
+    private val bookingNotificationSender: BookingNotificationSender
 ) {
     @Async("beatAsyncExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -16,7 +16,9 @@ internal class BookingCreatedEventListener(
         try {
             bookingNotificationSender.send(event)
         } catch (exception: RuntimeException) {
-            log.error(exception) { "Booking Slack notification failed: errorType=${exception.javaClass.simpleName}" }
+            log.error(exception) {
+                "Booking Slack notification failed: errorType=${exception.javaClass.simpleName}"
+            }
         }
     }
 

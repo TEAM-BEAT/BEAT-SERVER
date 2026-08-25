@@ -8,7 +8,8 @@ object MdcCoroutineContext {
 
     fun current(): CoroutineContext = MDCContext()
 
-    suspend fun <T> withCurrent(block: suspend () -> T): T = withContext(current()) {
-        block()
-    }
+    suspend fun <T> withCurrent(block: suspend () -> T): T =
+        withContext(current()) {
+            block()
+        }
 }

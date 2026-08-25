@@ -16,18 +16,16 @@ import org.springframework.context.annotation.Profile
 
 @Profile("!prod")
 @Configuration(proxyBeanMethods = false)
-class SwaggerConfig(
-    @param:Value("\${app.server.url}")
-    private val serverUrl: String,
-) {
+class SwaggerConfig(@param:Value("\${app.server.url}") private val serverUrl: String) {
     @Bean
     fun openAPI(): OpenAPI {
         val schemeName = "JWT"
-        val scheme = SecurityScheme()
-            .name(schemeName)
-            .type(SecurityScheme.Type.HTTP)
-            .scheme("bearer")
-            .bearerFormat("JWT")
+        val scheme =
+            SecurityScheme()
+                .name(schemeName)
+                .type(SecurityScheme.Type.HTTP)
+                .scheme("bearer")
+                .bearerFormat("JWT")
         return OpenAPI()
             .addServersItem(Server().url(serverUrl))
             .components(Components().addSecuritySchemes(schemeName, scheme))
@@ -36,11 +34,12 @@ class SwaggerConfig(
     }
 
     @Bean
-    fun generalApi(): GroupedOpenApi = GroupedOpenApi.builder()
-        .group("general")
-        .pathsToMatch("/**")
-        .addOperationCustomizer(customize())
-        .build()
+    fun generalApi(): GroupedOpenApi =
+        GroupedOpenApi.builder()
+            .group("general")
+            .pathsToMatch("/**")
+            .addOperationCustomizer(customize())
+            .build()
 
     @Bean
     fun customize(): OperationCustomizer = OperationCustomizer { operation, handlerMethod ->
@@ -50,8 +49,9 @@ class SwaggerConfig(
         operation
     }
 
-    private fun apiInfo(): Info = Info()
-        .title("BEAT Project API")
-        .description("간편하게 소규모 공연을 등록하고 관리할 수 있는 티켓 예매 플랫폼")
-        .version("1.2.7")
+    private fun apiInfo(): Info =
+        Info()
+            .title("BEAT Project API")
+            .description("간편하게 소규모 공연을 등록하고 관리할 수 있는 티켓 예매 플랫폼")
+            .version("1.2.7")
 }

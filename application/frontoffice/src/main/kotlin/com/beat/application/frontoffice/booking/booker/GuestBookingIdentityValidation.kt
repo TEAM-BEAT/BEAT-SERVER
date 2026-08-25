@@ -1,6 +1,5 @@
 package com.beat.application.frontoffice.booking.booker
 
-import com.beat.application.frontoffice.booking.booker.BookingApplicationErrorCode
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 
 internal data class GuestBookingIdentity(

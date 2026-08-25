@@ -6,6 +6,4 @@ import org.springframework.context.annotation.Import
 @Retention(AnnotationRetention.RUNTIME)
 @MustBeDocumented
 @Import(InfraBaseConfigImportSelector::class)
-annotation class EnableInfraBaseConfig(
-    val value: Array<InfraBaseConfigGroup>,
-)
+annotation class EnableInfraBaseConfig(val value: Array<InfraBaseConfigGroup>)

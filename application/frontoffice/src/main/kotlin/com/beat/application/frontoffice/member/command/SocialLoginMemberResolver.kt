@@ -17,8 +17,11 @@ internal class SocialLoginMemberResolver(
         socialIdentity: SocialIdentity,
     ): MemberAuthenticationResult {
         val existingMember = memberRepository.findBySocialIdentity(socialIdentity)
-        existingMember?.let { return it.toAuthenticationResult() }
-        val memberId = memberRegistrar.registerMemberWithUserInfo(socialLoginProfile, socialIdentity)
+        existingMember?.let {
+            return it.toAuthenticationResult()
+        }
+        val memberId =
+            memberRegistrar.registerMemberWithUserInfo(socialLoginProfile, socialIdentity)
         return findById(memberId)
     }
 
@@ -29,8 +32,9 @@ internal class SocialLoginMemberResolver(
         memberRepository.findById(memberId)?.toAuthenticationResult()
             ?: throw FrontofficeApplicationException(MemberApplicationErrorCode.MEMBER_NOT_FOUND)
 
-    private fun Member.toAuthenticationResult(): MemberAuthenticationResult = MemberAuthenticationResult(
-        memberId = requireNotNull(id),
-        userId = userId,
-    )
+    private fun Member.toAuthenticationResult(): MemberAuthenticationResult =
+        MemberAuthenticationResult(
+            memberId = requireNotNull(id),
+            userId = userId,
+        )
 }

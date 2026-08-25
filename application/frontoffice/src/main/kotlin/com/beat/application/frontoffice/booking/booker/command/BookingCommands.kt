@@ -1,7 +1,8 @@
 package com.beat.application.frontoffice.booking.booker.command
 
 @ConsistentCopyVisibility
-data class MemberBookingCommand private constructor(
+data class MemberBookingCommand
+private constructor(
     val scheduleId: Long,
     val purchaseTicketCount: Int,
     val bookerName: String,
@@ -13,17 +14,19 @@ data class MemberBookingCommand private constructor(
             purchaseTicketCount: Int,
             bookerName: String,
             bookerPhoneNumber: String,
-        ): MemberBookingCommand = MemberBookingCommand(
-            scheduleId = scheduleId,
-            purchaseTicketCount = purchaseTicketCount,
-            bookerName = bookerName,
-            bookerPhoneNumber = bookerPhoneNumber,
-        )
+        ): MemberBookingCommand =
+            MemberBookingCommand(
+                scheduleId = scheduleId,
+                purchaseTicketCount = purchaseTicketCount,
+                bookerName = bookerName,
+                bookerPhoneNumber = bookerPhoneNumber,
+            )
     }
 }
 
 @ConsistentCopyVisibility
-data class GuestBookingCommand private constructor(
+data class GuestBookingCommand
+private constructor(
     val scheduleId: Long,
     val purchaseTicketCount: Int,
     val bookerName: String,
@@ -39,19 +42,21 @@ data class GuestBookingCommand private constructor(
             bookerPhoneNumber: String,
             birthDate: String,
             password: String,
-        ): GuestBookingCommand = GuestBookingCommand(
-            scheduleId = scheduleId,
-            purchaseTicketCount = purchaseTicketCount,
-            bookerName = bookerName,
-            bookerPhoneNumber = bookerPhoneNumber,
-            birthDate = birthDate,
-            password = password,
-        )
+        ): GuestBookingCommand =
+            GuestBookingCommand(
+                scheduleId = scheduleId,
+                purchaseTicketCount = purchaseTicketCount,
+                bookerName = bookerName,
+                bookerPhoneNumber = bookerPhoneNumber,
+                birthDate = birthDate,
+                password = password,
+            )
     }
 }
 
 @ConsistentCopyVisibility
-data class GuestBookingAuthenticationCommand private constructor(
+data class GuestBookingAuthenticationCommand
+private constructor(
     val bookerName: String,
     val birthDate: String,
     val bookerPhoneNumber: String,
@@ -63,12 +68,13 @@ data class GuestBookingAuthenticationCommand private constructor(
             birthDate: String,
             bookerPhoneNumber: String,
             password: String,
-        ): GuestBookingAuthenticationCommand = GuestBookingAuthenticationCommand(
-            bookerName = bookerName,
-            birthDate = birthDate,
-            bookerPhoneNumber = bookerPhoneNumber,
-            password = password,
-        )
+        ): GuestBookingAuthenticationCommand =
+            GuestBookingAuthenticationCommand(
+                bookerName = bookerName,
+                birthDate = birthDate,
+                bookerPhoneNumber = bookerPhoneNumber,
+                password = password,
+            )
     }
 }
 
@@ -78,7 +84,8 @@ data class BookingActorCommand(
 )
 
 @ConsistentCopyVisibility
-data class BookingRefundCommand private constructor(
+data class BookingRefundCommand
+private constructor(
     val bookingId: Long,
     val bankName: String?,
     val accountNumber: String?,
@@ -90,19 +97,18 @@ data class BookingRefundCommand private constructor(
             bankName: String?,
             accountNumber: String?,
             accountHolder: String?,
-        ): BookingRefundCommand = BookingRefundCommand(
-            bookingId = bookingId,
-            bankName = bankName,
-            accountNumber = accountNumber,
-            accountHolder = accountHolder,
-        )
+        ): BookingRefundCommand =
+            BookingRefundCommand(
+                bookingId = bookingId,
+                bankName = bankName,
+                accountNumber = accountNumber,
+                accountHolder = accountHolder,
+            )
     }
 }
 
 @ConsistentCopyVisibility
-data class BookingCancelCommand private constructor(
-    val bookingId: Long,
-) {
+data class BookingCancelCommand private constructor(val bookingId: Long) {
     companion object {
         fun from(bookingId: Long): BookingCancelCommand = BookingCancelCommand(bookingId)
     }

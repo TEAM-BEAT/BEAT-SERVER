@@ -12,7 +12,8 @@ import jakarta.persistence.Table
 
 @Entity(name = "Users")
 @Table(name = "users")
-internal class UsersJpaEntity private constructor(
+internal class UsersJpaEntity
+private constructor(
     id: Long?,
     role: Role,
 ) {
@@ -31,9 +32,10 @@ internal class UsersJpaEntity private constructor(
         fun rehydrate(
             id: Long?,
             role: Role,
-        ): UsersJpaEntity = UsersJpaEntity(
-            id = id,
-            role = role,
-        )
+        ): UsersJpaEntity =
+            UsersJpaEntity(
+                id = id,
+                role = role,
+            )
     }
 }

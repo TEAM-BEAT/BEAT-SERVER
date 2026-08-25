@@ -5,9 +5,7 @@ import com.beat.domain.performance.exception.PerformanceErrorCode
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility
-data class RunningTime private constructor(
-    val minutes: Int,
-) {
+data class RunningTime private constructor(val minutes: Int) {
     fun endsAt(start: LocalDateTime): LocalDateTime = start.plusMinutes(minutes.toLong())
 
     companion object {

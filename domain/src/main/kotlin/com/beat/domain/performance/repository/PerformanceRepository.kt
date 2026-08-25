@@ -2,7 +2,6 @@ package com.beat.domain.performance.repository
 
 import com.beat.domain.performance.model.Performance
 
-
 interface PerformanceRepository {
     fun findById(id: Long): Performance?
 

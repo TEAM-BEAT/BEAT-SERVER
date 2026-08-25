@@ -24,12 +24,12 @@ class AdminSecurityConfig(
     private val authenticationEntryPoint: AuthenticationEntryPoint,
     private val accessDeniedHandler: AccessDeniedHandler,
     private val environment: Environment,
-    @param:Value("\${management.endpoints.web.base-path}")
-    private val actuatorEndPoint: String,
+    @param:Value("\${management.endpoints.web.base-path}") private val actuatorEndPoint: String,
 ) {
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        http.csrf { it.disable() }
+        http
+            .csrf { it.disable() }
             .cors(Customizer.withDefaults())
             .formLogin { it.disable() }
             .httpBasic { it.disable() }
@@ -39,10 +39,15 @@ class AdminSecurityConfig(
                     .accessDeniedHandler(accessDeniedHandler)
             }
             .authorizeHttpRequests {
-                it.requestMatchers(*authWhitelist()).permitAll()
-                    .anyRequest().hasAuthority(ROLE_ADMIN)
+                it.requestMatchers(*authWhitelist())
+                    .permitAll()
+                    .anyRequest()
+                    .hasAuthority(ROLE_ADMIN)
             }
-            .addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .addFilterBefore(
+                securityMdcLoggingFilter,
+                UsernamePasswordAuthenticationFilter::class.java,
+            )
             .addFilterAfter(jwtAuthenticationFilter, securityMdcLoggingFilter.javaClass)
 
         return http.build()
@@ -54,17 +59,19 @@ class AdminSecurityConfig(
                 "/error",
                 "$actuatorEndPoint/health",
                 "$actuatorEndPoint/prometheus",
-            ),
+            )
         )
         if (!environment.acceptsProfiles(Profiles.of("prod"))) addAll(SWAGGER_WHITELIST)
-    }.toTypedArray()
+    }
+        .toTypedArray()
 
     private companion object {
         const val ROLE_ADMIN = "ROLE_ADMIN"
-        val SWAGGER_WHITELIST = listOf(
-            "/api/admin/v3/api-docs/**",
-            "/swagger-ui/**",
-            "/swagger-resources/**",
-        )
+        val SWAGGER_WHITELIST =
+            listOf(
+                "/api/admin/v3/api-docs/**",
+                "/swagger-ui/**",
+                "/swagger-resources/**",
+            )
     }
 }

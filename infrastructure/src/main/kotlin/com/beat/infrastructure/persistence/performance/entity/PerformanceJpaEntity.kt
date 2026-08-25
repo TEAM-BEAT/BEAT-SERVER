@@ -1,7 +1,7 @@
 package com.beat.infrastructure.persistence.performance.entity
 
-import com.beat.infrastructure.persistence.common.BaseTimeEntity
 import com.beat.domain.performance.model.Genre
+import com.beat.infrastructure.persistence.common.BaseTimeEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Embedded
 import jakarta.persistence.Entity
@@ -14,7 +14,8 @@ import jakarta.persistence.Table
 
 @Entity(name = "Performance")
 @Table(name = "performance")
-internal class PerformanceJpaEntity private constructor(
+internal class PerformanceJpaEntity
+private constructor(
     id: Long?,
     performanceTitle: String,
     genre: Genre,
@@ -30,8 +31,7 @@ internal class PerformanceJpaEntity private constructor(
     latitude: String,
     longitude: String,
     performanceContact: String,
-    performancePeriodValue: PerformancePeriodJpaValue?,
-    legacyPerformancePeriod: String,
+    performancePeriodValue: PerformancePeriodJpaValue,
     ticketPrice: Int,
     totalScheduleCount: Int,
     userId: Long,
@@ -101,11 +101,7 @@ internal class PerformanceJpaEntity private constructor(
         protected set
 
     @Embedded
-    var performancePeriodValue: PerformancePeriodJpaValue? = performancePeriodValue
-        protected set
-
-    @Column(name = "performance_period", nullable = false)
-    var legacyPerformancePeriod: String = legacyPerformancePeriod
+    var performancePeriodValue: PerformancePeriodJpaValue = performancePeriodValue
         protected set
 
     @Column(nullable = false)
@@ -137,32 +133,31 @@ internal class PerformanceJpaEntity private constructor(
             latitude: String,
             longitude: String,
             performanceContact: String,
-            performancePeriodValue: PerformancePeriodJpaValue?,
-            legacyPerformancePeriod: String,
+            performancePeriodValue: PerformancePeriodJpaValue,
             ticketPrice: Int,
             totalScheduleCount: Int,
             userId: Long,
-        ): PerformanceJpaEntity = PerformanceJpaEntity(
-            id = id,
-            performanceTitle = performanceTitle,
-            genre = genre,
-            runningTime = runningTime,
-            performanceDescription = performanceDescription,
-            performanceAttentionNote = performanceAttentionNote,
-            paymentAccount = paymentAccount,
-            posterImage = posterImage,
-            performanceTeamName = performanceTeamName,
-            performanceVenue = performanceVenue,
-            roadAddressName = roadAddressName,
-            placeDetailAddress = placeDetailAddress,
-            latitude = latitude,
-            longitude = longitude,
-            performanceContact = performanceContact,
-            performancePeriodValue = performancePeriodValue,
-            legacyPerformancePeriod = legacyPerformancePeriod,
-            ticketPrice = ticketPrice,
-            totalScheduleCount = totalScheduleCount,
-            userId = userId,
-        )
+        ): PerformanceJpaEntity =
+            PerformanceJpaEntity(
+                id = id,
+                performanceTitle = performanceTitle,
+                genre = genre,
+                runningTime = runningTime,
+                performanceDescription = performanceDescription,
+                performanceAttentionNote = performanceAttentionNote,
+                paymentAccount = paymentAccount,
+                posterImage = posterImage,
+                performanceTeamName = performanceTeamName,
+                performanceVenue = performanceVenue,
+                roadAddressName = roadAddressName,
+                placeDetailAddress = placeDetailAddress,
+                latitude = latitude,
+                longitude = longitude,
+                performanceContact = performanceContact,
+                performancePeriodValue = performancePeriodValue,
+                ticketPrice = ticketPrice,
+                totalScheduleCount = totalScheduleCount,
+                userId = userId,
+            )
     }
 }

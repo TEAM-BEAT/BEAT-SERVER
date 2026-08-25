@@ -14,7 +14,8 @@ import java.time.LocalDateTime
 
 @Entity(name = "Booking")
 @Table(name = "booking")
-internal class BookingJpaEntity private constructor(
+internal class BookingJpaEntity
+private constructor(
     id: Long?,
     purchaseTicketCount: Int,
     bookerName: String,
@@ -25,7 +26,7 @@ internal class BookingJpaEntity private constructor(
     birthDate: String?,
     password: String?,
     refundAccount: RefundAccountJpaValue?,
-    totalPaymentAmount: Int?,
+    totalPaymentAmount: Int,
     scheduleId: Long,
     userId: Long,
 ) {
@@ -72,8 +73,8 @@ internal class BookingJpaEntity private constructor(
     var refundAccount: RefundAccountJpaValue? = refundAccount
         protected set
 
-    @Column(name = "total_payment_amount")
-    var totalPaymentAmount: Int? = totalPaymentAmount
+    @Column(name = "total_payment_amount", nullable = false)
+    var totalPaymentAmount: Int = totalPaymentAmount
         protected set
 
     @Column(name = "schedule_id", nullable = false)
@@ -98,21 +99,22 @@ internal class BookingJpaEntity private constructor(
             refundAccount: RefundAccountJpaValue?,
             scheduleId: Long,
             userId: Long,
-            totalPaymentAmount: Int? = null,
-        ): BookingJpaEntity = BookingJpaEntity(
-            id = id,
-            purchaseTicketCount = purchaseTicketCount,
-            bookerName = bookerName,
-            bookerPhoneNumber = bookerPhoneNumber,
-            bookingStatus = bookingStatus,
-            createdAt = createdAt,
-            cancellationDate = cancellationDate,
-            birthDate = birthDate,
-            password = password,
-            refundAccount = refundAccount,
-            totalPaymentAmount = totalPaymentAmount,
-            scheduleId = scheduleId,
-            userId = userId,
-        )
+            totalPaymentAmount: Int,
+        ): BookingJpaEntity =
+            BookingJpaEntity(
+                id = id,
+                purchaseTicketCount = purchaseTicketCount,
+                bookerName = bookerName,
+                bookerPhoneNumber = bookerPhoneNumber,
+                bookingStatus = bookingStatus,
+                createdAt = createdAt,
+                cancellationDate = cancellationDate,
+                birthDate = birthDate,
+                password = password,
+                refundAccount = refundAccount,
+                totalPaymentAmount = totalPaymentAmount,
+                scheduleId = scheduleId,
+                userId = userId,
+            )
     }
 }

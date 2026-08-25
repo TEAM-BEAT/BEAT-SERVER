@@ -9,5 +9,6 @@ import org.springframework.context.annotation.Configuration
 @ComponentScan(basePackageClasses = [AdminApplicationConfig::class])
 class AdminApplicationConfig {
     @Bean
-    fun promotionCarouselDomainService(): PromotionCarouselDomainService = PromotionCarouselDomainService()
+    fun promotionCarouselDomainService(): PromotionCarouselDomainService =
+        PromotionCarouselDomainService()
 }

@@ -8,10 +8,11 @@ import org.springframework.context.annotation.Import
 
 @Configuration(proxyBeanMethods = false)
 @EnableInfraBaseConfig(
-    value = [
-        InfraBaseConfigGroup.JPA,
-        InfraBaseConfigGroup.ASYNC,
-    ]
+    value =
+        [
+            InfraBaseConfigGroup.JPA,
+            InfraBaseConfigGroup.ASYNC,
+        ]
 )
 // @EnableInfraBaseConfig is backed by DeferredImportSelector, which IntelliJ Spring plugin
 // cannot statically trace. This explicit import is an IDE breadcrumb only — runtime

@@ -21,7 +21,7 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-rootProject.name = "beat-server"
+rootProject.name = "beat"
 
 include(
     "apps:api",
@@ -33,5 +33,6 @@ include(
     "domain",
     "infrastructure",
     "support:security",
+    "support:security-web",
     "support:observability",
 )

@@ -1,6 +1,7 @@
 package com.beat.domain.performance.model
 
-class Staff private constructor(
+class Staff
+private constructor(
     private val staffId: Id?,
     val staffName: String,
     val staffRole: String,
@@ -19,12 +20,13 @@ class Staff private constructor(
 
     override fun toString(): String = "Staff(id=$id)"
 
-    fun update(staffName: String, staffRole: String, staffPhoto: String): Staff = Staff(
-        staffId = staffId,
-        staffName = staffName,
-        staffRole = staffRole,
-        staffPhoto = staffPhoto,
-    )
+    fun update(staffName: String, staffRole: String, staffPhoto: String): Staff =
+        Staff(
+            staffId = staffId,
+            staffName = staffName,
+            staffRole = staffRole,
+            staffPhoto = staffPhoto,
+        )
 
     @JvmInline
     value class Id private constructor(val value: Long) {
@@ -34,18 +36,20 @@ class Staff private constructor(
     }
 
     companion object {
-        fun create(staffName: String, staffRole: String, staffPhoto: String): Staff = Staff(
-            staffId = null,
-            staffName = staffName,
-            staffRole = staffRole,
-            staffPhoto = staffPhoto,
-        )
+        fun create(staffName: String, staffRole: String, staffPhoto: String): Staff =
+            Staff(
+                staffId = null,
+                staffName = staffName,
+                staffRole = staffRole,
+                staffPhoto = staffPhoto,
+            )
 
-        fun rehydrate(id: Long?, staffName: String, staffRole: String, staffPhoto: String): Staff = Staff(
-            staffId = Id.fromNullable(id),
-            staffName = staffName,
-            staffRole = staffRole,
-            staffPhoto = staffPhoto,
-        )
+        fun rehydrate(id: Long?, staffName: String, staffRole: String, staffPhoto: String): Staff =
+            Staff(
+                staffId = Id.fromNullable(id),
+                staffName = staffName,
+                staffRole = staffRole,
+                staffPhoto = staffPhoto,
+            )
     }
 }

@@ -3,8 +3,8 @@ package com.beat.apps.admin.exception
 import com.beat.application.admin.exception.AdminApplicationErrorType
 import com.beat.application.admin.exception.AdminApplicationException
 import com.beat.apps.admin.response.ErrorResponse
-import jakarta.servlet.http.HttpServletRequest
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.TypeMismatchException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -34,8 +34,11 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
     ): ResponseEntity<Any>? {
         val message = ex.bindingResult.fieldError?.defaultMessage ?: "Validation error"
         return handleExceptionInternal(
-            ex, ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), message),
-            headers, HttpStatus.BAD_REQUEST, request,
+            ex,
+            ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), message),
+            headers,
+            HttpStatus.BAD_REQUEST,
+            request,
         )
     }
 
@@ -44,13 +47,17 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         headers: HttpHeaders,
         status: HttpStatusCode,
         request: WebRequest,
-    ): ResponseEntity<Any>? = handleExceptionInternal(
-        ex,
-        ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), "Missing required parameter: ${ex.parameterName}"),
-        headers,
-        HttpStatus.BAD_REQUEST,
-        request,
-    )
+    ): ResponseEntity<Any>? =
+        handleExceptionInternal(
+            ex,
+            ErrorResponse.of(
+                HttpStatus.BAD_REQUEST.value(),
+                "Missing required parameter: ${ex.parameterName}",
+            ),
+            headers,
+            HttpStatus.BAD_REQUEST,
+            request,
+        )
 
     override fun handleTypeMismatch(
         ex: TypeMismatchException,
@@ -58,12 +65,16 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         status: HttpStatusCode,
         request: WebRequest,
     ): ResponseEntity<Any>? {
-        if (ex !is MethodArgumentTypeMismatchException) return clientErrorResponse(ex, status, headers, request)
+        if (ex !is MethodArgumentTypeMismatchException)
+            return clientErrorResponse(ex, status, headers, request)
         val requiredType = ex.requiredType?.simpleName ?: "Unknown Type"
         val message = "Invalid value for parameter: ${ex.name} (Expected: $requiredType)"
         return handleExceptionInternal(
-            ex, ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), message),
-            headers, HttpStatus.BAD_REQUEST, request,
+            ex,
+            ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), message),
+            headers,
+            HttpStatus.BAD_REQUEST,
+            request,
         )
     }
 
@@ -73,10 +84,14 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         status: HttpStatusCode,
         request: WebRequest,
     ): ResponseEntity<Any>? {
-        if (ex !is MissingRequestCookieException) return clientErrorResponse(ex, status, headers, request)
+        if (ex !is MissingRequestCookieException)
+            return clientErrorResponse(ex, status, headers, request)
         return handleExceptionInternal(
             ex,
-            ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), "Missing required cookie: ${ex.cookieName}"),
+            ErrorResponse.of(
+                HttpStatus.BAD_REQUEST.value(),
+                "Missing required cookie: ${ex.cookieName}",
+            ),
             headers,
             HttpStatus.BAD_REQUEST,
             request,
@@ -110,21 +125,26 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         statusCode: HttpStatusCode,
         request: WebRequest,
     ): ResponseEntity<Any> {
-        val responseBody = if (body is ErrorResponse) {
-            body
-        } else {
-            val message = if (statusCode.is5xxServerError) {
-                "서버 내부 오류입니다."
+        val responseBody =
+            if (body is ErrorResponse) {
+                body
             } else {
-                "잘못된 요청입니다."
+                val message =
+                    if (statusCode.is5xxServerError) {
+                        "서버 내부 오류입니다."
+                    } else {
+                        "잘못된 요청입니다."
+                    }
+                ErrorResponse.of(statusCode.value(), message)
             }
-            ErrorResponse.of(statusCode.value(), message)
-        }
         return super.createResponseEntity(responseBody, headers, statusCode, request)
     }
 
     @ExceptionHandler(Exception::class)
-    fun handleException(exception: Exception, request: HttpServletRequest): ResponseEntity<ErrorResponse> {
+    fun handleException(
+        exception: Exception,
+        request: HttpServletRequest,
+    ): ResponseEntity<ErrorResponse> {
         log.error(exception) { "Unexpected server error" }
         markObservationError(request, exception)
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -141,14 +161,20 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         val status = toHttpStatus(type)
         when {
             type == AdminApplicationErrorType.INTERNAL_ERROR -> {
-                log.error(exception) { "Application failure: code=${errorCode.code}, status=${status.value()}" }
+                log.error(exception) {
+                    "Application failure: code=${errorCode.code}, status=${status.value()}"
+                }
                 markObservationError(request, exception)
             }
             status.is5xxServerError ->
-                log.error { "Upstream application failure: code=${errorCode.code}, status=${status.value()}" }
-            else -> log.info { "Application failure: code=${errorCode.code}, status=${status.value()}" }
+                log.error {
+                    "Upstream application failure: code=${errorCode.code}, status=${status.value()}"
+                }
+            else ->
+                log.info { "Application failure: code=${errorCode.code}, status=${status.value()}" }
         }
-        return ResponseEntity.status(status).body(ErrorResponse.of(status.value(), errorCode.message))
+        return ResponseEntity.status(status)
+            .body(ErrorResponse.of(status.value(), errorCode.message))
     }
 
     private fun clientErrorResponse(
@@ -156,27 +182,35 @@ class AdminGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         status: HttpStatusCode,
         headers: HttpHeaders,
         request: WebRequest,
-    ): ResponseEntity<Any>? = handleExceptionInternal(
-        exception, ErrorResponse.of(status.value(), "잘못된 요청입니다."), headers, status, request,
-    )
+    ): ResponseEntity<Any>? =
+        handleExceptionInternal(
+            exception,
+            ErrorResponse.of(status.value(), "잘못된 요청입니다."),
+            headers,
+            status,
+            request,
+        )
 
     private fun markObservationError(request: HttpServletRequest, exception: Exception) {
-        ServerHttpObservationFilter.findObservationContext(request).ifPresent { it.setError(exception) }
+        ServerHttpObservationFilter.findObservationContext(request).ifPresent {
+            it.setError(exception)
+        }
     }
 
     companion object {
         private val log = KotlinLogging.logger {}
 
-        private fun toHttpStatus(type: AdminApplicationErrorType): HttpStatus = when (type) {
-            AdminApplicationErrorType.INVALID_INPUT -> HttpStatus.BAD_REQUEST
-            AdminApplicationErrorType.UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED
-            AdminApplicationErrorType.FORBIDDEN -> HttpStatus.FORBIDDEN
-            AdminApplicationErrorType.NOT_FOUND -> HttpStatus.NOT_FOUND
-            AdminApplicationErrorType.STATE_CONFLICT -> HttpStatus.CONFLICT
-            AdminApplicationErrorType.UPSTREAM_FAILURE -> HttpStatus.BAD_GATEWAY
-            AdminApplicationErrorType.UPSTREAM_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE
-            AdminApplicationErrorType.UPSTREAM_TIMEOUT -> HttpStatus.GATEWAY_TIMEOUT
-            AdminApplicationErrorType.INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR
-        }
+        private fun toHttpStatus(type: AdminApplicationErrorType): HttpStatus =
+            when (type) {
+                AdminApplicationErrorType.INVALID_INPUT -> HttpStatus.BAD_REQUEST
+                AdminApplicationErrorType.UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED
+                AdminApplicationErrorType.FORBIDDEN -> HttpStatus.FORBIDDEN
+                AdminApplicationErrorType.NOT_FOUND -> HttpStatus.NOT_FOUND
+                AdminApplicationErrorType.STATE_CONFLICT -> HttpStatus.CONFLICT
+                AdminApplicationErrorType.UPSTREAM_FAILURE -> HttpStatus.BAD_GATEWAY
+                AdminApplicationErrorType.UPSTREAM_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE
+                AdminApplicationErrorType.UPSTREAM_TIMEOUT -> HttpStatus.GATEWAY_TIMEOUT
+                AdminApplicationErrorType.INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR
+            }
     }
 }

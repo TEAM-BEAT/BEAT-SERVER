@@ -1,13 +1,11 @@
 package com.beat.support.security.jwt.internal
 
-import com.beat.support.security.token.TokenSubject
+import com.beat.application.frontoffice.security.TokenSubject
 import io.jsonwebtoken.Jwts
 import java.time.Clock
 import java.util.Date
 
-/**
- * JWT 발급만 담당한다.
- */
+/** JWT 발급만 담당한다. 외부에서는 application-owned Port(TokenIssuer)로만 접근한다. */
 internal class JwtTokenIssuer(
     private val signingKeyHolder: JwtSigningKeyHolder,
     private val clock: Clock,

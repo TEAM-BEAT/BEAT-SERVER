@@ -8,21 +8,18 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration(proxyBeanMethods = false)
 class SentryConfig(
-    @param:Value("\${spring.application.name:beat-server}")
-    private val moduleName: String,
-    @param:Value("\${sentry.release:}")
-    private val configuredRelease: String = "",
+    @param:Value("\${spring.application.name:beat-server}") private val moduleName: String,
+    @param:Value("\${sentry.release:}") private val configuredRelease: String = "",
 ) {
 
     @Bean
     fun beatSentryEventProcessor(): BeatSentryEventProcessor = BeatSentryEventProcessor(moduleName)
 
-    @Bean
-    fun beatSentryMetrics(): BeatSentryMetrics = BeatSentryMetrics()
+    @Bean fun beatSentryMetrics(): BeatSentryMetrics = BeatSentryMetrics()
 
     @Bean
     fun beatSentryOptionsConfiguration(
-        beatSentryEventProcessor: BeatSentryEventProcessor,
+        beatSentryEventProcessor: BeatSentryEventProcessor
     ): Sentry.OptionsConfiguration<SentryOptions> = Sentry.OptionsConfiguration { options ->
         if (options.dsn.isNullOrBlank()) {
             options.isEnabled = false

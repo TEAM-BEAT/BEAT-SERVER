@@ -3,7 +3,8 @@ package com.beat.application.frontoffice.performance.maker.command
 import kotlin.ConsistentCopyVisibility
 
 @ConsistentCopyVisibility
-data class ImagePresignedUpload private constructor(
+data class ImagePresignedUpload
+private constructor(
     val uploadUrl: String,
     val imageKey: String,
 ) {

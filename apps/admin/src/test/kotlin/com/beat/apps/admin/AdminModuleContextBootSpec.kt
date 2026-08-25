@@ -23,18 +23,17 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 @Tags("acceptance")
 class AdminModuleContextBootSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var applicationContext: ApplicationContext
+    @Autowired private lateinit var applicationContext: ApplicationContext
 
-    @Autowired
-    private lateinit var mockMvc: MockMvc
+    @Autowired private lateinit var mockMvc: MockMvc
 
     init {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
         test("admin 구성과 persistence 인프라만 부팅한다") {
-            val groupedOpenApis = applicationContext.getBeansOfType(GroupedOpenApi::class.java).values
+            val groupedOpenApis =
+                applicationContext.getBeansOfType(GroupedOpenApi::class.java).values
             groupedOpenApis.size shouldBe 1
             groupedOpenApis.single().group shouldBe "admin"
             applicationContext.getBeansOfType(OpenAPI::class.java).size shouldBe 1
@@ -52,7 +51,8 @@ class AdminModuleContextBootSpec : FunSpec() {
         }
 
         test("prod 외 환경에서 그룹화된 admin OpenAPI 문서를 제공한다") {
-            mockMvc.perform(get("/api/admin/v3/api-docs/admin"))
+            mockMvc
+                .perform(get("/api/admin/v3/api-docs/admin"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.openapi").exists())
                 .andExpect(jsonPath("$.paths").exists())

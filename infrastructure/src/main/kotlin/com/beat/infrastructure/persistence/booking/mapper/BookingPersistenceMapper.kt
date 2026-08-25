@@ -48,9 +48,11 @@ internal class BookingPersistenceMapper {
             domain.totalPaymentAmount,
         )
 
-    private fun toDomain(value: RefundAccountJpaValue?): RefundAccount? =
-        value?.let { RefundAccount.of(it.bankName, it.accountNumber, it.accountHolder) }
+    private fun toDomain(value: RefundAccountJpaValue?): RefundAccount? = value?.let {
+        RefundAccount.of(it.bankName, it.accountNumber, it.accountHolder)
+    }
 
-    private fun toEntity(value: RefundAccount?): RefundAccountJpaValue? =
-        value?.let { RefundAccountJpaValue(it.bankName, it.accountNumber, it.accountHolder) }
+    private fun toEntity(value: RefundAccount?): RefundAccountJpaValue? = value?.let {
+        RefundAccountJpaValue(it.bankName, it.accountNumber, it.accountHolder)
+    }
 }

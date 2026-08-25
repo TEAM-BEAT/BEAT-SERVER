@@ -11,7 +11,8 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 @Transactional(readOnly = true)
-class AdminUserQueryService internal constructor(
+class AdminUserQueryService
+internal constructor(
     private val memberRepository: MemberRepository,
     private val userRepository: UserRepository,
 ) {

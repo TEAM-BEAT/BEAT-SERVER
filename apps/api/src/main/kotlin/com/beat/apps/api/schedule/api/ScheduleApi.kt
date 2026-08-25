@@ -1,9 +1,9 @@
 package com.beat.apps.api.schedule.api
 
-import com.beat.apps.api.schedule.api.response.TicketAvailabilityResponse
-import com.beat.apps.api.swagger.annotation.DisableSwaggerSecurity
 import com.beat.apps.api.response.ErrorResponse
 import com.beat.apps.api.response.SuccessResponse
+import com.beat.apps.api.schedule.api.response.TicketAvailabilityResponse
+import com.beat.apps.api.swagger.annotation.DisableSwaggerSecurity
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -20,24 +20,25 @@ interface ScheduleApi {
     @DisableSwaggerSecurity
     @Operation(summary = "티켓 구매 가능 여부 조회 API", description = "티켓 구매 가능 여부를 확인하는 GET API입니다.")
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "200", description = "티켓 수량 조회가 성공적으로 완료되었습니다."),
-            ApiResponse(
-                responseCode = "400",
-                description = "잘못된 데이터 형식입니다.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-            ApiResponse(
-                responseCode = "404",
-                description = "회차 정보를 찾을 수 없습니다.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-            ApiResponse(
-                responseCode = "409",
-                description = "요청한 티켓 수량이 잔여 티켓 수를 초과했습니다.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-        ],
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "티켓 수량 조회가 성공적으로 완료되었습니다."),
+                ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 데이터 형식입니다.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description = "회차 정보를 찾을 수 없습니다.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+                ApiResponse(
+                    responseCode = "409",
+                    description = "요청한 티켓 수량이 잔여 티켓 수를 초과했습니다.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+            ]
     )
     fun getTicketAvailability(
         @PathVariable scheduleId: Long,

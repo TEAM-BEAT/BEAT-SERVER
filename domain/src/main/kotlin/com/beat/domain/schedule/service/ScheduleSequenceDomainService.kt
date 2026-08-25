@@ -1,9 +1,9 @@
 package com.beat.domain.schedule.service
 
 import com.beat.domain.exception.DomainException
+import com.beat.domain.schedule.exception.ScheduleErrorCode
 import com.beat.domain.schedule.model.Schedule
 import com.beat.domain.schedule.model.ScheduleNumber
-import com.beat.domain.schedule.exception.ScheduleErrorCode
 
 class ScheduleSequenceDomainService {
     fun validateScheduleCount(scheduleCount: Long) {

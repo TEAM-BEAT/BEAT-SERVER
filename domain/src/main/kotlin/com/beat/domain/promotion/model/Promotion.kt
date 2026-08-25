@@ -3,7 +3,8 @@ package com.beat.domain.promotion.model
 import com.beat.domain.performance.model.Performance
 import com.beat.domain.sharedkernel.model.AggregateRoot
 
-class Promotion private constructor(
+class Promotion
+private constructor(
     private val promotionId: Id?,
     val promotionPhoto: String,
     private val linkedPerformanceId: Performance.Id?,
@@ -33,23 +34,25 @@ class Promotion private constructor(
         isExternal: Boolean,
         redirectUrl: String,
         performanceId: Long?,
-    ): Promotion = Promotion(
-        promotionId = promotionId,
-        carouselNumber = carouselNumber,
-        promotionPhoto = newImageUrl,
-        isExternal = isExternal,
-        redirectUrl = redirectUrl,
-        linkedPerformanceId = Performance.Id.fromNullable(performanceId),
-    )
+    ): Promotion =
+        Promotion(
+            promotionId = promotionId,
+            carouselNumber = carouselNumber,
+            promotionPhoto = newImageUrl,
+            isExternal = isExternal,
+            redirectUrl = redirectUrl,
+            linkedPerformanceId = Performance.Id.fromNullable(performanceId),
+        )
 
-    fun updateCarouselNumber(carouselNumber: CarouselNumber): Promotion = Promotion(
-        promotionId = promotionId,
-        promotionPhoto = promotionPhoto,
-        linkedPerformanceId = linkedPerformanceId,
-        redirectUrl = redirectUrl,
-        isExternal = isExternal,
-        carouselNumber = carouselNumber,
-    )
+    fun updateCarouselNumber(carouselNumber: CarouselNumber): Promotion =
+        Promotion(
+            promotionId = promotionId,
+            promotionPhoto = promotionPhoto,
+            linkedPerformanceId = linkedPerformanceId,
+            redirectUrl = redirectUrl,
+            isExternal = isExternal,
+            carouselNumber = carouselNumber,
+        )
 
     @JvmInline
     value class Id private constructor(val value: Long) {
@@ -67,14 +70,15 @@ class Promotion private constructor(
             redirectUrl: String,
             isExternal: Boolean,
             carouselNumber: CarouselNumber,
-        ): Promotion = Promotion(
-            promotionId = null,
-            promotionPhoto = promotionPhoto,
-            linkedPerformanceId = Performance.Id.fromNullable(performanceId),
-            redirectUrl = redirectUrl,
-            isExternal = isExternal,
-            carouselNumber = carouselNumber,
-        )
+        ): Promotion =
+            Promotion(
+                promotionId = null,
+                promotionPhoto = promotionPhoto,
+                linkedPerformanceId = Performance.Id.fromNullable(performanceId),
+                redirectUrl = redirectUrl,
+                isExternal = isExternal,
+                carouselNumber = carouselNumber,
+            )
 
         fun rehydrate(
             id: Long?,
@@ -83,13 +87,14 @@ class Promotion private constructor(
             redirectUrl: String,
             isExternal: Boolean,
             carouselNumber: CarouselNumber,
-        ): Promotion = Promotion(
-            promotionId = Id.fromNullable(id),
-            promotionPhoto = promotionPhoto,
-            linkedPerformanceId = Performance.Id.fromNullable(performanceId),
-            redirectUrl = redirectUrl,
-            isExternal = isExternal,
-            carouselNumber = carouselNumber,
-        )
+        ): Promotion =
+            Promotion(
+                promotionId = Id.fromNullable(id),
+                promotionPhoto = promotionPhoto,
+                linkedPerformanceId = Performance.Id.fromNullable(performanceId),
+                redirectUrl = redirectUrl,
+                isExternal = isExternal,
+                carouselNumber = carouselNumber,
+            )
     }
 }

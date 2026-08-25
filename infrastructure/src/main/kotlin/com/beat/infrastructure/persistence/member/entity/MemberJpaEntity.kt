@@ -1,7 +1,7 @@
 package com.beat.infrastructure.persistence.member.entity
 
-import com.beat.infrastructure.persistence.common.BaseTimeEntity
 import com.beat.domain.member.model.SocialType
+import com.beat.infrastructure.persistence.common.BaseTimeEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -16,12 +16,17 @@ import java.time.LocalDateTime
 @Entity(name = "Member")
 @Table(
     name = "member",
-    uniqueConstraints = [
-        UniqueConstraint(name = "uk_member_user_id", columnNames = ["user_id"]),
-        UniqueConstraint(name = "uk_member_social_identity", columnNames = ["social_type", "social_id"]),
-    ],
+    uniqueConstraints =
+        [
+            UniqueConstraint(name = "uk_member_user_id", columnNames = ["user_id"]),
+            UniqueConstraint(
+                name = "uk_member_social_identity",
+                columnNames = ["social_type", "social_id"],
+            ),
+        ],
 )
-internal class MemberJpaEntity private constructor(
+internal class MemberJpaEntity
+private constructor(
     id: Long?,
     nickname: String,
     email: String?,
@@ -71,14 +76,15 @@ internal class MemberJpaEntity private constructor(
             userId: Long,
             socialId: Long,
             socialType: SocialType,
-        ): MemberJpaEntity = MemberJpaEntity(
-            id = id,
-            nickname = nickname,
-            email = email,
-            deletedAt = deletedAt,
-            userId = userId,
-            socialId = socialId,
-            socialType = socialType,
-        )
+        ): MemberJpaEntity =
+            MemberJpaEntity(
+                id = id,
+                nickname = nickname,
+                email = email,
+                deletedAt = deletedAt,
+                userId = userId,
+                socialId = socialId,
+                socialType = socialType,
+            )
     }
 }

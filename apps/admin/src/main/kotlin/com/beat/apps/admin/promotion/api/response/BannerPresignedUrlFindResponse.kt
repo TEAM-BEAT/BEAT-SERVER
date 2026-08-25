@@ -6,9 +6,12 @@ data class BannerPresignedUrlFindResponse(
     val bannerPresignedUrl: String,
     val bannerPresignedUpload: BannerPresignedUploadResponse,
 ) {
-    constructor(result: BannerPresignedUrlResult) : this(
+    constructor(
+        result: BannerPresignedUrlResult
+    ) : this(
         bannerPresignedUrl = result.bannerPresignedUrl,
-        bannerPresignedUpload = BannerPresignedUploadResponse(result.bannerPresignedUrl, result.bannerImageKey),
+        bannerPresignedUpload =
+            BannerPresignedUploadResponse(result.bannerPresignedUrl, result.bannerImageKey),
     )
 
     data class BannerPresignedUploadResponse(

@@ -1,13 +1,14 @@
 package com.beat.apps.api.booking.api.response
 
-import com.beat.apps.api.booking.api.type.BookingStatusType
 import com.beat.application.frontoffice.booking.booker.result.BookingCreationResult
+import com.beat.apps.api.booking.api.type.BookingStatusType
 import com.beat.apps.api.performance.api.type.BankNameType
 import com.beat.apps.api.schedule.api.type.ScheduleNumberType
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility
-data class GuestBookingResponse private constructor(
+data class GuestBookingResponse
+private constructor(
     val bookingId: Long?,
     val scheduleId: Long?,
     val userId: Long,
@@ -22,19 +23,20 @@ data class GuestBookingResponse private constructor(
     val createdAt: LocalDateTime?,
 ) {
     companion object {
-        fun from(result: BookingCreationResult): GuestBookingResponse = GuestBookingResponse(
-            bookingId = result.bookingId,
-            scheduleId = result.scheduleId,
-            userId = result.userId,
-            purchaseTicketCount = result.purchaseTicketCount,
-            scheduleNumber = result.scheduleNumber?.let(ScheduleNumberType::valueOf),
-            bookerName = result.bookerName,
-            bookerPhoneNumber = result.bookerPhoneNumber,
-            bookingStatus = result.bookingStatus?.let(BookingStatusType::valueOf),
-            bankName = result.bankName?.let(BankNameType::valueOf),
-            accountNumber = result.accountNumber,
-            totalPaymentAmount = result.totalPaymentAmount,
-            createdAt = result.createdAt,
-        )
+        fun from(result: BookingCreationResult): GuestBookingResponse =
+            GuestBookingResponse(
+                bookingId = result.bookingId,
+                scheduleId = result.scheduleId,
+                userId = result.userId,
+                purchaseTicketCount = result.purchaseTicketCount,
+                scheduleNumber = result.scheduleNumber?.let(ScheduleNumberType::valueOf),
+                bookerName = result.bookerName,
+                bookerPhoneNumber = result.bookerPhoneNumber,
+                bookingStatus = result.bookingStatus?.let(BookingStatusType::valueOf),
+                bankName = result.bankName?.let(BankNameType::valueOf),
+                accountNumber = result.accountNumber,
+                totalPaymentAmount = result.totalPaymentAmount,
+                createdAt = result.createdAt,
+            )
     }
 }

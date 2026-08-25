@@ -1,9 +1,9 @@
 package com.beat.apps.api.schedule.api
 
+import com.beat.apps.api.response.SuccessResponse
 import com.beat.apps.api.schedule.api.response.ScheduleSuccessCode
 import com.beat.apps.api.schedule.api.response.TicketAvailabilityResponse
 import com.beat.apps.api.schedule.facade.ScheduleFacade
-import com.beat.apps.api.response.SuccessResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -14,9 +14,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/schedules")
-class ScheduleController(
-    private val scheduleFacade: ScheduleFacade,
-) : ScheduleApi {
+class ScheduleController(private val scheduleFacade: ScheduleFacade) : ScheduleApi {
 
     @GetMapping("/{scheduleId}/availability")
     override fun getTicketAvailability(
@@ -25,6 +23,11 @@ class ScheduleController(
     ): ResponseEntity<SuccessResponse<TicketAvailabilityResponse>> {
         val response = scheduleFacade.findTicketAvailability(scheduleId, purchaseTicketCount)
         return ResponseEntity.status(HttpStatus.OK)
-            .body(SuccessResponse.of(ScheduleSuccessCode.TICKET_AVAILABILITY_RETRIEVAL_SUCCESS, response))
+            .body(
+                SuccessResponse.of(
+                    ScheduleSuccessCode.TICKET_AVAILABILITY_RETRIEVAL_SUCCESS,
+                    response,
+                )
+            )
     }
 }

@@ -1,33 +1,31 @@
 package com.beat.apps.api
 
 import com.beat.application.frontoffice.FrontofficeApplicationConfig
+import com.beat.application.frontoffice.auth.command.RefreshTokenStore
+import com.beat.application.frontoffice.booking.booker.command.GuestAccessThrottle
+import com.beat.application.frontoffice.booking.booker.command.GuestSessionStore
 import com.beat.apps.api.config.ApisSecurityConfig
 import com.beat.apps.api.config.GatewayConfig
 import com.beat.apps.api.config.GuestSessionOriginFilter
 import com.beat.apps.api.config.InfraConfig
 import com.beat.apps.api.swagger.config.SwaggerConfig
-import com.beat.application.frontoffice.booking.booker.command.GuestAccessThrottle
-import com.beat.application.frontoffice.booking.booker.command.GuestSessionStore
-import com.beat.application.frontoffice.auth.command.RefreshTokenStore
 import com.beat.infrastructure.EnableInfraBaseConfig
-import com.beat.support.security.EnableGatewayConfig
-import com.beat.support.security.GatewayConfigGroup
-import com.beat.support.security.EnableGatewayServletSecurity
 import com.beat.infrastructure.InfraBaseConfigGroup
 import com.beat.infrastructure.persistence.InfraPersistenceConfig
 import com.beat.infrastructure.redis.auth.AuthRedisConfig
 import com.beat.support.observability.ObservabilityModuleConfig
+import com.beat.support.security.EnableGatewayConfig
+import com.beat.support.security.EnableGatewayServletSecurity
+import com.beat.support.security.GatewayConfigGroup
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import org.springframework.http.HttpStatus
-import org.springframework.mock.web.MockFilterChain
-import org.springframework.mock.web.MockHttpServletRequest
-import org.springframework.mock.web.MockHttpServletResponse
-import org.springframework.security.web.access.AccessDeniedHandler
-import org.springframework.boot.autoconfigure.SpringBootApplication
+import jakarta.servlet.http.Cookie
+import java.nio.file.Files
+import java.nio.file.Path
 import org.springframework.boot.autoconfigure.AutoConfigurations
+import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.ComponentScan
@@ -35,10 +33,12 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Profile
 import org.springframework.data.redis.core.script.RedisScript
+import org.springframework.http.HttpStatus
+import org.springframework.mock.web.MockFilterChain
+import org.springframework.mock.web.MockHttpServletRequest
+import org.springframework.mock.web.MockHttpServletResponse
 import org.springframework.scheduling.annotation.EnableScheduling
-import java.nio.file.Files
-import java.nio.file.Path
-import jakarta.servlet.http.Cookie
+import org.springframework.security.web.access.AccessDeniedHandler
 
 class ApisApplicationTest : FunSpec() {
 
@@ -50,19 +50,21 @@ class ApisApplicationTest : FunSpec() {
             importAnnotation shouldNotBe null
             val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
 
-            val publicCompositionTypes = setOf(
-                FrontofficeApplicationConfig::class.java.name,
-                GatewayConfig::class.java.name,
-                InfraConfig::class.java.name,
-                ObservabilityModuleConfig::class.java.name,
-            )
+            val publicCompositionTypes =
+                setOf(
+                    FrontofficeApplicationConfig::class.java.name,
+                    GatewayConfig::class.java.name,
+                    InfraConfig::class.java.name,
+                    ObservabilityModuleConfig::class.java.name,
+                )
             // 신규 공개 구성 추가는 이 허용목록 확장을 강제하고, 내부 구현 import는 즉시 실패한다.
             (importedClassNames - publicCompositionTypes) shouldBe emptySet()
             importedClassNames.contains(FrontofficeApplicationConfig::class.java.name) shouldBe true
         }
 
         test("apis application은 모듈 소유 네임스페이스만 스캔한다") {
-            val springBootApplication = ApisApplication::class.java.getAnnotation(SpringBootApplication::class.java)
+            val springBootApplication =
+                ApisApplication::class.java.getAnnotation(SpringBootApplication::class.java)
             springBootApplication shouldNotBe null
             springBootApplication!!.scanBasePackageClasses.map { it.java.name }.toSet() shouldBe
                 setOf(ApisApplication::class.java.name)
@@ -71,7 +73,8 @@ class ApisApplicationTest : FunSpec() {
         test("apis는 guest password hash와 함께 gateway servlet security 부트스트랩을 선택한다") {
             val enableGatewayServletSecurity =
                 GatewayConfig::class.java.getAnnotation(EnableGatewayServletSecurity::class.java)
-            val enableGatewayConfig = GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
+            val enableGatewayConfig =
+                GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
 
             enableGatewayServletSecurity shouldNotBe null
             enableGatewayConfig shouldNotBe null
@@ -90,7 +93,8 @@ class ApisApplicationTest : FunSpec() {
                     context.getBeansOfType(GuestAccessThrottle::class.java).size shouldBe 1
                     val scripts = context.getBeansOfType(RedisScript::class.java)
                     scripts.size shouldBe 1
-                    scripts.values.single().scriptAsString.contains("redis.call('INCR'") shouldBe true
+                    scripts.values.single().scriptAsString.contains("redis.call('INCR'") shouldBe
+                        true
                 }
         }
 
@@ -114,20 +118,23 @@ class ApisApplicationTest : FunSpec() {
 
         test("apis infra config는 명시적인 base bootstrap group과 import를 유지한다") {
             InfraConfig::class.java.getAnnotation(Configuration::class.java) shouldNotBe null
-            val enableInfraBaseConfig = InfraConfig::class.java.getAnnotation(EnableInfraBaseConfig::class.java)
+            val enableInfraBaseConfig =
+                InfraConfig::class.java.getAnnotation(EnableInfraBaseConfig::class.java)
             enableInfraBaseConfig shouldNotBe null
-            enableInfraBaseConfig!!.value.toSet() shouldBe setOf(
-                InfraBaseConfigGroup.JPA,
-                InfraBaseConfigGroup.ASYNC,
-                InfraBaseConfigGroup.EXTERNAL_CLIENTS,
-            )
+            enableInfraBaseConfig!!.value.toSet() shouldBe
+                setOf(
+                    InfraBaseConfigGroup.JPA,
+                    InfraBaseConfigGroup.ASYNC,
+                    InfraBaseConfigGroup.EXTERNAL_CLIENTS,
+                )
 
             val imports = InfraConfig::class.java.getAnnotation(Import::class.java)
             imports shouldNotBe null
-            imports!!.value.map { it.java.name }.toSet() shouldBe setOf(
-                InfraPersistenceConfig::class.java.name,
-                AuthRedisConfig::class.java.name,
-            )
+            imports!!.value.map { it.java.name }.toSet() shouldBe
+                setOf(
+                    InfraPersistenceConfig::class.java.name,
+                    AuthRedisConfig::class.java.name,
+                )
         }
 
         test("apis application은 scheduling을 활성화하지 않는다") {
@@ -163,15 +170,19 @@ class ApisApplicationTest : FunSpec() {
                     enabled: false
                   api-docs:
                     enabled: false
-                """.trimIndent(),
+                """
+                    .trimIndent()
             ) shouldBe true
         }
 
         test("guest cookie 변경은 허용된 origin에서만 가능하다") {
-            val filter = GuestSessionOriginFilter(
-                arrayOf("https://client.example"),
-                AccessDeniedHandler { _, response, _ -> response.sendError(HttpStatus.FORBIDDEN.value()) },
-            )
+            val filter =
+                GuestSessionOriginFilter(
+                    arrayOf("https://client.example"),
+                    AccessDeniedHandler { _, response, _ ->
+                        response.sendError(HttpStatus.FORBIDDEN.value())
+                    },
+                )
 
             val missingOrigin = guestMutationRequest()
             val missingOriginResponse = MockHttpServletResponse()
@@ -190,7 +201,6 @@ class ApisApplicationTest : FunSpec() {
             allowedOriginResponse.status shouldBe HttpStatus.OK.value()
             allowedChain.request shouldNotBe null
         }
-
     }
 
     private fun guestMutationRequest(origin: String? = null): MockHttpServletRequest =
@@ -198,5 +208,4 @@ class ApisApplicationTest : FunSpec() {
             setCookies(Cookie("__Host-guestSession", "token"))
             origin?.let { addHeader("Origin", it) }
         }
-
 }

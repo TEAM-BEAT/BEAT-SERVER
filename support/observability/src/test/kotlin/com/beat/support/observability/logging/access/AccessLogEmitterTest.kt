@@ -18,9 +18,10 @@ class AccessLogEmitterTest : FunSpec() {
         afterTest { MDC.clear() }
 
         test("emit은 status와 elapsed MDC 필드를 설정한다") {
-            val request = request().apply {
-                setAttribute(AccessLogEmitter.START_NANOS_ATTR, System.nanoTime() - 10_000_000L)
-            }
+            val request =
+                request().apply {
+                    setAttribute(AccessLogEmitter.START_NANOS_ATTR, System.nanoTime() - 10_000_000L)
+                }
             val response = MockHttpServletResponse().apply { status = 200 }
 
             emitter.emit(request, response)
@@ -32,10 +33,14 @@ class AccessLogEmitterTest : FunSpec() {
         }
 
         test("MDC route pattern이 없으면 emit은 request attribute로 fallback한다") {
-            val request = request(uri = "/api/concerts/1").apply {
-                setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/concerts/{id}")
-                setAttribute(AccessLogEmitter.START_NANOS_ATTR, System.nanoTime())
-            }
+            val request =
+                request(uri = "/api/concerts/1").apply {
+                    setAttribute(
+                        HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE,
+                        "/api/concerts/{id}",
+                    )
+                    setAttribute(AccessLogEmitter.START_NANOS_ATTR, System.nanoTime())
+                }
             MDC.get(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY).shouldBeNull()
 
             emitter.emit(request, MockHttpServletResponse())
@@ -44,18 +49,26 @@ class AccessLogEmitterTest : FunSpec() {
         }
 
         test("MDC와 request attribute 모두 route가 없으면 emit은 DEFAULT_ROUTE_PATTERN을 사용한다") {
-            val request = request().apply { setAttribute(AccessLogEmitter.START_NANOS_ATTR, System.nanoTime()) }
+            val request =
+                request().apply {
+                    setAttribute(AccessLogEmitter.START_NANOS_ATTR, System.nanoTime())
+                }
 
             emitter.emit(request, MockHttpServletResponse())
 
-            MDC.get(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY) shouldBe BaseMdcLoggingFilter.DEFAULT_ROUTE_PATTERN
+            MDC.get(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY) shouldBe
+                BaseMdcLoggingFilter.DEFAULT_ROUTE_PATTERN
         }
 
         test("emit은 interceptor가 설정한 route pattern을 request attribute fallback보다 우선 사용한다") {
-            val request = request(uri = "/api/concerts/1").apply {
-                setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/concerts/{id}")
-                setAttribute(AccessLogEmitter.START_NANOS_ATTR, System.nanoTime())
-            }
+            val request =
+                request(uri = "/api/concerts/1").apply {
+                    setAttribute(
+                        HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE,
+                        "/api/concerts/{id}",
+                    )
+                    setAttribute(AccessLogEmitter.START_NANOS_ATTR, System.nanoTime())
+                }
             MDC.put(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY, "GET /api/concerts/{concertId}")
 
             emitter.emit(request, MockHttpServletResponse())

@@ -7,8 +7,8 @@ import com.beat.domain.member.vo.SocialIdentity
 import com.beat.infrastructure.persistence.member.mapper.MemberPersistenceMapper
 import org.hibernate.exception.ConstraintViolationException
 import org.springframework.dao.DataIntegrityViolationException
-import org.springframework.stereotype.Repository
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.stereotype.Repository
 
 @Repository
 internal class MemberRepositoryImpl(
@@ -34,14 +34,21 @@ internal class MemberRepositoryImpl(
         val expectedIdentifier = normalizeConstraintName(expectedConstraintName) ?: return false
         return generateSequence(exception) { it.cause }
             .filterIsInstance<ConstraintViolationException>()
-            .any { expectedIdentifier.equals(normalizeConstraintName(it.constraintName), ignoreCase = true) }
+            .any {
+                expectedIdentifier.equals(
+                    normalizeConstraintName(it.constraintName),
+                    ignoreCase = true,
+                )
+            }
     }
 
     override fun findBySocialIdentity(socialIdentity: SocialIdentity): Member? =
-        memberJpaRepository.findBySocialTypeAndSocialId(
-            socialIdentity.socialId,
-            socialIdentity.socialType,
-        )?.let(memberPersistenceMapper::toDomain)
+        memberJpaRepository
+            .findBySocialTypeAndSocialId(
+                socialIdentity.socialId,
+                socialIdentity.socialType,
+            )
+            ?.let(memberPersistenceMapper::toDomain)
 
     override fun count(): Long = memberJpaRepository.count()
 

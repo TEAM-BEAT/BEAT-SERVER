@@ -12,9 +12,8 @@ import com.beat.infrastructure.external.notification.slack.vo.text.MarkdownText
 import org.springframework.stereotype.Component
 
 @Component
-internal class SlackMemberNotificationAdapter(
-    private val memberSlackClient: MemberSlackClient,
-) : MemberRegistrationNotifier {
+internal class SlackMemberNotificationAdapter(private val memberSlackClient: MemberSlackClient) :
+    MemberRegistrationNotifier {
     override fun send(notification: MemberRegistrationNotification) {
         memberSlackClient.sendMessage(buildMessage(notification))
     }
@@ -27,7 +26,7 @@ internal class SlackMemberNotificationAdapter(
                     listOf(
                         MarkdownText.newInstance("*🙋 닉네임*\n${notification.nickname}"),
                         MarkdownText.newInstance("*👥 누적 회원 수*\n${notification.memberCount}명"),
-                    ),
+                    )
                 ),
                 DividerBlock.newInstance(),
             ),

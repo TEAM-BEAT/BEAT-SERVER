@@ -1,14 +1,14 @@
 package com.beat.apps.api.ticket.api
 
 import com.beat.apps.api.booking.api.type.BookingStatusType
+import com.beat.apps.api.response.ErrorResponse
+import com.beat.apps.api.response.SuccessResponse
 import com.beat.apps.api.schedule.api.type.ScheduleNumberType
 import com.beat.apps.api.ticket.api.request.TicketDeleteRequest
 import com.beat.apps.api.ticket.api.request.TicketRefundRequest
 import com.beat.apps.api.ticket.api.request.TicketUpdateRequest
 import com.beat.apps.api.ticket.api.response.TicketRetrieveResponse
 import com.beat.support.security.CurrentMember
-import com.beat.apps.api.response.ErrorResponse
-import com.beat.apps.api.response.SuccessResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -25,14 +25,15 @@ interface TicketApi {
 
     @Operation(summary = "예매자 목록 조회 API", description = "메이커가 자신의 공연에 대한 예매자 목록을 조회하는 GET API입니다.")
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "200", description = "예매자 목록 조회 성공"),
-            ApiResponse(
-                responseCode = "404",
-                description = "공연 또는 회차 정보를 찾을 수 없습니다.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-        ],
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "예매자 목록 조회 성공"),
+                ApiResponse(
+                    responseCode = "404",
+                    description = "공연 또는 회차 정보를 찾을 수 없습니다.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+            ]
     )
     fun getTickets(
         @CurrentMember memberId: Long,
@@ -43,14 +44,15 @@ interface TicketApi {
 
     @Operation(summary = "예매자 목록 검색 API", description = "메이커가 자신의 공연에 대한 예매자 목록을 검색하는 GET API입니다.")
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "200", description = "예매자 목록 검색 성공"),
-            ApiResponse(
-                responseCode = "404",
-                description = "공연 또는 회차 정보를 찾을 수 없습니다.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-        ],
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "예매자 목록 검색 성공"),
+                ApiResponse(
+                    responseCode = "404",
+                    description = "공연 또는 회차 정보를 찾을 수 없습니다.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+            ]
     )
     fun searchTickets(
         @CurrentMember memberId: Long,
@@ -65,14 +67,15 @@ interface TicketApi {
         description = "메이커가 자신의 공연에 대한 예매자의 입금여부 정보를 수정한 뒤 예매확정 웹발신을 보내는 PUT API입니다.",
     )
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "200", description = "예매자 입금여부 수정 성공"),
-            ApiResponse(
-                responseCode = "400",
-                description = "이미 결제가 완료된 티켓의 상태는 변경할 수 없습니다.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-        ],
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "예매자 입금여부 수정 성공"),
+                ApiResponse(
+                    responseCode = "400",
+                    description = "이미 결제가 완료된 티켓의 상태는 변경할 수 없습니다.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+            ]
     )
     fun updateTickets(
         @CurrentMember memberId: Long,
@@ -84,14 +87,15 @@ interface TicketApi {
         description = "메이커가 자신의 공연에 대한 1명 이상의 예매자의 정보를 환불완료 상태로 변경하는 PUT API입니다.",
     )
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "200", description = "예매자 환불처리 성공"),
-            ApiResponse(
-                responseCode = "404",
-                description = "해당 예매 내역을 찾을 수 없습니다.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-        ],
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "예매자 환불처리 성공"),
+                ApiResponse(
+                    responseCode = "404",
+                    description = "해당 예매 내역을 찾을 수 없습니다.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+            ]
     )
     fun refundTickets(
         @CurrentMember memberId: Long,
@@ -103,14 +107,15 @@ interface TicketApi {
         description = "메이커가 자신의 공연에 대한 1명 이상의 예매자의 정보를 삭제하는 PUT API입니다.",
     )
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "200", description = "예매자 삭제 성공"),
-            ApiResponse(
-                responseCode = "404",
-                description = "해당 예매 내역을 찾을 수 없습니다.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-        ],
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "예매자 삭제 성공"),
+                ApiResponse(
+                    responseCode = "404",
+                    description = "해당 예매 내역을 찾을 수 없습니다.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+            ]
     )
     fun deleteTickets(
         @CurrentMember memberId: Long,

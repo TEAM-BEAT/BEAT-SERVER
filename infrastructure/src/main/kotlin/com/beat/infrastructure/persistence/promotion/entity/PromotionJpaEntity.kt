@@ -12,7 +12,8 @@ import jakarta.persistence.Table
 
 @Entity(name = "Promotion")
 @Table(name = "promotion")
-internal class PromotionJpaEntity private constructor(
+internal class PromotionJpaEntity
+private constructor(
     id: Long?,
     promotionPhoto: String,
     performanceId: Long?,
@@ -55,13 +56,14 @@ internal class PromotionJpaEntity private constructor(
             redirectUrl: String,
             isExternal: Boolean,
             carouselNumber: CarouselNumber,
-        ): PromotionJpaEntity = PromotionJpaEntity(
-            id = id,
-            promotionPhoto = promotionPhoto,
-            performanceId = performanceId,
-            redirectUrl = redirectUrl,
-            isExternal = isExternal,
-            carouselNumber = carouselNumber,
-        )
+        ): PromotionJpaEntity =
+            PromotionJpaEntity(
+                id = id,
+                promotionPhoto = promotionPhoto,
+                performanceId = performanceId,
+                redirectUrl = redirectUrl,
+                isExternal = isExternal,
+                carouselNumber = carouselNumber,
+            )
     }
 }

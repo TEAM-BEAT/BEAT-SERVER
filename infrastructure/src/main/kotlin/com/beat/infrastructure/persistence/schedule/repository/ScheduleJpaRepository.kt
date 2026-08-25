@@ -18,7 +18,8 @@ internal interface ScheduleJpaRepository : JpaRepository<ScheduleJpaEntity, Long
     fun findPerformanceIdById(@Param("id") id: Long): Long?
 
     @Query(
-        value = """
+        value =
+            """
             SELECT CURRENT_TIMESTAMP(6) < booking_close_at
             FROM schedule
             WHERE id = :id

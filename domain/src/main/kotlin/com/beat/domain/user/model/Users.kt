@@ -2,7 +2,8 @@ package com.beat.domain.user.model
 
 import com.beat.domain.sharedkernel.model.AggregateRoot
 
-class Users private constructor(
+class Users
+private constructor(
     private val userId: Id?,
     val role: Role,
 ) : AggregateRoot {
@@ -29,22 +30,25 @@ class Users private constructor(
     }
 
     companion object {
-        fun create(): Users = Users(
-            userId = null,
-            role = Role.USER
-        )
+        fun create(): Users =
+            Users(
+                userId = null,
+                role = Role.USER,
+            )
 
-        fun createWithRole(role: Role): Users = Users(
-            userId = null,
-            role = role
-        )
+        fun createWithRole(role: Role): Users =
+            Users(
+                userId = null,
+                role = role,
+            )
 
         fun rehydrate(
             id: Long?,
             role: Role,
-        ): Users = Users(
-            userId = Id.fromNullable(id),
-            role = role
-        )
+        ): Users =
+            Users(
+                userId = Id.fromNullable(id),
+                role = role,
+            )
     }
 }

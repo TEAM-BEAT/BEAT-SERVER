@@ -27,7 +27,8 @@ internal class RedisGuestAccessThrottleAdapter(
         redisTemplate.delete(key(keyMaterial))
     }
 
-    private fun key(keyMaterial: String): String = KEY_PREFIX + Sha256Hasher.hashToBase64Url(keyMaterial)
+    private fun key(keyMaterial: String): String =
+        KEY_PREFIX + Sha256Hasher.hashToBase64Url(keyMaterial)
 
     private companion object {
         const val MAX_FAILURES = 5L

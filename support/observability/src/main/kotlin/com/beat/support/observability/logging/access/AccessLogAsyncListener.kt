@@ -17,7 +17,11 @@ internal class AccessLogAsyncListener(
 
     override fun onError(event: AsyncEvent) {
         val req = event.suppliedRequest as? HttpServletRequest
-        if (req != null && event.throwable != null && req.getAttribute(AccessLogEmitter.EXCEPTION_ATTR) == null) {
+        if (
+            req != null &&
+                event.throwable != null &&
+                req.getAttribute(AccessLogEmitter.EXCEPTION_ATTR) == null
+        ) {
             req.setAttribute(AccessLogEmitter.EXCEPTION_ATTR, event.throwable)
         }
         emitOnce(event)

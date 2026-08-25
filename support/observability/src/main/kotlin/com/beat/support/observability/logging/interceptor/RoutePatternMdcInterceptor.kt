@@ -31,10 +31,11 @@ class RoutePatternMdcInterceptor : HandlerInterceptor {
     }
 
     private fun resolveRoutePattern(request: HttpServletRequest): String {
-        val bestMatchingPattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE)
-            ?.toString()
-            ?.takeIf { it.isNotBlank() }
-            ?: return BaseMdcLoggingFilter.DEFAULT_ROUTE_PATTERN
+        val bestMatchingPattern =
+            request
+                .getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE)
+                ?.toString()
+                ?.takeIf { it.isNotBlank() } ?: return BaseMdcLoggingFilter.DEFAULT_ROUTE_PATTERN
 
         return "${request.method} $bestMatchingPattern"
     }

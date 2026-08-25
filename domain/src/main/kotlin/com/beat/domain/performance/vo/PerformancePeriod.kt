@@ -6,7 +6,8 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility
-data class PerformancePeriod private constructor(
+data class PerformancePeriod
+private constructor(
     val startDate: LocalDate,
     val endDate: LocalDate,
 ) {
@@ -17,7 +18,8 @@ data class PerformancePeriod private constructor(
     }
 
     companion object {
-        fun of(startDate: LocalDate, endDate: LocalDate): PerformancePeriod = PerformancePeriod(startDate, endDate)
+        fun of(startDate: LocalDate, endDate: LocalDate): PerformancePeriod =
+            PerformancePeriod(startDate, endDate)
 
         fun fromPerformanceDateTimes(performanceDates: List<LocalDateTime>): PerformancePeriod =
             fromDates(performanceDates.map(LocalDateTime::toLocalDate))

@@ -20,15 +20,18 @@ class BeatAdminTestContainersConfig {
 
     @Bean
     @Primary
-    fun promotionImageStorage(): PromotionImageStorage = object : PromotionImageStorage {
-        override fun issueCarouselUploads(imageNames: List<String>): Map<String, PromotionImageUpload> = emptyMap()
+    fun promotionImageStorage(): PromotionImageStorage =
+        object : PromotionImageStorage {
+            override fun issueCarouselUploads(
+                imageNames: List<String>
+            ): Map<String, PromotionImageUpload> = emptyMap()
 
-        override fun exists(imageKey: String): Boolean = false
+            override fun exists(imageKey: String): Boolean = false
 
-        override fun issueBannerUpload(imageName: String): PromotionImageUpload =
-            PromotionImageUpload(
-                uploadUrl = "https://admin-test.invalid/upload",
-                imageKey = "test/banner.png",
-            )
-    }
+            override fun issueBannerUpload(imageName: String): PromotionImageUpload =
+                PromotionImageUpload(
+                    uploadUrl = "https://admin-test.invalid/upload",
+                    imageKey = "test/banner.png",
+                )
+        }
 }

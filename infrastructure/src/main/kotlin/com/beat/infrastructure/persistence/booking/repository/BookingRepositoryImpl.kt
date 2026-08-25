@@ -4,9 +4,9 @@ import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.booking.repository.BookingRepository
 import com.beat.infrastructure.persistence.booking.mapper.BookingPersistenceMapper
-import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.stereotype.Repository
 
 @Repository
 internal class BookingRepositoryImpl(
@@ -15,7 +15,7 @@ internal class BookingRepositoryImpl(
 ) : BookingRepository {
     override fun save(booking: Booking): Booking =
         bookingPersistenceMapper.toDomain(
-            bookingJpaRepository.save(bookingPersistenceMapper.toEntity(booking)),
+            bookingJpaRepository.save(bookingPersistenceMapper.toEntity(booking))
         )
 
     override fun findById(id: Long): Booking? =
@@ -42,7 +42,8 @@ internal class BookingRepositoryImpl(
         bookingStatus: BookingStatus,
         cancellationDate: LocalDateTime,
     ): List<Booking> =
-        bookingJpaRepository.findByBookingStatusAndCancellationDateBefore(bookingStatus, cancellationDate)
+        bookingJpaRepository
+            .findByBookingStatusAndCancellationDateBefore(bookingStatus, cancellationDate)
             .map(bookingPersistenceMapper::toDomain)
 
     override fun findByUserId(userId: Long): List<Booking> =
@@ -55,7 +56,9 @@ internal class BookingRepositoryImpl(
         if (scheduleIds.isEmpty()) {
             return false
         }
-        return bookingJpaRepository.findActiveBookingsForUpdate(scheduleIds, excludedStatuses).isNotEmpty()
+        return bookingJpaRepository
+            .findActiveBookingsForUpdate(scheduleIds, excludedStatuses)
+            .isNotEmpty()
     }
 
     override fun deleteInactiveBookingsByScheduleIds(
@@ -65,6 +68,9 @@ internal class BookingRepositoryImpl(
         if (scheduleIds.isEmpty()) {
             return 0
         }
-        return bookingJpaRepository.deleteInactiveBookingsByScheduleIds(scheduleIds, inactiveStatuses)
+        return bookingJpaRepository.deleteInactiveBookingsByScheduleIds(
+            scheduleIds,
+            inactiveStatuses,
+        )
     }
 }

@@ -1,11 +1,12 @@
 package com.beat.apps.api.ticket.api.response
 
-import com.beat.apps.api.booking.api.type.BookingStatusType
 import com.beat.application.frontoffice.ticket.maker.query.TicketDetailResult
+import com.beat.apps.api.booking.api.type.BookingStatusType
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility
-data class TicketDetail private constructor(
+data class TicketDetail
+private constructor(
     val bookingId: Long?,
     val bookerName: String?,
     val bookerPhoneNumber: String?,
@@ -20,19 +21,20 @@ data class TicketDetail private constructor(
     val deletable: Boolean,
 ) {
     companion object {
-        fun from(result: TicketDetailResult): TicketDetail = TicketDetail(
-            bookingId = result.bookingId,
-            bookerName = result.bookerName,
-            bookerPhoneNumber = result.bookerPhoneNumber,
-            scheduleId = result.scheduleId,
-            purchaseTicketCount = result.purchaseTicketCount,
-            createdAt = result.createdAt,
-            bookingStatus = BookingStatusType.valueOf(result.bookingStatus),
-            scheduleNumber = result.scheduleNumber,
-            bankName = result.bankName,
-            accountNumber = result.accountNumber,
-            accountHolder = result.accountHolder,
-            deletable = result.deletable,
-        )
+        fun from(result: TicketDetailResult): TicketDetail =
+            TicketDetail(
+                bookingId = result.bookingId,
+                bookerName = result.bookerName,
+                bookerPhoneNumber = result.bookerPhoneNumber,
+                scheduleId = result.scheduleId,
+                purchaseTicketCount = result.purchaseTicketCount,
+                createdAt = result.createdAt,
+                bookingStatus = BookingStatusType.valueOf(result.bookingStatus),
+                scheduleNumber = result.scheduleNumber,
+                bankName = result.bankName,
+                accountNumber = result.accountNumber,
+                accountHolder = result.accountHolder,
+                deletable = result.deletable,
+            )
     }
 }

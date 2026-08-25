@@ -22,11 +22,9 @@ import org.springframework.test.context.ContextConfiguration
 @Tags("integration")
 class RedisGuestSessionAdapterIntegrationSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var guestSessionStore: GuestSessionStore
+    @Autowired private lateinit var guestSessionStore: GuestSessionStore
 
-    @Autowired
-    private lateinit var redisTemplate: StringRedisTemplate
+    @Autowired private lateinit var redisTemplate: StringRedisTemplate
 
     init {
         isolationMode = IsolationMode.SingleInstance

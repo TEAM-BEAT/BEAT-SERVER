@@ -1,14 +1,14 @@
 package com.beat.support.observability.logging.access
 
 import com.beat.support.observability.logging.filter.BaseMdcLoggingFilter
-import jakarta.servlet.AsyncContext
-import jakarta.servlet.AsyncEvent
-import jakarta.servlet.http.HttpServletRequest
-import jakarta.servlet.http.HttpServletResponse
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeSameInstanceAs
+import jakarta.servlet.AsyncContext
+import jakarta.servlet.AsyncEvent
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.MDC
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
@@ -56,7 +56,8 @@ class AccessLogAsyncListenerTest : FunSpec() {
         test("onError는 ExceptionCaptureResolver가 이미 capture한 exception을 유지한다") {
             val captured = RuntimeException("primary")
             val asyncCause = IllegalStateException("secondary")
-            val request = request().apply { setAttribute(AccessLogEmitter.EXCEPTION_ATTR, captured) }
+            val request =
+                request().apply { setAttribute(AccessLogEmitter.EXCEPTION_ATTR, captured) }
             val response = MockHttpServletResponse().apply { status = 500 }
             val listener = AccessLogAsyncListener(RecordingEmitter(), mdcSnapshot = emptyMap())
 
@@ -89,15 +90,17 @@ class AccessLogAsyncListenerTest : FunSpec() {
 
         test("emit 중에는 MDC snapshot을 적용하고 emit이 끝나면 복원한다") {
             val capturedMdcDuringEmit = mutableMapOf<String, String>()
-            val emitter = object : AccessLogEmitter() {
-                override fun emit(request: HttpServletRequest, response: HttpServletResponse) {
-                    MDC.getCopyOfContextMap()?.let(capturedMdcDuringEmit::putAll)
+            val emitter =
+                object : AccessLogEmitter() {
+                    override fun emit(request: HttpServletRequest, response: HttpServletResponse) {
+                        MDC.getCopyOfContextMap()?.let(capturedMdcDuringEmit::putAll)
+                    }
                 }
-            }
-            val snapshot = mapOf(
-                BaseMdcLoggingFilter.TRACE_ID_KEY to "captured-trace",
-                BaseMdcLoggingFilter.USER_ID_KEY to "42",
-            )
+            val snapshot =
+                mapOf(
+                    BaseMdcLoggingFilter.TRACE_ID_KEY to "captured-trace",
+                    BaseMdcLoggingFilter.USER_ID_KEY to "42",
+                )
             val listener = AccessLogAsyncListener(emitter, mdcSnapshot = snapshot)
 
             listener.onComplete(event(request(), MockHttpServletResponse()))
@@ -109,10 +112,14 @@ class AccessLogAsyncListenerTest : FunSpec() {
 
         test("worker thread의 기존 MDC는 emit 과정에서 보존한다") {
             MDC.put("unrelated", "preserved")
-            val listener = AccessLogAsyncListener(
-                RecordingEmitter(),
-                mdcSnapshot = mapOf(BaseMdcLoggingFilter.TRACE_ID_KEY to "should-be-overlaid-then-restored"),
-            )
+            val listener =
+                AccessLogAsyncListener(
+                    RecordingEmitter(),
+                    mdcSnapshot =
+                        mapOf(
+                            BaseMdcLoggingFilter.TRACE_ID_KEY to "should-be-overlaid-then-restored"
+                        ),
+                )
 
             listener.onComplete(event(request(), MockHttpServletResponse()))
 
@@ -154,16 +161,29 @@ class AccessLogAsyncListenerTest : FunSpec() {
             addedListeners.add(listener)
         }
 
-        override fun getRequest(): jakarta.servlet.ServletRequest = throw UnsupportedOperationException()
-        override fun getResponse(): jakarta.servlet.ServletResponse = throw UnsupportedOperationException()
+        override fun getRequest(): jakarta.servlet.ServletRequest =
+            throw UnsupportedOperationException()
+
+        override fun getResponse(): jakarta.servlet.ServletResponse =
+            throw UnsupportedOperationException()
+
         override fun hasOriginalRequestAndResponse(): Boolean = true
+
         override fun dispatch() {}
+
         override fun dispatch(path: String) {}
+
         override fun dispatch(context: jakarta.servlet.ServletContext, path: String) {}
+
         override fun complete() {}
+
         override fun start(run: Runnable) {}
-        override fun <T : jakarta.servlet.AsyncListener> createListener(clazz: Class<T>): T = throw UnsupportedOperationException()
+
+        override fun <T : jakarta.servlet.AsyncListener> createListener(clazz: Class<T>): T =
+            throw UnsupportedOperationException()
+
         override fun setTimeout(timeout: Long) {}
+
         override fun getTimeout(): Long = 0
     }
 }

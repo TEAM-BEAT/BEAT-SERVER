@@ -3,7 +3,6 @@ package com.beat.domain.promotion.repository
 import com.beat.domain.promotion.model.CarouselNumber
 import com.beat.domain.promotion.model.Promotion
 
-
 interface PromotionRepository {
     fun findAll(): List<Promotion>
 

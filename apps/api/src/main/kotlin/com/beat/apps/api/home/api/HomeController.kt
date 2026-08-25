@@ -13,17 +13,18 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/main")
-class HomeController(
-    private val homeFacade: HomeFacade,
-) : HomeApi {
+class HomeController(private val homeFacade: HomeFacade) : HomeApi {
 
     @GetMapping
     override fun getHomePerformanceList(
-        @RequestParam(required = false) genre: HomeGenreType?,
+        @RequestParam(required = false) genre: HomeGenreType?
     ): ResponseEntity<SuccessResponse<HomeFindAllResponse>> {
         val homeFindAllResponse = homeFacade.findHomePerformanceList(genre)
         return ResponseEntity.ok(
-            SuccessResponse.of(HomeSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS, homeFindAllResponse),
+            SuccessResponse.of(
+                HomeSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS,
+                homeFindAllResponse,
+            )
         )
     }
 }

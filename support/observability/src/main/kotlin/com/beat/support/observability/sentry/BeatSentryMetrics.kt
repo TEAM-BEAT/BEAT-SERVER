@@ -4,9 +4,7 @@ import io.sentry.Sentry
 import io.sentry.metrics.IMetricsApi
 import io.sentry.metrics.SentryMetricsParameters
 
-class BeatSentryMetrics(
-    private val metrics: IMetricsApi = Sentry.metrics(),
-) {
+class BeatSentryMetrics(private val metrics: IMetricsApi = Sentry.metrics()) {
 
     fun count(
         name: String,
@@ -46,7 +44,9 @@ class BeatSentryMetrics(
 
     private fun requireNoForbiddenTags(tags: Map<String, String>) {
         tags.keys.firstOrNull(::isForbiddenTag)?.let { forbidden ->
-            throw IllegalArgumentException("Sentry metric tag has forbidden high-cardinality/sensitive key: $forbidden")
+            throw IllegalArgumentException(
+                "Sentry metric tag has forbidden high-cardinality/sensitive key: $forbidden"
+            )
         }
     }
 

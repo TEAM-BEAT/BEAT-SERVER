@@ -23,16 +23,16 @@ internal class GuestBookingCredentialRepositoryImpl(
     ): List<GuestBookingCredential> {
         val query = jpql {
             selectDistinctNew<GuestCredentialProjection>(
-                path(BookingJpaEntity::userId),
-                path(BookingJpaEntity::password),
-            ).from(
-                entity(BookingJpaEntity::class),
-            ).whereAnd(
-                path(BookingJpaEntity::bookerName).eq(bookerName),
-                path(BookingJpaEntity::bookerPhoneNumber).eq(phoneNumber),
-                path(BookingJpaEntity::birthDate).eq(birthDate),
-                path(BookingJpaEntity::password).isNotNull(),
-            )
+                    path(BookingJpaEntity::userId),
+                    path(BookingJpaEntity::password),
+                )
+                .from(entity(BookingJpaEntity::class))
+                .whereAnd(
+                    path(BookingJpaEntity::bookerName).eq(bookerName),
+                    path(BookingJpaEntity::bookerPhoneNumber).eq(phoneNumber),
+                    path(BookingJpaEntity::birthDate).eq(birthDate),
+                    path(BookingJpaEntity::password).isNotNull(),
+                )
         }
 
         return entityManager.createQuery(query, jpqlRenderContext).resultList.map { projection ->

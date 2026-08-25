@@ -1,5 +1,7 @@
 plugins {
     id("beat.jpa-adapter")
+    id("beat.jooq-adapter")
+    id("beat.jooq-codegen")
     id("beat.external-client")
     id("beat.sentry-source-context")
 }
@@ -22,6 +24,7 @@ dependencies {
     }
     runtimeOnly(libs.mysql.connector.j)
 
+    testImplementation(libs.archunit.junit5)
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.kotest.extensions.spring)
     testImplementation(libs.spring.boot.starter.data.redis)

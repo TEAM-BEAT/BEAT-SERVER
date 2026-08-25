@@ -25,13 +25,14 @@ class ApisSecurityConfig(
     private val accessDeniedHandler: AccessDeniedHandler,
     private val guestSessionOriginFilter: GuestSessionOriginFilter,
     private val environment: Environment,
-    @param:Value("\${management.endpoints.web.base-path}")
-    private val actuatorEndpoint: String,
+    @param:Value("\${management.endpoints.web.base-path}") private val actuatorEndpoint: String,
 ) {
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        // Bearer endpoints are stateless. Cookie-authenticated guest mutations are origin-checked separately.
-        http.csrf { it.disable() }
+        // Bearer endpoints are stateless. Cookie-authenticated guest mutations are origin-checked
+        // separately.
+        http
+            .csrf { it.disable() }
             .cors(Customizer.withDefaults())
             .formLogin { it.disable() }
             .httpBasic { it.disable() }
@@ -41,11 +42,17 @@ class ApisSecurityConfig(
                     .accessDeniedHandler(accessDeniedHandler)
             }
             .authorizeHttpRequests {
-                it.requestMatchers(*authWhitelist()).permitAll()
-                    .requestMatchers(*AUTH_ADMIN_ONLY).hasAuthority(ROLE_ADMIN)
-                    .anyRequest().hasAnyAuthority(ROLE_MEMBER, ROLE_ADMIN)
+                it.requestMatchers(*authWhitelist())
+                    .permitAll()
+                    .requestMatchers(*AUTH_ADMIN_ONLY)
+                    .hasAuthority(ROLE_ADMIN)
+                    .anyRequest()
+                    .hasAnyAuthority(ROLE_MEMBER, ROLE_ADMIN)
             }
-            .addFilterBefore(securityMdcLoggingFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .addFilterBefore(
+                securityMdcLoggingFilter,
+                UsernamePasswordAuthenticationFilter::class.java,
+            )
             .addFilterAfter(guestSessionOriginFilter, securityMdcLoggingFilter.javaClass)
             .addFilterAfter(jwtAuthenticationFilter, guestSessionOriginFilter.javaClass)
         return http.build()
@@ -67,15 +74,17 @@ class ApisSecurityConfig(
                 "/api/bookings/cancel",
                 "$actuatorEndpoint/health",
                 "$actuatorEndpoint/prometheus",
-            ),
+            )
         )
         if (!environment.acceptsProfiles(Profiles.of("prod"))) addAll(SWAGGER_WHITELIST)
-    }.toTypedArray()
+    }
+        .toTypedArray()
 
     private companion object {
         const val ROLE_ADMIN = "ROLE_ADMIN"
         const val ROLE_MEMBER = "ROLE_MEMBER"
-        val SWAGGER_WHITELIST = arrayOf("/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**")
+        val SWAGGER_WHITELIST =
+            arrayOf("/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**")
         val AUTH_ADMIN_ONLY = arrayOf("/api/admin/**")
     }
 }

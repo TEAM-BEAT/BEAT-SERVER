@@ -1,17 +1,18 @@
 package com.beat.domain.performance.model
 
 import com.beat.domain.exception.DomainException
-import com.beat.domain.sharedkernel.vo.BankName
 import com.beat.domain.performance.exception.PerformanceErrorCode
 import com.beat.domain.performance.vo.PaymentAccount
 import com.beat.domain.performance.vo.PerformancePeriod
 import com.beat.domain.performance.vo.RunningTime
 import com.beat.domain.performance.vo.TicketPrice
 import com.beat.domain.sharedkernel.model.AggregateRoot
+import com.beat.domain.sharedkernel.vo.BankName
 import com.beat.domain.user.model.Users
 import java.time.LocalDateTime
 
-class Performance private constructor(
+class Performance
+private constructor(
     private val performanceId: Id?,
     val performanceTitle: String,
     val genre: Genre,
@@ -129,7 +130,10 @@ class Performance private constructor(
     fun updateTicketPrice(newTicketPrice: Int, hasActiveBooking: Boolean = false): Performance =
         updateTicketPrice(TicketPrice.of(newTicketPrice), hasActiveBooking)
 
-    fun updateTicketPrice(newTicketPrice: TicketPrice, hasActiveBooking: Boolean = false): Performance {
+    fun updateTicketPrice(
+        newTicketPrice: TicketPrice,
+        hasActiveBooking: Boolean = false,
+    ): Performance {
         if (hasActiveBooking && ticketPriceValue != newTicketPrice) {
             throw DomainException(PerformanceErrorCode.PRICE_UPDATE_NOT_ALLOWED)
         }
@@ -151,30 +155,31 @@ class Performance private constructor(
         casts: List<Cast> = this.castValues,
         staffs: List<Staff> = this.staffValues,
         images: List<PerformanceImage> = this.imageValues,
-    ): Performance = Performance(
-        performanceId = performanceId,
-        performanceTitle = performanceTitle,
-        genre = genre,
-        runningTimeValue = runningTimeValue,
-        performanceDescription = performanceDescription,
-        performanceAttentionNote = performanceAttentionNote,
-        paymentAccount = paymentAccount,
-        posterImage = posterImage,
-        performanceTeamName = performanceTeamName,
-        performanceVenue = performanceVenue,
-        roadAddressName = roadAddressName,
-        placeDetailAddress = placeDetailAddress,
-        latitude = latitude,
-        longitude = longitude,
-        performanceContact = performanceContact,
-        performancePeriodValue = performancePeriodValue,
-        ticketPriceValue = ticketPrice,
-        totalScheduleCount = totalScheduleCount,
-        linkedUserId = linkedUserId,
-        castValues = casts.toList(),
-        staffValues = staffs.toList(),
-        imageValues = images.toList(),
-    )
+    ): Performance =
+        Performance(
+            performanceId = performanceId,
+            performanceTitle = performanceTitle,
+            genre = genre,
+            runningTimeValue = runningTimeValue,
+            performanceDescription = performanceDescription,
+            performanceAttentionNote = performanceAttentionNote,
+            paymentAccount = paymentAccount,
+            posterImage = posterImage,
+            performanceTeamName = performanceTeamName,
+            performanceVenue = performanceVenue,
+            roadAddressName = roadAddressName,
+            placeDetailAddress = placeDetailAddress,
+            latitude = latitude,
+            longitude = longitude,
+            performanceContact = performanceContact,
+            performancePeriodValue = performancePeriodValue,
+            ticketPriceValue = ticketPrice,
+            totalScheduleCount = totalScheduleCount,
+            linkedUserId = linkedUserId,
+            castValues = casts.toList(),
+            staffValues = staffs.toList(),
+            imageValues = images.toList(),
+        )
 
     @JvmInline
     value class Id private constructor(val value: Long) {
@@ -211,11 +216,28 @@ class Performance private constructor(
         ): Performance {
             validateTotalScheduleCount(totalScheduleCount)
             return Performance(
-                null, performanceTitle, genre, runningTime, performanceDescription, performanceAttentionNote,
-                paymentAccount, posterImage, performanceTeamName, performanceVenue, roadAddressName,
-                placeDetailAddress, latitude, longitude, performanceContact, performancePeriod, ticketPrice,
-                totalScheduleCount, linkedUserId = Users.Id.from(userId),
-                castValues = casts.toList(), staffValues = staffs.toList(), imageValues = images.toList(),
+                null,
+                performanceTitle,
+                genre,
+                runningTime,
+                performanceDescription,
+                performanceAttentionNote,
+                paymentAccount,
+                posterImage,
+                performanceTeamName,
+                performanceVenue,
+                roadAddressName,
+                placeDetailAddress,
+                latitude,
+                longitude,
+                performanceContact,
+                performancePeriod,
+                ticketPrice,
+                totalScheduleCount,
+                linkedUserId = Users.Id.from(userId),
+                castValues = casts.toList(),
+                staffValues = staffs.toList(),
+                imageValues = images.toList(),
             )
         }
 
@@ -242,13 +264,31 @@ class Performance private constructor(
             casts: List<Cast> = emptyList(),
             staffs: List<Staff> = emptyList(),
             images: List<PerformanceImage> = emptyList(),
-        ): Performance = Performance(
-            Id.fromNullable(id), performanceTitle, genre, runningTime, performanceDescription, performanceAttentionNote,
-            paymentAccount, posterImage, performanceTeamName, performanceVenue, roadAddressName, placeDetailAddress,
-            latitude, longitude, performanceContact, performancePeriod, ticketPrice, totalScheduleCount,
-            linkedUserId = Users.Id.from(userId),
-            castValues = casts.toList(), staffValues = staffs.toList(), imageValues = images.toList(),
-        )
+        ): Performance =
+            Performance(
+                Id.fromNullable(id),
+                performanceTitle,
+                genre,
+                runningTime,
+                performanceDescription,
+                performanceAttentionNote,
+                paymentAccount,
+                posterImage,
+                performanceTeamName,
+                performanceVenue,
+                roadAddressName,
+                placeDetailAddress,
+                latitude,
+                longitude,
+                performanceContact,
+                performancePeriod,
+                ticketPrice,
+                totalScheduleCount,
+                linkedUserId = Users.Id.from(userId),
+                castValues = casts.toList(),
+                staffValues = staffs.toList(),
+                imageValues = images.toList(),
+            )
 
         private fun validateTotalScheduleCount(totalScheduleCount: Int) {
             if (totalScheduleCount < 0) {

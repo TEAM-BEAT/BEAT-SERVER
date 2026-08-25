@@ -21,11 +21,9 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 @ContextConfiguration(classes = [FileController::class])
 class FileControllerWebSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var mockMvc: MockMvc
+    @Autowired private lateinit var mockMvc: MockMvc
 
-    @TestBean
-    private lateinit var fileFacade: FileFacade
+    @TestBean private lateinit var fileFacade: FileFacade
 
     init {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
@@ -35,11 +33,13 @@ class FileControllerWebSpec : FunSpec() {
         }
 
         test("canonical performanceImages 파라미터가 전달된다") {
-            mockMvc.perform(
-                get("/api/files/presigned-url")
-                    .param("posterImage", "poster.png")
-                    .param("performanceImages", "performance.png"),
-            ).andExpect(status().isOk)
+            mockMvc
+                .perform(
+                    get("/api/files/presigned-url")
+                        .param("posterImage", "poster.png")
+                        .param("performanceImages", "performance.png")
+                )
+                .andExpect(status().isOk)
 
             verify {
                 fileFacade.issueAllPresignedUrlsForPerformanceMaker(
@@ -52,11 +52,13 @@ class FileControllerWebSpec : FunSpec() {
         }
 
         test("빈 performanceImages 값은 빈 리스트로 바인딩된다") {
-            mockMvc.perform(
-                get("/api/files/presigned-url")
-                    .param("posterImage", "poster.png")
-                    .param("performanceImages", ""),
-            ).andExpect(status().isOk)
+            mockMvc
+                .perform(
+                    get("/api/files/presigned-url")
+                        .param("posterImage", "poster.png")
+                        .param("performanceImages", "")
+                )
+                .andExpect(status().isOk)
 
             verify {
                 fileFacade.issueAllPresignedUrlsForPerformanceMaker(
@@ -70,7 +72,6 @@ class FileControllerWebSpec : FunSpec() {
     }
 
     private companion object {
-        @JvmStatic
-        fun fileFacade(): FileFacade = mockk(relaxed = true)
+        @JvmStatic fun fileFacade(): FileFacade = mockk(relaxed = true)
     }
 }

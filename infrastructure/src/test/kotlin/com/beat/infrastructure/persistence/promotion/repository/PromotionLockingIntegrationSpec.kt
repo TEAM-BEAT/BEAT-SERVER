@@ -15,6 +15,12 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.extensions.spring.SpringTestLifecycleMode
 import io.kotest.matchers.shouldBe
+import java.sql.DriverManager
+import java.time.LocalDate
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.LockSupport
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase
@@ -25,18 +31,13 @@ import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
 import org.testcontainers.mysql.MySQLContainer
-import java.sql.DriverManager
-import java.time.LocalDate
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.locks.LockSupport
 
 @DataJpaTest(
-    properties = [
-        "spring.config.import=classpath:application-persistence.yml",
-        "DB_HIKARI_MAX_POOL_SIZE=10",
-    ],
+    properties =
+        [
+            "spring.config.import=classpath:application-persistence.yml",
+            "DB_HIKARI_MAX_POOL_SIZE=10",
+        ]
 )
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(classes = [JpaConfig::class, MySqlTestContainerConfig::class])
@@ -45,20 +46,15 @@ import java.util.concurrent.locks.LockSupport
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class PromotionLockingIntegrationSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var transactionManager: PlatformTransactionManager
+    @Autowired private lateinit var transactionManager: PlatformTransactionManager
 
-    @Autowired
-    private lateinit var mysqlContainer: MySQLContainer
+    @Autowired private lateinit var mysqlContainer: MySQLContainer
 
-    @Autowired
-    private lateinit var performanceRepository: PerformanceJpaRepository
+    @Autowired private lateinit var performanceRepository: PerformanceJpaRepository
 
-    @Autowired
-    private lateinit var promotionJpaRepository: PromotionJpaRepository
+    @Autowired private lateinit var promotionJpaRepository: PromotionJpaRepository
 
-    @Autowired
-    private lateinit var promotionRepository: PromotionRepository
+    @Autowired private lateinit var promotionRepository: PromotionRepository
 
     init {
         isolationMode = IsolationMode.SingleInstance
@@ -134,9 +130,10 @@ class PromotionLockingIntegrationSpec : FunSpec() {
         }
 
         test("Promotion 생성과 Performance 삭제가 같은 authoritative Performance lock으로 직렬화된다") {
-            val performanceId = transaction().execute {
-                performanceRepository.save(performance()).id!!
-            }
+            val performanceId =
+                transaction().execute {
+                    performanceRepository.save(performance()).id!!
+                }
             val creatorLocked = CountDownLatch(1)
             val releaseCreator = CountDownLatch(1)
             val deleterLocked = CountDownLatch(1)
@@ -177,12 +174,13 @@ class PromotionLockingIntegrationSpec : FunSpec() {
     private fun awaitNamedLockWait() {
         awaitDatabaseWait(
             """
-                SELECT COUNT(*)
-                FROM performance_schema.metadata_locks
-                WHERE OBJECT_TYPE = 'USER LEVEL LOCK'
-                  AND OBJECT_NAME = 'beat:promotion:carousel'
-                  AND LOCK_STATUS = 'PENDING'
-            """.trimIndent(),
+            SELECT COUNT(*)
+            FROM performance_schema.metadata_locks
+            WHERE OBJECT_TYPE = 'USER LEVEL LOCK'
+              AND OBJECT_NAME = 'beat:promotion:carousel'
+              AND LOCK_STATUS = 'PENDING'
+            """
+                .trimIndent()
         )
     }
 
@@ -192,7 +190,8 @@ class PromotionLockingIntegrationSpec : FunSpec() {
 
     private fun awaitDatabaseWait(sql: String) {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
-        DriverManager.getConnection(mysqlContainer.jdbcUrl, "root", mysqlContainer.password).use { connection ->
+        DriverManager.getConnection(mysqlContainer.jdbcUrl, "root", mysqlContainer.password).use {
+            connection ->
             while (System.nanoTime() < deadline) {
                 connection.createStatement().use { statement ->
                     statement.executeQuery(sql).use { result ->
@@ -219,28 +218,29 @@ private fun promotion(carouselNumber: CarouselNumber, performanceId: Long?): Pro
         carouselNumber = carouselNumber,
     )
 
-private fun performance(): PerformanceJpaEntity = PerformanceJpaEntity.rehydrate(
-    id = null,
-    performanceTitle = "promotion-lock-performance",
-    genre = Genre.PLAY,
-    runningTime = 90,
-    performanceDescription = "description",
-    performanceAttentionNote = "attention",
-    paymentAccount = null,
-    posterImage = "poster.png",
-    performanceTeamName = "team",
-    performanceVenue = "venue",
-    roadAddressName = "road",
-    placeDetailAddress = "detail",
-    latitude = "37.0",
-    longitude = "127.0",
-    performanceContact = "010-0000-0000",
-    performancePeriodValue = PerformancePeriodJpaValue(
-        LocalDate.of(2026, 8, 1),
-        LocalDate.of(2026, 8, 2),
-    ),
-    legacyPerformancePeriod = "2026-08-01~2026-08-02",
-    ticketPrice = 10_000,
-    totalScheduleCount = 0,
-    userId = 1L,
-)
+private fun performance(): PerformanceJpaEntity =
+    PerformanceJpaEntity.rehydrate(
+        id = null,
+        performanceTitle = "promotion-lock-performance",
+        genre = Genre.PLAY,
+        runningTime = 90,
+        performanceDescription = "description",
+        performanceAttentionNote = "attention",
+        paymentAccount = null,
+        posterImage = "poster.png",
+        performanceTeamName = "team",
+        performanceVenue = "venue",
+        roadAddressName = "road",
+        placeDetailAddress = "detail",
+        latitude = "37.0",
+        longitude = "127.0",
+        performanceContact = "010-0000-0000",
+        performancePeriodValue =
+            PerformancePeriodJpaValue(
+                LocalDate.of(2026, 8, 1),
+                LocalDate.of(2026, 8, 2),
+            ),
+        ticketPrice = 10_000,
+        totalScheduleCount = 0,
+        userId = 1L,
+    )

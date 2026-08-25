@@ -10,6 +10,6 @@ import org.springframework.web.bind.annotation.RequestHeader
 internal interface KakaoApiClient {
     @GetMapping(value = ["/v2/user/me"])
     fun getUserInformation(
-        @RequestHeader(HttpHeaders.AUTHORIZATION) accessToken: String,
+        @RequestHeader(HttpHeaders.AUTHORIZATION) accessToken: String
     ): KakaoUserResponse?
 }

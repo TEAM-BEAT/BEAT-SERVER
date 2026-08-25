@@ -15,7 +15,8 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class PerformanceDeleteCommandService internal constructor(
+class PerformanceDeleteCommandService
+internal constructor(
     private val performanceRepository: PerformanceRepository,
     private val scheduleRepository: ScheduleRepository,
     private val bookingRepository: BookingRepository,
@@ -25,38 +26,54 @@ class PerformanceDeleteCommandService internal constructor(
     @Transactional
     fun deletePerformance(memberId: Long, performanceId: Long) {
         translateDomainFailure {
-        val member = memberRepository.findById(memberId)
-            ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.MEMBER_NOT_FOUND)
-        val performance = performanceRepository.lockById(performanceId)
-            ?: throw FrontofficeApplicationException(PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND)
-        if (!performance.isOwnedBy(member.userId)) {
-            throw FrontofficeApplicationException(PerformanceApplicationErrorCode.NOT_PERFORMANCE_OWNER)
-        }
+            val member =
+                memberRepository.findById(memberId)
+                    ?: throw FrontofficeApplicationException(
+                        PerformanceApplicationErrorCode.MEMBER_NOT_FOUND
+                    )
+            val performance =
+                performanceRepository.lockById(performanceId)
+                    ?: throw FrontofficeApplicationException(
+                        PerformanceApplicationErrorCode.PERFORMANCE_NOT_FOUND
+                    )
+            if (!performance.isOwnedBy(member.userId)) {
+                throw FrontofficeApplicationException(
+                    PerformanceApplicationErrorCode.NOT_PERFORMANCE_OWNER
+                )
+            }
 
-        val scheduleIds = scheduleRepository.findIdsByPerformanceId(performanceId)
-        lockSchedules(scheduleIds)
-        val inactiveStatuses = BookingStatus.inactiveForTicketAllocation()
-        if (scheduleIds.isNotEmpty()) {
-            performance.ensureDeletable(
-                bookingRepository.existsActiveBookingByScheduleIds(scheduleIds, inactiveStatuses),
-            )
-            val deletedBookingCount = bookingRepository.deleteInactiveBookingsByScheduleIds(
-                scheduleIds,
-                inactiveStatuses,
-            )
-            log.debug { "Deleted ${deletedBookingCount} inactive bookings for performanceId=${performanceId}" }
-        }
+            val scheduleIds = scheduleRepository.findIdsByPerformanceId(performanceId)
+            lockSchedules(scheduleIds)
+            val inactiveStatuses = BookingStatus.inactiveForTicketAllocation()
+            if (scheduleIds.isNotEmpty()) {
+                performance.ensureDeletable(
+                    bookingRepository.existsActiveBookingByScheduleIds(
+                        scheduleIds,
+                        inactiveStatuses,
+                    )
+                )
+                val deletedBookingCount =
+                    bookingRepository.deleteInactiveBookingsByScheduleIds(
+                        scheduleIds,
+                        inactiveStatuses,
+                    )
+                log.debug {
+                    "Deleted ${deletedBookingCount} inactive bookings for performanceId=${performanceId}"
+                }
+            }
 
-        scheduleRepository.deleteByPerformanceId(performanceId)
-        promotionRepository.deleteByPerformanceId(performanceId)
-        performanceRepository.deleteById(checkNotNull(performance.id))
+            scheduleRepository.deleteByPerformanceId(performanceId)
+            promotionRepository.deleteByPerformanceId(performanceId)
+            performanceRepository.deleteById(checkNotNull(performance.id))
         }
     }
 
     private fun lockSchedules(scheduleIds: List<Long>) {
         scheduleIds.distinct().sorted().forEach { scheduleId ->
             scheduleRepository.lockById(scheduleId)
-                ?: throw FrontofficeApplicationException(ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND)
+                ?: throw FrontofficeApplicationException(
+                    ScheduleApplicationErrorCode.NO_SCHEDULE_FOUND
+                )
         }
     }
 

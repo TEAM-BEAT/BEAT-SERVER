@@ -6,9 +6,7 @@ import org.springframework.stereotype.Component
 
 @Component
 internal class UsersPersistenceMapper {
-    fun toDomain(entity: UsersJpaEntity): Users =
-        Users.rehydrate(entity.id, entity.role)
+    fun toDomain(entity: UsersJpaEntity): Users = Users.rehydrate(entity.id, entity.role)
 
-    fun toEntity(domain: Users): UsersJpaEntity =
-        UsersJpaEntity.rehydrate(domain.id, domain.role)
+    fun toEntity(domain: Users): UsersJpaEntity = UsersJpaEntity.rehydrate(domain.id, domain.role)
 }

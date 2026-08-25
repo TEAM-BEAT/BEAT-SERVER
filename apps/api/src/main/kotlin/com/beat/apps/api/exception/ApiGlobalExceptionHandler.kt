@@ -1,10 +1,10 @@
 package com.beat.apps.api.exception
 
-import com.beat.apps.api.response.ErrorResponse
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
-import jakarta.servlet.http.HttpServletRequest
+import com.beat.apps.api.response.ErrorResponse
 import io.github.oshai.kotlinlogging.KotlinLogging
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.TypeMismatchException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -33,8 +33,11 @@ class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
     ): ResponseEntity<Any>? {
         val message = ex.bindingResult.fieldError?.defaultMessage ?: "Validation error"
         return handleExceptionInternal(
-            ex, ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), message),
-            headers, HttpStatus.BAD_REQUEST, request,
+            ex,
+            ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), message),
+            headers,
+            HttpStatus.BAD_REQUEST,
+            request,
         )
     }
 
@@ -43,13 +46,17 @@ class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         headers: HttpHeaders,
         status: HttpStatusCode,
         request: WebRequest,
-    ): ResponseEntity<Any>? = handleExceptionInternal(
-        ex,
-        ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), "Missing required parameter: ${ex.parameterName}"),
-        headers,
-        HttpStatus.BAD_REQUEST,
-        request,
-    )
+    ): ResponseEntity<Any>? =
+        handleExceptionInternal(
+            ex,
+            ErrorResponse.of(
+                HttpStatus.BAD_REQUEST.value(),
+                "Missing required parameter: ${ex.parameterName}",
+            ),
+            headers,
+            HttpStatus.BAD_REQUEST,
+            request,
+        )
 
     override fun handleTypeMismatch(
         ex: TypeMismatchException,
@@ -57,12 +64,16 @@ class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         status: HttpStatusCode,
         request: WebRequest,
     ): ResponseEntity<Any>? {
-        if (ex !is MethodArgumentTypeMismatchException) return clientErrorResponse(ex, status, headers, request)
+        if (ex !is MethodArgumentTypeMismatchException)
+            return clientErrorResponse(ex, status, headers, request)
         val requiredType = ex.requiredType?.simpleName ?: "Unknown Type"
         val message = "Invalid value for parameter: ${ex.name} (Expected: $requiredType)"
         return handleExceptionInternal(
-            ex, ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), message),
-            headers, HttpStatus.BAD_REQUEST, request,
+            ex,
+            ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), message),
+            headers,
+            HttpStatus.BAD_REQUEST,
+            request,
         )
     }
 
@@ -72,10 +83,14 @@ class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         status: HttpStatusCode,
         request: WebRequest,
     ): ResponseEntity<Any>? {
-        if (ex !is MissingRequestCookieException) return clientErrorResponse(ex, status, headers, request)
+        if (ex !is MissingRequestCookieException)
+            return clientErrorResponse(ex, status, headers, request)
         return handleExceptionInternal(
             ex,
-            ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), "Missing required cookie: ${ex.cookieName}"),
+            ErrorResponse.of(
+                HttpStatus.BAD_REQUEST.value(),
+                "Missing required cookie: ${ex.cookieName}",
+            ),
             headers,
             HttpStatus.BAD_REQUEST,
             request,
@@ -109,12 +124,13 @@ class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         statusCode: HttpStatusCode,
         request: WebRequest,
     ): ResponseEntity<Any> {
-        val responseBody = if (body is ErrorResponse) {
-            body
-        } else {
-            val message = if (statusCode.is5xxServerError) "서버 내부 오류입니다." else "잘못된 요청입니다."
-            ErrorResponse.of(statusCode.value(), message)
-        }
+        val responseBody =
+            if (body is ErrorResponse) {
+                body
+            } else {
+                val message = if (statusCode.is5xxServerError) "서버 내부 오류입니다." else "잘못된 요청입니다."
+                ErrorResponse.of(statusCode.value(), message)
+            }
         return super.createResponseEntity(responseBody, headers, statusCode, request)
     }
 
@@ -138,13 +154,20 @@ class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         val status = toHttpStatus(errorCode.type)
         when {
             errorCode.type == FrontofficeApplicationErrorType.INTERNAL_ERROR -> {
-                log.error(exception) { "Application failure: code=${errorCode.code}, status=${status.value()}" }
+                log.error(exception) {
+                    "Application failure: code=${errorCode.code}, status=${status.value()}"
+                }
                 markObservationError(request, exception)
             }
-            status.is5xxServerError -> log.error { "Upstream application failure: code=${errorCode.code}, status=${status.value()}" }
-            else -> log.info { "Application failure: code=${errorCode.code}, status=${status.value()}" }
+            status.is5xxServerError ->
+                log.error {
+                    "Upstream application failure: code=${errorCode.code}, status=${status.value()}"
+                }
+            else ->
+                log.info { "Application failure: code=${errorCode.code}, status=${status.value()}" }
         }
-        return ResponseEntity.status(status).body(ErrorResponse.of(status.value(), errorCode.message))
+        return ResponseEntity.status(status)
+            .body(ErrorResponse.of(status.value(), errorCode.message))
     }
 
     private fun clientErrorResponse(
@@ -152,29 +175,37 @@ class ApiGlobalExceptionHandler : ResponseEntityExceptionHandler() {
         status: HttpStatusCode,
         headers: HttpHeaders,
         request: WebRequest,
-    ): ResponseEntity<Any>? = handleExceptionInternal(
-        exception, ErrorResponse.of(status.value(), "잘못된 요청입니다."), headers, status, request,
-    )
+    ): ResponseEntity<Any>? =
+        handleExceptionInternal(
+            exception,
+            ErrorResponse.of(status.value(), "잘못된 요청입니다."),
+            headers,
+            status,
+            request,
+        )
 
     private fun markObservationError(request: HttpServletRequest, exception: Exception) {
-        ServerHttpObservationFilter.findObservationContext(request).ifPresent { it.setError(exception) }
+        ServerHttpObservationFilter.findObservationContext(request).ifPresent {
+            it.setError(exception)
+        }
     }
 
     companion object {
         private val log = KotlinLogging.logger {}
 
-        fun toHttpStatus(type: FrontofficeApplicationErrorType): HttpStatus = when (type) {
-            FrontofficeApplicationErrorType.INVALID_INPUT -> HttpStatus.BAD_REQUEST
-            FrontofficeApplicationErrorType.UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED
-            FrontofficeApplicationErrorType.FORBIDDEN -> HttpStatus.FORBIDDEN
-            FrontofficeApplicationErrorType.NOT_FOUND -> HttpStatus.NOT_FOUND
-            FrontofficeApplicationErrorType.STATE_CONFLICT -> HttpStatus.CONFLICT
-            FrontofficeApplicationErrorType.UPSTREAM_FAILURE -> HttpStatus.BAD_GATEWAY
-            FrontofficeApplicationErrorType.UPSTREAM_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE
-            FrontofficeApplicationErrorType.UPSTREAM_TIMEOUT -> HttpStatus.GATEWAY_TIMEOUT
-            FrontofficeApplicationErrorType.RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS
-            FrontofficeApplicationErrorType.INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR
-        }
-
+        fun toHttpStatus(type: FrontofficeApplicationErrorType): HttpStatus =
+            when (type) {
+                FrontofficeApplicationErrorType.INVALID_INPUT -> HttpStatus.BAD_REQUEST
+                FrontofficeApplicationErrorType.UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED
+                FrontofficeApplicationErrorType.FORBIDDEN -> HttpStatus.FORBIDDEN
+                FrontofficeApplicationErrorType.NOT_FOUND -> HttpStatus.NOT_FOUND
+                FrontofficeApplicationErrorType.STATE_CONFLICT -> HttpStatus.CONFLICT
+                FrontofficeApplicationErrorType.UPSTREAM_FAILURE -> HttpStatus.BAD_GATEWAY
+                FrontofficeApplicationErrorType.UPSTREAM_UNAVAILABLE ->
+                    HttpStatus.SERVICE_UNAVAILABLE
+                FrontofficeApplicationErrorType.UPSTREAM_TIMEOUT -> HttpStatus.GATEWAY_TIMEOUT
+                FrontofficeApplicationErrorType.RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS
+                FrontofficeApplicationErrorType.INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR
+            }
     }
 }

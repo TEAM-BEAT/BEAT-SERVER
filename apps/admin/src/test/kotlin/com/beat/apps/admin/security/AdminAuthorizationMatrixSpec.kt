@@ -25,19 +25,18 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 @Tags("acceptance")
 class AdminAuthorizationMatrixSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var handlerMapping: RequestMappingHandlerMapping
+    @Autowired private lateinit var handlerMapping: RequestMappingHandlerMapping
 
-    @Autowired
-    private lateinit var mockMvc: MockMvc
+    @Autowired private lateinit var mockMvc: MockMvc
 
-    private val expectedRoutes = setOf(
-        Route(HttpMethod.GET, "/api/admin/carousels/presigned-url"),
-        Route(HttpMethod.GET, "/api/admin/banner/presigned-url"),
-        Route(HttpMethod.GET, "/api/admin/carousels"),
-        Route(HttpMethod.PUT, "/api/admin/carousels"),
-        Route(HttpMethod.GET, "/api/admin/users"),
-    )
+    private val expectedRoutes =
+        setOf(
+            Route(HttpMethod.GET, "/api/admin/carousels/presigned-url"),
+            Route(HttpMethod.GET, "/api/admin/banner/presigned-url"),
+            Route(HttpMethod.GET, "/api/admin/carousels"),
+            Route(HttpMethod.PUT, "/api/admin/carousels"),
+            Route(HttpMethod.GET, "/api/admin/users"),
+        )
 
     init {
         isolationMode = IsolationMode.SingleInstance
@@ -78,9 +77,8 @@ class AdminAuthorizationMatrixSpec : FunSpec() {
             .asSequence()
             .filter { (_, handlerMethod) -> handlerMethod.isAdminController() }
             .flatMap { (mapping, _) ->
-                val paths = mapping.pathPatternsCondition?.patterns
-                    ?.map { it.patternString }
-                    .orEmpty()
+                val paths =
+                    mapping.pathPatternsCondition?.patterns?.map { it.patternString }.orEmpty()
                 mapping.methodsCondition.methods.asSequence().flatMap { method ->
                     paths.asSequence().map { path -> Route(HttpMethod.valueOf(method.name), path) }
                 }
@@ -89,28 +87,32 @@ class AdminAuthorizationMatrixSpec : FunSpec() {
             .toSet()
 
     private fun perform(endpoint: Route, token: UsernamePasswordAuthenticationToken? = null) =
-        mockMvc.perform(
-            request(endpoint.method, endpoint.path)
-                .param("carouselImages", "carousel.png")
-                .param("bannerImage", "banner.png")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}")
-                .let { builder ->
-                    token?.let { builder.with(authentication(it)) } ?: builder
-                },
-        ).andReturn()
+        mockMvc
+            .perform(
+                request(endpoint.method, endpoint.path)
+                    .param("carouselImages", "carousel.png")
+                    .param("bannerImage", "banner.png")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{}")
+                    .let { builder ->
+                        token?.let { builder.with(authentication(it)) } ?: builder
+                    }
+            )
+            .andReturn()
 
-    private fun memberAuthentication() = UsernamePasswordAuthenticationToken(
-        1L,
-        null,
-        listOf(SimpleGrantedAuthority("ROLE_MEMBER")),
-    )
+    private fun memberAuthentication() =
+        UsernamePasswordAuthenticationToken(
+            1L,
+            null,
+            listOf(SimpleGrantedAuthority("ROLE_MEMBER")),
+        )
 
-    private fun adminAuthentication() = UsernamePasswordAuthenticationToken(
-        1L,
-        null,
-        listOf(SimpleGrantedAuthority("ROLE_ADMIN")),
-    )
+    private fun adminAuthentication() =
+        UsernamePasswordAuthenticationToken(
+            1L,
+            null,
+            listOf(SimpleGrantedAuthority("ROLE_ADMIN")),
+        )
 
     private data class Route(
         val method: HttpMethod,

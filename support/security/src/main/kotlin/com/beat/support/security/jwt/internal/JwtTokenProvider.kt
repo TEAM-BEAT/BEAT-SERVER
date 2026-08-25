@@ -1,20 +1,22 @@
 package com.beat.support.security.jwt.internal
 
-import com.beat.support.security.token.RefreshTokenAuthenticator
-import com.beat.support.security.token.TokenAuthenticationFailure
-import com.beat.support.security.token.TokenAuthenticationResult
-import com.beat.support.security.token.TokenIssuer
-import com.beat.support.security.token.TokenSubject
+import com.beat.application.frontoffice.security.RefreshTokenAuthenticator
+import com.beat.application.frontoffice.security.TokenAuthenticationFailure
+import com.beat.application.frontoffice.security.TokenAuthenticationResult
+import com.beat.application.frontoffice.security.TokenIssuer
+import com.beat.application.frontoffice.security.TokenSubject
+import com.beat.support.security.access.AccessTokenAuthenticationFailure
+import com.beat.support.security.access.AccessTokenAuthenticationResult
+import com.beat.support.security.access.AccessTokenAuthenticator
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.ExpiredJwtException
+import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.MalformedJwtException
+import io.jsonwebtoken.PrematureJwtException
 import io.jsonwebtoken.UnsupportedJwtException
 import io.jsonwebtoken.security.SignatureException
 
-/**
- * 발급/파싱은 [JwtTokenIssuer]·[JwtTokenParser]에 위임하고,
- * 이 클래스는 예외를 [TokenAuthenticationResult]로 변환하는 책임만 갖는다.
- */
+/** 발급/파싱은 [JwtTokenIssuer]·[JwtTokenParser]에 위임하고, JWT 검증 결과를 각 consumer-owned contract로 변환한다. */
 internal class JwtTokenProvider(
     private val jwtProperties: JwtProperties,
     private val jwtTokenIssuer: JwtTokenIssuer,
@@ -27,59 +29,101 @@ internal class JwtTokenProvider(
     override fun issueRefreshToken(subject: TokenSubject): String =
         jwtTokenIssuer.issue(subject, jwtProperties.refreshTokenExpireTime, JwtTokenType.REFRESH)
 
-    override fun authenticateAccessToken(token: String): TokenAuthenticationResult =
-        mapParsedToken(
+    override fun authenticateAccessToken(token: String): AccessTokenAuthenticationResult =
+        authenticateToken(
             token = token,
             expectedType = JwtTokenType.ACCESS,
-            onValid = { claims -> claims.toAuthenticationResult() },
-            onInvalid = TokenAuthenticationResult::Rejected,
+            onAuthenticated = { memberId, roleName ->
+                AccessTokenAuthenticationResult.Authenticated(memberId, roleName)
+            },
+            onRejected = { failure ->
+                AccessTokenAuthenticationResult.Rejected(failure.toAccessFailure())
+            },
         )
 
     override fun authenticateRefreshToken(token: String): TokenAuthenticationResult =
-        mapParsedToken(
+        authenticateToken(
             token = token,
             expectedType = JwtTokenType.REFRESH,
-            onValid = { claims -> claims.toAuthenticationResult() },
-            onInvalid = TokenAuthenticationResult::Rejected,
+            onAuthenticated = { memberId, roleName ->
+                TokenAuthenticationResult.Authenticated(TokenSubject(memberId, roleName))
+            },
+            onRejected = { failure ->
+                TokenAuthenticationResult.Rejected(failure.toApplicationFailure())
+            },
         )
 
     /**
-     * 예외 catch 순서에 의존한다. [InvalidTokenClaimsException]은 [IllegalArgumentException]의
-     * 하위 타입이므로 반드시 먼저 잡아야 `INVALID_TOKEN`으로 분류된다.
+     * JWT 파싱/claim 검증과 예외 정규화는 이 한 곳에서 수행한다. Access/Refresh consumer는 정규화된 결과를 각자 소유한 contract로만
+     * 변환한다.
+     *
+     * [InvalidTokenClaimsException]은 [IllegalArgumentException]의 하위 타입이므로 catch 순서를 유지해야 한다.
      */
-    private fun mapParsedToken(
+    private fun <T> authenticateToken(
         token: String,
         expectedType: JwtTokenType,
-        onValid: (Claims) -> TokenAuthenticationResult,
-        onInvalid: (TokenAuthenticationFailure) -> TokenAuthenticationResult,
-    ): TokenAuthenticationResult = try {
-        onValid(jwtTokenParser.parse(token, expectedType))
-    } catch (_: MalformedJwtException) {
-        onInvalid(TokenAuthenticationFailure.INVALID_TOKEN)
-    } catch (_: ExpiredJwtException) {
-        onInvalid(TokenAuthenticationFailure.EXPIRED)
-    } catch (_: UnsupportedJwtException) {
-        onInvalid(TokenAuthenticationFailure.UNSUPPORTED)
-    } catch (_: InvalidTokenClaimsException) {
-        onInvalid(TokenAuthenticationFailure.INVALID_TOKEN)
-    } catch (_: IllegalArgumentException) {
-        onInvalid(TokenAuthenticationFailure.EMPTY)
-    } catch (_: SignatureException) {
-        onInvalid(TokenAuthenticationFailure.INVALID_SIGNATURE)
-    }
+        onAuthenticated: (memberId: Long, roleName: String) -> T,
+        onRejected: (JwtAuthenticationFailure) -> T,
+    ): T =
+        try {
+            val claims = jwtTokenParser.parse(token, expectedType)
+            val memberId = claims.memberIdOrNull()
+            val roleName = claims.roleNameOrNull()
 
-    private fun Claims.toAuthenticationResult(): TokenAuthenticationResult {
-        val memberId = memberIdOrNull()
-        val roleName = roleNameOrNull()
-        return if (memberId == null || roleName == null) {
-            TokenAuthenticationResult.Rejected(TokenAuthenticationFailure.INVALID_TOKEN)
-        } else {
-            TokenAuthenticationResult.Authenticated(TokenSubject(memberId, roleName))
+            if (memberId == null || roleName == null) {
+                onRejected(JwtAuthenticationFailure.INVALID_TOKEN)
+            } else {
+                onAuthenticated(memberId, roleName)
+            }
+        } catch (_: MalformedJwtException) {
+            onRejected(JwtAuthenticationFailure.INVALID_TOKEN)
+        } catch (_: ExpiredJwtException) {
+            onRejected(JwtAuthenticationFailure.EXPIRED)
+        } catch (_: UnsupportedJwtException) {
+            onRejected(JwtAuthenticationFailure.UNSUPPORTED)
+        } catch (_: InvalidTokenClaimsException) {
+            onRejected(JwtAuthenticationFailure.INVALID_TOKEN)
+        } catch (_: IllegalArgumentException) {
+            onRejected(JwtAuthenticationFailure.EMPTY)
+        } catch (_: SignatureException) {
+            onRejected(JwtAuthenticationFailure.INVALID_SIGNATURE)
+        } catch (_: PrematureJwtException) {
+            onRejected(JwtAuthenticationFailure.INVALID_TOKEN)
+        } catch (_: JwtException) {
+            onRejected(JwtAuthenticationFailure.INVALID_TOKEN)
         }
-    }
 
-    private fun Claims.memberIdOrNull(): Long? = this[JwtClaimNames.MEMBER_ID]?.toString()?.toLongOrNull()
+    private fun JwtAuthenticationFailure.toAccessFailure(): AccessTokenAuthenticationFailure =
+        when (this) {
+            JwtAuthenticationFailure.EXPIRED -> AccessTokenAuthenticationFailure.EXPIRED
+            JwtAuthenticationFailure.INVALID_TOKEN -> AccessTokenAuthenticationFailure.INVALID_TOKEN
+            JwtAuthenticationFailure.INVALID_SIGNATURE ->
+                AccessTokenAuthenticationFailure.INVALID_SIGNATURE
+            JwtAuthenticationFailure.UNSUPPORTED -> AccessTokenAuthenticationFailure.UNSUPPORTED
+            JwtAuthenticationFailure.EMPTY -> AccessTokenAuthenticationFailure.EMPTY
+        }
+
+    private fun JwtAuthenticationFailure.toApplicationFailure(): TokenAuthenticationFailure =
+        when (this) {
+            JwtAuthenticationFailure.EXPIRED -> TokenAuthenticationFailure.EXPIRED
+            JwtAuthenticationFailure.INVALID_TOKEN -> TokenAuthenticationFailure.INVALID_TOKEN
+            JwtAuthenticationFailure.INVALID_SIGNATURE ->
+                TokenAuthenticationFailure.INVALID_SIGNATURE
+            JwtAuthenticationFailure.UNSUPPORTED -> TokenAuthenticationFailure.UNSUPPORTED
+            JwtAuthenticationFailure.EMPTY -> TokenAuthenticationFailure.EMPTY
+        }
+
+    private fun Claims.memberIdOrNull(): Long? =
+        this[JwtClaimNames.MEMBER_ID]?.toString()?.toLongOrNull()
 
     private fun Claims.roleNameOrNull(): String? =
         get(JwtClaimNames.ROLE, String::class.java)?.takeIf(String::isNotBlank)
+
+    private enum class JwtAuthenticationFailure {
+        EXPIRED,
+        INVALID_TOKEN,
+        INVALID_SIGNATURE,
+        UNSUPPORTED,
+        EMPTY,
+    }
 }

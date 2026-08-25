@@ -1,7 +1,7 @@
 package com.beat.apps.batch
 
-import com.beat.apps.batch.config.InfraConfig
 import com.beat.application.system.SystemApplicationConfig
+import com.beat.apps.batch.config.InfraConfig
 import com.beat.infrastructure.EnableInfraBaseConfig
 import com.beat.infrastructure.InfraBaseConfigGroup
 import com.beat.infrastructure.persistence.InfraPersistenceConfig
@@ -15,8 +15,6 @@ import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 import org.springframework.scheduling.annotation.EnableScheduling
-import java.nio.file.Files
-import java.nio.file.Path
 
 class BatchApplicationTest : FunSpec() {
 
@@ -28,17 +26,21 @@ class BatchApplicationTest : FunSpec() {
             importAnnotation shouldNotBe null
             val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
 
-            importedClassNames shouldBe setOf(
-                SystemApplicationConfig::class.java.name,
-                InfraConfig::class.java.name,
-                ObservabilityModuleConfig::class.java.name,
-            )
+            importedClassNames shouldBe
+                setOf(
+                    SystemApplicationConfig::class.java.name,
+                    InfraConfig::class.java.name,
+                    ObservabilityModuleConfig::class.java.name,
+                )
         }
 
         test("batch application은 scheduling을 모듈 부트스트랩 안에 유지한다") {
-            val springBootApplication = BatchApplication::class.java.getAnnotation(SpringBootApplication::class.java)
-            val componentScan = BatchApplication::class.java.getAnnotation(ComponentScan::class.java)
-            val enableScheduling = BatchApplication::class.java.getAnnotation(EnableScheduling::class.java)
+            val springBootApplication =
+                BatchApplication::class.java.getAnnotation(SpringBootApplication::class.java)
+            val componentScan =
+                BatchApplication::class.java.getAnnotation(ComponentScan::class.java)
+            val enableScheduling =
+                BatchApplication::class.java.getAnnotation(EnableScheduling::class.java)
 
             springBootApplication shouldNotBe null
             componentScan shouldBe null
@@ -49,17 +51,19 @@ class BatchApplicationTest : FunSpec() {
 
         test("batch infra config는 명시적인 base bootstrap group을 유지한다") {
             InfraConfig::class.java.getAnnotation(Configuration::class.java) shouldNotBe null
-            val enableInfraBaseConfig = InfraConfig::class.java.getAnnotation(EnableInfraBaseConfig::class.java)
+            val enableInfraBaseConfig =
+                InfraConfig::class.java.getAnnotation(EnableInfraBaseConfig::class.java)
             enableInfraBaseConfig shouldNotBe null
-            enableInfraBaseConfig!!.value.toSet() shouldBe setOf(
-                InfraBaseConfigGroup.JPA,
-                InfraBaseConfigGroup.ASYNC,
-            )
+            enableInfraBaseConfig!!.value.toSet() shouldBe
+                setOf(
+                    InfraBaseConfigGroup.JPA,
+                    InfraBaseConfigGroup.ASYNC,
+                )
 
             val imports = InfraConfig::class.java.getAnnotation(Import::class.java)
             imports shouldNotBe null
-            imports!!.value.map { it.java.name }.toSet() shouldBe setOf(InfraPersistenceConfig::class.java.name)
+            imports!!.value.map { it.java.name }.toSet() shouldBe
+                setOf(InfraPersistenceConfig::class.java.name)
         }
-
-   }
+    }
 }

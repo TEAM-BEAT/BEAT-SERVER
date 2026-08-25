@@ -10,11 +10,11 @@ import com.beat.infrastructure.external.social.kakao.client.KakaoAuthApiClient
 import com.beat.infrastructure.external.social.kakao.response.KakaoUserResponse
 import feign.FeignException
 import feign.RetryableException
+import java.net.SocketTimeoutException
+import java.util.regex.Pattern
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import java.net.SocketTimeoutException
-import java.util.regex.Pattern
 
 @Service
 internal class KakaoSocialLoginAdapter(
@@ -51,7 +51,13 @@ internal class KakaoSocialLoginAdapter(
     }
 
     private fun getOAuth2Authentication(authorizationCode: String): String {
-        val response = kakaoAuthApiClient.getOAuth2AccessToken(AUTH_CODE, clientId, redirectUri, authorizationCode)
+        val response =
+            kakaoAuthApiClient.getOAuth2AccessToken(
+                AUTH_CODE,
+                clientId,
+                redirectUri,
+                authorizationCode,
+            )
         if (response == null) {
             log.error("Kakao OAuth token response is null.")
             throw SocialLoginFailure.providerFailure()
@@ -124,8 +130,9 @@ internal class KakaoSocialLoginAdapter(
 
     private fun translateTokenFeignFailure(exception: FeignException): SocialLoginFailure {
         log.warn("Kakao OAuth token request failed: status={}", exception.status())
-        if ((exception.status() == 400 || exception.status() == 401) &&
-            REJECTED_AUTHORIZATION_CODE.matcher(exception.contentUTF8()).find()
+        if (
+            (exception.status() == 400 || exception.status() == 401) &&
+                REJECTED_AUTHORIZATION_CODE.matcher(exception.contentUTF8()).find()
         ) {
             return SocialLoginFailure.authenticationFailed(exception)
         }
@@ -145,8 +152,9 @@ internal class KakaoSocialLoginAdapter(
         }
 
     private fun translateRetryableFailure(exception: RetryableException): SocialLoginFailure {
-        val timedOut = generateSequence(exception as Throwable) { it.cause }
-            .any { it is SocketTimeoutException }
+        val timedOut =
+            generateSequence(exception as Throwable) { it.cause }
+                .any { it is SocketTimeoutException }
         if (timedOut) {
             log.warn("Kakao request timed out: status={}", exception.status())
             return SocialLoginFailure.providerTimeout(exception)
@@ -157,7 +165,8 @@ internal class KakaoSocialLoginAdapter(
 
     private companion object {
         val log = LoggerFactory.getLogger(KakaoSocialLoginAdapter::class.java)
-        val REJECTED_AUTHORIZATION_CODE: Pattern = Pattern.compile("\\\"error_code\\\"\\s*:\\s*\\\"?KOE320\\\"?")
+        val REJECTED_AUTHORIZATION_CODE: Pattern =
+            Pattern.compile("\\\"error_code\\\"\\s*:\\s*\\\"?KOE320\\\"?")
         const val AUTH_CODE = "authorization_code"
     }
 }

@@ -1,13 +1,14 @@
 package com.beat.apps.api.performance.api.response
 
+import com.beat.application.frontoffice.performance.maker.query.PerformanceEditResult
 import com.beat.apps.api.performance.api.type.BankNameType
 import com.beat.apps.api.performance.api.type.GenreType
-import com.beat.application.frontoffice.performance.maker.query.PerformanceEditResult
 import com.beat.apps.api.web.jackson.CdnImageUrl
 import com.fasterxml.jackson.annotation.JsonProperty
 
 @ConsistentCopyVisibility
-data class PerformanceModifyDetailResponse private constructor(
+data class PerformanceModifyDetailResponse
+private constructor(
     val userId: Long?,
     val performanceId: Long?,
     val performanceTitle: String?,
@@ -29,8 +30,7 @@ data class PerformanceModifyDetailResponse private constructor(
     val performancePeriod: String?,
     val ticketPrice: Int,
     val totalScheduleCount: Int,
-    @get:JsonProperty("isBookerExist")
-    val isBookerExist: Boolean,
+    @get:JsonProperty("isBookerExist") val isBookerExist: Boolean,
     val scheduleList: List<ScheduleResponse>,
     val castList: List<CastResponse>,
     val staffList: List<StaffResponse>,

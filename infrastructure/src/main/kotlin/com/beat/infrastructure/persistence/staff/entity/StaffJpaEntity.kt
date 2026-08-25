@@ -9,7 +9,8 @@ import jakarta.persistence.Table
 
 @Entity(name = "Staff")
 @Table(name = "staff")
-internal class StaffJpaEntity private constructor(
+internal class StaffJpaEntity
+private constructor(
     id: Long?,
     staffName: String,
     staffRole: String,
@@ -45,12 +46,13 @@ internal class StaffJpaEntity private constructor(
             staffRole: String,
             staffPhoto: String,
             performanceId: Long,
-        ): StaffJpaEntity = StaffJpaEntity(
-            id = id,
-            staffName = staffName,
-            staffRole = staffRole,
-            staffPhoto = staffPhoto,
-            performanceId = performanceId,
-        )
+        ): StaffJpaEntity =
+            StaffJpaEntity(
+                id = id,
+                staffName = staffName,
+                staffRole = staffRole,
+                staffPhoto = staffPhoto,
+                performanceId = performanceId,
+            )
     }
 }

@@ -1,8 +1,8 @@
 package com.beat.application.frontoffice.booking.booker.credential
 
 /**
- * Reads guest credentials from the authoritative Booking persistence source.
- * Implementations must not use a cache, replica, or eventually consistent projection.
+ * Reads guest credentials from the authoritative Booking persistence source. Implementations must
+ * not use a cache, replica, or eventually consistent projection.
  */
 interface GuestBookingCredentialRepository {
     fun findCandidates(

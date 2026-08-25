@@ -1,15 +1,15 @@
 package com.beat.apps.batch.config
 
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import java.util.concurrent.CopyOnWriteArrayList
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.core.LogEvent
 import org.apache.logging.log4j.core.LoggerContext
 import org.apache.logging.log4j.core.appender.AbstractAppender
 import org.apache.logging.log4j.core.config.Property
-import io.kotest.core.spec.IsolationMode
-import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.shouldBe
-import java.util.concurrent.CopyOnWriteArrayList
 
 class ScheduledTaskErrorHandlerTest : FunSpec() {
 
@@ -21,9 +21,10 @@ class ScheduledTaskErrorHandlerTest : FunSpec() {
         test("throwable을 ERROR 로그로 남기고 다시 던지지 않는다") {
             val failure = IllegalStateException("scheduled-boom")
 
-            val events = captureLogEvents(ScheduledTaskErrorHandler::class.java.name) {
-                handler.handleError(failure)
-            }
+            val events =
+                captureLogEvents(ScheduledTaskErrorHandler::class.java.name) {
+                    handler.handleError(failure)
+                }
 
             events.size shouldBe 1
             val event = events.first()
@@ -34,19 +35,20 @@ class ScheduledTaskErrorHandlerTest : FunSpec() {
     }
 
     /**
-     * 프로그래매틱 Log4j2 appender로 특정 로거의 이벤트를 캡처한다.
-     * (OutputCaptureExtension은 Log4j2 ConsoleAppender의 스트림 캐싱 때문에 테스트 클래스 순서에
-     * 따라 캡처가 누락될 수 있어, 백엔드에 직접 부착하는 방식으로 결정적으로 검증한다.)
+     * 프로그래매틱 Log4j2 appender로 특정 로거의 이벤트를 캡처한다. (OutputCaptureExtension은 Log4j2 ConsoleAppender의
+     * 스트림 캐싱 때문에 테스트 클래스 순서에 따라 캡처가 누락될 수 있어, 백엔드에 직접 부착하는 방식으로 결정적으로 검증한다.)
      */
     private fun captureLogEvents(loggerName: String, block: () -> Unit): List<LogEvent> {
         val context = LogManager.getContext(false) as LoggerContext
         val configuration = context.configuration
-        val appender = object : AbstractAppender("capture", null, null, true, Property.EMPTY_ARRAY) {
-            val events = CopyOnWriteArrayList<LogEvent>()
-            override fun append(event: LogEvent) {
-                events.add(event.toImmutable())
+        val appender =
+            object : AbstractAppender("capture", null, null, true, Property.EMPTY_ARRAY) {
+                val events = CopyOnWriteArrayList<LogEvent>()
+
+                override fun append(event: LogEvent) {
+                    events.add(event.toImmutable())
+                }
             }
-        }
         appender.start()
         configuration.addAppender(appender)
         val loggerConfig = configuration.getLoggerConfig(loggerName)

@@ -20,19 +20,20 @@ import io.kotest.extensions.spring.SpringExtension
 import io.kotest.extensions.spring.SpringTestLifecycleMode
 import io.kotest.matchers.shouldBe
 import jakarta.persistence.EntityManager
+import java.time.LocalDate
+import java.time.LocalDateTime
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
-import java.time.LocalDate
-import java.time.LocalDateTime
 
 @DataJpaTest(
-    properties = [
-        "spring.config.import=classpath:application-persistence.yml",
-        "DB_HIKARI_MAX_POOL_SIZE=10",
-    ],
+    properties =
+        [
+            "spring.config.import=classpath:application-persistence.yml",
+            "DB_HIKARI_MAX_POOL_SIZE=10",
+        ]
 )
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(classes = [JpaConfig::class, MySqlTestContainerConfig::class])
@@ -40,54 +41,53 @@ import java.time.LocalDateTime
 @Tags("integration")
 class HomeProjectionQueriesIntegrationSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var reader: HomeProjectionReader
+    @Autowired private lateinit var reader: HomeProjectionReader
 
-    @Autowired
-    private lateinit var entityManager: EntityManager
+    @Autowired private lateinit var entityManager: EntityManager
 
-    @Autowired
-    private lateinit var performanceRepository: PerformanceJpaRepository
+    @Autowired private lateinit var performanceRepository: PerformanceJpaRepository
 
-    @Autowired
-    private lateinit var scheduleRepository: ScheduleJpaRepository
+    @Autowired private lateinit var scheduleRepository: ScheduleJpaRepository
 
-    @Autowired
-    private lateinit var promotionRepository: PromotionJpaRepository
+    @Autowired private lateinit var promotionRepository: PromotionJpaRepository
 
     init {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
         test("genre로 필터링하고 authoritative home 공연 날짜를 선택한다") {
-            val futurePerformance = performanceRepository.save(
+            val futurePerformance =
+                performanceRepository.save(
+                    performance(
+                        title = "Future performance",
+                        genre = Genre.BAND,
+                        periodStart = LocalDate.of(2026, 8, 1),
+                        periodEnd = LocalDate.of(2026, 8, 31),
+                    )
+                )
+            val pastOnlyPerformance =
                 performance(
-                    title = "Future performance",
+                    title = "Past only performance",
                     genre = Genre.BAND,
-                    periodStart = LocalDate.of(2026, 8, 1),
-                    periodEnd = LocalDate.of(2026, 8, 31),
-                ),
-            )
-            val pastOnlyPerformance = performance(
-                title = "Past only performance",
-                genre = Genre.BAND,
-                periodStart = LocalDate.of(2026, 7, 1),
-                periodEnd = LocalDate.of(2026, 7, 31),
-            )
-            val noSchedulePerformance = performance(
-                title = "No schedule performance",
-                genre = Genre.BAND,
-                periodStart = LocalDate.of(2026, 9, 1),
-                periodEnd = LocalDate.of(2026, 9, 30),
-            )
-            val differentGenrePerformance = performance(
-                title = "Different genre performance",
-                genre = Genre.PLAY,
-                periodStart = LocalDate.of(2026, 10, 1),
-                periodEnd = LocalDate.of(2026, 10, 31),
-            )
+                    periodStart = LocalDate.of(2026, 7, 1),
+                    periodEnd = LocalDate.of(2026, 7, 31),
+                )
+            val noSchedulePerformance =
+                performance(
+                    title = "No schedule performance",
+                    genre = Genre.BAND,
+                    periodStart = LocalDate.of(2026, 9, 1),
+                    periodEnd = LocalDate.of(2026, 9, 30),
+                )
+            val differentGenrePerformance =
+                performance(
+                    title = "Different genre performance",
+                    genre = Genre.PLAY,
+                    periodStart = LocalDate.of(2026, 10, 1),
+                    periodEnd = LocalDate.of(2026, 10, 31),
+                )
             performanceRepository.saveAll(
-                listOf(pastOnlyPerformance, noSchedulePerformance, differentGenrePerformance),
+                listOf(pastOnlyPerformance, noSchedulePerformance, differentGenrePerformance)
             )
             performanceRepository.flush()
 
@@ -98,18 +98,20 @@ class HomeProjectionQueriesIntegrationSpec : FunSpec() {
                     schedule(futurePerformance.id!!, now.plusDays(1), ScheduleNumber.SECOND),
                     schedule(pastOnlyPerformance.id!!, now.minusDays(2), ScheduleNumber.FIRST),
                     schedule(pastOnlyPerformance.id!!, now.minusDays(5), ScheduleNumber.SECOND),
-                ),
+                )
             )
             entityManager.flush()
             entityManager.clear()
 
-            val performances = reader.read("BAND", now).performances.associateBy { it.performanceId }
+            val performances =
+                reader.read("BAND", now).performances.associateBy { it.performanceId }
 
-            performances.keys shouldBe setOf(
-                futurePerformance.id!!,
-                pastOnlyPerformance.id!!,
-                noSchedulePerformance.id!!,
-            )
+            performances.keys shouldBe
+                setOf(
+                    futurePerformance.id!!,
+                    pastOnlyPerformance.id!!,
+                    noSchedulePerformance.id!!,
+                )
 
             val future = performances.getValue(futurePerformance.id!!)
             future.performanceTitle shouldBe "Future performance"
@@ -131,12 +133,13 @@ class HomeProjectionQueriesIntegrationSpec : FunSpec() {
         }
 
         test("nullable 필드를 잃지 않고 carousel 순서로 promotion을 projection한다") {
-            val firstPerformance = performance(
-                title = "Carousel performance",
-                genre = Genre.BAND,
-                periodStart = LocalDate.of(2026, 8, 1),
-                periodEnd = LocalDate.of(2026, 8, 31),
-            )
+            val firstPerformance =
+                performance(
+                    title = "Carousel performance",
+                    genre = Genre.BAND,
+                    periodStart = LocalDate.of(2026, 8, 1),
+                    periodEnd = LocalDate.of(2026, 8, 31),
+                )
             performanceRepository.saveAndFlush(firstPerformance)
 
             promotionRepository.saveAll(
@@ -165,7 +168,7 @@ class HomeProjectionQueriesIntegrationSpec : FunSpec() {
                         isExternal = false,
                         carouselNumber = CarouselNumber.TWO,
                     ),
-                ),
+                )
             )
             entityManager.flush()
             entityManager.clear()
@@ -175,11 +178,12 @@ class HomeProjectionQueriesIntegrationSpec : FunSpec() {
             promotions.map { it.carouselNumber } shouldBe listOf("ONE", "TWO", "THREE")
             promotions.map { it.promotionPhoto } shouldBe listOf("one.png", "two.png", "three.png")
             promotions.map { it.performanceId } shouldBe listOf(firstPerformance.id, null, null)
-            promotions.map { it.redirectUrl } shouldBe listOf(
-                "https://beat.example/one",
-                "https://beat.example/two",
-                "",
-            )
+            promotions.map { it.redirectUrl } shouldBe
+                listOf(
+                    "https://beat.example/one",
+                    "https://beat.example/two",
+                    "",
+                )
             promotions.map { it.isExternal } shouldBe listOf(false, false, true)
         }
     }
@@ -189,42 +193,43 @@ class HomeProjectionQueriesIntegrationSpec : FunSpec() {
         genre: Genre,
         periodStart: LocalDate,
         periodEnd: LocalDate,
-    ): PerformanceJpaEntity = PerformanceJpaEntity.rehydrate(
-        id = null,
-        performanceTitle = title,
-        genre = genre,
-        runningTime = 90,
-        performanceDescription = "description-$title",
-        performanceAttentionNote = "attention-$title",
-        paymentAccount = null,
-        posterImage = "poster-$title.png",
-        performanceTeamName = "team-$title",
-        performanceVenue = "venue-$title",
-        roadAddressName = "road",
-        placeDetailAddress = "detail",
-        latitude = "37.0",
-        longitude = "127.0",
-        performanceContact = "010-0000-0000",
-        performancePeriodValue = PerformancePeriodJpaValue(periodStart, periodEnd),
-        legacyPerformancePeriod = "$periodStart~$periodEnd",
-        ticketPrice = 15_000,
-        totalScheduleCount = 2,
-        userId = 1L,
-    )
+    ): PerformanceJpaEntity =
+        PerformanceJpaEntity.rehydrate(
+            id = null,
+            performanceTitle = title,
+            genre = genre,
+            runningTime = 90,
+            performanceDescription = "description-$title",
+            performanceAttentionNote = "attention-$title",
+            paymentAccount = null,
+            posterImage = "poster-$title.png",
+            performanceTeamName = "team-$title",
+            performanceVenue = "venue-$title",
+            roadAddressName = "road",
+            placeDetailAddress = "detail",
+            latitude = "37.0",
+            longitude = "127.0",
+            performanceContact = "010-0000-0000",
+            performancePeriodValue = PerformancePeriodJpaValue(periodStart, periodEnd),
+            ticketPrice = 15_000,
+            totalScheduleCount = 2,
+            userId = 1L,
+        )
 
     private fun schedule(
         performanceId: Long,
         performanceDate: LocalDateTime,
         scheduleNumber: ScheduleNumber,
-    ): ScheduleJpaEntity = ScheduleJpaEntity.rehydrate(
-        id = null,
-        performanceDate = performanceDate,
-        bookingCloseAt = performanceDate.minusHours(1),
-        totalTicketCount = 100,
-        soldTicketCount = 0,
-        scheduleNumber = scheduleNumber,
-        performanceId = performanceId,
-    )
+    ): ScheduleJpaEntity =
+        ScheduleJpaEntity.rehydrate(
+            id = null,
+            performanceDate = performanceDate,
+            bookingCloseAt = performanceDate.minusHours(1),
+            totalTicketCount = 100,
+            soldTicketCount = 0,
+            scheduleNumber = scheduleNumber,
+            performanceId = performanceId,
+        )
 
     private companion object {
         val NOW: LocalDateTime = LocalDateTime.of(2026, 8, 20, 12, 0)

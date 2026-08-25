@@ -6,8 +6,7 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration(proxyBeanMethods = false)
 class CdnImageUrlConfig {
-    @field:Value("\${cloud.cdn.domain:}")
-    private lateinit var cdnDomain: String
+    @field:Value("\${cloud.cdn.domain:}") private lateinit var cdnDomain: String
 
     @PostConstruct
     fun initSerializer() {

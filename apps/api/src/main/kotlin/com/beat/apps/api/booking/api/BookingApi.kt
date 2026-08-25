@@ -1,6 +1,5 @@
 package com.beat.apps.api.booking.api
 
-import com.beat.apps.api.guest.GUEST_SESSION_COOKIE_NAME
 import com.beat.apps.api.booking.api.request.BookingCancelRequest
 import com.beat.apps.api.booking.api.request.BookingRefundRequest
 import com.beat.apps.api.booking.api.request.GuestBookingRequest
@@ -12,10 +11,11 @@ import com.beat.apps.api.booking.api.response.GuestBookingResponse
 import com.beat.apps.api.booking.api.response.GuestBookingRetrieveResponse
 import com.beat.apps.api.booking.api.response.MemberBookingResponse
 import com.beat.apps.api.booking.api.response.MemberBookingRetrieveResponse
-import com.beat.apps.api.swagger.annotation.DisableSwaggerSecurity
-import com.beat.support.security.CurrentMember
+import com.beat.apps.api.guest.GUEST_SESSION_COOKIE_NAME
 import com.beat.apps.api.response.ErrorResponse
 import com.beat.apps.api.response.SuccessResponse
+import com.beat.apps.api.swagger.annotation.DisableSwaggerSecurity
+import com.beat.support.security.CurrentMember
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -33,19 +33,20 @@ interface BookingApi {
 
     @Operation(summary = "회원 예매 API", description = "회원이 예매를 요청하는 POST API입니다.")
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "201", description = "회원 예매가 성공적으로 완료되었습니다."),
-            ApiResponse(
-                responseCode = "400",
-                description = "필수 데이터가 누락되었거나 잘못된 요청 형식입니다.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-            ApiResponse(
-                responseCode = "404",
-                description = "회원, 공연 또는 회차 정보를 찾을 수 없습니다.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-        ],
+        value =
+            [
+                ApiResponse(responseCode = "201", description = "회원 예매가 성공적으로 완료되었습니다."),
+                ApiResponse(
+                    responseCode = "400",
+                    description = "필수 데이터가 누락되었거나 잘못된 요청 형식입니다.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description = "회원, 공연 또는 회차 정보를 찾을 수 없습니다.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+            ]
     )
     fun createMemberBooking(
         @CurrentMember memberId: Long,
@@ -54,35 +55,37 @@ interface BookingApi {
 
     @Operation(summary = "회원 예매 조회 API", description = "회원이 예매를 조회하는 GET API입니다.")
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "200", description = "회원 예매 조회가 성공적으로 완료되었습니다."),
-            ApiResponse(
-                responseCode = "404",
-                description = "입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-        ],
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "회원 예매 조회가 성공적으로 완료되었습니다."),
+                ApiResponse(
+                    responseCode = "404",
+                    description = "입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+            ]
     )
     fun getMemberBookings(
-        @CurrentMember memberId: Long,
+        @CurrentMember memberId: Long
     ): ResponseEntity<SuccessResponse<List<MemberBookingRetrieveResponse>>>
 
     @DisableSwaggerSecurity
     @Operation(summary = "비회원 예매 API", description = "비회원이 예매를 요청하는 POST API입니다.")
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "201", description = "비회원 예매가 성공적으로 완료되었습니다."),
-            ApiResponse(
-                responseCode = "400",
-                description = "필수 데이터가 누락되었거나 잘못된 데이터 형식입니다.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-            ApiResponse(
-                responseCode = "404",
-                description = "공연 또는 회차 정보를 찾을 수 없습니다.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-        ],
+        value =
+            [
+                ApiResponse(responseCode = "201", description = "비회원 예매가 성공적으로 완료되었습니다."),
+                ApiResponse(
+                    responseCode = "400",
+                    description = "필수 데이터가 누락되었거나 잘못된 데이터 형식입니다.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description = "공연 또는 회차 정보를 찾을 수 없습니다.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+            ]
     )
     fun createGuestBookings(
         @RequestBody guestBookingRequest: GuestBookingRequest,
@@ -92,14 +95,15 @@ interface BookingApi {
     @DisableSwaggerSecurity
     @Operation(summary = "비회원 예매 조회 API", description = "비회원이 예매를 조회하는 POST API입니다.")
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "200", description = "비회원 예매 조회가 성공적으로 완료되었습니다."),
-            ApiResponse(
-                responseCode = "404",
-                description = "입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-        ],
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "비회원 예매 조회가 성공적으로 완료되었습니다."),
+                ApiResponse(
+                    responseCode = "404",
+                    description = "입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+            ]
     )
     fun getGuestBookings(
         @RequestBody guestBookingRetrieveRequest: GuestBookingRetrieveRequest,
@@ -110,36 +114,46 @@ interface BookingApi {
     @DisableSwaggerSecurity
     @Operation(summary = "유료공연 예매 환불 요청 API", description = "회원 토큰 또는 비회원 예매 조회 후 발급된 세션이 필요합니다.")
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "200", description = "유료공연 예매 환불 요청이 성공적으로 완료되었습니다."),
-            ApiResponse(
-                responseCode = "404",
-                description = "입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-        ],
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "유료공연 예매 환불 요청이 성공적으로 완료되었습니다."),
+                ApiResponse(
+                    responseCode = "404",
+                    description = "입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+            ]
     )
     fun refundBookings(
         @CurrentMember memberId: Long?,
-        @CookieValue(value = GUEST_SESSION_COOKIE_NAME, required = false) guestSessionToken: String?,
+        @CookieValue(value = GUEST_SESSION_COOKIE_NAME, required = false)
+        guestSessionToken: String?,
         @RequestBody bookingRefundRequest: BookingRefundRequest,
     ): ResponseEntity<SuccessResponse<BookingRefundResponse>>
 
     @DisableSwaggerSecurity
-    @Operation(summary = "무료공연/미입금 예매 취소 요청 API", description = "회원 토큰 또는 비회원 예매 조회 후 발급된 세션이 필요합니다.")
+    @Operation(
+        summary = "무료공연/미입금 예매 취소 요청 API",
+        description = "회원 토큰 또는 비회원 예매 조회 후 발급된 세션이 필요합니다.",
+    )
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "200", description = "무료공연/미입금 예매 취소 요청이 성공적으로 완료되었습니다."),
-            ApiResponse(
-                responseCode = "404",
-                description = "입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-        ],
+        value =
+            [
+                ApiResponse(
+                    responseCode = "200",
+                    description = "무료공연/미입금 예매 취소 요청이 성공적으로 완료되었습니다.",
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description = "입력하신 정보와 일치하는 예매 내역이 없습니다. 확인 후 다시 조회해주세요.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+            ]
     )
     fun cancelBookings(
         @CurrentMember memberId: Long?,
-        @CookieValue(value = GUEST_SESSION_COOKIE_NAME, required = false) guestSessionToken: String?,
+        @CookieValue(value = GUEST_SESSION_COOKIE_NAME, required = false)
+        guestSessionToken: String?,
         @RequestBody bookingCancelRequest: BookingCancelRequest,
     ): ResponseEntity<SuccessResponse<BookingCancelResponse>>
 }

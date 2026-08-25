@@ -23,52 +23,57 @@ internal object SentrySensitiveDataPolicy {
             forbiddenMetricTagFragments.any(normalizedKey::contains)
     }
 
-    private fun normalizeKey(key: String): String =
-        key.lowercase().filter(Char::isLetterOrDigit)
+    private fun normalizeKey(key: String): String = key.lowercase().filter(Char::isLetterOrDigit)
 
-    private val sensitiveKeyPattern = Regex(
-        pattern = listOf(
+    private val sensitiveKeyPattern =
+        Regex(
+            pattern =
+                listOf(
+                        "authorization",
+                        "cookie",
+                        "set-cookie",
+                        "x-api-key",
+                        "access[-_]?token",
+                        "refresh[-_]?token",
+                        "password",
+                        "secret",
+                        "token",
+                        "jwt",
+                        "db[-_]?url",
+                        "aws[-_]?.*key",
+                        "s3[-_]?.*secret",
+                        "sentry[-_]?auth[-_]?token",
+                    )
+                    .joinToString("|"),
+            option = RegexOption.IGNORE_CASE,
+        )
+
+    private val secretValuePatterns =
+        listOf(
+            Regex("(?i)(bearer\\s+)[A-Za-z0-9._~+/=-]+"),
+            Regex("(?i)((?:access|refresh)?token[=:]\\s*)[^\\s,&}]+"),
+            Regex("(?i)(password[=:]\\s*)[^\\s,&}]+"),
+            Regex("(?i)(secret[=:]\\s*)[^\\s,&}]+"),
+            Regex("(?i)(jwt[=:]\\s*)[^\\s,&}]+"),
+        )
+
+    private val forbiddenExactMetricTagKeys =
+        setOf(
+            "userid",
+            "clientip",
+            "request",
+            "rawuri",
+            "uri",
+            "url",
+        )
+
+    private val forbiddenMetricTagFragments =
+        setOf(
             "authorization",
             "cookie",
-            "set-cookie",
-            "x-api-key",
-            "access[-_]?token",
-            "refresh[-_]?token",
-            "password",
-            "secret",
             "token",
+            "secret",
+            "password",
             "jwt",
-            "db[-_]?url",
-            "aws[-_]?.*key",
-            "s3[-_]?.*secret",
-            "sentry[-_]?auth[-_]?token",
-        ).joinToString("|"),
-        option = RegexOption.IGNORE_CASE,
-    )
-
-    private val secretValuePatterns = listOf(
-        Regex("(?i)(bearer\\s+)[A-Za-z0-9._~+/=-]+"),
-        Regex("(?i)((?:access|refresh)?token[=:]\\s*)[^\\s,&}]+"),
-        Regex("(?i)(password[=:]\\s*)[^\\s,&}]+"),
-        Regex("(?i)(secret[=:]\\s*)[^\\s,&}]+"),
-        Regex("(?i)(jwt[=:]\\s*)[^\\s,&}]+"),
-    )
-
-    private val forbiddenExactMetricTagKeys = setOf(
-        "userid",
-        "clientip",
-        "request",
-        "rawuri",
-        "uri",
-        "url",
-    )
-
-    private val forbiddenMetricTagFragments = setOf(
-        "authorization",
-        "cookie",
-        "token",
-        "secret",
-        "password",
-        "jwt",
-    )
+        )
 }

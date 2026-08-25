@@ -1,15 +1,27 @@
+import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.compile.JavaCompile
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm")
+    id("org.jetbrains.kotlinx.kover")
+    id("com.diffplug.spotless")
     id("com.autonomousapps.dependency-analysis")
 }
 
 // 모듈 좌표는 루트 좌표를 따른다(모듈별 중복 선언 금지).
 group = rootProject.group.toString()
 version = rootProject.version.toString()
+
+val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
+val ktfmtVersion = libsCatalog.findVersion("ktfmt").get().requiredVersion
+
+spotless {
+    kotlin {
+        ktfmt(ktfmtVersion).kotlinlangStyle()
+    }
+}
 
 // Policy: compile application modules with JDK 25, but emit JVM 25-compatible bytecode
 // so the transition baseline can run on a Java 25 runtime while the build stack upgrades.

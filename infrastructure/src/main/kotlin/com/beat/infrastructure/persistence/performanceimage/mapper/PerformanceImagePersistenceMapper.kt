@@ -6,12 +6,16 @@ import org.springframework.stereotype.Component
 
 @Component
 internal class PerformanceImagePersistenceMapper {
-    fun toDomain(entity: PerformanceImageJpaEntity): PerformanceImage = PerformanceImage.rehydrate(
-        entity.id,
-        entity.performanceImageUrl,
-    )
+    fun toDomain(entity: PerformanceImageJpaEntity): PerformanceImage =
+        PerformanceImage.rehydrate(
+            entity.id,
+            entity.performanceImageUrl,
+        )
 
-    fun toEntity(performanceImage: PerformanceImage, performanceId: Long): PerformanceImageJpaEntity =
+    fun toEntity(
+        performanceImage: PerformanceImage,
+        performanceId: Long,
+    ): PerformanceImageJpaEntity =
         PerformanceImageJpaEntity.rehydrate(
             performanceImage.id,
             performanceImage.performanceImageUrl,
