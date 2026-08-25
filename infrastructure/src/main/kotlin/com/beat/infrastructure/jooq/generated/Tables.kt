@@ -1,3 +1,5 @@
+@file:Suppress("unused", "UnusedVariable")
+
 package com.beat.infrastructure.jooq.generated
 
 import org.jooq.Field
