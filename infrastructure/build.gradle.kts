@@ -1,5 +1,6 @@
 plugins {
     id("beat.jpa-adapter")
+    id("beat.jooq-adapter")
     id("beat.external-client")
     id("beat.sentry-source-context")
 }
@@ -11,7 +12,6 @@ dependencies {
     implementation(project(":domain"))
     compileOnly(libs.spring.boot.starter.data.redis)
     implementation(libs.aws.java.sdk.s3)
-    implementation("org.jooq:jooq")
     implementation(libs.kotlin.jdsl.jpql.dsl)
     implementation(libs.kotlin.jdsl.jpql.render)
     implementation(libs.kotlin.jdsl.hibernate.support)

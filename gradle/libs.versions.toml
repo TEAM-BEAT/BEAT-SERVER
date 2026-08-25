@@ -53,10 +53,9 @@ log4j-layout-template-json = { module = "org.apache.logging.log4j:log4j-layout-t
 
 mysql-connector-j = { module = "com.mysql:mysql-connector-j", version = "9.6.0" }
 
-# Kotlin JDSL — read/query adapter 의 type-safe JPQL DSL.
+# Kotlin JDSL — aggregate/decision read adapter 의 type-safe JPQL DSL.
+# View Read 는 jOOQ Query Side 로 수렴하고, Command correctness 에 필요한 JPA read 에만 JDSL 을 유지한다.
 # hibernate-support 는 EntityManager.createQuery extension 만 제공한다(Executor/auto-config 미포함).
-# Spring Data 통합 모듈(spring-data-jpa-*-support)을 쓰면 사용하지 않는 KotlinJdslJpqlExecutor /
-# repository post-processor 가 강제 등록되어 부팅 시 EntityManager 와 충돌하므로 사용하지 않는다.
 kotlin-jdsl-jpql-dsl = { module = "com.linecorp.kotlin-jdsl:jpql-dsl", version.ref = "kotlin-jdsl" }
 kotlin-jdsl-jpql-render = { module = "com.linecorp.kotlin-jdsl:jpql-render", version.ref = "kotlin-jdsl" }
 kotlin-jdsl-hibernate-support = { module = "com.linecorp.kotlin-jdsl:hibernate-support", version.ref = "kotlin-jdsl" }
@@ -70,6 +69,7 @@ spring-boot-starter-restclient = { module = "org.springframework.boot:spring-boo
 spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
 spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa", version.ref = "spring-boot" }
 spring-boot-data-jpa-test = { module = "org.springframework.boot:spring-boot-data-jpa-test", version.ref = "spring-boot" }
+spring-boot-starter-jooq = { module = "org.springframework.boot:spring-boot-starter-jooq", version.ref = "spring-boot" }
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "spring-boot" }
 spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security", version.ref = "spring-boot" }
 spring-security-test = { module = "org.springframework.security:spring-security-test" }
