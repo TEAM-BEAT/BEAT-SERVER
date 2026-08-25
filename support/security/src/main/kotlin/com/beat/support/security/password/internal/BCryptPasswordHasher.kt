@@ -1,10 +1,10 @@
 package com.beat.support.security.password.internal
 
 import com.beat.application.frontoffice.security.PasswordHasher
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
-import org.springframework.security.crypto.password.PasswordEncoder
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
+import org.springframework.security.crypto.password.PasswordEncoder
 
 class BCryptPasswordHasher : PasswordHasher {
 

@@ -10,8 +10,8 @@ import com.beat.apps.api.performance.api.response.PerformanceModifyResponse
 import com.beat.apps.api.performance.api.response.PerformanceResponse
 import com.beat.apps.api.performance.api.response.PerformanceSuccessCode
 import com.beat.apps.api.performance.facade.PerformanceFacade
-import com.beat.support.security.CurrentMember
 import com.beat.apps.api.response.SuccessResponse
+import com.beat.support.security.CurrentMember
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -26,9 +26,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/performances")
-class PerformanceController(
-    private val performanceFacade: PerformanceFacade,
-) : PerformanceApi {
+class PerformanceController(private val performanceFacade: PerformanceFacade) : PerformanceApi {
 
     @PostMapping
     override fun createPerformance(
@@ -56,36 +54,44 @@ class PerformanceController(
         @PathVariable performanceId: Long,
     ): ResponseEntity<SuccessResponse<PerformanceModifyDetailResponse>> {
         val response = performanceFacade.getPerformanceEdit(memberId, performanceId)
-        return ResponseEntity.ok(SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_MODIFY_PAGE_SUCCESS, response))
+        return ResponseEntity.ok(
+            SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_MODIFY_PAGE_SUCCESS, response)
+        )
     }
 
     @GetMapping("/detail/{performanceId}")
     override fun getPerformanceDetail(
-        @PathVariable performanceId: Long,
+        @PathVariable performanceId: Long
     ): ResponseEntity<SuccessResponse<PerformanceDetailResponse>> {
         val performanceDetail = performanceFacade.getPerformanceDetail(performanceId)
         return ResponseEntity.ok(
-            SuccessResponse.of(PerformanceSuccessCode.PERFORMANCE_RETRIEVE_SUCCESS, performanceDetail),
+            SuccessResponse.of(
+                PerformanceSuccessCode.PERFORMANCE_RETRIEVE_SUCCESS,
+                performanceDetail,
+            )
         )
     }
 
     @GetMapping("/booking/{performanceId}")
     override fun getBookingPerformanceDetail(
-        @PathVariable performanceId: Long,
+        @PathVariable performanceId: Long
     ): ResponseEntity<SuccessResponse<BookingPerformanceDetailResponse>> {
         val bookingPerformanceDetail = performanceFacade.getBookingPerformanceDetail(performanceId)
         return ResponseEntity.ok(
-            SuccessResponse.of(PerformanceSuccessCode.BOOKING_PERFORMANCE_RETRIEVE_SUCCESS, bookingPerformanceDetail),
+            SuccessResponse.of(
+                PerformanceSuccessCode.BOOKING_PERFORMANCE_RETRIEVE_SUCCESS,
+                bookingPerformanceDetail,
+            )
         )
     }
 
     @GetMapping("/user")
     override fun getUserPerformances(
-        @CurrentMember memberId: Long,
+        @CurrentMember memberId: Long
     ): ResponseEntity<SuccessResponse<MakerPerformanceResponse>> {
         val response = performanceFacade.getMemberPerformances(memberId)
         return ResponseEntity.ok(
-            SuccessResponse.of(PerformanceSuccessCode.MAKER_PERFORMANCE_RETRIEVE_SUCCESS, response),
+            SuccessResponse.of(PerformanceSuccessCode.MAKER_PERFORMANCE_RETRIEVE_SUCCESS, response)
         )
     }
 
@@ -95,6 +101,8 @@ class PerformanceController(
         @PathVariable performanceId: Long,
     ): ResponseEntity<SuccessResponse<Void>> {
         performanceFacade.deletePerformance(memberId, performanceId)
-        return ResponseEntity.ok(SuccessResponse.from(PerformanceSuccessCode.PERFORMANCE_DELETE_SUCCESS))
+        return ResponseEntity.ok(
+            SuccessResponse.from(PerformanceSuccessCode.PERFORMANCE_DELETE_SUCCESS)
+        )
     }
 }

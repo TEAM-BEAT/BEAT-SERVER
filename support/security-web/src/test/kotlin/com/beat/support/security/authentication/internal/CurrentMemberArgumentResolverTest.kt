@@ -31,7 +31,11 @@ class CurrentMemberArgumentResolverTest : FunSpec() {
 
         test("인증된 요청은 primitive long 파라미터에 memberId를 주입한다") {
             SecurityContextHolder.getContext().authentication =
-                UsernamePasswordAuthenticationToken(2L, null, AuthorityUtils.createAuthorityList("ROLE_MEMBER"))
+                UsernamePasswordAuthenticationToken(
+                    2L,
+                    null,
+                    AuthorityUtils.createAuthorityList("ROLE_MEMBER"),
+                )
 
             resolver.resolveArgument(parameter(PRIMITIVE), null, webRequest, null) shouldBe 2L
         }
@@ -41,11 +45,12 @@ class CurrentMemberArgumentResolverTest : FunSpec() {
         }
 
         test("익명 인증은 nullable 파라미터에 null을 주입한다") {
-            SecurityContextHolder.getContext().authentication = AnonymousAuthenticationToken(
-                "key",
-                "anonymousUser",
-                AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"),
-            )
+            SecurityContextHolder.getContext().authentication =
+                AnonymousAuthenticationToken(
+                    "key",
+                    "anonymousUser",
+                    AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"),
+                )
 
             resolver.resolveArgument(parameter(BOXED), null, webRequest, null) shouldBe null
         }
@@ -57,11 +62,12 @@ class CurrentMemberArgumentResolverTest : FunSpec() {
         }
 
         test("principal이 Long이 아니면 예외를 던진다") {
-            SecurityContextHolder.getContext().authentication = UsernamePasswordAuthenticationToken(
-                "member-name",
-                null,
-                AuthorityUtils.createAuthorityList("ROLE_MEMBER"),
-            )
+            SecurityContextHolder.getContext().authentication =
+                UsernamePasswordAuthenticationToken(
+                    "member-name",
+                    null,
+                    AuthorityUtils.createAuthorityList("ROLE_MEMBER"),
+                )
 
             shouldThrow<IllegalStateException> {
                 resolver.resolveArgument(parameter(BOXED), null, webRequest, null)
@@ -74,11 +80,12 @@ class CurrentMemberArgumentResolverTest : FunSpec() {
     }
 
     private fun parameter(methodName: String): MethodParameter {
-        val parameterType = when (methodName) {
-            PRIMITIVE -> Long::class.javaPrimitiveType!!
-            UNSUPPORTED -> String::class.java
-            else -> Long::class.javaObjectType
-        }
+        val parameterType =
+            when (methodName) {
+                PRIMITIVE -> Long::class.javaPrimitiveType!!
+                UNSUPPORTED -> String::class.java
+                else -> Long::class.javaObjectType
+            }
         return MethodParameter(Handler::class.java.getDeclaredMethod(methodName, parameterType), 0)
     }
 

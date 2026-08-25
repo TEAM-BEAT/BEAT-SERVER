@@ -4,7 +4,8 @@ import com.beat.application.frontoffice.performance.CastResult
 import com.beat.apps.api.web.jackson.CdnImageUrl
 
 @ConsistentCopyVisibility
-data class PerformanceDetailCastResponse private constructor(
+data class PerformanceDetailCastResponse
+private constructor(
     val castId: Long?,
     val castName: String?,
     val castRole: String?,

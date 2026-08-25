@@ -13,14 +13,15 @@ fun bookingFixture(
     userId: Long = 3L,
     createdAt: LocalDateTime = LocalDateTime.of(2026, 1, 1, 12, 0),
     totalPaymentAmount: Int = 10_000,
-): Booking = Booking.create(
-    purchaseTicketCount = purchaseTicketCount,
-    bookerName = bookerName,
-    bookerPhoneNumber = bookerPhoneNumber,
-    birthDate = birthDate,
-    password = password,
-    scheduleId = scheduleId,
-    userId = userId,
-    createdAt = createdAt,
-    totalPaymentAmount = totalPaymentAmount,
-)
+): Booking =
+    Booking.create(
+        purchaseTicketCount = purchaseTicketCount,
+        bookerName = bookerName,
+        bookerPhoneNumber = bookerPhoneNumber,
+        birthDate = birthDate,
+        password = password,
+        scheduleId = scheduleId,
+        userId = userId,
+        createdAt = createdAt,
+        totalPaymentAmount = totalPaymentAmount,
+    )

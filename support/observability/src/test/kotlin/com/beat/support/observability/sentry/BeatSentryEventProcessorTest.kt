@@ -1,6 +1,10 @@
 package com.beat.support.observability.sentry
 
 import com.beat.support.observability.logging.filter.BaseMdcLoggingFilter
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
 import io.sentry.Hint
 import io.sentry.SentryAttributeType
 import io.sentry.SentryEvent
@@ -9,10 +13,6 @@ import io.sentry.SentryLogEventAttributeValue
 import io.sentry.SentryLogLevel
 import io.sentry.protocol.Request
 import io.sentry.protocol.SentryId
-import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.nulls.shouldBeNull
-import io.kotest.matchers.nulls.shouldNotBeNull
-import io.kotest.matchers.shouldBe
 import org.slf4j.MDC
 
 class BeatSentryEventProcessorTest : FunSpec() {
@@ -28,21 +28,27 @@ class BeatSentryEventProcessorTest : FunSpec() {
             MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, "42")
             MDC.put(BaseMdcLoggingFilter.CLIENT_IP_KEY, "10.0.0.1")
             MDC.put(BaseMdcLoggingFilter.REQUEST_INFO_KEY, "GET /api/performances/detail/19")
-            MDC.put(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY, "GET /api/performances/detail/{performanceId}")
+            MDC.put(
+                BaseMdcLoggingFilter.ROUTE_PATTERN_KEY,
+                "GET /api/performances/detail/{performanceId}",
+            )
 
-            val event = SentryEvent().apply {
-                request = Request().apply {
-                    headers = mapOf(
-                        "Authorization" to "Bearer secret.jwt.value",
-                        "Cookie" to "SESSION=abc",
-                        "X-Request-ID" to "trace-123",
-                    )
-                    cookies = "SESSION=abc"
-                    data = mapOf("refreshToken" to "token-value", "safe" to "value")
+            val event =
+                SentryEvent().apply {
+                    request =
+                        Request().apply {
+                            headers =
+                                mapOf(
+                                    "Authorization" to "Bearer secret.jwt.value",
+                                    "Cookie" to "SESSION=abc",
+                                    "X-Request-ID" to "trace-123",
+                                )
+                            cookies = "SESSION=abc"
+                            data = mapOf("refreshToken" to "token-value", "safe" to "value")
+                        }
+                    setExtra("password", "plain-secret")
+                    setExtra("safe", "bearer token=abc")
                 }
-                setExtra("password", "plain-secret")
-                setExtra("safe", "bearer token=abc")
-            }
 
             val processed = processor.process(event, Hint())
             val processedUser = processed.user.shouldNotBeNull()
@@ -54,7 +60,8 @@ class BeatSentryEventProcessorTest : FunSpec() {
             processed.getTag("module") shouldBe "beat-apis"
             processed.getTag(BaseMdcLoggingFilter.TRACE_ID_KEY) shouldBe "trace-123"
             processed.getTag(BaseMdcLoggingFilter.SPAN_ID_KEY) shouldBe "span-abc"
-            processed.getTag(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY) shouldBe "GET /api/performances/detail/{performanceId}"
+            processed.getTag(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY) shouldBe
+                "GET /api/performances/detail/{performanceId}"
             processedUser.id shouldBe "42"
             processedUser.ipAddress shouldBe "10.0.0.1"
             processedHeaders["Authorization"] shouldBe BeatSentryEventProcessor.REDACTED
@@ -69,15 +76,28 @@ class BeatSentryEventProcessorTest : FunSpec() {
             MDC.put(BaseMdcLoggingFilter.TRACE_ID_KEY, "trace-456")
             MDC.put(BaseMdcLoggingFilter.ROUTE_PATTERN_KEY, "GET /api/main")
 
-            val log = SentryLogEvent(SentryId(), 0.0, "Authorization=Bearer abc token=secret", SentryLogLevel.INFO)
-            log.setAttribute("Authorization", SentryLogEventAttributeValue(SentryAttributeType.STRING, "Bearer abc"))
-            log.setAttribute("business", SentryLogEventAttributeValue(SentryAttributeType.STRING, "booking"))
+            val log =
+                SentryLogEvent(
+                    SentryId(),
+                    0.0,
+                    "Authorization=Bearer abc token=secret",
+                    SentryLogLevel.INFO,
+                )
+            log.setAttribute(
+                "Authorization",
+                SentryLogEventAttributeValue(SentryAttributeType.STRING, "Bearer abc"),
+            )
+            log.setAttribute(
+                "business",
+                SentryLogEventAttributeValue(SentryAttributeType.STRING, "booking"),
+            )
 
             val processed = processor.process(log)
             val processedAttributes = processed.attributes.shouldNotBeNull()
 
             processedAttributes[BaseMdcLoggingFilter.TRACE_ID_KEY]?.value shouldBe "trace-456"
-            processedAttributes[BaseMdcLoggingFilter.ROUTE_PATTERN_KEY]?.value shouldBe "GET /api/main"
+            processedAttributes[BaseMdcLoggingFilter.ROUTE_PATTERN_KEY]?.value shouldBe
+                "GET /api/main"
             processedAttributes["Authorization"]?.value shouldBe BeatSentryEventProcessor.REDACTED
             processedAttributes["business"]?.value shouldBe "booking"
             processed.body.contains(BeatSentryEventProcessor.REDACTED) shouldBe true

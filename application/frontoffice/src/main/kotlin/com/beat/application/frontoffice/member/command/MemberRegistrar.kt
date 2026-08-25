@@ -21,14 +21,15 @@ internal class MemberRegistrar(
         socialIdentity: SocialIdentity,
     ): Long {
         val user = userRepository.save(Users.createWithRole(Role.MEMBER))
-        val member = memberRepository.save(
-            Member.create(
-                socialLoginProfile.nickname,
-                socialLoginProfile.email,
-                requireNotNull(user.id),
-                socialIdentity,
-            ),
-        )
+        val member =
+            memberRepository.save(
+                Member.create(
+                    socialLoginProfile.nickname,
+                    socialLoginProfile.email,
+                    requireNotNull(user.id),
+                    socialIdentity,
+                )
+            )
         log.info { "Member registered with memberId: ${member.id}, role: ${user.role}" }
         eventPublisher.publishEvent(MemberRegisteredEvent(member.nickname))
         return requireNotNull(member.id)

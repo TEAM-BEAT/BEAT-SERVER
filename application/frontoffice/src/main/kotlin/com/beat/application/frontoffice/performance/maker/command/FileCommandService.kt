@@ -5,9 +5,8 @@ import com.beat.application.frontoffice.exception.translateDomainFailure
 import org.springframework.stereotype.Service
 
 @Service
-class FileCommandService internal constructor(
-    private val performanceImageStorage: PerformanceImageStorage,
-) {
+class FileCommandService
+internal constructor(private val performanceImageStorage: PerformanceImageStorage) {
     fun issueAllPresignedUrlsForPerformanceMaker(
         posterImage: String,
         castImages: List<String>?,
@@ -15,20 +14,24 @@ class FileCommandService internal constructor(
         performanceImages: List<String>?,
     ): PerformancePresignedUrls {
         return translateDomainFailure {
-        val normalizedCastImages = castImages.orEmpty().filter(String::isNotBlank)
-        val normalizedStaffImages = staffImages.orEmpty().filter(String::isNotBlank)
-        val normalizedPerformanceImages = performanceImages.orEmpty().filter(String::isNotBlank)
-        val fileNames = listOf(posterImage) + normalizedCastImages + normalizedStaffImages + normalizedPerformanceImages
-        if (fileNames.any { !isValidFileName(it) }) {
-            throw FrontofficeApplicationException(FileApplicationErrorCode.INVALID_FILE_NAME)
-        }
+            val normalizedCastImages = castImages.orEmpty().filter(String::isNotBlank)
+            val normalizedStaffImages = staffImages.orEmpty().filter(String::isNotBlank)
+            val normalizedPerformanceImages = performanceImages.orEmpty().filter(String::isNotBlank)
+            val fileNames =
+                listOf(posterImage) +
+                    normalizedCastImages +
+                    normalizedStaffImages +
+                    normalizedPerformanceImages
+            if (fileNames.any { !isValidFileName(it) }) {
+                throw FrontofficeApplicationException(FileApplicationErrorCode.INVALID_FILE_NAME)
+            }
 
-        performanceImageStorage.issueAllPresignedUrls(
-            posterImage,
-            normalizedCastImages,
-            normalizedStaffImages,
-            normalizedPerformanceImages,
-        )
+            performanceImageStorage.issueAllPresignedUrls(
+                posterImage,
+                normalizedCastImages,
+                normalizedStaffImages,
+                normalizedPerformanceImages,
+            )
         }
     }
 

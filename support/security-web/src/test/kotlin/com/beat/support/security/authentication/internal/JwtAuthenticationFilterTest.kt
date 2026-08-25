@@ -49,8 +49,9 @@ class JwtAuthenticationFilterTest : FunSpec() {
             val request = requestWithBearer("admin-token")
             val response = MockHttpServletResponse()
             val chain = FilterChain { _, _ ->
-                val authentication = SecurityContextHolder.getContext().authentication
-                    ?: error("ADMIN authentication이 생성되어야 한다")
+                val authentication =
+                    SecurityContextHolder.getContext().authentication
+                        ?: error("ADMIN authentication이 생성되어야 한다")
 
                 authentication::class.simpleName shouldBe "AdminAuthentication"
                 authentication.principal shouldBe 7L
@@ -94,7 +95,8 @@ class JwtAuthenticationFilterTest : FunSpec() {
 
             response.status shouldBe HttpServletResponse.SC_UNAUTHORIZED
             MDC.get(BaseMdcLoggingFilter.TRACE_ID_KEY) shouldBe "trace-123"
-            MDC.get(BaseMdcLoggingFilter.USER_ID_KEY) shouldBe BaseMdcLoggingFilter.DEFAULT_GUEST_USER
+            MDC.get(BaseMdcLoggingFilter.USER_ID_KEY) shouldBe
+                BaseMdcLoggingFilter.DEFAULT_GUEST_USER
             SecurityContextHolder.getContext().authentication shouldBe null
             verify(exactly = 0) { chain.doFilter(request, response) }
         }
@@ -102,7 +104,9 @@ class JwtAuthenticationFilterTest : FunSpec() {
         test("유효하지 않은 토큰은 400으로 단축 응답한다") {
             val (accessTokenAuthenticator, filter) = jwtFilterDependencies()
             every { accessTokenAuthenticator.authenticateAccessToken("broken-token") } returns
-                AccessTokenAuthenticationResult.Rejected(AccessTokenAuthenticationFailure.INVALID_SIGNATURE)
+                AccessTokenAuthenticationResult.Rejected(
+                    AccessTokenAuthenticationFailure.INVALID_SIGNATURE
+                )
             val response = MockHttpServletResponse()
             val chain = mockk<FilterChain>(relaxed = true)
 

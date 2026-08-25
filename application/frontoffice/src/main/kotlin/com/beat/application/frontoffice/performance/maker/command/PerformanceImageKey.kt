@@ -4,7 +4,8 @@ import com.beat.application.frontoffice.exception.FrontofficeApplicationExceptio
 import com.beat.application.frontoffice.performance.exception.PerformanceApplicationErrorCode
 import java.net.URI
 
-private val allowedImagePrefixes = setOf("poster", "cast", "staff", "performance", "carousel", "banner")
+private val allowedImagePrefixes =
+    setOf("poster", "cast", "staff", "performance", "carousel", "banner")
 private val allowedImageEnvironmentPrefixes = setOf("dev", "prod")
 
 internal fun extractPerformanceImageKey(value: String?): String? =
@@ -26,16 +27,17 @@ internal fun extractPerformanceImageKey(value: String?): String? =
 private fun String.isAbsoluteImageUrl(): Boolean =
     startsWith("http://", ignoreCase = true) || startsWith("https://", ignoreCase = true)
 
-private fun String.toImageKey(): String = try {
-    val path = URI.create(this).path
-    when {
-        path.isNullOrEmpty() -> this
-        path.startsWith("/") -> path.drop(1)
-        else -> path
+private fun String.toImageKey(): String =
+    try {
+        val path = URI.create(this).path
+        when {
+            path.isNullOrEmpty() -> this
+            path.startsWith("/") -> path.drop(1)
+            else -> path
+        }
+    } catch (_: IllegalArgumentException) {
+        this
     }
-} catch (_: IllegalArgumentException) {
-    this
-}
 
 private fun String.requireAllowedImagePrefix() {
     val segments = split("/", limit = 3)
@@ -61,8 +63,9 @@ internal fun validateStoredPerformanceImage(
 ): String {
     if (!required && value.isNullOrBlank()) return ""
     val imageKey = extractRequiredPerformanceImageKey(value)
-    if (imageKey.split("/", limit = 3).getOrNull(1) != category ||
-        !performanceImageStorage.exists(imageKey)
+    if (
+        imageKey.split("/", limit = 3).getOrNull(1) != category ||
+            !performanceImageStorage.exists(imageKey)
     ) {
         throw FrontofficeApplicationException(PerformanceApplicationErrorCode.INVALID_IMAGE_KEY)
     }

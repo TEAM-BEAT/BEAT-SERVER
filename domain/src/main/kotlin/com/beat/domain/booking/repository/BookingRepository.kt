@@ -4,7 +4,6 @@ import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.model.BookingStatus
 import java.time.LocalDateTime
 
-
 interface BookingRepository {
     fun save(booking: Booking): Booking
 

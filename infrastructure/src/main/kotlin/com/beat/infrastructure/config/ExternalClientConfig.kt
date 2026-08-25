@@ -21,27 +21,30 @@ import org.springframework.context.annotation.Import
 @Configuration(proxyBeanMethods = false)
 @Import(S3InfraConfig::class)
 @EnableFeignClients(
-    basePackageClasses = [
-        KakaoApiClient::class,
-        KakaoAuthApiClient::class,
-        BookingSlackClient::class,
-        MemberSlackClient::class,
-    ],
+    basePackageClasses =
+        [
+            KakaoApiClient::class,
+            KakaoAuthApiClient::class,
+            BookingSlackClient::class,
+            MemberSlackClient::class,
+        ]
 )
 @ComponentScan(
-    basePackageClasses = [
-        KakaoSocialLoginAdapter::class,
-        SlackBookingNotificationAdapter::class,
-        SlackMemberNotificationAdapter::class,
-        S3FileStorageAdapter::class,
-        CoolSmsAdapter::class,
-        ImageCacheAdapter::class,
-    ],
-    excludeFilters = [
-        ComponentScan.Filter(
-            type = FilterType.ASSIGNABLE_TYPE,
-            classes = [S3InfraConfig::class],
-        ),
-    ],
+    basePackageClasses =
+        [
+            KakaoSocialLoginAdapter::class,
+            SlackBookingNotificationAdapter::class,
+            SlackMemberNotificationAdapter::class,
+            S3FileStorageAdapter::class,
+            CoolSmsAdapter::class,
+            ImageCacheAdapter::class,
+        ],
+    excludeFilters =
+        [
+            ComponentScan.Filter(
+                type = FilterType.ASSIGNABLE_TYPE,
+                classes = [S3InfraConfig::class],
+            )
+        ],
 )
 internal class ExternalClientConfig : InfraBaseConfig

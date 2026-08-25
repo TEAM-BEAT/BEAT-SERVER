@@ -14,7 +14,8 @@ import java.time.LocalDateTime
 
 @Entity(name = "Booking")
 @Table(name = "booking")
-internal class BookingJpaEntity private constructor(
+internal class BookingJpaEntity
+private constructor(
     id: Long?,
     purchaseTicketCount: Int,
     bookerName: String,
@@ -99,20 +100,21 @@ internal class BookingJpaEntity private constructor(
             scheduleId: Long,
             userId: Long,
             totalPaymentAmount: Int,
-        ): BookingJpaEntity = BookingJpaEntity(
-            id = id,
-            purchaseTicketCount = purchaseTicketCount,
-            bookerName = bookerName,
-            bookerPhoneNumber = bookerPhoneNumber,
-            bookingStatus = bookingStatus,
-            createdAt = createdAt,
-            cancellationDate = cancellationDate,
-            birthDate = birthDate,
-            password = password,
-            refundAccount = refundAccount,
-            totalPaymentAmount = totalPaymentAmount,
-            scheduleId = scheduleId,
-            userId = userId,
-        )
+        ): BookingJpaEntity =
+            BookingJpaEntity(
+                id = id,
+                purchaseTicketCount = purchaseTicketCount,
+                bookerName = bookerName,
+                bookerPhoneNumber = bookerPhoneNumber,
+                bookingStatus = bookingStatus,
+                createdAt = createdAt,
+                cancellationDate = cancellationDate,
+                birthDate = birthDate,
+                password = password,
+                refundAccount = refundAccount,
+                totalPaymentAmount = totalPaymentAmount,
+                scheduleId = scheduleId,
+                userId = userId,
+            )
     }
 }

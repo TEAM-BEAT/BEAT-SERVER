@@ -5,17 +5,19 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility
-data class BookingPerformanceDetailScheduleResponse private constructor(
+data class BookingPerformanceDetailScheduleResponse
+private constructor(
     val scheduleId: Long?,
     val performanceDate: LocalDateTime?,
     val scheduleNumber: String?,
     val availableTicketCount: Int,
-    @get:JsonProperty("isBooking")
-    val isBooking: Boolean,
+    @get:JsonProperty("isBooking") val isBooking: Boolean,
     val dueDate: Int,
 ) {
     companion object {
-        fun from(result: BookingPerformanceScheduleResult): BookingPerformanceDetailScheduleResponse =
+        fun from(
+            result: BookingPerformanceScheduleResult
+        ): BookingPerformanceDetailScheduleResponse =
             BookingPerformanceDetailScheduleResponse(
                 scheduleId = result.scheduleId,
                 performanceDate = result.performanceDate,

@@ -5,9 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import org.springframework.context.annotation.Import
 
-/**
- * gateway bootstrap 계약(공개 표면 → compiled config metadata 매핑)을 고정한다.
- */
+/** gateway bootstrap 계약(공개 표면 → compiled config metadata 매핑)을 고정한다. */
 class GatewayConfigGroupTest : FunSpec() {
 
     init {
@@ -26,11 +24,13 @@ class GatewayConfigGroupTest : FunSpec() {
         }
 
         test("servlet security 공개 annotation이 compiled static import 표면이다") {
-            val servletSecurityConfig = EnableGatewayServletSecurity::class.java
-                .getAnnotation(Import::class.java)
-                .value
-                .single()
-                .java
+            val servletSecurityConfig =
+                EnableGatewayServletSecurity::class
+                    .java
+                    .getAnnotation(Import::class.java)
+                    .value
+                    .single()
+                    .java
 
             servletSecurityConfig.name shouldBe
                 "com.beat.support.security.authentication.internal.config.ServletSecurityConfig"
@@ -40,8 +40,5 @@ class GatewayConfigGroupTest : FunSpec() {
     }
 
     private fun Class<*>.importedClassSimpleNames(): Set<String> =
-        getAnnotation(Import::class.java)?.value
-            ?.map { it.java.simpleName }
-            ?.toSet()
-            ?: emptySet()
+        getAnnotation(Import::class.java)?.value?.map { it.java.simpleName }?.toSet() ?: emptySet()
 }

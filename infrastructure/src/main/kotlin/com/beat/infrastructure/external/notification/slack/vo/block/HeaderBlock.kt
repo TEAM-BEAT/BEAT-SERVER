@@ -9,6 +9,7 @@ internal data class HeaderBlock(
     val text: Text,
 ) : Block {
     companion object {
-        fun newInstance(text: String): HeaderBlock = HeaderBlock(BLOCK_TYPE_HEADER, PlainText.newInstance(text))
+        fun newInstance(text: String): HeaderBlock =
+            HeaderBlock(BLOCK_TYPE_HEADER, PlainText.newInstance(text))
     }
 }

@@ -12,6 +12,5 @@ enum class PromotionErrorCode(
         "PROMOTION_TOO_MANY_CAROUSEL_PROMOTIONS",
         DomainErrorType.INVALID_INPUT,
         "노출 가능한 캐러셀 프로모션 수를 초과했습니다.",
-    ),
-    ;
+    )
 }

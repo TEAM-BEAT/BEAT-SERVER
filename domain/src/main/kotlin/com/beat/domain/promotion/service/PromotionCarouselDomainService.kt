@@ -1,9 +1,9 @@
 package com.beat.domain.promotion.service
 
 import com.beat.domain.exception.DomainException
+import com.beat.domain.promotion.exception.PromotionErrorCode
 import com.beat.domain.promotion.model.CarouselNumber
 import com.beat.domain.promotion.model.Promotion
-import com.beat.domain.promotion.exception.PromotionErrorCode
 
 class PromotionCarouselDomainService {
     fun hasValidCarouselAssignments(carouselNumbers: List<CarouselNumber?>): Boolean =

@@ -1,28 +1,28 @@
 package com.beat.apps.admin
 
+import com.beat.application.admin.AdminApplicationConfig
 import com.beat.apps.admin.config.AdminSecurityConfig
 import com.beat.apps.admin.config.GatewayConfig
 import com.beat.apps.admin.config.InfraConfig
 import com.beat.apps.admin.swagger.config.AdminSwaggerConfig
-import com.beat.application.admin.AdminApplicationConfig
 import com.beat.infrastructure.EnableInfraBaseConfig
 import com.beat.infrastructure.InfraBaseConfigGroup
 import com.beat.infrastructure.persistence.InfraPersistenceConfig
+import com.beat.support.observability.ObservabilityModuleConfig
 import com.beat.support.security.EnableGatewayConfig
 import com.beat.support.security.EnableGatewayServletSecurity
-import com.beat.support.observability.ObservabilityModuleConfig
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import java.nio.file.Files
+import java.nio.file.Path
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Profile
 import org.springframework.scheduling.annotation.EnableScheduling
-import java.nio.file.Files
-import java.nio.file.Path
 
 class AdminApplicationTest : FunSpec() {
 
@@ -34,12 +34,13 @@ class AdminApplicationTest : FunSpec() {
             importAnnotation shouldNotBe null
             val importedClassNames = importAnnotation!!.value.map { it.java.name }.toSet()
 
-            val publicCompositionTypes = setOf(
-                AdminApplicationConfig::class.java.name,
-                GatewayConfig::class.java.name,
-                InfraConfig::class.java.name,
-                ObservabilityModuleConfig::class.java.name,
-            )
+            val publicCompositionTypes =
+                setOf(
+                    AdminApplicationConfig::class.java.name,
+                    GatewayConfig::class.java.name,
+                    InfraConfig::class.java.name,
+                    ObservabilityModuleConfig::class.java.name,
+                )
             // 신규 공개 구성 추가는 이 허용목록 확장을 강제하고, 내부 구현 import는 즉시 실패한다.
             (importedClassNames - publicCompositionTypes) shouldBe emptySet()
             importedClassNames.contains(AdminApplicationConfig::class.java.name) shouldBe true
@@ -48,7 +49,8 @@ class AdminApplicationTest : FunSpec() {
         test("admin은 refresh token store 없이 gateway servlet security 부트스트랩을 선택한다") {
             val enableGatewayServletSecurity =
                 GatewayConfig::class.java.getAnnotation(EnableGatewayServletSecurity::class.java)
-            val enableGatewayConfig = GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
+            val enableGatewayConfig =
+                GatewayConfig::class.java.getAnnotation(EnableGatewayConfig::class.java)
 
             enableGatewayServletSecurity shouldNotBe null
             enableGatewayConfig shouldBe null
@@ -56,7 +58,8 @@ class AdminApplicationTest : FunSpec() {
         }
 
         test("admin 소유 경로 정책을 위해 AdminSecurityConfig가 존재한다") {
-            val configuration = AdminSecurityConfig::class.java.getAnnotation(Configuration::class.java)
+            val configuration =
+                AdminSecurityConfig::class.java.getAnnotation(Configuration::class.java)
 
             configuration shouldNotBe null
         }
@@ -72,32 +75,38 @@ class AdminApplicationTest : FunSpec() {
         }
 
         test("admin application은 더 이상 광범위한 component scan을 소유하지 않는다") {
-            val componentScan = AdminApplication::class.java.getAnnotation(ComponentScan::class.java)
+            val componentScan =
+                AdminApplication::class.java.getAnnotation(ComponentScan::class.java)
             componentScan shouldBe null
 
-            val springBootApplication = AdminApplication::class.java.getAnnotation(SpringBootApplication::class.java)
+            val springBootApplication =
+                AdminApplication::class.java.getAnnotation(SpringBootApplication::class.java)
             springBootApplication shouldNotBe null
             springBootApplication!!.scanBasePackageClasses.map { it.java.name }.toSet() shouldBe
                 setOf(AdminApplication::class.java.name)
         }
 
         test("admin application은 scheduling을 활성화하지 않는다") {
-            val enableScheduling = AdminApplication::class.java.getAnnotation(EnableScheduling::class.java)
+            val enableScheduling =
+                AdminApplication::class.java.getAnnotation(EnableScheduling::class.java)
             enableScheduling shouldBe null
         }
 
         test("admin infra config는 명시적인 base bootstrap group과 import를 유지한다") {
             InfraConfig::class.java.getAnnotation(Configuration::class.java) shouldNotBe null
-            val enableInfraBaseConfig = InfraConfig::class.java.getAnnotation(EnableInfraBaseConfig::class.java)
+            val enableInfraBaseConfig =
+                InfraConfig::class.java.getAnnotation(EnableInfraBaseConfig::class.java)
             enableInfraBaseConfig shouldNotBe null
-            enableInfraBaseConfig!!.value.toSet() shouldBe setOf(
-                InfraBaseConfigGroup.JPA,
-                InfraBaseConfigGroup.EXTERNAL_CLIENTS,
-            )
+            enableInfraBaseConfig!!.value.toSet() shouldBe
+                setOf(
+                    InfraBaseConfigGroup.JPA,
+                    InfraBaseConfigGroup.EXTERNAL_CLIENTS,
+                )
 
             val imports = InfraConfig::class.java.getAnnotation(Import::class.java)
             imports shouldNotBe null
-            imports!!.value.map { it.java.name }.toSet() shouldBe setOf(InfraPersistenceConfig::class.java.name)
+            imports!!.value.map { it.java.name }.toSet() shouldBe
+                setOf(InfraPersistenceConfig::class.java.name)
         }
 
         test("admin 리소스는 scheduler owner 비활성 설정을 유지한다") {

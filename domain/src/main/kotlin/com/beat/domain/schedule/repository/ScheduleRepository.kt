@@ -2,7 +2,6 @@ package com.beat.domain.schedule.repository
 
 import com.beat.domain.schedule.model.Schedule
 
-
 interface ScheduleRepository {
     fun findById(id: Long): Schedule?
 

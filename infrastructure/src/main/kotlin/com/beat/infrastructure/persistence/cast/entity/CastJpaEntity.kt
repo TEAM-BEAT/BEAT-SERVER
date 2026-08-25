@@ -9,7 +9,8 @@ import jakarta.persistence.Table
 
 @Entity(name = "Cast")
 @Table(name = "cast")
-internal class CastJpaEntity private constructor(
+internal class CastJpaEntity
+private constructor(
     id: Long?,
     castName: String,
     castRole: String,
@@ -45,12 +46,13 @@ internal class CastJpaEntity private constructor(
             castRole: String,
             castPhoto: String,
             performanceId: Long,
-        ): CastJpaEntity = CastJpaEntity(
-            id = id,
-            castName = castName,
-            castRole = castRole,
-            castPhoto = castPhoto,
-            performanceId = performanceId,
-        )
+        ): CastJpaEntity =
+            CastJpaEntity(
+                id = id,
+                castName = castName,
+                castRole = castRole,
+                castPhoto = castPhoto,
+                performanceId = performanceId,
+            )
     }
 }

@@ -20,14 +20,15 @@ interface FileApi {
         description = "공연 등록 시 업로드할 이미지에 대한 presigned URL을 발급 받는 GET API",
     )
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "200", description = "공연 메이커를 위한 Presigned URL 발급 성공."),
-            ApiResponse(
-                responseCode = "500",
-                description = "S3 PreSigned url을 받아오기에 실패했습니다.",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-        ],
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "공연 메이커를 위한 Presigned URL 발급 성공."),
+                ApiResponse(
+                    responseCode = "500",
+                    description = "S3 PreSigned url을 받아오기에 실패했습니다.",
+                    content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+                ),
+            ]
     )
     fun generateAllPresignedUrls(
         @RequestParam posterImage: String,

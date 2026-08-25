@@ -12,16 +12,15 @@ import org.springframework.web.filter.OncePerRequestFilter
 
 @Component
 class GuestSessionOriginFilter(
-    @Value("\${cors.allowed-origins:http://localhost:3000}")
-    allowedOrigins: Array<String>,
+    @Value("\${cors.allowed-origins:http://localhost:3000}") allowedOrigins: Array<String>,
     private val accessDeniedHandler: AccessDeniedHandler,
 ) : OncePerRequestFilter() {
     private val allowedOrigins = allowedOrigins.toSet()
 
     override fun shouldNotFilter(request: HttpServletRequest): Boolean =
         request.method != "PATCH" ||
-                request.requestURI !in GUEST_MUTATION_PATHS ||
-                request.cookies?.none { it.name == GUEST_SESSION_COOKIE_NAME } != false
+            request.requestURI !in GUEST_MUTATION_PATHS ||
+            request.cookies?.none { it.name == GUEST_SESSION_COOKIE_NAME } != false
 
     override fun doFilterInternal(
         request: HttpServletRequest,
@@ -30,7 +29,11 @@ class GuestSessionOriginFilter(
     ) {
         val origin = request.getHeader(ORIGIN_HEADER)
         if (origin !in allowedOrigins) {
-            accessDeniedHandler.handle(request, response, AccessDeniedException("Invalid guest request origin"))
+            accessDeniedHandler.handle(
+                request,
+                response,
+                AccessDeniedException("Invalid guest request origin"),
+            )
             return
         }
         filterChain.doFilter(request, response)

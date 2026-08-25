@@ -32,26 +32,27 @@ internal fun performanceFixture(
     latitude: String = "37.0",
     longitude: String = "127.0",
     performanceContact: String = "010-0000-0000",
-): Performance = Performance.create(
-    performanceTitle = performanceTitle,
-    genre = genre,
-    runningTime = runningTime,
-    performanceDescription = performanceDescription,
-    performanceAttentionNote = performanceAttentionNote,
-    paymentAccount = paymentAccount,
-    posterImage = posterImage,
-    performanceTeamName = performanceTeamName,
-    performanceVenue = performanceVenue,
-    roadAddressName = roadAddressName,
-    placeDetailAddress = placeDetailAddress,
-    latitude = latitude,
-    longitude = longitude,
-    performanceContact = performanceContact,
-    performancePeriod = performancePeriod,
-    ticketPrice = TicketPrice.of(ticketPrice),
-    totalScheduleCount = totalScheduleCount,
-    userId = userId,
-)
+): Performance =
+    Performance.create(
+        performanceTitle = performanceTitle,
+        genre = genre,
+        runningTime = runningTime,
+        performanceDescription = performanceDescription,
+        performanceAttentionNote = performanceAttentionNote,
+        paymentAccount = paymentAccount,
+        posterImage = posterImage,
+        performanceTeamName = performanceTeamName,
+        performanceVenue = performanceVenue,
+        roadAddressName = roadAddressName,
+        placeDetailAddress = placeDetailAddress,
+        latitude = latitude,
+        longitude = longitude,
+        performanceContact = performanceContact,
+        performancePeriod = performancePeriod,
+        ticketPrice = TicketPrice.of(ticketPrice),
+        totalScheduleCount = totalScheduleCount,
+        userId = userId,
+    )
 
 internal fun scheduleFixture(
     performanceId: Long,
@@ -59,10 +60,11 @@ internal fun scheduleFixture(
     bookingCloseAt: LocalDateTime,
     totalTicketCount: Int,
     scheduleNumber: ScheduleNumber,
-): Schedule = Schedule.create(
-    performanceDate = performanceDate,
-    bookingCloseAt = bookingCloseAt,
-    totalTicketCount = totalTicketCount,
-    scheduleNumber = scheduleNumber,
-    performanceId = performanceId,
-)
+): Schedule =
+    Schedule.create(
+        performanceDate = performanceDate,
+        bookingCloseAt = bookingCloseAt,
+        totalTicketCount = totalTicketCount,
+        scheduleNumber = scheduleNumber,
+        performanceId = performanceId,
+    )

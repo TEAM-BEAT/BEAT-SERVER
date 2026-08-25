@@ -1,11 +1,5 @@
 package com.beat.apps.api.ticket.facade
 
-import com.beat.apps.api.booking.api.type.BookingStatusType
-import com.beat.apps.api.schedule.api.type.ScheduleNumberType
-import com.beat.apps.api.ticket.api.request.TicketDeleteRequest
-import com.beat.apps.api.ticket.api.request.TicketRefundRequest
-import com.beat.apps.api.ticket.api.response.TicketRetrieveResponse
-import com.beat.apps.api.ticket.api.request.TicketUpdateRequest
 import com.beat.application.frontoffice.ticket.maker.command.TicketBookingIdsCommand
 import com.beat.application.frontoffice.ticket.maker.command.TicketBookingStatus
 import com.beat.application.frontoffice.ticket.maker.command.TicketCommandService
@@ -13,6 +7,12 @@ import com.beat.application.frontoffice.ticket.maker.command.TicketStatusUpdate
 import com.beat.application.frontoffice.ticket.maker.command.TicketUpdateCommand
 import com.beat.application.frontoffice.ticket.maker.query.TicketListQuery
 import com.beat.application.frontoffice.ticket.maker.query.TicketQueryService
+import com.beat.apps.api.booking.api.type.BookingStatusType
+import com.beat.apps.api.schedule.api.type.ScheduleNumberType
+import com.beat.apps.api.ticket.api.request.TicketDeleteRequest
+import com.beat.apps.api.ticket.api.request.TicketRefundRequest
+import com.beat.apps.api.ticket.api.request.TicketUpdateRequest
+import com.beat.apps.api.ticket.api.response.TicketRetrieveResponse
 import org.springframework.stereotype.Service
 
 @Service
@@ -25,16 +25,17 @@ class TicketFacade(
         performanceId: Long,
         scheduleNumbers: List<ScheduleNumberType>?,
         bookingStatuses: List<BookingStatusType>?,
-    ): TicketRetrieveResponse = TicketRetrieveResponse.from(
-        ticketQueryService.findAllTicketsByConditions(
-            memberId,
-            performanceId,
-            TicketListQuery(
-                scheduleNumbers = scheduleNumbers.orEmpty().map { it.name },
-                bookingStatuses = bookingStatuses.orEmpty().map { it.name },
-            ),
-        ),
-    )
+    ): TicketRetrieveResponse =
+        TicketRetrieveResponse.from(
+            ticketQueryService.findAllTicketsByConditions(
+                memberId,
+                performanceId,
+                TicketListQuery(
+                    scheduleNumbers = scheduleNumbers.orEmpty().map { it.name },
+                    bookingStatuses = bookingStatuses.orEmpty().map { it.name },
+                ),
+            )
+        )
 
     fun searchTickets(
         memberId: Long,
@@ -42,29 +43,31 @@ class TicketFacade(
         searchWord: String?,
         scheduleNumbers: List<ScheduleNumberType>?,
         bookingStatuses: List<BookingStatusType>?,
-    ): TicketRetrieveResponse = TicketRetrieveResponse.from(
-        ticketQueryService.searchAllTicketsByConditions(
-            memberId,
-            performanceId,
-            TicketListQuery(
-                searchWord = searchWord,
-                scheduleNumbers = scheduleNumbers.orEmpty().map { it.name },
-                bookingStatuses = bookingStatuses.orEmpty().map { it.name },
-            ),
-        ),
-    )
+    ): TicketRetrieveResponse =
+        TicketRetrieveResponse.from(
+            ticketQueryService.searchAllTicketsByConditions(
+                memberId,
+                performanceId,
+                TicketListQuery(
+                    searchWord = searchWord,
+                    scheduleNumbers = scheduleNumbers.orEmpty().map { it.name },
+                    bookingStatuses = bookingStatuses.orEmpty().map { it.name },
+                ),
+            )
+        )
 
     fun updateTickets(memberId: Long, request: TicketUpdateRequest) =
         ticketCommandService.updateTickets(
             memberId,
             TicketUpdateCommand(
                 performanceId = request.performanceId,
-                bookingList = request.bookingList.map { detail ->
-                    TicketStatusUpdate(
-                        bookingId = detail.bookingId,
-                        bookingStatus = TicketBookingStatus.valueOf(detail.bookingStatus.name),
-                    )
-                },
+                bookingList =
+                    request.bookingList.map { detail ->
+                        TicketStatusUpdate(
+                            bookingId = detail.bookingId,
+                            bookingStatus = TicketBookingStatus.valueOf(detail.bookingStatus.name),
+                        )
+                    },
             ),
         )
 

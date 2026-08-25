@@ -15,18 +15,19 @@ import io.kotest.extensions.spring.SpringTestLifecycleMode
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
+import java.time.LocalDateTime
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
-import java.time.LocalDateTime
 
 @DataJpaTest(
-    properties = [
-        "spring.config.import=classpath:application-persistence.yml",
-        "DB_HIKARI_MAX_POOL_SIZE=10",
-    ],
+    properties =
+        [
+            "spring.config.import=classpath:application-persistence.yml",
+            "DB_HIKARI_MAX_POOL_SIZE=10",
+        ]
 )
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(classes = [JpaConfig::class, MySqlTestContainerConfig::class])
@@ -34,11 +35,9 @@ import java.time.LocalDateTime
 @Tags("integration")
 class BookingRepositoryQueriesIntegrationSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var bookingRepository: BookingRepository
+    @Autowired private lateinit var bookingRepository: BookingRepository
 
-    @Autowired
-    private lateinit var bookingJpaRepository: BookingJpaRepository
+    @Autowired private lateinit var bookingJpaRepository: BookingJpaRepository
 
     @Autowired
     private lateinit var guestBookingCredentialRepository: GuestBookingCredentialRepository
@@ -52,7 +51,8 @@ class BookingRepositoryQueriesIntegrationSpec : FunSpec() {
             val second = bookingJpaRepository.saveAndFlush(booking(scheduleId = 202L, userId = 2L))
             val third = bookingJpaRepository.saveAndFlush(booking(scheduleId = 303L, userId = 3L))
 
-            bookingRepository.findScheduleIdsByIds(listOf(checkNotNull(first.id), checkNotNull(third.id)))
+            bookingRepository
+                .findScheduleIdsByIds(listOf(checkNotNull(first.id), checkNotNull(third.id)))
                 .shouldContainExactlyInAnyOrder(101L, 303L)
         }
 
@@ -111,10 +111,11 @@ class BookingRepositoryQueriesIntegrationSpec : FunSpec() {
                         birthDate = TARGET_BIRTH_DATE,
                         password = "mismatched-name",
                     ),
-                ),
+                )
             )
 
-            guestBookingCredentialRepository.findCandidates(TARGET_NAME, TARGET_PHONE, TARGET_BIRTH_DATE)
+            guestBookingCredentialRepository
+                .findCandidates(TARGET_NAME, TARGET_PHONE, TARGET_BIRTH_DATE)
                 .shouldContainExactlyInAnyOrder(
                     GuestBookingCredential(11L, "hash-a"),
                     GuestBookingCredential(11L, "hash-b"),
@@ -142,11 +143,12 @@ class BookingRepositoryQueriesIntegrationSpec : FunSpec() {
                         password = "legacy-b",
                     ),
                     booking(scheduleId = 503L, userId = 55L, password = "member-password"),
-                ),
+                )
             )
 
             guestBookingCredentialRepository.replaceEncodedPassword(55L, "upgraded") shouldBe 2
-            guestBookingCredentialRepository.findCandidates(TARGET_NAME, TARGET_PHONE, TARGET_BIRTH_DATE)
+            guestBookingCredentialRepository
+                .findCandidates(TARGET_NAME, TARGET_PHONE, TARGET_BIRTH_DATE)
                 .shouldContainExactlyInAnyOrder(GuestBookingCredential(55L, "upgraded"))
         }
     }

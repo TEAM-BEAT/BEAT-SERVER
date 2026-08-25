@@ -20,10 +20,12 @@ internal class MemberRegisteredEventListener(
                 MemberRegistrationNotification(
                     nickname = event.nickname,
                     memberCount = memberRepository.count(),
-                ),
+                )
             )
         } catch (exception: RuntimeException) {
-            log.error(exception) { "Member registration Slack notification failed: errorType=${exception.javaClass.simpleName}" }
+            log.error(exception) {
+                "Member registration Slack notification failed: errorType=${exception.javaClass.simpleName}"
+            }
         }
     }
 

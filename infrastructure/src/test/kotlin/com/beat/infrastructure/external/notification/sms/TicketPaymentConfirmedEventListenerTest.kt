@@ -11,39 +11,42 @@ import org.springframework.scheduling.annotation.Async
 import org.springframework.transaction.event.TransactionPhase
 import org.springframework.transaction.event.TransactionalEventListener
 
-class TicketPaymentConfirmedEventListenerTest : FunSpec({
-    test("정확한 수신자와 결제 확인 메시지를 전송한다") {
-        val coolSmsAdapter = mockk<CoolSmsAdapter>(relaxed = true)
-        val listener = TicketPaymentConfirmedEventListener(coolSmsAdapter)
+class TicketPaymentConfirmedEventListenerTest :
+    FunSpec({
+        test("정확한 수신자와 결제 확인 메시지를 전송한다") {
+            val coolSmsAdapter = mockk<CoolSmsAdapter>(relaxed = true)
+            val listener = TicketPaymentConfirmedEventListener(coolSmsAdapter)
 
-        listener.sendConfirmation(event())
+            listener.sendConfirmation(event())
 
-        verify { coolSmsAdapter.send(PHONE_NUMBER, MESSAGE) }
-    }
+            verify { coolSmsAdapter.send(PHONE_NUMBER, MESSAGE) }
+        }
 
-    test("sms adapter의 runtime exception을 삼킨다") {
-        val coolSmsAdapter = mockk<CoolSmsAdapter>(relaxed = true)
-        val listener = TicketPaymentConfirmedEventListener(coolSmsAdapter)
-        every { coolSmsAdapter.send(PHONE_NUMBER, MESSAGE) } throws RuntimeException("SMS provider unavailable")
+        test("sms adapter의 runtime exception을 삼킨다") {
+            val coolSmsAdapter = mockk<CoolSmsAdapter>(relaxed = true)
+            val listener = TicketPaymentConfirmedEventListener(coolSmsAdapter)
+            every { coolSmsAdapter.send(PHONE_NUMBER, MESSAGE) } throws
+                RuntimeException("SMS provider unavailable")
 
-        shouldNotThrowAny { listener.sendConfirmation(event()) }
-    }
+            shouldNotThrowAny { listener.sendConfirmation(event()) }
+        }
 
-    test("commit 후 beat async executor에서 수신한다") {
-        val method =
-            TicketPaymentConfirmedEventListener::class.java.getDeclaredMethod(
-                "sendConfirmation",
-                TicketPaymentConfirmedEvent::class.java,
-            )
-        val transactionalEventListener =
-            requireNotNull(method.getAnnotation(TransactionalEventListener::class.java))
-        val async = requireNotNull(method.getAnnotation(Async::class.java))
+        test("commit 후 beat async executor에서 수신한다") {
+            val method =
+                TicketPaymentConfirmedEventListener::class
+                    .java
+                    .getDeclaredMethod(
+                        "sendConfirmation",
+                        TicketPaymentConfirmedEvent::class.java,
+                    )
+            val transactionalEventListener =
+                requireNotNull(method.getAnnotation(TransactionalEventListener::class.java))
+            val async = requireNotNull(method.getAnnotation(Async::class.java))
 
-        transactionalEventListener.phase shouldBe TransactionPhase.AFTER_COMMIT
-        async.value shouldBe "beatAsyncExecutor"
-    }
-
-})
+            transactionalEventListener.phase shouldBe TransactionPhase.AFTER_COMMIT
+            async.value shouldBe "beatAsyncExecutor"
+        }
+    })
 
 private fun event() =
     TicketPaymentConfirmedEvent(

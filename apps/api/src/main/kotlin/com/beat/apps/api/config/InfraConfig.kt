@@ -9,14 +9,16 @@ import org.springframework.context.annotation.Import
 
 @Configuration(proxyBeanMethods = false)
 @EnableInfraBaseConfig(
-    value = [
-        InfraBaseConfigGroup.JPA,
-        InfraBaseConfigGroup.ASYNC,
-        InfraBaseConfigGroup.EXTERNAL_CLIENTS,
-    ]
+    value =
+        [
+            InfraBaseConfigGroup.JPA,
+            InfraBaseConfigGroup.ASYNC,
+            InfraBaseConfigGroup.EXTERNAL_CLIENTS,
+        ]
 )
 // InfraPersistenceConfig is an IDE breadcrumb for JpaConfig's deferred import.
-// AuthRedisConfig is an intentional runtime composition: only apis owns the Redis runtime dependency.
+// AuthRedisConfig is an intentional runtime composition: only apis owns the Redis runtime
+// dependency.
 @Import(
     InfraPersistenceConfig::class,
     AuthRedisConfig::class,

@@ -4,7 +4,7 @@ import com.beat.application.frontoffice.auth.command.RefreshTokenStore
 import org.springframework.data.repository.findByIdOrNull
 
 internal class RedisRefreshTokenAdapter(
-    private val refreshTokenRepository: RefreshTokenRedisRepository,
+    private val refreshTokenRepository: RefreshTokenRedisRepository
 ) : RefreshTokenStore {
 
     override fun save(memberId: Long, refreshToken: String) {

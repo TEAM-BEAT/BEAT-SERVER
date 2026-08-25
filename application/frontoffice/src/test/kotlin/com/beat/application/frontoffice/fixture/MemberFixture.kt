@@ -10,11 +10,12 @@ fun frontofficeMemberFixture(
     email: String? = "member@example.com",
     userId: Long = 7L,
     socialId: Long = 123L,
-): Member = Member.rehydrate(
-    id = id,
-    nickname = nickname,
-    email = email,
-    deletedAt = null,
-    userId = userId,
-    socialIdentity = SocialIdentity.of(SocialType.KAKAO, socialId),
-)
+): Member =
+    Member.rehydrate(
+        id = id,
+        nickname = nickname,
+        email = email,
+        deletedAt = null,
+        userId = userId,
+        socialIdentity = SocialIdentity.of(SocialType.KAKAO, socialId),
+    )

@@ -11,6 +11,4 @@ interface DomainErrorCode {
     val message: String
 }
 
-class DomainException(
-    val errorCode: DomainErrorCode,
-) : RuntimeException(errorCode.message)
+class DomainException(val errorCode: DomainErrorCode) : RuntimeException(errorCode.message)

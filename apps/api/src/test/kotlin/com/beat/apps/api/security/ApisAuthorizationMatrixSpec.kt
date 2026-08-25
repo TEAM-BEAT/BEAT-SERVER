@@ -1,8 +1,8 @@
 package com.beat.apps.api.security
 
-import com.beat.apps.api.support.BeatAcceptanceTest
 import com.beat.application.frontoffice.security.TokenIssuer
 import com.beat.application.frontoffice.security.TokenSubject
+import com.beat.apps.api.support.BeatAcceptanceTest
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
@@ -28,52 +28,60 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 @Tags("acceptance")
 class ApisAuthorizationMatrixSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var handlerMapping: RequestMappingHandlerMapping
+    @Autowired private lateinit var handlerMapping: RequestMappingHandlerMapping
 
-    @Autowired
-    private lateinit var mockMvc: MockMvc
+    @Autowired private lateinit var mockMvc: MockMvc
 
-    @Autowired
-    private lateinit var tokenIssuer: TokenIssuer
+    @Autowired private lateinit var tokenIssuer: TokenIssuer
 
-    private val expectedAuthorizationMatrix = listOf(
-        Endpoint(HttpMethod.POST, "/api/bookings/member", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.GET, "/api/bookings/member/retrieve", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.POST, "/api/bookings/guest", Access.PUBLIC),
-        Endpoint(HttpMethod.POST, "/api/bookings/guest/retrieve", Access.PUBLIC),
-        Endpoint(HttpMethod.PATCH, "/api/bookings/refund", Access.PUBLIC),
-        Endpoint(HttpMethod.PATCH, "/api/bookings/cancel", Access.PUBLIC),
-        Endpoint(HttpMethod.GET, "/api/files/presigned-url", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.GET, "/api/main", Access.PUBLIC),
-        Endpoint(HttpMethod.POST, "/api/users/sign-up", Access.PUBLIC),
-        Endpoint(HttpMethod.GET, "/api/users/refresh-token", Access.PUBLIC),
-        Endpoint(HttpMethod.POST, "/api/users/sign-out", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.POST, "/api/performances", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.PUT, "/api/performances", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.GET, "/api/performances/{performanceId}", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.GET, "/api/performances/detail/{performanceId}", Access.PUBLIC),
-        Endpoint(HttpMethod.GET, "/api/performances/booking/{performanceId}", Access.PUBLIC),
-        Endpoint(HttpMethod.GET, "/api/performances/user", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.DELETE, "/api/performances/{performanceId}", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.GET, "/api/schedules/{scheduleId}/availability", Access.PUBLIC),
-        Endpoint(HttpMethod.GET, "/api/tickets/{performanceId}", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.GET, "/api/tickets/search/{performanceId}", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.PUT, "/api/tickets/update", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.PUT, "/api/tickets/refund", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.PUT, "/api/tickets/delete", Access.MEMBER_OR_ADMIN),
-        Endpoint(HttpMethod.GET, "/api/admin/security-boundary-probe", Access.ADMIN, controllerRoute = false),
-    )
+    private val expectedAuthorizationMatrix =
+        listOf(
+            Endpoint(HttpMethod.POST, "/api/bookings/member", Access.MEMBER_OR_ADMIN),
+            Endpoint(HttpMethod.GET, "/api/bookings/member/retrieve", Access.MEMBER_OR_ADMIN),
+            Endpoint(HttpMethod.POST, "/api/bookings/guest", Access.PUBLIC),
+            Endpoint(HttpMethod.POST, "/api/bookings/guest/retrieve", Access.PUBLIC),
+            Endpoint(HttpMethod.PATCH, "/api/bookings/refund", Access.PUBLIC),
+            Endpoint(HttpMethod.PATCH, "/api/bookings/cancel", Access.PUBLIC),
+            Endpoint(HttpMethod.GET, "/api/files/presigned-url", Access.MEMBER_OR_ADMIN),
+            Endpoint(HttpMethod.GET, "/api/main", Access.PUBLIC),
+            Endpoint(HttpMethod.POST, "/api/users/sign-up", Access.PUBLIC),
+            Endpoint(HttpMethod.GET, "/api/users/refresh-token", Access.PUBLIC),
+            Endpoint(HttpMethod.POST, "/api/users/sign-out", Access.MEMBER_OR_ADMIN),
+            Endpoint(HttpMethod.POST, "/api/performances", Access.MEMBER_OR_ADMIN),
+            Endpoint(HttpMethod.PUT, "/api/performances", Access.MEMBER_OR_ADMIN),
+            Endpoint(HttpMethod.GET, "/api/performances/{performanceId}", Access.MEMBER_OR_ADMIN),
+            Endpoint(HttpMethod.GET, "/api/performances/detail/{performanceId}", Access.PUBLIC),
+            Endpoint(HttpMethod.GET, "/api/performances/booking/{performanceId}", Access.PUBLIC),
+            Endpoint(HttpMethod.GET, "/api/performances/user", Access.MEMBER_OR_ADMIN),
+            Endpoint(
+                HttpMethod.DELETE,
+                "/api/performances/{performanceId}",
+                Access.MEMBER_OR_ADMIN,
+            ),
+            Endpoint(HttpMethod.GET, "/api/schedules/{scheduleId}/availability", Access.PUBLIC),
+            Endpoint(HttpMethod.GET, "/api/tickets/{performanceId}", Access.MEMBER_OR_ADMIN),
+            Endpoint(HttpMethod.GET, "/api/tickets/search/{performanceId}", Access.MEMBER_OR_ADMIN),
+            Endpoint(HttpMethod.PUT, "/api/tickets/update", Access.MEMBER_OR_ADMIN),
+            Endpoint(HttpMethod.PUT, "/api/tickets/refund", Access.MEMBER_OR_ADMIN),
+            Endpoint(HttpMethod.PUT, "/api/tickets/delete", Access.MEMBER_OR_ADMIN),
+            Endpoint(
+                HttpMethod.GET,
+                "/api/admin/security-boundary-probe",
+                Access.ADMIN,
+                controllerRoute = false,
+            ),
+        )
 
     init {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
         test("API controller 매핑은 인가 매트릭스 경로와 정확히 일치한다") {
-            apiControllerEndpoints() shouldBe expectedAuthorizationMatrix
-                .filter(Endpoint::controllerRoute)
-                .map { it.route }
-                .toSet()
+            apiControllerEndpoints() shouldBe
+                expectedAuthorizationMatrix
+                    .filter(Endpoint::controllerRoute)
+                    .map { it.route }
+                    .toSet()
         }
 
         test("인증되지 않은 요청은 인가 매트릭스에 따라 처리된다") {
@@ -82,8 +90,7 @@ class ApisAuthorizationMatrixSpec : FunSpec() {
 
                 when (endpoint.access) {
                     Access.MEMBER_OR_ADMIN,
-                    Access.ADMIN,
-                    -> status shouldBe UNAUTHORIZED
+                    Access.ADMIN -> status shouldBe UNAUTHORIZED
                     Access.PUBLIC -> {
                         status shouldNotBe UNAUTHORIZED
                         status shouldNotBe FORBIDDEN
@@ -140,7 +147,9 @@ class ApisAuthorizationMatrixSpec : FunSpec() {
         test("실제 서명되었어도 USER와 unknown role JWT는 filter에서 401로 거부된다") {
             listOf(ROLE_USER, ROLE_UNKNOWN).forEach { role ->
                 val token = tokenIssuer.issueAccessToken(TokenSubject(1L, role))
-                val endpoint = expectedAuthorizationMatrix.first { it.access == Access.MEMBER_OR_ADMIN }
+                val endpoint = expectedAuthorizationMatrix.first {
+                    it.access == Access.MEMBER_OR_ADMIN
+                }
 
                 performWithBearer(endpoint, token).response.status shouldBe UNAUTHORIZED
             }
@@ -152,9 +161,8 @@ class ApisAuthorizationMatrixSpec : FunSpec() {
             .asSequence()
             .filter { (_, handlerMethod) -> handlerMethod.isApiController() }
             .flatMap { (mapping, _) ->
-                val paths = mapping.pathPatternsCondition?.patterns
-                    ?.map { it.patternString }
-                    .orEmpty()
+                val paths =
+                    mapping.pathPatternsCondition?.patterns?.map { it.patternString }.orEmpty()
                 val methods = mapping.methodsCondition.methods
                 methods.asSequence().flatMap { method ->
                     paths.asSequence().map { path -> Route(HttpMethod.valueOf(method.name), path) }
@@ -163,32 +171,37 @@ class ApisAuthorizationMatrixSpec : FunSpec() {
             .toSet()
 
     private fun perform(endpoint: Endpoint, role: String? = null) =
-        mockMvc.perform(
-            request(endpoint.method, endpoint.path.replace(PATH_VARIABLE_REGEX, "1"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}")
-                .let { builder ->
-                    if (role != null) {
-                        builder.with(authentication(authenticationFor(role)))
-                    } else {
-                        builder
+        mockMvc
+            .perform(
+                request(endpoint.method, endpoint.path.replace(PATH_VARIABLE_REGEX, "1"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{}")
+                    .let { builder ->
+                        if (role != null) {
+                            builder.with(authentication(authenticationFor(role)))
+                        } else {
+                            builder
+                        }
                     }
-                },
-        ).andReturn()
+            )
+            .andReturn()
 
     private fun performWithBearer(endpoint: Endpoint, token: String) =
-        mockMvc.perform(
-            request(endpoint.method, endpoint.path.replace(PATH_VARIABLE_REGEX, "1"))
-                .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"),
-        ).andReturn()
+        mockMvc
+            .perform(
+                request(endpoint.method, endpoint.path.replace(PATH_VARIABLE_REGEX, "1"))
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{}")
+            )
+            .andReturn()
 
-    private fun authenticationFor(role: String) = UsernamePasswordAuthenticationToken(
-        1L,
-        null,
-        listOf(SimpleGrantedAuthority(role)),
-    )
+    private fun authenticationFor(role: String) =
+        UsernamePasswordAuthenticationToken(
+            1L,
+            null,
+            listOf(SimpleGrantedAuthority(role)),
+        )
 
     private data class Endpoint(
         val method: HttpMethod,
@@ -196,7 +209,8 @@ class ApisAuthorizationMatrixSpec : FunSpec() {
         val access: Access,
         val controllerRoute: Boolean = true,
     ) {
-        val route: Route get() = Route(method, path)
+        val route: Route
+            get() = Route(method, path)
     }
 
     private data class Route(

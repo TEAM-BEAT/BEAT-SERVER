@@ -22,19 +22,20 @@ import io.kotest.extensions.spring.SpringExtension
 import io.kotest.extensions.spring.SpringTestLifecycleMode
 import io.kotest.matchers.maps.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import java.time.LocalDate
+import java.time.LocalDateTime
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
-import java.time.LocalDate
-import java.time.LocalDateTime
 
 @DataJpaTest(
-    properties = [
-        "spring.config.import=classpath:application-persistence.yml",
-        "DB_HIKARI_MAX_POOL_SIZE=10",
-    ],
+    properties =
+        [
+            "spring.config.import=classpath:application-persistence.yml",
+            "DB_HIKARI_MAX_POOL_SIZE=10",
+        ]
 )
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(classes = [JpaConfig::class, MySqlTestContainerConfig::class])
@@ -42,35 +43,40 @@ import java.time.LocalDateTime
 @Tags("integration")
 class BookerBookingQueriesIntegrationSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var reader: BookingHistoryReadPort
+    @Autowired private lateinit var reader: BookingHistoryReadPort
 
-    @Autowired
-    private lateinit var bookingRepository: BookingJpaRepository
+    @Autowired private lateinit var bookingRepository: BookingJpaRepository
 
-    @Autowired
-    private lateinit var scheduleRepository: ScheduleJpaRepository
+    @Autowired private lateinit var scheduleRepository: ScheduleJpaRepository
 
-    @Autowired
-    private lateinit var performanceRepository: PerformanceJpaRepository
+    @Autowired private lateinit var performanceRepository: PerformanceJpaRepository
 
     init {
         isolationMode = IsolationMode.SingleInstance
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
         test("MySQL에서 enum으로 저장된 금액과 nullable payment account를 가진 여러 booking을 매핑한다") {
-            val paidPerformance = performanceRepository.saveAndFlush(
-                performance("Paid", PaymentAccountJpaValue(BankName.KAKAOBANK, "123", "BEAT")),
-            )
+            val paidPerformance =
+                performanceRepository.saveAndFlush(
+                    performance("Paid", PaymentAccountJpaValue(BankName.KAKAOBANK, "123", "BEAT"))
+                )
             val unpaidPerformance = performanceRepository.saveAndFlush(performance("Unpaid", null))
-            val firstSchedule = scheduleRepository.saveAndFlush(schedule(paidPerformance.id!!, ScheduleNumber.FIRST))
-            val secondSchedule = scheduleRepository.saveAndFlush(schedule(unpaidPerformance.id!!, ScheduleNumber.SECOND))
-            val storedAmountBooking = bookingRepository.saveAndFlush(
-                booking(firstSchedule.id!!, BookingStatus.BOOKING_CONFIRMED, 27_000),
-            )
-            val legacyAmountBooking = bookingRepository.saveAndFlush(
-                booking(secondSchedule.id!!, BookingStatus.REFUND_REQUESTED, 15_000),
-            )
+            val firstSchedule =
+                scheduleRepository.saveAndFlush(
+                    schedule(paidPerformance.id!!, ScheduleNumber.FIRST)
+                )
+            val secondSchedule =
+                scheduleRepository.saveAndFlush(
+                    schedule(unpaidPerformance.id!!, ScheduleNumber.SECOND)
+                )
+            val storedAmountBooking =
+                bookingRepository.saveAndFlush(
+                    booking(firstSchedule.id!!, BookingStatus.BOOKING_CONFIRMED, 27_000)
+                )
+            val legacyAmountBooking =
+                bookingRepository.saveAndFlush(
+                    booking(secondSchedule.id!!, BookingStatus.REFUND_REQUESTED, 15_000)
+                )
 
             val resultById = reader.findByUserId(TEST_USER_ID).associateBy { it.bookingId }
 
@@ -93,7 +99,10 @@ class BookerBookingQueriesIntegrationSpec : FunSpec() {
         }
     }
 
-    private fun performance(title: String, paymentAccount: PaymentAccountJpaValue?): PerformanceJpaEntity =
+    private fun performance(
+        title: String,
+        paymentAccount: PaymentAccountJpaValue?,
+    ): PerformanceJpaEntity =
         PerformanceJpaEntity.rehydrate(
             id = null,
             performanceTitle = title,
@@ -110,10 +119,11 @@ class BookerBookingQueriesIntegrationSpec : FunSpec() {
             latitude = "37.0",
             longitude = "127.0",
             performanceContact = "010-0000-0000",
-            performancePeriodValue = PerformancePeriodJpaValue(
-                LocalDate.of(2026, 1, 1),
-                LocalDate.of(2026, 1, 2),
-            ),
+            performancePeriodValue =
+                PerformancePeriodJpaValue(
+                    LocalDate.of(2026, 1, 1),
+                    LocalDate.of(2026, 1, 2),
+                ),
             ticketPrice = 15_000,
             totalScheduleCount = 1,
             userId = 1L,
@@ -130,7 +140,11 @@ class BookerBookingQueriesIntegrationSpec : FunSpec() {
             performanceId = performanceId,
         )
 
-    private fun booking(scheduleId: Long, status: BookingStatus, totalPaymentAmount: Int): BookingJpaEntity =
+    private fun booking(
+        scheduleId: Long,
+        status: BookingStatus,
+        totalPaymentAmount: Int,
+    ): BookingJpaEntity =
         BookingJpaEntity.rehydrate(
             id = null,
             purchaseTicketCount = 2,

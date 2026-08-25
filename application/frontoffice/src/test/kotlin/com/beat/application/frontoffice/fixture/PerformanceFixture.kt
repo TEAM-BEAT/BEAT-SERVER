@@ -18,27 +18,29 @@ fun frontofficePerformanceFixture(
     ticketPrice: Int = 10_000,
     totalScheduleCount: Int = 1,
     paymentAccount: PaymentAccount? = null,
-): Performance = Performance.rehydrate(
-    id = id,
-    performanceTitle = performanceTitle,
-    genre = Genre.BAND,
-    runningTime = RunningTime.of(120),
-    performanceDescription = "description",
-    performanceAttentionNote = "attention",
-    paymentAccount = paymentAccount,
-    posterImage = "poster",
-    performanceTeamName = "team",
-    performanceVenue = "venue",
-    roadAddressName = "road",
-    placeDetailAddress = "detail",
-    latitude = "37.0",
-    longitude = "127.0",
-    performanceContact = "010-0000-0000",
-    performancePeriod = PerformancePeriod.of(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1)),
-    ticketPrice = TicketPrice.of(ticketPrice),
-    totalScheduleCount = totalScheduleCount,
-    userId = userId,
-)
+): Performance =
+    Performance.rehydrate(
+        id = id,
+        performanceTitle = performanceTitle,
+        genre = Genre.BAND,
+        runningTime = RunningTime.of(120),
+        performanceDescription = "description",
+        performanceAttentionNote = "attention",
+        paymentAccount = paymentAccount,
+        posterImage = "poster",
+        performanceTeamName = "team",
+        performanceVenue = "venue",
+        roadAddressName = "road",
+        placeDetailAddress = "detail",
+        latitude = "37.0",
+        longitude = "127.0",
+        performanceContact = "010-0000-0000",
+        performancePeriod =
+            PerformancePeriod.of(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1)),
+        ticketPrice = TicketPrice.of(ticketPrice),
+        totalScheduleCount = totalScheduleCount,
+        userId = userId,
+    )
 
 fun frontofficeScheduleFixture(
     id: Long = 1L,
@@ -47,12 +49,13 @@ fun frontofficeScheduleFixture(
     totalTicketCount: Int = 10,
     allocatedTicketCount: Int = 0,
     scheduleNumber: ScheduleNumber = ScheduleNumber.FIRST,
-): Schedule = Schedule.rehydrate(
-    id = id,
-    performanceDate = performanceDate,
-    bookingCloseAt = performanceDate.plusHours(2),
-    totalTicketCount = totalTicketCount,
-    allocatedTicketCount = allocatedTicketCount,
-    scheduleNumber = scheduleNumber,
-    performanceId = performanceId,
-)
+): Schedule =
+    Schedule.rehydrate(
+        id = id,
+        performanceDate = performanceDate,
+        bookingCloseAt = performanceDate.plusHours(2),
+        totalTicketCount = totalTicketCount,
+        allocatedTicketCount = allocatedTicketCount,
+        scheduleNumber = scheduleNumber,
+        performanceId = performanceId,
+    )

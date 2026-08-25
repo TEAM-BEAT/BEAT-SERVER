@@ -4,9 +4,7 @@ import com.beat.domain.exception.DomainException
 import com.beat.domain.performance.exception.PerformanceErrorCode
 
 @ConsistentCopyVisibility
-data class TicketPrice private constructor(
-    val amount: Int,
-) {
+data class TicketPrice private constructor(val amount: Int) {
     fun totalFor(quantity: Int): Long {
         if (quantity < 0) {
             throw DomainException(PerformanceErrorCode.NEGATIVE_TICKET_QUANTITY)

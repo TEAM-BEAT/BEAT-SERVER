@@ -41,9 +41,9 @@ internal open class AccessLogEmitter {
     }
 
     private fun resolveRoutePatternFallback(request: HttpServletRequest): String =
-        request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE)
-            ?.let { "${request.method} $it" }
-            ?: BaseMdcLoggingFilter.DEFAULT_ROUTE_PATTERN
+        request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE)?.let {
+            "${request.method} $it"
+        } ?: BaseMdcLoggingFilter.DEFAULT_ROUTE_PATTERN
 
     companion object {
         const val STATUS_KEY = "status"

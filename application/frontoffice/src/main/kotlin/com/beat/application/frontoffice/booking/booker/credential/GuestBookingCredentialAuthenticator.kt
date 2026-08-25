@@ -14,10 +14,12 @@ internal class GuestBookingCredentialAuthenticator(
         birthDate: String,
         rawPassword: String,
     ): Long? {
-        val matchedCredentials = guestBookingCredentialRepository.findCandidates(bookerName, phoneNumber, birthDate)
-            .filter { credential ->
-                passwordHasher.matches(rawPassword, credential.encodedPassword)
-            }
+        val matchedCredentials =
+            guestBookingCredentialRepository
+                .findCandidates(bookerName, phoneNumber, birthDate)
+                .filter { credential ->
+                    passwordHasher.matches(rawPassword, credential.encodedPassword)
+                }
         val matchingUserIds = matchedCredentials.map { it.userId }.distinct()
         if (matchingUserIds.size != 1) {
             return null
@@ -25,7 +27,10 @@ internal class GuestBookingCredentialAuthenticator(
 
         val userId = matchingUserIds.single()
         if (matchedCredentials.any { passwordHasher.needsUpgrade(it.encodedPassword) }) {
-            guestBookingCredentialRepository.replaceEncodedPassword(userId, passwordHasher.encode(rawPassword))
+            guestBookingCredentialRepository.replaceEncodedPassword(
+                userId,
+                passwordHasher.encode(rawPassword),
+            )
         }
         return userId
     }

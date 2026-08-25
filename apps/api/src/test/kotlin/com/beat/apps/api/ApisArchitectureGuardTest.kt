@@ -11,84 +11,94 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 /**
- * API composition-root contracts that neither the Gradle module graph nor Kotlin
- * visibility can enforce. Dependency-direction rules live in verifyTargetModuleGraph;
- * infrastructure implementation hiding is enforced by `internal`. Do not duplicate them here.
+ * API composition-root contracts that neither the Gradle module graph nor Kotlin visibility can
+ * enforce. Dependency-direction rules live in verifyTargetModuleGraph; infrastructure
+ * implementation hiding is enforced by `internal`. Do not duplicate them here.
  */
-class ApisArchitectureGuardTest : FunSpec({
-    val productionClasses: JavaClasses by lazy {
-        val productionClassPaths = listOf(
-            Path.of("build/classes/kotlin/main"),
-            Path.of("build/classes/java/main"),
-        ).filter(Files::exists)
-        require(productionClassPaths.isNotEmpty()) {
-            "API production class output is missing"
-        }
-        ClassFileImporter().importPaths(productionClassPaths)
-    }
-
-    val infrastructureType =
-        object : DescribedPredicate<JavaClass>("be an infrastructure type") {
-            override fun test(input: JavaClass): Boolean =
-                input.packageName.startsWith("com.beat.infrastructure.")
-        }
-
-    test("controller와 facade는 각자의 어댑터 패키지에 위치한다") {
-        classes()
-            .that()
-            .haveSimpleNameEndingWith("Controller")
-            .should()
-            .resideInAnyPackage("com.beat.apps.api..api..")
-            .because("HTTP controllers belong to API adapter packages")
-            .check(productionClasses)
-
-        classes()
-            .that()
-            .haveSimpleNameEndingWith("Facade")
-            .should()
-            .resideInAnyPackage("com.beat.apps.api..facade..")
-            .because("API facades belong to API adapter packages")
-            .check(productionClasses)
-    }
-
-    test("controller는 public Application API 또는 adapter-local Facade를 통해서만 유즈케이스에 진입한다") {
-        noClasses()
-            .that()
-            .haveSimpleNameEndingWith("Controller")
-            .should()
-            .dependOnClassesThat(infrastructureType)
-            .because("Controllers must not depend on infrastructure directly; Facade is standard but direct public Application API is allowed")
-            .check(productionClasses)
-    }
-
-    test("infra 공개 설정 타입은 bootstrap만 사용할 수 있다") {
-        val nonBootstrapClasses = object : DescribedPredicate<JavaClass>(
-            "be an API class outside configuration/bootstrap",
-        ) {
-            override fun test(input: JavaClass): Boolean {
-                if (!input.packageName.startsWith("com.beat.apps.api.")) {
-                    return false
-                }
-                return !input.packageName.contains(".config") && input.simpleName != "ApisApplication"
+class ApisArchitectureGuardTest :
+    FunSpec({
+        val productionClasses: JavaClasses by lazy {
+            val productionClassPaths =
+                listOf(
+                        Path.of("build/classes/kotlin/main"),
+                        Path.of("build/classes/java/main"),
+                    )
+                    .filter(Files::exists)
+            require(productionClassPaths.isNotEmpty()) {
+                "API production class output is missing"
             }
+            ClassFileImporter().importPaths(productionClassPaths)
         }
-        noClasses()
-            .that(nonBootstrapClasses)
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("com.beat.infrastructure..")
-            .because("Infrastructure wiring types may only be consumed by API bootstrap configuration")
-            .check(productionClasses)
-    }
 
-    test("api는 jOOQ 구현 타입에 의존하지 않는다 — E-08") {
-        noClasses()
-            .that()
-            .resideInAnyPackage("com.beat.apps.api", "com.beat.apps.api..")
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("org.jooq..", "com.beat.infrastructure.jooq.generated..")
-            .because("Apps must not depend on jOOQ — infrastructure internal (E-08, I-21)")
-            .check(productionClasses)
-    }
-})
+        val infrastructureType =
+            object : DescribedPredicate<JavaClass>("be an infrastructure type") {
+                override fun test(input: JavaClass): Boolean =
+                    input.packageName.startsWith("com.beat.infrastructure.")
+            }
+
+        test("controller와 facade는 각자의 어댑터 패키지에 위치한다") {
+            classes()
+                .that()
+                .haveSimpleNameEndingWith("Controller")
+                .should()
+                .resideInAnyPackage("com.beat.apps.api..api..")
+                .because("HTTP controllers belong to API adapter packages")
+                .check(productionClasses)
+
+            classes()
+                .that()
+                .haveSimpleNameEndingWith("Facade")
+                .should()
+                .resideInAnyPackage("com.beat.apps.api..facade..")
+                .because("API facades belong to API adapter packages")
+                .check(productionClasses)
+        }
+
+        test("controller는 public Application API 또는 adapter-local Facade를 통해서만 유즈케이스에 진입한다") {
+            noClasses()
+                .that()
+                .haveSimpleNameEndingWith("Controller")
+                .should()
+                .dependOnClassesThat(infrastructureType)
+                .because(
+                    "Controllers must not depend on infrastructure directly; Facade is standard but direct public Application API is allowed"
+                )
+                .check(productionClasses)
+        }
+
+        test("infra 공개 설정 타입은 bootstrap만 사용할 수 있다") {
+            val nonBootstrapClasses =
+                object :
+                    DescribedPredicate<JavaClass>(
+                        "be an API class outside configuration/bootstrap"
+                    ) {
+                    override fun test(input: JavaClass): Boolean {
+                        if (!input.packageName.startsWith("com.beat.apps.api.")) {
+                            return false
+                        }
+                        return !input.packageName.contains(".config") &&
+                            input.simpleName != "ApisApplication"
+                    }
+                }
+            noClasses()
+                .that(nonBootstrapClasses)
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("com.beat.infrastructure..")
+                .because(
+                    "Infrastructure wiring types may only be consumed by API bootstrap configuration"
+                )
+                .check(productionClasses)
+        }
+
+        test("api는 jOOQ 구현 타입에 의존하지 않는다 — E-08") {
+            noClasses()
+                .that()
+                .resideInAnyPackage("com.beat.apps.api", "com.beat.apps.api..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("org.jooq..", "com.beat.infrastructure.jooq.generated..")
+                .because("Apps must not depend on jOOQ — infrastructure internal (E-08, I-21)")
+                .check(productionClasses)
+        }
+    })

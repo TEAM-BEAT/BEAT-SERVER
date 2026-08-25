@@ -15,17 +15,19 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 @Transactional(readOnly = true)
-class AdminPromotionQueryService internal constructor(
+class AdminPromotionQueryService
+internal constructor(
     private val promotionImageStorage: PromotionImageStorage,
     private val memberRepository: MemberRepository,
     private val promotionRepository: PromotionRepository,
 ) {
-    fun issueAllPresignedUrlsForCarousel(memberId: Long, carouselImages: List<String>): CarouselPresignedUrlsResult {
+    fun issueAllPresignedUrlsForCarousel(
+        memberId: Long,
+        carouselImages: List<String>,
+    ): CarouselPresignedUrlsResult {
         return translateDomainFailure {
             validateMemberExists(memberId)
-            CarouselPresignedUrlsResult(
-                promotionImageStorage.issueCarouselUploads(carouselImages),
-            )
+            CarouselPresignedUrlsResult(promotionImageStorage.issueCarouselUploads(carouselImages))
         }
     }
 

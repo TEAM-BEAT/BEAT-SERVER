@@ -3,13 +3,14 @@ package com.beat.domain.booking.model
 import com.beat.domain.booking.exception.BookingErrorCode
 import com.beat.domain.booking.vo.RefundAccount
 import com.beat.domain.exception.DomainException
-import com.beat.domain.sharedkernel.vo.BankName
 import com.beat.domain.schedule.model.Schedule
 import com.beat.domain.sharedkernel.model.AggregateRoot
+import com.beat.domain.sharedkernel.vo.BankName
 import com.beat.domain.user.model.Users
 import java.time.LocalDateTime
 
-class Booking private constructor(
+class Booking
+private constructor(
     private val bookingId: Id?,
     val purchaseTicketCount: Int,
     val bookerName: String,
@@ -50,8 +51,7 @@ class Booking private constructor(
 
     override fun hashCode(): Int = bookingId?.hashCode() ?: System.identityHashCode(this)
 
-    override fun toString(): String =
-        "Booking(id=${bookingId?.value}, status=$bookingStatus)"
+    override fun toString(): String = "Booking(id=${bookingId?.value}, status=$bookingStatus)"
 
     fun hasActiveTicketAllocation(): Boolean = !bookingStatus.isInactiveForTicketAllocation()
 
@@ -62,63 +62,88 @@ class Booking private constructor(
         if (bookingStatus == BookingStatus.BOOKING_CONFIRMED) {
             throw DomainException(BookingErrorCode.CONFIRMED_STATUS_CHANGE_NOT_ALLOWED)
         }
-        if (bookingStatus != BookingStatus.CHECKING_PAYMENT || requestedStatus != BookingStatus.BOOKING_CONFIRMED) {
+        if (
+            bookingStatus != BookingStatus.CHECKING_PAYMENT ||
+                requestedStatus != BookingStatus.BOOKING_CONFIRMED
+        ) {
             throw DomainException(BookingErrorCode.STATUS_TRANSITION_NOT_ALLOWED)
         }
         return confirmPayment()
     }
 
-    fun confirmPayment(): Booking = when (bookingStatus) {
-        BookingStatus.CHECKING_PAYMENT -> withState(bookingStatus = BookingStatus.BOOKING_CONFIRMED)
-        BookingStatus.BOOKING_CONFIRMED -> this
-        else -> throw DomainException(BookingErrorCode.PAYMENT_CONFIRMATION_NOT_ALLOWED)
-    }
-
-    fun requestRefund(refundAccount: RefundAccount): Booking = when (bookingStatus) {
-        BookingStatus.CHECKING_PAYMENT ->
-            withState(refundAccount = refundAccount, bookingStatus = BookingStatus.REFUND_REQUESTED)
-        BookingStatus.BOOKING_CONFIRMED -> {
-            if (isFreeBooking()) {
-                throw DomainException(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED)
-            }
-            withState(refundAccount = refundAccount, bookingStatus = BookingStatus.REFUND_REQUESTED)
+    fun confirmPayment(): Booking =
+        when (bookingStatus) {
+            BookingStatus.CHECKING_PAYMENT ->
+                withState(bookingStatus = BookingStatus.BOOKING_CONFIRMED)
+            BookingStatus.BOOKING_CONFIRMED -> this
+            else -> throw DomainException(BookingErrorCode.PAYMENT_CONFIRMATION_NOT_ALLOWED)
         }
-        BookingStatus.REFUND_REQUESTED -> {
-            if (this.refundAccount == refundAccount) {
-                this
-            } else {
-                throw DomainException(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED)
+
+    fun requestRefund(refundAccount: RefundAccount): Booking =
+        when (bookingStatus) {
+            BookingStatus.CHECKING_PAYMENT ->
+                withState(
+                    refundAccount = refundAccount,
+                    bookingStatus = BookingStatus.REFUND_REQUESTED,
+                )
+            BookingStatus.BOOKING_CONFIRMED -> {
+                if (isFreeBooking()) {
+                    throw DomainException(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED)
+                }
+                withState(
+                    refundAccount = refundAccount,
+                    bookingStatus = BookingStatus.REFUND_REQUESTED,
+                )
             }
-        }
-        else -> throw DomainException(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED)
-    }
-
-    fun cancelUnpaidOrFree(cancelledAt: LocalDateTime): Booking = when (bookingStatus) {
-        BookingStatus.CHECKING_PAYMENT ->
-            withState(bookingStatus = BookingStatus.BOOKING_CANCELLED, cancellationDate = cancelledAt)
-        BookingStatus.BOOKING_CONFIRMED -> {
-            if (isFreeBooking()) {
-                withState(bookingStatus = BookingStatus.BOOKING_CANCELLED, cancellationDate = cancelledAt)
-            } else {
-                throw DomainException(BookingErrorCode.CANCELLATION_NOT_ALLOWED)
+            BookingStatus.REFUND_REQUESTED -> {
+                if (this.refundAccount == refundAccount) {
+                    this
+                } else {
+                    throw DomainException(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED)
+                }
             }
+            else -> throw DomainException(BookingErrorCode.REFUND_REQUEST_NOT_ALLOWED)
         }
-        BookingStatus.BOOKING_CANCELLED -> this
-        else -> throw DomainException(BookingErrorCode.CANCELLATION_NOT_ALLOWED)
-    }
 
-    fun completeRefund(completedAt: LocalDateTime): Booking = when (bookingStatus) {
-        BookingStatus.REFUND_REQUESTED ->
-            withState(bookingStatus = BookingStatus.BOOKING_CANCELLED, cancellationDate = completedAt)
-        BookingStatus.BOOKING_CANCELLED -> this
-        else -> throw DomainException(BookingErrorCode.REFUND_COMPLETION_NOT_ALLOWED)
-    }
+    fun cancelUnpaidOrFree(cancelledAt: LocalDateTime): Booking =
+        when (bookingStatus) {
+            BookingStatus.CHECKING_PAYMENT ->
+                withState(
+                    bookingStatus = BookingStatus.BOOKING_CANCELLED,
+                    cancellationDate = cancelledAt,
+                )
+            BookingStatus.BOOKING_CONFIRMED -> {
+                if (isFreeBooking()) {
+                    withState(
+                        bookingStatus = BookingStatus.BOOKING_CANCELLED,
+                        cancellationDate = cancelledAt,
+                    )
+                } else {
+                    throw DomainException(BookingErrorCode.CANCELLATION_NOT_ALLOWED)
+                }
+            }
+            BookingStatus.BOOKING_CANCELLED -> this
+            else -> throw DomainException(BookingErrorCode.CANCELLATION_NOT_ALLOWED)
+        }
 
-    fun delete(): Booking = when (bookingStatus) {
-        BookingStatus.BOOKING_DELETED -> this
-        BookingStatus.BOOKING_CANCELLED -> withState(bookingStatus = BookingStatus.BOOKING_DELETED)
-        else -> throw DomainException(BookingErrorCode.DELETION_NOT_ALLOWED)
-    }
+    fun completeRefund(completedAt: LocalDateTime): Booking =
+        when (bookingStatus) {
+            BookingStatus.REFUND_REQUESTED ->
+                withState(
+                    bookingStatus = BookingStatus.BOOKING_CANCELLED,
+                    cancellationDate = completedAt,
+                )
+            BookingStatus.BOOKING_CANCELLED -> this
+            else -> throw DomainException(BookingErrorCode.REFUND_COMPLETION_NOT_ALLOWED)
+        }
+
+    fun delete(): Booking =
+        when (bookingStatus) {
+            BookingStatus.BOOKING_DELETED -> this
+            BookingStatus.BOOKING_CANCELLED ->
+                withState(bookingStatus = BookingStatus.BOOKING_DELETED)
+            else -> throw DomainException(BookingErrorCode.DELETION_NOT_ALLOWED)
+        }
 
     fun deleteByMaker(deletedAt: LocalDateTime): Booking {
         if (!canDeleteByMaker(bookingStatus, totalPaymentAmount)) {
@@ -137,21 +162,22 @@ class Booking private constructor(
         bookingStatus: BookingStatus = this.bookingStatus,
         cancellationDate: LocalDateTime? = this.cancellationDate,
         refundAccount: RefundAccount? = this.refundAccount,
-    ): Booking = Booking(
-        bookingId = bookingId,
-        purchaseTicketCount = purchaseTicketCount,
-        bookerName = bookerName,
-        bookerPhoneNumber = bookerPhoneNumber,
-        bookingStatus = bookingStatus,
-        createdAt = createdAt,
-        cancellationDate = cancellationDate,
-        birthDate = birthDate,
-        password = password,
-        refundAccount = refundAccount,
-        totalPaymentAmount = totalPaymentAmount,
-        linkedScheduleId = linkedScheduleId,
-        linkedUserId = linkedUserId,
-    )
+    ): Booking =
+        Booking(
+            bookingId = bookingId,
+            purchaseTicketCount = purchaseTicketCount,
+            bookerName = bookerName,
+            bookerPhoneNumber = bookerPhoneNumber,
+            bookingStatus = bookingStatus,
+            createdAt = createdAt,
+            cancellationDate = cancellationDate,
+            birthDate = birthDate,
+            password = password,
+            refundAccount = refundAccount,
+            totalPaymentAmount = totalPaymentAmount,
+            linkedScheduleId = linkedScheduleId,
+            linkedUserId = linkedUserId,
+        )
 
     @JvmInline
     value class Id private constructor(val value: Long) {
@@ -191,11 +217,12 @@ class Booking private constructor(
                 purchaseTicketCount = purchaseTicketCount,
                 bookerName = bookerName,
                 bookerPhoneNumber = bookerPhoneNumber,
-                bookingStatus = if (totalPaymentAmount == 0) {
-                    BookingStatus.BOOKING_CONFIRMED
-                } else {
-                    BookingStatus.CHECKING_PAYMENT
-                },
+                bookingStatus =
+                    if (totalPaymentAmount == 0) {
+                        BookingStatus.BOOKING_CONFIRMED
+                    } else {
+                        BookingStatus.CHECKING_PAYMENT
+                    },
                 createdAt = createdAt,
                 cancellationDate = null,
                 birthDate = birthDate,

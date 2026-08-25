@@ -22,11 +22,9 @@ import org.springframework.test.context.ContextConfiguration
 @Tags("integration")
 class RedisRefreshTokenAdapterIntegrationSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var refreshTokenStore: RefreshTokenStore
+    @Autowired private lateinit var refreshTokenStore: RefreshTokenStore
 
-    @Autowired
-    private lateinit var redisTemplate: StringRedisTemplate
+    @Autowired private lateinit var redisTemplate: StringRedisTemplate
 
     init {
         isolationMode = IsolationMode.SingleInstance
@@ -60,7 +58,8 @@ class RedisRefreshTokenAdapterIntegrationSpec : FunSpec() {
 
             test("저장되지 않은 refresh token 조회는 null을 반환한다") {
                 try {
-                    refreshTokenStore.findMemberIdByRefreshToken(MISSING_REFRESH_TOKEN) shouldBe null
+                    refreshTokenStore.findMemberIdByRefreshToken(MISSING_REFRESH_TOKEN) shouldBe
+                        null
                 } finally {
                     cleanupMissingRefreshTokenKeys()
                 }
@@ -71,7 +70,8 @@ class RedisRefreshTokenAdapterIntegrationSpec : FunSpec() {
                     refreshTokenStore.delete(MISSING_MEMBER_ID).shouldBeFalse()
                     redisTemplate.hasKey(MISSING_REDIS_KEY).shouldBeFalse()
                     redisTemplate.hasKey(MISSING_REDIS_INDEX_KEY).shouldBeFalse()
-                    redisTemplate.opsForSet()
+                    redisTemplate
+                        .opsForSet()
                         .isMember(REDIS_KEYSPACE_KEY, MISSING_MEMBER_ID.toString())
                         .shouldBeFalse()
                 } finally {

@@ -5,7 +5,8 @@ import com.beat.domain.sharedkernel.model.AggregateRoot
 import com.beat.domain.user.model.Users
 import java.time.LocalDateTime
 
-class Member private constructor(
+class Member
+private constructor(
     private val memberId: Id?,
     val nickname: String,
     val email: String?,
@@ -44,14 +45,15 @@ class Member private constructor(
             email: String?,
             userId: Long,
             socialIdentity: SocialIdentity,
-        ): Member = Member(
-            memberId = null,
-            nickname = nickname,
-            email = email,
-            deletedAt = null,
-            linkedUserId = Users.Id.from(userId),
-            socialIdentity = socialIdentity,
-        )
+        ): Member =
+            Member(
+                memberId = null,
+                nickname = nickname,
+                email = email,
+                deletedAt = null,
+                linkedUserId = Users.Id.from(userId),
+                socialIdentity = socialIdentity,
+            )
 
         fun rehydrate(
             id: Long?,
@@ -60,13 +62,14 @@ class Member private constructor(
             deletedAt: LocalDateTime?,
             userId: Long,
             socialIdentity: SocialIdentity,
-        ): Member = Member(
-            memberId = Id.fromNullable(id),
-            nickname = nickname,
-            email = email,
-            deletedAt = deletedAt,
-            linkedUserId = Users.Id.from(userId),
-            socialIdentity = socialIdentity,
-        )
+        ): Member =
+            Member(
+                memberId = Id.fromNullable(id),
+                nickname = nickname,
+                email = email,
+                deletedAt = deletedAt,
+                linkedUserId = Users.Id.from(userId),
+                socialIdentity = socialIdentity,
+            )
     }
 }

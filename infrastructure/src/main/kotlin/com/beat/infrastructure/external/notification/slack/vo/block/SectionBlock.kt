@@ -11,8 +11,10 @@ internal data class SectionBlock(
     val text: Text?,
 ) : Block {
     companion object {
-        fun newInstanceWithFields(fields: List<Text>): SectionBlock = SectionBlock(BLOCK_TYPE_SECTION, fields, null)
+        fun newInstanceWithFields(fields: List<Text>): SectionBlock =
+            SectionBlock(BLOCK_TYPE_SECTION, fields, null)
 
-        fun newInstanceWithText(text: Text): SectionBlock = SectionBlock(BLOCK_TYPE_SECTION, null, text)
+        fun newInstanceWithText(text: Text): SectionBlock =
+            SectionBlock(BLOCK_TYPE_SECTION, null, text)
     }
 }

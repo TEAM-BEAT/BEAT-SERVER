@@ -12,9 +12,7 @@ object NoOpTraceContextResolver : TraceContextResolver {
     override fun resolve(): TraceContextResolver.ResolvedTraceContext? = null
 }
 
-internal class MicrometerTraceContextResolver(
-    private val tracer: Tracer,
-) : TraceContextResolver {
+internal class MicrometerTraceContextResolver(private val tracer: Tracer) : TraceContextResolver {
 
     override fun resolve(): TraceContextResolver.ResolvedTraceContext? {
         val context = tracer.currentSpan()?.context() ?: return null

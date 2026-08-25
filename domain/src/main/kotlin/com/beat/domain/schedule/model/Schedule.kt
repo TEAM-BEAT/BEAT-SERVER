@@ -6,7 +6,8 @@ import com.beat.domain.schedule.exception.ScheduleErrorCode
 import com.beat.domain.sharedkernel.model.AggregateRoot
 import java.time.LocalDateTime
 
-class Schedule private constructor(
+class Schedule
+private constructor(
     private val scheduleId: Id?,
     val performanceDate: LocalDateTime,
     val bookingCloseAt: LocalDateTime,
@@ -52,7 +53,7 @@ class Schedule private constructor(
             performanceDate = performanceDate,
             bookingCloseAt = bookingCloseAt,
             totalTicketCount = totalTicketCount,
-            scheduleNumber = scheduleNumber
+            scheduleNumber = scheduleNumber,
         )
     }
 
@@ -72,7 +73,8 @@ class Schedule private constructor(
         return withState(allocatedTicketCount = allocatedTicketCount - count)
     }
 
-    fun updateScheduleNumber(scheduleNumber: ScheduleNumber): Schedule = withState(scheduleNumber = scheduleNumber)
+    fun updateScheduleNumber(scheduleNumber: ScheduleNumber): Schedule =
+        withState(scheduleNumber = scheduleNumber)
 
     fun updateBookingCloseAt(bookingCloseAt: LocalDateTime): Schedule {
         validateBookingWindow(performanceDate, bookingCloseAt)
@@ -99,15 +101,16 @@ class Schedule private constructor(
         totalTicketCount: Int = this.totalTicketCount,
         allocatedTicketCount: Int = this.allocatedTicketCount,
         scheduleNumber: ScheduleNumber = this.scheduleNumber,
-    ): Schedule = Schedule(
-        scheduleId = scheduleId,
-        performanceDate = performanceDate,
-        bookingCloseAt = bookingCloseAt,
-        totalTicketCount = totalTicketCount,
-        allocatedTicketCount = allocatedTicketCount,
-        scheduleNumber = scheduleNumber,
-        linkedPerformanceId = linkedPerformanceId,
-    )
+    ): Schedule =
+        Schedule(
+            scheduleId = scheduleId,
+            performanceDate = performanceDate,
+            bookingCloseAt = bookingCloseAt,
+            totalTicketCount = totalTicketCount,
+            allocatedTicketCount = allocatedTicketCount,
+            scheduleNumber = scheduleNumber,
+            linkedPerformanceId = linkedPerformanceId,
+        )
 
     @JvmInline
     value class Id private constructor(val value: Long) {
@@ -136,7 +139,7 @@ class Schedule private constructor(
                 totalTicketCount = totalTicketCount,
                 allocatedTicketCount = 0,
                 scheduleNumber = scheduleNumber,
-                linkedPerformanceId = Performance.Id.from(performanceId)
+                linkedPerformanceId = Performance.Id.from(performanceId),
             )
         }
 
@@ -149,7 +152,13 @@ class Schedule private constructor(
             now: LocalDateTime,
         ): Schedule {
             validateNotPast(performanceDate, now)
-            return create(performanceDate, bookingCloseAt, totalTicketCount, scheduleNumber, performanceId)
+            return create(
+                performanceDate,
+                bookingCloseAt,
+                totalTicketCount,
+                scheduleNumber,
+                performanceId,
+            )
         }
 
         fun rehydrate(
@@ -171,11 +180,14 @@ class Schedule private constructor(
                 totalTicketCount = totalTicketCount,
                 allocatedTicketCount = allocatedTicketCount,
                 scheduleNumber = scheduleNumber,
-                linkedPerformanceId = Performance.Id.from(performanceId)
+                linkedPerformanceId = Performance.Id.from(performanceId),
             )
         }
 
-        private fun validateBookingWindow(performanceDate: LocalDateTime, bookingCloseAt: LocalDateTime) {
+        private fun validateBookingWindow(
+            performanceDate: LocalDateTime,
+            bookingCloseAt: LocalDateTime,
+        ) {
             if (bookingCloseAt.isBefore(performanceDate)) {
                 throw DomainException(ScheduleErrorCode.INVALID_BOOKING_WINDOW)
             }

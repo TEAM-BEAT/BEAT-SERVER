@@ -1,8 +1,6 @@
 package com.beat.domain.schedule.model
 
-enum class ScheduleNumber(
-    val displayName: String,
-) {
+enum class ScheduleNumber(val displayName: String) {
     FIRST("1회차"),
     SECOND("2회차"),
     THIRD("3회차"),
@@ -13,5 +11,4 @@ enum class ScheduleNumber(
     EIGHTH("8회차"),
     NINTH("9회차"),
     TENTH("10회차"),
-    ;
 }

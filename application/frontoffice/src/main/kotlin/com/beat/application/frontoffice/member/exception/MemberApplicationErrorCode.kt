@@ -11,7 +11,7 @@ internal enum class MemberApplicationErrorCode(
     SOCIAL_TYPE_BAD_REQUEST(
         "MEMBER_SOCIAL_TYPE_INVALID",
         FrontofficeApplicationErrorType.INVALID_INPUT,
-        "로그인 요청이 유효하지 않습니다."
+        "로그인 요청이 유효하지 않습니다.",
     ),
     AUTHENTICATION_CODE_EXPIRED(
         "MEMBER_AUTHENTICATION_CODE_EXPIRED",
@@ -36,12 +36,11 @@ internal enum class MemberApplicationErrorCode(
     MEMBER_NOT_FOUND(
         "MEMBER_NOT_FOUND",
         FrontofficeApplicationErrorType.NOT_FOUND,
-        "회원이 없습니다"
+        "회원이 없습니다",
     ),
     USER_NOT_FOUND(
         "USER_NOT_FOUND",
         FrontofficeApplicationErrorType.NOT_FOUND,
-        "유저가 없습니다"
-    );
-
+        "유저가 없습니다",
+    ),
 }

@@ -2,8 +2,8 @@ package com.beat.apps.api.home.api
 
 import com.beat.apps.api.home.api.response.HomeFindAllResponse
 import com.beat.apps.api.home.api.type.HomeGenreType
-import com.beat.apps.api.swagger.annotation.DisableSwaggerSecurity
 import com.beat.apps.api.response.SuccessResponse
+import com.beat.apps.api.swagger.annotation.DisableSwaggerSecurity
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
@@ -17,11 +17,9 @@ interface HomeApi {
     @DisableSwaggerSecurity
     @Operation(summary = "전체 공연 및 홍보 목록 조회", description = "홈 화면에서 전체 공연 목록 및 홍보 목록을 조회하는 GET API")
     @ApiResponses(
-        value = [
-            ApiResponse(responseCode = "200", description = "홈 화면 공연 목록 조회가 성공적으로 완료되었습니다."),
-        ],
+        value = [ApiResponse(responseCode = "200", description = "홈 화면 공연 목록 조회가 성공적으로 완료되었습니다.")]
     )
     fun getHomePerformanceList(
-        @RequestParam(required = false) genre: HomeGenreType?,
+        @RequestParam(required = false) genre: HomeGenreType?
     ): ResponseEntity<SuccessResponse<HomeFindAllResponse>>
 }

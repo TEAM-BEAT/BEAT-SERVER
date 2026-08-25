@@ -1,8 +1,8 @@
 package com.beat.apps.admin
 
+import com.beat.application.admin.AdminApplicationConfig
 import com.beat.apps.admin.config.GatewayConfig
 import com.beat.apps.admin.config.InfraConfig
-import com.beat.application.admin.AdminApplicationConfig
 import com.beat.support.observability.ObservabilityModuleConfig
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication

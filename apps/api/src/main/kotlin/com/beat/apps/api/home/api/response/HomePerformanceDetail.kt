@@ -4,7 +4,8 @@ import com.beat.application.frontoffice.home.booker.query.HomePerformanceResult
 import com.beat.apps.api.web.jackson.CdnImageUrl
 
 @ConsistentCopyVisibility
-data class HomePerformanceDetail private constructor(
+data class HomePerformanceDetail
+private constructor(
     val performanceId: Long?,
     val performanceTitle: String?,
     val performancePeriod: String?,
@@ -15,15 +16,16 @@ data class HomePerformanceDetail private constructor(
     val performanceVenue: String?,
 ) {
     companion object {
-        fun from(result: HomePerformanceResult): HomePerformanceDetail = HomePerformanceDetail(
-            performanceId = result.performanceId,
-            performanceTitle = result.performanceTitle,
-            performancePeriod = result.performancePeriod,
-            ticketPrice = result.ticketPrice,
-            dueDate = result.dueDate,
-            genre = result.genre,
-            posterImage = result.posterImage,
-            performanceVenue = result.performanceVenue,
-        )
+        fun from(result: HomePerformanceResult): HomePerformanceDetail =
+            HomePerformanceDetail(
+                performanceId = result.performanceId,
+                performanceTitle = result.performanceTitle,
+                performancePeriod = result.performancePeriod,
+                ticketPrice = result.ticketPrice,
+                dueDate = result.dueDate,
+                genre = result.genre,
+                posterImage = result.posterImage,
+                performanceVenue = result.performanceVenue,
+            )
     }
 }

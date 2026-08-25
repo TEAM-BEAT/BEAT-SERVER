@@ -1,12 +1,12 @@
 package com.beat.apps.api.home.api
 
-import com.beat.apps.api.home.api.response.HomeSuccessCode
-import com.beat.apps.api.home.api.type.HomeGenreType
-import com.beat.apps.api.home.facade.HomeFacade
 import com.beat.application.frontoffice.home.booker.query.HomeFindAllResult
 import com.beat.application.frontoffice.home.booker.query.HomePerformanceResult
 import com.beat.application.frontoffice.home.booker.query.HomePromotionResult
 import com.beat.application.frontoffice.home.booker.query.HomeQueryService
+import com.beat.apps.api.home.api.response.HomeSuccessCode
+import com.beat.apps.api.home.api.type.HomeGenreType
+import com.beat.apps.api.home.facade.HomeFacade
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.extensions.spring.SpringTestLifecycleMode
@@ -29,11 +29,9 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 @ContextConfiguration(classes = [HomeController::class, HomeFacade::class])
 class HomeControllerWebSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var mockMvc: MockMvc
+    @Autowired private lateinit var mockMvc: MockMvc
 
-    @TestBean
-    private lateinit var homeQueryService: HomeQueryService
+    @TestBean private lateinit var homeQueryService: HomeQueryService
 
     init {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
@@ -43,12 +41,20 @@ class HomeControllerWebSpec : FunSpec() {
         }
 
         test("요청한 genre로 home 데이터를 조회하고 실제 facade를 통해 매핑한다") {
-            every { homeQueryService.findHomePerformanceList(HomeGenreType.BAND.name) } returns homeResult()
+            every { homeQueryService.findHomePerformanceList(HomeGenreType.BAND.name) } returns
+                homeResult()
 
-            mockMvc.perform(get("/api/main").param("genre", HomeGenreType.BAND.name))
+            mockMvc
+                .perform(get("/api/main").param("genre", HomeGenreType.BAND.name))
                 .andExpect(status().isOk)
-                .andExpect(jsonPath("$.status").value(HomeSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS.status))
-                .andExpect(jsonPath("$.message").value(HomeSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS.message))
+                .andExpect(
+                    jsonPath("$.status")
+                        .value(HomeSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS.status)
+                )
+                .andExpect(
+                    jsonPath("$.message")
+                        .value(HomeSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS.message)
+                )
                 .andExpect(jsonPath("$.data.promotionList").isArray)
                 .andExpect(jsonPath("$.data.performanceList").isArray)
                 .andExpect(jsonPath("$.data.promotionList[0].promotionId").value(1))
@@ -73,10 +79,17 @@ class HomeControllerWebSpec : FunSpec() {
             every { homeQueryService.findHomePerformanceList(null) } returns
                 HomeFindAllResult(emptyList(), emptyList())
 
-            mockMvc.perform(get("/api/main"))
+            mockMvc
+                .perform(get("/api/main"))
                 .andExpect(status().isOk)
-                .andExpect(jsonPath("$.status").value(HomeSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS.status))
-                .andExpect(jsonPath("$.message").value(HomeSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS.message))
+                .andExpect(
+                    jsonPath("$.status")
+                        .value(HomeSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS.status)
+                )
+                .andExpect(
+                    jsonPath("$.message")
+                        .value(HomeSuccessCode.HOME_PERFORMANCE_RETRIEVE_SUCCESS.message)
+                )
                 .andExpect(jsonPath("$.data.promotionList").isArray)
                 .andExpect(jsonPath("$.data.promotionList").isEmpty)
                 .andExpect(jsonPath("$.data.performanceList").isArray)
@@ -86,33 +99,35 @@ class HomeControllerWebSpec : FunSpec() {
         }
     }
 
-    private fun homeResult() = HomeFindAllResult(
-        promotionList = listOf(
-            HomePromotionResult(
-                promotionId = 1L,
-                promotionPhoto = "promotion.png",
-                performanceId = 11L,
-                redirectUrl = "redirect",
-                isExternal = true,
-                carouselNumber = "ONE",
-            ),
-        ),
-        performanceList = listOf(
-            HomePerformanceResult(
-                performanceId = 11L,
-                performanceTitle = "title",
-                performancePeriod = "period",
-                ticketPrice = 30_000,
-                dueDate = 3,
-                genre = "BAND",
-                posterImage = "poster.png",
-                performanceVenue = "venue",
-            ),
-        ),
-    )
+    private fun homeResult() =
+        HomeFindAllResult(
+            promotionList =
+                listOf(
+                    HomePromotionResult(
+                        promotionId = 1L,
+                        promotionPhoto = "promotion.png",
+                        performanceId = 11L,
+                        redirectUrl = "redirect",
+                        isExternal = true,
+                        carouselNumber = "ONE",
+                    )
+                ),
+            performanceList =
+                listOf(
+                    HomePerformanceResult(
+                        performanceId = 11L,
+                        performanceTitle = "title",
+                        performancePeriod = "period",
+                        ticketPrice = 30_000,
+                        dueDate = 3,
+                        genre = "BAND",
+                        posterImage = "poster.png",
+                        performanceVenue = "venue",
+                    )
+                ),
+        )
 
     private companion object {
-        @JvmStatic
-        fun homeQueryService(): HomeQueryService = mockk()
+        @JvmStatic fun homeQueryService(): HomeQueryService = mockk()
     }
 }

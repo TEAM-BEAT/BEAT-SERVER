@@ -17,35 +17,38 @@ internal class PerformanceContentOwnershipJpaReader(
 ) : PerformanceContentOwnershipReader {
 
     override fun findPerformanceIdByCastId(castId: Long): Long? =
-        entityManager.createQuery(castPerformanceIdQuery(castId), jpqlRenderContext).resultList.firstOrNull()
+        entityManager
+            .createQuery(castPerformanceIdQuery(castId), jpqlRenderContext)
+            .resultList
+            .firstOrNull()
 
     override fun findPerformanceIdByStaffId(staffId: Long): Long? =
-        entityManager.createQuery(staffPerformanceIdQuery(staffId), jpqlRenderContext).resultList.firstOrNull()
+        entityManager
+            .createQuery(staffPerformanceIdQuery(staffId), jpqlRenderContext)
+            .resultList
+            .firstOrNull()
 
     override fun findPerformanceIdByImageId(imageId: Long): Long? =
-        entityManager.createQuery(imagePerformanceIdQuery(imageId), jpqlRenderContext).resultList.firstOrNull()
+        entityManager
+            .createQuery(imagePerformanceIdQuery(imageId), jpqlRenderContext)
+            .resultList
+            .firstOrNull()
 
     private fun castPerformanceIdQuery(castId: Long) = jpql {
-        select(path(CastJpaEntity::performanceId)).from(
-            entity(CastJpaEntity::class),
-        ).where(
-            path(CastJpaEntity::id).eq(castId),
-        )
+        select(path(CastJpaEntity::performanceId))
+            .from(entity(CastJpaEntity::class))
+            .where(path(CastJpaEntity::id).eq(castId))
     }
 
     private fun staffPerformanceIdQuery(staffId: Long) = jpql {
-        select(path(StaffJpaEntity::performanceId)).from(
-            entity(StaffJpaEntity::class),
-        ).where(
-            path(StaffJpaEntity::id).eq(staffId),
-        )
+        select(path(StaffJpaEntity::performanceId))
+            .from(entity(StaffJpaEntity::class))
+            .where(path(StaffJpaEntity::id).eq(staffId))
     }
 
     private fun imagePerformanceIdQuery(imageId: Long) = jpql {
-        select(path(PerformanceImageJpaEntity::performanceId)).from(
-            entity(PerformanceImageJpaEntity::class),
-        ).where(
-            path(PerformanceImageJpaEntity::id).eq(imageId),
-        )
+        select(path(PerformanceImageJpaEntity::performanceId))
+            .from(entity(PerformanceImageJpaEntity::class))
+            .where(path(PerformanceImageJpaEntity::id).eq(imageId))
     }
 }

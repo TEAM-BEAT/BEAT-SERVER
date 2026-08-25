@@ -23,7 +23,11 @@ enum class PerformanceErrorCode(
         DomainErrorType.INVALID_INPUT,
         "공연 기간이 올바르지 않습니다.",
     ),
-    NEGATIVE_TICKET_PRICE("PERFORMANCE_NEGATIVE_TICKET_PRICE", DomainErrorType.INVALID_INPUT, "티켓 가격은 음수일 수 없습니다."),
+    NEGATIVE_TICKET_PRICE(
+        "PERFORMANCE_NEGATIVE_TICKET_PRICE",
+        DomainErrorType.INVALID_INPUT,
+        "티켓 가격은 음수일 수 없습니다.",
+    ),
     PRICE_UPDATE_NOT_ALLOWED(
         "PERFORMANCE_PRICE_UPDATE_NOT_ALLOWED",
         DomainErrorType.STATE_CONFLICT,
@@ -34,11 +38,14 @@ enum class PerformanceErrorCode(
         DomainErrorType.STATE_CONFLICT,
         "예매자가 1명 이상 있을 경우, 공연을 삭제할 수 없습니다.",
     ),
-    NEGATIVE_TICKET_QUANTITY("PERFORMANCE_NEGATIVE_TICKET_QUANTITY", DomainErrorType.INVALID_INPUT, "티켓 수량은 음수일 수 없습니다."),
+    NEGATIVE_TICKET_QUANTITY(
+        "PERFORMANCE_NEGATIVE_TICKET_QUANTITY",
+        DomainErrorType.INVALID_INPUT,
+        "티켓 수량은 음수일 수 없습니다.",
+    ),
     INCOMPLETE_PAYMENT_ACCOUNT(
         "PERFORMANCE_INCOMPLETE_PAYMENT_ACCOUNT",
         DomainErrorType.INVALID_INPUT,
         "결제 계좌 정보는 모두 입력하거나 모두 비워야 합니다.",
     ),
-    ;
 }

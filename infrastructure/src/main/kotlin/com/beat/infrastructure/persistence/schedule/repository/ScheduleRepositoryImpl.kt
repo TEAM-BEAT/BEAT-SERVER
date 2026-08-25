@@ -3,8 +3,8 @@ package com.beat.infrastructure.persistence.schedule.repository
 import com.beat.domain.schedule.model.Schedule
 import com.beat.domain.schedule.repository.ScheduleRepository
 import com.beat.infrastructure.persistence.schedule.mapper.SchedulePersistenceMapper
-import org.springframework.stereotype.Repository
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.stereotype.Repository
 
 @Repository
 internal class ScheduleRepositoryImpl(
@@ -25,7 +25,9 @@ internal class ScheduleRepositoryImpl(
         scheduleJpaRepository.isBeforeBookingCloseAt(id) == 1L
 
     override fun findAllByPerformanceId(performanceId: Long): List<Schedule> =
-        scheduleJpaRepository.findAllByPerformanceId(performanceId).map(schedulePersistenceMapper::toDomain)
+        scheduleJpaRepository
+            .findAllByPerformanceId(performanceId)
+            .map(schedulePersistenceMapper::toDomain)
 
     override fun findAllById(ids: Collection<Long>): List<Schedule> =
         scheduleJpaRepository.findAllById(ids).map(schedulePersistenceMapper::toDomain)
@@ -37,11 +39,13 @@ internal class ScheduleRepositoryImpl(
         scheduleJpaRepository.countByPerformanceId(performanceId)
 
     override fun save(schedule: Schedule): Schedule =
-        scheduleJpaRepository.save(schedulePersistenceMapper.toEntity(schedule))
+        scheduleJpaRepository
+            .save(schedulePersistenceMapper.toEntity(schedule))
             .let(schedulePersistenceMapper::toDomain)
 
     override fun saveAll(schedules: List<Schedule>): List<Schedule> =
-        scheduleJpaRepository.saveAll(schedules.map(schedulePersistenceMapper::toEntity))
+        scheduleJpaRepository
+            .saveAll(schedules.map(schedulePersistenceMapper::toEntity))
             .map(schedulePersistenceMapper::toDomain)
 
     override fun delete(schedule: Schedule) {
@@ -52,5 +56,4 @@ internal class ScheduleRepositoryImpl(
     override fun deleteByPerformanceId(performanceId: Long) {
         scheduleJpaRepository.deleteByPerformanceId(performanceId)
     }
-
 }

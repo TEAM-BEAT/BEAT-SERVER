@@ -28,7 +28,11 @@ enum class ScheduleErrorCode(
         DomainErrorType.INVALID_INPUT,
         "서로 다른 공연의 회차를 함께 정렬할 수 없습니다.",
     ),
-    TOO_MANY_SCHEDULES("SCHEDULE_TOO_MANY_SCHEDULES", DomainErrorType.INVALID_INPUT, "지원 가능한 회차 수를 초과했습니다."),
+    TOO_MANY_SCHEDULES(
+        "SCHEDULE_TOO_MANY_SCHEDULES",
+        DomainErrorType.INVALID_INPUT,
+        "지원 가능한 회차 수를 초과했습니다.",
+    ),
     PAST_SCHEDULE_NOT_ALLOWED(
         "SCHEDULE_PAST_SCHEDULE_NOT_ALLOWED",
         DomainErrorType.INVALID_INPUT,
@@ -54,5 +58,4 @@ enum class ScheduleErrorCode(
         DomainErrorType.STATE_CONFLICT,
         "예매된 티켓 수 이상을 삭제할 수 없습니다.",
     ),
-    ;
 }

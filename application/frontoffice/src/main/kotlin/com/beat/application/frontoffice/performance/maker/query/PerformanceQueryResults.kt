@@ -1,8 +1,5 @@
 package com.beat.application.frontoffice.performance.maker.query
 
-import com.beat.application.frontoffice.performance.CastResult
-import com.beat.application.frontoffice.performance.PerformanceImageResult
-import com.beat.application.frontoffice.performance.StaffResult
 import com.beat.application.frontoffice.performance.maker.PerformanceMutationResult
 
 data class PerformanceEditResult(

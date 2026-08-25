@@ -7,12 +7,20 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
 internal fun BookingHistorySnapshot.toResult(today: LocalDate): BookingRetrieveResult {
-    val schedule = schedule
-        ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.SCHEDULE_NOT_FOUND)
-    val performance = performance
-        ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.PERFORMANCE_NOT_FOUND)
-    val amount = totalPaymentAmount
-        ?: calculatePaymentAmountForRead(TicketPrice.of(performance.ticketPrice), purchaseTicketCount)
+    val schedule =
+        schedule
+            ?: throw FrontofficeApplicationException(BookingApplicationErrorCode.SCHEDULE_NOT_FOUND)
+    val performance =
+        performance
+            ?: throw FrontofficeApplicationException(
+                BookingApplicationErrorCode.PERFORMANCE_NOT_FOUND
+            )
+    val amount =
+        totalPaymentAmount
+            ?: calculatePaymentAmountForRead(
+                TicketPrice.of(performance.ticketPrice),
+                purchaseTicketCount,
+            )
     return BookingRetrieveResult(
         userId = userId,
         bookingId = bookingId,

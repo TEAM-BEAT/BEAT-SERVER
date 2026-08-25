@@ -4,7 +4,8 @@ import com.beat.application.frontoffice.performance.StaffResult
 import com.beat.apps.api.web.jackson.CdnImageUrl
 
 @ConsistentCopyVisibility
-data class PerformanceDetailStaffResponse private constructor(
+data class PerformanceDetailStaffResponse
+private constructor(
     val staffId: Long?,
     val staffName: String?,
     val staffRole: String?,

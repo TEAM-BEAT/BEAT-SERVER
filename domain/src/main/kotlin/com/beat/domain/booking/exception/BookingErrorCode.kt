@@ -63,5 +63,4 @@ enum class BookingErrorCode(
         DomainErrorType.STATE_CONFLICT,
         "미입금, 무료 확정 또는 취소 완료 예매만 삭제할 수 있습니다.",
     ),
-    ;
 }

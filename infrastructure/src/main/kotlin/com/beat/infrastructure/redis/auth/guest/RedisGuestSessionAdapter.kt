@@ -6,14 +6,16 @@ import java.util.Base64
 import org.springframework.data.repository.findByIdOrNull
 
 internal class RedisGuestSessionAdapter(
-    private val guestSessionRepository: GuestSessionRedisRepository,
+    private val guestSessionRepository: GuestSessionRedisRepository
 ) : GuestSessionStore {
 
     private val secureRandom = SecureRandom()
 
     override fun issue(userId: Long): String {
         val token = generateToken()
-        guestSessionRepository.save(GuestSessionRedisHash(Sha256Hasher.hashToBase64Url(token), userId))
+        guestSessionRepository.save(
+            GuestSessionRedisHash(Sha256Hasher.hashToBase64Url(token), userId)
+        )
         return token
     }
 

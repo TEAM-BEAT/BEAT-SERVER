@@ -7,12 +7,12 @@ import com.beat.support.observability.tracing.TraceContextResolver
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import java.util.UUID
 import org.slf4j.MDC
 import org.springframework.web.filter.OncePerRequestFilter
-import java.util.UUID
 
 abstract class BaseMdcLoggingFilter(
-    private val traceContextResolver: TraceContextResolver = NoOpTraceContextResolver,
+    private val traceContextResolver: TraceContextResolver = NoOpTraceContextResolver
 ) : OncePerRequestFilter() {
 
     companion object {
@@ -102,30 +102,39 @@ abstract class BaseMdcLoggingFilter(
 
     private fun applyTraceContext(request: HttpServletRequest): String {
         val resolved = traceContextResolver.resolve()
-        val traceId = if (resolved != null) {
-            MDC.put(SPAN_ID_KEY, resolved.spanId)
-            resolved.traceId
-        } else {
-            resolveFallbackTraceId(request)
-        }
+        val traceId =
+            if (resolved != null) {
+                MDC.put(SPAN_ID_KEY, resolved.spanId)
+                resolved.traceId
+            } else {
+                resolveFallbackTraceId(request)
+            }
         MDC.put(TRACE_ID_KEY, traceId)
         return traceId
     }
 
     private fun resolveFallbackTraceId(request: HttpServletRequest): String =
-        request.getHeader(TRACE_ID_HEADER)
+        request
+            .getHeader(TRACE_ID_HEADER)
             ?.trim()
             ?.takeIf { it.length in 1..MAX_TRACE_ID_LENGTH }
-            ?.takeIf { TRACE_ID_PATTERN.matches(it) }
-            ?: generateTraceId()
+            ?.takeIf { TRACE_ID_PATTERN.matches(it) } ?: generateTraceId()
 
     private fun generateTraceId(): String = UUID.randomUUID().toString().replace("-", "")
 
     private fun extractClientIp(request: HttpServletRequest): String {
-        request.getHeader(X_FORWARDED_FOR_HEADER)?.takeIf { it.isNotBlank() }
-            ?.let { return it.split(",").first().trim() }
-        request.getHeader(X_REAL_IP_HEADER)?.takeIf { it.isNotBlank() }
-            ?.let { return it.trim() }
+        request
+            .getHeader(X_FORWARDED_FOR_HEADER)
+            ?.takeIf { it.isNotBlank() }
+            ?.let {
+                return it.split(",").first().trim()
+            }
+        request
+            .getHeader(X_REAL_IP_HEADER)
+            ?.takeIf { it.isNotBlank() }
+            ?.let {
+                return it.trim()
+            }
         return request.remoteAddr
     }
 

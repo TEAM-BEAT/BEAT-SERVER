@@ -5,7 +5,7 @@ import com.beat.application.admin.promotion.PromotionImageUpload
 object AdminPromotionPresignedUrlResults {
 
     data class CarouselPresignedUrlsResult(
-        val carouselPresignedUploads: Map<String, PromotionImageUpload>,
+        val carouselPresignedUploads: Map<String, PromotionImageUpload>
     )
 
     data class BannerPresignedUrlResult(

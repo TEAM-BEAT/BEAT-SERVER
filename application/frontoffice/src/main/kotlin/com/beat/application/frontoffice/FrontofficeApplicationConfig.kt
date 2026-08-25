@@ -12,9 +12,11 @@ import org.springframework.transaction.support.TransactionTemplate
 @ComponentScan(basePackageClasses = [FrontofficeApplicationConfig::class])
 class FrontofficeApplicationConfig {
     @Bean
-    fun scheduleSequenceDomainService(): ScheduleSequenceDomainService = ScheduleSequenceDomainService()
+    fun scheduleSequenceDomainService(): ScheduleSequenceDomainService =
+        ScheduleSequenceDomainService()
 
     @Bean
-    fun transactionOperations(transactionManager: PlatformTransactionManager): TransactionOperations =
-        TransactionTemplate(transactionManager)
+    fun transactionOperations(
+        transactionManager: PlatformTransactionManager
+    ): TransactionOperations = TransactionTemplate(transactionManager)
 }

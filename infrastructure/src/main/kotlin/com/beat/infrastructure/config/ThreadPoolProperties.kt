@@ -4,8 +4,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.util.StringUtils
 
 /**
- * Setter-based binding is kept intentionally during the transition baseline.
- * This avoids constructor binding friction while infra config ownership is still moving across modules.
+ * Setter-based binding is kept intentionally during the transition baseline. This avoids
+ * constructor binding friction while infra config ownership is still moving across modules.
  */
 @ConfigurationProperties(prefix = "thread-pool")
 internal class ThreadPoolProperties {

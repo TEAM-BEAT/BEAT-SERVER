@@ -29,19 +29,20 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import java.time.LocalDate
+import java.time.LocalDateTime
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
-import java.time.LocalDate
-import java.time.LocalDateTime
 
 @DataJpaTest(
-    properties = [
-        "spring.config.import=classpath:application-persistence.yml",
-        "DB_HIKARI_MAX_POOL_SIZE=10",
-    ],
+    properties =
+        [
+            "spring.config.import=classpath:application-persistence.yml",
+            "DB_HIKARI_MAX_POOL_SIZE=10",
+        ]
 )
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(classes = [JpaConfig::class, MySqlTestContainerConfig::class])
@@ -49,20 +50,15 @@ import java.time.LocalDateTime
 @Tags("integration")
 class MakerTicketQueriesIntegrationSpec : FunSpec() {
 
-    @Autowired
-    private lateinit var makerTicketReader: MakerTicketReader
+    @Autowired private lateinit var makerTicketReader: MakerTicketReader
 
-    @Autowired
-    private lateinit var userRepository: UserRepository
+    @Autowired private lateinit var userRepository: UserRepository
 
-    @Autowired
-    private lateinit var performanceRepository: PerformanceRepository
+    @Autowired private lateinit var performanceRepository: PerformanceRepository
 
-    @Autowired
-    private lateinit var scheduleRepository: ScheduleRepository
+    @Autowired private lateinit var scheduleRepository: ScheduleRepository
 
-    @Autowired
-    private lateinit var bookingRepository: BookingRepository
+    @Autowired private lateinit var bookingRepository: BookingRepository
 
     init {
         isolationMode = IsolationMode.SingleInstance
@@ -70,44 +66,51 @@ class MakerTicketQueriesIntegrationSpec : FunSpec() {
 
         test("maker ticket reader는 MySQL에서 상태를 정렬하고 은행 표시명을 매핑한다") {
             val userId = requireNotNull(userRepository.save(Users.create()).id)
-            val performanceId = requireNotNull(
-                performanceRepository.save(
-                    Performance.create(
-                        performanceTitle = "JDSL ticket ordering performance",
-                        genre = Genre.BAND,
-                        runningTime = RunningTime.of(120),
-                        performanceDescription = "description",
-                        performanceAttentionNote = "attention",
-                        paymentAccount = null,
-                        posterImage = "poster.jpg",
-                        performanceTeamName = "team",
-                        performanceVenue = "venue",
-                        roadAddressName = "road",
-                        placeDetailAddress = "detail",
-                        latitude = "37.0",
-                        longitude = "127.0",
-                        performanceContact = "010-0000-0000",
-                        performancePeriod = PerformancePeriod.of(
-                            LocalDate.of(2026, 8, 25),
-                            LocalDate.of(2026, 8, 25),
-                        ),
-                        ticketPrice = TicketPrice.of(10_000),
-                        totalScheduleCount = 1,
-                        userId = userId,
-                    ),
-                ).id,
-            )
-            val scheduleId = requireNotNull(
-                scheduleRepository.save(
-                    Schedule.create(
-                        performanceDate = LocalDateTime.of(2026, 8, 25, 19, 0),
-                        bookingCloseAt = LocalDateTime.of(2026, 8, 25, 20, 0),
-                        totalTicketCount = 10,
-                        scheduleNumber = ScheduleNumber.FIRST,
-                        performanceId = performanceId,
-                    ),
-                ).id,
-            )
+            val performanceId =
+                requireNotNull(
+                    performanceRepository
+                        .save(
+                            Performance.create(
+                                performanceTitle = "JDSL ticket ordering performance",
+                                genre = Genre.BAND,
+                                runningTime = RunningTime.of(120),
+                                performanceDescription = "description",
+                                performanceAttentionNote = "attention",
+                                paymentAccount = null,
+                                posterImage = "poster.jpg",
+                                performanceTeamName = "team",
+                                performanceVenue = "venue",
+                                roadAddressName = "road",
+                                placeDetailAddress = "detail",
+                                latitude = "37.0",
+                                longitude = "127.0",
+                                performanceContact = "010-0000-0000",
+                                performancePeriod =
+                                    PerformancePeriod.of(
+                                        LocalDate.of(2026, 8, 25),
+                                        LocalDate.of(2026, 8, 25),
+                                    ),
+                                ticketPrice = TicketPrice.of(10_000),
+                                totalScheduleCount = 1,
+                                userId = userId,
+                            )
+                        )
+                        .id
+                )
+            val scheduleId =
+                requireNotNull(
+                    scheduleRepository
+                        .save(
+                            Schedule.create(
+                                performanceDate = LocalDateTime.of(2026, 8, 25, 19, 0),
+                                bookingCloseAt = LocalDateTime.of(2026, 8, 25, 20, 0),
+                                totalTicketCount = 10,
+                                scheduleNumber = ScheduleNumber.FIRST,
+                                performanceId = performanceId,
+                            )
+                        )
+                        .id
+                )
             val refundCreatedAt = LocalDateTime.of(2026, 8, 21, 10, 0)
             val checkingOlderCreatedAt = LocalDateTime.of(2026, 8, 21, 11, 0)
             val checkingNewerCreatedAt = LocalDateTime.of(2026, 8, 21, 12, 0)
@@ -123,11 +126,12 @@ class MakerTicketQueriesIntegrationSpec : FunSpec() {
                     cancellationDate = null,
                     birthDate = null,
                     password = null,
-                    refundAccount = RefundAccount.of(BankName.KAKAOBANK, "123-456", "refund-holder"),
+                    refundAccount =
+                        RefundAccount.of(BankName.KAKAOBANK, "123-456", "refund-holder"),
                     scheduleId = scheduleId,
                     userId = userId,
                     totalPaymentAmount = 10_000,
-                ),
+                )
             )
             bookingRepository.save(
                 Booking.rehydrate(
@@ -144,7 +148,7 @@ class MakerTicketQueriesIntegrationSpec : FunSpec() {
                     scheduleId = scheduleId,
                     userId = userId,
                     totalPaymentAmount = 10_000,
-                ),
+                )
             )
             bookingRepository.save(
                 Booking.rehydrate(
@@ -161,22 +165,24 @@ class MakerTicketQueriesIntegrationSpec : FunSpec() {
                     scheduleId = scheduleId,
                     userId = userId,
                     totalPaymentAmount = 10_000,
-                ),
+                )
             )
 
             val result = makerTicketReader.findTickets(performanceId, emptyList(), emptyList())
 
             result shouldHaveSize 3
-            result.map { it.bookingStatus } shouldBe listOf(
-                MakerTicketBookingStatus.REFUND_REQUESTED,
-                MakerTicketBookingStatus.CHECKING_PAYMENT,
-                MakerTicketBookingStatus.CHECKING_PAYMENT,
-            )
-            result.map { it.createdAt } shouldBe listOf(
-                refundCreatedAt,
-                checkingNewerCreatedAt,
-                checkingOlderCreatedAt,
-            )
+            result.map { it.bookingStatus } shouldBe
+                listOf(
+                    MakerTicketBookingStatus.REFUND_REQUESTED,
+                    MakerTicketBookingStatus.CHECKING_PAYMENT,
+                    MakerTicketBookingStatus.CHECKING_PAYMENT,
+                )
+            result.map { it.createdAt } shouldBe
+                listOf(
+                    refundCreatedAt,
+                    checkingNewerCreatedAt,
+                    checkingOlderCreatedAt,
+                )
             result.first().bankName shouldBe BankName.KAKAOBANK.displayName
             result.first().bankName shouldNotBe BankName.KAKAOBANK.name
         }

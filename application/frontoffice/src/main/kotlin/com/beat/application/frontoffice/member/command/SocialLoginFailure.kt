@@ -1,6 +1,7 @@
 package com.beat.application.frontoffice.member.command
 
-class SocialLoginFailure private constructor(
+class SocialLoginFailure
+private constructor(
     val reason: Reason,
     cause: Throwable? = null,
 ) : RuntimeException(reason.name, cause) {
@@ -13,7 +14,8 @@ class SocialLoginFailure private constructor(
     }
 
     companion object {
-        fun unsupportedSocialType(): SocialLoginFailure = SocialLoginFailure(Reason.UNSUPPORTED_SOCIAL_TYPE)
+        fun unsupportedSocialType(): SocialLoginFailure =
+            SocialLoginFailure(Reason.UNSUPPORTED_SOCIAL_TYPE)
 
         fun authenticationFailed(cause: Throwable? = null): SocialLoginFailure =
             SocialLoginFailure(Reason.AUTHENTICATION_FAILED, cause)

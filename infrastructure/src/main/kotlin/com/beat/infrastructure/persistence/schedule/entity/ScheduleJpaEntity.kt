@@ -13,7 +13,8 @@ import java.time.LocalDateTime
 
 @Entity(name = "Schedule")
 @Table(name = "schedule")
-internal class ScheduleJpaEntity private constructor(
+internal class ScheduleJpaEntity
+private constructor(
     id: Long?,
     performanceDate: LocalDateTime,
     bookingCloseAt: LocalDateTime,
@@ -62,14 +63,15 @@ internal class ScheduleJpaEntity private constructor(
             soldTicketCount: Int,
             scheduleNumber: ScheduleNumber,
             performanceId: Long,
-        ): ScheduleJpaEntity = ScheduleJpaEntity(
-            id = id,
-            performanceDate = performanceDate,
-            bookingCloseAt = bookingCloseAt,
-            totalTicketCount = totalTicketCount,
-            soldTicketCount = soldTicketCount,
-            scheduleNumber = scheduleNumber,
-            performanceId = performanceId,
-        )
+        ): ScheduleJpaEntity =
+            ScheduleJpaEntity(
+                id = id,
+                performanceDate = performanceDate,
+                bookingCloseAt = bookingCloseAt,
+                totalTicketCount = totalTicketCount,
+                soldTicketCount = soldTicketCount,
+                scheduleNumber = scheduleNumber,
+                performanceId = performanceId,
+            )
     }
 }

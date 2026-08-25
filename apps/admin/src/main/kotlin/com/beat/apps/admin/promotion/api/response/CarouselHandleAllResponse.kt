@@ -5,12 +5,11 @@ import com.beat.application.admin.promotion.AdminPromotionResults.AdminPromotion
 import com.fasterxml.jackson.annotation.JsonProperty
 
 data class CarouselHandleAllResponse(
-    @get:JsonProperty("modifiedPromotions")
-    val modifiedPromotionResponses: List<PromotionResponse>,
+    @get:JsonProperty("modifiedPromotions") val modifiedPromotionResponses: List<PromotionResponse>
 ) {
-    constructor(promotionResults: AdminPromotionResults) : this(
-        promotionResults.promotionResults.map { PromotionResponse(it) },
-    )
+    constructor(
+        promotionResults: AdminPromotionResults
+    ) : this(promotionResults.promotionResults.map { PromotionResponse(it) })
 
     data class PromotionResponse(
         val promotionId: Long?,
@@ -19,7 +18,9 @@ data class CarouselHandleAllResponse(
         val redirectUrl: String,
         val carouselNumber: String,
     ) {
-        constructor(promotionResult: AdminPromotionResult) : this(
+        constructor(
+            promotionResult: AdminPromotionResult
+        ) : this(
             promotionId = promotionResult.promotionId,
             newImageUrl = promotionResult.newImageUrl,
             isExternal = promotionResult.isExternal,

@@ -5,7 +5,8 @@ import com.beat.application.admin.promotion.exception.PromotionApplicationErrorC
 import java.net.URI
 
 internal object ImageKeyExtractor {
-    private val allowedPrefixes = setOf("poster", "cast", "staff", "performance", "carousel", "banner")
+    private val allowedPrefixes =
+        setOf("poster", "cast", "staff", "performance", "carousel", "banner")
     private val allowedEnvironmentPrefixes = setOf("dev", "prod")
 
     fun extract(value: String?): String? {
@@ -17,16 +18,17 @@ internal object ImageKeyExtractor {
         return key
     }
 
-    private fun toKey(absoluteUrl: String): String = try {
-        val path = URI.create(absoluteUrl).path
-        when {
-            path.isNullOrEmpty() -> absoluteUrl
-            path.startsWith("/") -> path.drop(1)
-            else -> path
+    private fun toKey(absoluteUrl: String): String =
+        try {
+            val path = URI.create(absoluteUrl).path
+            when {
+                path.isNullOrEmpty() -> absoluteUrl
+                path.startsWith("/") -> path.drop(1)
+                else -> path
+            }
+        } catch (_: IllegalArgumentException) {
+            absoluteUrl
         }
-    } catch (_: IllegalArgumentException) {
-        absoluteUrl
-    }
 
     private fun requireAllowedPrefix(key: String) {
         val segments = key.split("/", limit = 3)

@@ -1,11 +1,11 @@
 package com.beat.support.observability.tracing
 
-import io.micrometer.tracing.Span
-import io.micrometer.tracing.TraceContext
-import io.micrometer.tracing.Tracer
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import io.micrometer.tracing.Span
+import io.micrometer.tracing.TraceContext
+import io.micrometer.tracing.Tracer
 import io.mockk.every
 import io.mockk.mockk
 
@@ -30,10 +30,11 @@ class MicrometerTraceContextResolverTest : FunSpec() {
         }
 
         test("traceId가 OTel noop id이면 null을 반환한다") {
-            val tracer = mockTracer(
-                traceId = "00000000000000000000000000000000",
-                spanId = "0000000000000000",
-            )
+            val tracer =
+                mockTracer(
+                    traceId = "00000000000000000000000000000000",
+                    spanId = "0000000000000000",
+                )
 
             val resolved = MicrometerTraceContextResolver(tracer).resolve()
 
@@ -41,10 +42,11 @@ class MicrometerTraceContextResolverTest : FunSpec() {
         }
 
         test("실제 active span이 있으면 resolved context를 반환한다") {
-            val tracer = mockTracer(
-                traceId = "abcdef0123456789abcdef0123456789",
-                spanId = "fedcba9876543210",
-            )
+            val tracer =
+                mockTracer(
+                    traceId = "abcdef0123456789abcdef0123456789",
+                    spanId = "fedcba9876543210",
+                )
 
             val resolved = MicrometerTraceContextResolver(tracer).resolve()
 

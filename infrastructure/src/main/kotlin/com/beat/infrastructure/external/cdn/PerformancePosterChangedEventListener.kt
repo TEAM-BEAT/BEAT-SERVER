@@ -9,7 +9,7 @@ import org.springframework.transaction.event.TransactionalEventListener
 
 @Component
 internal class PerformancePosterChangedEventListener(
-    private val imageCacheAdapter: ImageCacheAdapter,
+    private val imageCacheAdapter: ImageCacheAdapter
 ) {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async("beatAsyncExecutor")

@@ -9,8 +9,7 @@ data class SuccessResponse<T>(
         fun <T> of(
             successCode: SuccessCode,
             data: T,
-        ): SuccessResponse<T> =
-            SuccessResponse(successCode.status, successCode.message, data)
+        ): SuccessResponse<T> = SuccessResponse(successCode.status, successCode.message, data)
 
         fun <T> from(successCode: SuccessCode): SuccessResponse<T> =
             SuccessResponse(successCode.status, successCode.message, null)

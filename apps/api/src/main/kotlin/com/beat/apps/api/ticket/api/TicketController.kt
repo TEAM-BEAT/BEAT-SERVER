@@ -1,6 +1,7 @@
 package com.beat.apps.api.ticket.api
 
 import com.beat.apps.api.booking.api.type.BookingStatusType
+import com.beat.apps.api.response.SuccessResponse
 import com.beat.apps.api.schedule.api.type.ScheduleNumberType
 import com.beat.apps.api.ticket.api.request.TicketDeleteRequest
 import com.beat.apps.api.ticket.api.request.TicketRefundRequest
@@ -9,7 +10,6 @@ import com.beat.apps.api.ticket.api.response.TicketRetrieveResponse
 import com.beat.apps.api.ticket.api.response.TicketSuccessCode
 import com.beat.apps.api.ticket.facade.TicketFacade
 import com.beat.support.security.CurrentMember
-import com.beat.apps.api.response.SuccessResponse
 import jakarta.validation.Valid
 import org.springframework.http.CacheControl
 import org.springframework.http.ResponseEntity
@@ -23,9 +23,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/tickets")
-class TicketController(
-    private val ticketFacade: TicketFacade,
-) : TicketApi {
+class TicketController(private val ticketFacade: TicketFacade) : TicketApi {
 
     @GetMapping("/{performanceId}")
     override fun getTickets(
@@ -34,8 +32,11 @@ class TicketController(
         @RequestParam(required = false) scheduleNumbers: List<ScheduleNumberType>?,
         @RequestParam(required = false) bookingStatuses: List<BookingStatusType>?,
     ): ResponseEntity<SuccessResponse<TicketRetrieveResponse>> {
-        val response = ticketFacade.findTickets(memberId, performanceId, scheduleNumbers, bookingStatuses)
-        return ResponseEntity.ok(SuccessResponse.of(TicketSuccessCode.TICKET_RETRIEVE_SUCCESS, response))
+        val response =
+            ticketFacade.findTickets(memberId, performanceId, scheduleNumbers, bookingStatuses)
+        return ResponseEntity.ok(
+            SuccessResponse.of(TicketSuccessCode.TICKET_RETRIEVE_SUCCESS, response)
+        )
     }
 
     @GetMapping("/search/{performanceId}")
@@ -46,7 +47,14 @@ class TicketController(
         @RequestParam(required = false) scheduleNumbers: List<ScheduleNumberType>?,
         @RequestParam(required = false) bookingStatuses: List<BookingStatusType>?,
     ): ResponseEntity<SuccessResponse<TicketRetrieveResponse>> {
-        val response = ticketFacade.searchTickets(memberId, performanceId, searchWord, scheduleNumbers, bookingStatuses)
+        val response =
+            ticketFacade.searchTickets(
+                memberId,
+                performanceId,
+                searchWord,
+                scheduleNumbers,
+                bookingStatuses,
+            )
         return ResponseEntity.ok()
             .cacheControl(CacheControl.noCache())
             .body(SuccessResponse.of(TicketSuccessCode.TICKET_SEARCH_SUCCESS, response))

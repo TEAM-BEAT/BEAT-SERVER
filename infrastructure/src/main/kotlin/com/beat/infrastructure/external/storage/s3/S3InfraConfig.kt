@@ -11,14 +11,11 @@ import org.springframework.context.annotation.Primary
 
 @Configuration(proxyBeanMethods = false)
 internal class S3InfraConfig {
-    @field:Value("\${cloud.aws.credentials.access-key}")
-    private lateinit var accessKey: String
+    @field:Value("\${cloud.aws.credentials.access-key}") private lateinit var accessKey: String
 
-    @field:Value("\${cloud.aws.credentials.secret-key}")
-    private lateinit var secretKey: String
+    @field:Value("\${cloud.aws.credentials.secret-key}") private lateinit var secretKey: String
 
-    @field:Value("\${cloud.aws.region}")
-    private lateinit var region: String
+    @field:Value("\${cloud.aws.region}") private lateinit var region: String
 
     @Bean
     @Primary
@@ -26,8 +23,7 @@ internal class S3InfraConfig {
 
     @Bean
     fun amazonS3(awsCredentials: BasicAWSCredentials): AmazonS3 =
-        AmazonS3ClientBuilder
-            .standard()
+        AmazonS3ClientBuilder.standard()
             .withRegion(region)
             .withCredentials(AWSStaticCredentialsProvider(awsCredentials))
             .build()

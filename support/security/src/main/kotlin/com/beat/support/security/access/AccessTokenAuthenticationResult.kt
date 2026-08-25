@@ -7,7 +7,6 @@ sealed interface AccessTokenAuthenticationResult {
         val roleName: String,
     ) : AccessTokenAuthenticationResult
 
-    data class Rejected(
-        val failure: AccessTokenAuthenticationFailure,
-    ) : AccessTokenAuthenticationResult
+    data class Rejected(val failure: AccessTokenAuthenticationFailure) :
+        AccessTokenAuthenticationResult
 }

@@ -13,8 +13,8 @@ import com.beat.infrastructure.persistence.performanceimage.mapper.PerformanceIm
 import com.beat.infrastructure.persistence.performanceimage.repository.PerformanceImageJpaRepository
 import com.beat.infrastructure.persistence.staff.mapper.StaffPersistenceMapper
 import com.beat.infrastructure.persistence.staff.repository.StaffJpaRepository
-import org.springframework.stereotype.Repository
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.stereotype.Repository
 
 @Repository
 internal class PerformanceRepositoryImpl(
@@ -52,10 +52,18 @@ internal class PerformanceRepositoryImpl(
 
     private fun toAggregate(entity: PerformanceJpaEntity): Performance {
         val performanceId = checkNotNull(entity.id) { "Loaded Performance must have an id" }
-        val casts = castJpaRepository.findAllByPerformanceId(performanceId).map(castPersistenceMapper::toDomain)
-        val staffs = staffJpaRepository.findAllByPerformanceId(performanceId).map(staffPersistenceMapper::toDomain)
-        val images = performanceImageJpaRepository.findAllByPerformanceId(performanceId)
-            .map(performanceImagePersistenceMapper::toDomain)
+        val casts =
+            castJpaRepository
+                .findAllByPerformanceId(performanceId)
+                .map(castPersistenceMapper::toDomain)
+        val staffs =
+            staffJpaRepository
+                .findAllByPerformanceId(performanceId)
+                .map(staffPersistenceMapper::toDomain)
+        val images =
+            performanceImageJpaRepository
+                .findAllByPerformanceId(performanceId)
+                .map(performanceImagePersistenceMapper::toDomain)
         return performancePersistenceMapper.toDomain(entity, casts, staffs, images)
     }
 
@@ -64,7 +72,8 @@ internal class PerformanceRepositoryImpl(
         val existingIds = castJpaRepository.findIdsByPerformanceId(performanceId)
         validateOwnedIds("Cast", requestedIds, existingIds)
         castJpaRepository.deleteAllByIdInBatch(existingIds.filterNot(requestedIds::contains))
-        return castJpaRepository.saveAll(casts.map { castPersistenceMapper.toEntity(it, performanceId) })
+        return castJpaRepository
+            .saveAll(casts.map { castPersistenceMapper.toEntity(it, performanceId) })
             .map(castPersistenceMapper::toDomain)
     }
 
@@ -73,24 +82,33 @@ internal class PerformanceRepositoryImpl(
         val existingIds = staffJpaRepository.findIdsByPerformanceId(performanceId)
         validateOwnedIds("Staff", requestedIds, existingIds)
         staffJpaRepository.deleteAllByIdInBatch(existingIds.filterNot(requestedIds::contains))
-        return staffJpaRepository.saveAll(staffs.map { staffPersistenceMapper.toEntity(it, performanceId) })
+        return staffJpaRepository
+            .saveAll(staffs.map { staffPersistenceMapper.toEntity(it, performanceId) })
             .map(staffPersistenceMapper::toDomain)
     }
 
-    private fun synchronizeImages(performanceId: Long, images: List<PerformanceImage>): List<PerformanceImage> {
+    private fun synchronizeImages(
+        performanceId: Long,
+        images: List<PerformanceImage>,
+    ): List<PerformanceImage> {
         val requestedIds = images.mapNotNull(PerformanceImage::id).toSet()
         val existingIds = performanceImageJpaRepository.findIdsByPerformanceId(performanceId)
         validateOwnedIds("PerformanceImage", requestedIds, existingIds)
-        performanceImageJpaRepository.deleteAllByIdInBatch(existingIds.filterNot(requestedIds::contains))
-        return performanceImageJpaRepository.saveAll(
-            images.map { performanceImagePersistenceMapper.toEntity(it, performanceId) },
-        ).map(performanceImagePersistenceMapper::toDomain)
+        performanceImageJpaRepository.deleteAllByIdInBatch(
+            existingIds.filterNot(requestedIds::contains)
+        )
+        return performanceImageJpaRepository
+            .saveAll(images.map { performanceImagePersistenceMapper.toEntity(it, performanceId) })
+            .map(performanceImagePersistenceMapper::toDomain)
     }
 
-    private fun validateOwnedIds(childType: String, requestedIds: Set<Long>, existingIds: List<Long>) {
+    private fun validateOwnedIds(
+        childType: String,
+        requestedIds: Set<Long>,
+        existingIds: List<Long>,
+    ) {
         if (!existingIds.containsAll(requestedIds)) {
             throw IllegalStateException("$childType does not belong to the Performance aggregate")
         }
     }
-
 }

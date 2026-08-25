@@ -1,12 +1,12 @@
 package com.beat.support.security.jwt.internal
 
 import io.jsonwebtoken.security.WeakKeyException
-import jakarta.validation.Validation
-import jakarta.validation.Validator
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import jakarta.validation.Validation
+import jakarta.validation.Validator
 import java.util.Base64
 
 /**

@@ -1,6 +1,7 @@
 package com.beat.domain.performance.model
 
-class Cast private constructor(
+class Cast
+private constructor(
     private val castId: Id?,
     val castName: String,
     val castRole: String,
@@ -19,12 +20,13 @@ class Cast private constructor(
 
     override fun toString(): String = "Cast(id=$id)"
 
-    fun update(castName: String, castRole: String, castPhoto: String): Cast = Cast(
-        castId = castId,
-        castName = castName,
-        castRole = castRole,
-        castPhoto = castPhoto,
-    )
+    fun update(castName: String, castRole: String, castPhoto: String): Cast =
+        Cast(
+            castId = castId,
+            castName = castName,
+            castRole = castRole,
+            castPhoto = castPhoto,
+        )
 
     @JvmInline
     value class Id private constructor(val value: Long) {
@@ -34,18 +36,20 @@ class Cast private constructor(
     }
 
     companion object {
-        fun create(castName: String, castRole: String, castPhoto: String): Cast = Cast(
-            castId = null,
-            castName = castName,
-            castRole = castRole,
-            castPhoto = castPhoto,
-        )
+        fun create(castName: String, castRole: String, castPhoto: String): Cast =
+            Cast(
+                castId = null,
+                castName = castName,
+                castRole = castRole,
+                castPhoto = castPhoto,
+            )
 
-        fun rehydrate(id: Long?, castName: String, castRole: String, castPhoto: String): Cast = Cast(
-            castId = Id.fromNullable(id),
-            castName = castName,
-            castRole = castRole,
-            castPhoto = castPhoto,
-        )
+        fun rehydrate(id: Long?, castName: String, castRole: String, castPhoto: String): Cast =
+            Cast(
+                castId = Id.fromNullable(id),
+                castName = castName,
+                castRole = castRole,
+                castPhoto = castPhoto,
+            )
     }
 }

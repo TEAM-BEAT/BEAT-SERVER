@@ -1,12 +1,13 @@
 package com.beat.apps.api.performance.api.response
 
+import com.beat.application.frontoffice.performance.maker.PerformanceMutationResult
 import com.beat.apps.api.performance.api.type.BankNameType
 import com.beat.apps.api.performance.api.type.GenreType
-import com.beat.application.frontoffice.performance.maker.PerformanceMutationResult
 import com.beat.apps.api.web.jackson.CdnImageUrl
 
 @ConsistentCopyVisibility
-data class PerformanceModifyResponse private constructor(
+data class PerformanceModifyResponse
+private constructor(
     val userId: Long?,
     val performanceId: Long?,
     val performanceTitle: String?,
@@ -34,32 +35,34 @@ data class PerformanceModifyResponse private constructor(
     val performanceImageModifyResponses: List<PerformanceImageModifyResponse>,
 ) {
     companion object {
-        fun from(result: PerformanceMutationResult): PerformanceModifyResponse = PerformanceModifyResponse(
-            userId = result.userId,
-            performanceId = result.performanceId,
-            performanceTitle = result.performanceTitle,
-            genre = result.genre?.let(GenreType::valueOf),
-            runningTime = result.runningTime,
-            performanceDescription = result.performanceDescription,
-            performanceAttentionNote = result.performanceAttentionNote,
-            bankName = result.bankName?.let(BankNameType::valueOf),
-            accountNumber = result.accountNumber,
-            accountHolder = result.accountHolder,
-            posterImage = result.posterImage,
-            performanceTeamName = result.performanceTeamName,
-            performanceVenue = result.performanceVenue,
-            roadAddressName = result.roadAddressName,
-            placeDetailAddress = result.placeDetailAddress,
-            latitude = result.latitude,
-            longitude = result.longitude,
-            performanceContact = result.performanceContact,
-            performancePeriod = result.performancePeriod,
-            ticketPrice = result.ticketPrice,
-            totalScheduleCount = result.totalScheduleCount,
-            scheduleModifyResponses = result.schedules.map(ScheduleModifyResponse::from),
-            castModifyResponses = result.casts.map(CastModifyResponse::from),
-            staffModifyResponses = result.staffs.map(StaffModifyResponse::from),
-            performanceImageModifyResponses = result.images.map(PerformanceImageModifyResponse::from),
-        )
+        fun from(result: PerformanceMutationResult): PerformanceModifyResponse =
+            PerformanceModifyResponse(
+                userId = result.userId,
+                performanceId = result.performanceId,
+                performanceTitle = result.performanceTitle,
+                genre = result.genre?.let(GenreType::valueOf),
+                runningTime = result.runningTime,
+                performanceDescription = result.performanceDescription,
+                performanceAttentionNote = result.performanceAttentionNote,
+                bankName = result.bankName?.let(BankNameType::valueOf),
+                accountNumber = result.accountNumber,
+                accountHolder = result.accountHolder,
+                posterImage = result.posterImage,
+                performanceTeamName = result.performanceTeamName,
+                performanceVenue = result.performanceVenue,
+                roadAddressName = result.roadAddressName,
+                placeDetailAddress = result.placeDetailAddress,
+                latitude = result.latitude,
+                longitude = result.longitude,
+                performanceContact = result.performanceContact,
+                performancePeriod = result.performancePeriod,
+                ticketPrice = result.ticketPrice,
+                totalScheduleCount = result.totalScheduleCount,
+                scheduleModifyResponses = result.schedules.map(ScheduleModifyResponse::from),
+                castModifyResponses = result.casts.map(CastModifyResponse::from),
+                staffModifyResponses = result.staffs.map(StaffModifyResponse::from),
+                performanceImageModifyResponses =
+                    result.images.map(PerformanceImageModifyResponse::from),
+            )
     }
 }

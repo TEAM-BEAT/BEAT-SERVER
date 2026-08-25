@@ -19,7 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 
 @Component("gatewayJwtAuthenticationFilter")
 internal class JwtAuthenticationFilter(
-    private val accessTokenAuthenticator: AccessTokenAuthenticator,
+    private val accessTokenAuthenticator: AccessTokenAuthenticator
 ) : OncePerRequestFilter() {
 
     private val authenticationDetailsSource = WebAuthenticationDetailsSource()
@@ -56,15 +56,19 @@ internal class JwtAuthenticationFilter(
     }
 
     private fun authenticate(memberId: Long, roleName: String, request: HttpServletRequest) {
-        val authentication = createAuthentication(memberId, roleName).apply {
-            details = authenticationDetailsSource.buildDetails(request)
-        }
+        val authentication =
+            createAuthentication(memberId, roleName).apply {
+                details = authenticationDetailsSource.buildDetails(request)
+            }
 
         SecurityContextHolder.getContext().authentication = authentication
         MDC.put(BaseMdcLoggingFilter.USER_ID_KEY, memberId.toString())
     }
 
-    private fun createAuthentication(memberId: Long, roleName: String): UsernamePasswordAuthenticationToken {
+    private fun createAuthentication(
+        memberId: Long,
+        roleName: String,
+    ): UsernamePasswordAuthenticationToken {
         val authorities: Collection<GrantedAuthority> = listOf(SimpleGrantedAuthority(roleName))
         return when (roleName) {
             ROLE_ADMIN -> AdminAuthentication(memberId, authorities)
@@ -73,13 +77,12 @@ internal class JwtAuthenticationFilter(
         }
     }
 
-    /**
-     * `EXPIRED -> 401`, 그 외 실패 -> `400`은 현재 client 호환 계약이다.
-     */
-    private fun AccessTokenAuthenticationFailure.toHttpStatus(): Int = when (this) {
-        AccessTokenAuthenticationFailure.EXPIRED -> HttpServletResponse.SC_UNAUTHORIZED
-        else -> HttpServletResponse.SC_BAD_REQUEST
-    }
+    /** `EXPIRED -> 401`, 그 외 실패 -> `400`은 현재 client 호환 계약이다. */
+    private fun AccessTokenAuthenticationFailure.toHttpStatus(): Int =
+        when (this) {
+            AccessTokenAuthenticationFailure.EXPIRED -> HttpServletResponse.SC_UNAUTHORIZED
+            else -> HttpServletResponse.SC_BAD_REQUEST
+        }
 
     private fun HttpServletRequest.bearerToken(): String? =
         getHeader(HEADER_AUTHORIZATION)

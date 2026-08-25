@@ -4,7 +4,8 @@ import com.beat.application.frontoffice.performance.maker.query.MakerPerformance
 import com.beat.apps.api.web.jackson.CdnImageUrl
 
 @ConsistentCopyVisibility
-data class MakerPerformanceDetailResponse private constructor(
+data class MakerPerformanceDetailResponse
+private constructor(
     val performanceId: Long?,
     val genre: String?,
     val performanceTitle: String?,
@@ -13,13 +14,14 @@ data class MakerPerformanceDetailResponse private constructor(
     val minDueDate: Int,
 ) {
     companion object {
-        fun from(result: MakerPerformanceResult): MakerPerformanceDetailResponse = MakerPerformanceDetailResponse(
-            performanceId = result.performanceId,
-            genre = result.genre,
-            performanceTitle = result.performanceTitle,
-            posterImage = result.posterImage,
-            performancePeriod = result.performancePeriod,
-            minDueDate = result.minDueDate,
-        )
+        fun from(result: MakerPerformanceResult): MakerPerformanceDetailResponse =
+            MakerPerformanceDetailResponse(
+                performanceId = result.performanceId,
+                genre = result.genre,
+                performanceTitle = result.performanceTitle,
+                posterImage = result.posterImage,
+                performancePeriod = result.performancePeriod,
+                minDueDate = result.minDueDate,
+            )
     }
 }

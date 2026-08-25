@@ -7,9 +7,5 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration(proxyBeanMethods = false)
 @EnableGatewayServletSecurity
-@EnableGatewayConfig(
-    value = [
-        GatewayConfigGroup.GUEST_ACCESS,
-    ],
-)
+@EnableGatewayConfig(value = [GatewayConfigGroup.GUEST_ACCESS])
 class GatewayConfig

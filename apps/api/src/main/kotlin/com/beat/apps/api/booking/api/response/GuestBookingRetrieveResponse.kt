@@ -1,14 +1,15 @@
 package com.beat.apps.api.booking.api.response
 
-import com.beat.apps.api.booking.api.type.BookingStatusType
 import com.beat.application.frontoffice.booking.booker.result.BookingRetrieveResult
+import com.beat.apps.api.booking.api.type.BookingStatusType
 import com.beat.apps.api.performance.api.type.BankNameType
 import com.beat.apps.api.schedule.api.type.ScheduleNumberType
 import com.beat.apps.api.web.jackson.CdnImageUrl
 import java.time.LocalDateTime
 
 @ConsistentCopyVisibility
-data class GuestBookingRetrieveResponse private constructor(
+data class GuestBookingRetrieveResponse
+private constructor(
     val bookingId: Long?,
     val scheduleId: Long?,
     val performanceId: Long?,
@@ -29,25 +30,26 @@ data class GuestBookingRetrieveResponse private constructor(
     val totalPaymentAmount: Int,
 ) {
     companion object {
-        fun from(result: BookingRetrieveResult): GuestBookingRetrieveResponse = GuestBookingRetrieveResponse(
-            bookingId = result.bookingId,
-            scheduleId = result.scheduleId,
-            performanceId = result.performanceId,
-            performanceTitle = result.performanceTitle,
-            performanceDate = result.performanceDate,
-            performanceVenue = result.performanceVenue,
-            purchaseTicketCount = result.purchaseTicketCount,
-            scheduleNumber = result.scheduleNumber?.let(ScheduleNumberType::valueOf),
-            bookerName = result.bookerName,
-            performanceContact = result.performanceContact,
-            bankName = result.bankName?.let(BankNameType::valueOf),
-            accountNumber = result.accountNumber,
-            accountHolder = result.accountHolder,
-            dueDate = result.dueDate,
-            bookingStatus = result.bookingStatus?.let(BookingStatusType::valueOf),
-            createdAt = result.createdAt,
-            posterImage = result.posterImage,
-            totalPaymentAmount = result.totalPaymentAmount,
-        )
+        fun from(result: BookingRetrieveResult): GuestBookingRetrieveResponse =
+            GuestBookingRetrieveResponse(
+                bookingId = result.bookingId,
+                scheduleId = result.scheduleId,
+                performanceId = result.performanceId,
+                performanceTitle = result.performanceTitle,
+                performanceDate = result.performanceDate,
+                performanceVenue = result.performanceVenue,
+                purchaseTicketCount = result.purchaseTicketCount,
+                scheduleNumber = result.scheduleNumber?.let(ScheduleNumberType::valueOf),
+                bookerName = result.bookerName,
+                performanceContact = result.performanceContact,
+                bankName = result.bankName?.let(BankNameType::valueOf),
+                accountNumber = result.accountNumber,
+                accountHolder = result.accountHolder,
+                dueDate = result.dueDate,
+                bookingStatus = result.bookingStatus?.let(BookingStatusType::valueOf),
+                createdAt = result.createdAt,
+                posterImage = result.posterImage,
+                totalPaymentAmount = result.totalPaymentAmount,
+            )
     }
 }

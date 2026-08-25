@@ -7,6 +7,4 @@ import org.springframework.context.annotation.Import
 @Retention(AnnotationRetention.RUNTIME)
 @MustBeDocumented
 @Import(GatewayConfigImportSelector::class)
-annotation class EnableGatewayConfig(
-    val value: Array<GatewayConfigGroup>,
-)
+annotation class EnableGatewayConfig(val value: Array<GatewayConfigGroup>)

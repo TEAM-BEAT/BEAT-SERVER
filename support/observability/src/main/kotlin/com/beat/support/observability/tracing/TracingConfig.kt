@@ -18,7 +18,9 @@ internal class TracingConfig {
     }
 
     @Bean
-    @ConditionalOnClass(name = ["org.springframework.http.server.observation.ServerRequestObservationContext"])
+    @ConditionalOnClass(
+        name = ["org.springframework.http.server.observation.ServerRequestObservationContext"]
+    )
     fun errorStatusObservationFilter(): ObservationFilter {
         return ObservationFilter { context ->
             if (context is ServerRequestObservationContext) {

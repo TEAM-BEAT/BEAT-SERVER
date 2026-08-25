@@ -11,20 +11,20 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 @Configuration(proxyBeanMethods = false)
 class LoggingConfig {
 
-    @Bean
-    fun mdcTaskDecorator(): TaskDecorator = MdcTaskDecorator()
+    @Bean fun mdcTaskDecorator(): TaskDecorator = MdcTaskDecorator()
 
     @Bean
     fun routePatternMdcInterceptor(): RoutePatternMdcInterceptor = RoutePatternMdcInterceptor()
 
     @Bean
-    fun routePatternMdcWebMvcConfigurer(routePatternMdcInterceptor: RoutePatternMdcInterceptor): WebMvcConfigurer =
+    fun routePatternMdcWebMvcConfigurer(
+        routePatternMdcInterceptor: RoutePatternMdcInterceptor
+    ): WebMvcConfigurer =
         object : WebMvcConfigurer {
             override fun addInterceptors(registry: InterceptorRegistry) {
                 registry.addInterceptor(routePatternMdcInterceptor)
             }
         }
 
-    @Bean
-    fun exceptionCaptureResolver(): ExceptionCaptureResolver = ExceptionCaptureResolver()
+    @Bean fun exceptionCaptureResolver(): ExceptionCaptureResolver = ExceptionCaptureResolver()
 }

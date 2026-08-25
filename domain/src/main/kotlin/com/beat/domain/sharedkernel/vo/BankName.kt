@@ -1,8 +1,6 @@
 package com.beat.domain.sharedkernel.vo
 
-enum class BankName(
-    val displayName: String,
-) {
+enum class BankName(val displayName: String) {
     NH_NONGHYUP("NH농협"),
     KAKAOBANK("카카오뱅크"),
     KB_KOOKMIN("KB국민"),
@@ -19,5 +17,4 @@ enum class BankName(
     SCJEIL("SC제일"),
     SUHYEOP("수협"),
     NONE(""),
-    ;
 }
