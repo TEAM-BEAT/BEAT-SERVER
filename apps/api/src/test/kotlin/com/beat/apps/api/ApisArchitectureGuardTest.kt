@@ -80,4 +80,15 @@ class ApisArchitectureGuardTest : FunSpec({
             .because("Infrastructure wiring types may only be consumed by API bootstrap configuration")
             .check(productionClasses)
     }
+
+    test("api는 jOOQ 구현 타입에 의존하지 않는다 — E-08") {
+        noClasses()
+            .that()
+            .resideInAnyPackage("com.beat.apps.api", "com.beat.apps.api..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("org.jooq..", "com.beat.infrastructure.jooq.generated..")
+            .because("Apps must not depend on jOOQ — infrastructure internal (E-08, I-21)")
+            .check(productionClasses)
+    }
 })

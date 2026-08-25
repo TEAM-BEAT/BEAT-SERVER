@@ -33,8 +33,10 @@ class DomainServiceArchitectureTest : FunSpec({
                 "org.springframework.data..",
                 "java.net..",
                 "java.sql..",
+                "org.jooq..",
+                "com.beat.infrastructure.jooq.generated..",
             )
-            .because("Domain Purity: domain classes must not depend on framework, persistence, or I/O technology")
+            .because("Domain Purity: domain classes must not depend on framework, persistence, or I/O technology — jOOQ containment (E-08)")
             .check(productionClasses)
     }
 

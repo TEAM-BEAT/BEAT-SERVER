@@ -1,4 +1,4 @@
-package com.beat.infrastructure.persistence.performance.repository.query
+package com.beat.infrastructure.persistence.performance.repository
 
 import com.beat.application.frontoffice.performance.maker.command.PerformanceContentOwnershipReader
 import com.beat.infrastructure.persistence.cast.entity.CastJpaEntity
@@ -11,7 +11,7 @@ import jakarta.persistence.EntityManager
 import org.springframework.stereotype.Repository
 
 @Repository
-internal class PerformanceContentOwnershipQueries(
+internal class PerformanceContentOwnershipJpaReader(
     private val entityManager: EntityManager,
     private val jpqlRenderContext: JpqlRenderContext,
 ) : PerformanceContentOwnershipReader {

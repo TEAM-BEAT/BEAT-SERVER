@@ -148,6 +148,60 @@ val requiredMainProjectDependencies: Map<String, Set<String>> = mapOf(
     ":apps:batch" to setOf(":application:system"),
 )
 
+val verifyJooqContainment by tasks.registering {
+    group = "verification"
+    description = "Verifies jOOQ containment — E-08: only infrastructure may depend on jOOQ and generated types."
+
+    doLast {
+        val forbiddenImportPatterns = listOf(
+            Regex("""import\s+org\.jooq\."""),
+            Regex("""import\s+com\.beat\.infrastructure\.jooq\.generated"""),
+        )
+        val allowedProjects = setOf(":infrastructure", ":build-logic")
+        val allProjects = rootProject.subprojects.filter { it.path !in allowedProjects }
+        val violations = mutableListOf<String>()
+        allProjects.forEach { proj ->
+            proj.fileTree("src/main") {
+                include("**/*.kt", "**/*.java")
+            }.forEach { file ->
+                val content = file.readText()
+                forbiddenImportPatterns.forEach { pattern ->
+                    if (pattern.containsMatchIn(content)) {
+                        violations.add("${proj.path}:${file.relativeTo(rootDir)} matches ${pattern.pattern}")
+                    }
+                }
+            }
+        }
+        check(violations.isEmpty()) {
+            "jOOQ containment violation (E-08, I-21): only infrastructure may import org.jooq / generated. Violations:\n${violations.joinToString("\n")}"
+        }
+
+        // persistence/query must not import JPA/JDSL/JdbcTemplate/EntityManager
+        val queryFiles = project(":infrastructure").fileTree("src/main/kotlin/com/beat/infrastructure/persistence/query") {
+            include("**/*.kt")
+        }
+        val forbiddenQueryPatterns = listOf(
+            Regex("""import\s+jakarta\.persistence"""),
+            Regex("""EntityManager"""),
+            Regex("""JpaRepository"""),
+            Regex("""com\.linecorp\.kotlinjdsl"""),
+            Regex("""JdbcTemplate"""),
+        )
+        val queryViolations = mutableListOf<String>()
+        queryFiles.forEach { file ->
+            val content = file.readText()
+            forbiddenQueryPatterns.forEach { pattern ->
+                if (pattern.containsMatchIn(content)) {
+                    queryViolations.add("${file.relativeTo(rootDir)} matches ${pattern.pattern}")
+                }
+            }
+        }
+        check(queryViolations.isEmpty()) {
+            "persistence/query must be jOOQ only — JPA/JDSL/JdbcTemplate forbidden (I-20):\n${queryViolations.joinToString("\n")}"
+        }
+    }
+}
+
 val verifyTargetModuleGraph by tasks.registering {
     group = "verification"
     description = "Verifies the target module graph is exactly the SSOT allowlist."

@@ -855,7 +855,7 @@ CONDITIONAL_AUTOMATION
 | E-05 | Application technical dependency ban | ADOPTED | AUTOMATED | Application ArchUnit rules |
 | E-06 | Direct lane crossing ban | ADOPTED | AUTOMATED | Gradle guard + ArchUnit |
 | E-07 | Controller/Facade -> Infra implementation ban | ADOPTED | AUTOMATED | Apps architecture guards |
-| E-08 | jOOQ containment | ADOPTED | CONDITIONAL_AUTOMATION | jOOQ 도입/확대 시 boundary guard 필수 |
+| E-08 | jOOQ containment | ADOPTED | AUTOMATED | `InfrastructureJooqArchitectureTest` (query JPA/JDSL/JdbcTemplate ban) + Application/Domain/Apps ArchUnit jOOQ bans + `beat.jooq-codegen:validateJooqSchema` |
 | E-09 | Port owner = consumer | ADOPTED | MANUAL_REVIEW | Architecture review gate |
 | E-10 | Port signature outer-type leakage ban | ADOPTED | MANUAL_REVIEW | Architecture review gate |
 | E-11 | `security-web` direct Application dependency ban | ADOPTED | AUTOMATED | Gradle guard + Security architecture tests |

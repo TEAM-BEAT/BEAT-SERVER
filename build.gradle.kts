@@ -45,6 +45,7 @@ dependencyAnalysis {
 
 tasks.named("check") {
     dependsOn("verifyTargetModuleGraph")
+    dependsOn("verifyJooqContainment")
     dependsOn("verifyModuleBootJars")
     dependsOn("verifyMainResourceTestProfiles")
     dependsOn("verifyMockFrameworkIsNotGlobalDefault")

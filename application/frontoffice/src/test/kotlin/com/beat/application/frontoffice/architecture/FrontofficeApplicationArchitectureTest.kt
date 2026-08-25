@@ -285,8 +285,21 @@ class FrontofficeApplicationArchitectureTest : FunSpec({
                 "org.springframework.data.redis..",
                 "org.redisson..",
                 "com.linecorp.kotlinjdsl..",
+                "org.jooq..",
+                "com.beat.infrastructure.jooq.generated..",
             )
-            .because("Frontoffice Application technology boundary")
+            .because("Frontoffice Application technology boundary — jOOQ and generated types are infrastructure only (E-08)")
+            .check(importedClasses)
+    }
+
+    test("frontoffice Application은 infrastructure jOOQ generated 타입에 의존하지 않는다") {
+        noClasses()
+            .that()
+            .resideInAnyPackage("com.beat.application.frontoffice", "com.beat.application.frontoffice..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("com.beat.infrastructure.jooq.generated..")
+            .because("jOOQ type leakage = 0 — generated types must not escape infrastructure (I-21)")
             .check(importedClasses)
     }
 

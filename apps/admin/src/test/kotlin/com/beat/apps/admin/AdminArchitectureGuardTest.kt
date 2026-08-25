@@ -89,4 +89,15 @@ class AdminArchitectureGuardTest : FunSpec({
 
         codes.size shouldBe codes.distinct().size
     }
+
+    test("admin은 jOOQ 구현 타입에 의존하지 않는다 — E-08") {
+        noClasses()
+            .that()
+            .resideInAnyPackage("com.beat.apps.admin", "com.beat.apps.admin..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("org.jooq..", "com.beat.infrastructure.jooq.generated..")
+            .because("Apps must not depend on jOOQ — infrastructure internal (E-08, I-21)")
+            .check(productionClasses)
+    }
 })

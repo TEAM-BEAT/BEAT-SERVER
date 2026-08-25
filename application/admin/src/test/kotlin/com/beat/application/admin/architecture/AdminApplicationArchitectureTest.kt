@@ -44,8 +44,21 @@ class AdminApplicationArchitectureTest : FunSpec({
                 "org.springframework.data.redis..",
                 "org.redisson..",
                 "com.linecorp.kotlinjdsl..",
+                "org.jooq..",
+                "com.beat.infrastructure.jooq.generated..",
             )
-            .because("Admin Application technology boundary")
+            .because("Admin Application technology boundary — jOOQ containment (E-08)")
+            .check(productionClasses)
+    }
+
+    test("admin Application은 infrastructure jOOQ generated 타입에 의존하지 않는다") {
+        noClasses()
+            .that()
+            .resideInAnyPackage("com.beat.application.admin", "com.beat.application.admin..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("com.beat.infrastructure.jooq.generated..")
+            .because("jOOQ type leakage = 0 (I-21)")
             .check(productionClasses)
     }
 })
