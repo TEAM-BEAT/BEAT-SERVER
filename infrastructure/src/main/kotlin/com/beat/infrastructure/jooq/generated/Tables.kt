@@ -1,5 +1,3 @@
-@file:Suppress("unused", "UnusedVariable")
-
 package com.beat.infrastructure.jooq.generated
 
 import org.jooq.Field
@@ -24,7 +22,6 @@ object Booking {
     val BOOKER_PHONE_NUMBER: Field<String?> = DSL.field(DSL.name("booking", "booker_phone_number"), SQLDataType.VARCHAR)
     val BOOKING_STATUS: Field<String?> = DSL.field(DSL.name("booking", "booking_status"), SQLDataType.VARCHAR)
     val CREATED_AT: Field<LocalDateTime?> = DSL.field(DSL.name("booking", "created_at"), SQLDataType.LOCALDATETIME)
-    val CANCELLATION_DATE: Field<LocalDateTime?> = DSL.field(DSL.name("booking", "cancellation_date"), SQLDataType.LOCALDATETIME)
     val TOTAL_PAYMENT_AMOUNT: Field<Int?> = DSL.field(DSL.name("booking", "total_payment_amount"), SQLDataType.INTEGER.nullable(true))
     val BANK_NAME: Field<String?> = DSL.field(DSL.name("booking", "bank_name"), SQLDataType.VARCHAR.nullable(true))
     val ACCOUNT_NUMBER: Field<String?> = DSL.field(DSL.name("booking", "account_number"), SQLDataType.VARCHAR.nullable(true))
@@ -69,8 +66,6 @@ object Performance {
     val TICKET_PRICE: Field<Int?> = DSL.field(DSL.name("performance", "ticket_price"), SQLDataType.INTEGER)
     val TOTAL_SCHEDULE_COUNT: Field<Int?> = DSL.field(DSL.name("performance", "total_schedule_count"), SQLDataType.INTEGER)
     val USER_ID: Field<Long?> = DSL.field(DSL.name("performance", "user_id"), SQLDataType.BIGINT)
-    val CREATED_AT: Field<LocalDateTime?> = DSL.field(DSL.name("performance", "created_at"), SQLDataType.LOCALDATETIME.nullable(true))
-    val UPDATED_AT: Field<LocalDateTime?> = DSL.field(DSL.name("performance", "updated_at"), SQLDataType.LOCALDATETIME.nullable(true))
 }
 
 object Promotion {
