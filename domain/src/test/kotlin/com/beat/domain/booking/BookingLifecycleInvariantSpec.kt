@@ -52,6 +52,7 @@ class BookingLifecycleInvariantSpec : FunSpec({
             refundAccount = null,
             scheduleId = SCHEDULE_ID,
             userId = USER_ID,
+            totalPaymentAmount = 10_000,
         )
 
         val deleted = booking.delete()
@@ -91,7 +92,7 @@ class BookingLifecycleInvariantSpec : FunSpec({
             val deletedUnpaid = unpaid.deleteByMaker(deletedAt)
             val deletedFree = free.deleteByMaker(deletedAt)
 
-            Booking.canDeleteByMaker(BookingStatus.CHECKING_PAYMENT, null) shouldBe true
+            Booking.canDeleteByMaker(BookingStatus.CHECKING_PAYMENT, 10_000) shouldBe true
             Booking.canDeleteByMaker(BookingStatus.BOOKING_CONFIRMED, 0) shouldBe true
             deletedUnpaid.bookingStatus shouldBe BookingStatus.BOOKING_DELETED
             deletedUnpaid.cancellationDate shouldBe deletedAt
@@ -214,7 +215,7 @@ class BookingLifecycleInvariantSpec : FunSpec({
     }
 })
 
-private fun booking(totalPaymentAmount: Int? = null): Booking = bookingFixture(
+private fun booking(totalPaymentAmount: Int = 10_000): Booking = bookingFixture(
     totalPaymentAmount = totalPaymentAmount,
 )
 

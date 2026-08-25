@@ -32,10 +32,9 @@ class BookingCreationInvariantSpec : FunSpec({
         }
     }
 
-    test("무료 예매는 확정되고 유료 또는 미정 금액은 입금 확인 상태로 생성된다") {
+    test("무료 예매는 확정되고 유료 금액은 입금 확인 상태로 생성된다") {
         booking(totalPaymentAmount = 0).bookingStatus shouldBe BookingStatus.BOOKING_CONFIRMED
         booking(totalPaymentAmount = 10_000).bookingStatus shouldBe BookingStatus.CHECKING_PAYMENT
-        booking(totalPaymentAmount = null).bookingStatus shouldBe BookingStatus.CHECKING_PAYMENT
     }
 
     test("rehydrate는 저장된 예매 필드를 복원한다") {
@@ -54,6 +53,7 @@ class BookingCreationInvariantSpec : FunSpec({
             refundAccount = refundAccount,
             scheduleId = 20L,
             userId = 30L,
+            totalPaymentAmount = 20_000,
         )
 
         booking.id shouldBe 10L
@@ -76,7 +76,7 @@ class BookingCreationInvariantSpec : FunSpec({
 
 private fun booking(
     purchaseTicketCount: Int = 1,
-    totalPaymentAmount: Int? = null,
+    totalPaymentAmount: Int = 10_000,
 ): Booking = bookingFixture(
     purchaseTicketCount = purchaseTicketCount,
     bookerName = "booker",

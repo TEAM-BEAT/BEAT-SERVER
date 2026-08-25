@@ -20,7 +20,7 @@ class Booking private constructor(
     val birthDate: String?,
     val password: String?,
     val refundAccount: RefundAccount?,
-    val totalPaymentAmount: Int?,
+    val totalPaymentAmount: Int,
     private val linkedScheduleId: Schedule.Id,
     private val linkedUserId: Users.Id,
 ) : AggregateRoot {
@@ -163,7 +163,7 @@ class Booking private constructor(
     }
 
     companion object {
-        fun canDeleteByMaker(bookingStatus: BookingStatus, totalPaymentAmount: Int?): Boolean =
+        fun canDeleteByMaker(bookingStatus: BookingStatus, totalPaymentAmount: Int): Boolean =
             if (totalPaymentAmount == 0) {
                 bookingStatus != BookingStatus.REFUND_REQUESTED
             } else {
@@ -181,7 +181,7 @@ class Booking private constructor(
             scheduleId: Long,
             userId: Long,
             createdAt: LocalDateTime,
-            totalPaymentAmount: Int? = null,
+            totalPaymentAmount: Int,
         ): Booking {
             validatePurchaseTicketCount(purchaseTicketCount)
             validateTotalPaymentAmount(totalPaymentAmount)
@@ -220,7 +220,7 @@ class Booking private constructor(
             refundAccount: RefundAccount?,
             scheduleId: Long,
             userId: Long,
-            totalPaymentAmount: Int? = null,
+            totalPaymentAmount: Int,
         ): Booking {
             validateTotalPaymentAmount(totalPaymentAmount)
 
@@ -250,8 +250,8 @@ class Booking private constructor(
             }
         }
 
-        private fun validateTotalPaymentAmount(totalPaymentAmount: Int?) {
-            if (totalPaymentAmount != null && totalPaymentAmount < 0) {
+        private fun validateTotalPaymentAmount(totalPaymentAmount: Int) {
+            if (totalPaymentAmount < 0) {
                 throw DomainException(BookingErrorCode.NEGATIVE_TOTAL_PAYMENT_AMOUNT)
             }
         }

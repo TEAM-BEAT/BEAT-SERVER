@@ -407,7 +407,7 @@ class TicketCommandApplicationSpec : FunSpec() {
         id: Long = 300L,
         scheduleId: Long = 200L,
         status: BookingStatus = BookingStatus.CHECKING_PAYMENT,
-        totalPaymentAmount: Int? = 20,
+        totalPaymentAmount: Int = 20,
     ) = Booking.rehydrate(
         id,
         1,

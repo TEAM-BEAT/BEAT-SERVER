@@ -40,36 +40,11 @@ class PerformancePersistenceMapperTest : FunSpec({
         mapper.toDomain(entity).paymentAccount shouldBe null
     }
 
-    test("부분적으로만 채워진 period 컬럼은 거부된다") {
-        val sourceEntity = mapper.toEntity(performance(null))
-        val partialPeriod = PerformancePeriodJpaValue(
-            null,
-            LocalDate.of(2026, 7, 18),
-        )
-        val entity = PerformanceJpaEntity.rehydrate(
-            sourceEntity.id,
-            sourceEntity.performanceTitle,
-            sourceEntity.genre,
-            sourceEntity.runningTime,
-            sourceEntity.performanceDescription,
-            sourceEntity.performanceAttentionNote,
-            sourceEntity.paymentAccount,
-            sourceEntity.posterImage,
-            sourceEntity.performanceTeamName,
-            sourceEntity.performanceVenue,
-            sourceEntity.roadAddressName,
-            sourceEntity.placeDetailAddress,
-            sourceEntity.latitude,
-            sourceEntity.longitude,
-            sourceEntity.performanceContact,
-            partialPeriod,
-            sourceEntity.legacyPerformancePeriod,
-            sourceEntity.ticketPrice,
-            sourceEntity.totalScheduleCount,
-            sourceEntity.userId,
-        )
+    test("CONTRACT 이후 period 컬럼은 항상 not null로 저장된다") {
+        val entity = mapper.toEntity(performance(null))
 
-        shouldThrow<PersistenceMappingException> { mapper.toDomain(entity) }
+        entity.performancePeriodValue!!.startDate shouldBe LocalDate.of(2026, 7, 16)
+        entity.performancePeriodValue!!.endDate shouldBe LocalDate.of(2026, 7, 18)
     }
 })
 

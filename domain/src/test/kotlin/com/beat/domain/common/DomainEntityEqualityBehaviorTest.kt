@@ -99,7 +99,7 @@ class DomainEntityEqualityBehaviorTest : FunSpec() {
     )
 
     private fun booking(id: Long, name: String): Booking = Booking.rehydrate(
-        id, 1, name, "010-0000-0000", BookingStatus.CHECKING_PAYMENT, BASE_TIME, null, null, null, null, 1, 1,
+        id, 1, name, "010-0000-0000", BookingStatus.CHECKING_PAYMENT, BASE_TIME, null, null, null, null, 1, 1, 10_000,
     )
 
     private fun newBooking(): Booking = bookingFixture(

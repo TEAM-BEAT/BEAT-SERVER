@@ -25,7 +25,7 @@ internal class BookingJpaEntity private constructor(
     birthDate: String?,
     password: String?,
     refundAccount: RefundAccountJpaValue?,
-    totalPaymentAmount: Int?,
+    totalPaymentAmount: Int,
     scheduleId: Long,
     userId: Long,
 ) {
@@ -73,7 +73,7 @@ internal class BookingJpaEntity private constructor(
         protected set
 
     @Column(name = "total_payment_amount", nullable = false)
-    var totalPaymentAmount: Int? = totalPaymentAmount
+    var totalPaymentAmount: Int = totalPaymentAmount
         protected set
 
     @Column(name = "schedule_id", nullable = false)
@@ -98,7 +98,7 @@ internal class BookingJpaEntity private constructor(
             refundAccount: RefundAccountJpaValue?,
             scheduleId: Long,
             userId: Long,
-            totalPaymentAmount: Int?,
+            totalPaymentAmount: Int,
         ): BookingJpaEntity = BookingJpaEntity(
             id = id,
             purchaseTicketCount = purchaseTicketCount,

@@ -144,6 +144,7 @@ private fun booking(status: BookingStatus, cancelledAt: LocalDateTime?): Booking
     refundAccount = null,
     scheduleId = 10L,
     userId = 20L,
+    totalPaymentAmount = 10_000,
 )
 
 private fun schedule(): Schedule {

@@ -69,7 +69,7 @@ class BookerBookingQueriesIntegrationSpec : FunSpec() {
                 booking(firstSchedule.id!!, BookingStatus.BOOKING_CONFIRMED, 27_000),
             )
             val legacyAmountBooking = bookingRepository.saveAndFlush(
-                booking(secondSchedule.id!!, BookingStatus.REFUND_REQUESTED, null),
+                booking(secondSchedule.id!!, BookingStatus.REFUND_REQUESTED, 15_000),
             )
 
             val resultById = reader.findByUserId(TEST_USER_ID).associateBy { it.bookingId }
@@ -85,7 +85,7 @@ class BookerBookingQueriesIntegrationSpec : FunSpec() {
 
             val legacyAmountResult = resultById.getValue(legacyAmountBooking.id!!)
             legacyAmountResult.bookingStatus shouldBe "REFUND_REQUESTED"
-            legacyAmountResult.totalPaymentAmount shouldBe null
+            legacyAmountResult.totalPaymentAmount shouldBe 15_000
             legacyAmountResult.schedule?.scheduleNumber shouldBe "SECOND"
             legacyAmountResult.performance?.bankName shouldBe null
             legacyAmountResult.performance?.accountNumber shouldBe null
@@ -131,7 +131,7 @@ class BookerBookingQueriesIntegrationSpec : FunSpec() {
             performanceId = performanceId,
         )
 
-    private fun booking(scheduleId: Long, status: BookingStatus, totalPaymentAmount: Int?): BookingJpaEntity =
+    private fun booking(scheduleId: Long, status: BookingStatus, totalPaymentAmount: Int): BookingJpaEntity =
         BookingJpaEntity.rehydrate(
             id = null,
             purchaseTicketCount = 2,
