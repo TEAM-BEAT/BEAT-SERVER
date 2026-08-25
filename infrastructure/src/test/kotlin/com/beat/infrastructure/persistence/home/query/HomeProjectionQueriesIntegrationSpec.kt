@@ -206,7 +206,6 @@ class HomeProjectionQueriesIntegrationSpec : FunSpec() {
         longitude = "127.0",
         performanceContact = "010-0000-0000",
         performancePeriodValue = PerformancePeriodJpaValue(periodStart, periodEnd),
-        legacyPerformancePeriod = "$periodStart~$periodEnd",
         ticketPrice = 15_000,
         totalScheduleCount = 2,
         userId = 1L,

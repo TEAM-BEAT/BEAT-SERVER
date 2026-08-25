@@ -25,8 +25,7 @@ class PerformancePersistenceMapperTest : FunSpec({
         val roundTrip = mapper.toDomain(entity)
 
         entity.paymentAccount!!.bankName shouldBe BankName.KAKAOBANK
-        entity.performancePeriodValue!!.startDate shouldBe LocalDate.of(2026, 7, 16)
-        entity.legacyPerformancePeriod shouldBe "2026.07.16~2026.07.18"
+        entity.performancePeriodValue.startDate shouldBe LocalDate.of(2026, 7, 16)
         roundTrip.paymentAccount shouldBe domain.paymentAccount
         roundTrip.performancePeriodValue shouldBe domain.performancePeriodValue
         roundTrip.runningTimeValue shouldBe domain.runningTimeValue
@@ -43,8 +42,8 @@ class PerformancePersistenceMapperTest : FunSpec({
     test("CONTRACT 이후 period 컬럼은 항상 not null로 저장된다") {
         val entity = mapper.toEntity(performance(null))
 
-        entity.performancePeriodValue!!.startDate shouldBe LocalDate.of(2026, 7, 16)
-        entity.performancePeriodValue!!.endDate shouldBe LocalDate.of(2026, 7, 18)
+        entity.performancePeriodValue.startDate shouldBe LocalDate.of(2026, 7, 16)
+        entity.performancePeriodValue.endDate shouldBe LocalDate.of(2026, 7, 18)
     }
 })
 

@@ -40,7 +40,6 @@ CREATE TABLE `performance` (
   `latitude` VARCHAR(255) NOT NULL,
   `longitude` VARCHAR(255) NOT NULL,
   `performance_contact` VARCHAR(255) NOT NULL,
-  `performance_period` VARCHAR(255) NOT NULL,
   `performance_start_date` DATE NOT NULL,
   `performance_end_date` DATE NOT NULL,
   `ticket_price` INT NOT NULL,

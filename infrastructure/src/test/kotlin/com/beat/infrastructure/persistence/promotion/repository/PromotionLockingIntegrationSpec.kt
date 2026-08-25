@@ -239,7 +239,6 @@ private fun performance(): PerformanceJpaEntity = PerformanceJpaEntity.rehydrate
         LocalDate.of(2026, 8, 1),
         LocalDate.of(2026, 8, 2),
     ),
-    legacyPerformancePeriod = "2026-08-01~2026-08-02",
     ticketPrice = 10_000,
     totalScheduleCount = 0,
     userId = 1L,

@@ -13,7 +13,6 @@ import com.beat.infrastructure.jooq.generated.Performance
 import com.beat.infrastructure.jooq.generated.PerformanceImage
 import com.beat.infrastructure.jooq.generated.Schedule
 import com.beat.infrastructure.jooq.generated.StaffTable
-import com.beat.infrastructure.persistence.performance.repository.query.resolvePerformancePeriod
 import org.jooq.DSLContext
 import org.springframework.stereotype.Repository
 import java.time.format.DateTimeFormatter
@@ -79,7 +78,6 @@ internal class PerformanceEditFormQueries(
             Performance.PERFORMANCE_CONTACT,
             Performance.PERFORMANCE_START_DATE,
             Performance.PERFORMANCE_END_DATE,
-            Performance.PERFORMANCE_PERIOD,
             Performance.TICKET_PRICE,
             Performance.TOTAL_SCHEDULE_COUNT,
         ).from(Performance.TABLE)
@@ -106,7 +104,6 @@ internal class PerformanceEditFormQueries(
                     performanceContact = record.get(Performance.PERFORMANCE_CONTACT)!!,
                     periodStartDate = record.get(Performance.PERFORMANCE_START_DATE),
                     periodEndDate = record.get(Performance.PERFORMANCE_END_DATE),
-                    legacyPeriod = record.get(Performance.PERFORMANCE_PERIOD)!!,
                     ticketPrice = record.get(Performance.TICKET_PRICE)!!,
                     totalScheduleCount = record.get(Performance.TOTAL_SCHEDULE_COUNT)!!,
                 )
@@ -191,12 +188,7 @@ internal class PerformanceEditFormQueries(
             }
 
     private fun formatPeriod(header: PerformanceEditHeaderProjection): String {
-        val period = resolvePerformancePeriod(
-            performanceId = checkNotNull(header.performanceId),
-            startDate = header.periodStartDate,
-            endDate = header.periodEndDate,
-            legacyPeriod = header.legacyPeriod,
-        )
+        val period = com.beat.domain.performance.vo.PerformancePeriod.of(header.periodStartDate!!, header.periodEndDate!!)
         val start = period.startDate.format(PERIOD_FORMATTER)
         return if (period.startDate == period.endDate) start else "$start~${period.endDate.format(PERIOD_FORMATTER)}"
     }
@@ -222,7 +214,6 @@ internal class PerformanceEditFormQueries(
         val performanceContact: String,
         val periodStartDate: java.time.LocalDate?,
         val periodEndDate: java.time.LocalDate?,
-        val legacyPeriod: String,
         val ticketPrice: Int,
         val totalScheduleCount: Int,
     )

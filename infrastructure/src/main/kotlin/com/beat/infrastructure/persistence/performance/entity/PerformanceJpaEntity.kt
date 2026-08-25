@@ -30,8 +30,7 @@ internal class PerformanceJpaEntity private constructor(
     latitude: String,
     longitude: String,
     performanceContact: String,
-    performancePeriodValue: PerformancePeriodJpaValue?,
-    legacyPerformancePeriod: String,
+    performancePeriodValue: PerformancePeriodJpaValue,
     ticketPrice: Int,
     totalScheduleCount: Int,
     userId: Long,
@@ -101,11 +100,7 @@ internal class PerformanceJpaEntity private constructor(
         protected set
 
     @Embedded
-    var performancePeriodValue: PerformancePeriodJpaValue? = performancePeriodValue
-        protected set
-
-    @Column(name = "performance_period", nullable = false)
-    var legacyPerformancePeriod: String = legacyPerformancePeriod
+    var performancePeriodValue: PerformancePeriodJpaValue = performancePeriodValue
         protected set
 
     @Column(nullable = false)
@@ -137,8 +132,7 @@ internal class PerformanceJpaEntity private constructor(
             latitude: String,
             longitude: String,
             performanceContact: String,
-            performancePeriodValue: PerformancePeriodJpaValue?,
-            legacyPerformancePeriod: String,
+            performancePeriodValue: PerformancePeriodJpaValue,
             ticketPrice: Int,
             totalScheduleCount: Int,
             userId: Long,
@@ -159,7 +153,6 @@ internal class PerformanceJpaEntity private constructor(
             longitude = longitude,
             performanceContact = performanceContact,
             performancePeriodValue = performancePeriodValue,
-            legacyPerformancePeriod = legacyPerformancePeriod,
             ticketPrice = ticketPrice,
             totalScheduleCount = totalScheduleCount,
             userId = userId,

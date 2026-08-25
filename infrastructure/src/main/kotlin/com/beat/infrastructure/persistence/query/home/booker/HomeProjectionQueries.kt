@@ -7,7 +7,6 @@ import com.beat.application.frontoffice.home.booker.query.HomePromotionProjectio
 import com.beat.infrastructure.jooq.generated.Performance
 import com.beat.infrastructure.jooq.generated.Promotion
 import com.beat.infrastructure.jooq.generated.Schedule
-import com.beat.infrastructure.persistence.performance.repository.query.resolvePerformancePeriod
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import org.springframework.stereotype.Repository
@@ -30,12 +29,7 @@ internal class HomeProjectionQueries(
             promotions = promotions,
             performances = performances.map { performance ->
                 val performanceId = checkNotNull(performance.performanceId)
-                val period = resolvePerformancePeriod(
-                    performanceId = performanceId,
-                    startDate = performance.periodStartDate,
-                    endDate = performance.periodEndDate,
-                    legacyPeriod = performance.legacyPeriod,
-                )
+                val period = com.beat.domain.performance.vo.PerformancePeriod.of(performance.periodStartDate!!, performance.periodEndDate!!)
                 HomePerformanceProjection(
                     performanceId = performanceId,
                     performanceTitle = performance.performanceTitle,
@@ -61,7 +55,6 @@ internal class HomeProjectionQueries(
             Performance.PERFORMANCE_VENUE,
             Performance.PERFORMANCE_START_DATE,
             Performance.PERFORMANCE_END_DATE,
-            Performance.PERFORMANCE_PERIOD,
         ).from(Performance.TABLE)
 
         if (genre != null) {
@@ -78,7 +71,6 @@ internal class HomeProjectionQueries(
                 performanceVenue = record.get(Performance.PERFORMANCE_VENUE)!!,
                 periodStartDate = record.get(Performance.PERFORMANCE_START_DATE),
                 periodEndDate = record.get(Performance.PERFORMANCE_END_DATE),
-                legacyPeriod = record.get(Performance.PERFORMANCE_PERIOD),
             )
         }
     }
@@ -174,7 +166,6 @@ internal class HomeProjectionQueries(
         val performanceVenue: String,
         val periodStartDate: java.time.LocalDate?,
         val periodEndDate: java.time.LocalDate?,
-        val legacyPeriod: String?,
     )
 
     private data class HomePromotionRow(

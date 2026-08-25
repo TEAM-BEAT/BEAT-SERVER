@@ -114,7 +114,6 @@ class BookerBookingQueriesIntegrationSpec : FunSpec() {
                 LocalDate.of(2026, 1, 1),
                 LocalDate.of(2026, 1, 2),
             ),
-            legacyPerformancePeriod = "2026.01.01 - 2026.01.02",
             ticketPrice = 15_000,
             totalScheduleCount = 1,
             userId = 1L,

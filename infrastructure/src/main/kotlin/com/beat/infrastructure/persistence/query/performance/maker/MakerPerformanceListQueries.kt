@@ -4,7 +4,6 @@ import com.beat.application.frontoffice.performance.maker.query.MakerPerformance
 import com.beat.application.frontoffice.performance.maker.query.MakerPerformanceListReader
 import com.beat.infrastructure.jooq.generated.Performance
 import com.beat.infrastructure.jooq.generated.Schedule
-import com.beat.infrastructure.persistence.performance.repository.query.resolvePerformancePeriod
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import org.springframework.stereotype.Repository
@@ -25,7 +24,6 @@ internal class MakerPerformanceListQueries(
             Performance.POSTER_IMAGE,
             Performance.PERFORMANCE_START_DATE,
             Performance.PERFORMANCE_END_DATE,
-            Performance.PERFORMANCE_PERIOD,
         ).from(Performance.TABLE)
             .where(Performance.USER_ID.eq(userId))
             .fetch { record ->
@@ -36,7 +34,6 @@ internal class MakerPerformanceListQueries(
                     posterImage = record.get(Performance.POSTER_IMAGE)!!,
                     periodStartDate = record.get(Performance.PERFORMANCE_START_DATE),
                     periodEndDate = record.get(Performance.PERFORMANCE_END_DATE),
-                    legacyPeriod = record.get(Performance.PERFORMANCE_PERIOD)!!,
                 )
             }
 
@@ -49,12 +46,7 @@ internal class MakerPerformanceListQueries(
 
         return performances.map { projection ->
             val performanceId = checkNotNull(projection.performanceId)
-            val period = resolvePerformancePeriod(
-                performanceId = performanceId,
-                startDate = projection.periodStartDate,
-                endDate = projection.periodEndDate,
-                legacyPeriod = projection.legacyPeriod,
-            )
+            val period = com.beat.domain.performance.vo.PerformancePeriod.of(projection.periodStartDate!!, projection.periodEndDate!!)
             MakerPerformanceListItemReadModel(
                 performanceId = performanceId,
                 genre = projection.genre,
@@ -102,7 +94,6 @@ internal class MakerPerformanceListQueries(
         val posterImage: String,
         val periodStartDate: java.time.LocalDate?,
         val periodEndDate: java.time.LocalDate?,
-        val legacyPeriod: String,
     )
 
     private data class RepresentativePerformanceDateProjection(
