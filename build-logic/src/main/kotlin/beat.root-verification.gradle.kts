@@ -208,8 +208,11 @@ val verifyTargetModuleGraph by tasks.registering {
 
     doLast {
         // ── HELPERS ──
+        // kover* configurations hold Kover aggregation wiring (각 대상 모듈이 자기 자신을 의존하는
+        // 마커 포함). 레인 의존성이 아니므로 그래프 검증 대상에서 제외한다.
         val allProjectDependenciesOf: (String) -> Set<String> = { projectPath ->
             project(projectPath).configurations
+                .filter { !it.name.startsWith("kover") }
                 .flatMap { it.dependencies.withType(ProjectDependency::class.java) }
                 .map { it.path }.toSet()
         }
