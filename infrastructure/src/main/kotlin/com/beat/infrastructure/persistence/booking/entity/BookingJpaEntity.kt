@@ -72,7 +72,7 @@ internal class BookingJpaEntity private constructor(
     var refundAccount: RefundAccountJpaValue? = refundAccount
         protected set
 
-    @Column(name = "total_payment_amount")
+    @Column(name = "total_payment_amount", nullable = false)
     var totalPaymentAmount: Int? = totalPaymentAmount
         protected set
 
@@ -98,7 +98,7 @@ internal class BookingJpaEntity private constructor(
             refundAccount: RefundAccountJpaValue?,
             scheduleId: Long,
             userId: Long,
-            totalPaymentAmount: Int? = null,
+            totalPaymentAmount: Int?,
         ): BookingJpaEntity = BookingJpaEntity(
             id = id,
             purchaseTicketCount = purchaseTicketCount,

@@ -90,16 +90,7 @@ internal class PerformancePersistenceMapper {
 
     private fun toDomainPeriod(entity: PerformanceJpaEntity): PerformancePeriod {
         val value = entity.performancePeriodValue ?: return parseLegacyPeriod(entity)
-        val startDate = value.startDate
-        val endDate = value.endDate
-        if (startDate == null || endDate == null) {
-            throw PersistenceMappingException.invalidStoredState(
-                "Performance",
-                entity.id,
-                IllegalStateException("Performance period columns must be both null or both non-null"),
-            )
-        }
-        return PerformancePeriod.of(startDate, endDate)
+        return PerformancePeriod.of(value.startDate, value.endDate)
     }
 
     private fun parseLegacyPeriod(entity: PerformanceJpaEntity): PerformancePeriod {
