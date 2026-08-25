@@ -15,9 +15,7 @@ import org.jooq.impl.DSL
 import org.springframework.stereotype.Repository
 
 @Repository
-internal class MakerTicketQueries(
-    private val dsl: DSLContext,
-) : MakerTicketReader {
+internal class MakerTicketQueries(private val dsl: DSLContext) : MakerTicketReader {
 
     override fun findTickets(
         performanceId: Long,
@@ -40,18 +38,19 @@ internal class MakerTicketQueries(
 
     override fun findSchedules(performanceId: Long): List<MakerTicketScheduleReadModel> =
         dsl.select(
-            ScheduleTable.ID,
-            ScheduleTable.TOTAL_TICKET_COUNT,
-            ScheduleTable.SOLD_TICKET_COUNT,
-            ScheduleTable.SCHEDULE_NUMBER,
-        ).from(ScheduleTable.TABLE)
+                ScheduleTable.ID,
+                ScheduleTable.TOTAL_TICKET_COUNT,
+                ScheduleTable.SOLD_TICKET_COUNT,
+                ScheduleTable.SCHEDULE_NUMBER,
+            )
+            .from(ScheduleTable.TABLE)
             .where(ScheduleTable.PERFORMANCE_ID.eq(performanceId))
             .fetch { record ->
                 MakerTicketScheduleReadModel(
-                    scheduleId = record.get(ScheduleTable.ID)!!,
-                    totalTicketCount = record.get(ScheduleTable.TOTAL_TICKET_COUNT)!!,
-                    soldTicketCount = record.get(ScheduleTable.SOLD_TICKET_COUNT)!!,
-                    scheduleNumber = record.get(ScheduleTable.SCHEDULE_NUMBER)!!,
+                    scheduleId = record[ScheduleTable.ID]!!,
+                    totalTicketCount = record[ScheduleTable.TOTAL_TICKET_COUNT]!!,
+                    soldTicketCount = record[ScheduleTable.SOLD_TICKET_COUNT]!!,
+                    scheduleNumber = record[ScheduleTable.SCHEDULE_NUMBER]!!,
                 )
             }
 
@@ -84,59 +83,70 @@ internal class MakerTicketQueries(
                     "MATCH({0}) AGAINST ({1} IN BOOLEAN MODE) > 0",
                     BookingTable.BOOKER_NAME,
                     DSL.inline(searchWord),
-                ),
+                )
             )
         }
 
-        // Ordering: REFUND_REQUESTED(1) < CHECKING_PAYMENT(2) < BOOKING_CONFIRMED(3) < BOOKING_CANCELLED(4) < else 5, then created_at desc
-        val orderingField = DSL.case_()
-            .`when`(BookingTable.BOOKING_STATUS.eq(BookingStatus.REFUND_REQUESTED.name), 1)
-            .`when`(BookingTable.BOOKING_STATUS.eq(BookingStatus.CHECKING_PAYMENT.name), 2)
-            .`when`(BookingTable.BOOKING_STATUS.eq(BookingStatus.BOOKING_CONFIRMED.name), 3)
-            .`when`(BookingTable.BOOKING_STATUS.eq(BookingStatus.BOOKING_CANCELLED.name), 4)
-            .otherwise(5)
+        // Ordering: REFUND_REQUESTED(1) < CHECKING_PAYMENT(2) < BOOKING_CONFIRMED(3) <
+        // BOOKING_CANCELLED(4) < else 5, then created_at desc
+        val orderingField =
+            DSL.case_()
+                .`when`(BookingTable.BOOKING_STATUS.eq(BookingStatus.REFUND_REQUESTED.name), 1)
+                .`when`(BookingTable.BOOKING_STATUS.eq(BookingStatus.CHECKING_PAYMENT.name), 2)
+                .`when`(BookingTable.BOOKING_STATUS.eq(BookingStatus.BOOKING_CONFIRMED.name), 3)
+                .`when`(BookingTable.BOOKING_STATUS.eq(BookingStatus.BOOKING_CANCELLED.name), 4)
+                .otherwise(5)
 
         return dsl.select(
-            BookingTable.ID,
-            BookingTable.BOOKER_NAME,
-            BookingTable.BOOKER_PHONE_NUMBER,
-            BookingTable.SCHEDULE_ID,
-            BookingTable.PURCHASE_TICKET_COUNT,
-            BookingTable.CREATED_AT,
-            BookingTable.BOOKING_STATUS,
-            BookingTable.TOTAL_PAYMENT_AMOUNT,
-            BookingTable.BANK_NAME,
-            BookingTable.ACCOUNT_NUMBER,
-            BookingTable.ACCOUNT_HOLDER,
-        ).from(BookingTable.TABLE)
-            .join(ScheduleTable.TABLE).on(BookingTable.SCHEDULE_ID.eq(ScheduleTable.ID))
+                BookingTable.ID,
+                BookingTable.BOOKER_NAME,
+                BookingTable.BOOKER_PHONE_NUMBER,
+                BookingTable.SCHEDULE_ID,
+                BookingTable.PURCHASE_TICKET_COUNT,
+                BookingTable.CREATED_AT,
+                BookingTable.BOOKING_STATUS,
+                BookingTable.TOTAL_PAYMENT_AMOUNT,
+                BookingTable.BANK_NAME,
+                BookingTable.ACCOUNT_NUMBER,
+                BookingTable.ACCOUNT_HOLDER,
+            )
+            .from(BookingTable.TABLE)
+            .join(ScheduleTable.TABLE)
+            .on(BookingTable.SCHEDULE_ID.eq(ScheduleTable.ID))
             .where(conditions)
             .orderBy(orderingField.asc(), BookingTable.CREATED_AT.desc())
             .fetch { record ->
-                val bookingStatusStr = record.get(BookingTable.BOOKING_STATUS)!!
-                val bookingStatus = try {
-                    BookingStatus.valueOf(bookingStatusStr)
-                } catch (_: Exception) {
-                    BookingStatus.BOOKING_CONFIRMED
-                }
+                val bookingStatusStr = record[BookingTable.BOOKING_STATUS]!!
+                val bookingStatus =
+                    try {
+                        BookingStatus.valueOf(bookingStatusStr)
+                    } catch (_: Exception) {
+                        BookingStatus.BOOKING_CONFIRMED
+                    }
                 MakerTicketListItemReadModel(
-                    bookingId = record.get(BookingTable.ID)!!,
-                    bookerName = record.get(BookingTable.BOOKER_NAME)!!,
-                    bookerPhoneNumber = record.get(BookingTable.BOOKER_PHONE_NUMBER)!!,
-                    scheduleId = record.get(BookingTable.SCHEDULE_ID)!!,
-                    purchaseTicketCount = record.get(BookingTable.PURCHASE_TICKET_COUNT)!!,
-                    createdAt = record.get(BookingTable.CREATED_AT)!!,
+                    bookingId = record[BookingTable.ID]!!,
+                    bookerName = record[BookingTable.BOOKER_NAME]!!,
+                    bookerPhoneNumber = record[BookingTable.BOOKER_PHONE_NUMBER]!!,
+                    scheduleId = record[BookingTable.SCHEDULE_ID]!!,
+                    purchaseTicketCount = record[BookingTable.PURCHASE_TICKET_COUNT]!!,
+                    createdAt = record[BookingTable.CREATED_AT]!!,
                     bookingStatus = MakerTicketBookingStatus.valueOf(bookingStatus.name),
-                    bankName = (record.get(BookingTable.BANK_NAME)?.let {
-                        try {
-                            com.beat.domain.sharedkernel.vo.BankName.valueOf(it)
-                        } catch (_: Exception) {
-                            com.beat.domain.sharedkernel.vo.BankName.NONE
-                        }
-                    } ?: com.beat.domain.sharedkernel.vo.BankName.NONE).displayName,
-                    accountNumber = record.get(BookingTable.ACCOUNT_NUMBER) ?: "",
-                    accountHolder = record.get(BookingTable.ACCOUNT_HOLDER) ?: "",
-                    deletable = Booking.canDeleteByMaker(bookingStatus, record.get(BookingTable.TOTAL_PAYMENT_AMOUNT)),
+                    bankName =
+                        (record[BookingTable.BANK_NAME]?.let {
+                                try {
+                                    com.beat.domain.sharedkernel.vo.BankName.valueOf(it)
+                                } catch (_: Exception) {
+                                    com.beat.domain.sharedkernel.vo.BankName.NONE
+                                }
+                            } ?: com.beat.domain.sharedkernel.vo.BankName.NONE)
+                            .displayName,
+                    accountNumber = record[BookingTable.ACCOUNT_NUMBER] ?: "",
+                    accountHolder = record[BookingTable.ACCOUNT_HOLDER] ?: "",
+                    deletable =
+                        Booking.canDeleteByMaker(
+                            bookingStatus,
+                            record[BookingTable.TOTAL_PAYMENT_AMOUNT],
+                        ),
                 )
             }
     }

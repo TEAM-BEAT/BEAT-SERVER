@@ -13,14 +13,12 @@ import com.beat.infrastructure.jooq.generated.Performance
 import com.beat.infrastructure.jooq.generated.PerformanceImage
 import com.beat.infrastructure.jooq.generated.Schedule
 import com.beat.infrastructure.jooq.generated.StaffTable
+import java.time.format.DateTimeFormatter
 import org.jooq.DSLContext
 import org.springframework.stereotype.Repository
-import java.time.format.DateTimeFormatter
 
 @Repository
-internal class PerformanceEditFormQueries(
-    private val dsl: DSLContext,
-) : PerformanceEditFormReader {
+internal class PerformanceEditFormQueries(private val dsl: DSLContext) : PerformanceEditFormReader {
 
     override fun findByPerformanceId(performanceId: Long): PerformanceEditFormReadModel? {
         val header = findHeader(performanceId) ?: return null
@@ -58,71 +56,73 @@ internal class PerformanceEditFormQueries(
 
     private fun findHeader(performanceId: Long): PerformanceEditHeaderProjection? =
         dsl.select(
-            Performance.ID,
-            Performance.USER_ID,
-            Performance.PERFORMANCE_TITLE,
-            Performance.GENRE,
-            Performance.RUNNING_TIME,
-            Performance.PERFORMANCE_DESCRIPTION,
-            Performance.PERFORMANCE_ATTENTION_NOTE,
-            Performance.BANK_NAME,
-            Performance.ACCOUNT_NUMBER,
-            Performance.ACCOUNT_HOLDER,
-            Performance.POSTER_IMAGE,
-            Performance.PERFORMANCE_TEAM_NAME,
-            Performance.PERFORMANCE_VENUE,
-            Performance.ROAD_ADDRESS_NAME,
-            Performance.PLACE_DETAIL_ADDRESS,
-            Performance.LATITUDE,
-            Performance.LONGITUDE,
-            Performance.PERFORMANCE_CONTACT,
-            Performance.PERFORMANCE_START_DATE,
-            Performance.PERFORMANCE_END_DATE,
-            Performance.TICKET_PRICE,
-            Performance.TOTAL_SCHEDULE_COUNT,
-        ).from(Performance.TABLE)
+                Performance.ID,
+                Performance.USER_ID,
+                Performance.PERFORMANCE_TITLE,
+                Performance.GENRE,
+                Performance.RUNNING_TIME,
+                Performance.PERFORMANCE_DESCRIPTION,
+                Performance.PERFORMANCE_ATTENTION_NOTE,
+                Performance.BANK_NAME,
+                Performance.ACCOUNT_NUMBER,
+                Performance.ACCOUNT_HOLDER,
+                Performance.POSTER_IMAGE,
+                Performance.PERFORMANCE_TEAM_NAME,
+                Performance.PERFORMANCE_VENUE,
+                Performance.ROAD_ADDRESS_NAME,
+                Performance.PLACE_DETAIL_ADDRESS,
+                Performance.LATITUDE,
+                Performance.LONGITUDE,
+                Performance.PERFORMANCE_CONTACT,
+                Performance.PERFORMANCE_START_DATE,
+                Performance.PERFORMANCE_END_DATE,
+                Performance.TICKET_PRICE,
+                Performance.TOTAL_SCHEDULE_COUNT,
+            )
+            .from(Performance.TABLE)
             .where(Performance.ID.eq(performanceId))
             .fetchOne { record ->
                 PerformanceEditHeaderProjection(
-                    performanceId = record.get(Performance.ID),
-                    userId = record.get(Performance.USER_ID)!!,
-                    performanceTitle = record.get(Performance.PERFORMANCE_TITLE)!!,
-                    genre = record.get(Performance.GENRE)!!,
-                    runningTime = record.get(Performance.RUNNING_TIME)!!,
-                    performanceDescription = record.get(Performance.PERFORMANCE_DESCRIPTION)!!,
-                    performanceAttentionNote = record.get(Performance.PERFORMANCE_ATTENTION_NOTE)!!,
-                    bankName = record.get(Performance.BANK_NAME),
-                    accountNumber = record.get(Performance.ACCOUNT_NUMBER),
-                    accountHolder = record.get(Performance.ACCOUNT_HOLDER),
-                    posterImage = record.get(Performance.POSTER_IMAGE)!!,
-                    performanceTeamName = record.get(Performance.PERFORMANCE_TEAM_NAME)!!,
-                    performanceVenue = record.get(Performance.PERFORMANCE_VENUE)!!,
-                    roadAddressName = record.get(Performance.ROAD_ADDRESS_NAME)!!,
-                    placeDetailAddress = record.get(Performance.PLACE_DETAIL_ADDRESS)!!,
-                    latitude = record.get(Performance.LATITUDE)!!,
-                    longitude = record.get(Performance.LONGITUDE)!!,
-                    performanceContact = record.get(Performance.PERFORMANCE_CONTACT)!!,
-                    periodStartDate = record.get(Performance.PERFORMANCE_START_DATE),
-                    periodEndDate = record.get(Performance.PERFORMANCE_END_DATE),
-                    ticketPrice = record.get(Performance.TICKET_PRICE)!!,
-                    totalScheduleCount = record.get(Performance.TOTAL_SCHEDULE_COUNT)!!,
+                    performanceId = record[Performance.ID],
+                    userId = record[Performance.USER_ID]!!,
+                    performanceTitle = record[Performance.PERFORMANCE_TITLE]!!,
+                    genre = record[Performance.GENRE]!!,
+                    runningTime = record[Performance.RUNNING_TIME]!!,
+                    performanceDescription = record[Performance.PERFORMANCE_DESCRIPTION]!!,
+                    performanceAttentionNote = record[Performance.PERFORMANCE_ATTENTION_NOTE]!!,
+                    bankName = record[Performance.BANK_NAME],
+                    accountNumber = record[Performance.ACCOUNT_NUMBER],
+                    accountHolder = record[Performance.ACCOUNT_HOLDER],
+                    posterImage = record[Performance.POSTER_IMAGE]!!,
+                    performanceTeamName = record[Performance.PERFORMANCE_TEAM_NAME]!!,
+                    performanceVenue = record[Performance.PERFORMANCE_VENUE]!!,
+                    roadAddressName = record[Performance.ROAD_ADDRESS_NAME]!!,
+                    placeDetailAddress = record[Performance.PLACE_DETAIL_ADDRESS]!!,
+                    latitude = record[Performance.LATITUDE]!!,
+                    longitude = record[Performance.LONGITUDE]!!,
+                    performanceContact = record[Performance.PERFORMANCE_CONTACT]!!,
+                    periodStartDate = record[Performance.PERFORMANCE_START_DATE],
+                    periodEndDate = record[Performance.PERFORMANCE_END_DATE],
+                    ticketPrice = record[Performance.TICKET_PRICE]!!,
+                    totalScheduleCount = record[Performance.TOTAL_SCHEDULE_COUNT]!!,
                 )
             }
 
     private fun findSchedules(performanceId: Long): List<PerformanceEditScheduleReadModel> =
         dsl.select(
-            Schedule.ID,
-            Schedule.PERFORMANCE_DATE,
-            Schedule.TOTAL_TICKET_COUNT,
-            Schedule.SCHEDULE_NUMBER,
-        ).from(Schedule.TABLE)
+                Schedule.ID,
+                Schedule.PERFORMANCE_DATE,
+                Schedule.TOTAL_TICKET_COUNT,
+                Schedule.SCHEDULE_NUMBER,
+            )
+            .from(Schedule.TABLE)
             .where(Schedule.PERFORMANCE_ID.eq(performanceId))
             .fetch { record ->
                 PerformanceEditScheduleReadModel(
-                    id = record.get(Schedule.ID)!!,
-                    performanceDate = record.get(Schedule.PERFORMANCE_DATE)!!,
-                    totalTicketCount = record.get(Schedule.TOTAL_TICKET_COUNT)!!,
-                    scheduleNumber = record.get(Schedule.SCHEDULE_NUMBER)!!,
+                    id = record[Schedule.ID]!!,
+                    performanceDate = record[Schedule.PERFORMANCE_DATE]!!,
+                    totalTicketCount = record[Schedule.TOTAL_TICKET_COUNT]!!,
+                    scheduleNumber = record[Schedule.SCHEDULE_NUMBER]!!,
                 )
             }
 
@@ -133,64 +133,74 @@ internal class PerformanceEditFormQueries(
         if (inactiveStatuses.isNotEmpty()) {
             conditions.add(Booking.BOOKING_STATUS.notIn(inactiveStatuses))
         }
-        val query = dsl.select(Booking.ID)
-            .from(Booking.TABLE)
-            .join(Schedule.TABLE).on(Booking.SCHEDULE_ID.eq(Schedule.ID))
-            .where(conditions)
+        val query =
+            dsl.select(Booking.ID)
+                .from(Booking.TABLE)
+                .join(Schedule.TABLE)
+                .on(Booking.SCHEDULE_ID.eq(Schedule.ID))
+                .where(conditions)
         return dsl.fetchExists(query)
     }
 
     private fun findCasts(performanceId: Long): List<PerformanceEditCastReadModel> =
         dsl.select(
-            CastTable.ID,
-            CastTable.CAST_NAME,
-            CastTable.CAST_ROLE,
-            CastTable.CAST_PHOTO,
-        ).from(CastTable.TABLE)
+                CastTable.ID,
+                CastTable.CAST_NAME,
+                CastTable.CAST_ROLE,
+                CastTable.CAST_PHOTO,
+            )
+            .from(CastTable.TABLE)
             .where(CastTable.PERFORMANCE_ID.eq(performanceId))
             .fetch { record ->
                 PerformanceEditCastReadModel(
-                    id = record.get(CastTable.ID)!!,
-                    name = record.get(CastTable.CAST_NAME)!!,
-                    role = record.get(CastTable.CAST_ROLE)!!,
-                    photo = record.get(CastTable.CAST_PHOTO)!!,
+                    id = record[CastTable.ID]!!,
+                    name = record[CastTable.CAST_NAME]!!,
+                    role = record[CastTable.CAST_ROLE]!!,
+                    photo = record[CastTable.CAST_PHOTO]!!,
                 )
             }
 
     private fun findStaffs(performanceId: Long): List<PerformanceEditStaffReadModel> =
         dsl.select(
-            StaffTable.ID,
-            StaffTable.STAFF_NAME,
-            StaffTable.STAFF_ROLE,
-            StaffTable.STAFF_PHOTO,
-        ).from(StaffTable.TABLE)
+                StaffTable.ID,
+                StaffTable.STAFF_NAME,
+                StaffTable.STAFF_ROLE,
+                StaffTable.STAFF_PHOTO,
+            )
+            .from(StaffTable.TABLE)
             .where(StaffTable.PERFORMANCE_ID.eq(performanceId))
             .fetch { record ->
                 PerformanceEditStaffReadModel(
-                    id = record.get(StaffTable.ID)!!,
-                    name = record.get(StaffTable.STAFF_NAME)!!,
-                    role = record.get(StaffTable.STAFF_ROLE)!!,
-                    photo = record.get(StaffTable.STAFF_PHOTO)!!,
+                    id = record[StaffTable.ID]!!,
+                    name = record[StaffTable.STAFF_NAME]!!,
+                    role = record[StaffTable.STAFF_ROLE]!!,
+                    photo = record[StaffTable.STAFF_PHOTO]!!,
                 )
             }
 
     private fun findImages(performanceId: Long): List<PerformanceEditImageReadModel> =
         dsl.select(
-            PerformanceImage.ID,
-            PerformanceImage.PERFORMANCE_IMAGE_URL,
-        ).from(PerformanceImage.TABLE)
+                PerformanceImage.ID,
+                PerformanceImage.PERFORMANCE_IMAGE_URL,
+            )
+            .from(PerformanceImage.TABLE)
             .where(PerformanceImage.PERFORMANCE_ID.eq(performanceId))
             .fetch { record ->
                 PerformanceEditImageReadModel(
-                    id = record.get(PerformanceImage.ID)!!,
-                    url = record.get(PerformanceImage.PERFORMANCE_IMAGE_URL)!!,
+                    id = record[PerformanceImage.ID]!!,
+                    url = record[PerformanceImage.PERFORMANCE_IMAGE_URL]!!,
                 )
             }
 
     private fun formatPeriod(header: PerformanceEditHeaderProjection): String {
-        val period = com.beat.domain.performance.vo.PerformancePeriod.of(header.periodStartDate!!, header.periodEndDate!!)
+        val period =
+            com.beat.domain.performance.vo.PerformancePeriod.of(
+                header.periodStartDate!!,
+                header.periodEndDate!!,
+            )
         val start = period.startDate.format(PERIOD_FORMATTER)
-        return if (period.startDate == period.endDate) start else "$start~${period.endDate.format(PERIOD_FORMATTER)}"
+        return if (period.startDate == period.endDate) start
+        else "$start~${period.endDate.format(PERIOD_FORMATTER)}"
     }
 
     private data class PerformanceEditHeaderProjection(

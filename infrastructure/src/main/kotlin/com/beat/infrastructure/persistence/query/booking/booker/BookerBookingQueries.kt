@@ -11,23 +11,23 @@ import org.jooq.DSLContext
 import org.springframework.stereotype.Repository
 
 @Repository
-internal class BookerBookingQueries(
-    private val dsl: DSLContext,
-) : BookingHistoryReadPort {
+internal class BookerBookingQueries(private val dsl: DSLContext) : BookingHistoryReadPort {
 
     override fun findByUserId(userId: Long): List<BookingHistorySnapshot> {
         val bookings = findBookings(userId)
         if (bookings.isEmpty()) return emptyList()
 
-        val schedules = findSchedules(bookings.map { it.scheduleId }.distinct())
-            .associateBy { it.scheduleId }
+        val schedules =
+            findSchedules(bookings.map { it.scheduleId }.distinct()).associateBy { it.scheduleId }
 
-        val performances = if (schedules.isEmpty()) {
-            emptyMap()
-        } else {
-            findPerformances(schedules.values.map { it.performanceId }.distinct())
-                .associateBy { it.performanceId }
-        }
+        val performances =
+            if (schedules.isEmpty()) {
+                emptyMap()
+            } else {
+                findPerformances(schedules.values.map { it.performanceId }.distinct()).associateBy {
+                    it.performanceId
+                }
+            }
 
         return bookings.map { booking ->
             val schedule = schedules[booking.scheduleId]
@@ -47,44 +47,46 @@ internal class BookerBookingQueries(
 
     private fun findBookings(userId: Long): List<BookingProjection> =
         dsl.select(
-            Booking.ID,
-            Booking.USER_ID,
-            Booking.SCHEDULE_ID,
-            Booking.PURCHASE_TICKET_COUNT,
-            Booking.BOOKER_NAME,
-            Booking.BOOKING_STATUS,
-            Booking.CREATED_AT,
-            Booking.TOTAL_PAYMENT_AMOUNT,
-        ).from(Booking.TABLE)
+                Booking.ID,
+                Booking.USER_ID,
+                Booking.SCHEDULE_ID,
+                Booking.PURCHASE_TICKET_COUNT,
+                Booking.BOOKER_NAME,
+                Booking.BOOKING_STATUS,
+                Booking.CREATED_AT,
+                Booking.TOTAL_PAYMENT_AMOUNT,
+            )
+            .from(Booking.TABLE)
             .where(Booking.USER_ID.eq(userId))
             .fetch { record ->
                 BookingProjection(
-                    bookingId = record.get(Booking.ID),
-                    userId = record.get(Booking.USER_ID)!!,
-                    scheduleId = record.get(Booking.SCHEDULE_ID)!!,
-                    purchaseTicketCount = record.get(Booking.PURCHASE_TICKET_COUNT)!!,
-                    bookerName = record.get(Booking.BOOKER_NAME)!!,
-                    bookingStatus = record.get(Booking.BOOKING_STATUS)!!,
-                    createdAt = record.get(Booking.CREATED_AT)!!,
-                    totalPaymentAmount = record.get(Booking.TOTAL_PAYMENT_AMOUNT),
+                    bookingId = record[Booking.ID],
+                    userId = record[Booking.USER_ID]!!,
+                    scheduleId = record[Booking.SCHEDULE_ID]!!,
+                    purchaseTicketCount = record[Booking.PURCHASE_TICKET_COUNT]!!,
+                    bookerName = record[Booking.BOOKER_NAME]!!,
+                    bookingStatus = record[Booking.BOOKING_STATUS]!!,
+                    createdAt = record[Booking.CREATED_AT]!!,
+                    totalPaymentAmount = record[Booking.TOTAL_PAYMENT_AMOUNT],
                 )
             }
 
     private fun findSchedules(scheduleIds: Collection<Long>): List<ScheduleProjection> {
         if (scheduleIds.isEmpty()) return emptyList()
         return dsl.select(
-            Schedule.ID,
-            Schedule.PERFORMANCE_ID,
-            Schedule.PERFORMANCE_DATE,
-            Schedule.SCHEDULE_NUMBER,
-        ).from(Schedule.TABLE)
+                Schedule.ID,
+                Schedule.PERFORMANCE_ID,
+                Schedule.PERFORMANCE_DATE,
+                Schedule.SCHEDULE_NUMBER,
+            )
+            .from(Schedule.TABLE)
             .where(Schedule.ID.`in`(scheduleIds))
             .fetch { record ->
                 ScheduleProjection(
-                    scheduleId = record.get(Schedule.ID),
-                    performanceId = record.get(Schedule.PERFORMANCE_ID)!!,
-                    performanceDate = record.get(Schedule.PERFORMANCE_DATE)!!,
-                    scheduleNumber = record.get(Schedule.SCHEDULE_NUMBER)!!,
+                    scheduleId = record[Schedule.ID],
+                    performanceId = record[Schedule.PERFORMANCE_ID]!!,
+                    performanceDate = record[Schedule.PERFORMANCE_DATE]!!,
+                    scheduleNumber = record[Schedule.SCHEDULE_NUMBER]!!,
                 )
             }
     }
@@ -92,28 +94,29 @@ internal class BookerBookingQueries(
     private fun findPerformances(performanceIds: Collection<Long>): List<PerformanceProjection> {
         if (performanceIds.isEmpty()) return emptyList()
         return dsl.select(
-            Performance.ID,
-            Performance.PERFORMANCE_TITLE,
-            Performance.PERFORMANCE_VENUE,
-            Performance.PERFORMANCE_CONTACT,
-            Performance.BANK_NAME,
-            Performance.ACCOUNT_NUMBER,
-            Performance.ACCOUNT_HOLDER,
-            Performance.POSTER_IMAGE,
-            Performance.TICKET_PRICE,
-        ).from(Performance.TABLE)
+                Performance.ID,
+                Performance.PERFORMANCE_TITLE,
+                Performance.PERFORMANCE_VENUE,
+                Performance.PERFORMANCE_CONTACT,
+                Performance.BANK_NAME,
+                Performance.ACCOUNT_NUMBER,
+                Performance.ACCOUNT_HOLDER,
+                Performance.POSTER_IMAGE,
+                Performance.TICKET_PRICE,
+            )
+            .from(Performance.TABLE)
             .where(Performance.ID.`in`(performanceIds))
             .fetch { record ->
                 PerformanceProjection(
-                    performanceId = record.get(Performance.ID),
-                    performanceTitle = record.get(Performance.PERFORMANCE_TITLE)!!,
-                    performanceVenue = record.get(Performance.PERFORMANCE_VENUE)!!,
-                    performanceContact = record.get(Performance.PERFORMANCE_CONTACT)!!,
-                    bankName = record.get(Performance.BANK_NAME),
-                    accountNumber = record.get(Performance.ACCOUNT_NUMBER),
-                    accountHolder = record.get(Performance.ACCOUNT_HOLDER),
-                    posterImage = record.get(Performance.POSTER_IMAGE)!!,
-                    ticketPrice = record.get(Performance.TICKET_PRICE)!!,
+                    performanceId = record[Performance.ID],
+                    performanceTitle = record[Performance.PERFORMANCE_TITLE]!!,
+                    performanceVenue = record[Performance.PERFORMANCE_VENUE]!!,
+                    performanceContact = record[Performance.PERFORMANCE_CONTACT]!!,
+                    bankName = record[Performance.BANK_NAME],
+                    accountNumber = record[Performance.ACCOUNT_NUMBER],
+                    accountHolder = record[Performance.ACCOUNT_HOLDER],
+                    posterImage = record[Performance.POSTER_IMAGE]!!,
+                    ticketPrice = record[Performance.TICKET_PRICE]!!,
                 )
             }
     }
