@@ -1,6 +1,7 @@
 -- BEAT jOOQ codegen DDL source — deterministic, no live DB required
 -- MySQL 8.0 compatible, parsed by jOOQ DDLDatabase (H2 interpreter)
--- This file is the single source for jOOQ generated Tables. Keep in sync with JPA entities.
+-- This file is the single source for jOOQ generated Tables. Keep in sync with JPA entities and ops DDL.
+-- Last sync: 2026-08-25 — CONTRACT 이후 최신 DDL (performance_start_date/end_date NOT NULL, booking.total_payment_amount NOT NULL, CHECK/fulltext는 운영에만)
 
 CREATE TABLE `users` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -26,8 +27,8 @@ CREATE TABLE `performance` (
   `performance_title` VARCHAR(255) NOT NULL,
   `genre` VARCHAR(255) NOT NULL,
   `running_time` INT NOT NULL,
-  `performance_description` TEXT NOT NULL,
-  `performance_attention_note` TEXT NOT NULL,
+  `performance_description` VARCHAR(1500) NOT NULL,
+  `performance_attention_note` VARCHAR(1500) NOT NULL,
   `bank_name` VARCHAR(255),
   `account_number` VARCHAR(255),
   `account_holder` VARCHAR(255),
@@ -40,13 +41,14 @@ CREATE TABLE `performance` (
   `longitude` VARCHAR(255) NOT NULL,
   `performance_contact` VARCHAR(255) NOT NULL,
   `performance_period` VARCHAR(255) NOT NULL,
-  `performance_start_date` DATE,
-  `performance_end_date` DATE,
+  `performance_start_date` DATE NOT NULL,
+  `performance_end_date` DATE NOT NULL,
   `ticket_price` INT NOT NULL,
   `total_schedule_count` INT NOT NULL,
   `user_id` BIGINT NOT NULL,
   `created_at` DATETIME(6),
   `updated_at` DATETIME(6)
+  -- CHECK chk_performance_payment_account_complete, chk_performance_period_complete는 운영 DDL에만 존재 (H2 파싱 회피)
 );
 
 CREATE TABLE `schedule` (
@@ -72,10 +74,11 @@ CREATE TABLE `booking` (
   `bank_name` VARCHAR(255),
   `account_number` VARCHAR(255),
   `account_holder` VARCHAR(255),
-  `total_payment_amount` INT,
+  `total_payment_amount` INT NOT NULL,
   `schedule_id` BIGINT NOT NULL,
   `user_id` BIGINT NOT NULL,
   `updated_at` DATETIME(6)
+  -- CHECK chk_booking_refund_account_complete_v2는 운영 DDL에만 존재
 );
 
 CREATE TABLE `cast` (
@@ -108,3 +111,6 @@ CREATE TABLE `promotion` (
   `is_external` BOOLEAN NOT NULL,
   `carousel_number` VARCHAR(255) NOT NULL
 );
+
+-- 운영 DDL에만 존재: create fulltext index ft_booker_name on booking (booker_name);
+-- jOOQ DDLDatabase(H2)는 fulltext index 파싱을 지원하지 않아 주석 처리
