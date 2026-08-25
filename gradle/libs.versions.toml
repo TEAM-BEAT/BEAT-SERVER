@@ -1,7 +1,6 @@
 [versions]
 archunit = "1.5.0"
 spring-boot = "4.0.8"
-dependency-management = "1.1.7"
 kotlin = "2.3.21"
 kotlin-logging = "8.0.4"
 ktfmt = "0.64"

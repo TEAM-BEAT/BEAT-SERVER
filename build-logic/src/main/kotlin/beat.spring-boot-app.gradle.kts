@@ -4,7 +4,6 @@ import org.springframework.boot.gradle.tasks.run.BootRun
 
 plugins {
     id("org.springframework.boot")
-    id("io.spring.dependency-management")
     kotlin("plugin.spring")
     id("beat.kotlin-base")
     id("beat.test")
@@ -17,6 +16,7 @@ configurations.configureEach {
 }
 
 dependencies {
+    implementation(platform(libs.findLibrary("spring-boot-dependencies").get()))
     implementation(libs.findBundle("boot-app-core").get())
     implementation(libs.findLibrary("spring-boot-starter-log4j2").get())
     compileOnly(libs.findLibrary("lombok").get())

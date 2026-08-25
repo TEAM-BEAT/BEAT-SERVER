@@ -12,7 +12,6 @@ group = "com.beat.buildlogic"
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 val kotlinVersion = libsCatalog.findVersion("kotlin").get().requiredVersion
 val springBootVersion = libsCatalog.findVersion("spring-boot").get().requiredVersion
-val dependencyManagementVersion = libsCatalog.findVersion("dependency-management").get().requiredVersion
 val sentryGradlePluginVersion = libsCatalog.findVersion("sentry-gradle-plugin").get().requiredVersion
 val dependencyAnalysisVersion = libsCatalog.findVersion("dependency-analysis").get().requiredVersion
 val koverVersion = libsCatalog.findVersion("kover").get().requiredVersion
@@ -45,13 +44,6 @@ dependencies {
     implementation(pluginMarker("org.jetbrains.kotlin.plugin.spring", "org.jetbrains.kotlin.plugin.spring.gradle.plugin", kotlinVersion))
     implementation(pluginMarker("org.jetbrains.kotlin.plugin.jpa", "org.jetbrains.kotlin.plugin.jpa.gradle.plugin", kotlinVersion))
     implementation(pluginMarker("org.springframework.boot", "org.springframework.boot.gradle.plugin", springBootVersion))
-    implementation(
-        pluginMarker(
-            "io.spring.dependency-management",
-            "io.spring.dependency-management.gradle.plugin",
-            dependencyManagementVersion,
-        )
-    )
     implementation(
         pluginMarker(
             "io.sentry.jvm.gradle",
