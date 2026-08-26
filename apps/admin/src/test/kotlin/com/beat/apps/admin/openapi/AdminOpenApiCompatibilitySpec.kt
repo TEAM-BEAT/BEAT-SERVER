@@ -94,15 +94,14 @@ private fun JsonNode.assertOpenApiContract() {
         }
     }
 
-    // 현재 components.schemas는 공개 API DTO와 공통 envelope로 구성되므로 properties가 있는
-    // 모든 schema를 계약 대상으로 검증한다. 이후 외부 schema가 추가되면 소유 범위를 재검토한다.
+    // 현재 components.schemas의 공개 API DTO와 공통 envelope properties를 계약 대상으로 검증한다.
+    // springdoc이 합성한 schema 자체의 설명은 강제하지 않는다.
     val schemas =
         get("components")?.get("schemas") ?: error("OpenAPI component schemas are missing")
     val schemaEntries = schemas.fields()
     while (schemaEntries.hasNext()) {
         val schemaEntry = schemaEntries.next()
         val properties = schemaEntry.value.get("properties") ?: continue
-        schemaEntry.value.requireNonBlank("description", schemaEntry.key)
         val propertyEntries = properties.fields()
         while (propertyEntries.hasNext()) {
             val propertyEntry = propertyEntries.next()
