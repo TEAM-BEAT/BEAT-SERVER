@@ -12,6 +12,7 @@ import io.swagger.v3.oas.models.responses.ApiResponses
 import io.swagger.v3.oas.models.security.SecurityRequirement
 import io.swagger.v3.oas.models.security.SecurityScheme
 import io.swagger.v3.oas.models.servers.Server
+import org.springdoc.core.customizers.OpenApiCustomizer
 import org.springdoc.core.customizers.OperationCustomizer
 import org.springdoc.core.models.GroupedOpenApi
 import org.springframework.beans.factory.annotation.Value
@@ -44,8 +45,24 @@ class SwaggerConfig(@param:Value("\${app.server.url}") private val serverUrl: St
         GroupedOpenApi.builder()
             .group("general")
             .pathsToMatch("/**")
+            .addOpenApiCustomizer(customizeSuccessResponseDataSchemas())
             .addOperationCustomizer(customize())
             .build()
+
+    private fun customizeSuccessResponseDataSchemas(): OpenApiCustomizer =
+        OpenApiCustomizer { openAPI ->
+            openAPI.components
+                ?.schemas
+                ?.filterKeys { it.startsWith("SuccessResponse") }
+                ?.values
+                ?.forEach { schema ->
+                    val dataSchema = schema.properties?.get("data")
+                    if (dataSchema != null && dataSchema.description.isNullOrBlank()) {
+                        dataSchema.description =
+                            "성공 결과 데이터입니다. 데이터가 없는 응답에서도 JSON 키가 포함되며 값은 null일 수 있습니다."
+                    }
+                }
+        }
 
     @Bean
     fun customize(): OperationCustomizer = OperationCustomizer { operation, handlerMethod ->
