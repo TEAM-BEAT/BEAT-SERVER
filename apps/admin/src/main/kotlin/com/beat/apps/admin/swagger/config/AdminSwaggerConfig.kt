@@ -63,8 +63,7 @@ class AdminSwaggerConfig(@param:Value("\${app.server.url:}") private val serverU
             val typeSchema =
                 openAPI.components?.schemas?.get("PromotionHandleRequest")?.properties?.get("type")
             if (typeSchema != null) {
-                typeSchema.description =
-                    "요청 항목 유형입니다. modify는 기존 프로모션 수정, generate는 신규 프로모션 생성입니다."
+                typeSchema.description = "요청 항목 유형입니다. modify는 기존 프로모션 수정, generate는 신규 프로모션 생성입니다."
                 typeSchema.example = "generate"
             }
         }
