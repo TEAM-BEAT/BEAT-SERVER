@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAlias
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
+import io.swagger.v3.oas.annotations.media.DiscriminatorMapping
 import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(description = "캐러셀 프로모션 생성 또는 수정 요청")
@@ -116,5 +117,24 @@ data class CarouselHandleRequest(
         name = "generate",
     ),
 )
-@Schema(description = "캐러셀 프로모션 생성 또는 수정 항목")
+@Schema(
+    description = "캐러셀 프로모션 생성 또는 수정 항목",
+    oneOf =
+        [
+            CarouselHandleRequest.PromotionModifyRequest::class,
+            CarouselHandleRequest.PromotionGenerateRequest::class,
+        ],
+    discriminatorProperty = "type",
+    discriminatorMapping =
+        [
+            DiscriminatorMapping(
+                value = "modify",
+                schema = CarouselHandleRequest.PromotionModifyRequest::class,
+            ),
+            DiscriminatorMapping(
+                value = "generate",
+                schema = CarouselHandleRequest.PromotionGenerateRequest::class,
+            ),
+        ],
+)
 sealed interface PromotionHandleRequest
