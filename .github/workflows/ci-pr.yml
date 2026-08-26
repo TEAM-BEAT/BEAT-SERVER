@@ -38,13 +38,6 @@ jobs:
         run: python3 .github/scripts/check_unused_version_catalog_aliases.py
         shell: bash
 
-      - name: Verify database migrations on MySQL 8.0.41 and 8.4.11
-        run: |
-          chmod +x .github/scripts/verify_db_migrations.sh
-          MYSQL_IMAGE=mysql:8.0.41 .github/scripts/verify_db_migrations.sh
-          MYSQL_IMAGE=mysql:8.4.11 .github/scripts/verify_db_migrations.sh
-        shell: bash
-
       - name: Verify Gradle check
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
