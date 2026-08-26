@@ -44,7 +44,7 @@ class BookingCreationFlowSpec :
             val savedBookingSlot = slot<Booking>()
             every { dependencies.bookingRepository.save(capture(savedBookingSlot)) } answers
                 {
-                    savedBookingSlot.captured
+                    persistedBooking(savedBookingSlot.captured)
                 }
             stubGuestCreation(dependencies, schedule)
             every { dependencies.guestSessionStore.issue(30L) } returns "guest-session"
@@ -82,7 +82,7 @@ class BookingCreationFlowSpec :
             val savedBookingSlot = slot<Booking>()
             every { dependencies.bookingRepository.save(capture(savedBookingSlot)) } answers
                 {
-                    savedBookingSlot.captured
+                    persistedBooking(savedBookingSlot.captured)
                 }
             every { dependencies.memberRepository.findById(10L) } returns member()
             every { dependencies.scheduleRepository.findPerformanceIdById(1L) } returns 20L
@@ -195,7 +195,7 @@ class BookingCreationFlowSpec :
 
 private class CreationDependencies {
     val scheduleRepository = scheduleRepositoryWithSavePassthrough()
-    val bookingRepository = bookingRepositoryWithSavePassthrough()
+    val bookingRepository = bookingRepositoryWithDeterministicSave()
     val userRepository = userRepositoryWithDeterministicSave()
     val performanceRepository = mockk<PerformanceRepository>(relaxed = true)
     val performance =
@@ -252,10 +252,27 @@ private fun scheduleRepositoryWithSavePassthrough(): ScheduleRepository =
         every { save(any()) } answers { firstArg() }
     }
 
-private fun bookingRepositoryWithSavePassthrough(): BookingRepository =
+private fun bookingRepositoryWithDeterministicSave(): BookingRepository =
     mockk(relaxed = true) {
-        every { save(any()) } answers { firstArg() }
+        every { save(any()) } answers { persistedBooking(firstArg()) }
     }
+
+private fun persistedBooking(booking: Booking): Booking =
+    Booking.rehydrate(
+        id = 1L,
+        purchaseTicketCount = booking.purchaseTicketCount,
+        bookerName = booking.bookerName,
+        bookerPhoneNumber = booking.bookerPhoneNumber,
+        bookingStatus = booking.bookingStatus,
+        createdAt = booking.createdAt,
+        cancellationDate = booking.cancellationDate,
+        birthDate = booking.birthDate,
+        password = booking.password,
+        refundAccount = booking.refundAccount,
+        scheduleId = booking.scheduleId,
+        userId = booking.userId,
+        totalPaymentAmount = booking.totalPaymentAmount,
+    )
 
 private fun userRepositoryWithDeterministicSave(): UserRepository =
     mockk(relaxed = true) {
