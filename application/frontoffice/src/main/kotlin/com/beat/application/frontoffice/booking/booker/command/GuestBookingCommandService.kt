@@ -109,8 +109,8 @@ internal constructor(
             )
             val result =
                 BookingCreationResult(
-                    booking.id,
-                    schedule.id,
+                    requireNotNull(booking.id),
+                    requireNotNull(schedule.id),
                     booking.userId,
                     booking.purchaseTicketCount,
                     schedule.scheduleNumber.name,

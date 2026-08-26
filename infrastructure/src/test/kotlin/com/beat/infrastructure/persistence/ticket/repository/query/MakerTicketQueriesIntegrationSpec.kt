@@ -9,6 +9,7 @@ import com.beat.domain.booking.vo.RefundAccount
 import com.beat.domain.performance.model.Genre
 import com.beat.domain.performance.model.Performance
 import com.beat.domain.performance.repository.PerformanceRepository
+import com.beat.domain.performance.vo.PaymentAccount
 import com.beat.domain.performance.vo.PerformancePeriod
 import com.beat.domain.performance.vo.RunningTime
 import com.beat.domain.performance.vo.TicketPrice
@@ -76,7 +77,8 @@ class MakerTicketQueriesIntegrationSpec : FunSpec() {
                                 runningTime = RunningTime.of(120),
                                 performanceDescription = "description",
                                 performanceAttentionNote = "attention",
-                                paymentAccount = null,
+                                paymentAccount =
+                                    PaymentAccount.of(BankName.BUSAN, "123", "maker"),
                                 posterImage = "poster.jpg",
                                 performanceTeamName = "team",
                                 performanceVenue = "venue",

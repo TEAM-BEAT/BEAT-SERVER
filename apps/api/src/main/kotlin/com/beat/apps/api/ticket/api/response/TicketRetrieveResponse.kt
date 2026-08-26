@@ -5,8 +5,8 @@ import com.beat.application.frontoffice.ticket.maker.query.TicketRetrieveResult
 @ConsistentCopyVisibility
 data class TicketRetrieveResponse
 private constructor(
-    val performanceTitle: String?,
-    val performanceTeamName: String?,
+    val performanceTitle: String,
+    val performanceTeamName: String,
     val totalScheduleCount: Int,
     val totalPerformanceTicketCount: Int,
     val totalPerformanceSoldTicketCount: Int,

@@ -68,6 +68,21 @@ class ApisJsonCompatibilitySpec :
             }
         }
 
+        test("refund request의 환불 계좌 필드는 JSON 누락과 null을 거부한다") {
+            listOf(
+                """{"bookingId":1,"accountNumber":"123","accountHolder":"holder"}""",
+                """{"bookingId":1,"bankName":"KAKAOBANK","accountHolder":"holder"}""",
+                """{"bookingId":1,"bankName":"KAKAOBANK","accountNumber":"123"}""",
+                """{"bookingId":1,"bankName":null,"accountNumber":"123","accountHolder":"holder"}""",
+                """{"bookingId":1,"bankName":"KAKAOBANK","accountNumber":null,"accountHolder":"holder"}""",
+                """{"bookingId":1,"bankName":"KAKAOBANK","accountNumber":"123","accountHolder":null}""",
+            ).forEach { json ->
+                shouldThrow<Exception> {
+                    objectMapper.readValue(json, BookingRefundRequest::class.java)
+                }
+            }
+        }
+
         test("api 경계 마이그레이션 전후로 api enum 이름이 호환된다") {
             withClue("API enum names") {
                 enumNames(SocialTypeRequest.entries.toTypedArray()) shouldBe listOf("KAKAO")

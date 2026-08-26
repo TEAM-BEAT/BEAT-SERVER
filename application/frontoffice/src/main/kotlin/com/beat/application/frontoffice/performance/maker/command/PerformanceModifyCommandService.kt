@@ -23,6 +23,7 @@ import com.beat.domain.performance.repository.PerformanceRepository
 import com.beat.domain.performance.vo.PaymentAccount
 import com.beat.domain.performance.vo.PerformancePeriod
 import com.beat.domain.performance.vo.RunningTime
+import com.beat.domain.performance.vo.TicketPrice
 import com.beat.domain.sharedkernel.vo.BankName
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.context.ApplicationEventPublisher
@@ -127,7 +128,7 @@ internal constructor(
                 PerformanceApplicationErrorCode.SCHEDULE_LIST_NOT_FOUND
             )
         }
-        var updated =
+        val updated =
             current.update(
                 command.performanceTitle,
                 Genre.valueOf(command.genre.name),
@@ -153,8 +154,10 @@ internal constructor(
                 command.performanceContact,
                 PerformancePeriod.fromPerformanceDateTimes(performanceDates),
                 scheduleCommands.size,
+                ticketPrice = TicketPrice.of(command.ticketPrice),
+                hasActiveBooking = hasActiveBooking,
             )
-        return updated.updateTicketPrice(command.ticketPrice, hasActiveBooking)
+        return updated
     }
 
     private fun synchronizeCasts(

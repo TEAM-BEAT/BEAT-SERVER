@@ -7,14 +7,14 @@ import java.time.LocalDateTime
 @ConsistentCopyVisibility
 data class TicketDetail
 private constructor(
-    val bookingId: Long?,
-    val bookerName: String?,
-    val bookerPhoneNumber: String?,
-    val scheduleId: Long?,
+    val bookingId: Long,
+    val bookerName: String,
+    val bookerPhoneNumber: String,
+    val scheduleId: Long,
     val purchaseTicketCount: Int,
-    val createdAt: LocalDateTime?,
-    val bookingStatus: BookingStatusType?,
-    val scheduleNumber: String?,
+    val createdAt: LocalDateTime,
+    val bookingStatus: BookingStatusType,
+    val scheduleNumber: String,
     val bankName: String,
     val accountNumber: String,
     val accountHolder: String,
