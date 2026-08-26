@@ -4,6 +4,7 @@ import com.beat.apps.api.file.api.response.PerformanceMakerPresignedUrlFindAllRe
 import com.beat.apps.api.response.ErrorResponse
 import com.beat.apps.api.response.SuccessResponse
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -16,8 +17,9 @@ import org.springframework.web.bind.annotation.RequestParam
 interface FileApi {
 
     @Operation(
+        operationId = "fileGeneratePerformanceImagePresignedUrls",
         summary = "공연 이미지 업로드 Presigned URL 발급",
-        description = "공연 등록 시 업로드할 이미지에 대한 presigned URL을 발급 받는 GET API",
+        description = "공연 등록에 사용할 이미지 파일명으로 S3 PUT presigned URL과 object key를 발급합니다.",
     )
     @ApiResponses(
         value =
@@ -31,9 +33,33 @@ interface FileApi {
             ]
     )
     fun generateAllPresignedUrls(
-        @RequestParam posterImage: String,
-        @RequestParam(required = false) castImages: List<String>?,
-        @RequestParam(required = false) staffImages: List<String>?,
-        @RequestParam(required = false) performanceImages: List<String>?,
+        @Parameter(
+            description = "업로드할 포스터 이미지의 원본 파일명입니다. URL이나 S3 object key가 아닌 파일명만 전달합니다.",
+            example = "poster.png",
+            required = true,
+        )
+        @RequestParam
+        posterImage: String,
+        @Parameter(
+            description = "업로드할 출연진 이미지의 원본 파일명 목록입니다. URL이나 S3 object key가 아닌 파일명만 전달합니다.",
+            example = "cast.png",
+            required = false,
+        )
+        @RequestParam(required = false)
+        castImages: List<String>?,
+        @Parameter(
+            description = "업로드할 스태프 이미지의 원본 파일명 목록입니다. URL이나 S3 object key가 아닌 파일명만 전달합니다.",
+            example = "staff.png",
+            required = false,
+        )
+        @RequestParam(required = false)
+        staffImages: List<String>?,
+        @Parameter(
+            description = "업로드할 공연 상세 이미지의 원본 파일명 목록입니다. URL이나 S3 object key가 아닌 파일명만 전달합니다.",
+            example = "performance.png",
+            required = false,
+        )
+        @RequestParam(required = false)
+        performanceImages: List<String>?,
     ): ResponseEntity<SuccessResponse<PerformanceMakerPresignedUrlFindAllResponse>>
 }

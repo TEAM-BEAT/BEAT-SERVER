@@ -16,8 +16,9 @@ import org.springframework.http.ResponseEntity
 interface AdminUserApi {
 
     @Operation(
-        summary = "유저 정보 조회",
-        description = "관리자가 유저들의 정보를 조회하는 GET API",
+        operationId = "readAllUsers",
+        summary = "관리자 사용자 전체 조회",
+        description = "관리자가 시스템에 등록된 사용자 전체의 식별자와 권한을 조회합니다.",
     )
     @ApiResponses(
         value =

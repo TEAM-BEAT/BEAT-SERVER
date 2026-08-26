@@ -5,6 +5,7 @@ import com.beat.apps.api.response.SuccessResponse
 import com.beat.apps.api.schedule.api.response.TicketAvailabilityResponse
 import com.beat.apps.api.swagger.annotation.DisableSwaggerSecurity
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -18,7 +19,11 @@ import org.springframework.web.bind.annotation.RequestParam
 interface ScheduleApi {
 
     @DisableSwaggerSecurity
-    @Operation(summary = "티켓 구매 가능 여부 조회 API", description = "티켓 구매 가능 여부를 확인하는 GET API입니다.")
+    @Operation(
+        operationId = "scheduleCheckTicketAvailability",
+        summary = "회차 티켓 구매 가능 여부 조회",
+        description = "지정한 회차의 잔여 티켓 수량이 요청 수량을 충족하는지 조회합니다.",
+    )
     @ApiResponses(
         value =
             [
@@ -41,7 +46,19 @@ interface ScheduleApi {
             ]
     )
     fun getTicketAvailability(
-        @PathVariable scheduleId: Long,
-        @RequestParam purchaseTicketCount: Int,
+        @Parameter(
+            description = "티켓 구매 가능 여부를 확인할 회차 식별자입니다.",
+            example = "1",
+            required = true,
+        )
+        @PathVariable
+        scheduleId: Long,
+        @Parameter(
+            description = "구매 가능 여부를 확인할 티켓 수량입니다. 1개 이상이어야 합니다.",
+            example = "2",
+            required = true,
+        )
+        @RequestParam
+        purchaseTicketCount: Int,
     ): ResponseEntity<SuccessResponse<TicketAvailabilityResponse>>
 }

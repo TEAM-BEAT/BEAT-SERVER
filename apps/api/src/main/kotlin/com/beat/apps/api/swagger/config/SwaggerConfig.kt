@@ -4,6 +4,11 @@ import com.beat.apps.api.swagger.annotation.DisableSwaggerSecurity
 import io.swagger.v3.oas.models.Components
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.info.Info
+import io.swagger.v3.oas.models.media.Content
+import io.swagger.v3.oas.models.media.MediaType
+import io.swagger.v3.oas.models.media.Schema
+import io.swagger.v3.oas.models.responses.ApiResponse
+import io.swagger.v3.oas.models.responses.ApiResponses
 import io.swagger.v3.oas.models.security.SecurityRequirement
 import io.swagger.v3.oas.models.security.SecurityScheme
 import io.swagger.v3.oas.models.servers.Server
@@ -26,8 +31,9 @@ class SwaggerConfig(@param:Value("\${app.server.url}") private val serverUrl: St
                 .type(SecurityScheme.Type.HTTP)
                 .scheme("bearer")
                 .bearerFormat("JWT")
+                .description("JWT access token을 Bearer 방식으로 입력합니다. 예: Bearer {token}")
         return OpenAPI()
-            .addServersItem(Server().url(serverUrl))
+            .addServersItem(Server().url(serverUrl).description("BEAT 사용자 API 서버"))
             .components(Components().addSecuritySchemes(schemeName, scheme))
             .info(apiInfo())
             .addSecurityItem(SecurityRequirement().addList(schemeName))
@@ -43,15 +49,56 @@ class SwaggerConfig(@param:Value("\${app.server.url}") private val serverUrl: St
 
     @Bean
     fun customize(): OperationCustomizer = OperationCustomizer { operation, handlerMethod ->
-        if (handlerMethod.getMethodAnnotation(DisableSwaggerSecurity::class.java) != null) {
+        val securityDisabled =
+            handlerMethod.getMethodAnnotation(DisableSwaggerSecurity::class.java) != null
+        if (securityDisabled) {
             operation.security = emptyList()
+        }
+        val responses = operation.responses ?: ApiResponses().also { operation.responses = it }
+        if (!securityDisabled) {
+            if (!responses.containsKey("401")) {
+                responses.addApiResponse(
+                    "401",
+                    ApiResponse().description("JWT 인증 정보가 없거나 유효하지 않거나 만료되었습니다. 응답 본문은 없습니다."),
+                )
+            }
+            if (!responses.containsKey("403")) {
+                responses.addApiResponse(
+                    "403",
+                    ApiResponse().description("인증되었지만 요청한 리소스에 접근할 권한이 없습니다. 응답 본문은 없습니다."),
+                )
+            }
+        }
+        if (!responses.containsKey("400")) {
+            responses.addApiResponse(
+                "400",
+                errorResponse("요청 파라미터 또는 본문 형식이 잘못되었거나 검증에 실패했습니다."),
+            )
+        }
+        if (!responses.containsKey("500")) {
+            responses.addApiResponse(
+                "500",
+                errorResponse("처리되지 않은 서버 오류가 발생했습니다."),
+            )
         }
         operation
     }
 
+    private fun errorResponse(description: String): ApiResponse =
+        ApiResponse()
+            .description(description)
+            .content(
+                Content()
+                    .addMediaType(
+                        "application/json",
+                        MediaType()
+                            .schema(Schema<Any>().`$ref`("#/components/schemas/ErrorResponse")),
+                    )
+            )
+
     private fun apiInfo(): Info =
         Info()
-            .title("BEAT Project API")
-            .description("간편하게 소규모 공연을 등록하고 관리할 수 있는 티켓 예매 플랫폼")
-            .version("1.2.7")
+            .title("BEAT 사용자 API")
+            .description("공연 등록자와 관객이 공연을 등록·조회하고 티켓을 예매·관리하는 사용자용 API입니다.")
+            .version("2.0.0")
 }
