@@ -46,6 +46,7 @@ class SwaggerConfig(@param:Value("\${app.server.url}") private val serverUrl: St
             .group("general")
             .pathsToMatch("/**")
             .addOpenApiCustomizer(customizeSuccessResponseDataSchemas())
+            .addOpenApiCustomizer(customizeImagePresignedUploadSchema())
             .addOperationCustomizer(customize())
             .build()
 
@@ -62,6 +63,26 @@ class SwaggerConfig(@param:Value("\${app.server.url}") private val serverUrl: St
                             "성공 결과 데이터입니다. 데이터가 없는 응답에서도 JSON 키가 포함되며 값은 null일 수 있습니다."
                     }
                 }
+        }
+
+    private fun customizeImagePresignedUploadSchema(): OpenApiCustomizer =
+        OpenApiCustomizer { openAPI ->
+            val schema = openAPI.components?.schemas?.get("ImagePresignedUpload")
+            if (schema != null) {
+                if (schema.description.isNullOrBlank()) {
+                    schema.description = "S3 이미지 업로드용 presigned URL과 저장될 object key입니다."
+                }
+                schema.properties?.get("uploadUrl")?.let { uploadUrl ->
+                    if (uploadUrl.description.isNullOrBlank()) {
+                        uploadUrl.description = "이미지 파일을 업로드할 S3 PUT presigned URL입니다."
+                    }
+                }
+                schema.properties?.get("imageKey")?.let { imageKey ->
+                    if (imageKey.description.isNullOrBlank()) {
+                        imageKey.description = "업로드된 이미지를 식별하는 S3 object key입니다."
+                    }
+                }
+            }
         }
 
     @Bean
