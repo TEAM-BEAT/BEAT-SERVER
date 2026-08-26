@@ -77,8 +77,7 @@ class MakerTicketQueriesIntegrationSpec : FunSpec() {
                                 runningTime = RunningTime.of(120),
                                 performanceDescription = "description",
                                 performanceAttentionNote = "attention",
-                                paymentAccount =
-                                    PaymentAccount.of(BankName.BUSAN, "123", "maker"),
+                                paymentAccount = PaymentAccount.of(BankName.BUSAN, "123", "maker"),
                                 posterImage = "poster.jpg",
                                 performanceTeamName = "team",
                                 performanceVenue = "venue",
