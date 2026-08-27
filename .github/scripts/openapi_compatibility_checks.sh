@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+check_compatibility() {
+    local oasdiff_path="$1"
+    local baseline="$2"
+    local generated="$3"
+
+    [[ -f "${baseline}" ]] || {
+        echo "Missing OpenAPI baseline: ${baseline}" >&2
+        return 1
+    }
+    [[ -f "${generated}" ]] || {
+        echo "Missing generated OpenAPI document: ${generated}" >&2
+        return 1
+    }
+
+    "${oasdiff_path}" breaking "${baseline}" "${generated}" --fail-on ERR
+}
+
+run_compatibility_checks() {
+    local oasdiff_path="$1"
+    local general_baseline="$2"
+    local general_generated="$3"
+    local admin_baseline="$4"
+    local admin_generated="$5"
+    local general_status=0
+    local admin_status=0
+
+    if check_compatibility "${oasdiff_path}" "${general_baseline}" "${general_generated}"; then
+        :
+    else
+        general_status=$?
+    fi
+
+    if check_compatibility "${oasdiff_path}" "${admin_baseline}" "${admin_generated}"; then
+        :
+    else
+        admin_status=$?
+    fi
+
+    if (( general_status != 0 || admin_status != 0 )); then
+        echo "OpenAPI compatibility failed (general=${general_status}, admin=${admin_status})" >&2
+        return 1
+    fi
+}

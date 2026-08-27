@@ -24,12 +24,12 @@ data class CarouselFindAllResponse(
     data class CarouselFindResponse(
         @field:Schema(
             description = "프로모션 식별자",
-            types = ["integer", "null"],
+            type = "integer",
             format = "int64",
             requiredMode = Schema.RequiredMode.REQUIRED,
             example = "1",
         )
-        val promotionId: Long?,
+        val promotionId: Long,
         @field:Schema(
             description = "프로모션이 배치된 캐러셀 순서",
             type = "string",

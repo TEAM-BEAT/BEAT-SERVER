@@ -14,19 +14,19 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "1",
     )
-    val scheduleId: Long?,
+    val scheduleId: Long,
     @field:Schema(
         description = "공연 시작 일시(ISO-8601)",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "2026-09-01T19:00:00",
     )
-    val performanceDate: LocalDateTime?,
+    val performanceDate: LocalDateTime,
     @field:Schema(
         description = "회차 번호 문자열",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "FIRST",
     )
-    val scheduleNumber: String?,
+    val scheduleNumber: String,
     @field:Schema(
         description = "예매 가능한 잔여 티켓 수량",
         requiredMode = Schema.RequiredMode.REQUIRED,
@@ -52,9 +52,18 @@ private constructor(
             result: BookingPerformanceScheduleResult
         ): BookingPerformanceDetailScheduleResponse =
             BookingPerformanceDetailScheduleResponse(
-                scheduleId = result.scheduleId,
-                performanceDate = result.performanceDate,
-                scheduleNumber = result.scheduleNumber,
+                scheduleId =
+                    requireNotNull(result.scheduleId) {
+                        "BookingPerformanceDetailScheduleResponse.scheduleId must be present for a persisted schedule"
+                    },
+                performanceDate =
+                    requireNotNull(result.performanceDate) {
+                        "BookingPerformanceDetailScheduleResponse.performanceDate must be present"
+                    },
+                scheduleNumber =
+                    requireNotNull(result.scheduleNumber) {
+                        "BookingPerformanceDetailScheduleResponse.scheduleNumber must be present"
+                    },
                 availableTicketCount = result.availableTicketCount,
                 isBooking = result.isBooking,
                 dueDate = result.dueDate,

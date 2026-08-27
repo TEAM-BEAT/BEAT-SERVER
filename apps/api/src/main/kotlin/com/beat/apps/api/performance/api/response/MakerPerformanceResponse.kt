@@ -12,7 +12,7 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "1",
     )
-    val userId: Long?,
+    val userId: Long,
     @field:Schema(
         description = "회원이 등록한 공연 목록",
         requiredMode = Schema.RequiredMode.REQUIRED,
@@ -23,7 +23,9 @@ private constructor(
     companion object {
         fun from(result: MakerPerformanceListResult): MakerPerformanceResponse =
             MakerPerformanceResponse(
-                result.userId,
+                requireNotNull(result.userId) {
+                    "MakerPerformanceResponse.userId must be present for a persisted member"
+                },
                 result.performances.map(MakerPerformanceDetailResponse::from),
             )
     }

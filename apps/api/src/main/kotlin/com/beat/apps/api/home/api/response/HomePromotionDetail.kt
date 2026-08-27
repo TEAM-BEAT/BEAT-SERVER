@@ -14,16 +14,18 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "1",
     )
-    val promotionId: Long?,
+    val promotionId: Long,
     @field:Schema(
         description = "홍보 배너 이미지 경로입니다. 응답 시 CDN 설정에 따라 CDN URL로 직렬화됩니다.",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "promotion.png",
     )
     @field:CdnImageUrl
-    val promotionPhoto: String?,
+    val promotionPhoto: String,
     @field:Schema(
         description = "연결된 공연 식별자입니다. 공연과 연결되지 않은 홍보는 null입니다.",
+        types = ["integer", "null"],
+        format = "int64",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "11",
     )
@@ -33,7 +35,7 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "https://beat.example/one",
     )
-    val redirectUrl: String?,
+    val redirectUrl: String,
     @field:Schema(
         description = "홍보 배너가 외부 링크로 이동하는지 여부입니다.",
         requiredMode = Schema.RequiredMode.REQUIRED,
@@ -46,7 +48,7 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "ONE",
     )
-    val carouselNumber: String?,
+    val carouselNumber: String,
 ) {
     companion object {
         fun from(result: HomePromotionResult): HomePromotionDetail =

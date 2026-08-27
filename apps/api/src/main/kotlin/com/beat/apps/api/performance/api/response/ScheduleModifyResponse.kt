@@ -14,13 +14,13 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "1",
     )
-    val scheduleId: Long?,
+    val scheduleId: Long,
     @field:Schema(
         description = "공연 시작 일시(ISO-8601)",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "2026-09-01T19:00:00",
     )
-    val performanceDate: LocalDateTime?,
+    val performanceDate: LocalDateTime,
     @field:Schema(
         description = "해당 회차의 전체 티켓 수량",
         requiredMode = Schema.RequiredMode.REQUIRED,
@@ -38,16 +38,27 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "FIRST",
     )
-    val scheduleNumber: ScheduleNumberType?,
+    val scheduleNumber: ScheduleNumberType,
 ) {
     companion object {
         fun from(result: ScheduleResult): ScheduleModifyResponse =
             ScheduleModifyResponse(
-                scheduleId = result.id,
-                performanceDate = result.performanceDate,
+                scheduleId =
+                    requireNotNull(result.id) {
+                        "ScheduleModifyResponse.scheduleId must be present for a persisted schedule"
+                    },
+                performanceDate =
+                    requireNotNull(result.performanceDate) {
+                        "ScheduleModifyResponse.performanceDate must be present"
+                    },
                 totalTicketCount = result.totalTicketCount,
                 dueDate = result.dueDate,
-                scheduleNumber = result.scheduleNumber?.let(ScheduleNumberType::valueOf),
+                scheduleNumber =
+                    ScheduleNumberType.valueOf(
+                        requireNotNull(result.scheduleNumber) {
+                            "ScheduleModifyResponse.scheduleNumber must be present"
+                        }
+                    ),
             )
     }
 }

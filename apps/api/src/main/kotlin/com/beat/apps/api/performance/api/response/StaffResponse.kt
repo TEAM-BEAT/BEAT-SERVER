@@ -13,29 +13,46 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "1",
     )
-    val staffId: Long?,
+    val staffId: Long,
     @field:Schema(
         description = "스태프 이름",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "김기획",
     )
-    val staffName: String?,
+    val staffName: String,
     @field:Schema(
         description = "스태프 역할",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "연출",
     )
-    val staffRole: String?,
+    val staffRole: String,
     @field:Schema(
         description = "스태프 사진의 CDN URL",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "https://cdn.example.com/prod/staff/staff-1.jpg",
     )
     @field:CdnImageUrl
-    val staffPhoto: String?,
+    val staffPhoto: String,
 ) {
     companion object {
         fun from(result: StaffResult): StaffResponse =
-            StaffResponse(result.id, result.name, result.role, result.photo)
+            StaffResponse(
+                staffId =
+                    requireNotNull(result.id) {
+                        "StaffResponse.staffId must be present for a persisted staff"
+                    },
+                staffName =
+                    requireNotNull(result.name) {
+                        "StaffResponse.staffName must be present"
+                    },
+                staffRole =
+                    requireNotNull(result.role) {
+                        "StaffResponse.staffRole must be present"
+                    },
+                staffPhoto =
+                    requireNotNull(result.photo) {
+                        "StaffResponse.staffPhoto must be present"
+                    },
+            )
     }
 }

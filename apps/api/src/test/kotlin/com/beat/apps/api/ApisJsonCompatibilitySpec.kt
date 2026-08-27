@@ -21,9 +21,11 @@ import com.beat.apps.api.booking.api.response.GuestBookingResponse
 import com.beat.apps.api.booking.api.response.MemberBookingResponse
 import com.beat.apps.api.booking.api.type.BookingStatusType
 import com.beat.apps.api.home.api.response.HomeFindAllResponse
+import com.beat.apps.api.home.api.response.HomePromotionDetail
 import com.beat.apps.api.home.api.type.HomeGenreType
 import com.beat.apps.api.member.api.request.MemberLoginRequest
 import com.beat.apps.api.member.api.type.SocialTypeRequest
+import com.beat.apps.api.performance.api.response.BookingPerformanceDetailResponse
 import com.beat.apps.api.performance.api.response.BookingPerformanceDetailScheduleResponse
 import com.beat.apps.api.performance.api.response.PerformanceDetailScheduleResponse
 import com.beat.apps.api.performance.api.response.PerformanceModifyDetailResponse
@@ -64,6 +66,66 @@ class ApisJsonCompatibilitySpec :
                 objectMapper.readValue(
                     """{"performanceId":1,"bookingList":null}""",
                     TicketRefundRequest::class.java,
+                )
+            }
+        }
+
+        test("무료 공연 상세 응답의 입금 계좌 필드는 JSON null로 직렬화된다") {
+            val response =
+                BookingPerformanceDetailResponse.from(
+                    BookingPerformanceDetailResult(
+                        performanceId = 1L,
+                        performanceTitle = "title",
+                        performancePeriod = "period",
+                        schedules = emptyList(),
+                        ticketPrice = 0,
+                        genre = "BAND",
+                        posterImage = "poster.png",
+                        performanceVenue = "venue",
+                        performanceTeamName = "team",
+                        bankName = null,
+                        accountNumber = null,
+                        accountHolder = null,
+                    )
+                )
+
+            val json = objectMapper.valueToTree<JsonNode>(response)
+
+            listOf("bankName", "accountNumber", "accountHolder").forEach { fieldName ->
+                json.has(fieldName) shouldBe true
+                json.get(fieldName).isNull shouldBe true
+            }
+        }
+
+        test("연결된 공연이 없는 홈 홍보의 performanceId는 JSON null로 직렬화된다") {
+            val response =
+                HomePromotionDetail.from(
+                    HomePromotionResult(
+                        promotionId = 1L,
+                        promotionPhoto = "promotion.png",
+                        performanceId = null,
+                        redirectUrl = "redirect",
+                        isExternal = false,
+                        carouselNumber = "ONE",
+                    )
+                )
+
+            val json = objectMapper.valueToTree<JsonNode>(response)
+
+            json.has("performanceId") shouldBe true
+            json.get("performanceId").isNull shouldBe true
+        }
+
+        test("narrowed response mapper는 필수 필드가 null이면 실패한다") {
+            shouldThrow<IllegalArgumentException> {
+                PerformanceDetailScheduleResponse.from(
+                    PerformanceDetailScheduleResult(
+                        scheduleId = 1L,
+                        performanceDate = null,
+                        scheduleNumber = "FIRST",
+                        dueDate = 3,
+                        isBooking = true,
+                    )
                 )
             }
         }
@@ -332,11 +394,24 @@ class ApisJsonCompatibilitySpec :
                 )
             val detailSchedule =
                 PerformanceDetailScheduleResponse.from(
-                    PerformanceDetailScheduleResult(1L, null, "FIRST", 3, true)
+                    PerformanceDetailScheduleResult(
+                        1L,
+                        LocalDateTime.of(2026, 9, 1, 19, 0),
+                        "FIRST",
+                        3,
+                        true,
+                    )
                 )
             val bookingSchedule =
                 BookingPerformanceDetailScheduleResponse.from(
-                    BookingPerformanceScheduleResult(1L, null, "FIRST", 8, true, 3)
+                    BookingPerformanceScheduleResult(
+                        1L,
+                        LocalDateTime.of(2026, 9, 1, 19, 0),
+                        "FIRST",
+                        8,
+                        true,
+                        3,
+                    )
                 )
             val modifyDetail =
                 PerformanceModifyDetailResponse.from(

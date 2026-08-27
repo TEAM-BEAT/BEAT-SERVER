@@ -13,17 +13,26 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "1",
     )
-    val imageId: Long?,
+    val imageId: Long,
     @field:Schema(
         description = "공연 이미지의 CDN URL",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "https://cdn.example.com/prod/performance/detail-1.jpg",
     )
     @field:CdnImageUrl
-    val imageUrl: String?,
+    val imageUrl: String,
 ) {
     companion object {
         fun from(result: PerformanceImageResult): PerformanceImageResponse =
-            PerformanceImageResponse(result.id, result.image)
+            PerformanceImageResponse(
+                imageId =
+                    requireNotNull(result.id) {
+                        "PerformanceImageResponse.imageId must be present for a persisted image"
+                    },
+                imageUrl =
+                    requireNotNull(result.image) {
+                        "PerformanceImageResponse.imageUrl must be present"
+                    },
+            )
     }
 }

@@ -24,12 +24,12 @@ data class CarouselHandleAllResponse(
     data class PromotionResponse(
         @field:Schema(
             description = "프로모션 식별자",
-            types = ["integer", "null"],
+            type = "integer",
             format = "int64",
             requiredMode = Schema.RequiredMode.REQUIRED,
             example = "1",
         )
-        val promotionId: Long?,
+        val promotionId: Long,
         @field:Schema(
             description = "프로모션 이미지 URL 또는 저장 키",
             type = "string",

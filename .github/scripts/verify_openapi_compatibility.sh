@@ -34,6 +34,8 @@ readonly archive_path="${temporary_directory}/oasdiff.tar.gz"
 readonly oasdiff_path="${temporary_directory}/oasdiff"
 # shellcheck source=.github/scripts/resolve_openapi_baselines.sh
 source "${script_directory}/resolve_openapi_baselines.sh"
+# shellcheck source=.github/scripts/openapi_compatibility_checks.sh
+source "${script_directory}/openapi_compatibility_checks.sh"
 
 trap 'rm -rf -- "${temporary_directory}"' EXIT
 
@@ -53,22 +55,6 @@ tar --extract --gzip --file "${archive_path}" --directory "${temporary_directory
     exit 1
 }
 
-check_compatibility() {
-    local baseline="$1"
-    local generated="$2"
-
-    [[ -f "${baseline}" ]] || {
-        echo "Missing OpenAPI baseline: ${baseline}" >&2
-        exit 1
-    }
-    [[ -f "${generated}" ]] || {
-        echo "Missing generated OpenAPI document: ${generated}" >&2
-        exit 1
-    }
-
-    "${oasdiff_path}" breaking "${baseline}" "${generated}" --fail-on ERR
-}
-
 readonly baseline_paths_file="${temporary_directory}/openapi-baseline-paths"
 resolve_openapi_baselines "${repository_root}" "${temporary_directory}" > "${baseline_paths_file}"
 baseline_paths=()
@@ -78,9 +64,9 @@ while IFS= read -r baseline_path; do baseline_paths+=("${baseline_path}"); done 
     exit 1
 }
 
-check_compatibility \
+run_compatibility_checks \
+    "${oasdiff_path}" \
     "${baseline_paths[0]}" \
-    "${repository_root}/apps/api/build/openapi/general.json"
-check_compatibility \
+    "${repository_root}/apps/api/build/openapi/general.json" \
     "${baseline_paths[1]}" \
-    "${repository_root}/apps/admin/build/openapi/admin.json"
+    "${repository_root}/apps/admin/build/openapi/admin.json" || exit 1

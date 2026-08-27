@@ -13,19 +13,19 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "11",
     )
-    val performanceId: Long?,
+    val performanceId: Long,
     @field:Schema(
         description = "공연 제목입니다.",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "title",
     )
-    val performanceTitle: String?,
+    val performanceTitle: String,
     @field:Schema(
         description = "공연 기간입니다. 단일 날짜는 yyyy.MM.dd, 여러 날짜는 시작일~종료일 형식입니다.",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "2026.08.25",
     )
-    val performancePeriod: String?,
+    val performancePeriod: String,
     @field:Schema(
         description = "공연 티켓 가격입니다.",
         requiredMode = Schema.RequiredMode.REQUIRED,
@@ -43,20 +43,20 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "BAND",
     )
-    val genre: String?,
+    val genre: String,
     @field:Schema(
         description = "공연 포스터 이미지 경로입니다. 응답 시 CDN 설정에 따라 CDN URL로 직렬화됩니다.",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "poster.png",
     )
     @field:CdnImageUrl
-    val posterImage: String?,
+    val posterImage: String,
     @field:Schema(
         description = "공연 장소입니다.",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "venue",
     )
-    val performanceVenue: String?,
+    val performanceVenue: String,
 ) {
     companion object {
         fun from(result: HomePerformanceResult): HomePerformanceDetail =

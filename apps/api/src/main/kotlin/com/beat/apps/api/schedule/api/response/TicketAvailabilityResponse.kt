@@ -13,13 +13,13 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "1",
     )
-    val scheduleId: Long?,
+    val scheduleId: Long,
     @field:Schema(
         description = "회차 번호입니다.",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "1회차",
     )
-    val scheduleNumber: String?,
+    val scheduleNumber: String,
     @field:Schema(
         description = "회차에 배정된 전체 티켓 수량입니다.",
         requiredMode = Schema.RequiredMode.REQUIRED,
@@ -55,8 +55,8 @@ private constructor(
     companion object {
         fun from(result: TicketAvailabilityResult): TicketAvailabilityResponse =
             TicketAvailabilityResponse(
-                scheduleId = result.scheduleId,
-                scheduleNumber = result.scheduleNumber,
+                scheduleId = requireNotNull(result.scheduleId),
+                scheduleNumber = requireNotNull(result.scheduleNumber),
                 totalTicketCount = result.totalTicketCount,
                 soldTicketCount = result.soldTicketCount,
                 availableTicketCount = result.availableTicketCount,

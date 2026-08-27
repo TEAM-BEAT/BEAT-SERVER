@@ -13,29 +13,46 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "1",
     )
-    val castId: Long?,
+    val castId: Long,
     @field:Schema(
         description = "출연진 이름",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "홍길동",
     )
-    val castName: String?,
+    val castName: String,
     @field:Schema(
         description = "출연진 역할",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "주연",
     )
-    val castRole: String?,
+    val castRole: String,
     @field:Schema(
         description = "출연진 사진의 CDN URL",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "https://cdn.example.com/prod/cast/cast-1.jpg",
     )
     @field:CdnImageUrl
-    val castPhoto: String?,
+    val castPhoto: String,
 ) {
     companion object {
         fun from(result: CastResult): CastModifyResponse =
-            CastModifyResponse(result.id, result.name, result.role, result.photo)
+            CastModifyResponse(
+                castId =
+                    requireNotNull(result.id) {
+                        "CastModifyResponse.castId must be present for a persisted cast"
+                    },
+                castName =
+                    requireNotNull(result.name) {
+                        "CastModifyResponse.castName must be present"
+                    },
+                castRole =
+                    requireNotNull(result.role) {
+                        "CastModifyResponse.castRole must be present"
+                    },
+                castPhoto =
+                    requireNotNull(result.photo) {
+                        "CastModifyResponse.castPhoto must be present"
+                    },
+            )
     }
 }

@@ -12,19 +12,19 @@ private constructor(
         example = "access-token-example",
         requiredMode = Schema.RequiredMode.REQUIRED,
     )
-    val accessToken: String?,
+    val accessToken: String,
     @field:Schema(
         description = "로그인한 회원의 닉네임입니다.",
         example = "홍길동",
         requiredMode = Schema.RequiredMode.REQUIRED,
     )
-    val nickname: String?,
+    val nickname: String,
     @field:Schema(
         description = "로그인한 회원의 권한명입니다.",
         example = "ROLE_MEMBER",
         requiredMode = Schema.RequiredMode.REQUIRED,
     )
-    val role: String?,
+    val role: String,
 ) {
     companion object {
         fun from(result: LoginSuccessResult): MemberLoginResponse =

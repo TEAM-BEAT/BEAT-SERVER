@@ -69,6 +69,7 @@ jobs:
           OPENAPI_BASE_REF: ${{ github.event.pull_request.base.sha }}
         run: |
           bash .github/scripts/test_verify_openapi_baseline_source.sh
+          bash .github/scripts/test_openapi_compatibility_checks.sh
           bash .github/scripts/verify_openapi_compatibility.sh
         shell: bash
 

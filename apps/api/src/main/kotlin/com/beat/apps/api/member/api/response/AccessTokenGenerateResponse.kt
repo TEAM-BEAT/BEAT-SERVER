@@ -12,7 +12,7 @@ private constructor(
         example = "access-token-example",
         requiredMode = Schema.RequiredMode.REQUIRED,
     )
-    val accessToken: String?
+    val accessToken: String
 ) {
     companion object {
         fun from(result: AccessTokenResult): AccessTokenGenerateResponse =

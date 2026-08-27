@@ -16,25 +16,25 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "1",
     )
-    val userId: Long?,
+    val userId: Long,
     @field:Schema(
         description = "공연 식별자",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "1",
     )
-    val performanceId: Long?,
+    val performanceId: Long,
     @field:Schema(
         description = "공연 제목",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "가을 밤 콘서트",
     )
-    val performanceTitle: String?,
+    val performanceTitle: String,
     @field:Schema(
         description = "공연 장르",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "BAND",
     )
-    val genre: GenreType?,
+    val genre: GenreType,
     @field:Schema(
         description = "공연 러닝타임(분)",
         requiredMode = Schema.RequiredMode.REQUIRED,
@@ -46,27 +46,30 @@ private constructor(
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "가을밤의 라이브 공연을 소개합니다.",
     )
-    val performanceDescription: String?,
+    val performanceDescription: String,
     @field:Schema(
         description = "공연 유의사항",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "공연 시작 10분 전까지 입장해 주세요.",
     )
-    val performanceAttentionNote: String?,
+    val performanceAttentionNote: String,
     @field:Schema(
         description = "유료 공연의 입금 은행이며, 무료 공연(ticketPrice = 0)에서는 null입니다.",
+        types = ["string", "null"],
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "KAKAOBANK",
     )
     val bankName: BankNameType?,
     @field:Schema(
         description = "유료 공연의 입금 계좌번호이며, 무료 공연(ticketPrice = 0)에서는 null입니다.",
+        types = ["string", "null"],
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "3333-01-1234567",
     )
     val accountNumber: String?,
     @field:Schema(
         description = "유료 공연의 입금 계좌 예금주이며, 무료 공연(ticketPrice = 0)에서는 null입니다.",
+        types = ["string", "null"],
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "BEAT 운영팀",
     )
@@ -77,55 +80,55 @@ private constructor(
         example = "https://cdn.example.com/prod/poster/performance-1.jpg",
     )
     @field:CdnImageUrl
-    val posterImage: String?,
+    val posterImage: String,
     @field:Schema(
         description = "공연 팀명",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "BEAT 밴드",
     )
-    val performanceTeamName: String?,
+    val performanceTeamName: String,
     @field:Schema(
         description = "공연 장소명",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "홍대 라이브홀",
     )
-    val performanceVenue: String?,
+    val performanceVenue: String,
     @field:Schema(
         description = "공연 장소 도로명 주소",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "서울특별시 마포구 양화로 123",
     )
-    val roadAddressName: String?,
+    val roadAddressName: String,
     @field:Schema(
         description = "공연 장소 상세 주소",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "지하 1층",
     )
-    val placeDetailAddress: String?,
+    val placeDetailAddress: String,
     @field:Schema(
         description = "공연 장소 위도(십진수 문자열)",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "37.5665",
     )
-    val latitude: String?,
+    val latitude: String,
     @field:Schema(
         description = "공연 장소 경도(십진수 문자열)",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "126.9780",
     )
-    val longitude: String?,
+    val longitude: String,
     @field:Schema(
         description = "공연 문의 연락처",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "010-1234-5678",
     )
-    val performanceContact: String?,
+    val performanceContact: String,
     @field:Schema(
         description = "회차 날짜의 최솟값과 최댓값으로 계산한 공연 기간(yyyy.MM.dd 또는 yyyy.MM.dd~yyyy.MM.dd)",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example = "2026.09.01~2026.09.03",
     )
-    val performancePeriod: String?,
+    val performancePeriod: String,
     @field:Schema(
         description = "티켓 가격(원)",
         requiredMode = Schema.RequiredMode.REQUIRED,
@@ -174,25 +177,72 @@ private constructor(
         fun from(result: PerformanceEditResult): PerformanceModifyDetailResponse {
             val performance = result.performance
             return PerformanceModifyDetailResponse(
-                userId = performance.userId,
-                performanceId = performance.performanceId,
-                performanceTitle = performance.performanceTitle,
-                genre = performance.genre?.let(GenreType::valueOf),
+                userId =
+                    requireNotNull(performance.userId) {
+                        "PerformanceModifyDetailResponse.userId must be present for a persisted performance"
+                    },
+                performanceId =
+                    requireNotNull(performance.performanceId) {
+                        "PerformanceModifyDetailResponse.performanceId must be present for a persisted performance"
+                    },
+                performanceTitle =
+                    requireNotNull(performance.performanceTitle) {
+                        "PerformanceModifyDetailResponse.performanceTitle must be present"
+                    },
+                genre =
+                    GenreType.valueOf(
+                        requireNotNull(performance.genre) {
+                            "PerformanceModifyDetailResponse.genre must be present"
+                        }
+                    ),
                 runningTime = performance.runningTime,
-                performanceDescription = performance.performanceDescription,
-                performanceAttentionNote = performance.performanceAttentionNote,
+                performanceDescription =
+                    requireNotNull(performance.performanceDescription) {
+                        "PerformanceModifyDetailResponse.performanceDescription must be present"
+                    },
+                performanceAttentionNote =
+                    requireNotNull(performance.performanceAttentionNote) {
+                        "PerformanceModifyDetailResponse.performanceAttentionNote must be present"
+                    },
                 bankName = performance.bankName?.let(BankNameType::valueOf),
                 accountNumber = performance.accountNumber,
                 accountHolder = performance.accountHolder,
-                posterImage = performance.posterImage,
-                performanceTeamName = performance.performanceTeamName,
-                performanceVenue = performance.performanceVenue,
-                roadAddressName = performance.roadAddressName,
-                placeDetailAddress = performance.placeDetailAddress,
-                latitude = performance.latitude,
-                longitude = performance.longitude,
-                performanceContact = performance.performanceContact,
-                performancePeriod = performance.performancePeriod,
+                posterImage =
+                    requireNotNull(performance.posterImage) {
+                        "PerformanceModifyDetailResponse.posterImage must be present"
+                    },
+                performanceTeamName =
+                    requireNotNull(performance.performanceTeamName) {
+                        "PerformanceModifyDetailResponse.performanceTeamName must be present"
+                    },
+                performanceVenue =
+                    requireNotNull(performance.performanceVenue) {
+                        "PerformanceModifyDetailResponse.performanceVenue must be present"
+                    },
+                roadAddressName =
+                    requireNotNull(performance.roadAddressName) {
+                        "PerformanceModifyDetailResponse.roadAddressName must be present"
+                    },
+                placeDetailAddress =
+                    requireNotNull(performance.placeDetailAddress) {
+                        "PerformanceModifyDetailResponse.placeDetailAddress must be present"
+                    },
+                latitude =
+                    requireNotNull(performance.latitude) {
+                        "PerformanceModifyDetailResponse.latitude must be present"
+                    },
+                longitude =
+                    requireNotNull(performance.longitude) {
+                        "PerformanceModifyDetailResponse.longitude must be present"
+                    },
+                performanceContact =
+                    requireNotNull(performance.performanceContact) {
+                        "PerformanceModifyDetailResponse.performanceContact must be present"
+                    },
+                performancePeriod =
+                    requireNotNull(performance.performancePeriod) {
+                        "PerformanceModifyDetailResponse.performancePeriod must be present"
+                    },
                 ticketPrice = performance.ticketPrice,
                 totalScheduleCount = performance.totalScheduleCount,
                 isBookerExist = result.isBookerExist,
