@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 check_compatibility() {
-    local oasdiff_path="$1"
+    local oasdiff_binary="$1"
     local baseline="$2"
     local generated="$3"
 
@@ -14,11 +14,11 @@ check_compatibility() {
         return 1
     }
 
-    "${oasdiff_path}" breaking "${baseline}" "${generated}" --fail-on ERR
+    "${oasdiff_binary}" breaking "${baseline}" "${generated}" --fail-on ERR
 }
 
 run_compatibility_checks() {
-    local oasdiff_path="$1"
+    local oasdiff_binary="$1"
     local general_baseline="$2"
     local general_generated="$3"
     local admin_baseline="$4"
@@ -26,13 +26,13 @@ run_compatibility_checks() {
     local general_status=0
     local admin_status=0
 
-    if check_compatibility "${oasdiff_path}" "${general_baseline}" "${general_generated}"; then
+    if check_compatibility "${oasdiff_binary}" "${general_baseline}" "${general_generated}"; then
         :
     else
         general_status=$?
     fi
 
-    if check_compatibility "${oasdiff_path}" "${admin_baseline}" "${admin_generated}"; then
+    if check_compatibility "${oasdiff_binary}" "${admin_baseline}" "${admin_generated}"; then
         :
     else
         admin_status=$?

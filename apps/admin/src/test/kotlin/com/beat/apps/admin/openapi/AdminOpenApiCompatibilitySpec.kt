@@ -111,6 +111,77 @@ private fun JsonNode.assertOpenApiContract() {
             )
         }
     }
+
+    assertCarouselPresignedMapSchemas(schemas)
+    assertAdminCarouselPromotionIdSchemas(paths, schemas)
+}
+
+private fun assertAdminCarouselPromotionIdSchemas(
+    paths: JsonNode,
+    schemas: JsonNode,
+) {
+    paths
+        .get("/api/admin/carousels")
+        ?.get("get")
+        ?.get("responses")
+        ?.get("200")
+        ?.get("content")
+        ?.get("application/json")
+        ?.get("schema")
+        ?.get("\$ref")
+        ?.asText() shouldBe "#/components/schemas/SuccessResponseCarouselFindAllResponse"
+
+    paths
+        .get("/api/admin/carousels")
+        ?.get("put")
+        ?.get("responses")
+        ?.get("200")
+        ?.get("content")
+        ?.get("application/json")
+        ?.get("schema")
+        ?.get("\$ref")
+        ?.asText() shouldBe "#/components/schemas/SuccessResponseCarouselHandleAllResponse"
+
+    assertIntegerInt64PromotionId(schemas, "CarouselFindResponse")
+    assertIntegerInt64PromotionId(schemas, "PromotionResponse")
+}
+
+private fun assertIntegerInt64PromotionId(
+    schemas: JsonNode,
+    schemaName: String,
+) {
+    val promotionId =
+        schemas.get(schemaName)?.get("properties")?.get("promotionId")
+            ?: error("$schemaName.promotionId schema is missing")
+    promotionId.get("type")?.asText() shouldBe "integer"
+    promotionId.get("format")?.asText() shouldBe "int64"
+}
+
+private fun assertCarouselPresignedMapSchemas(schemas: JsonNode) {
+    val responseSchema =
+        schemas.get("CarouselPresignedUrlFindAllResponse")
+            ?: error("CarouselPresignedUrlFindAllResponse schema is missing")
+    val properties =
+        responseSchema.get("properties") ?: error("Carousel response properties are missing")
+
+    val presignedUrls =
+        properties.get("carouselPresignedUrls") ?: error("carouselPresignedUrls schema is missing")
+    presignedUrls.get("type")?.asText() shouldBe "object"
+    presignedUrls.get("additionalProperties")?.get("type")?.asText() shouldBe "string"
+
+    val presignedUploads =
+        properties.get("carouselPresignedUploads")
+            ?: error("carouselPresignedUploads schema is missing")
+    presignedUploads.get("type")?.asText() shouldBe "object"
+    presignedUploads.get("additionalProperties")?.get("\$ref")?.asText() shouldBe
+        "#/components/schemas/CarouselPresignedUploadResponse"
+
+    val uploadSchema =
+        schemas.get("CarouselPresignedUploadResponse")
+            ?: error("CarouselPresignedUploadResponse schema is missing")
+    val uploadProperties = uploadSchema.get("properties") ?: error("Upload properties are missing")
+    uploadProperties.get("uploadUrl")?.get("type")?.asText() shouldBe "string"
+    uploadProperties.get("imageKey")?.get("type")?.asText() shouldBe "string"
 }
 
 private fun assertParameterDescriptions(

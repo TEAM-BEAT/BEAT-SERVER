@@ -1,5 +1,6 @@
 package com.beat.apps.api.openapi
 
+import com.beat.apps.api.performance.api.type.BankNameType
 import com.beat.apps.api.support.BeatAcceptanceTest
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -41,6 +42,28 @@ class GeneralOpenApiCompatibilitySpec : FunSpec() {
                 Path.of(requireNotNull(System.getProperty("beat.openapi.output.dir")))
             Files.createDirectories(outputDirectory)
             Files.write(outputDirectory.resolve("general.json"), result.response.contentAsByteArray)
+        }
+
+        test("환불 요청 OpenAPI는 허용 은행과 비공백 계좌 필드를 명시한다") {
+            val document =
+                mockMvc
+                    .perform(get("/v3/api-docs/general"))
+                    .andExpect(status().isOk)
+                    .andReturn()
+                    .response
+                    .contentAsString
+            val schema =
+                objectMapper.readTree(document).at("/components/schemas/BookingRefundRequest")
+            check(!schema.isMissingNode) { "BookingRefundRequest schema is missing" }
+
+            val acceptedBankNames =
+                BankNameType.entries.filterNot { it == BankNameType.NONE }.map { it.name }
+            schema.at("/properties/bankName/enum").map { it.asText() } shouldBe acceptedBankNames
+
+            listOf("accountNumber", "accountHolder").forEach { fieldName ->
+                schema.at("/properties/$fieldName/minLength").asInt() shouldBe 1
+                schema.at("/properties/$fieldName/pattern").asText() shouldBe ".*\\S.*"
+            }
         }
     }
 }

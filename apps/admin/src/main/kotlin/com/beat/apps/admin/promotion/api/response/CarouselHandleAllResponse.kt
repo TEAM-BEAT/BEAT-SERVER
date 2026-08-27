@@ -24,7 +24,6 @@ data class CarouselHandleAllResponse(
     data class PromotionResponse(
         @field:Schema(
             description = "프로모션 식별자",
-            type = "integer",
             format = "int64",
             requiredMode = Schema.RequiredMode.REQUIRED,
             example = "1",

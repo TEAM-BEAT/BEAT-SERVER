@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.media.Schema
 data class CarouselPresignedUrlFindAllResponse(
     @field:Schema(
         description = "이미지 파일명별 캐러셀 이미지 업로드 Presigned URL",
-        type = "object",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example =
             """{"carousel.png":"https://s3.ap-northeast-2.amazonaws.com/beat-dev/carousel/carousel.png?X-Amz-Algorithm=AWS4-HMAC-SHA256"}""",
@@ -16,7 +15,6 @@ data class CarouselPresignedUrlFindAllResponse(
     val carouselPresignedUrls: Map<String, String>,
     @field:Schema(
         description = "이미지 파일명별 캐러셀 이미지 업로드 메타데이터",
-        type = "object",
         requiredMode = Schema.RequiredMode.REQUIRED,
         example =
             """{"carousel.png":{"uploadUrl":"https://s3.ap-northeast-2.amazonaws.com/beat-dev/carousel/carousel.png?X-Amz-Algorithm=AWS4-HMAC-SHA256","imageKey":"dev/carousel/carousel.png"}}""",

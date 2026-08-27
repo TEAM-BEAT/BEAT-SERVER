@@ -11,6 +11,7 @@ trap 'rm -rf -- "${test_directory}"' EXIT
 source "${script_directory}/openapi_compatibility_checks.sh"
 
 readonly fake_oasdiff="${test_directory}/oasdiff"
+readonly oasdiff_path="${fake_oasdiff}"
 readonly invocation_log="${test_directory}/invocations"
 cat > "${fake_oasdiff}" <<'FAKE_OASDIFF'
 #!/usr/bin/env bash
@@ -39,7 +40,7 @@ run_case() {
         ADMIN_STATUS="${admin_status}" \
         INVOCATION_LOG="${invocation_log}" \
         run_compatibility_checks \
-            "${fake_oasdiff}" \
+            "${oasdiff_path}" \
             "${test_directory}/general-failure" \
             "${test_directory}/general-generated.json" \
             "${test_directory}/admin-failure" \
