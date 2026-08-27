@@ -32,7 +32,14 @@ resolve_openapi_baselines() {
         fi
 
         if [[ "${general_baseline_exists}" == true && "${admin_baseline_exists}" == true ]]; then
-            baseline_ref="${openapi_base_ref}"
+            if git -C "${source_repository_root}" diff --quiet "${openapi_base_ref}" HEAD -- \
+                docs/openapi/baseline/general.json docs/openapi/baseline/admin.json; then
+                baseline_ref="${openapi_base_ref}"
+                echo "OpenAPI baselines at HEAD match '${openapi_base_ref}'; validating the baselines from the base ref" >&2
+            else
+                baseline_ref="HEAD"
+                echo "OpenAPI baselines at HEAD differ from '${openapi_base_ref}'; validating the explicitly approved committed HEAD baselines" >&2
+            fi
         elif [[ "${general_baseline_exists}" == false && "${admin_baseline_exists}" == false ]]; then
             baseline_ref="HEAD"
             echo "OpenAPI baselines are absent from '${openapi_base_ref}'; validating the bootstrap baselines committed at HEAD" >&2

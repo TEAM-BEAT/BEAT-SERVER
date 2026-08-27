@@ -27,11 +27,16 @@ printf '%s\n' '{"source":"working-tree-admin"}' > "${git_repository}/docs/openap
 source "${script_directory}/resolve_openapi_baselines.sh"
 export OPENAPI_BASE_REF="${base_ref}"
 readonly resolved_paths_file="${temporary_directory}/resolved-paths"
-resolve_openapi_baselines "${git_repository}" "${temporary_directory}" > "${resolved_paths_file}"
+readonly resolution_log="${temporary_directory}/resolution.log"
+resolve_openapi_baselines "${git_repository}" "${temporary_directory}" > "${resolved_paths_file}" 2> "${resolution_log}"
 resolved_paths=()
 while IFS= read -r resolved_path; do resolved_paths+=("${resolved_path}"); done < "${resolved_paths_file}"
 [[ "${#resolved_paths[@]}" -eq 2 ]] || {
     echo "Expected general and admin baseline paths" >&2
+    exit 1
+}
+[[ "$(<"${resolution_log}")" == "OpenAPI baselines at HEAD match '${base_ref}'; validating the baselines from the base ref" ]] || {
+    echo "OPENAPI_BASE_REF did not report that the committed HEAD baselines match the base ref" >&2
     exit 1
 }
 
@@ -49,6 +54,42 @@ while IFS= read -r resolved_path; do resolved_paths+=("${resolved_path}"); done 
 }
 [[ "$(<"${git_repository}/docs/openapi/baseline/admin.json")" == '{"source":"working-tree-admin"}' ]] || {
     echo "The admin working-tree baseline fixture was not changed" >&2
+    exit 1
+}
+
+printf '%s\n' '{"source":"head-general"}' > "${git_repository}/docs/openapi/baseline/general.json"
+printf '%s\n' '{"source":"committed-admin"}' > "${git_repository}/docs/openapi/baseline/admin.json"
+git -C "${git_repository}" add docs/openapi/baseline
+git -C "${git_repository}" commit --quiet -m "update general baseline"
+printf '%s\n' '{"source":"working-tree-after-head-general"}' > "${git_repository}/docs/openapi/baseline/general.json"
+printf '%s\n' '{"source":"working-tree-after-head-admin"}' > "${git_repository}/docs/openapi/baseline/admin.json"
+
+head_paths_file="${temporary_directory}/head-paths"
+resolve_openapi_baselines "${git_repository}" "${temporary_directory}" > "${head_paths_file}" 2> "${resolution_log}"
+head_paths=()
+while IFS= read -r head_path; do head_paths+=("${head_path}"); done < "${head_paths_file}"
+[[ "${#head_paths[@]}" -eq 2 ]] || {
+    echo "Expected general and admin HEAD baseline paths" >&2
+    exit 1
+}
+[[ "$(<"${resolution_log}")" == "OpenAPI baselines at HEAD differ from '${base_ref}'; validating the explicitly approved committed HEAD baselines" ]] || {
+    echo "OPENAPI_BASE_REF did not report that the committed HEAD baselines changed from the base ref" >&2
+    exit 1
+}
+[[ "$(<"${head_paths[0]}")" == '{"source":"head-general"}' ]] || {
+    echo "OPENAPI_BASE_REF did not select the changed committed HEAD general baseline" >&2
+    exit 1
+}
+[[ "$(<"${head_paths[1]}")" == '{"source":"committed-admin"}' ]] || {
+    echo "OPENAPI_BASE_REF did not select the committed HEAD admin baseline" >&2
+    exit 1
+}
+[[ "$(<"${git_repository}/docs/openapi/baseline/general.json")" == '{"source":"working-tree-after-head-general"}' ]] || {
+    echo "The general working-tree baseline fixture after the HEAD update was not changed" >&2
+    exit 1
+}
+[[ "$(<"${git_repository}/docs/openapi/baseline/admin.json")" == '{"source":"working-tree-after-head-admin"}' ]] || {
+    echo "The admin working-tree baseline fixture after the HEAD update was not changed" >&2
     exit 1
 }
 
