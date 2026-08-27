@@ -99,7 +99,7 @@ class PerformanceController(private val performanceFacade: PerformanceFacade) : 
     override fun deletePerformance(
         @CurrentMember memberId: Long,
         @PathVariable performanceId: Long,
-    ): ResponseEntity<SuccessResponse<Void>> {
+    ): ResponseEntity<SuccessResponse<Void?>> {
         performanceFacade.deletePerformance(memberId, performanceId)
         return ResponseEntity.ok(
             SuccessResponse.from(PerformanceSuccessCode.PERFORMANCE_DELETE_SUCCESS)

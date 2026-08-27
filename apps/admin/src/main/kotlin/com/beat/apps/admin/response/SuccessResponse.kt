@@ -18,10 +18,9 @@ data class SuccessResponse<T>(
     val message: String,
     @field:Schema(
         description = "성공 결과 데이터입니다. 데이터가 없는 응답에서도 JSON 키가 포함되며 값은 null일 수 있습니다.",
-        example = "null",
         requiredMode = Schema.RequiredMode.REQUIRED,
     )
-    val data: T?,
+    val data: T,
 ) {
     companion object {
         fun <T> of(
@@ -29,7 +28,7 @@ data class SuccessResponse<T>(
             data: T,
         ): SuccessResponse<T> = SuccessResponse(successCode.status, successCode.message, data)
 
-        fun <T> from(successCode: SuccessCode): SuccessResponse<T> =
+        fun <T> from(successCode: SuccessCode): SuccessResponse<T?> =
             SuccessResponse(successCode.status, successCode.message, null)
     }
 }

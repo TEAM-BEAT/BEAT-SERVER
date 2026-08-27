@@ -31,15 +31,6 @@ jobs:
         with:
           cache-cleanup: on-success
 
-      - name: Diagnose OpenAPI contracts first
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_RELEASE: beat-server@${{ github.sha }}
-        run: |
-          chmod +x gradlew
-          ./gradlew :apps:admin:openApiTest :apps:api:openApiTest --parallel --continue --build-cache --info
-        shell: bash
-
       # Hard gate: the catalog has no intentional unused aliases today. If a temporary
       # exception is ever needed, document it with a reason in the allowlist path
       # printed by the checker and remove it when the migration closes.

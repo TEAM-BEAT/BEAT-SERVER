@@ -145,5 +145,5 @@ interface MemberApi {
     )
     fun signOut(
         @Parameter(hidden = true) @CurrentMember memberId: Long
-    ): ResponseEntity<SuccessResponse<Void>>
+    ): ResponseEntity<SuccessResponse<Void?>>
 }

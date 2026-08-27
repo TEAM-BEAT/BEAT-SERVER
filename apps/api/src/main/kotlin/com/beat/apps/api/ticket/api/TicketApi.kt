@@ -175,7 +175,7 @@ interface TicketApi {
         )
         @RequestBody
         request: TicketUpdateRequest,
-    ): ResponseEntity<SuccessResponse<Void>>
+    ): ResponseEntity<SuccessResponse<Void?>>
 
     @Operation(
         operationId = "ticketRefundForMaker",
@@ -216,7 +216,7 @@ interface TicketApi {
         )
         @RequestBody
         ticketRefundRequest: TicketRefundRequest,
-    ): ResponseEntity<SuccessResponse<Void>>
+    ): ResponseEntity<SuccessResponse<Void?>>
 
     @Operation(
         operationId = "ticketDeleteForMaker",
@@ -258,5 +258,5 @@ interface TicketApi {
         )
         @RequestBody
         ticketDeleteRequest: TicketDeleteRequest,
-    ): ResponseEntity<SuccessResponse<Void>>
+    ): ResponseEntity<SuccessResponse<Void?>>
 }

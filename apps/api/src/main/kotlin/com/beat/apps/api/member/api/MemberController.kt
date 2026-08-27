@@ -60,7 +60,7 @@ class MemberController(private val memberFacade: MemberFacade) : MemberApi {
     }
 
     @PostMapping("/sign-out")
-    override fun signOut(@CurrentMember memberId: Long): ResponseEntity<SuccessResponse<Void>> {
+    override fun signOut(@CurrentMember memberId: Long): ResponseEntity<SuccessResponse<Void?>> {
         memberFacade.signOut(memberId)
         return ResponseEntity.ok().body(SuccessResponse.from(MemberSuccessCode.SIGN_OUT_SUCCESS))
     }

@@ -238,5 +238,5 @@ interface PerformanceApi {
         )
         @PathVariable
         performanceId: Long,
-    ): ResponseEntity<SuccessResponse<Void>>
+    ): ResponseEntity<SuccessResponse<Void?>>
 }
