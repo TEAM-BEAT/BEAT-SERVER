@@ -582,7 +582,7 @@ flowchart LR
 - 저장된 Entity(`id != null`)의 `equals`/`hashCode`는 ID만 사용합니다. 같은 ID의 다른 immutable snapshot은 같은 Entity입니다.
 - transient Entity(`id == null`)는 같은 인스턴스일 때만 같습니다. 두 ID가 모두 `null`이라는 이유나 전체 상태가 같다는 이유로 같은 Entity로 보지 않습니다.
 - VO는 식별자가 없으므로 모든 구성 값에 대한 구조적 equality를 유지합니다.
-- 위 규칙은 순수 domain model 계약입니다. JPA entity equality는 proxy와 generated-ID lifecycle을 고려해 `MIGRATION.md`의 별도 규칙을 따릅니다.
+- 위 규칙은 순수 domain model 계약입니다. JPA entity equality는 proxy와 generated-ID lifecycle을 고려해 [infrastructure persistence 규칙](../infrastructure/README.md)을 따릅니다.
 
 예:
 

@@ -1,6 +1,5 @@
 # BEAT - 소규모 공연을 등록하고 관리할 수 있는 티켓 예매 플랫폼
 
-> 백엔드 Java → Kotlin 마이그레이션 기준과 CI gate 정리는 [`MIGRATION.md`](MIGRATION.md)를 참고하세요.
 
 ## BEAT <a href="https://www.beatlive.kr"><img src="https://github.com/user-attachments/assets/49b52b5a-1859-486e-aaf5-e8bee25f64ca" align="left" width="100" alt="BEAT logo"></a>
 
@@ -138,11 +137,11 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 
 | 구분 | 모듈 | 책임 / 기준서 |
 | --- | --- | --- |
-| Executable | `:apps:api`, `:apps:admin`, `:apps:batch` | inbound adapter/composition root. Sources remain in deployment-compatible `apis`, `admin`, `batch` directories ([API](apis/README.md), [Admin](admin/README.md), [Batch](batch/README.md)) |
+| Executable | `:apps:api`, `:apps:admin`, `:apps:batch` | inbound adapter/composition root ([API](apps/api/README.md), [Admin](apps/admin/README.md), [Batch](apps/batch/README.md)) |
 | Application | `:application:frontoffice`, `:application:admin`, `:application:system` | capability-owned use cases, transactions, output ports, query readers |
-| Domain | `:domain` | framework-free aggregates, value objects, domain services/events, aggregate repositories ([domain](core/domain/README.md)) |
-| Adapter | `:infrastructure` | internal JPA/Redis/external adapters and narrow public bootstrap configuration ([infrastructure](core/ops/README.md)) |
-| Cross-cutting | `:support:security`, `:support:observability` | narrow security and observability technical APIs. Sources remain in `gateway`, `observability` directories ([security](gateway/README.md), [observability](observability/README.md)) |
+| Domain | `:domain` | framework-free aggregates, value objects, domain services/events, aggregate repositories ([domain](domain/README.md)) |
+| Adapter | `:infrastructure` | internal JPA/Redis/external adapters and narrow public bootstrap configuration ([infrastructure](infrastructure/README.md)) |
+| Cross-cutting | `:support:security`, `:support:observability` | narrow security and observability technical APIs ([security](support/security/README.md), [observability](support/observability/README.md)) |
 
 `build-logic`는 Gradle included build이며 application project module은 아닙니다.
 
@@ -152,21 +151,14 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 - `ApplicationService`는 transaction, 권한, idempotency, repository 호출 순서와 여러 Aggregate 조율을 소유합니다.
 - `infra`는 JPA entity와 domain model을 분리하고 mapper로 변환합니다. Domain VO와 persistence `@Embeddable`도 서로 다른 타입입니다.
 - `DomainService`는 Entity/VO 하나에 둘 수 없는 순수 정책에만 사용하며 repository와 transaction을 소유하지 않습니다.
-- application/domain 오류는 stable code와 의미 기반 type을 소유하고 HTTP status는 실행 모듈 handler가 결정합니다. 기존 `{status, message}` 응답은 client 계약으로 유지합니다. 자세한 기준은 [error handling guide](docs/architecture/error-handling.md)를 따릅니다.
+- application/domain 오류는 stable code와 의미 기반 type을 소유하고 HTTP status는 실행 모듈 handler가 결정합니다. 기존 `{status, message}` 응답은 client 계약으로 유지합니다. 세부 기준은 [domain](domain/README.md), [API](apps/api/README.md), [Admin](apps/admin/README.md) 모듈 가이드를 따릅니다.
 - Kotlin `Result`는 외부 연동의 복구 가능한 실패에만 제한적으로 사용합니다. Domain 규칙과 transactional command의 기본 실패 모델은 예외입니다.
 - 같은 transaction에서 지켜야 하는 규칙은 명시적 domain method 호출로 처리합니다. 이벤트는 commit 이후 부수 효과에만 사용합니다.
 - DB 제약, lock, idempotency, expand/contract migration과 contract/concurrency test로 애플리케이션 규칙을 보강합니다.
 
-Architecture 정본은 [CQRS multi-module Constitution](docs/architecture/BEAT-SERVER-CQRS-MULTIMODULE-ARCHITECTURE-FINAL.md)입니다.
-세부 현행 가이드는 [domain](core/domain/README.md), [infrastructure](core/ops/README.md), [API](apis/README.md),
-[security](gateway/README.md), [error handling](docs/architecture/error-handling.md)을 따릅니다.
-
-### Backend migration baseline
-
-Current migration decisions and evidence are maintained in
-[BEAT-SERVER-MIGRATION-EXECUTION.md](docs/architecture/BEAT-SERVER-MIGRATION-EXECUTION.md).
-Domain failures are translated to lane-owned Application failure language before Web adapters map them to HTTP.
-[MIGRATION.md](MIGRATION.md) and the ErrorCode inventory are historical pre-target records, not current architecture guidance.
+Architecture 정본은 [architecture.md](docs/architecture/architecture.md)입니다.
+세부 현행 가이드는 [domain](domain/README.md), [infrastructure](infrastructure/README.md), [API](apps/api/README.md),
+[Admin](apps/admin/README.md), [security](support/security/README.md), [observability](support/observability/README.md)를 따릅니다.
 
 ### Environment configuration
 
