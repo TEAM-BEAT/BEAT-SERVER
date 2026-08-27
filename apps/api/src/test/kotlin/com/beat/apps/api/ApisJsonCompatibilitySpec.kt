@@ -5,6 +5,7 @@ import com.beat.application.frontoffice.home.booker.query.HomeFindAllResult
 import com.beat.application.frontoffice.home.booker.query.HomePerformanceResult
 import com.beat.application.frontoffice.home.booker.query.HomePromotionResult
 import com.beat.application.frontoffice.member.command.SocialLoginType
+import com.beat.application.frontoffice.performance.booker.query.BookingPerformanceDetailResult
 import com.beat.application.frontoffice.performance.booker.query.BookingPerformanceScheduleResult
 import com.beat.application.frontoffice.performance.booker.query.PerformanceDetailScheduleResult
 import com.beat.application.frontoffice.performance.maker.PerformanceMutationResult
