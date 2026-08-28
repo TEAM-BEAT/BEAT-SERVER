@@ -481,7 +481,7 @@ application:system
 
 # Deployment Infrastructure
 
-> `infra/ansible/` 디렉토리는 BEAT 서버의 배포 자동화를 담당합니다.
+> `ops/ansible/` 디렉토리는 BEAT 서버의 배포 자동화를 담당합니다.
 > GitHub Actions + Ansible + SOPS(age) 조합으로 dev/prod 환경을 관리합니다.
 
 ## 전체 배포 아키텍처
@@ -598,7 +598,7 @@ flowchart TB
 
 - `ansible-lint.yml`
     - PR-safe lint 경로
-    - `working-directory: infra/ansible`
+    - `working-directory: ops/ansible`
     - `ANSIBLE_VARS_ENABLED=host_group_vars`로 SOPS vars plugin을 비활성화하고 playbook/role 구조만 검증
 - `ansible-secret-aware-verify.yml`
     - push to `develop`/`main`, `workflow_dispatch`에서 실행
@@ -773,7 +773,7 @@ v1.3.0 release candidate가 rollback 가능한지 아래 항목을 forward deplo
 ### 디렉토리 레이아웃
 
 ```text
-infra/ansible/
+ops/ansible/
 ├── .ansible-lint.yml                    # Ansible Lint 검사 규칙
 ├── ansible.cfg                          # SOPS 플러그인, SSH 파이프라이닝
 ├── collections/requirements.yml         # community.docker, community.sops
@@ -913,7 +913,7 @@ curl -Ik https://<host>/favicon.ico
 `nginx_base_config` transaction이 검증과 reload를 수행하므로, 아래 `nginx -t`는 적용 후 확인용이다.
 
 ```bash
-cd infra/ansible
+cd ops/ansible
 ansible-playbook playbooks/foundation.yml \
   -i inventories/prod/hosts.yml \
   --tags nginx \
@@ -927,7 +927,7 @@ docker exec nginx nginx -t
 재활성화:
 
 ```bash
-cd infra/ansible
+cd ops/ansible
 ansible-playbook playbooks/foundation.yml \
   -i inventories/prod/hosts.yml \
   --tags nginx \
@@ -1103,8 +1103,8 @@ age-keygen -o ~/Library/Application\ Support/sops/age/keys.txt
 #       age1새팀원publickey...
 
 # 3. 기존 시크릿 파일 재암호화 (기존 키 소유자가 실행)
-sops updatekeys infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml
-sops updatekeys infra/ansible/inventories/prod/group_vars/all/secrets.sops.yml
+sops updatekeys ops/ansible/inventories/dev/group_vars/all/secrets.sops.yml
+sops updatekeys ops/ansible/inventories/prod/group_vars/all/secrets.sops.yml
 
 # 4. 커밋 & 푸시
 ```
@@ -1113,10 +1113,10 @@ sops updatekeys infra/ansible/inventories/prod/group_vars/all/secrets.sops.yml
 
 ```bash
 # 복호화 후 편집기 열기 (저장 시 자동 재암호화)
-sops infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml
+sops ops/ansible/inventories/dev/group_vars/all/secrets.sops.yml
 
 # 특정 값만 추출
-sops -d --extract '["actuator_port"]' infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml
+sops -d --extract '["actuator_port"]' ops/ansible/inventories/dev/group_vars/all/secrets.sops.yml
 ```
 
 ## 타겟 서버 사전 요구사항 (Prerequisites)
@@ -1296,7 +1296,7 @@ ssh-keyscan -p 22 <서버IP> 2>/dev/null | ssh-keygen -lf - -E sha256
 
 ### SSH pipelining + sudo `requiretty` caveat
 
-`infra/ansible/ansible.cfg`는 SSH pipelining을 켠다. Ubuntu 22.04 계열 기본 EC2 AMI에서는 `become: true`와 함께 정상 동작하지만, 일부 커스텀 AMI나
+`ops/ansible/ansible.cfg`는 SSH pipelining을 켠다. Ubuntu 22.04 계열 기본 EC2 AMI에서는 `become: true`와 함께 정상 동작하지만, 일부 커스텀 AMI나
 레거시 sudoers 정책에서 `Defaults requiretty`가 켜져 있으면 Ansible pipelining + sudo 조합이 실패할 수 있다.
 
 - Ubuntu 기본 AMI처럼 `requiretty`가 없는 환경: 현재 설정 유지 (`pipelining = True`)
@@ -1359,7 +1359,7 @@ pipelining 호환성을 확인한다.
 ./gradlew :test --tests "com.beat.SharedBoundaryContractTest"
 
 # Ansible syntax check
-cd infra/ansible
+cd ops/ansible
 ansible-playbook playbooks/foundation.yml -i inventories/dev/hosts.yml --syntax-check
 ansible-playbook playbooks/deploy.yml -i inventories/dev/hosts.yml --syntax-check \
   -e module=apis -e image=test -e image_tag=test

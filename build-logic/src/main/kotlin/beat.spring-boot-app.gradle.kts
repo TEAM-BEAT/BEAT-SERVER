@@ -32,7 +32,7 @@ dependencies {
 
 val localDevSecretScript = rootDir.resolve("scripts/generate-local-dev-secret.sh")
 val localVarsScript = rootDir.resolve("scripts/lib/local-vars.sh")
-val localDevSecretSource = rootDir.resolve("infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml")
+val localDevSecretSource = rootDir.resolve("ops/ansible/inventories/dev/group_vars/all/secrets.sops.yml")
 val localDevSecretOutput = rootDir.resolve("secret/application-dev-secret.properties")
 
 fun localDevSecretHasRequiredKeys(): Boolean =

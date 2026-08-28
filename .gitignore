@@ -191,7 +191,7 @@ secret/*
 default.conf
 deploy-dev.sh
 docker-compose.yml
-infra/ansible/inventories/**/group_vars/all.local.sops.yml
+ops/ansible/inventories/**/group_vars/all.local.sops.yml
 
 ## codex
 .omx/*
