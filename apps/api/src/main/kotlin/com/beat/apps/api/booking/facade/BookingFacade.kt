@@ -100,7 +100,7 @@ class BookingFacade(
                 BookingActorCommand(memberId, guestSessionToken),
                 BookingRefundCommand.of(
                     bookingId = request.bookingId,
-                    bankName = request.bankName?.name,
+                    bankName = request.bankName.name,
                     accountNumber = request.accountNumber,
                     accountHolder = request.accountHolder,
                 ),

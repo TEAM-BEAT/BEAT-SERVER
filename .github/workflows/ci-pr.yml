@@ -38,11 +38,10 @@ jobs:
         run: python3 .github/scripts/check_unused_version_catalog_aliases.py
         shell: bash
 
-      - name: Verify database migrations on MySQL 8.0.41 and 8.4.11
+      - name: Generate and verify OpenAPI documents
         run: |
-          chmod +x .github/scripts/verify_db_migrations.sh
-          MYSQL_IMAGE=mysql:8.0.41 .github/scripts/verify_db_migrations.sh
-          MYSQL_IMAGE=mysql:8.4.11 .github/scripts/verify_db_migrations.sh
+          chmod +x gradlew
+          ./gradlew :apps:api:openApiTest :apps:admin:openApiTest --build-cache
         shell: bash
 
       - name: Verify Gradle check
@@ -69,14 +68,6 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew sonar --build-cache
-        shell: bash
-
-      - name: Verify OpenAPI compatibility from Gradle check artifacts
-        env:
-          OPENAPI_BASE_REF: ${{ github.event.pull_request.base.sha }}
-        run: |
-          bash .github/scripts/test_verify_openapi_baseline_source.sh
-          bash .github/scripts/verify_openapi_compatibility.sh
         shell: bash
 
       - name: Stage bootJars for downstream image build

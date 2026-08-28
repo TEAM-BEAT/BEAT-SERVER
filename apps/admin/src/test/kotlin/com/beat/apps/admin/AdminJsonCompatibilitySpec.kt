@@ -119,6 +119,23 @@ class AdminJsonCompatibilitySpec : FunSpec() {
                 "signed-upload-url"
             response.carouselPresignedUploads["carousel.png"]!!.imageKey shouldBe
                 "dev/carousel/carousel.png"
+
+            val json = objectMapper.valueToTree<JsonNode>(response)
+            json.get("carouselPresignedUrls").isObject shouldBe true
+            json.get("carouselPresignedUrls").get("carousel.png").asText() shouldBe
+                "signed-upload-url"
+            json.get("carouselPresignedUploads").isObject shouldBe true
+            json.get("carouselPresignedUploads").get("carousel.png").isObject shouldBe true
+            json
+                .get("carouselPresignedUploads")
+                .get("carousel.png")
+                .get("uploadUrl")
+                .asText() shouldBe "signed-upload-url"
+            json
+                .get("carouselPresignedUploads")
+                .get("carousel.png")
+                .get("imageKey")
+                .asText() shouldBe "dev/carousel/carousel.png"
         }
     }
 

@@ -219,7 +219,7 @@ class DomainEntityEqualityBehaviorTest : FunSpec() {
             longitude = "longitude",
             performanceContact = "contact",
             performancePeriod = PERFORMANCE_PERIOD,
-            ticketPrice = TicketPrice.of(10_000),
+            ticketPrice = TicketPrice.of(0),
             totalScheduleCount = 1,
             userId = 1,
         )

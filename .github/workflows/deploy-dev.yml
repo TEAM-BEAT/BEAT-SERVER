@@ -101,6 +101,7 @@ jobs:
               - 'support/security/**'
               - 'support/observability/**'
               - 'infrastructure/src/**'
+              - 'infrastructure/build.gradle.kts'
               # Runtime Ansible only. Dedicated infrastructure roles have their
               # own workflows and must not redeploy every application module.
               - 'ops/ansible/ansible.cfg'

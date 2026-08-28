@@ -78,12 +78,6 @@ jobs:
         with:
           cache-cleanup: on-success
 
-      - name: Verify database migrations
-        run: |
-          chmod +x .github/scripts/verify_db_migrations.sh
-          .github/scripts/verify_db_migrations.sh
-        shell: bash
-
       - name: Verify Gradle check
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}

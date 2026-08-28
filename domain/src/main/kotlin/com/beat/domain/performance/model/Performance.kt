@@ -99,8 +99,12 @@ private constructor(
         performanceContact: String,
         performancePeriod: PerformancePeriod,
         totalScheduleCount: Int,
+        ticketPrice: TicketPrice = ticketPriceValue,
+        hasActiveBooking: Boolean = false,
     ): Performance {
         validateTotalScheduleCount(totalScheduleCount)
+        validateTicketPriceUpdate(ticketPrice, hasActiveBooking)
+        validatePaymentAccount(ticketPrice, paymentAccount)
         return Performance(
             performanceId = performanceId,
             performanceTitle = performanceTitle,
@@ -118,7 +122,7 @@ private constructor(
             longitude = longitude,
             performanceContact = performanceContact,
             performancePeriodValue = performancePeriod,
-            ticketPriceValue = ticketPriceValue,
+            ticketPriceValue = ticketPrice,
             totalScheduleCount = totalScheduleCount,
             linkedUserId = linkedUserId,
             castValues = castValues,
@@ -134,15 +138,23 @@ private constructor(
         newTicketPrice: TicketPrice,
         hasActiveBooking: Boolean = false,
     ): Performance {
-        if (hasActiveBooking && ticketPriceValue != newTicketPrice) {
-            throw DomainException(PerformanceErrorCode.PRICE_UPDATE_NOT_ALLOWED)
-        }
+        validateTicketPriceUpdate(newTicketPrice, hasActiveBooking)
+        validatePaymentAccount(newTicketPrice, paymentAccount)
         return copy(ticketPrice = newTicketPrice)
     }
 
     fun ensureDeletable(hasActiveBooking: Boolean) {
         if (hasActiveBooking) {
             throw DomainException(PerformanceErrorCode.DELETE_NOT_ALLOWED)
+        }
+    }
+
+    private fun validateTicketPriceUpdate(
+        newTicketPrice: TicketPrice,
+        hasActiveBooking: Boolean,
+    ) {
+        if (hasActiveBooking && ticketPriceValue != newTicketPrice) {
+            throw DomainException(PerformanceErrorCode.PRICE_UPDATE_NOT_ALLOWED)
         }
     }
 
@@ -215,6 +227,7 @@ private constructor(
             images: List<PerformanceImage> = emptyList(),
         ): Performance {
             validateTotalScheduleCount(totalScheduleCount)
+            validatePaymentAccount(ticketPrice, paymentAccount)
             return Performance(
                 null,
                 performanceTitle,
@@ -293,6 +306,22 @@ private constructor(
         private fun validateTotalScheduleCount(totalScheduleCount: Int) {
             if (totalScheduleCount < 0) {
                 throw DomainException(PerformanceErrorCode.NEGATIVE_SCHEDULE_COUNT)
+            }
+        }
+
+        private fun validatePaymentAccount(
+            ticketPrice: TicketPrice,
+            paymentAccount: PaymentAccount?,
+        ) {
+            if (ticketPrice.amount == 0 && paymentAccount != null) {
+                throw DomainException(
+                    PerformanceErrorCode.FREE_PERFORMANCE_PAYMENT_ACCOUNT_NOT_ALLOWED
+                )
+            }
+            if (ticketPrice.amount > 0 && paymentAccount == null) {
+                throw DomainException(
+                    PerformanceErrorCode.PAID_PERFORMANCE_PAYMENT_ACCOUNT_REQUIRED
+                )
             }
         }
     }

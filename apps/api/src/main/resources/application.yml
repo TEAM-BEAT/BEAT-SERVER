@@ -34,13 +34,21 @@ beat:
     owner: false
 
 springdoc:
+  api-docs:
+    version: OPENAPI_3_1
+  enable-kotlin: true
+  writer-with-default-pretty-printer: true
+  trim-kotlin-indent: true
   use-fqn: false
-  default-consumes-media-type: application/json;charset=UTF-8
-  default-produces-media-type: application/json;charset=UTF-8
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
   swagger-ui:
     tags-sorter: alpha
     operations-sorter: alpha
     display-request-duration: true
+    display-operation-id: true
+    doc-expansion: list
+    default-models-expand-depth: 1
     urls-primary-name: "APIS (사용자용)"
     # 통합 Swagger 드롭다운: apis(general) + admin 문서를 한 UI에서 조회.
     # admin 문서는 동일 도메인에서 Nginx /api/admin/ 라우팅을 통해 admin 서버로 프록시된다.

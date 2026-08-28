@@ -46,9 +46,9 @@ internal constructor(
             BookingRefundResult(
                 requireNotNull(booking.id),
                 booking.bookingStatus.name,
-                booking.bankName?.name,
-                booking.accountNumber,
-                booking.accountHolder,
+                requireNotNull(booking.bankName).name,
+                requireNotNull(booking.accountNumber),
+                requireNotNull(booking.accountHolder),
             )
         }
     }

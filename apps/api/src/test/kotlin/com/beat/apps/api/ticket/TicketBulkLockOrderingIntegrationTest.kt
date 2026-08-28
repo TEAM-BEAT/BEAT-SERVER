@@ -130,7 +130,7 @@ open class TicketBulkLockOrderingIntegrationTest : FunSpec() {
                             NOW.toLocalDate(),
                             NOW.toLocalDate().plusDays(1),
                         ),
-                    ticketPrice = 10_000,
+                    ticketPrice = 0,
                     totalScheduleCount = 2,
                     userId = makerUserId,
                 )

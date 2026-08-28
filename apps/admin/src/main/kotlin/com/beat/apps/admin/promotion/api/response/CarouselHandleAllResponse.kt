@@ -3,19 +3,61 @@ package com.beat.apps.admin.promotion.api.response
 import com.beat.application.admin.promotion.AdminPromotionResults
 import com.beat.application.admin.promotion.AdminPromotionResults.AdminPromotionResult
 import com.fasterxml.jackson.annotation.JsonProperty
+import io.swagger.v3.oas.annotations.media.Schema
 
+@Schema(description = "캐러셀 프로모션 일괄 처리 응답")
 data class CarouselHandleAllResponse(
-    @get:JsonProperty("modifiedPromotions") val modifiedPromotionResponses: List<PromotionResponse>
+    @field:Schema(
+        description = "생성 또는 수정된 프로모션 목록",
+        requiredMode = Schema.RequiredMode.REQUIRED,
+        example =
+            """[{"promotionId":1,"newImageUrl":"dev/carousel/summer.png","isExternal":false,"redirectUrl":"/performances/11","carouselNumber":"ONE"}]""",
+    )
+    @get:JsonProperty("modifiedPromotions")
+    val modifiedPromotionResponses: List<PromotionResponse>
 ) {
     constructor(
         promotionResults: AdminPromotionResults
     ) : this(promotionResults.promotionResults.map { PromotionResponse(it) })
 
+    @Schema(description = "생성 또는 수정된 프로모션 정보")
     data class PromotionResponse(
-        val promotionId: Long?,
+        @field:Schema(
+            description = "프로모션 식별자",
+            format = "int64",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            example = "1",
+        )
+        val promotionId: Long,
+        @field:Schema(
+            description = "프로모션 이미지 URL 또는 저장 키",
+            type = "string",
+            format = "uri-reference",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            example = "dev/carousel/summer.png",
+        )
         val newImageUrl: String,
+        @field:Schema(
+            description = "외부 URL 연결 여부",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            example = "false",
+        )
         val isExternal: Boolean,
+        @field:Schema(
+            description = "이미지 클릭 시 이동할 URL 또는 경로",
+            type = "string",
+            format = "uri-reference",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            example = "/performances/11",
+        )
         val redirectUrl: String,
+        @field:Schema(
+            description = "프로모션이 배치된 캐러셀 순서",
+            type = "string",
+            allowableValues = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN"],
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            example = "ONE",
+        )
         val carouselNumber: String,
     ) {
         constructor(

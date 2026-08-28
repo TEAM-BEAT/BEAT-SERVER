@@ -64,7 +64,7 @@ class TicketController(private val ticketFacade: TicketFacade) : TicketApi {
     override fun updateTickets(
         @CurrentMember memberId: Long,
         @Valid @RequestBody request: TicketUpdateRequest,
-    ): ResponseEntity<SuccessResponse<Void>> {
+    ): ResponseEntity<SuccessResponse<Void?>> {
         ticketFacade.updateTickets(memberId, request)
         return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_UPDATE_SUCCESS))
     }
@@ -73,7 +73,7 @@ class TicketController(private val ticketFacade: TicketFacade) : TicketApi {
     override fun refundTickets(
         @CurrentMember memberId: Long,
         @Valid @RequestBody ticketRefundRequest: TicketRefundRequest,
-    ): ResponseEntity<SuccessResponse<Void>> {
+    ): ResponseEntity<SuccessResponse<Void?>> {
         ticketFacade.refundTickets(memberId, ticketRefundRequest)
         return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_REFUND_SUCCESS))
     }
@@ -82,7 +82,7 @@ class TicketController(private val ticketFacade: TicketFacade) : TicketApi {
     override fun deleteTickets(
         @CurrentMember memberId: Long,
         @Valid @RequestBody ticketDeleteRequest: TicketDeleteRequest,
-    ): ResponseEntity<SuccessResponse<Void>> {
+    ): ResponseEntity<SuccessResponse<Void?>> {
         ticketFacade.deleteTickets(memberId, ticketDeleteRequest)
         return ResponseEntity.ok(SuccessResponse.from(TicketSuccessCode.TICKET_DELETE_SUCCESS))
     }

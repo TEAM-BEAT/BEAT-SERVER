@@ -337,8 +337,8 @@ Redis hash, Spring Data repository는 `infra.redis.auth`에 두고 Lua throttle 
 
 ### Kotlin JPA entity 규칙
 
-JPA entity 작성 규약의 canonical source of truth는 루트 [`MIGRATION.md`](../MIGRATION.md)의 `Canonical Kotlin JPA entity rules`
-절입니다.
+JPA entity 작성 규약은 실제 entity 코드와
+[`PromotionJpaEntityContractTest`](src/test/kotlin/com/beat/infrastructure/persistence/promotion/entity/PromotionJpaEntityContractTest.kt)로 검증합니다.
 
 Hibernate의 공식 기준은 [Hibernate ORM Introduction — Embeddable types](https://docs.jboss.org/hibernate/orm/7.2/introduction/pdf/Hibernate_Introduction.pdf)를 따릅니다. Embeddable은 persistent identity가 없고 부모가 lifecycle을 소유하며, Kotlin JPA plugin이 no-arg 생성 계약을 제공해야 합니다.
 
@@ -470,7 +470,7 @@ application:system
 - [ ] 새 group이 필요하다면 `InfraBaseConfigGroup`에 추가하고 `InfraBaseConfig`를 구현했는가?
 - [ ] support config라면 `InfraBaseConfig`를 구현하지 않고 group owner가 `@Import`로 전이 로드하는지 확인했는가?
 - [ ] 실행 모듈 `InfraConfig`에서 `@EnableInfraBaseConfig` group 선택이 올바른가?
-- [ ] Kotlin JPA entity 작성 규약을 `MIGRATION.md` canonical guide를 따랐는가?
+- [ ] Kotlin JPA entity 작성 규약과 `PromotionJpaEntityContractTest`를 따랐는가?
 - [ ] mapper는 entity ↔ domain 변환만 담당하고 query projection 조립을 담당하지 않는가?
 - [ ] query adapter라면 Application consumer projection을 반환하고 API ResponseDTO를 반환하지 않는가?
 - [ ] external adapter가 예상 가능한 provider exception만 번역하고 치명적 오류나 cancellation을 삼키지 않는가?

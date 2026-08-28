@@ -17,6 +17,13 @@ tasks.withType<Test>().configureEach {
     systemProperty("beat.openapi.output.dir", layout.buildDirectory.dir("openapi").get().asFile.absolutePath)
 }
 
+tasks.named<Test>("test") {
+    useJUnitPlatform {
+        excludeTags("openapi")
+    }
+    systemProperty("kotest.tags.exclude", "openapi")
+}
+
 val testSourceSet = extensions.getByType<SourceSetContainer>().named("test")
 
 fun registerRiskTestTask(

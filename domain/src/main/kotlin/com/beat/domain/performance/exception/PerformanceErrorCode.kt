@@ -48,4 +48,14 @@ enum class PerformanceErrorCode(
         DomainErrorType.INVALID_INPUT,
         "결제 계좌 정보는 모두 입력하거나 모두 비워야 합니다.",
     ),
+    FREE_PERFORMANCE_PAYMENT_ACCOUNT_NOT_ALLOWED(
+        "PERFORMANCE_FREE_PAYMENT_ACCOUNT_NOT_ALLOWED",
+        DomainErrorType.INVALID_INPUT,
+        "무료 공연에는 결제 계좌 정보를 입력할 수 없습니다.",
+    ),
+    PAID_PERFORMANCE_PAYMENT_ACCOUNT_REQUIRED(
+        "PERFORMANCE_PAID_PAYMENT_ACCOUNT_REQUIRED",
+        DomainErrorType.INVALID_INPUT,
+        "유료 공연은 결제 계좌 정보를 입력해야 합니다.",
+    ),
 }
