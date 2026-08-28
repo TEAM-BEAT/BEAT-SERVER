@@ -93,41 +93,35 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 
 ## 🖥️ Tech Stack
 
-### Framework
+### Language & Framework
 
-<img src="https://img.shields.io/badge/Spring_Boot_4-0?style=flat-square&logo=spring-boot&logoColor=white&color=%236DB33F" alt="Spring Boot 4 badge">   <img src="https://img.shields.io/badge/Gradle-0?style=flat-square&logo=gradle&logoColor=white&color=%2302303A" alt="Gradle badge">
+<img src="https://img.shields.io/badge/Kotlin_2.3-0?style=flat-square&logo=kotlin&logoColor=white&color=%237F52FF" alt="Kotlin badge">   <img src="https://img.shields.io/badge/Spring_Boot_4.0-0?style=flat-square&logo=spring-boot&logoColor=white&color=%236DB33F" alt="Spring Boot 4 badge">   <img src="https://img.shields.io/badge/Gradle_9.4-0?style=flat-square&logo=gradle&logoColor=white&color=%2302303A" alt="Gradle badge">
 
-#### ORM
+### Data
 
-<img src="https://img.shields.io/badge/Spring Data JPA-6DB33F?style=flat-square&logo=Databricks&logoColor=white" alt="Spring Data JPA badge">
+<img src="https://img.shields.io/badge/Spring_Data_JPA-6DB33F?style=flat-square&logo=Databricks&logoColor=white" alt="Spring Data JPA badge">   <img src="https://img.shields.io/badge/jOOQ-0?style=flat-square&logo=data:image/svg+xml;base64,&color=%23900" alt="jOOQ badge">   <img src="https://img.shields.io/badge/MySQL_8-4479A1.svg?style=flat-square&logo=MySQL&logoColor=white" alt="MySQL badge">   <img src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis badge">
 
-#### Authorization
+### Security
 
-<img src="https://img.shields.io/badge/Spring Security-6DB33F?style=flat-square&logo=springsecurity&logoColor=white" alt="Spring Security badge">  <img src="https://img.shields.io/badge/JSON Web Tokens-000000?style=flat-square&logo=JSON Web Tokens&logoColor=white" alt="JSON Web Tokens badge">
+<img src="https://img.shields.io/badge/Spring_Security-6DB33F?style=flat-square&logo=springsecurity&logoColor=white" alt="Spring Security badge">   <img src="https://img.shields.io/badge/JSON_Web_Tokens-000000?style=flat-square&logo=JSON%20Web%20Tokens&logoColor=white" alt="JSON Web Tokens badge">   <img src="https://img.shields.io/badge/SOPS_(age)-0?style=flat-square&logo=gnuprivacyguard&logoColor=white&color=%230093DD" alt="SOPS badge">
 
-#### Test
+### Test
 
-<img src="https://img.shields.io/badge/JUnit5-25A162?style=flat-square&logo=junit5&logoColor=white" alt="JUnit 5 badge">
+<img src="https://img.shields.io/badge/Kotest-0?style=flat-square&logo=kotlin&logoColor=white&color=%23E5591F" alt="Kotest badge">   <img src="https://img.shields.io/badge/MockK-0?style=flat-square&logo=kotlin&logoColor=white&color=%237F52FF" alt="MockK badge">   <img src="https://img.shields.io/badge/JUnit_6-25A162?style=flat-square&logo=junit5&logoColor=white" alt="JUnit 6 badge">   <img src="https://img.shields.io/badge/Testcontainers-0?style=flat-square&logo=docker&logoColor=white&color=%232496ED" alt="Testcontainers badge">
 
-#### Database
+### Infrastructure & CI/CD
 
-<img src="https://img.shields.io/badge/MySQL-4479A1.svg?style=flat-square&logo=MySQL&logoColor=white" alt="MySQL badge"> <img src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis badge">
+<img src="https://img.shields.io/badge/AWS_EC2-FF9900?style=flat-square&logo=amazonec2&logoColor=white" alt="AWS EC2 badge">   <img src="https://img.shields.io/badge/AWS_S3-69A31?style=flat-square&logo=amazons3&logoColor=white" alt="AWS S3 badge">   <img src="https://img.shields.io/badge/AWS_RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white" alt="AWS RDS badge">   <img src="https://img.shields.io/badge/CloudFront-8C4FFF?style=flat-square&logo=amazoncloudwatch&logoColor=white" alt="CloudFront badge">   <img src="https://img.shields.io/badge/Lambda-FF9900?style=flat-square&logo=awslambda&logoColor=white" alt="Lambda badge">
+<br>
+<img src="https://img.shields.io/badge/GitHub_Actions-0?style=flat-square&logo=GitHub%20Actions&logoColor=white&color=%232088FF" alt="GitHub Actions badge">   <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker badge">   <img src="https://img.shields.io/badge/Ansible-0?style=flat-square&logo=ansible&logoColor=white&color=%23EE0000" alt="Ansible badge">   <img src="https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white" alt="Nginx badge">
 
-#### AWS
+### Observability
 
-<img src ="https://img.shields.io/badge/AWS EC2-FF9900?style=flat-square&logo=amazonec2&logoColor=white" alt="AWS EC2 badge">  <img src ="https://img.shields.io/badge/AWS S3-69A31?style=flat-square&logo=amazons3&logoColor=white" alt="AWS S3 badge">  <img src="https://img.shields.io/badge/AWS RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white" alt="AWS RDS badge">
+<img src="https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=grafana&logoColor=white" alt="Grafana badge">   <img src="https://img.shields.io/badge/Loki-0?style=flat-square&logo=grafana&logoColor=white&color=%23F46800" alt="Loki badge">   <img src="https://img.shields.io/badge/Tempo-0?style=flat-square&logo=grafana&logoColor=white&color=%23F46800" alt="Tempo badge">   <img src="https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white" alt="Prometheus badge">   <img src="https://img.shields.io/badge/Sentry-362D59?style=flat-square&logo=sentry&logoColor=white" alt="Sentry badge">
 
-#### CI/CD
+### API Documentation
 
-<img src="https://img.shields.io/badge/GitHub%20Actions-0?style=flat-square&logo=GitHub%20Actions&logoColor=white&color=%232088FF" alt="GitHub Actions badge"> <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker badge">
-
-#### Monitoring
-
-<img src="https://img.shields.io/badge/Slack-4A154B?style=flat-square&logo=slack&logoColor=white" alt="Slack badge">
-
-#### Other
-
-<img src="https://img.shields.io/badge/Swagger-6DB33F?style=flat-square&logo=swagger&logoColor=white" alt="Swagger badge">
+<img src="https://img.shields.io/badge/SpringDoc_OpenAPI_3.1-6DB33F?style=flat-square&logo=swagger&logoColor=white" alt="SpringDoc OpenAPI badge">
 
 ## 🔨 Architecture
 
@@ -141,7 +135,7 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 | Application | `:application:frontoffice`, `:application:admin`, `:application:system` | capability-owned use cases, transactions, output ports, query readers |
 | Domain | `:domain` | framework-free aggregates, value objects, domain services/events, aggregate repositories ([domain](domain/README.md)) |
 | Adapter | `:infrastructure` | internal JPA/Redis/external adapters and narrow public bootstrap configuration ([infrastructure](infrastructure/README.md)) |
-| Cross-cutting | `:support:security`, `:support:observability` | narrow security and observability technical APIs ([security](support/security/README.md), [observability](support/observability/README.md)) |
+| Cross-cutting | `:support:security`, `:support:security-web`, `:support:observability` | narrow security and observability technical APIs ([security](support/security/README.md), [observability](support/observability/README.md)) |
 
 `build-logic`는 Gradle included build이며 application project module은 아닙니다.
 
