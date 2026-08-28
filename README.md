@@ -95,33 +95,33 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 
 ### Language & Framework
 
-<img src="https://img.shields.io/badge/Kotlin_2.3-0?style=flat-square&logo=kotlin&logoColor=white&color=%237F52FF" alt="Kotlin badge">   <img src="https://img.shields.io/badge/Spring_Boot_4.0-0?style=flat-square&logo=spring-boot&logoColor=white&color=%236DB33F" alt="Spring Boot 4 badge">   <img src="https://img.shields.io/badge/Gradle_9.4-0?style=flat-square&logo=gradle&logoColor=white&color=%2302303A" alt="Gradle badge">
+<img src="https://img.shields.io/badge/Kotlin_2.3-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin badge">   <img src="https://img.shields.io/badge/Spring_Boot_4.0-6DB33F?style=flat-square&logo=springboot&logoColor=white" alt="Spring Boot 4 badge">   <img src="https://img.shields.io/badge/Gradle_9.4-02303A?style=flat-square&logo=gradle&logoColor=white" alt="Gradle badge">
 
-### Data
+### Data & Persistence
 
-<img src="https://img.shields.io/badge/Spring_Data_JPA-6DB33F?style=flat-square&logo=Databricks&logoColor=white" alt="Spring Data JPA badge">   <img src="https://img.shields.io/badge/jOOQ-0?style=flat-square&logo=data:image/svg+xml;base64,&color=%23900" alt="jOOQ badge">   <img src="https://img.shields.io/badge/MySQL_8-4479A1.svg?style=flat-square&logo=MySQL&logoColor=white" alt="MySQL badge">   <img src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis badge">
+<img src="https://img.shields.io/badge/Spring_Data_JPA-6DB33F?style=flat-square&logo=spring&logoColor=white" alt="Spring Data JPA badge">   <img src="https://img.shields.io/badge/Kotlin_JDSL_3.8-00C73C?style=flat-square&logo=line&logoColor=white" alt="Kotlin JDSL badge">   <img src="https://img.shields.io/badge/jOOQ_3.19-204153?style=flat-square" alt="jOOQ badge">   <img src="https://img.shields.io/badge/MySQL_8.0-4479A1?style=flat-square&logo=mysql&logoColor=white" alt="MySQL badge">   <img src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis badge">
 
-### Security
+### Security & Secret
 
-<img src="https://img.shields.io/badge/Spring_Security-6DB33F?style=flat-square&logo=springsecurity&logoColor=white" alt="Spring Security badge">   <img src="https://img.shields.io/badge/JSON_Web_Tokens-000000?style=flat-square&logo=JSON%20Web%20Tokens&logoColor=white" alt="JSON Web Tokens badge">   <img src="https://img.shields.io/badge/SOPS_(age)-0?style=flat-square&logo=gnuprivacyguard&logoColor=white&color=%230093DD" alt="SOPS badge">
+<img src="https://img.shields.io/badge/Spring_Security-6DB33F?style=flat-square&logo=springsecurity&logoColor=white" alt="Spring Security badge">   <img src="https://img.shields.io/badge/JSON_Web_Tokens-000000?style=flat-square&logo=jsonwebtokens&logoColor=white" alt="JSON Web Tokens badge">   <img src="https://img.shields.io/badge/SOPS_(age)-0093DD?style=flat-square&logo=gnuprivacyguard&logoColor=white" alt="SOPS badge">
 
-### Test
+### Testing & Verification
 
-<img src="https://img.shields.io/badge/Kotest-0?style=flat-square&logo=kotlin&logoColor=white&color=%23E5591F" alt="Kotest badge">   <img src="https://img.shields.io/badge/MockK-0?style=flat-square&logo=kotlin&logoColor=white&color=%237F52FF" alt="MockK badge">   <img src="https://img.shields.io/badge/JUnit_6-25A162?style=flat-square&logo=junit5&logoColor=white" alt="JUnit 6 badge">   <img src="https://img.shields.io/badge/Testcontainers-0?style=flat-square&logo=docker&logoColor=white&color=%232496ED" alt="Testcontainers badge">
+<img src="https://img.shields.io/badge/Kotest_6.2-E5591F?style=flat-square&logo=kotest&logoColor=white" alt="Kotest badge">   <img src="https://img.shields.io/badge/MockK_1.14-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="MockK badge">   <img src="https://img.shields.io/badge/JUnit_Platform-25A162?style=flat-square&logo=junit5&logoColor=white" alt="JUnit Platform badge">   <img src="https://img.shields.io/badge/Testcontainers-2496ED?style=flat-square&logo=testcontainers&logoColor=white" alt="Testcontainers badge">   <img src="https://img.shields.io/badge/ArchUnit_1.5-4B8BBE?style=flat-square" alt="ArchUnit badge">
 
-### Infrastructure & CI/CD
+### Cloud & Infrastructure
 
-<img src="https://img.shields.io/badge/AWS_EC2-FF9900?style=flat-square&logo=amazonec2&logoColor=white" alt="AWS EC2 badge">   <img src="https://img.shields.io/badge/AWS_S3-69A31?style=flat-square&logo=amazons3&logoColor=white" alt="AWS S3 badge">   <img src="https://img.shields.io/badge/AWS_RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white" alt="AWS RDS badge">   <img src="https://img.shields.io/badge/CloudFront-8C4FFF?style=flat-square&logo=amazoncloudwatch&logoColor=white" alt="CloudFront badge">   <img src="https://img.shields.io/badge/Lambda-FF9900?style=flat-square&logo=awslambda&logoColor=white" alt="Lambda badge">
+<img src="https://img.shields.io/badge/AWS_EC2-FF9900?style=flat-square&logo=amazonec2&logoColor=white" alt="AWS EC2 badge">   <img src="https://img.shields.io/badge/AWS_S3-569A31?style=flat-square&logo=amazons3&logoColor=white" alt="AWS S3 badge">   <img src="https://img.shields.io/badge/AWS_RDS-527FFF?style=flat-square&logo=amazonrds&logoColor=white" alt="AWS RDS badge">   <img src="https://img.shields.io/badge/CloudFront-8C4FFF?style=flat-square&logo=amazoncloudfront&logoColor=white" alt="CloudFront badge">   <img src="https://img.shields.io/badge/Lambda-FF9900?style=flat-square&logo=awslambda&logoColor=white" alt="Lambda badge">
 <br>
-<img src="https://img.shields.io/badge/GitHub_Actions-0?style=flat-square&logo=GitHub%20Actions&logoColor=white&color=%232088FF" alt="GitHub Actions badge">   <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker badge">   <img src="https://img.shields.io/badge/Ansible-0?style=flat-square&logo=ansible&logoColor=white&color=%23EE0000" alt="Ansible badge">   <img src="https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white" alt="Nginx badge">
+<img src="https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white" alt="GitHub Actions badge">   <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker badge">   <img src="https://img.shields.io/badge/Ansible-EE0000?style=flat-square&logo=ansible&logoColor=white" alt="Ansible badge">   <img src="https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white" alt="Nginx badge">
 
 ### Observability
 
-<img src="https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=grafana&logoColor=white" alt="Grafana badge">   <img src="https://img.shields.io/badge/Loki-0?style=flat-square&logo=grafana&logoColor=white&color=%23F46800" alt="Loki badge">   <img src="https://img.shields.io/badge/Tempo-0?style=flat-square&logo=grafana&logoColor=white&color=%23F46800" alt="Tempo badge">   <img src="https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white" alt="Prometheus badge">   <img src="https://img.shields.io/badge/Sentry-362D59?style=flat-square&logo=sentry&logoColor=white" alt="Sentry badge">
+<img src="https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=grafana&logoColor=white" alt="Grafana badge">   <img src="https://img.shields.io/badge/Loki-F46800?style=flat-square&logo=grafana&logoColor=white" alt="Loki badge">   <img src="https://img.shields.io/badge/Tempo-F46800?style=flat-square&logo=grafana&logoColor=white" alt="Tempo badge">   <img src="https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white" alt="Prometheus badge">   <img src="https://img.shields.io/badge/OpenTelemetry-425CC7?style=flat-square&logo=opentelemetry&logoColor=white" alt="OpenTelemetry badge">   <img src="https://img.shields.io/badge/Sentry-362D59?style=flat-square&logo=sentry&logoColor=white" alt="Sentry badge">
 
 ### API Documentation
 
-<img src="https://img.shields.io/badge/SpringDoc_OpenAPI_3.1-6DB33F?style=flat-square&logo=swagger&logoColor=white" alt="SpringDoc OpenAPI badge">
+<img src="https://img.shields.io/badge/SpringDoc_OpenAPI_3.1-6BA539?style=flat-square&logo=openapiinitiative&logoColor=white" alt="SpringDoc OpenAPI badge">
 
 ## 🔨 Architecture
 
