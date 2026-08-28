@@ -114,6 +114,7 @@ export const handler = async (event) => {
 
     const timing = `download;dur=${downloadMs},transform;dur=${transformMs}`;
 
+    let stored = false;
     if (TRANSFORMED_BUCKET) {
         const transformedKey = `${originalKey}/${operationsPrefix}`;
         try {
@@ -124,12 +125,17 @@ export const handler = async (event) => {
                 ContentType: transformedContentType,
                 CacheControl: TRANSFORMED_CACHE_CONTROL,
             }));
+            stored = true;
         } catch (error) {
-            console.error("S3 PutObject (transformed) failed; serving inline", { key: transformedKey, error });
+            console.error("S3 PutObject (transformed) failed", { key: transformedKey, error });
         }
     }
 
     if (transformedBuffer.byteLength > MAX_INLINE_IMAGE_SIZE) {
+        if (!stored) {
+            return errorResponse(500, "transformed image too large and could not be cached");
+        }
+
         const redirectLocation = buildPublicViewerUrl(originalKey, operations);
         return {
             statusCode: 302,

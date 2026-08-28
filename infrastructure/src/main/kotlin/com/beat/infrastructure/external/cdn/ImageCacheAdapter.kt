@@ -34,18 +34,23 @@ internal class ImageCacheAdapter(
             return
         }
         val baseUrl = "$cdnBase/$normalizedKey"
-        val variantTasks =
-            TARGET_WIDTHS.flatMap { width ->
-                    TARGET_FORMATS.map { accept ->
-                        CompletableFuture.runAsync(
-                            { warmSingleVariant(baseUrl, width, accept) },
-                            VARIANT_EXECUTOR,
-                        )
-                    }
-                }
-                .toTypedArray()
-        CompletableFuture.allOf(*variantTasks).join()
-        log.info("CDN pre-warm completed for {} ({} variants)", baseUrl, variantTasks.size)
+        CompletableFuture.runAsync(
+            {
+                val variantTasks =
+                    TARGET_WIDTHS.flatMap { width ->
+                            TARGET_FORMATS.map { accept ->
+                                CompletableFuture.runAsync(
+                                    { warmSingleVariant(baseUrl, width, accept) },
+                                    VARIANT_EXECUTOR,
+                                )
+                            }
+                        }
+                        .toTypedArray()
+                CompletableFuture.allOf(*variantTasks).join()
+                log.info("CDN pre-warm completed for {} ({} variants)", baseUrl, variantTasks.size)
+            },
+            VARIANT_EXECUTOR,
+        )
     }
 
     private fun warmSingleVariant(baseUrl: String, width: Int, accept: String) {

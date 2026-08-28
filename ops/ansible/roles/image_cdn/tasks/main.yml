@@ -106,6 +106,7 @@
       AcmCertificateArn: "{{ image_cdn_acm_cert_arn }}"
       AlarmEmail: "{{ image_cdn_alarm_email }}"
       LambdaMemoryMb: "{{ image_cdn_lambda_memory_mb }}"
+      MaxInlineImageSize: "{{ image_cdn_max_inline_image_size }}"
       LambdaTimeoutSeconds: "{{ image_cdn_lambda_timeout_seconds }}"
       LambdaLogRetentionDays: "{{ image_cdn_lambda_log_retention_days }}"
       TransformedImageRetentionDays: "{{ image_cdn_transformed_retention_days }}"

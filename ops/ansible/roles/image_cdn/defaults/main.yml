@@ -16,6 +16,7 @@ image_cdn_lambda_src_relpath: "ops/aws/lambda/image-processing"
 image_cdn_lambda_code_key: "image-cdn/{{ image_cdn_lambda_code_version | default('latest') }}/image-processing.zip"
 
 image_cdn_lambda_memory_mb: 2048
+image_cdn_max_inline_image_size: 4700000
 image_cdn_lambda_timeout_seconds: 30
 image_cdn_lambda_log_retention_days: 14
 image_cdn_transformed_retention_days: 90

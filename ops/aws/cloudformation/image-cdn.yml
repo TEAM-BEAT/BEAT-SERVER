@@ -47,8 +47,8 @@ Parameters:
     Type: Number
     Default: 2048
     Description: >
-      Memory size of the image processor. 2048 MB gives Sharp full multi-threaded
-      vCPU performance and enough headroom for AVIF/WebP encoding without timeouts.
+      Memory size of the image processor. 2048 MB provides additional CPU
+      capacity and memory headroom for Sharp image processing.
   MaxInlineImageSize:
     Type: Number
     Default: 4700000
