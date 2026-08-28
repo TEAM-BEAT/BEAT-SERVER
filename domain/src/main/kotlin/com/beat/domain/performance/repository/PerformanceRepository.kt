@@ -1,22 +1,13 @@
 package com.beat.domain.performance.repository
 
-import com.beat.domain.performance.domain.Genre
-import com.beat.domain.performance.domain.Performance
-import java.util.*
+import com.beat.domain.performance.model.Performance
 
-@JvmSuppressWildcards
 interface PerformanceRepository {
-    fun findById(id: Long?): Optional<Performance>
+    fun findById(id: Long): Performance?
 
-    fun findAll(): List<Performance>
-
-    fun findAllById(ids: Collection<Long>): List<Performance>
+    fun lockById(id: Long): Performance?
 
     fun save(performance: Performance): Performance
 
-    fun findByGenre(genre: Genre): List<Performance>
-
-    fun findByUserId(userId: Long?): List<Performance>
-
-    fun deleteById(id: Long?)
+    fun deleteById(id: Long)
 }

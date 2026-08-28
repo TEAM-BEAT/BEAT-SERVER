@@ -1,0 +1,94 @@
+server:
+  port: 4001
+  forward-headers-strategy: native
+
+spring:
+  application:
+    name: beat-apis
+  profiles:
+    group:
+      dev:
+        - persistence
+        - redis
+        - external
+        - jwt
+        - observability
+        - thread-pool
+      prod:
+        - persistence
+        - redis
+        - external
+        - jwt
+        - observability
+        - thread-pool
+      test:
+        - persistence
+        - redis
+        - external
+        - jwt
+        - observability
+        - thread-pool
+
+beat:
+  scheduler:
+    owner: false
+
+springdoc:
+  api-docs:
+    version: OPENAPI_3_1
+  enable-kotlin: true
+  writer-with-default-pretty-printer: true
+  trim-kotlin-indent: true
+  use-fqn: false
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+  swagger-ui:
+    tags-sorter: alpha
+    operations-sorter: alpha
+    display-request-duration: true
+    display-operation-id: true
+    doc-expansion: list
+    default-models-expand-depth: 1
+    urls-primary-name: "APIS (사용자용)"
+    # 통합 Swagger 드롭다운: apis(general) + admin 문서를 한 UI에서 조회.
+    # admin 문서는 동일 도메인에서 Nginx /api/admin/ 라우팅을 통해 admin 서버로 프록시된다.
+    # (swagger/api-docs는 비-prod에서만 활성 — prod application.yml에서 비활성화됨)
+    urls:
+      - name: "APIS (사용자용)"
+        url: /v3/api-docs/general
+      - name: "ADMIN (관리자용)"
+        url: /api/admin/v3/api-docs/admin
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+    import: optional:file:secret/application-dev-secret.properties
+
+cors:
+  allowed-origins: ${DEV_ALLOWED_ORIGINS}
+
+app:
+  server:
+    url: ${APIS_SERVER_URL:${DEV_SERVER_URL}}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+    import: optional:file:secret/application-prod-secret.properties
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+
+cors:
+  allowed-origins: ${PROD_ALLOWED_ORIGINS}
+
+app:
+  server:
+    url: ${PROD_SERVER_URL}

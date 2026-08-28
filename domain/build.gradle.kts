@@ -5,8 +5,6 @@ plugins {
 }
 
 dependencies {
-    api(project(":global-support"))
-
-    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.archunit.junit5)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

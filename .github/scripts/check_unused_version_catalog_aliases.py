@@ -420,7 +420,7 @@ def split_allowlist_entry(raw_line: str) -> tuple[str, str]:
 
 
 def gradle_kts_files(root: Path) -> list[Path]:
-    ignored_dirs = {".git", ".gradle", ".omx", "build"}
+    ignored_dirs = {".git", ".gradle", ".omx", "bin", "build"}
     files: list[Path] = []
     for path in root.rglob("*.gradle.kts"):
         if not any(part in ignored_dirs for part in path.relative_to(root).parts):

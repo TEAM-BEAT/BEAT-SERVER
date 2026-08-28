@@ -2,29 +2,25 @@ name: ci-pr
 
 on:
   pull_request:
-    branches:
-      - develop
-      - main
 
 jobs:
-  verify:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 30
+  openapi:
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up JDK 25
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with:
           java-version: "25"
           distribution: "temurin"
 
       - name: Gradle caching
-        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
         with:
           cache-cleanup: on-success
 
@@ -35,20 +31,52 @@ jobs:
         run: python3 .github/scripts/check_unused_version_catalog_aliases.py
         shell: bash
 
+      - name: Generate and verify OpenAPI documents
+        run: |
+          chmod +x gradlew
+          ./gradlew :apps:api:openApiTest :apps:admin:openApiTest --build-cache
+        shell: bash
+
+  gradle-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          java-version: "25"
+          distribution: "temurin"
+
+      - name: Gradle caching
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        with:
+          cache-cleanup: on-success
+
       - name: Verify Gradle check
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_RELEASE: beat-server@${{ github.sha }}
         run: |
           chmod +x gradlew
-          ./gradlew check verifyModuleBootJars --parallel --build-cache
+          ./gradlew check --parallel --build-cache -x :apps:api:openApiTest -x :apps:admin:openApiTest
         shell: bash
 
       - name: Stage bootJars for downstream image build
         run: |
           mkdir -p staged-jars
           for module in apis admin batch; do
-            JAR=$(find "${module}/build/libs" -maxdepth 1 -name "${module}-*.jar" ! -name '*-plain.jar' | head -n 1)
+            case "$module" in
+              apis) module_dir=apps/api ;;
+              admin) module_dir=apps/admin ;;
+              batch) module_dir=apps/batch ;;
+            esac
+            JAR=$(find "${module_dir}/build/libs" -maxdepth 1 -name "${module}-*.jar" ! -name '*-plain.jar' | head -n 1)
             [ -n "$JAR" ] || { echo "No bootJar produced for ${module}" >&2; exit 1; }
             cp "$JAR" "staged-jars/${module}.jar"
           done
@@ -63,6 +91,46 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      - name: Upload Sonar inputs artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sonar-inputs
+          path: |
+            build/reports/kover/report.xml
+            apps/api/build/classes/kotlin/main
+            apps/admin/build/classes/kotlin/main
+            apps/batch/build/classes/kotlin/main
+            application/admin/build/classes/kotlin/main
+            application/frontoffice/build/classes/kotlin/main
+            application/system/build/classes/kotlin/main
+            domain/build/classes/kotlin/main
+            infrastructure/build/classes/kotlin/main
+            support/observability/build/classes/kotlin/main
+            support/security/build/classes/kotlin/main
+            support/security-web/build/classes/kotlin/main
+          if-no-files-found: error
+          retention-days: 1
+
+  dependency-health:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          java-version: "25"
+          distribution: "temurin"
+
+      - name: Gradle caching
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        with:
+          cache-cleanup: on-success
+
       # Advisory phase: buildHealth is intentionally non-blocking on first adoption.
       # Promote to a hard gate only after the report is triaged into:
       # - immediate fixes,
@@ -75,9 +143,59 @@ jobs:
           ./gradlew buildHealth --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g" --build-cache
         shell: bash
 
+  sonar:
+    needs: gradle-check
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    # secrets는 if: 조건식에서 직접 참조할 수 없다(GitHub 공식 문서).
+    # job-level env로 승격 후 env 컨텍스트로 검사한다.
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          java-version: "25"
+          distribution: "temurin"
+
+      - name: Gradle caching
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        with:
+          cache-cleanup: on-success
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Download Sonar inputs artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sonar-inputs
+          path: .
+
+      - name: SonarQube Cloud Analysis (Kover coverage, JDK 25)
+        if: ${{ env.SONAR_TOKEN != '' }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_RELEASE: beat-server@${{ github.sha }}
+        run: |
+          chmod +x gradlew
+          ./gradlew sonar -x koverXmlReport --build-cache
+        shell: bash
+
   scan-images:
-    needs: verify
-    runs-on: ubuntu-22.04
+    needs: [gradle-check, openapi]
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -87,10 +205,10 @@ jobs:
           - batch
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Download bootJars artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -108,7 +226,7 @@ jobs:
         shell: bash
 
       - name: Build scan image
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
           file: Dockerfile.module
@@ -125,3 +243,14 @@ jobs:
           scan-type: image
           image-ref: beat-scan:${{ matrix.module }}
           trivy-config: .trivy-image.yaml
+
+  verify:
+    needs: [openapi, gradle-check, sonar]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Confirm required checks passed
+        run: echo "Required CI checks passed"
+        shell: bash

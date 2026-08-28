@@ -1,0 +1,75 @@
+DB_HIKARI_MAX_POOL_SIZE: 10
+
+cors:
+  allowed-origins: https://client.example
+
+app:
+  server:
+    url: http://localhost:8080
+
+spring:
+  cloud:
+    aws:
+      region:
+        static: ap-northeast-2
+      credentials:
+        access-key: test-access-key
+        secret-key: test-secret-key
+      secretsmanager:
+        enabled: false
+      parameterstore:
+        enabled: false
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            redirect-uri: http://localhost/login/oauth2/code/kakao
+            client-authentication-method: post
+            authorization-grant-type: authorization_code
+            scope: profile_nickname, account_email
+            client-name: Kakao
+  coolsms:
+    api:
+      key: test-coolsms-key
+      secret: test-coolsms-secret
+      number: 01000000000
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+  datasource:
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+cloud:
+  aws:
+    region: ap-northeast-2
+    credentials:
+      access-key: test-access-key
+      secret-key: test-secret-key
+  s3:
+    bucket: beat-test-bucket
+  cdn:
+    domain: "https://test-cdn.beatlive.kr"
+  stack:
+    auto: false
+
+slack:
+  webhook:
+    member-url: http://localhost/member
+    booking-url: http://localhost/booking
+
+jwt:
+  secret: AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QA==
+  access-token-expire-time: 3600000
+  refresh-token-expire-time: 1209600000
+  key-id: test-current

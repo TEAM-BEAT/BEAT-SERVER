@@ -1,14 +1,14 @@
 package com.beat.domain.promotion.repository
 
-import com.beat.domain.promotion.domain.CarouselNumber
-import com.beat.domain.promotion.domain.Promotion
-import java.util.*
+import com.beat.domain.promotion.model.CarouselNumber
+import com.beat.domain.promotion.model.Promotion
 
-@JvmSuppressWildcards
 interface PromotionRepository {
     fun findAll(): List<Promotion>
 
-    fun findById(promotionId: Long?): Optional<Promotion>
+    fun lockAll(): List<Promotion>
+
+    fun findById(promotionId: Long): Promotion?
 
     fun save(promotion: Promotion): Promotion
 
@@ -16,7 +16,7 @@ interface PromotionRepository {
 
     fun deleteByPromotionIds(promotionIds: List<Long>)
 
-    fun deleteByPerformanceId(performanceId: Long?)
+    fun deleteByPerformanceId(performanceId: Long)
 
-    fun findByCarouselNumber(carouselNumber: CarouselNumber): Optional<Promotion>
+    fun findByCarouselNumber(carouselNumber: CarouselNumber): Promotion?
 }

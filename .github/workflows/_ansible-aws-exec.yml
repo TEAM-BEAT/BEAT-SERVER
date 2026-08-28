@@ -1,0 +1,70 @@
+name: ansible-aws-exec
+
+on:
+  workflow_call:
+    inputs:
+      environment_name:
+        required: true
+        type: string
+      playbook:
+        required: true
+        type: string
+      inventory_path:
+        required: true
+        type: string
+      aws_region:
+        required: true
+        type: string
+      checkout_ref:
+        required: true
+        type: string
+    secrets:
+      sops_age_key:
+        required: true
+
+jobs:
+  execute:
+    name: "${{ inputs.playbook }} :: ${{ inputs.environment_name }}"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    environment: ${{ inputs.environment_name }}
+    env:
+      AWS_ROLE_TO_ASSUME: ${{ vars.AWS_IMAGE_CDN_DEPLOY_ROLE_ARN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.checkout_ref }}
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-ansible-tooling
+
+      - name: Verify environment deployment role
+        shell: bash
+        run: |
+          test -n "$AWS_ROLE_TO_ASSUME" || {
+            echo "AWS_IMAGE_CDN_DEPLOY_ROLE_ARN is not configured for this environment." >&2
+            exit 1
+          }
+
+      - name: Configure AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Run Ansible playbook
+        shell: bash
+        env:
+          SOPS_AGE_KEY: ${{ secrets.sops_age_key }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment_name }}
+          PLAYBOOK: ${{ inputs.playbook }}
+          INVENTORY_PATH: ${{ inputs.inventory_path }}
+        run: |
+          set -euo pipefail
+          export SOPS_AGE_KEY
+          cd ops/ansible
+          ansible-playbook "$PLAYBOOK" -i "$INVENTORY_PATH" \
+            -e "deploy_environment=$DEPLOY_ENVIRONMENT"

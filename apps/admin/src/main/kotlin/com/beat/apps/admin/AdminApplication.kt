@@ -1,0 +1,22 @@
+package com.beat.apps.admin
+
+import com.beat.application.admin.AdminApplicationConfig
+import com.beat.apps.admin.config.GatewayConfig
+import com.beat.apps.admin.config.InfraConfig
+import com.beat.support.observability.ObservabilityModuleConfig
+import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.runApplication
+import org.springframework.context.annotation.Import
+
+@SpringBootApplication(scanBasePackageClasses = [AdminApplication::class])
+@Import(
+    AdminApplicationConfig::class,
+    GatewayConfig::class,
+    InfraConfig::class,
+    ObservabilityModuleConfig::class,
+)
+class AdminApplication
+
+fun main(args: Array<String>) {
+    runApplication<AdminApplication>(*args)
+}

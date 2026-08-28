@@ -1,11 +1,9 @@
 package com.beat.domain.user.repository
 
-import com.beat.domain.user.domain.Users
-import java.util.*
+import com.beat.domain.user.model.Users
 
-@JvmSuppressWildcards
 interface UserRepository {
-    fun findById(id: Long?): Optional<Users>
+    fun findById(id: Long): Users?
 
     fun findAll(): List<Users>
 

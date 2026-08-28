@@ -1,19 +1,14 @@
 package com.beat.domain.member.repository
 
-import com.beat.domain.member.domain.Member
-import com.beat.domain.member.domain.SocialType
-import java.util.*
+import com.beat.domain.member.model.Member
+import com.beat.domain.member.vo.SocialIdentity
 
-@JvmSuppressWildcards
 interface MemberRepository {
-    fun findById(id: Long?): Optional<Member>
+    fun findById(id: Long): Member?
 
     fun save(member: Member): Member
 
-    fun findBySocialTypeAndSocialId(
-        socialId: Long?,
-        socialType: SocialType,
-    ): Optional<Member>
+    fun findBySocialIdentity(socialIdentity: SocialIdentity): Member?
 
     fun count(): Long
 }

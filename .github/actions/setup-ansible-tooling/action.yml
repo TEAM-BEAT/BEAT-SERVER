@@ -5,7 +5,7 @@ runs:
   using: composite
   steps:
     - name: Install Cosign
-      uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
+      uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       with:
         cosign-release: v3.0.3
 
@@ -49,11 +49,11 @@ runs:
         rm -f "sops-${SOPS_VERSION}.checksums.txt" "sops-${SOPS_VERSION}.checksums.pem" "sops-${SOPS_VERSION}.checksums.sig"
 
     - name: Set up Python
-      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
       with:
         python-version: "3.12"
 
-    - name: Install Ansible and ansible-lint
+    - name: Install Ansible and Python dependencies
       shell: bash
       run: |
         ANSIBLE_WHEEL_DIR="$(mktemp -d)"
@@ -62,12 +62,11 @@ runs:
         printf '%s  %s\n' \
           '34a49582a57c2f2af17ede2cefd3b3602a2d55d22089f3928570d52030cafa35' \
           "$ANSIBLE_WHEEL_DIR/ansible_core-2.17.14-py3-none-any.whl" | sha256sum -c -
-        python3 -m pip install --user "$ANSIBLE_WHEEL_DIR/ansible_core-2.17.14-py3-none-any.whl"
-        python3 -m pip install --user "ansible-lint==24.12.2"
+        python3 -m pip install -r ops/ansible/requirements.txt "$ANSIBLE_WHEEL_DIR/ansible_core-2.17.14-py3-none-any.whl"
         rm -rf "$ANSIBLE_WHEEL_DIR"
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
     - name: Install Ansible collections
       shell: bash
       run: |
-        ansible-galaxy collection install -r infra/ansible/collections/requirements.yml
+        ansible-galaxy collection install -r ops/ansible/collections/requirements.yml

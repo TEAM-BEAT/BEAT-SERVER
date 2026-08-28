@@ -46,18 +46,17 @@ flowchart TB
     Root[Root build.gradle.kts<br/>coordination build]
 
     subgraph Executable[Executable modules]
-        APIs[apis]
-        Admin[admin]
-        Batch[batch]
+        APIs[apps:api]
+        Admin[apps:admin]
+        Batch[apps:batch]
     end
 
     subgraph Libraries[Library / adapter modules]
         Domain[domain]
-        Gateway[gateway]
-        Infra[infra]
-        Contracts[module-contracts]
-        Observability[observability]
-        Support[global-support]
+        Applications[application:frontoffice/admin/system]
+        Infra[infrastructure]
+        Security[support:security]
+        Observability[support:observability]
     end
 
     Catalog --> BuildLogic
@@ -65,11 +64,10 @@ flowchart TB
     BuildLogic --> Admin
     BuildLogic --> Batch
     BuildLogic --> Domain
-    BuildLogic --> Gateway
+    BuildLogic --> Applications
     BuildLogic --> Infra
-    BuildLogic --> Contracts
+    BuildLogic --> Security
     BuildLogic --> Observability
-    BuildLogic --> Support
     Root --> Executable
     Root --> Libraries
 
@@ -211,7 +209,7 @@ flowchart TB
 
 | Plugin | 제공하는 것 | 주의 |
 | --- | --- | --- |
-| `beat.kotlin-base` | Kotlin JVM, Java 25 toolchain, JVM 25 bytecode, `-Xjsr305=strict` | 단독으로 쓰기보다 `beat.library`, `beat.spring-boot-app`을 통해 사용 |
+| `beat.kotlin-base` | Kotlin JVM, Java 25 toolchain, JVM 25 bytecode, `-Xjsr305=strict`, JVM type-use annotation 방출 | 단독으로 쓰기보다 `beat.library`, `beat.spring-boot-app`을 통해 사용 |
 | `beat.library` | `java-library` + `beat.kotlin-base` | 순수 library 기본값 |
 | `beat.spring-library` | `beat.library`, `beat.test`, Spring dependency-management, Kotlin Spring plugin | Spring bean/type compile surface가 있는 library용 |
 | `beat.spring-boot-app` | Spring Boot app, dependency-management, Kotlin Spring, Log4j2, Lombok, test starter, CVE constraints | 실행 모듈 기본값. Web/Security/OpenAPI/Feign은 별도 선택 |
@@ -249,18 +247,17 @@ flowchart TB
 ```mermaid
 flowchart LR
     subgraph Apps[Executable]
-        APIs[apis]
-        Admin[admin]
-        Batch[batch]
+        APIs[apps:api]
+        Admin[apps:admin]
+        Batch[apps:batch]
     end
 
     subgraph Libs[Library / adapter]
         Domain[domain]
-        Gateway[gateway]
-        Infra[infra]
-        Contracts[module-contracts]
-        Observability[observability]
-        Support[global-support]
+        Applications[application lanes]
+        Security[support:security]
+        Infra[infrastructure]
+        Observability[support:observability]
     end
 
     SpringBoot[beat.spring-boot-app]
@@ -293,9 +290,8 @@ flowchart LR
     Prometheus --> Batch
 
     Library --> Domain
-    Library --> Contracts
-    Library --> Support
-    SpringLib --> Gateway
+    Library --> Applications
+    SpringLib --> Security
     SpringLib --> Observability
     Jpa --> Infra
     External --> Infra
@@ -304,24 +300,22 @@ flowchart LR
     Sentry --> Admin
     Sentry --> Batch
     Sentry --> Domain
-    Sentry --> Gateway
+    Sentry --> Applications
+    Sentry --> Security
     Sentry --> Infra
-    Sentry --> Contracts
     Sentry --> Observability
-    Sentry --> Support
 ```
 
 | Module | 적용 plugin |
 | --- | --- |
-| `apis` | `beat.spring-boot-app`, `beat.web-mvc`, `beat.web-security`, `beat.openapi`, `beat.feign-runtime`, `beat.sentry-source-context`, `beat.prometheus-runtime` |
-| `admin` | `beat.spring-boot-app`, `beat.web-mvc`, `beat.web-security`, `beat.openapi`, `beat.feign-runtime`, `beat.sentry-source-context` |
-| `batch` | `beat.spring-boot-app`, `beat.actuator-http-runtime`, `beat.sentry-source-context`, `beat.prometheus-runtime` |
+| `apps:api` | `beat.spring-boot-app`, `beat.web-mvc`, `beat.web-security`, `beat.openapi`, `beat.feign-runtime`, `beat.sentry-source-context`, `beat.prometheus-runtime` |
+| `apps:admin` | `beat.spring-boot-app`, `beat.web-mvc`, `beat.web-security`, `beat.openapi`, `beat.feign-runtime`, `beat.sentry-source-context`, `beat.prometheus-runtime` |
+| `apps:batch` | `beat.spring-boot-app`, `beat.actuator-http-runtime`, `beat.sentry-source-context`, `beat.prometheus-runtime` |
+| `application:frontoffice/admin/system` | `beat.spring-library`, `beat.test`, `beat.sentry-source-context` |
 | `domain` | `beat.library`, `beat.test`, `beat.sentry-source-context` |
-| `gateway` | `beat.spring-library`, `beat.sentry-source-context` |
-| `infra` | `beat.jpa-adapter`, `beat.external-client`, `beat.sentry-source-context` |
-| `module-contracts` | `beat.library`, `beat.sentry-source-context` |
-| `observability` | `beat.spring-library`, `beat.sentry-source-context` |
-| `global-support` | `beat.library`, `beat.sentry-source-context` |
+| `support:security` | `beat.spring-library`, `beat.sentry-source-context` |
+| `infrastructure` | `beat.jpa-adapter`, `beat.external-client`, `beat.sentry-source-context` |
+| `support:observability` | `beat.spring-library`, `beat.sentry-source-context` |
 
 ---
 
@@ -342,7 +336,7 @@ plugins {
 }
 ```
 
-`apis`만 Prometheus scrape 대상이므로 `beat.prometheus-runtime`을 추가합니다.
+`apis`와 `admin`은 Prometheus scrape 대상이므로 `beat.prometheus-runtime`을 추가합니다. `batch`도 actuator HTTP와 Prometheus runtime을 함께 사용합니다.
 
 ### `batch`
 
@@ -474,10 +468,10 @@ Sentry runtime dependency는 `observability`가 소유합니다.
   - root build가 executable/runtime dependency를 다시 소유하지 않는지 검증
   - Sentry vendor wiring이 root `subprojects` block으로 돌아오지 않는지 검증
   - catalog alias residue가 재도입되지 않는지 검증
-- `SharedBoundaryContractTest`
-  - web/infra convention split 유지
+- `verifyTargetModuleGraph` + compiled ArchUnit
+  - Web/Infrastructure convention split 유지
   - `beat.web-app`, `beat.jpa-infra` 같은 wrapper/god convention 재도입 방지
-  - module-contracts / gateway / observability dependency boundary 검증
+  - Application/Infrastructure/Support dependency boundary 검증
 - CI
   - `python3 .github/scripts/check_unused_version_catalog_aliases.py`
   - `./gradlew buildHealth` advisory report

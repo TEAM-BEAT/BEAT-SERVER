@@ -1,0 +1,9 @@
+package com.beat.apps.api.booking.web
+
+const val BOOKING_API_PATH = "/api/bookings"
+const val BOOKING_REFUND_ROUTE = "/refund"
+const val BOOKING_CANCEL_ROUTE = "/cancel"
+const val BOOKING_REFUND_PATH = "$BOOKING_API_PATH$BOOKING_REFUND_ROUTE"
+const val BOOKING_CANCEL_PATH = "$BOOKING_API_PATH$BOOKING_CANCEL_ROUTE"
+
+val GUEST_BOOKING_MUTATION_PATHS = setOf(BOOKING_REFUND_PATH, BOOKING_CANCEL_PATH)

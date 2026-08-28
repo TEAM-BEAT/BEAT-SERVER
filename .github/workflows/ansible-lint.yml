@@ -10,7 +10,7 @@ on:
       - develop
       - main
     paths:
-      - "infra/ansible/**"
+      - "ops/ansible/**"
       - ".github/workflows/ansible-lint.yml"
       - ".github/workflows/deploy-dev.yml"
       - ".github/workflows/deploy-prod.yml"
@@ -20,17 +20,19 @@ on:
 
 jobs:
   lint:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Ansible tooling
         uses: ./.github/actions/setup-ansible-tooling
 
       - name: Run ansible-lint
-        working-directory: infra/ansible
+        working-directory: ops/ansible
         env:
           ANSIBLE_VARS_ENABLED: host_group_vars
         run: |

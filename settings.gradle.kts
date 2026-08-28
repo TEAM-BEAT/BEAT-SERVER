@@ -24,13 +24,15 @@ plugins {
 rootProject.name = "beat"
 
 include(
-    "module-contracts",
-    "apis",
-    "admin",
-    "batch",
-    "gateway",
+    "apps:api",
+    "apps:admin",
+    "apps:batch",
+    "application:frontoffice",
+    "application:admin",
+    "application:system",
     "domain",
-    "infra",
-    "global-support",
-    "observability",
+    "infrastructure",
+    "support:security",
+    "support:security-web",
+    "support:observability",
 )

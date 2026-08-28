@@ -9,10 +9,10 @@ on:
     branches:
       - develop
     paths:
-      - 'infra/ansible/roles/observability_alloy/**'
-      - 'infra/ansible/playbooks/observability.yml'
-      - 'infra/ansible/inventories/dev/group_vars/all/main.yml'
-      - 'infra/ansible/inventories/dev/group_vars/all/secrets.sops.yml'
+      - 'ops/ansible/roles/observability_alloy/**'
+      - 'ops/ansible/playbooks/observability.yml'
+      - 'ops/ansible/inventories/dev/group_vars/all/main.yml'
+      - 'ops/ansible/inventories/dev/group_vars/all/secrets.sops.yml'
       - '.github/workflows/deploy-observability-dev.yml'
       - '.github/workflows/_ansible-exec.yml'
   workflow_dispatch:
@@ -25,14 +25,14 @@ on:
 
 jobs:
   resolve-ref:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
     outputs:
       commit_sha: ${{ steps.resolve.outputs.commit_sha }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -83,7 +83,6 @@ jobs:
     # alloy 재시작은 app deploy/foundation과 같은 dev runtime concurrency group으로 묶어 직렬화
     concurrency:
       group: dev-runtime
-      queue: max
       cancel-in-progress: false
     uses: ./.github/workflows/_ansible-exec.yml
     with:

@@ -1,0 +1,11 @@
+[
+  {
+    "performanceId": 1,
+    "bookingList": [
+      {
+        "bookingId": 1,
+        "bookingStatus": "BOOKING_CONFIRMED"
+      }
+    ]
+  }
+]

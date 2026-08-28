@@ -14,6 +14,10 @@ val kotlinVersion = libsCatalog.findVersion("kotlin").get().requiredVersion
 val springBootVersion = libsCatalog.findVersion("spring-boot").get().requiredVersion
 val dependencyManagementVersion = libsCatalog.findVersion("dependency-management").get().requiredVersion
 val sentryGradlePluginVersion = libsCatalog.findVersion("sentry-gradle-plugin").get().requiredVersion
+val dependencyAnalysisVersion = libsCatalog.findVersion("dependency-analysis").get().requiredVersion
+val koverVersion = libsCatalog.findVersion("kover").get().requiredVersion
+val spotlessVersion = libsCatalog.findVersion("spotless").get().requiredVersion
+val ktfmtVersion = libsCatalog.findVersion("ktfmt").get().requiredVersion
 
 fun pluginMarker(group: String, artifact: String, version: String): String =
     "$group:$artifact:$version"
@@ -36,6 +40,7 @@ tasks.withType<KotlinCompile>().configureEach {
 }
 
 dependencies {
+    implementation(pluginMarker("com.autonomousapps", "dependency-analysis-gradle-plugin", dependencyAnalysisVersion))
     implementation(pluginMarker("org.jetbrains.kotlin.jvm", "org.jetbrains.kotlin.jvm.gradle.plugin", kotlinVersion))
     implementation(pluginMarker("org.jetbrains.kotlin.plugin.spring", "org.jetbrains.kotlin.plugin.spring.gradle.plugin", kotlinVersion))
     implementation(pluginMarker("org.jetbrains.kotlin.plugin.jpa", "org.jetbrains.kotlin.plugin.jpa.gradle.plugin", kotlinVersion))
@@ -54,4 +59,6 @@ dependencies {
             sentryGradlePluginVersion,
         )
     )
+    implementation(pluginMarker("org.jetbrains.kotlinx.kover", "org.jetbrains.kotlinx.kover.gradle.plugin", koverVersion))
+    implementation(pluginMarker("com.diffplug.spotless", "com.diffplug.spotless.gradle.plugin", spotlessVersion))
 }

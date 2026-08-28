@@ -1,9 +1,12 @@
-FROM eclipse-temurin:25-jre-alpine
+FROM eclipse-temurin:25.0.3_9-jre-alpine-3.23@sha256:28db6fdf60e38945e43d840c0333aeaec66c15943070104f7586fd3c9d1665b0
 
 ARG MODULE
 
-# Trivy reports CVE-2026-2100 against the base image p11-kit 0.25.5-r2 baseline
-RUN apk upgrade --no-cache p11-kit p11-kit-trust
+# Alpine repositories retain current patch revisions; Trivy is the vulnerability gate.
+RUN apk add --no-cache --upgrade \
+    libexpat \
+    p11-kit \
+    p11-kit-trust
 
 RUN addgroup -g 10001 -S beat && adduser -S -u 10001 -G beat beat && mkdir -p /app && chown beat:beat /app
 

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "enabledManagers": ["dockerfile"],
+  "vulnerabilityAlerts": {
+    "enabled": false
+  },
+  "packageRules": [
+    {
+      "description": "Only manage the Eclipse Temurin runtime image.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["*"],
+      "enabled": false
+    },
+    {
+      "description": "Keep the Eclipse Temurin JRE Alpine runtime variant.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["eclipse-temurin"],
+      "enabled": true,
+      "allowedVersions": "/^25[.-]/"
+    }
+  ]
+}

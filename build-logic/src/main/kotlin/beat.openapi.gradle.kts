@@ -5,3 +5,7 @@ val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
 dependencies {
     add("implementation", libs.findLibrary("springdoc-openapi-starter-webmvc-ui").get())
 }
+
+tasks.named("check") {
+    dependsOn("openApiTest")
+}

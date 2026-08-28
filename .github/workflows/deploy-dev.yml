@@ -23,14 +23,14 @@ on:
 
 jobs:
   resolve-ref:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
     outputs:
       commit_sha: ${{ steps.resolve.outputs.commit_sha }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -76,34 +76,51 @@ jobs:
           echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
 
   detect-changes:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       has_modules: ${{ steps.matrix.outputs.has_modules }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: filter
         with:
           filters: |
             apis:
-              - 'apis/**'
+              - 'apps/api/**'
             admin:
-              - 'admin/**'
+              - 'apps/admin/**'
             batch:
-              - 'batch/**'
+              - 'apps/batch/**'
             shared:
               # Shared application / build surface
+              - 'application/**'
               - 'domain/**'
-              - 'global-support/**'
-              - 'module-contracts/**'
-              - 'gateway/**'
-              - 'observability/**'
-              - 'infra/src/**'
-              - 'infra/ansible/**'
-              - 'infra/build.gradle.kts'
+              - 'support/security/**'
+              - 'support/observability/**'
+              - 'infrastructure/src/**'
+              - 'infrastructure/build.gradle.kts'
+              # Runtime Ansible only. Dedicated infrastructure roles have their
+              # own workflows and must not redeploy every application module.
+              - 'ops/ansible/ansible.cfg'
+              - 'ops/ansible/collections/requirements.yml'
+              - 'ops/ansible/playbooks/deploy.yml'
+              - 'ops/ansible/playbooks/foundation.yml'
+              - 'ops/ansible/playbooks/tasks/validate_nginx_fragments.yml'
+              - 'ops/ansible/roles/app_*/**'
+              - 'ops/ansible/roles/foundation_stack/**'
+              - 'ops/ansible/roles/letsencrypt_bootstrap/**'
+              - 'ops/ansible/roles/letsencrypt_cron/**'
+              - 'ops/ansible/roles/nginx_base_config/**'
+              - 'ops/ansible/roles/nginx_config_helper/**'
+              - 'ops/ansible/roles/nginx_fragment_transaction/**'
+              - 'ops/ansible/roles/swapfile/**'
+              - 'ops/ansible/inventories/dev/hosts.yml'
+              - 'ops/ansible/inventories/dev/group_vars/all/main.yml'
+              - 'ops/ansible/inventories/dev/group_vars/all/secrets.sops.yml'
+              - 'ops/build.gradle.kts'
               - 'build-logic/**'
               - 'build.gradle.kts'
               - 'settings.gradle.kts'
@@ -164,21 +181,21 @@ jobs:
       - detect-changes
       - resolve-ref
     if: needs.detect-changes.outputs.has_modules == 'true'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.resolve-ref.outputs.commit_sha }}
 
-      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with:
           java-version: "25"
           distribution: "temurin"
 
-      - uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
+      - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
         with:
           cache-cleanup: on-success
 
@@ -195,7 +212,12 @@ jobs:
         run: |
           mkdir -p staged-jars
           for module in apis admin batch; do
-            JAR=$(find "${module}/build/libs" -maxdepth 1 -name "${module}-*.jar" ! -name '*-plain.jar' | head -n 1)
+            case "$module" in
+              apis) module_dir=apps/api ;;
+              admin) module_dir=apps/admin ;;
+              batch) module_dir=apps/batch ;;
+            esac
+            JAR=$(find "${module_dir}/build/libs" -maxdepth 1 -name "${module}-*.jar" ! -name '*-plain.jar' | head -n 1)
             [ -n "$JAR" ] || { echo "No bootJar produced for ${module}" >&2; exit 1; }
             cp "$JAR" "staged-jars/${module}.jar"
           done
@@ -216,7 +238,7 @@ jobs:
       - resolve-ref
       - verify
     if: needs.detect-changes.outputs.has_modules == 'true'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -226,15 +248,15 @@ jobs:
       max-parallel: 3
       matrix: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.resolve-ref.outputs.commit_sha }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4.5.1
         with:
           username: ${{ vars.DEV_DOCKER_LOGIN_USERNAME }}
           password: ${{ secrets.DEV_DOCKER_LOGIN_ACCESSTOKEN }}
@@ -264,13 +286,15 @@ jobs:
           IMAGE_TAG="dev-${RESOLVED_SHA}"
           IMAGE_REF="${DOCKER_NAMESPACE}/beat-${MODULE}:${IMAGE_TAG}"
           IMAGE_LATEST="${DOCKER_NAMESPACE}/beat-${MODULE}:dev-latest"
-          echo "tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
-          echo "image=$IMAGE_REF" >> "$GITHUB_OUTPUT"
-          echo "latest=$IMAGE_LATEST" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=$IMAGE_TAG"
+            echo "image=$IMAGE_REF"
+            echo "latest=$IMAGE_LATEST"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build and push image
         id: build
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
           file: Dockerfile.module
@@ -306,7 +330,6 @@ jobs:
     if: needs.detect-changes.outputs.has_modules == 'true'
     concurrency:
       group: dev-runtime
-      queue: max
       cancel-in-progress: false
     uses: ./.github/workflows/_ansible-exec.yml
     with:
@@ -338,7 +361,6 @@ jobs:
     if: needs.detect-changes.outputs.has_modules == 'true'
     concurrency:
       group: dev-runtime
-      queue: max
       cancel-in-progress: false
     strategy:
       fail-fast: false
