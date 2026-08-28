@@ -1,6 +1,7 @@
 package com.beat.apps.api.performance.api.response
 
-import com.beat.application.frontoffice.performance.maker.ScheduleResult
+import com.beat.application.frontoffice.performance.maker.command.result.ScheduleResult as CommandScheduleResult
+import com.beat.application.frontoffice.performance.maker.query.ScheduleResult as QueryScheduleResult
 import com.beat.apps.api.schedule.api.type.ScheduleNumberType
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDateTime
@@ -41,7 +42,27 @@ private constructor(
     val scheduleNumber: ScheduleNumberType,
 ) {
     companion object {
-        fun from(result: ScheduleResult): ScheduleResponse =
+        fun from(result: CommandScheduleResult): ScheduleResponse =
+            ScheduleResponse(
+                scheduleId =
+                    requireNotNull(result.id) {
+                        "ScheduleResponse.scheduleId must be present for a persisted schedule"
+                    },
+                performanceDate =
+                    requireNotNull(result.performanceDate) {
+                        "ScheduleResponse.performanceDate must be present"
+                    },
+                totalTicketCount = result.totalTicketCount,
+                dueDate = result.dueDate,
+                scheduleNumber =
+                    ScheduleNumberType.valueOf(
+                        requireNotNull(result.scheduleNumber) {
+                            "ScheduleResponse.scheduleNumber must be present"
+                        }
+                    ),
+            )
+
+        fun from(result: QueryScheduleResult): ScheduleResponse =
             ScheduleResponse(
                 scheduleId =
                     requireNotNull(result.id) {

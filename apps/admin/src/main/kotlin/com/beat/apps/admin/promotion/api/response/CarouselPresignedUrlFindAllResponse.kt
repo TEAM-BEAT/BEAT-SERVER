@@ -1,7 +1,7 @@
 package com.beat.apps.admin.promotion.api.response
 
-import com.beat.application.admin.promotion.PromotionImageUpload
-import com.beat.application.admin.promotion.query.AdminPromotionPresignedUrlResults.CarouselPresignedUrlsResult
+import com.beat.application.admin.promotion.command.AdminPromotionPresignedUrlResults.CarouselPresignedUrlsResult
+import com.beat.application.admin.promotion.command.PromotionImageUpload
 import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(description = "캐러셀 이미지 업로드용 Presigned URL 전체 조회 응답")

@@ -10,6 +10,7 @@ import com.beat.application.frontoffice.booking.booker.command.GuestBookingComma
 import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommandService
 import com.beat.application.frontoffice.booking.booker.command.MemberBookingCommand
 import com.beat.application.frontoffice.booking.booker.command.MemberBookingCommandService
+import com.beat.application.frontoffice.booking.booker.query.GuestBookingHistoryQueryService
 import com.beat.application.frontoffice.booking.booker.query.MemberBookingQueryService
 import com.beat.apps.api.booking.api.request.BookingCancelRequest
 import com.beat.apps.api.booking.api.request.BookingRefundRequest
@@ -30,6 +31,7 @@ class BookingFacade(
     private val memberBookingQueryService: MemberBookingQueryService,
     private val guestBookingCommandService: GuestBookingCommandService,
     private val guestBookingAccessService: GuestBookingAccessService,
+    private val guestBookingHistoryQueryService: GuestBookingHistoryQueryService,
     private val bookingCancellationCommandService: BookingCancellationCommandService,
 ) {
     fun createMemberBooking(memberId: Long, request: MemberBookingRequest): MemberBookingResponse =
@@ -75,7 +77,7 @@ class BookingFacade(
         clientAddress: String,
     ): GuestBookingSessionOutcome<List<GuestBookingRetrieveResponse>> {
         val outcome =
-            guestBookingAccessService.authenticateAndFind(
+            guestBookingAccessService.authenticate(
                 GuestBookingAuthenticationCommand.of(
                     bookerName = request.bookerName,
                     birthDate = request.birthDate,
@@ -84,9 +86,10 @@ class BookingFacade(
                 ),
                 clientAddress,
             )
+        val bookings = guestBookingHistoryQueryService.findGuestBookings(outcome.userId)
         return GuestBookingSessionOutcome(
-            response = outcome.bookings.map(GuestBookingRetrieveResponse::from),
-            sessionToken = outcome.sessionToken,
+            response = bookings.map(GuestBookingRetrieveResponse::from),
+            sessionToken = guestBookingAccessService.issueSession(outcome.userId),
         )
     }
 

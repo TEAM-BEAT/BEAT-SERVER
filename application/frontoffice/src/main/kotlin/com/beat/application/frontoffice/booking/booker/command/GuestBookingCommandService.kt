@@ -1,12 +1,10 @@
 package com.beat.application.frontoffice.booking.booker.command
 
-import com.beat.application.frontoffice.booking.booker.BookingApplicationErrorCode
-import com.beat.application.frontoffice.booking.booker.calculatePaymentAmountForCommand
-import com.beat.application.frontoffice.booking.booker.credential.GuestBookingCredentialAuthenticator
-import com.beat.application.frontoffice.booking.booker.event.BookingCreatedEvent
-import com.beat.application.frontoffice.booking.booker.result.BookingCreationResult
-import com.beat.application.frontoffice.booking.booker.result.GuestBookingCreationOutcome
-import com.beat.application.frontoffice.booking.booker.validateGuestBookingIdentity
+import com.beat.application.frontoffice.booking.booker.command.credential.GuestBookingCredentialAuthenticator
+import com.beat.application.frontoffice.booking.booker.command.event.BookingCreatedEvent
+import com.beat.application.frontoffice.booking.booker.command.result.BookingCreationResult
+import com.beat.application.frontoffice.booking.booker.command.result.GuestBookingCreationOutcome
+import com.beat.application.frontoffice.booking.booker.exception.BookingApplicationErrorCode
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.application.frontoffice.exception.translateDomainFailure
 import com.beat.domain.booking.model.Booking

@@ -1,6 +1,6 @@
 package com.beat.apps.api.performance.api.response
 
-import com.beat.application.frontoffice.performance.maker.ScheduleResult
+import com.beat.application.frontoffice.performance.maker.command.result.ScheduleResult
 import com.beat.apps.api.schedule.api.type.ScheduleNumberType
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDateTime

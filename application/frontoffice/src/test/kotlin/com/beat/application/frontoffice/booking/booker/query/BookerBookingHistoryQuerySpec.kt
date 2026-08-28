@@ -1,11 +1,6 @@
 package com.beat.application.frontoffice.booking.booker.query
 
-import com.beat.application.frontoffice.booking.booker.BookingApplicationErrorCode
-import com.beat.application.frontoffice.booking.booker.BookingHistoryPerformanceSnapshot
-import com.beat.application.frontoffice.booking.booker.BookingHistoryReadPort
-import com.beat.application.frontoffice.booking.booker.BookingHistoryScheduleSnapshot
-import com.beat.application.frontoffice.booking.booker.BookingHistorySnapshot
-import com.beat.application.frontoffice.booking.booker.toResult
+import com.beat.application.frontoffice.booking.booker.exception.BookingApplicationErrorCode
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.application.frontoffice.fixture.frontofficeMemberFixture
 import com.beat.domain.member.repository.MemberRepository
@@ -26,26 +21,27 @@ class BookerBookingHistoryQuerySpec :
         isolationMode = IsolationMode.SingleInstance
 
         test("게스트 예매 조회는 reader 순서와 저장된 결제 금액을 보존하고 미저장 금액만 현재 가격으로 계산한다") {
-            val reader = mockk<BookingHistoryReadPort>(relaxed = true)
-            every { reader.findByUserId(7L) } returns
+            val reader = mockk<GuestBookingHistoryReader>(relaxed = true)
+            every { reader.findByUserIdForGuestAccess(7L) } returns
                 listOf(
-                    booking(
+                    guestBooking(
                         1L,
                         10L,
                         24_000,
-                        schedule(10L, 100L, "FIRST"),
-                        performance(100L, 15_000),
+                        guestSchedule(10L, 100L, "FIRST"),
+                        guestPerformance(100L, 15_000),
                     ),
-                    booking(
+                    guestBooking(
                         2L,
                         11L,
                         null,
-                        schedule(11L, 100L, "SECOND"),
-                        performance(100L, 20_000),
+                        guestSchedule(11L, 100L, "SECOND"),
+                        guestPerformance(100L, 20_000),
                     ),
                 )
+            val service = GuestBookingHistoryQueryService(reader, FIXED_CLOCK)
 
-            val results = reader.findByUserId(7L).map { it.toResult(LocalDate.now(FIXED_CLOCK)) }
+            val results = service.findGuestBookings(7L)
 
             results.map { it.scheduleId } shouldBe listOf(10L, 11L)
             results[0].totalPaymentAmount shouldBe 24_000
@@ -55,7 +51,7 @@ class BookerBookingHistoryQuerySpec :
 
         test("회원 예매 조회는 회원의 userId로 authoritative booking을 조회한다") {
             val memberRepository = mockk<MemberRepository>(relaxed = true)
-            val reader = mockk<BookingHistoryReadPort>(relaxed = true)
+            val reader = mockk<MemberBookingHistoryReader>(relaxed = true)
             val service = MemberBookingQueryService(memberRepository, reader, FIXED_CLOCK)
             val member = frontofficeMemberFixture()
             every { memberRepository.findById(1L) } returns member
@@ -77,7 +73,7 @@ class BookerBookingHistoryQuerySpec :
         }
 
         test("연관 회차 projection이 없으면 안정적인 회차 없음 application error를 반환한다") {
-            val reader = mockk<BookingHistoryReadPort>(relaxed = true)
+            val reader = mockk<MemberBookingHistoryReader>(relaxed = true)
             every { reader.findByUserId(7L) } returns listOf(booking(1L, 10L, null, null, null))
 
             val exception =
@@ -91,7 +87,7 @@ class BookerBookingHistoryQuerySpec :
         }
 
         test("연관 공연 projection이 없으면 안정적인 공연 없음 application error를 반환한다") {
-            val reader = mockk<BookingHistoryReadPort>(relaxed = true)
+            val reader = mockk<MemberBookingHistoryReader>(relaxed = true)
             every { reader.findByUserId(7L) } returns
                 listOf(booking(1L, 10L, null, schedule(10L, 100L, "FIRST"), null))
 
@@ -110,10 +106,29 @@ private fun booking(
     bookingId: Long,
     scheduleId: Long,
     amount: Int?,
-    schedule: BookingHistoryScheduleSnapshot?,
-    performance: BookingHistoryPerformanceSnapshot?,
-): BookingHistorySnapshot =
-    BookingHistorySnapshot(
+    schedule: MemberBookingHistoryScheduleReadModel?,
+    performance: MemberBookingHistoryPerformanceReadModel?,
+): MemberBookingHistoryReadModel =
+    MemberBookingHistoryReadModel(
+        userId = 7L,
+        bookingId = bookingId,
+        purchaseTicketCount = 2,
+        bookerName = "booker",
+        bookingStatus = "CHECKING_PAYMENT",
+        createdAt = LocalDateTime.of(2026, 1, 1, 12, 0),
+        totalPaymentAmount = amount,
+        schedule = schedule,
+        performance = performance,
+    )
+
+private fun guestBooking(
+    bookingId: Long,
+    scheduleId: Long,
+    amount: Int?,
+    schedule: GuestBookingHistoryScheduleReadModel?,
+    performance: GuestBookingHistoryPerformanceReadModel?,
+): GuestBookingHistoryReadModel =
+    GuestBookingHistoryReadModel(
         userId = 7L,
         bookingId = bookingId,
         purchaseTicketCount = 2,
@@ -129,8 +144,8 @@ private fun schedule(
     scheduleId: Long,
     performanceId: Long,
     number: String,
-): BookingHistoryScheduleSnapshot =
-    BookingHistoryScheduleSnapshot(
+): MemberBookingHistoryScheduleReadModel =
+    MemberBookingHistoryScheduleReadModel(
         scheduleId = scheduleId,
         performanceId = performanceId,
         performanceDate = LocalDateTime.of(2026, 1, 10, 18, 0),
@@ -140,8 +155,36 @@ private fun schedule(
 private fun performance(
     performanceId: Long,
     ticketPrice: Int,
-): BookingHistoryPerformanceSnapshot =
-    BookingHistoryPerformanceSnapshot(
+): MemberBookingHistoryPerformanceReadModel =
+    MemberBookingHistoryPerformanceReadModel(
+        performanceId = performanceId,
+        performanceTitle = "공연",
+        performanceVenue = "공연장",
+        performanceContact = "010-0000-0000",
+        bankName = "KAKAOBANK",
+        accountNumber = "계좌",
+        accountHolder = "예금주",
+        posterImage = "poster.png",
+        ticketPrice = ticketPrice,
+    )
+
+private fun guestSchedule(
+    scheduleId: Long,
+    performanceId: Long,
+    number: String,
+): GuestBookingHistoryScheduleReadModel =
+    GuestBookingHistoryScheduleReadModel(
+        scheduleId = scheduleId,
+        performanceId = performanceId,
+        performanceDate = LocalDateTime.of(2026, 1, 10, 18, 0),
+        scheduleNumber = number,
+    )
+
+private fun guestPerformance(
+    performanceId: Long,
+    ticketPrice: Int,
+): GuestBookingHistoryPerformanceReadModel =
+    GuestBookingHistoryPerformanceReadModel(
         performanceId = performanceId,
         performanceTitle = "공연",
         performanceVenue = "공연장",

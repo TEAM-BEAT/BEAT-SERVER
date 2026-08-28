@@ -1,6 +1,6 @@
 package com.beat.apps.api.performance.api.response
 
-import com.beat.application.frontoffice.performance.maker.PerformanceMutationResult
+import com.beat.application.frontoffice.performance.maker.command.result.PerformanceMutationResult
 import com.beat.apps.api.performance.api.type.BankNameType
 import com.beat.apps.api.performance.api.type.GenreType
 import com.beat.apps.api.web.jackson.CdnImageUrl

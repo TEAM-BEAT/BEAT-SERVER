@@ -1,6 +1,7 @@
 package com.beat.apps.api.performance.api.response
 
-import com.beat.application.frontoffice.performance.CastResult
+import com.beat.application.frontoffice.performance.maker.command.result.CastResult as CommandCastResult
+import com.beat.application.frontoffice.performance.maker.query.CastResult as QueryCastResult
 import com.beat.apps.api.web.jackson.CdnImageUrl
 import io.swagger.v3.oas.annotations.media.Schema
 
@@ -35,7 +36,27 @@ private constructor(
     val castPhoto: String,
 ) {
     companion object {
-        fun from(result: CastResult): CastResponse =
+        fun from(result: CommandCastResult): CastResponse =
+            CastResponse(
+                castId =
+                    requireNotNull(result.id) {
+                        "CastResponse.castId must be present for a persisted cast"
+                    },
+                castName =
+                    requireNotNull(result.name) {
+                        "CastResponse.castName must be present"
+                    },
+                castRole =
+                    requireNotNull(result.role) {
+                        "CastResponse.castRole must be present"
+                    },
+                castPhoto =
+                    requireNotNull(result.photo) {
+                        "CastResponse.castPhoto must be present"
+                    },
+            )
+
+        fun from(result: QueryCastResult): CastResponse =
             CastResponse(
                 castId =
                     requireNotNull(result.id) {

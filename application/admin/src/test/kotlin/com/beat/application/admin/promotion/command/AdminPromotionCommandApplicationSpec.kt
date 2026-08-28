@@ -2,8 +2,6 @@ package com.beat.application.admin.promotion.command
 
 import com.beat.application.admin.exception.AdminApplicationException
 import com.beat.application.admin.fixture.adminMemberFixture
-import com.beat.application.admin.promotion.PromotionImageStorage
-import com.beat.application.admin.promotion.PromotionImageUpload
 import com.beat.application.admin.promotion.command.CarouselHandleCommand.PromotionGenerateCommand
 import com.beat.application.admin.promotion.command.CarouselHandleCommand.PromotionModifyCommand
 import com.beat.application.admin.promotion.exception.PromotionApplicationErrorCode

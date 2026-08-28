@@ -255,13 +255,14 @@ com.beat.admin.promotion/
 application/admin/src/main/kotlin/com/beat/application/admin/promotion/
   command/
     AdminPromotionCommandService
+    AdminPromotionPresignedUrlResults
     CarouselHandleCommand
     PromotionImageCache
+    PromotionImageCommandService
+    PromotionImageStorage
   query/
     AdminPromotionQueryService
-    AdminPromotionPresignedUrlResults
   AdminPromotionResults
-  PromotionImageStorage
   exception/PromotionApplicationErrorCode
 ```
 

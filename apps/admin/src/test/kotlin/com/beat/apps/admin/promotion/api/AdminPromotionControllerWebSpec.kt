@@ -2,12 +2,13 @@ package com.beat.apps.admin.promotion.api
 
 import com.beat.application.admin.promotion.AdminPromotionResults
 import com.beat.application.admin.promotion.AdminPromotionResults.AdminPromotionResult
-import com.beat.application.admin.promotion.PromotionImageUpload
 import com.beat.application.admin.promotion.command.AdminPromotionCommandService
+import com.beat.application.admin.promotion.command.AdminPromotionPresignedUrlResults.BannerPresignedUrlResult
+import com.beat.application.admin.promotion.command.AdminPromotionPresignedUrlResults.CarouselPresignedUrlsResult
 import com.beat.application.admin.promotion.command.CarouselHandleCommand
 import com.beat.application.admin.promotion.command.CarouselHandleCommand.PromotionGenerateCommand
-import com.beat.application.admin.promotion.query.AdminPromotionPresignedUrlResults.BannerPresignedUrlResult
-import com.beat.application.admin.promotion.query.AdminPromotionPresignedUrlResults.CarouselPresignedUrlsResult
+import com.beat.application.admin.promotion.command.PromotionImageCommandService
+import com.beat.application.admin.promotion.command.PromotionImageUpload
 import com.beat.application.admin.promotion.query.AdminPromotionQueryService
 import com.beat.apps.admin.promotion.facade.AdminPromotionFacade
 import com.beat.support.security.CurrentMember
@@ -55,11 +56,13 @@ class AdminPromotionControllerWebSpec : FunSpec() {
 
     @TestBean private lateinit var commandService: AdminPromotionCommandService
 
+    @TestBean private lateinit var imageCommandService: PromotionImageCommandService
+
     init {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
         beforeTest {
-            clearMocks(queryService, commandService)
+            clearMocks(queryService, commandService, imageCommandService)
         }
 
         test("관리자 Promotion 조회와 upload route가 Application query 결과를 기존 JSON으로 매핑한다") {
@@ -68,7 +71,10 @@ class AdminPromotionControllerWebSpec : FunSpec() {
                     listOf(AdminPromotionResult(1L, "ONE", "image", false, "redirect", 11L))
                 )
             every {
-                queryService.issueAllPresignedUrlsForCarousel(MEMBER_ID, listOf("carousel.png"))
+                imageCommandService.issueAllPresignedUrlsForCarousel(
+                    MEMBER_ID,
+                    listOf("carousel.png"),
+                )
             } returns
                 CarouselPresignedUrlsResult(
                     mapOf(
@@ -76,8 +82,9 @@ class AdminPromotionControllerWebSpec : FunSpec() {
                             PromotionImageUpload("upload", "dev/carousel/carousel.png")
                     )
                 )
-            every { queryService.issuePresignedUrlForBanner(MEMBER_ID, "banner.png") } returns
-                BannerPresignedUrlResult("banner-upload", "dev/banner/banner.png")
+            every {
+                imageCommandService.issuePresignedUrlForBanner(MEMBER_ID, "banner.png")
+            } returns BannerPresignedUrlResult("banner-upload", "dev/banner/banner.png")
 
             mockMvc
                 .perform(get("/api/admin/carousels"))
@@ -104,9 +111,12 @@ class AdminPromotionControllerWebSpec : FunSpec() {
 
             verify { queryService.findAllPromotionsSortedByCarouselNumber(MEMBER_ID) }
             verify {
-                queryService.issueAllPresignedUrlsForCarousel(MEMBER_ID, listOf("carousel.png"))
+                imageCommandService.issueAllPresignedUrlsForCarousel(
+                    MEMBER_ID,
+                    listOf("carousel.png"),
+                )
             }
-            verify { queryService.issuePresignedUrlForBanner(MEMBER_ID, "banner.png") }
+            verify { imageCommandService.issuePresignedUrlForBanner(MEMBER_ID, "banner.png") }
         }
 
         test("polymorphic carousel request를 Kotlin command로 변환하고 기존 response shape를 유지한다") {
@@ -160,6 +170,8 @@ class AdminPromotionControllerWebSpec : FunSpec() {
         @JvmStatic fun queryService(): AdminPromotionQueryService = mockk()
 
         @JvmStatic fun commandService(): AdminPromotionCommandService = mockk()
+
+        @JvmStatic fun imageCommandService(): PromotionImageCommandService = mockk()
     }
 }
 

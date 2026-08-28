@@ -1,6 +1,7 @@
 package com.beat.apps.api.performance.api.response
 
-import com.beat.application.frontoffice.performance.StaffResult
+import com.beat.application.frontoffice.performance.maker.command.result.StaffResult as CommandStaffResult
+import com.beat.application.frontoffice.performance.maker.query.StaffResult as QueryStaffResult
 import com.beat.apps.api.web.jackson.CdnImageUrl
 import io.swagger.v3.oas.annotations.media.Schema
 
@@ -35,7 +36,27 @@ private constructor(
     val staffPhoto: String,
 ) {
     companion object {
-        fun from(result: StaffResult): StaffResponse =
+        fun from(result: CommandStaffResult): StaffResponse =
+            StaffResponse(
+                staffId =
+                    requireNotNull(result.id) {
+                        "StaffResponse.staffId must be present for a persisted staff"
+                    },
+                staffName =
+                    requireNotNull(result.name) {
+                        "StaffResponse.staffName must be present"
+                    },
+                staffRole =
+                    requireNotNull(result.role) {
+                        "StaffResponse.staffRole must be present"
+                    },
+                staffPhoto =
+                    requireNotNull(result.photo) {
+                        "StaffResponse.staffPhoto must be present"
+                    },
+            )
+
+        fun from(result: QueryStaffResult): StaffResponse =
             StaffResponse(
                 staffId =
                     requireNotNull(result.id) {

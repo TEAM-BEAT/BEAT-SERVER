@@ -50,6 +50,7 @@ security:
   business_authentication_workflow: application:frontoffice
   web_independent_security_and_port_adapter: support:security
   spring_security_servlet_integration: support:security-web
+  runtime_feature_route_cookie_origin_policy: apps
   route_role_policy: apps
   business_authorization: application_or_domain
   infrastructure_security_module: NOT_ADOPTED
@@ -81,9 +82,12 @@ JWT / BCrypt / token mechanism /
 Frontoffice security Port implementation
   -> support:security
 
-Spring Security Filter / SecurityContext /
+Generic Spring Security Filter / SecurityContext /
 CurrentMember / Servlet integration
   -> support:security-web
+
+Runtime/feature-specific route or cookie-origin policy Filter
+  -> apps:<runtime>
 
 JPA / jOOQ / Redis / S3 / SMS / external API adapter
   -> infrastructure
@@ -529,6 +533,9 @@ SecurityFilterChain bootstrap
 Servlet / Web MVC integration
 ```
 
+`support:security-web`에는 범용 인증·Servlet 연동만 둔다. 특정 런타임의 경로 또는 쿠키 origin 정책처럼
+feature context를 알아야 하는 Filter는 해당 `apps:*`가 소유한다.
+
 Direct dependency:
 
 ```text
@@ -849,13 +856,13 @@ CONDITIONAL_AUTOMATION
 | ID | Rule | Decision | Enforcement | Evidence |
 |---|---|---|---|---|
 | E-01 | Product Module = 11 | ADOPTED | AUTOMATED | `verifyTargetModuleGraph` project allowlist |
-| E-02 | Gradle graph = DAG | ADOPTED | AUTOMATED | `verifyTargetModuleGraph` cycle validation |
+| E-02 | Gradle graph = DAG | ADOPTED | AUTOMATED | `verifyTargetModuleGraph` exact acyclic allowlist validation |
 | E-03 | Direct dependency allowlist | ADOPTED | AUTOMATED | `verifyTargetModuleGraph` allowed graph |
 | E-04 | `application:* -> domain only` | ADOPTED | AUTOMATED | Gradle guard + Application architecture tests |
 | E-05 | Application technical dependency ban | ADOPTED | AUTOMATED | Application ArchUnit rules |
 | E-06 | Direct lane crossing ban | ADOPTED | AUTOMATED | Gradle guard + ArchUnit |
 | E-07 | Controller/Facade -> Infra implementation ban | ADOPTED | AUTOMATED | Apps architecture guards |
-| E-08 | jOOQ containment | ADOPTED | AUTOMATED | `InfrastructureJooqArchitectureTest` (query JPA/JDSL/JdbcTemplate ban) + Application/Domain/Apps ArchUnit jOOQ bans + `beat.jooq-codegen:validateJooqSchema` |
+| E-08 | jOOQ containment | ADOPTED | AUTOMATED | `verifyJooqContainment` + `InfrastructureJooqArchitectureTest` (query JPA/JDSL/JdbcTemplate ban) + Application/Domain/Apps ArchUnit jOOQ import bans; `beat.jooq-codegen:validateJooqSchema`는 schema/generated artifact guard |
 | E-09 | Port owner = consumer | ADOPTED | MANUAL_REVIEW | Architecture review gate |
 | E-10 | Port signature outer-type leakage ban | ADOPTED | MANUAL_REVIEW | Architecture review gate |
 | E-11 | `security-web` direct Application dependency ban | ADOPTED | AUTOMATED | Gradle guard + Security architecture tests |

@@ -1,7 +1,7 @@
 package com.beat.apps.admin.support
 
-import com.beat.application.admin.promotion.PromotionImageStorage
-import com.beat.application.admin.promotion.PromotionImageUpload
+import com.beat.application.admin.promotion.command.PromotionImageStorage
+import com.beat.application.admin.promotion.command.PromotionImageUpload
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.context.annotation.Bean

@@ -2,7 +2,7 @@ package com.beat.apps.api.performance
 
 import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommand
 import com.beat.application.frontoffice.booking.booker.command.GuestBookingCommandService
-import com.beat.application.frontoffice.booking.booker.result.GuestBookingCreationOutcome
+import com.beat.application.frontoffice.booking.booker.command.result.GuestBookingCreationOutcome
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.application.frontoffice.performance.maker.command.PerformanceBankName

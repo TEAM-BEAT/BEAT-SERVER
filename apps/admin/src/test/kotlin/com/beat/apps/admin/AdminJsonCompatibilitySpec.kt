@@ -2,8 +2,8 @@ package com.beat.apps.admin
 
 import com.beat.application.admin.promotion.AdminPromotionResults
 import com.beat.application.admin.promotion.AdminPromotionResults.AdminPromotionResult
-import com.beat.application.admin.promotion.PromotionImageUpload
-import com.beat.application.admin.promotion.query.AdminPromotionPresignedUrlResults.CarouselPresignedUrlsResult
+import com.beat.application.admin.promotion.command.AdminPromotionPresignedUrlResults.CarouselPresignedUrlsResult
+import com.beat.application.admin.promotion.command.PromotionImageUpload
 import com.beat.apps.admin.promotion.api.request.AdminCarouselNumber
 import com.beat.apps.admin.promotion.api.request.CarouselHandleRequest
 import com.beat.apps.admin.promotion.api.request.CarouselHandleRequest.PromotionModifyRequest

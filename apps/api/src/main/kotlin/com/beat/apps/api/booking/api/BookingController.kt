@@ -13,7 +13,10 @@ import com.beat.apps.api.booking.api.response.GuestBookingRetrieveResponse
 import com.beat.apps.api.booking.api.response.MemberBookingResponse
 import com.beat.apps.api.booking.api.response.MemberBookingRetrieveResponse
 import com.beat.apps.api.booking.facade.BookingFacade
-import com.beat.apps.api.guest.GUEST_SESSION_COOKIE_NAME
+import com.beat.apps.api.booking.web.BOOKING_API_PATH
+import com.beat.apps.api.booking.web.BOOKING_CANCEL_ROUTE
+import com.beat.apps.api.booking.web.BOOKING_REFUND_ROUTE
+import com.beat.apps.api.booking.web.GUEST_SESSION_COOKIE_NAME
 import com.beat.apps.api.response.SuccessResponse
 import com.beat.support.security.CurrentMember
 import jakarta.servlet.http.HttpServletRequest
@@ -32,7 +35,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api/bookings")
+@RequestMapping(BOOKING_API_PATH)
 class BookingController(private val bookingFacade: BookingFacade) : BookingApi {
 
     @PostMapping("/member")
@@ -86,7 +89,7 @@ class BookingController(private val bookingFacade: BookingFacade) : BookingApi {
             )
     }
 
-    @PatchMapping("/refund")
+    @PatchMapping(BOOKING_REFUND_ROUTE)
     override fun refundBookings(
         @CurrentMember memberId: Long?,
         @CookieValue(value = GUEST_SESSION_COOKIE_NAME, required = false)
@@ -99,7 +102,7 @@ class BookingController(private val bookingFacade: BookingFacade) : BookingApi {
             .body(SuccessResponse.of(BookingSuccessCode.BOOKING_REFUND_SUCCESS, response))
     }
 
-    @PatchMapping("/cancel")
+    @PatchMapping(BOOKING_CANCEL_ROUTE)
     override fun cancelBookings(
         @CurrentMember memberId: Long?,
         @CookieValue(value = GUEST_SESSION_COOKIE_NAME, required = false)
