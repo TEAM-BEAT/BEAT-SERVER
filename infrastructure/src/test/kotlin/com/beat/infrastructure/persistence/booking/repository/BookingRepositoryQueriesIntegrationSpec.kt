@@ -1,7 +1,7 @@
 package com.beat.infrastructure.persistence.booking.repository
 
-import com.beat.application.frontoffice.booking.booker.credential.GuestBookingCredential
-import com.beat.application.frontoffice.booking.booker.credential.GuestBookingCredentialRepository
+import com.beat.application.frontoffice.booking.booker.command.credential.GuestBookingCredential
+import com.beat.application.frontoffice.booking.booker.command.credential.GuestBookingCredentialStore
 import com.beat.domain.booking.model.BookingStatus
 import com.beat.domain.booking.repository.BookingRepository
 import com.beat.infrastructure.config.JpaConfig
@@ -39,8 +39,7 @@ class BookingRepositoryQueriesIntegrationSpec : FunSpec() {
 
     @Autowired private lateinit var bookingJpaRepository: BookingJpaRepository
 
-    @Autowired
-    private lateinit var guestBookingCredentialRepository: GuestBookingCredentialRepository
+    @Autowired private lateinit var guestBookingCredentialStore: GuestBookingCredentialStore
 
     init {
         isolationMode = IsolationMode.SingleInstance
@@ -114,7 +113,7 @@ class BookingRepositoryQueriesIntegrationSpec : FunSpec() {
                 )
             )
 
-            guestBookingCredentialRepository
+            guestBookingCredentialStore
                 .findCandidates(TARGET_NAME, TARGET_PHONE, TARGET_BIRTH_DATE)
                 .shouldContainExactlyInAnyOrder(
                     GuestBookingCredential(11L, "hash-a"),
@@ -146,8 +145,8 @@ class BookingRepositoryQueriesIntegrationSpec : FunSpec() {
                 )
             )
 
-            guestBookingCredentialRepository.replaceEncodedPassword(55L, "upgraded") shouldBe 2
-            guestBookingCredentialRepository
+            guestBookingCredentialStore.replaceEncodedPassword(55L, "upgraded") shouldBe 2
+            guestBookingCredentialStore
                 .findCandidates(TARGET_NAME, TARGET_PHONE, TARGET_BIRTH_DATE)
                 .shouldContainExactlyInAnyOrder(GuestBookingCredential(55L, "upgraded"))
         }

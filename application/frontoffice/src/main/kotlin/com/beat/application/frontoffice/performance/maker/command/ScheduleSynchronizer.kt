@@ -2,7 +2,7 @@ package com.beat.application.frontoffice.performance.maker.command
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.application.frontoffice.performance.exception.PerformanceApplicationErrorCode
-import com.beat.application.frontoffice.performance.maker.ScheduleResult
+import com.beat.application.frontoffice.performance.maker.command.result.ScheduleResult
 import com.beat.application.frontoffice.schedule.calculateDueDate
 import com.beat.application.frontoffice.schedule.exception.ScheduleApplicationErrorCode
 import com.beat.domain.booking.model.BookingStatus

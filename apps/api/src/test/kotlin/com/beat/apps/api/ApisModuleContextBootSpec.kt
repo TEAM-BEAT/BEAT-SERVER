@@ -1,7 +1,8 @@
 package com.beat.apps.api
 
-import com.beat.application.frontoffice.booking.booker.BookingHistoryReadPort
 import com.beat.application.frontoffice.booking.booker.command.MemberBookingCommandService
+import com.beat.application.frontoffice.booking.booker.query.GuestBookingHistoryReader
+import com.beat.application.frontoffice.booking.booker.query.MemberBookingHistoryReader
 import com.beat.application.frontoffice.ticket.maker.command.TicketCommandService
 import com.beat.application.frontoffice.ticket.maker.query.TicketQueryService
 import com.beat.apps.api.support.BeatAcceptanceTest
@@ -46,7 +47,9 @@ open class ApisModuleContextBootSpec : FunSpec() {
             applicationContext.getBeansOfType(ScheduleRepository::class.java).size shouldBe 1
             applicationContext.getBeansOfType(MemberBookingCommandService::class.java).size shouldBe
                 1
-            applicationContext.getBeansOfType(BookingHistoryReadPort::class.java).size shouldBe 1
+            applicationContext.getBeansOfType(MemberBookingHistoryReader::class.java).size shouldBe
+                1
+            applicationContext.getBeansOfType(GuestBookingHistoryReader::class.java).size shouldBe 1
             applicationContext.getBeansOfType(TicketCommandService::class.java).size shouldBe 1
             applicationContext.getBeansOfType(TicketQueryService::class.java).size shouldBe 1
         }

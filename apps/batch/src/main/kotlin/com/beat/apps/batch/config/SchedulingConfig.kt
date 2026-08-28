@@ -1,5 +1,6 @@
 package com.beat.apps.batch.config
 
+import com.beat.apps.batch.scheduling.ScheduledTaskErrorHandler
 import java.time.Duration
 import org.springframework.boot.task.ThreadPoolTaskSchedulerBuilder
 import org.springframework.context.annotation.Bean

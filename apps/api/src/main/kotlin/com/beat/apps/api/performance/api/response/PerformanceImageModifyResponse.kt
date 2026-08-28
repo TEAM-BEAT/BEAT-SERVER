@@ -1,6 +1,6 @@
 package com.beat.apps.api.performance.api.response
 
-import com.beat.application.frontoffice.performance.PerformanceImageResult
+import com.beat.application.frontoffice.performance.maker.command.result.PerformanceImageResult
 import com.beat.apps.api.web.jackson.CdnImageUrl
 import io.swagger.v3.oas.annotations.media.Schema
 

@@ -1,6 +1,7 @@
 package com.beat.apps.api.performance.api.response
 
-import com.beat.application.frontoffice.performance.PerformanceImageResult
+import com.beat.application.frontoffice.performance.maker.command.result.PerformanceImageResult as CommandPerformanceImageResult
+import com.beat.application.frontoffice.performance.maker.query.PerformanceImageResult as QueryPerformanceImageResult
 import com.beat.apps.api.web.jackson.CdnImageUrl
 import io.swagger.v3.oas.annotations.media.Schema
 
@@ -23,7 +24,19 @@ private constructor(
     val imageUrl: String,
 ) {
     companion object {
-        fun from(result: PerformanceImageResult): PerformanceImageResponse =
+        fun from(result: CommandPerformanceImageResult): PerformanceImageResponse =
+            PerformanceImageResponse(
+                imageId =
+                    requireNotNull(result.id) {
+                        "PerformanceImageResponse.imageId must be present for a persisted image"
+                    },
+                imageUrl =
+                    requireNotNull(result.image) {
+                        "PerformanceImageResponse.imageUrl must be present"
+                    },
+            )
+
+        fun from(result: QueryPerformanceImageResult): PerformanceImageResponse =
             PerformanceImageResponse(
                 imageId =
                     requireNotNull(result.id) {

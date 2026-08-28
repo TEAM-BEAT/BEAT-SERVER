@@ -2,9 +2,6 @@ package com.beat.application.frontoffice.performance.booker.query
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.application.frontoffice.exception.translateDomainFailure
-import com.beat.application.frontoffice.performance.CastResult
-import com.beat.application.frontoffice.performance.PerformanceImageResult
-import com.beat.application.frontoffice.performance.StaffResult
 import com.beat.application.frontoffice.performance.exception.PerformanceApplicationErrorCode
 import com.beat.application.frontoffice.performance.formatPerformancePeriod
 import com.beat.application.frontoffice.performance.nearestDueDate

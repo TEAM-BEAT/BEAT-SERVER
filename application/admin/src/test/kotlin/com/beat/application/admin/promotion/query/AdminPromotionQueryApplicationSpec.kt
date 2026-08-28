@@ -2,8 +2,6 @@ package com.beat.application.admin.promotion.query
 
 import com.beat.application.admin.exception.AdminApplicationException
 import com.beat.application.admin.fixture.adminMemberFixture
-import com.beat.application.admin.promotion.PromotionImageStorage
-import com.beat.application.admin.promotion.PromotionImageUpload
 import com.beat.application.admin.promotion.exception.PromotionApplicationErrorCode
 import com.beat.domain.exception.DomainException
 import com.beat.domain.member.model.Member
@@ -16,7 +14,6 @@ import com.beat.domain.promotion.repository.PromotionRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainExactly
-import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.shouldBe
 
 class AdminPromotionQueryApplicationSpec :
@@ -25,7 +22,6 @@ class AdminPromotionQueryApplicationSpec :
             test("Promotion을 carousel 의미 순서로 조회 결과에 매핑한다") {
                 val service =
                     AdminPromotionQueryService(
-                        promotionImageStorage = RecordingQueryImageStorage(),
                         memberRepository = QueryMemberRepository(member()),
                         promotionRepository =
                             QueryPromotionRepository(
@@ -57,40 +53,13 @@ class AdminPromotionQueryApplicationSpec :
                     listOf("ONE", "TWO")
                 result.promotionResults.first().performanceId shouldBe 11L
             }
-
-            test("carousel과 banner upload 요청을 Promotion storage vocabulary로 위임한다") {
-                val storage = RecordingQueryImageStorage()
-                val service =
-                    AdminPromotionQueryService(
-                        promotionImageStorage = storage,
-                        memberRepository = QueryMemberRepository(member()),
-                        promotionRepository = QueryPromotionRepository(emptyList()),
-                    )
-
-                val carousel =
-                    service.issueAllPresignedUrlsForCarousel(MEMBER_ID, listOf("carousel.png"))
-                val banner = service.issuePresignedUrlForBanner(MEMBER_ID, "banner.png")
-
-                carousel.carouselPresignedUploads.shouldContainExactly(
-                    mapOf(
-                        "carousel.png" to
-                            PromotionImageUpload("carousel-upload-url", "dev/carousel/carousel.png")
-                    )
-                )
-                banner.bannerPresignedUrl shouldBe "banner-upload-url"
-                banner.bannerImageKey shouldBe "dev/banner/banner.png"
-                storage.carouselRequests shouldContainExactly listOf(listOf("carousel.png"))
-                storage.bannerRequests shouldContainExactly listOf("banner.png")
-            }
         }
 
         context("관리자 회원이 존재하지 않으면") {
-            test("storage와 Promotion 조회 전에 회원 없음 failure를 반환한다") {
-                val storage = RecordingQueryImageStorage()
+            test("Promotion 조회 전에 회원 없음 failure를 반환한다") {
                 val promotions = QueryPromotionRepository(emptyList())
                 val service =
                     AdminPromotionQueryService(
-                        promotionImageStorage = storage,
                         memberRepository = QueryMemberRepository(null),
                         promotionRepository = promotions,
                     )
@@ -102,7 +71,6 @@ class AdminPromotionQueryApplicationSpec :
 
                 exception.errorCode shouldBe PromotionApplicationErrorCode.MEMBER_NOT_FOUND
                 promotions.findAllCalls shouldBe 0
-                storage.carouselRequests shouldBe emptyList()
             }
         }
 
@@ -110,7 +78,6 @@ class AdminPromotionQueryApplicationSpec :
             val domainFailure = DomainException(PromotionErrorCode.TOO_MANY_CAROUSEL_PROMOTIONS)
             val service =
                 AdminPromotionQueryService(
-                    promotionImageStorage = RecordingQueryImageStorage(),
                     memberRepository = QueryMemberRepository(member()),
                     promotionRepository = QueryPromotionRepository(emptyList(), domainFailure),
                 )
@@ -163,25 +130,6 @@ private class QueryPromotionRepository(
     override fun deleteByPerformanceId(performanceId: Long) = Unit
 
     override fun findByCarouselNumber(carouselNumber: CarouselNumber): Promotion? = null
-}
-
-private class RecordingQueryImageStorage : PromotionImageStorage {
-    val carouselRequests = mutableListOf<List<String>>()
-    val bannerRequests = mutableListOf<String>()
-
-    override fun issueCarouselUploads(imageNames: List<String>): Map<String, PromotionImageUpload> {
-        carouselRequests += imageNames
-        return imageNames.associateWith {
-            PromotionImageUpload("carousel-upload-url", "dev/carousel/$it")
-        }
-    }
-
-    override fun issueBannerUpload(imageName: String): PromotionImageUpload {
-        bannerRequests += imageName
-        return PromotionImageUpload("banner-upload-url", "dev/banner/$imageName")
-    }
-
-    override fun exists(imageKey: String): Boolean = false
 }
 
 private const val MEMBER_ID = 7L

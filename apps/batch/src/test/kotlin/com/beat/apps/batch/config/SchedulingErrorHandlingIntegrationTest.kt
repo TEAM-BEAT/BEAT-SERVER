@@ -1,5 +1,6 @@
 package com.beat.apps.batch.config
 
+import com.beat.apps.batch.scheduling.ScheduledTaskErrorHandler
 import com.beat.apps.batch.support.BeatBatchAcceptanceTest
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.IsolationMode

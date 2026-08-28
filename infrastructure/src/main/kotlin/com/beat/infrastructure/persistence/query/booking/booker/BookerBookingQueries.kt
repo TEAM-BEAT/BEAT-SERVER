@@ -1,9 +1,13 @@
 package com.beat.infrastructure.persistence.query.booking.booker
 
-import com.beat.application.frontoffice.booking.booker.BookingHistoryPerformanceSnapshot
-import com.beat.application.frontoffice.booking.booker.BookingHistoryReadPort
-import com.beat.application.frontoffice.booking.booker.BookingHistoryScheduleSnapshot
-import com.beat.application.frontoffice.booking.booker.BookingHistorySnapshot
+import com.beat.application.frontoffice.booking.booker.query.GuestBookingHistoryPerformanceReadModel
+import com.beat.application.frontoffice.booking.booker.query.GuestBookingHistoryReadModel
+import com.beat.application.frontoffice.booking.booker.query.GuestBookingHistoryReader
+import com.beat.application.frontoffice.booking.booker.query.GuestBookingHistoryScheduleReadModel
+import com.beat.application.frontoffice.booking.booker.query.MemberBookingHistoryPerformanceReadModel
+import com.beat.application.frontoffice.booking.booker.query.MemberBookingHistoryReadModel
+import com.beat.application.frontoffice.booking.booker.query.MemberBookingHistoryReader
+import com.beat.application.frontoffice.booking.booker.query.MemberBookingHistoryScheduleReadModel
 import com.beat.infrastructure.jooq.generated.Booking
 import com.beat.infrastructure.jooq.generated.Performance
 import com.beat.infrastructure.jooq.generated.Schedule
@@ -11,9 +15,16 @@ import org.jooq.DSLContext
 import org.springframework.stereotype.Repository
 
 @Repository
-internal class BookerBookingQueries(private val dsl: DSLContext) : BookingHistoryReadPort {
+internal class BookerBookingQueries(private val dsl: DSLContext) :
+    MemberBookingHistoryReader, GuestBookingHistoryReader {
 
-    override fun findByUserId(userId: Long): List<BookingHistorySnapshot> {
+    override fun findByUserId(userId: Long): List<MemberBookingHistoryReadModel> =
+        findHistory(userId).map { it.toMemberReadModel() }
+
+    override fun findByUserIdForGuestAccess(userId: Long): List<GuestBookingHistoryReadModel> =
+        findHistory(userId).map { it.toGuestReadModel() }
+
+    private fun findHistory(userId: Long): List<BookingHistoryProjection> {
         val bookings = findBookings(userId)
         if (bookings.isEmpty()) return emptyList()
 
@@ -31,7 +42,7 @@ internal class BookerBookingQueries(private val dsl: DSLContext) : BookingHistor
 
         return bookings.map { booking ->
             val schedule = schedules[booking.scheduleId]
-            BookingHistorySnapshot(
+            BookingHistoryProjection(
                 userId = booking.userId,
                 bookingId = checkNotNull(booking.bookingId),
                 purchaseTicketCount = booking.purchaseTicketCount,
@@ -39,11 +50,37 @@ internal class BookerBookingQueries(private val dsl: DSLContext) : BookingHistor
                 bookingStatus = booking.bookingStatus,
                 createdAt = booking.createdAt,
                 totalPaymentAmount = booking.totalPaymentAmount,
-                schedule = schedule?.toSnapshot(),
-                performance = schedule?.let { performances[it.performanceId]?.toSnapshot() },
+                schedule = schedule,
+                performance = schedule?.let { performances[it.performanceId] },
             )
         }
     }
+
+    private fun BookingHistoryProjection.toMemberReadModel(): MemberBookingHistoryReadModel =
+        MemberBookingHistoryReadModel(
+            userId = userId,
+            bookingId = bookingId,
+            purchaseTicketCount = purchaseTicketCount,
+            bookerName = bookerName,
+            bookingStatus = bookingStatus,
+            createdAt = createdAt,
+            totalPaymentAmount = totalPaymentAmount,
+            schedule = schedule?.toMemberReadModel(),
+            performance = performance?.toMemberReadModel(),
+        )
+
+    private fun BookingHistoryProjection.toGuestReadModel(): GuestBookingHistoryReadModel =
+        GuestBookingHistoryReadModel(
+            userId = userId,
+            bookingId = bookingId,
+            purchaseTicketCount = purchaseTicketCount,
+            bookerName = bookerName,
+            bookingStatus = bookingStatus,
+            createdAt = createdAt,
+            totalPaymentAmount = totalPaymentAmount,
+            schedule = schedule?.toGuestReadModel(),
+            performance = performance?.toGuestReadModel(),
+        )
 
     private fun findBookings(userId: Long): List<BookingProjection> =
         dsl.select(
@@ -121,16 +158,25 @@ internal class BookerBookingQueries(private val dsl: DSLContext) : BookingHistor
             }
     }
 
-    private fun ScheduleProjection.toSnapshot(): BookingHistoryScheduleSnapshot =
-        BookingHistoryScheduleSnapshot(
+    private fun ScheduleProjection.toMemberReadModel(): MemberBookingHistoryScheduleReadModel =
+        MemberBookingHistoryScheduleReadModel(
             scheduleId = checkNotNull(scheduleId),
             performanceId = performanceId,
             performanceDate = performanceDate,
             scheduleNumber = scheduleNumber,
         )
 
-    private fun PerformanceProjection.toSnapshot(): BookingHistoryPerformanceSnapshot =
-        BookingHistoryPerformanceSnapshot(
+    private fun ScheduleProjection.toGuestReadModel(): GuestBookingHistoryScheduleReadModel =
+        GuestBookingHistoryScheduleReadModel(
+            scheduleId = checkNotNull(scheduleId),
+            performanceId = performanceId,
+            performanceDate = performanceDate,
+            scheduleNumber = scheduleNumber,
+        )
+
+    private fun PerformanceProjection.toMemberReadModel():
+        MemberBookingHistoryPerformanceReadModel =
+        MemberBookingHistoryPerformanceReadModel(
             performanceId = checkNotNull(performanceId),
             performanceTitle = performanceTitle,
             performanceVenue = performanceVenue,
@@ -141,6 +187,31 @@ internal class BookerBookingQueries(private val dsl: DSLContext) : BookingHistor
             posterImage = posterImage,
             ticketPrice = ticketPrice,
         )
+
+    private fun PerformanceProjection.toGuestReadModel(): GuestBookingHistoryPerformanceReadModel =
+        GuestBookingHistoryPerformanceReadModel(
+            performanceId = checkNotNull(performanceId),
+            performanceTitle = performanceTitle,
+            performanceVenue = performanceVenue,
+            performanceContact = performanceContact,
+            bankName = bankName,
+            accountNumber = accountNumber,
+            accountHolder = accountHolder,
+            posterImage = posterImage,
+            ticketPrice = ticketPrice,
+        )
+
+    private data class BookingHistoryProjection(
+        val userId: Long,
+        val bookingId: Long,
+        val purchaseTicketCount: Int,
+        val bookerName: String,
+        val bookingStatus: String,
+        val createdAt: java.time.LocalDateTime,
+        val totalPaymentAmount: Int?,
+        val schedule: ScheduleProjection?,
+        val performance: PerformanceProjection?,
+    )
 
     private data class BookingProjection(
         val bookingId: Long?,

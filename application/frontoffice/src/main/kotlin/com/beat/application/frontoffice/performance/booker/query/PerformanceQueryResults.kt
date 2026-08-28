@@ -1,9 +1,12 @@
 package com.beat.application.frontoffice.performance.booker.query
 
-import com.beat.application.frontoffice.performance.CastResult
-import com.beat.application.frontoffice.performance.PerformanceImageResult
-import com.beat.application.frontoffice.performance.StaffResult
 import java.time.LocalDateTime
+
+data class CastResult(val id: Long?, val name: String?, val role: String?, val photo: String?)
+
+data class StaffResult(val id: Long?, val name: String?, val role: String?, val photo: String?)
+
+data class PerformanceImageResult(val id: Long?, val image: String?)
 
 data class PerformanceDetailResult(
     val performanceId: Long?,
