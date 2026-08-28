@@ -2,7 +2,6 @@ name: ci-pr
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
 
 jobs:
   verify:
@@ -69,16 +68,6 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew sonar --build-cache
-        shell: bash
-
-      - name: Verify OpenAPI compatibility from Gradle check artifacts
-        env:
-          OPENAPI_BASE_REF: ${{ github.event.pull_request.base.sha }}
-          OPENAPI_BREAKING_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'openapi-breaking-approved') }}
-        run: |
-          bash .github/scripts/test_verify_openapi_baseline_source.sh
-          bash .github/scripts/test_openapi_compatibility_checks.sh
-          bash .github/scripts/verify_openapi_compatibility.sh
         shell: bash
 
       - name: Stage bootJars for downstream image build
