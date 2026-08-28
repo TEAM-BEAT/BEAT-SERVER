@@ -1,7 +1,7 @@
 -- BEAT jOOQ codegen DDL source — deterministic, no live DB required
 -- MySQL 8.0 compatible, parsed by jOOQ DDLDatabase (H2 interpreter)
 -- This file is the single source for jOOQ generated Tables. Keep in sync with JPA entities and ops DDL.
--- Last sync: 2026-08-25 — CONTRACT 이후 최신 DDL (performance_start_date/end_date NOT NULL, booking.total_payment_amount NOT NULL, CHECK/fulltext는 운영에만)
+-- Last sync: 2026-08-29 — booking.updated_at 유령 컬럼 제거 (엔티티·운영 DDL 모두 부재)
 
 CREATE TABLE `users` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -75,8 +75,7 @@ CREATE TABLE `booking` (
   `account_holder` VARCHAR(255),
   `total_payment_amount` INT NOT NULL,
   `schedule_id` BIGINT NOT NULL,
-  `user_id` BIGINT NOT NULL,
-  `updated_at` DATETIME(6)
+  `user_id` BIGINT NOT NULL
   -- CHECK chk_booking_refund_account_complete_v2는 운영 DDL에만 존재
 );
 
