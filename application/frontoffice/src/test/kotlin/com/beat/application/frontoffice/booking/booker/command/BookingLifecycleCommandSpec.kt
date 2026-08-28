@@ -1,6 +1,6 @@
 package com.beat.application.frontoffice.booking.booker.command
 
-import com.beat.application.frontoffice.booking.booker.BookingApplicationErrorCode
+import com.beat.application.frontoffice.booking.booker.exception.BookingApplicationErrorCode
 import com.beat.application.frontoffice.exception.FrontofficeApplicationErrorType
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.domain.booking.exception.BookingErrorCode

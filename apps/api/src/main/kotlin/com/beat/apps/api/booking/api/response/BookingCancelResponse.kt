@@ -1,6 +1,6 @@
 package com.beat.apps.api.booking.api.response
 
-import com.beat.application.frontoffice.booking.booker.result.BookingCancelResult
+import com.beat.application.frontoffice.booking.booker.command.result.BookingCancelResult
 import com.beat.apps.api.booking.api.type.BookingStatusType
 import io.swagger.v3.oas.annotations.media.Schema
 

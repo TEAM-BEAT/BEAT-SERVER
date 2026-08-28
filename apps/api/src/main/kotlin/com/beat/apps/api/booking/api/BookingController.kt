@@ -13,7 +13,7 @@ import com.beat.apps.api.booking.api.response.GuestBookingRetrieveResponse
 import com.beat.apps.api.booking.api.response.MemberBookingResponse
 import com.beat.apps.api.booking.api.response.MemberBookingRetrieveResponse
 import com.beat.apps.api.booking.facade.BookingFacade
-import com.beat.apps.api.guest.GUEST_SESSION_COOKIE_NAME
+import com.beat.apps.api.booking.web.GUEST_SESSION_COOKIE_NAME
 import com.beat.apps.api.response.SuccessResponse
 import com.beat.support.security.CurrentMember
 import jakarta.servlet.http.HttpServletRequest

@@ -5,6 +5,7 @@ import com.beat.application.admin.promotion.command.CarouselHandleCommand
 import com.beat.application.admin.promotion.command.CarouselHandleCommand.PromotionGenerateCommand
 import com.beat.application.admin.promotion.command.CarouselHandleCommand.PromotionModifyCommand
 import com.beat.application.admin.promotion.command.PromotionHandleCommand
+import com.beat.application.admin.promotion.command.PromotionImageCommandService
 import com.beat.application.admin.promotion.query.AdminPromotionQueryService
 import com.beat.apps.admin.promotion.api.request.CarouselHandleRequest
 import com.beat.apps.admin.promotion.api.request.CarouselHandleRequest.PromotionGenerateRequest
@@ -20,13 +21,14 @@ import org.springframework.stereotype.Service
 class AdminPromotionFacade(
     private val adminPromotionQueryService: AdminPromotionQueryService,
     private val adminPromotionCommandService: AdminPromotionCommandService,
+    private val promotionImageCommandService: PromotionImageCommandService,
 ) {
     fun checkMemberAndIssueAllPresignedUrlsForCarousel(
         memberId: Long,
         carouselImages: List<String>,
     ): CarouselPresignedUrlFindAllResponse =
         CarouselPresignedUrlFindAllResponse(
-            adminPromotionQueryService.issueAllPresignedUrlsForCarousel(memberId, carouselImages)
+            promotionImageCommandService.issueAllPresignedUrlsForCarousel(memberId, carouselImages)
         )
 
     fun checkMemberAndIssuePresignedUrlForBanner(
@@ -34,7 +36,7 @@ class AdminPromotionFacade(
         bannerImage: String,
     ): BannerPresignedUrlFindResponse =
         BannerPresignedUrlFindResponse(
-            adminPromotionQueryService.issuePresignedUrlForBanner(memberId, bannerImage)
+            promotionImageCommandService.issuePresignedUrlForBanner(memberId, bannerImage)
         )
 
     fun checkMemberAndFindAllPromotionsSortedByCarouselNumber(

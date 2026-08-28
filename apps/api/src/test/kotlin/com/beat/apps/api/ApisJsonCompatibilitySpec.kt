@@ -1,6 +1,6 @@
 package com.beat.apps.api
 
-import com.beat.application.frontoffice.booking.booker.result.BookingCreationResult
+import com.beat.application.frontoffice.booking.booker.command.result.BookingCreationResult
 import com.beat.application.frontoffice.home.booker.query.HomeFindAllResult
 import com.beat.application.frontoffice.home.booker.query.HomePerformanceResult
 import com.beat.application.frontoffice.home.booker.query.HomePromotionResult
@@ -8,10 +8,10 @@ import com.beat.application.frontoffice.member.command.SocialLoginType
 import com.beat.application.frontoffice.performance.booker.query.BookingPerformanceDetailResult
 import com.beat.application.frontoffice.performance.booker.query.BookingPerformanceScheduleResult
 import com.beat.application.frontoffice.performance.booker.query.PerformanceDetailScheduleResult
-import com.beat.application.frontoffice.performance.maker.PerformanceMutationResult
 import com.beat.application.frontoffice.performance.maker.command.PerformanceBankName
 import com.beat.application.frontoffice.performance.maker.command.PerformanceGenre
 import com.beat.application.frontoffice.performance.maker.command.PerformanceScheduleNumber
+import com.beat.application.frontoffice.performance.maker.query.PerformanceEditPerformanceResult
 import com.beat.application.frontoffice.performance.maker.query.PerformanceEditResult
 import com.beat.application.frontoffice.schedule.booker.query.TicketAvailabilityResult
 import com.beat.application.frontoffice.ticket.maker.command.TicketBookingStatus
@@ -417,7 +417,7 @@ class ApisJsonCompatibilitySpec :
             val modifyDetail =
                 PerformanceModifyDetailResponse.from(
                     PerformanceEditResult(
-                        PerformanceMutationResult(
+                        PerformanceEditPerformanceResult(
                             userId = 1L,
                             performanceId = 1L,
                             performanceTitle = "title",

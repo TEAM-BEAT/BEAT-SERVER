@@ -4,7 +4,6 @@ import com.beat.application.admin.exception.AdminApplicationException
 import com.beat.application.admin.exception.translateDomainFailure
 import com.beat.application.admin.promotion.AdminPromotionResultAssembler
 import com.beat.application.admin.promotion.AdminPromotionResults
-import com.beat.application.admin.promotion.PromotionImageStorage
 import com.beat.application.admin.promotion.command.CarouselHandleCommand.PromotionGenerateCommand
 import com.beat.application.admin.promotion.command.CarouselHandleCommand.PromotionModifyCommand
 import com.beat.application.admin.promotion.exception.PromotionApplicationErrorCode

@@ -1,5 +1,6 @@
 package com.beat.apps.api.config
 
+import com.beat.apps.api.booking.web.GuestSessionOriginFilter
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean

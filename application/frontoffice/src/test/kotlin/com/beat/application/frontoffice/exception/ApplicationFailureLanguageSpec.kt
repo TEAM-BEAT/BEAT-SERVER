@@ -1,11 +1,11 @@
 package com.beat.application.frontoffice.exception
 
 import com.beat.application.frontoffice.auth.exception.TokenApplicationErrorCode
-import com.beat.application.frontoffice.booking.booker.BookingHistoryPerformanceSnapshot
-import com.beat.application.frontoffice.booking.booker.BookingHistoryReadPort
-import com.beat.application.frontoffice.booking.booker.BookingHistoryScheduleSnapshot
-import com.beat.application.frontoffice.booking.booker.BookingHistorySnapshot
-import com.beat.application.frontoffice.booking.booker.toResult
+import com.beat.application.frontoffice.booking.booker.query.MemberBookingHistoryPerformanceReadModel
+import com.beat.application.frontoffice.booking.booker.query.MemberBookingHistoryReadModel
+import com.beat.application.frontoffice.booking.booker.query.MemberBookingHistoryReader
+import com.beat.application.frontoffice.booking.booker.query.MemberBookingHistoryScheduleReadModel
+import com.beat.application.frontoffice.booking.booker.query.toResult
 import com.beat.application.frontoffice.member.exception.MemberApplicationErrorCode
 import com.beat.domain.booking.exception.BookingErrorCode
 import com.beat.domain.exception.DomainErrorCode
@@ -211,10 +211,10 @@ class ApplicationFailureLanguageSpec :
         }
 
         test("대표 service boundary는 Spring 없이 domain failure를 application failure로 변환한다") {
-            val reader = mockk<BookingHistoryReadPort>(relaxed = true)
+            val reader = mockk<MemberBookingHistoryReader>(relaxed = true)
             every { reader.findByUserId(1L) } returns
                 listOf(
-                    BookingHistorySnapshot(
+                    MemberBookingHistoryReadModel(
                         userId = 1L,
                         bookingId = 2L,
                         purchaseTicketCount = 1,
@@ -223,14 +223,14 @@ class ApplicationFailureLanguageSpec :
                         createdAt = LocalDateTime.of(2026, 1, 1, 12, 0),
                         totalPaymentAmount = null,
                         schedule =
-                            BookingHistoryScheduleSnapshot(
+                            MemberBookingHistoryScheduleReadModel(
                                 scheduleId = 3L,
                                 performanceId = 4L,
                                 performanceDate = LocalDateTime.of(2026, 1, 2, 12, 0),
                                 scheduleNumber = "FIRST",
                             ),
                         performance =
-                            BookingHistoryPerformanceSnapshot(
+                            MemberBookingHistoryPerformanceReadModel(
                                 performanceId = 4L,
                                 performanceTitle = "performance",
                                 performanceVenue = "venue",

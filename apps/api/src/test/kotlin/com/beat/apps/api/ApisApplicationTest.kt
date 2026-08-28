@@ -4,9 +4,9 @@ import com.beat.application.frontoffice.FrontofficeApplicationConfig
 import com.beat.application.frontoffice.auth.command.RefreshTokenStore
 import com.beat.application.frontoffice.booking.booker.command.GuestAccessThrottle
 import com.beat.application.frontoffice.booking.booker.command.GuestSessionStore
+import com.beat.apps.api.booking.web.GuestSessionOriginFilter
 import com.beat.apps.api.config.ApisSecurityConfig
 import com.beat.apps.api.config.GatewayConfig
-import com.beat.apps.api.config.GuestSessionOriginFilter
 import com.beat.apps.api.config.InfraConfig
 import com.beat.apps.api.swagger.config.SwaggerConfig
 import com.beat.infrastructure.EnableInfraBaseConfig

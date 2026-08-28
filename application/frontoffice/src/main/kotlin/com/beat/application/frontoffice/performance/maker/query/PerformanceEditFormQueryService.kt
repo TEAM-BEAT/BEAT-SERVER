@@ -2,12 +2,7 @@ package com.beat.application.frontoffice.performance.maker.query
 
 import com.beat.application.frontoffice.exception.FrontofficeApplicationException
 import com.beat.application.frontoffice.exception.translateDomainFailure
-import com.beat.application.frontoffice.performance.CastResult
-import com.beat.application.frontoffice.performance.PerformanceImageResult
-import com.beat.application.frontoffice.performance.StaffResult
 import com.beat.application.frontoffice.performance.exception.PerformanceApplicationErrorCode
-import com.beat.application.frontoffice.performance.maker.PerformanceMutationResult
-import com.beat.application.frontoffice.performance.maker.ScheduleResult
 import com.beat.application.frontoffice.schedule.calculateDueDate
 import com.beat.domain.member.repository.MemberRepository
 import com.beat.domain.performance.repository.PerformanceRepository
@@ -63,7 +58,7 @@ internal constructor(
             val images = performance.images.map { PerformanceImageResult(it.id, it.url) }
 
             val result =
-                PerformanceMutationResult(
+                PerformanceEditPerformanceResult(
                     userId = performance.userId,
                     performanceId = performance.performanceId,
                     performanceTitle = performance.performanceTitle,

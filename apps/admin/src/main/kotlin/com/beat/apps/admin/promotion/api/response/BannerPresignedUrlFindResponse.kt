@@ -1,6 +1,6 @@
 package com.beat.apps.admin.promotion.api.response
 
-import com.beat.application.admin.promotion.query.AdminPromotionPresignedUrlResults.BannerPresignedUrlResult
+import com.beat.application.admin.promotion.command.AdminPromotionPresignedUrlResults.BannerPresignedUrlResult
 import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(description = "배너 이미지 업로드용 Presigned URL 조회 응답")

@@ -1,6 +1,6 @@
 package com.beat.apps.api.booking.api.response
 
-import com.beat.application.frontoffice.booking.booker.result.BookingRetrieveResult
+import com.beat.application.frontoffice.booking.booker.query.result.BookingRetrieveResult
 import com.beat.apps.api.booking.api.type.BookingStatusType
 import com.beat.apps.api.performance.api.type.BankNameType
 import com.beat.apps.api.schedule.api.type.ScheduleNumberType

@@ -4,8 +4,8 @@ import com.amazonaws.HttpMethod
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.AmazonS3Exception
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest
-import com.beat.application.admin.promotion.PromotionImageStorage
-import com.beat.application.admin.promotion.PromotionImageUpload
+import com.beat.application.admin.promotion.command.PromotionImageStorage
+import com.beat.application.admin.promotion.command.PromotionImageUpload
 import com.beat.application.frontoffice.performance.maker.command.ImagePresignedUpload
 import com.beat.application.frontoffice.performance.maker.command.PerformanceImageStorage
 import com.beat.application.frontoffice.performance.maker.command.PerformancePresignedUrls

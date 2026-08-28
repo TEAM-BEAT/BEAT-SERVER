@@ -1,7 +1,7 @@
 package com.beat.infrastructure.external.notification.slack
 
-import com.beat.application.frontoffice.booking.booker.event.BookingCreatedEvent
-import com.beat.application.frontoffice.booking.booker.event.BookingNotificationSender
+import com.beat.application.frontoffice.booking.booker.command.event.BookingCreatedEvent
+import com.beat.application.frontoffice.booking.booker.command.event.BookingNotificationSender
 import com.beat.infrastructure.external.notification.slack.client.BookingSlackClient
 import com.beat.infrastructure.external.notification.slack.vo.SlackConstant.BRAND_COLOR
 import com.beat.infrastructure.external.notification.slack.vo.block.DividerBlock
