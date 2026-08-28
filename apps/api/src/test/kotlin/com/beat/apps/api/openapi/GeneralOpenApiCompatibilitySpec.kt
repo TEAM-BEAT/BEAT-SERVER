@@ -49,7 +49,9 @@ class GeneralOpenApiCompatibilitySpec : FunSpec() {
 private val OPEN_API_HTTP_METHODS =
     setOf("get", "post", "put", "patch", "delete", "options", "head", "trace")
 private val SEMVER_PATTERN =
-    Regex("""^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$""")
+    Regex(
+        """^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"""
+    )
 
 private fun JsonNode.requireNonBlank(
     field: String,
@@ -81,7 +83,9 @@ private fun JsonNode.assertOpenApiContract() {
             val context = "${operationEntry.key.uppercase()} $path"
             val operation = operationEntry.value
             val operationId = operation.requireNonBlank("operationId", context)
-            check(operationIds.add(operationId)) { "$context.operationId '$operationId' is duplicated" }
+            check(operationIds.add(operationId)) {
+                "$context.operationId '$operationId' is duplicated"
+            }
             operation.requireNonBlank("summary", context)
 
             val responses = operation.get("responses") ?: error("$context.responses is missing")
