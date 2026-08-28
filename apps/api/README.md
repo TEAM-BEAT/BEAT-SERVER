@@ -1,7 +1,7 @@
 # apps:api module
 
 `apps:api`는 BEAT 사용자 프론트오피스의 **REST API 진입점 및 실행 구성 루트(Composition Root)**입니다.
-사용자/관람자/공연주최자의 HTTP 요청을 받아 `:application:frontoffice` 유스케이스로 라우팅하고 응답 DTO를 반환합니다.
+예매자 및 공연 메이커의 HTTP 요청을 받아 `:application:frontoffice` 유스케이스로 라우팅하고 응답 DTO를 반환합니다.
 
 ## 패키지 구조
 
