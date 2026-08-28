@@ -72,22 +72,38 @@ while IFS= read -r head_path; do head_paths+=("${head_path}"); done < "${head_pa
     echo "Expected general and admin HEAD baseline paths" >&2
     exit 1
 }
-[[ "$(<"${resolution_log}")" == "OpenAPI baselines at HEAD differ from '${base_ref}'; validating the explicitly approved committed HEAD baselines" ]] || {
-    echo "OPENAPI_BASE_REF did not report that the committed HEAD baselines changed from the base ref" >&2
+[[ "$(<"${resolution_log}")" == "OpenAPI baselines at HEAD differ from '${base_ref}'; approval label is absent, validating the baselines from the base ref" ]] || {
+    echo "OPENAPI_BASE_REF did not preserve the base baselines without approval" >&2
     exit 1
 }
-[[ "$(<"${head_paths[0]}")" == '{"source":"head-general"}' ]] || {
-    echo "OPENAPI_BASE_REF did not select the changed committed HEAD general baseline" >&2
+[[ "$(<"${head_paths[0]}")" == '{"source":"committed-general"}' ]] || {
+    echo "OPENAPI_BASE_REF did not select the base general baseline without approval" >&2
     exit 1
 }
 [[ "$(<"${head_paths[1]}")" == '{"source":"committed-admin"}' ]] || {
-    echo "OPENAPI_BASE_REF did not select the committed HEAD admin baseline" >&2
+    echo "OPENAPI_BASE_REF did not select the base admin baseline without approval" >&2
     exit 1
 }
 [[ "$(<"${git_repository}/docs/openapi/baseline/general.json")" == '{"source":"working-tree-after-head-general"}' ]] || {
     echo "The general working-tree baseline fixture after the HEAD update was not changed" >&2
     exit 1
 }
+
+export OPENAPI_BREAKING_APPROVED=true
+resolve_openapi_baselines "${git_repository}" "${temporary_directory}" > "${head_paths_file}" 2> "${resolution_log}"
+[[ "$(<"${resolution_log}")" == "OpenAPI baselines at HEAD differ from '${base_ref}'; openapi-breaking-approved allows committed HEAD baselines" ]] || {
+    echo "OPENAPI_BREAKING_APPROVED did not permit the committed HEAD baselines" >&2
+    exit 1
+}
+[[ "$(<"${head_paths[0]}")" == '{"source":"head-general"}' ]] || {
+    echo "OPENAPI_BREAKING_APPROVED did not select the changed committed HEAD general baseline" >&2
+    exit 1
+}
+[[ "$(<"${head_paths[1]}")" == '{"source":"committed-admin"}' ]] || {
+    echo "OPENAPI_BREAKING_APPROVED did not select the committed HEAD admin baseline" >&2
+    exit 1
+}
+unset OPENAPI_BREAKING_APPROVED
 [[ "$(<"${git_repository}/docs/openapi/baseline/admin.json")" == '{"source":"working-tree-after-head-admin"}' ]] || {
     echo "The admin working-tree baseline fixture after the HEAD update was not changed" >&2
     exit 1

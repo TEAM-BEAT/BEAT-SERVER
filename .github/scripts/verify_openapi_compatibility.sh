@@ -64,6 +64,17 @@ while IFS= read -r baseline_path; do baseline_paths+=("${baseline_path}"); done 
     exit 1
 }
 
+if [[ "${OPENAPI_RESOLVED_BASELINE_REF}" == "HEAD" ]]; then
+    assert_canonical_json_equality \
+        "general" \
+        "${baseline_paths[0]}" \
+        "${repository_root}/apps/api/build/openapi/general.json"
+    assert_canonical_json_equality \
+        "admin" \
+        "${baseline_paths[1]}" \
+        "${repository_root}/apps/admin/build/openapi/admin.json"
+fi
+
 run_compatibility_checks \
     "${oasdiff_path}" \
     "${baseline_paths[0]}" \

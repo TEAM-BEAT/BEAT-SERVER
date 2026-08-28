@@ -2,6 +2,7 @@ name: ci-pr
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
 
 jobs:
   verify:
@@ -38,6 +39,12 @@ jobs:
         run: python3 .github/scripts/check_unused_version_catalog_aliases.py
         shell: bash
 
+      - name: Generate and verify OpenAPI documents
+        run: |
+          chmod +x gradlew
+          ./gradlew :apps:api:openApiTest :apps:admin:openApiTest --build-cache
+        shell: bash
+
       - name: Verify Gradle check
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -67,6 +74,7 @@ jobs:
       - name: Verify OpenAPI compatibility from Gradle check artifacts
         env:
           OPENAPI_BASE_REF: ${{ github.event.pull_request.base.sha }}
+          OPENAPI_BREAKING_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'openapi-breaking-approved') }}
         run: |
           bash .github/scripts/test_verify_openapi_baseline_source.sh
           bash .github/scripts/test_openapi_compatibility_checks.sh

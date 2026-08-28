@@ -55,7 +55,6 @@ class AdminSwaggerConfig(@param:Value("\${app.server.url:}") private val serverU
             .group("admin")
             .pathsToMatch("/api/admin/**")
             .addOpenApiCustomizer(customizePromotionHandleRequestSchema())
-            .addOpenApiCustomizer(customizeSuccessResponseDataSchemas())
             .addOperationCustomizer(customize())
             .build()
 
@@ -67,21 +66,6 @@ class AdminSwaggerConfig(@param:Value("\${app.server.url:}") private val serverU
                 typeSchema.description = "요청 항목 유형입니다. modify는 기존 프로모션 수정, generate는 신규 프로모션 생성입니다."
                 typeSchema.example = "generate"
             }
-        }
-
-    private fun customizeSuccessResponseDataSchemas(): OpenApiCustomizer =
-        OpenApiCustomizer { openAPI ->
-            openAPI.components
-                ?.schemas
-                ?.filterKeys { it.startsWith("SuccessResponse") }
-                ?.values
-                ?.forEach { schema ->
-                    val dataSchema = schema.properties?.get("data")
-                    if (dataSchema != null && dataSchema.description.isNullOrBlank()) {
-                        dataSchema.description =
-                            "성공 결과 데이터입니다. 데이터가 없는 응답에서도 JSON 키가 포함되며 값은 null일 수 있습니다."
-                    }
-                }
         }
 
     @Bean

@@ -17,6 +17,19 @@ check_compatibility() {
     "${oasdiff_binary}" breaking "${baseline}" "${generated}" --fail-on ERR
 }
 
+assert_canonical_json_equality() {
+    local document_name="$1"
+    local baseline_path="$2"
+    local generated_path="$3"
+
+    if ! cmp --silent \
+        <(jq --sort-keys --compact-output . "${baseline_path}") \
+        <(jq --sort-keys --compact-output . "${generated_path}"); then
+        echo "Committed ${document_name} OpenAPI baseline must canonically match the generated document" >&2
+        return 1
+    fi
+}
+
 run_compatibility_checks() {
     local oasdiff_binary="$1"
     local general_baseline="$2"

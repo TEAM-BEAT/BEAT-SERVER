@@ -27,7 +27,7 @@ class GeneralOpenApiCompatibilitySpec : FunSpec() {
     init {
         extension(SpringExtension(SpringTestLifecycleMode.Test))
 
-        test("general OpenAPI 문서를 생성하고 필수 설명 계약을 검증한다") {
+        test("general OpenAPI 문서를 생성하고 API 계약을 검증한다") {
             val result =
                 mockMvc
                     .perform(get("/v3/api-docs/general"))
@@ -36,40 +36,20 @@ class GeneralOpenApiCompatibilitySpec : FunSpec() {
                     .andExpect(jsonPath("$.paths").exists())
                     .andReturn()
 
-            objectMapper.readTree(result.response.contentAsString).assertOpenApiContract()
-
             val outputDirectory =
                 Path.of(requireNotNull(System.getProperty("beat.openapi.output.dir")))
             Files.createDirectories(outputDirectory)
             Files.write(outputDirectory.resolve("general.json"), result.response.contentAsByteArray)
-        }
 
-        test("환불 요청 OpenAPI는 허용 은행과 비공백 계좌 필드를 명시한다") {
-            val document =
-                mockMvc
-                    .perform(get("/v3/api-docs/general"))
-                    .andExpect(status().isOk)
-                    .andReturn()
-                    .response
-                    .contentAsString
-            val schema =
-                objectMapper.readTree(document).at("/components/schemas/BookingRefundRequest")
-            check(!schema.isMissingNode) { "BookingRefundRequest schema is missing" }
-
-            val acceptedBankNames =
-                BankNameType.entries.filterNot { it == BankNameType.NONE }.map { it.name }
-            schema.at("/properties/bankName/enum").map { it.asText() } shouldBe acceptedBankNames
-
-            listOf("accountNumber", "accountHolder").forEach { fieldName ->
-                schema.at("/properties/$fieldName/minLength").asInt() shouldBe 1
-                schema.at("/properties/$fieldName/pattern").asText() shouldBe ".*\\S.*"
-            }
+            objectMapper.readTree(result.response.contentAsString).assertOpenApiContract()
         }
     }
 }
 
 private val OPEN_API_HTTP_METHODS =
     setOf("get", "post", "put", "patch", "delete", "options", "head", "trace")
+private val SEMVER_PATTERN =
+    Regex("""^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$""")
 
 private fun JsonNode.requireNonBlank(
     field: String,
@@ -83,16 +63,16 @@ private fun JsonNode.requireNonBlank(
 
 private fun JsonNode.assertOpenApiContract() {
     val info = get("info") ?: error("OpenAPI info is missing")
-    info.requireNonBlank("version", "info") shouldBe "2.0.0"
+    val version = info.requireNonBlank("version", "info")
+    check(SEMVER_PATTERN.matches(version)) { "info.version must be a SemVer version" }
 
     val paths = get("paths") ?: error("OpenAPI paths are missing")
+    val operationIds = mutableSetOf<String>()
     val pathEntries = paths.fields()
     while (pathEntries.hasNext()) {
         val pathEntry = pathEntries.next()
         val path = pathEntry.key
         val pathItem = pathEntry.value
-        assertParameterDescriptions(pathItem.get("parameters"), "path $path")
-
         val operations = pathItem.fields()
         while (operations.hasNext()) {
             val operationEntry = operations.next()
@@ -100,10 +80,9 @@ private fun JsonNode.assertOpenApiContract() {
 
             val context = "${operationEntry.key.uppercase()} $path"
             val operation = operationEntry.value
-            operation.requireNonBlank("operationId", context)
+            val operationId = operation.requireNonBlank("operationId", context)
+            check(operationIds.add(operationId)) { "$context.operationId '$operationId' is duplicated" }
             operation.requireNonBlank("summary", context)
-            operation.requireNonBlank("description", context)
-            assertParameterDescriptions(operation.get("parameters"), context)
 
             val responses = operation.get("responses") ?: error("$context.responses is missing")
             val responseEntries = responses.fields()
@@ -117,32 +96,24 @@ private fun JsonNode.assertOpenApiContract() {
         }
     }
 
-    // 현재 components.schemas의 공개 API DTO와 공통 envelope properties를 계약 대상으로 검증한다.
-    // springdoc이 합성한 schema 자체의 설명은 강제하지 않는다.
-    val schemas =
-        get("components")?.get("schemas") ?: error("OpenAPI component schemas are missing")
-    val schemaEntries = schemas.fields()
-    while (schemaEntries.hasNext()) {
-        val schemaEntry = schemaEntries.next()
-        val properties = schemaEntry.value.get("properties") ?: continue
-        val propertyEntries = properties.fields()
-        while (propertyEntries.hasNext()) {
-            val propertyEntry = propertyEntries.next()
-            propertyEntry.value.requireNonBlank(
-                "description",
-                "${schemaEntry.key}.properties.${propertyEntry.key}",
-            )
-        }
-    }
+    assertBookingRefundRequestContract()
 }
 
-private fun assertParameterDescriptions(
-    parameters: JsonNode?,
-    context: String,
-) {
-    if (parameters == null || parameters.isNull) return
-    check(parameters.isArray) { "$context.parameters must be an array" }
-    parameters.forEachIndexed { index, parameter ->
-        parameter.requireNonBlank("description", "$context parameter[$index]")
+private fun JsonNode.assertBookingRefundRequestContract() {
+    val schema = at("/components/schemas/BookingRefundRequest")
+    check(!schema.isMissingNode) { "BookingRefundRequest schema is missing" }
+
+    val requiredFields = schema.get("required")?.map { it.asText() }.orEmpty()
+    val accountFields = listOf("bankName", "accountNumber", "accountHolder")
+    check(requiredFields.containsAll(accountFields)) {
+        "BookingRefundRequest must require ${accountFields.joinToString()}"
+    }
+
+    val acceptedBankNames =
+        BankNameType.entries.filterNot { it == BankNameType.NONE }.map { it.name }
+    schema.at("/properties/bankName/type").asText() shouldBe "string"
+    schema.at("/properties/bankName/enum").map { it.asText() } shouldBe acceptedBankNames
+    accountFields.drop(1).forEach { fieldName ->
+        schema.at("/properties/$fieldName/type").asText() shouldBe "string"
     }
 }

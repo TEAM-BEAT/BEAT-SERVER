@@ -45,25 +45,9 @@ class SwaggerConfig(@param:Value("\${app.server.url}") private val serverUrl: St
         GroupedOpenApi.builder()
             .group("general")
             .pathsToMatch("/**")
-            .addOpenApiCustomizer(customizeSuccessResponseDataSchemas())
             .addOpenApiCustomizer(customizeImagePresignedUploadSchema())
             .addOperationCustomizer(customize())
             .build()
-
-    private fun customizeSuccessResponseDataSchemas(): OpenApiCustomizer =
-        OpenApiCustomizer { openAPI ->
-            openAPI.components
-                ?.schemas
-                ?.filterKeys { it.startsWith("SuccessResponse") }
-                ?.values
-                ?.forEach { schema ->
-                    val dataSchema = schema.properties?.get("data")
-                    if (dataSchema != null && dataSchema.description.isNullOrBlank()) {
-                        dataSchema.description =
-                            "성공 결과 데이터입니다. 데이터가 없는 응답에서도 JSON 키가 포함되며 값은 null일 수 있습니다."
-                    }
-                }
-        }
 
     private fun customizeImagePresignedUploadSchema(): OpenApiCustomizer =
         OpenApiCustomizer { openAPI ->

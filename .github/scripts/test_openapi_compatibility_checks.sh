@@ -70,6 +70,21 @@ run_case() {
 : > "${test_directory}/general-generated.json"
 : > "${test_directory}/admin-generated.json"
 
+printf '%s\n' '{"version":"2.0.0","paths":{}}' > "${test_directory}/canonical-baseline.json"
+printf '%s\n' '{ "paths": {}, "version": "2.0.0" }' > "${test_directory}/canonical-generated.json"
+assert_canonical_json_equality \
+    "general" \
+    "${test_directory}/canonical-baseline.json" \
+    "${test_directory}/canonical-generated.json"
+printf '%s\n' '{"version":"2.1.0","paths":{}}' > "${test_directory}/canonical-generated.json"
+if assert_canonical_json_equality \
+    "general" \
+    "${test_directory}/canonical-baseline.json" \
+    "${test_directory}/canonical-generated.json" 2>/dev/null; then
+    echo "A semantic OpenAPI baseline mismatch was accepted" >&2
+    exit 1
+fi
+
 run_case 0 $'general-failure\nadmin-failure' '' 0 0
 run_case 1 $'general-failure\nadmin-failure' 'general=1, admin=0' 1 0
 run_case 1 $'general-failure\nadmin-failure' 'general=1, admin=1' 1 1
