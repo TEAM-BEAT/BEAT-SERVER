@@ -45,11 +45,14 @@ Parameters:
 
   LambdaMemoryMb:
     Type: Number
-    Default: 1500
+    Default: 2048
     Description: >
-      Memory size of the image processor. 1500 MB matches the
-      aws-samples/image-optimization default and gives Sharp enough
-      headroom for AVIF encoding without timeouts on cold start.
+      Memory size of the image processor. 2048 MB provides additional CPU
+      capacity and memory headroom for Sharp image processing.
+  MaxInlineImageSize:
+    Type: Number
+    Default: 4700000
+    Description: Maximum raw binary bytes safe to return inline as base64 in a buffered Lambda response.
   LambdaTimeoutSeconds:
     Type: Number
     Default: 30
@@ -153,6 +156,7 @@ Resources:
           ORIGINAL_IMAGE_BUCKET: !Ref OriginalImageBucketName
           TRANSFORMED_IMAGE_BUCKET: !Ref TransformedImageBucket
           TRANSFORMED_IMAGE_CACHE_CONTROL: !Ref TransformedImageCacheControl
+          MAX_INLINE_IMAGE_SIZE: !Ref MaxInlineImageSize
 
   ImageProcessingFunctionUrl:
     Type: AWS::Lambda::Url

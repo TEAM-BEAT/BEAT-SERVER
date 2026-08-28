@@ -34,18 +34,23 @@ internal class ImageCacheAdapter(
             return
         }
         val baseUrl = "$cdnBase/$normalizedKey"
-        val variantTasks =
-            TARGET_WIDTHS.flatMap { width ->
-                    TARGET_FORMATS.map { accept ->
-                        CompletableFuture.runAsync(
-                            { warmSingleVariant(baseUrl, width, accept) },
-                            VARIANT_EXECUTOR,
-                        )
-                    }
-                }
-                .toTypedArray()
-        CompletableFuture.allOf(*variantTasks).join()
-        log.info("CDN pre-warm completed for {} ({} variants)", baseUrl, variantTasks.size)
+        CompletableFuture.runAsync(
+            {
+                val variantTasks =
+                    TARGET_WIDTHS.flatMap { width ->
+                            TARGET_FORMATS.map { accept ->
+                                CompletableFuture.runAsync(
+                                    { warmSingleVariant(baseUrl, width, accept) },
+                                    VARIANT_EXECUTOR,
+                                )
+                            }
+                        }
+                        .toTypedArray()
+                CompletableFuture.allOf(*variantTasks).join()
+                log.info("CDN pre-warm completed for {} ({} variants)", baseUrl, variantTasks.size)
+            },
+            VARIANT_EXECUTOR,
+        )
     }
 
     private fun warmSingleVariant(baseUrl: String, width: Int, accept: String) {
@@ -64,7 +69,7 @@ internal class ImageCacheAdapter(
 
     private companion object {
         val log = LoggerFactory.getLogger(ImageCacheAdapter::class.java)
-        val TARGET_WIDTHS = listOf(480, 960)
+        val TARGET_WIDTHS = listOf(240, 480, 960)
         val TARGET_FORMATS = listOf("image/avif", "image/webp", "image/jpeg")
         val CONNECT_TIMEOUT: Duration = Duration.ofSeconds(2)
         val READ_TIMEOUT: Duration = Duration.ofSeconds(5)
