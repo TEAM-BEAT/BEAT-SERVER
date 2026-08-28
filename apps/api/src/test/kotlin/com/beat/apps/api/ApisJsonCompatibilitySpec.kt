@@ -410,10 +410,24 @@ class ApisJsonCompatibilitySpec :
                 assertObjectFieldNames(
                     json,
                     setOf(
-                        "bookingId", "scheduleId", "performanceId", "performanceTitle", "performanceDate",
-                        "performanceVenue", "purchaseTicketCount", "scheduleNumber", "bookerName",
-                        "performanceContact", "bankName", "accountNumber", "accountHolder", "dueDate",
-                        "bookingStatus", "createdAt", "posterImage", "totalPaymentAmount",
+                        "bookingId",
+                        "scheduleId",
+                        "performanceId",
+                        "performanceTitle",
+                        "performanceDate",
+                        "performanceVenue",
+                        "purchaseTicketCount",
+                        "scheduleNumber",
+                        "bookerName",
+                        "performanceContact",
+                        "bankName",
+                        "accountNumber",
+                        "accountHolder",
+                        "dueDate",
+                        "bookingStatus",
+                        "createdAt",
+                        "posterImage",
+                        "totalPaymentAmount",
                     ),
                 )
                 assertTextField(json, "scheduleNumber", "FIRST")
@@ -426,7 +440,13 @@ class ApisJsonCompatibilitySpec :
                 val json = objectMapper.valueToTree<JsonNode>(refundResponse)
                 assertObjectFieldNames(
                     json,
-                    setOf("bookingId", "bookingStatus", "bankName", "accountNumber", "accountHolder"),
+                    setOf(
+                        "bookingId",
+                        "bookingStatus",
+                        "bankName",
+                        "accountNumber",
+                        "accountHolder",
+                    ),
                 )
                 assertTextField(json, "bookingStatus", "REFUND_REQUESTED")
                 assertTextField(json, "bankName", "KAKAOBANK")
