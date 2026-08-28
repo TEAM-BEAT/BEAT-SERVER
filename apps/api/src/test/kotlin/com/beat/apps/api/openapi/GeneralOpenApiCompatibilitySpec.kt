@@ -128,21 +128,21 @@ private fun JsonNode.assertGuestBookingOperationsContract() {
         path = "/api/bookings/guest/retrieve",
         method = "post",
         operationId = "getGuestBookings",
-        responseCodes = setOf("200", "400", "404", "429"),
+        responseCodes = setOf("200", "400", "404", "429", "500"),
         requestSchema = "GuestBookingRetrieveRequest",
     )
     assertOperationContract(
         path = "/api/bookings/refund",
         method = "patch",
         operationId = "requestBookingRefund",
-        responseCodes = setOf("200", "400", "401", "403", "404", "409"),
+        responseCodes = setOf("200", "400", "401", "403", "404", "409", "500"),
         requestSchema = "BookingRefundRequest",
     )
     assertOperationContract(
         path = "/api/bookings/cancel",
         method = "patch",
         operationId = "requestBookingCancellation",
-        responseCodes = setOf("200", "401", "403", "404", "409"),
+        responseCodes = setOf("200", "400", "401", "403", "404", "409", "500"),
         requestSchema = "BookingCancelRequest",
     )
 }
