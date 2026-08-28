@@ -101,6 +101,7 @@ private fun JsonNode.assertOpenApiContract() {
     }
 
     assertBookingRefundRequestContract()
+    assertGuestBookingOperationsContract()
 }
 
 private fun JsonNode.assertBookingRefundRequestContract() {
@@ -120,4 +121,44 @@ private fun JsonNode.assertBookingRefundRequestContract() {
     accountFields.drop(1).forEach { fieldName ->
         schema.at("/properties/$fieldName/type").asText() shouldBe "string"
     }
+}
+
+private fun JsonNode.assertGuestBookingOperationsContract() {
+    assertOperationContract(
+        path = "/api/bookings/guest/retrieve",
+        method = "post",
+        operationId = "getGuestBookings",
+        responseCodes = setOf("200", "400", "404", "429"),
+        requestSchema = "GuestBookingRetrieveRequest",
+    )
+    assertOperationContract(
+        path = "/api/bookings/refund",
+        method = "patch",
+        operationId = "requestBookingRefund",
+        responseCodes = setOf("200", "400", "401", "403", "404", "409"),
+        requestSchema = "BookingRefundRequest",
+    )
+    assertOperationContract(
+        path = "/api/bookings/cancel",
+        method = "patch",
+        operationId = "requestBookingCancellation",
+        responseCodes = setOf("200", "401", "403", "404", "409"),
+        requestSchema = "BookingCancelRequest",
+    )
+}
+
+private fun JsonNode.assertOperationContract(
+    path: String,
+    method: String,
+    operationId: String,
+    responseCodes: Set<String>,
+    requestSchema: String,
+) {
+    val operation = get("paths")?.get(path)?.get(method)
+    check(operation != null) { "${method.uppercase()} $path operation is missing" }
+    operation.requireNonBlank("operationId", "${method.uppercase()} $path") shouldBe operationId
+    operation.at("/requestBody/required").asBoolean() shouldBe true
+    operation.at("/requestBody/content/application~1json/schema/\$ref").asText() shouldBe
+        "#/components/schemas/$requestSchema"
+    operation.get("responses")?.fieldNames()?.asSequence()?.toSet() shouldBe responseCodes
 }

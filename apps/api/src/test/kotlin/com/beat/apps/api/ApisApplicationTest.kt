@@ -4,6 +4,7 @@ import com.beat.application.frontoffice.FrontofficeApplicationConfig
 import com.beat.application.frontoffice.auth.command.RefreshTokenStore
 import com.beat.application.frontoffice.booking.booker.command.GuestAccessThrottle
 import com.beat.application.frontoffice.booking.booker.command.GuestSessionStore
+import com.beat.apps.api.booking.web.GUEST_BOOKING_MUTATION_PATHS
 import com.beat.apps.api.booking.web.GuestSessionOriginFilter
 import com.beat.apps.api.config.ApisSecurityConfig
 import com.beat.apps.api.config.GatewayConfig
@@ -175,7 +176,7 @@ class ApisApplicationTest : FunSpec() {
             ) shouldBe true
         }
 
-        test("guest cookie 변경은 허용된 origin에서만 가능하다") {
+        test("refund와 cancel 게스트 cookie 변경은 허용된 origin에서만 가능하다") {
             val filter =
                 GuestSessionOriginFilter(
                     arrayOf("https://client.example"),
@@ -184,27 +185,38 @@ class ApisApplicationTest : FunSpec() {
                     },
                 )
 
-            val missingOrigin = guestMutationRequest()
-            val missingOriginResponse = MockHttpServletResponse()
-            filter.doFilter(missingOrigin, missingOriginResponse, MockFilterChain())
-            missingOriginResponse.status shouldBe HttpStatus.FORBIDDEN.value()
+            GUEST_BOOKING_MUTATION_PATHS.forEach { path ->
+                val missingOriginResponse = MockHttpServletResponse()
+                filter.doFilter(
+                    guestMutationRequest(path),
+                    missingOriginResponse,
+                    MockFilterChain(),
+                )
+                missingOriginResponse.status shouldBe HttpStatus.FORBIDDEN.value()
 
-            val disallowedOrigin = guestMutationRequest("https://attacker.example")
-            val disallowedOriginResponse = MockHttpServletResponse()
-            filter.doFilter(disallowedOrigin, disallowedOriginResponse, MockFilterChain())
-            disallowedOriginResponse.status shouldBe HttpStatus.FORBIDDEN.value()
+                val disallowedOriginResponse = MockHttpServletResponse()
+                filter.doFilter(
+                    guestMutationRequest(path, "https://attacker.example"),
+                    disallowedOriginResponse,
+                    MockFilterChain(),
+                )
+                disallowedOriginResponse.status shouldBe HttpStatus.FORBIDDEN.value()
 
-            val allowedOrigin = guestMutationRequest("https://client.example")
-            val allowedOriginResponse = MockHttpServletResponse()
-            val allowedChain = MockFilterChain()
-            filter.doFilter(allowedOrigin, allowedOriginResponse, allowedChain)
-            allowedOriginResponse.status shouldBe HttpStatus.OK.value()
-            allowedChain.request shouldNotBe null
+                val allowedOriginResponse = MockHttpServletResponse()
+                val allowedChain = MockFilterChain()
+                filter.doFilter(
+                    guestMutationRequest(path, "https://client.example"),
+                    allowedOriginResponse,
+                    allowedChain,
+                )
+                allowedOriginResponse.status shouldBe HttpStatus.OK.value()
+                allowedChain.request shouldNotBe null
+            }
         }
     }
 
-    private fun guestMutationRequest(origin: String? = null): MockHttpServletRequest =
-        MockHttpServletRequest("PATCH", "/api/bookings/refund").apply {
+    private fun guestMutationRequest(path: String, origin: String? = null): MockHttpServletRequest =
+        MockHttpServletRequest("PATCH", path).apply {
             setCookies(Cookie("__Host-guestSession", "token"))
             origin?.let { addHeader("Origin", it) }
         }

@@ -7,8 +7,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @Configuration(proxyBeanMethods = false)
 class AdminCorsConfig(
-    @param:Value("\${cors.allowed-origins:http://localhost:3000}")
-    private val allowedOrigins: Array<String>
+    @param:Value("\${cors.allowed-origins}") private val allowedOrigins: Array<String>,
 ) : WebMvcConfigurer {
     override fun addCorsMappings(registry: CorsRegistry) {
         registry

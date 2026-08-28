@@ -11,14 +11,14 @@ import org.springframework.web.filter.OncePerRequestFilter
 
 @Component
 class GuestSessionOriginFilter(
-    @Value("\${cors.allowed-origins:http://localhost:3000}") allowedOrigins: Array<String>,
+    @Value("\${cors.allowed-origins}") allowedOrigins: Array<String>,
     private val accessDeniedHandler: AccessDeniedHandler,
 ) : OncePerRequestFilter() {
     private val allowedOrigins = allowedOrigins.toSet()
 
     override fun shouldNotFilter(request: HttpServletRequest): Boolean =
         request.method != "PATCH" ||
-            request.requestURI !in GUEST_MUTATION_PATHS ||
+            request.requestURI !in GUEST_BOOKING_MUTATION_PATHS ||
             request.cookies?.none { it.name == GUEST_SESSION_COOKIE_NAME } != false
 
     override fun doFilterInternal(
@@ -40,8 +40,5 @@ class GuestSessionOriginFilter(
 
     companion object {
         const val ORIGIN_HEADER = "Origin"
-
-        // BookingController의 게스트 변이 매핑과 수동 동기화(신규 게스트 엔드포인트 추가 시 갱신 필수)
-        val GUEST_MUTATION_PATHS = setOf("/api/bookings/refund", "/api/bookings/cancel")
     }
 }

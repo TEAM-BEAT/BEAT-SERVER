@@ -1,6 +1,9 @@
 package com.beat.apps.api
 
+import com.beat.application.frontoffice.booking.booker.command.result.BookingCancelResult
 import com.beat.application.frontoffice.booking.booker.command.result.BookingCreationResult
+import com.beat.application.frontoffice.booking.booker.command.result.BookingRefundResult
+import com.beat.application.frontoffice.booking.booker.query.result.BookingRetrieveResult
 import com.beat.application.frontoffice.home.booker.query.HomeFindAllResult
 import com.beat.application.frontoffice.home.booker.query.HomePerformanceResult
 import com.beat.application.frontoffice.home.booker.query.HomePromotionResult
@@ -15,10 +18,15 @@ import com.beat.application.frontoffice.performance.maker.query.PerformanceEditP
 import com.beat.application.frontoffice.performance.maker.query.PerformanceEditResult
 import com.beat.application.frontoffice.schedule.booker.query.TicketAvailabilityResult
 import com.beat.application.frontoffice.ticket.maker.command.TicketBookingStatus
+import com.beat.apps.api.booking.api.request.BookingCancelRequest
 import com.beat.apps.api.booking.api.request.BookingRefundRequest
 import com.beat.apps.api.booking.api.request.GuestBookingRequest
+import com.beat.apps.api.booking.api.request.GuestBookingRetrieveRequest
 import com.beat.apps.api.booking.api.request.MemberBookingRequest
+import com.beat.apps.api.booking.api.response.BookingCancelResponse
+import com.beat.apps.api.booking.api.response.BookingRefundResponse
 import com.beat.apps.api.booking.api.response.GuestBookingResponse
+import com.beat.apps.api.booking.api.response.GuestBookingRetrieveResponse
 import com.beat.apps.api.booking.api.response.MemberBookingResponse
 import com.beat.apps.api.booking.api.type.BookingStatusType
 import com.beat.apps.api.home.api.response.HomeFindAllResponse
@@ -145,6 +153,34 @@ class ApisJsonCompatibilitySpec :
                         objectMapper.readValue(json, BookingRefundRequest::class.java)
                     }
                 }
+        }
+
+        test("비회원 예매 조회와 취소 request의 JSON 필드가 호환된다") {
+            val retrieveJson =
+                objectMapper.valueToTree<JsonNode>(
+                    GuestBookingRetrieveRequest("booker", "990101", "010-0000-0000", "1234")
+                )
+            assertObjectFieldNames(
+                retrieveJson,
+                setOf("bookerName", "birthDate", "bookerPhoneNumber", "password"),
+            )
+            listOf(
+                    """{"birthDate":"990101","bookerPhoneNumber":"010-0000-0000","password":"1234"}""",
+                    """{"bookerName":"booker","bookerPhoneNumber":"010-0000-0000","password":"1234"}""",
+                    """{"bookerName":"booker","birthDate":"990101","password":"1234"}""",
+                    """{"bookerName":"booker","birthDate":"990101","bookerPhoneNumber":"010-0000-0000"}""",
+                )
+                .forEach { json ->
+                    shouldThrow<Exception> {
+                        objectMapper.readValue(json, GuestBookingRetrieveRequest::class.java)
+                    }
+                }
+
+            val cancelJson = objectMapper.valueToTree<JsonNode>(BookingCancelRequest(1L))
+            assertObjectFieldNames(cancelJson, setOf("bookingId"))
+            objectMapper
+                .readValue("""{"bookingId":1}""", BookingCancelRequest::class.java)
+                .bookingId shouldBe 1L
         }
 
         test("api 경계 마이그레이션 전후로 api enum 이름이 호환된다") {
@@ -337,6 +373,71 @@ class ApisJsonCompatibilitySpec :
             }
         }
 
+        test("비회원 예매 조회·환불·취소 response의 JSON 필드와 enum 값이 호환된다") {
+            val retrieveResponse =
+                GuestBookingRetrieveResponse.from(
+                    BookingRetrieveResult(
+                        userId = 30L,
+                        bookingId = 10L,
+                        scheduleId = 1L,
+                        performanceId = 2L,
+                        performanceTitle = "title",
+                        performanceDate = LocalDateTime.parse("2026-04-01T12:00:00"),
+                        performanceVenue = "venue",
+                        purchaseTicketCount = 2,
+                        scheduleNumber = "FIRST",
+                        bookerName = "booker",
+                        performanceContact = "010-0000-0000",
+                        bankName = null,
+                        accountNumber = null,
+                        accountHolder = null,
+                        dueDate = 3,
+                        bookingStatus = "BOOKING_CONFIRMED",
+                        createdAt = LocalDateTime.parse("2026-03-01T12:00:00"),
+                        posterImage = "poster.png",
+                        totalPaymentAmount = 0,
+                    )
+                )
+            val refundResponse =
+                BookingRefundResponse.from(
+                    BookingRefundResult(10L, "REFUND_REQUESTED", "KAKAOBANK", "123", "holder")
+                )
+            val cancelResponse =
+                BookingCancelResponse.from(BookingCancelResult(10L, "BOOKING_CANCELLED"))
+
+            withClue("guest retrieve response") {
+                val json = objectMapper.valueToTree<JsonNode>(retrieveResponse)
+                assertObjectFieldNames(
+                    json,
+                    setOf(
+                        "bookingId", "scheduleId", "performanceId", "performanceTitle", "performanceDate",
+                        "performanceVenue", "purchaseTicketCount", "scheduleNumber", "bookerName",
+                        "performanceContact", "bankName", "accountNumber", "accountHolder", "dueDate",
+                        "bookingStatus", "createdAt", "posterImage", "totalPaymentAmount",
+                    ),
+                )
+                assertTextField(json, "scheduleNumber", "FIRST")
+                assertTextField(json, "bookingStatus", "BOOKING_CONFIRMED")
+                listOf("bankName", "accountNumber", "accountHolder").forEach { fieldName ->
+                    json.get(fieldName).isNull shouldBe true
+                }
+            }
+            withClue("booking refund response") {
+                val json = objectMapper.valueToTree<JsonNode>(refundResponse)
+                assertObjectFieldNames(
+                    json,
+                    setOf("bookingId", "bookingStatus", "bankName", "accountNumber", "accountHolder"),
+                )
+                assertTextField(json, "bookingStatus", "REFUND_REQUESTED")
+                assertTextField(json, "bankName", "KAKAOBANK")
+            }
+            withClue("booking cancel response") {
+                val json = objectMapper.valueToTree<JsonNode>(cancelResponse)
+                assertObjectFieldNames(json, setOf("bookingId", "bookingStatus"))
+                assertTextField(json, "bookingStatus", "BOOKING_CANCELLED")
+            }
+        }
+
         test("home response의 JSON 필드명과 enum 값이 호환된다") {
             val response =
                 HomeFindAllResponse.from(
@@ -492,4 +593,8 @@ private fun assertBooleanField(json: JsonNode, fieldName: String, expectedValue:
         json.has(fieldName) shouldBe true
     }
     json.get(fieldName).booleanValue() shouldBe expectedValue
+}
+
+private fun assertObjectFieldNames(json: JsonNode, expectedFieldNames: Set<String>) {
+    json.fieldNames().asSequence().toSet() shouldBe expectedFieldNames
 }

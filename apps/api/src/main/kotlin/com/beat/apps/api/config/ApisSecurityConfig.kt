@@ -1,5 +1,6 @@
 package com.beat.apps.api.config
 
+import com.beat.apps.api.booking.web.GUEST_BOOKING_MUTATION_PATHS
 import com.beat.apps.api.booking.web.GuestSessionOriginFilter
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
@@ -71,12 +72,11 @@ class ApisSecurityConfig(
                 "/api/notifications/**",
                 "/api/performances/detail/**",
                 "/error",
-                "/api/bookings/refund",
-                "/api/bookings/cancel",
                 "$actuatorEndpoint/health",
                 "$actuatorEndpoint/prometheus",
             )
         )
+        addAll(GUEST_BOOKING_MUTATION_PATHS)
         if (!environment.acceptsProfiles(Profiles.of("prod"))) addAll(SWAGGER_WHITELIST)
     }
         .toTypedArray()
