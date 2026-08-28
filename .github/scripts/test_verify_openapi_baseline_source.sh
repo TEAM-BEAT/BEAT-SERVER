@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly script_directory
+unset OPENAPI_BREAKING_APPROVED
 test_directory="$(mktemp -d)"
 readonly test_directory
 readonly git_repository="${test_directory}/repository"
