@@ -64,7 +64,7 @@ internal class ImageCacheAdapter(
 
     private companion object {
         val log = LoggerFactory.getLogger(ImageCacheAdapter::class.java)
-        val TARGET_WIDTHS = listOf(480, 960)
+        val TARGET_WIDTHS = listOf(240, 480, 960)
         val TARGET_FORMATS = listOf("image/avif", "image/webp", "image/jpeg")
         val CONNECT_TIMEOUT: Duration = Duration.ofSeconds(2)
         val READ_TIMEOUT: Duration = Duration.ofSeconds(5)
