@@ -15,5 +15,6 @@ source. The BEAT dashboards are generated from `src/index.ts`.
 - Foundation SDK TypeScript in `src/` is the dashboard source of truth.
 - Deterministic JSON in `generated/` is the Git Sync input.
 - Mimir recording rules in `rules/recording/` are applied with `mimirtool` in namespace `beat`.
-- Terraform owns Grafana-managed alert rules, contact points, and notification policies.
+- Grafana-managed alert rules, the single Slack contact point, and notification policy are configured in the Grafana UI.
+- A separate Alertmanager is not installed; Terraform is intentionally not part of this alert-management path.
 - Grafana Cloud Mimir/Loki/Tempo datasources remain cloud-owned; the generated dashboards select datasource variables and commit no live UIDs.
