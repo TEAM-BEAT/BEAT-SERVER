@@ -15,6 +15,7 @@ function load(overrides = {}, defaults = { scenario: 'generic_http' }) {
 
 test('target environment selects only its allowlisted hostname', () => {
   assert.equal(load().targetEnv, 'dev');
+  assert.equal(load().serverType, 't4g.small');
   assert.equal(
     load({ TARGET_ENV: 'prod', BASE_URL: 'https://api.beatlive.kr' }).serverType,
     't4g.small',

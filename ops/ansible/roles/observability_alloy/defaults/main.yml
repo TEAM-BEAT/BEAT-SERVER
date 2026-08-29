@@ -14,7 +14,7 @@ observability_alloy_secret_dir: "/opt/beat/alloy/secrets"
 # Paths inside container (where alloy reads files via volume mount)
 observability_alloy_container_secret_dir: "/etc/alloy/secrets"
 
-# Resource limits (dev t3.micro 1GB / prod t3a.small 2GB 기준)
+# Resource limits (dev/prod t4g.small 2GB 기준)
 # Both inventories allocate 256 MiB. Keep the default aligned with that
 # contract so an enabled k6+trace pipeline cannot silently exceed its cgroup.
 observability_alloy_mem_limit: "256m"

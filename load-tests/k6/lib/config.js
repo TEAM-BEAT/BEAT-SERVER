@@ -3,7 +3,7 @@ import { getWorkloadBudget, WORKLOAD_BUDGET_VERSION } from './budgets.js';
 const TARGET_ENVIRONMENTS = Object.freeze({
   dev: Object.freeze({
     allowedHosts: Object.freeze(['api-dev.beatlive.kr']),
-    serverType: 't3.micro',
+    serverType: 't4g.small',
   }),
   prod: Object.freeze({
     allowedHosts: Object.freeze(['api.beatlive.kr']),

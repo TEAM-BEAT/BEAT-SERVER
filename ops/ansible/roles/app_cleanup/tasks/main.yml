@@ -24,7 +24,26 @@
     path: "{{ pending_metadata_path }}"
     state: absent
 
-- name: Assert docker image prune failure policy is supported
+- name: Check whether previous metadata exists
+  ansible.builtin.stat:
+    path: "{{ release_dir }}/previous.json"
+  register: app_cleanup_previous_release_stat
+
+- name: Read previous release metadata
+  ansible.builtin.slurp:
+    src: "{{ release_dir }}/previous.json"
+  register: app_cleanup_previous_release_raw
+  when: app_cleanup_previous_release_stat.stat.exists
+
+- name: Resolve previous release image
+  ansible.builtin.set_fact:
+    app_cleanup_previous_image: >-
+      {{
+        (app_cleanup_previous_release_raw.content | b64decode | from_json).get('image', '')
+      }}
+  when: app_cleanup_previous_release_stat.stat.exists
+
+- name: Assert docker image cleanup failure policy is supported
   ansible.builtin.assert:
     that:
       - docker_image_prune_failure_policy | default('warn') in ['warn', 'fail']
@@ -32,7 +51,104 @@
       docker_image_prune_failure_policy must be either 'warn' or 'fail'
       (got {{ docker_image_prune_failure_policy | default('warn') }}).
 
-- name: Remove dangling Docker images
+- name: Assert deployed image belongs to the BEAT module repository
+  ansible.builtin.assert:
+    that:
+      - image is string
+      - image is match('^[^\s@]+/beat-' ~ module ~ ':[^/:\s@]+$')
+    fail_msg: >-
+      Deployment image must be a tagged BEAT {{ module }} image before cleanup
+      (got {{ image | default('undefined') }}).
+
+- name: Resolve deployed module image repository
+  ansible.builtin.set_fact:
+    app_cleanup_image_repository: "{{ image | regex_replace(':[^:/]+$', '') }}"
+
+- name: List images in the deployed module repository
+  ansible.builtin.command:
+    argv:
+      - docker
+      - image
+      - ls
+      - --format
+      - "{{ '{{.Repository}}:{{.Tag}}' }}"
+      - --filter
+      - "reference={{ app_cleanup_image_repository }}:*"
+  register: app_cleanup_image_list_result
+  changed_when: false
+  failed_when:
+    - app_cleanup_image_list_result.rc != 0
+    - docker_image_prune_failure_policy | default('warn') == 'fail'
+
+- name: Build module image retention set
+  ansible.builtin.set_fact:
+    app_cleanup_keep_images: >-
+      {{
+        [image, app_cleanup_previous_image | default('')]
+        | reject('equalto', '')
+        | unique
+        | list
+      }}
+    app_cleanup_image_refs: >-
+      {{
+        app_cleanup_image_list_result.stdout_lines | default([])
+        | map('trim')
+        | reject('equalto', '')
+        | reject('equalto', '<none>:<none>')
+        | list
+      }}
+  when: app_cleanup_image_list_result.rc == 0
+
+- name: Remove old images from the deployed module repository
+  ansible.builtin.command:
+    argv:
+      - docker
+      - image
+      - rm
+      - --no-prune
+      - "{{ item }}"
+  loop: "{{ app_cleanup_image_refs | default([]) }}"
+  loop_control:
+    label: "{{ item }}"
+  when:
+    - app_cleanup_image_list_result.rc == 0
+    - item not in app_cleanup_keep_images
+  register: app_cleanup_image_remove_result
+  changed_when: app_cleanup_image_remove_result.rc == 0
+  failed_when:
+    - app_cleanup_image_remove_result.rc != 0
+    - docker_image_prune_failure_policy | default('warn') == 'fail'
+
+- name: Report docker image listing cleanup issue
+  ansible.builtin.debug:
+    msg: >-
+      docker image listing failed during cleanup with policy=warn:
+      {{
+        app_cleanup_image_list_result.stderr
+        | default('', true)
+        | default(app_cleanup_image_list_result.stdout | default('unknown error', true), true)
+      }}
+  when:
+    - app_cleanup_image_list_result.rc != 0
+    - docker_image_prune_failure_policy | default('warn') == 'warn'
+
+- name: Report docker image removal cleanup issues
+  ansible.builtin.debug:
+    msg: >-
+      docker image removal failed for {{ item.item }} during cleanup with policy=warn:
+      {{
+        item.stderr
+        | default('', true)
+        | default(item.stdout | default('unknown error', true), true)
+      }}
+  loop: "{{ app_cleanup_image_remove_result.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item | default('unknown image') }}"
+  when:
+    - item.rc | default(0) != 0
+    - docker_image_prune_failure_policy | default('warn') == 'warn'
+
+- name: Remove dangling Docker images for the deployed module
   ansible.builtin.command:
     argv:
       - docker
@@ -40,7 +156,7 @@
       - prune
       - -f
       - --filter
-      - "until={{ docker_image_prune_retention | default('72h') }}"
+      - "label=beat.module={{ module }}"
   register: app_cleanup_docker_prune_result
   changed_when:
     - app_cleanup_docker_prune_result.rc == 0
@@ -49,7 +165,7 @@
     - app_cleanup_docker_prune_result.rc != 0
     - docker_image_prune_failure_policy | default('warn') == 'fail'
 
-- name: Report docker prune cleanup issue
+- name: Report docker image prune cleanup issue
   ansible.builtin.debug:
     msg: >-
       docker image prune failed during cleanup with policy=warn:
