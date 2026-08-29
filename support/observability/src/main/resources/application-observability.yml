@@ -34,8 +34,6 @@ management:
         http.server.requests: true
       slo:
         http.server.requests: 100ms, 200ms, 500ms, 1s, 2s
-      percentiles:
-        http.server.requests: 0.95, 0.99
 
   tracing:
     export:

@@ -1,0 +1,739 @@
+{
+  "annotations": {},
+  "description": "SHARED RDS — dev load can affect prod. CloudWatch and MySQL exporter cannot separate beatDev and beatProd schemas at the instance level.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "SHARED RDS — dev load can affect prod. CloudWatch and MySQL exporter cannot separate beatDev and beatProd schemas at the instance level.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"CPUUtilization\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
+          "id": "rds_cpuutilization",
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — CPU",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "SHARED RDS — dev load can affect prod. CloudWatch and MySQL exporter cannot separate beatDev and beatProd schemas at the instance level.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"FreeableMemory\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
+          "id": "rds_freeablememory",
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — freeable memory",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "SHARED RDS — dev load can affect prod. CloudWatch and MySQL exporter cannot separate beatDev and beatProd schemas at the instance level.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"DatabaseConnections\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
+          "id": "rds_databaseconnections",
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — connections",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "SHARED RDS — dev load can affect prod. CloudWatch and MySQL exporter cannot separate beatDev and beatProd schemas at the instance level.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"ReadIOPS\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
+          "id": "rds_readiops",
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — read IOPS",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "SHARED RDS — dev load can affect prod. CloudWatch and MySQL exporter cannot separate beatDev and beatProd schemas at the instance level.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"WriteIOPS\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
+          "id": "rds_writeiops",
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — write IOPS",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "SHARED RDS — dev load can affect prod. CloudWatch and MySQL exporter cannot separate beatDev and beatProd schemas at the instance level.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"DiskQueueDepth\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
+          "id": "rds_diskqueuedepth",
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — disk queue",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "SHARED RDS — dev load can affect prod. CloudWatch and MySQL exporter cannot separate beatDev and beatProd schemas at the instance level.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"BurstBalance\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Minimum', 300)",
+          "id": "rds_burstbalance",
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — burst balance",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "SHARED RDS — dev load can affect prod. CloudWatch and MySQL exporter cannot separate beatDev and beatProd schemas at the instance level.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "rate(mysql_global_status_questions{env=\"shared\",scope=\"beat-shared-rds\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "questions",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "MySQL queries per second",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "SHARED RDS — dev load can affect prod. CloudWatch and MySQL exporter cannot separate beatDev and beatProd schemas at the instance level.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "mysql_global_status_threads_connected{env=\"shared\",scope=\"beat-shared-rds\"}",
+          "instant": false,
+          "legendFormat": "connected",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "MySQL connections",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "SHARED RDS — dev load can affect prod. CloudWatch and MySQL exporter cannot separate beatDev and beatProd schemas at the instance level.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "rate(mysql_global_status_slow_queries{env=\"shared\",scope=\"beat-shared-rds\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "slow queries",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "rate(mysql_global_status_innodb_deadlocks{env=\"shared\",scope=\"beat-shared-rds\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "deadlocks",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "MySQL slow queries / deadlocks",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "SHARED RDS — dev load can affect prod. CloudWatch and MySQL exporter cannot separate beatDev and beatProd schemas at the instance level.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (env, scope, instance) (mysql_global_status_buffer_pool_pages{env=\"shared\",scope=\"beat-shared-rds\",state=\"data\"}) / sum by (env, scope, instance) (mysql_global_status_buffer_pool_pages{env=\"shared\",scope=\"beat-shared-rds\",state=~\"data|free|misc|old\"})",
+          "instant": false,
+          "legendFormat": "buffer pool data ratio",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "InnoDB buffer pool data ratio",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 12,
+        "y": 40
+      },
+      "id": 12,
+      "options": {
+        "content": "\n**This is one database instance for both environments.**\n\n- Treat `env=shared` and `scope=beat-shared-rds` as mandatory labels for exporter metrics.\n- Investigate dev and prod deployments together when CPU, freeable memory, connections or queue pressure rises.\n- Query samples, SQL text, and explain plans are intentionally out of scope for this phase.\n",
+        "mode": "markdown"
+      },
+      "repeatDirection": "h",
+      "title": "Shared RDS operating rule",
+      "transparent": false,
+      "type": "text"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 42,
+  "tags": [
+    "beat",
+    "generated",
+    "observability"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allowCustomValue": true,
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "description": "Prometheus / Mimir is selected at dashboard load; its UID is never committed.",
+        "includeAll": false,
+        "label": "Prometheus / Mimir",
+        "multi": false,
+        "name": "DS_PROMETHEUS",
+        "query": "prometheus",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "allowCustomValue": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "current": {
+          "text": "prod",
+          "value": "prod"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "includeAll": true,
+        "label": "Environment",
+        "multi": false,
+        "name": "env",
+        "query": "label_values(http_server_requests_seconds_count, env)",
+        "refresh": 1,
+        "skipUrlSync": false,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "includeAll": true,
+        "label": "Application",
+        "multi": false,
+        "name": "application",
+        "query": "label_values(http_server_requests_seconds_count{env=~\"$env\"}, application)",
+        "refresh": 1,
+        "skipUrlSync": false,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "includeAll": true,
+        "label": "Instance",
+        "multi": false,
+        "name": "instance",
+        "query": "label_values(http_server_requests_seconds_count{env=~\"$env\",application=~\"$application\"}, instance)",
+        "refresh": 1,
+        "skipUrlSync": false,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "includeAll": true,
+        "label": "Deployment color",
+        "multi": false,
+        "name": "color",
+        "query": "label_values(http_server_requests_seconds_count{env=~\"$env\",application=~\"$application\"}, color)",
+        "refresh": 1,
+        "skipUrlSync": false,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": true,
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "description": "CloudWatch is selected at dashboard load; its UID is never committed.",
+        "includeAll": false,
+        "label": "CloudWatch",
+        "multi": false,
+        "name": "DS_CLOUDWATCH",
+        "query": "cloudwatch",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "allowCustomValue": true,
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "description": "Required CloudWatch dimension filter. Enter the existing shared RDS DBInstanceIdentifier; panels never search all RDS instances.",
+        "includeAll": false,
+        "label": "Shared RDS instance",
+        "multi": false,
+        "name": "rds_instance_identifier",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "03 Shared RDS / MySQL",
+  "uid": "beat-shared-rds-mysql",
+  "version": 1
+}

@@ -28,7 +28,8 @@ provider 처리량 측정이 목적이 아닙니다.
 ## 안전 경계
 
 - 실제 예매를 차단한 prod `t4g.small` 서버와 prod RDS에서 구현 전후를 비교합니다.
-- 기본값은 `1 RPS / 1분`이며 `TARGET_RPS`와 `DURATION`으로 원하는 부하를 지정합니다.
+- `LOAD_PROFILE`은 `smoke=1 RPS / 1분`, `baseline=1 RPS / 1분`, `step=1 RPS / 2분`으로 고정됩니다.
+  `TARGET_RPS`와 `DURATION`으로 budget을 덮어쓸 수 없으며 hard cap은 `1 RPS / 2분`입니다.
 - 각 iteration은 서로 다른 `CHECKING_PAYMENT` Booking을 사용합니다.
 - `cases.json`에는 합성 Booking ID만 저장하며 Git에 커밋하지 않습니다.
 - worker 측정 중 외부 SMS adapter는 비활성화하거나 테스트 대역으로 교체합니다.
@@ -54,7 +55,7 @@ provider 처리량 측정이 목적이 아닙니다.
 - 모든 Booking은 실행 전에 `CHECKING_PAYMENT` 상태여야 합니다.
 - 데이터 전체에서 `bookingId`를 중복 사용하면 안 됩니다.
 - 모든 요청의 `bookingList` 길이는 첫 요청과 같아야 합니다.
-- case 수는 최소 `TARGET_RPS × DURATION(초)`개여야 합니다.
+- case 수는 선택한 profile의 planned iterations 이상이어야 합니다(`smoke/baseline=60`, `step=120`).
 
 ## 기준선·Producer 실행
 
@@ -69,24 +70,28 @@ ssh -N -L 4327:127.0.0.1:4327 ubuntu@PROD_HOST
 cd load-tests/k6/scenarios/ticket-confirmation
 
 TEST_ID="ticket-confirmation-$(date +%Y%m%d-%H%M%S)"
+GIT_SHA="$(git rev-parse HEAD)"
+DATASET_HASH="$(sha256sum cases.json | awk '{print $1}')"
 
 K6_OTEL_SERVICE_NAME="beat-k6" \
 K6_OTEL_METRIC_PREFIX="k6_" \
 K6_OTEL_GRPC_EXPORTER_ENDPOINT="127.0.0.1:4327" \
 K6_OTEL_GRPC_EXPORTER_INSECURE="true" \
-LOAD_TEST_ACK="rds" \
-BASE_URL="https://PROD_API_HOST" \
+TARGET_ENV="prod" \
+BASE_URL="https://api.beatlive.kr" \
 ACCESS_TOKEN="${ACCESS_TOKEN}" \
 DATA_FILE="./cases.json" \
+TEST_ID="${TEST_ID}" \
+GIT_SHA="${GIT_SHA}" \
+DATASET_HASH="${DATASET_HASH}" \
+LOAD_PROFILE="smoke" \
 k6 run \
   --out opentelemetry \
-  --tag test_id="${TEST_ID}" \
-  --tag environment="prod" \
-  --tag server_instance_type="t4g.small" \
   ticket-confirmation.js
 ```
 
-`1/10/78/100`건은 각각 해당 크기의 별도 데이터 세트로 실행합니다. warm-up을 한다면
+`1/10/78/100`건은 각각 해당 크기의 별도 데이터 세트로 실행합니다. 파일의 SHA-256은 자동으로
+계산되어 metric tag와 JSON summary에 기록됩니다. warm-up을 한다면
 측정 데이터와 겹치지 않는 별도 Booking을 사용하고, 기준선과 도입 후 실험에 동일하게 적용합니다.
 
 DB queue 도입 후 producer 실행에서는 다음 값이 일치하는지 확인합니다.

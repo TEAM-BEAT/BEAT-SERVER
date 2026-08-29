@@ -15,3 +15,13 @@ export function assertPreflight(config) {
     throw new Error(`Load-test preflight failed with HTTP ${response.status}.`);
   }
 }
+
+export { isTimeoutResponse } from './timeout.js';
+
+export function warnIfProduction(config) {
+  if (config.targetEnv === 'prod') {
+    console.warn(
+      '[LOAD TEST WARNING] TARGET_ENV=prod sends traffic to the shared RDS; monitor prod and stop on the documented guard conditions.',
+    );
+  }
+}

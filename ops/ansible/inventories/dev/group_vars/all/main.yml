@@ -94,7 +94,7 @@ modules:
 # observability_alloy — dev는 이제 metrics+logs+traces 활성화 (t3.micro 1GB 환경, 메모리 주의)
 observability_alloy_mem_limit: "256m"
 observability_alloy_cpus: "0.5"
-observability_alloy_scrape_interval: "60s"
+observability_alloy_scrape_interval: "30s"
 observability_alloy_wal_truncate: "1h"
 observability_alloy_enable_logs: true
 observability_alloy_enable_traces: true
