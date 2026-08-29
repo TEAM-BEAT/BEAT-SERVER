@@ -40,7 +40,7 @@ Booking ID·사용자 ID 같은 고카디널리티 값은 metric tag로 사용�
 | `BASE_URL` | 필수 | 측정 대상 API를 지정할 때 | allowlist된 HTTPS origin만 받고, 요청 파일에는 상대 경로만 두어 다른 호스트로 요청이 새지 않게 합니다. |
 | `TEST_ID` | 자동 생성, 지정 권장 | Grafana와 결과 파일을 연결할 때 | 실행 간 지표와 JSON summary를 구분합니다. |
 | `GIT_SHA` | `GITHUB_SHA` 또는 `unknown` | 배포 코드와 결과를 연결할 때 | 모든 k6 지표와 summary에 기록합니다. |
-| `SERVER_TYPE` | 환경 기본값 | 실제 서버 사양이 기본값과 다를 때 | `dev=t3.micro`, `prod=t4g.small` 기본값을 덮어씁니다. |
+| `SERVER_TYPE` | 환경 기본값 | 실제 서버 사양이 기본값과 다를 때 | `dev=t4g.small`, `prod=t4g.small` 기본값을 덮어씁니다. |
 | `DATASET_HASH` | 자동 계산, 지정 선택 | 입력 데이터 무결성을 확인할 때 | 지정하면 파일의 SHA-256과 일치하는지 검증합니다. |
 | `ACCESS_TOKEN` | 없음 | 인증 API를 측정할 때 | Bearer 토큰으로 사용됩니다. 예매 확정 시나리오에는 필수입니다. |
 | `REQUEST_FILE` | `./requests.json` | 범용 HTTP 요청 구성을 바꿀 때 | method, path, body, 예상 상태 코드를 코드 수정 없이 교체합니다. |
