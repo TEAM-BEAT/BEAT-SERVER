@@ -1,0 +1,176 @@
+# Mimir namespace: beat
+#
+# Apply this file with mimirtool rules lint/check/diff/sync --namespaces=beat.
+# The numerator and denominator are aggregated before any ratio is evaluated;
+# this avoids averaging per-instance or per-application percentages.
+namespace: beat
+groups:
+  - name: beat-application-success-sli
+    interval: 30s
+    rules:
+      - record: beat_application_requests:rate5m
+        expr: |
+          sum by (env, application) (
+            rate(http_server_requests_seconds_count{
+              application="beat-apis",
+              uri=~"^/api(/.*)?$",
+              uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
+            }[5m])
+          )
+
+      - record: beat_application_requests:rate30m
+        expr: |
+          sum by (env, application) (
+            rate(http_server_requests_seconds_count{
+              application="beat-apis",
+              uri=~"^/api(/.*)?$",
+              uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
+            }[30m])
+          )
+
+      - record: beat_application_requests:rate1h
+        expr: |
+          sum by (env, application) (
+            rate(http_server_requests_seconds_count{
+              application="beat-apis",
+              uri=~"^/api(/.*)?$",
+              uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
+            }[1h])
+          )
+
+      - record: beat_application_requests:rate6h
+        expr: |
+          sum by (env, application) (
+            rate(http_server_requests_seconds_count{
+              application="beat-apis",
+              uri=~"^/api(/.*)?$",
+              uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
+            }[6h])
+          )
+
+      - record: beat_application_requests:14d
+        expr: |
+          sum by (env, application) (
+            increase(http_server_requests_seconds_count{
+              application="beat-apis",
+              uri=~"^/api(/.*)?$",
+              uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
+            }[14d])
+          )
+
+      - record: beat_application_bad_requests:rate5m
+        expr: |
+          sum by (env, application) (
+            rate(http_server_requests_seconds_count{
+              application="beat-apis",
+              status=~"5..|429",
+              uri=~"^/api(/.*)?$",
+              uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
+            }[5m])
+          )
+
+      - record: beat_application_bad_requests:rate30m
+        expr: |
+          sum by (env, application) (
+            rate(http_server_requests_seconds_count{
+              application="beat-apis",
+              status=~"5..|429",
+              uri=~"^/api(/.*)?$",
+              uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
+            }[30m])
+          )
+
+      - record: beat_application_bad_requests:rate1h
+        expr: |
+          sum by (env, application) (
+            rate(http_server_requests_seconds_count{
+              application="beat-apis",
+              status=~"5..|429",
+              uri=~"^/api(/.*)?$",
+              uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
+            }[1h])
+          )
+
+      - record: beat_application_bad_requests:rate6h
+        expr: |
+          sum by (env, application) (
+            rate(http_server_requests_seconds_count{
+              application="beat-apis",
+              status=~"5..|429",
+              uri=~"^/api(/.*)?$",
+              uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
+            }[6h])
+          )
+
+      - record: beat_application_bad_requests:14d
+        expr: |
+          sum by (env, application) (
+            increase(http_server_requests_seconds_count{
+              application="beat-apis",
+              status=~"5..|429",
+              uri=~"^/api(/.*)?$",
+              uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
+            }[14d])
+          )
+
+      - record: beat_application_good_requests:rate5m
+        expr: |
+          beat_application_requests:rate5m
+            - beat_application_bad_requests:rate5m
+
+      - record: beat_application_success_ratio:rate5m
+        expr: |
+          beat_application_good_requests:rate5m
+            / beat_application_requests:rate5m
+
+      - record: beat_application_good_requests:14d
+        expr: |
+          beat_application_requests:14d
+            - beat_application_bad_requests:14d
+
+      - record: beat_application_success_ratio:14d
+        expr: |
+          beat_application_good_requests:14d
+            / beat_application_requests:14d
+
+      # Error budget is 1 - 0.995 = 0.005 for the rolling 14-day SLO.
+      - record: beat_application_error_budget_burn:5m
+        expr: |
+          beat_application_bad_requests:rate5m
+            / (beat_application_requests:rate5m * 0.005)
+
+      - record: beat_application_error_budget_burn:30m
+        expr: |
+          beat_application_bad_requests:rate30m
+            / (beat_application_requests:rate30m * 0.005)
+
+      - record: beat_application_error_budget_burn:1h
+        expr: |
+          beat_application_bad_requests:rate1h
+            / (beat_application_requests:rate1h * 0.005)
+
+      - record: beat_application_error_budget_burn:6h
+        expr: |
+          beat_application_bad_requests:rate6h
+            / (beat_application_requests:rate6h * 0.005)
+
+      # 14-day SLO burn-rate thresholds: fast 6.72x, slow 2.8x.
+      - record: beat_application_fast_burn:14d
+        expr: |
+          (
+            beat_application_error_budget_burn:1h > 6.72
+          )
+          and on (env, application)
+          (
+            beat_application_error_budget_burn:5m > 6.72
+          )
+
+      - record: beat_application_slow_burn:14d
+        expr: |
+          (
+            beat_application_error_budget_burn:6h > 2.8
+          )
+          and on (env, application)
+          (
+            beat_application_error_budget_burn:30m > 2.8
+          )

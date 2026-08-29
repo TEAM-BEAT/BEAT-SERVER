@@ -1,0 +1,16 @@
+{
+  "name": "beat-grafana-as-code",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "tsx src/index.ts",
+    "check:generated": "tsx src/index.ts --check",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@grafana/grafana-foundation-sdk": "0.0.18",
+    "@types/node": "24.10.1",
+    "tsx": "4.23.12",
+    "typescript": "5.9.3"
+  }
+}

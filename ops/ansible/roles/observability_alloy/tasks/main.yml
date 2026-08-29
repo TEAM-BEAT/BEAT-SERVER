@@ -15,6 +15,34 @@
     group: root
     mode: "0700"
 
+- name: Resolve Redis exporter password from application secret
+  ansible.builtin.set_fact:
+    observability_alloy_redis_exporter_password: >-
+      {{
+        (
+          app_secret_content | default('')
+          | regex_search('(?m)^' ~ (deploy_environment | upper) ~ '_REDIS_PASSWORD=.*$')
+          | default('', true)
+          | regex_replace('^[^=]*=', '')
+        )
+      }}
+  when:
+    - observability_alloy_enable_redis | default(true) | bool
+    - app_secret_content is defined
+  no_log: true
+
+- name: Validate optional shared MySQL exporter contract
+  ansible.builtin.assert:
+    that:
+      - deploy_environment == "prod"
+      - observability_alloy_shared_mysql_dsn is defined
+      - observability_alloy_shared_mysql_dsn | length > 0
+      - observability_alloy_shared_mysql_read_only | default(false) | bool
+    fail_msg: >-
+      shared MySQL exporter requires a prod-only encrypted DSN and an explicitly
+      verified read-only credential.
+  when: observability_alloy_shared_mysql_enabled | default(false) | bool
+
 - name: Render Grafana Cloud secrets to host
   ansible.builtin.copy:
     content: "{{ item.value }}"
@@ -33,6 +61,30 @@
       value: "{{ gc_tempo_user }}"
   loop_control:
     label: "{{ item.name }}"
+  no_log: true
+  notify: Restart alloy container
+
+- name: Render Redis exporter password
+  ansible.builtin.copy:
+    content: "{{ observability_alloy_redis_exporter_password }}"
+    dest: "{{ observability_alloy_secret_dir }}/redis_password"
+    owner: root
+    group: root
+    mode: "0600"
+  when:
+    - observability_alloy_enable_redis | default(true) | bool
+    - observability_alloy_redis_exporter_password | default('') | length > 0
+  no_log: true
+  notify: Restart alloy container
+
+- name: Render shared MySQL exporter DSN
+  ansible.builtin.copy:
+    content: "{{ observability_alloy_shared_mysql_dsn }}"
+    dest: "{{ observability_alloy_secret_dir }}/{{ observability_alloy_shared_mysql_secret_filename }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: observability_alloy_shared_mysql_enabled | default(false) | bool
   no_log: true
   notify: Restart alloy container
 

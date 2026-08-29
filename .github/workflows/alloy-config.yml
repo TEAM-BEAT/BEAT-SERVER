@@ -1,0 +1,39 @@
+name: alloy-config
+
+on:
+  pull_request:
+    paths:
+      - "ops/ansible/roles/observability_alloy/**"
+      - "ops/ansible/inventories/dev/group_vars/all/main.yml"
+      - "ops/ansible/inventories/prod/group_vars/all/main.yml"
+      - "scripts/verify-alloy-config.sh"
+      - ".github/workflows/alloy-config.yml"
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - "ops/ansible/roles/observability_alloy/**"
+      - "ops/ansible/inventories/dev/group_vars/all/main.yml"
+      - "ops/ansible/inventories/prod/group_vars/all/main.yml"
+      - "scripts/verify-alloy-config.sh"
+      - ".github/workflows/alloy-config.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Ansible tooling
+        uses: ./.github/actions/setup-ansible-tooling
+
+      - name: Render and validate Alloy configurations
+        run: bash scripts/verify-alloy-config.sh

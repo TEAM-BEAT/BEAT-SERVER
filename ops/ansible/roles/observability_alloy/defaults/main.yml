@@ -2,8 +2,8 @@
 # Grafana Alloy edge agent — defaults
 # 환경별 override는 inventories/{dev,prod}/group_vars/all/main.yml에서 처리.
 
-# Image — 2026-05 기준 latest stable (Docker Hub `latest` 태그 포인터)
-observability_alloy_image: "grafana/alloy:v1.16.1"
+# Image — pin the tested stable patch instead of following the mutable `latest` tag.
+observability_alloy_image: "grafana/alloy:v1.19.2"
 observability_alloy_container_name: "alloy"
 observability_alloy_data_volume: "alloy-data"
 
@@ -15,7 +15,9 @@ observability_alloy_secret_dir: "/opt/beat/alloy/secrets"
 observability_alloy_container_secret_dir: "/etc/alloy/secrets"
 
 # Resource limits (dev t3.micro 1GB / prod t3a.small 2GB 기준)
-observability_alloy_mem_limit: "128m"
+# Both inventories allocate 256 MiB. Keep the default aligned with that
+# contract so an enabled k6+trace pipeline cannot silently exceed its cgroup.
+observability_alloy_mem_limit: "256m"
 observability_alloy_cpus: "0.5"
 
 # Telemetry pipeline switches (dev=metrics only, prod=full)
@@ -23,24 +25,49 @@ observability_alloy_enable_logs: false
 observability_alloy_enable_traces: false
 observability_alloy_enable_cadvisor: false
 observability_alloy_enable_k6_metrics: false
+observability_alloy_enable_self_monitoring: true
+observability_alloy_enable_redis: true
+
+# Operational blocker: the inventories currently have no dedicated shared-RDS
+# exporter account/DSN. Keep this disabled until an encrypted SOPS DSN is added,
+# its read-only grant is verified, and the role is enabled only on prod.
+# The role intentionally does not invent or reuse application DB credentials.
+observability_alloy_shared_mysql_enabled: false
+observability_alloy_shared_mysql_read_only: false
+observability_alloy_shared_mysql_secret_filename: "shared_mysql_dsn"
 
 # Scraping
 observability_alloy_scrape_interval: "30s"
 observability_alloy_wal_truncate: "2h"
 
+# Shared 256 MiB Alloy budget (dev runs k6 and traces simultaneously):
+#   trace 64+16 MiB + k6 64+16 MiB = 160 MiB
+# This leaves 96 MiB for Alloy itself, exporters, WAL, and logs. The limiter
+# values are intentionally budgeted additively even though each processor
+# observes process memory independently.
+observability_alloy_trace_memory_limit: "64MiB"
+observability_alloy_trace_memory_spike_limit: "16MiB"
+observability_alloy_trace_batch_timeout: "1s"
+observability_alloy_trace_batch_size: 128
+observability_alloy_trace_batch_max_size: 256
+
 # Cluster label (e.g. beat-dev, beat-prod) — group_vars에서 deploy_environment 기반 override
 observability_alloy_cluster: "beat-{{ deploy_environment }}"
+observability_alloy_otel_environment_name: >-
+  {{ 'development' if deploy_environment == 'dev' else 'production' }}
+observability_alloy_redis_addr: "{{ redis_container_name | default('redis') }}:6379"
 
 # OTLP receiver bind addresses (prod에서만 활성화됨)
 observability_alloy_otlp_grpc_addr: "0.0.0.0:4317"
 observability_alloy_otlp_http_addr: "0.0.0.0:4318"
 observability_alloy_k6_otlp_grpc_addr: "0.0.0.0:4327"
 
-# k6 OTLP metrics pipeline. Absolute limits protect the container cgroup budget.
-observability_alloy_k6_memory_limit: "192MiB"
-observability_alloy_k6_memory_spike_limit: "48MiB"
+# k6 OTLP metrics pipeline. Its 64+16 MiB allocation is part of the shared
+# budget above; a smaller batch bounds transient allocations as well.
+observability_alloy_k6_memory_limit: "64MiB"
+observability_alloy_k6_memory_spike_limit: "16MiB"
 observability_alloy_k6_batch_timeout: "1s"
-observability_alloy_k6_batch_size: 1000
+observability_alloy_k6_batch_size: 256
 
 # Published ports — 호스트에 외부 노출 (default는 alloy UI만, prod override에서 OTLP 추가)
 observability_alloy_published_ports:

@@ -9,6 +9,20 @@ logging {
   format = "logfmt"
 }
 
+{% if observability_alloy_enable_self_monitoring | default(true) | bool %}
+// -----------------------------------------------------------------------------
+// 0. Alloy self-monitoring
+// -----------------------------------------------------------------------------
+prometheus.exporter.self "alloy" {
+}
+
+prometheus.scrape "alloy" {
+  targets         = prometheus.exporter.self.alloy.targets
+  scrape_interval = "{{ observability_alloy_scrape_interval }}"
+  forward_to      = [prometheus.relabel.cleanup.receiver]
+}
+{% endif %}
+
 // -----------------------------------------------------------------------------
 // 1. Secrets (호스트에 root:0600 으로 떨어진 파일 참조)
 // -----------------------------------------------------------------------------
@@ -24,16 +38,28 @@ local.file "gc_prom_user" {
   is_secret = false
 }
 
-{% if observability_alloy_enable_logs %}
+{% if observability_alloy_enable_logs | bool %}
 local.file "gc_loki_user" {
   filename  = "{{ observability_alloy_container_secret_dir }}/gc_loki_user"
   is_secret = false
 }
 {% endif %}
-{% if observability_alloy_enable_traces %}
+{% if observability_alloy_enable_traces | bool %}
 local.file "gc_tempo_user" {
   filename  = "{{ observability_alloy_container_secret_dir }}/gc_tempo_user"
   is_secret = false
+}
+{% endif %}
+{% if observability_alloy_enable_redis | default(true) | bool and observability_alloy_redis_exporter_password | default('') | length > 0 %}
+local.file "redis_password" {
+  filename  = "{{ observability_alloy_container_secret_dir }}/redis_password"
+  is_secret = true
+}
+{% endif %}
+{% if deploy_environment == "prod" and observability_alloy_shared_mysql_enabled | default(false) | bool %}
+local.file "shared_mysql_dsn" {
+  filename  = "{{ observability_alloy_container_secret_dir }}/{{ observability_alloy_shared_mysql_secret_filename | default('shared_mysql_dsn') }}"
+  is_secret = true
 }
 {% endif %}
 
@@ -53,7 +79,7 @@ prometheus.scrape "node" {
   forward_to      = [prometheus.relabel.cleanup.receiver]
 }
 
-{% if observability_alloy_enable_cadvisor %}
+{% if observability_alloy_enable_cadvisor | bool %}
 // -----------------------------------------------------------------------------
 // 3. Container metrics — cAdvisor 대체 (prod only)
 // -----------------------------------------------------------------------------
@@ -69,8 +95,63 @@ prometheus.scrape "containers" {
 }
 {% endif %}
 
+{% if observability_alloy_enable_redis | default(true) | bool and foundation_redis_enabled | default(true) | bool %}
 // -----------------------------------------------------------------------------
-// 4. Spring Boot Actuator scrape — 정적 target, BG 미동작 색은 up=0 으로 처리
+// 4. Redis exporter — one target per environment
+// -----------------------------------------------------------------------------
+prometheus.exporter.redis "redis" {
+  redis_addr          = "{{ observability_alloy_redis_addr }}"
+  redis_metrics_only  = true
+{% if observability_alloy_redis_exporter_password | default('') | length > 0 %}
+  redis_password_file = "{{ observability_alloy_container_secret_dir }}/redis_password"
+{% endif %}
+}
+
+prometheus.scrape "redis" {
+  targets         = prometheus.exporter.redis.redis.targets
+  scrape_interval = "{{ observability_alloy_scrape_interval }}"
+  forward_to      = [prometheus.relabel.cleanup.receiver]
+}
+{% endif %}
+
+{% if deploy_environment == "prod" and observability_alloy_shared_mysql_enabled | default(false) | bool %}
+// -----------------------------------------------------------------------------
+// 5. Shared RDS MySQL exporter — intentionally opt-in and read-only
+// -----------------------------------------------------------------------------
+prometheus.exporter.mysql "shared_rds" {
+  data_source_name = local.file.shared_mysql_dsn.content
+  set_collectors = [
+    "global_status",
+    "global_variables",
+    "info_schema.innodb_metrics",
+    "engine_innodb_status",
+  ]
+  lock_wait_timeout = 2
+}
+
+prometheus.scrape "shared_rds" {
+  targets         = prometheus.exporter.mysql.shared_rds.targets
+  scrape_interval = "{{ observability_alloy_scrape_interval }}"
+  forward_to      = [prometheus.relabel.shared_rds_scope.receiver]
+}
+
+prometheus.relabel "shared_rds_scope" {
+  rule {
+    target_label = "env"
+    replacement  = "shared"
+    action       = "replace"
+  }
+  rule {
+    target_label = "scope"
+    replacement  = "beat-shared-rds"
+    action       = "replace"
+  }
+  forward_to = [prometheus.relabel.cleanup.receiver]
+}
+{% endif %}
+
+// -----------------------------------------------------------------------------
+// 6. Spring Boot Actuator scrape — 정적 target, BG 미동작 색은 up=0 으로 처리
 // -----------------------------------------------------------------------------
 prometheus.scrape "spring_boot" {
   targets = [
@@ -84,7 +165,7 @@ prometheus.scrape "spring_boot" {
 }
 
 // -----------------------------------------------------------------------------
-// 5. Cardinality 보호 (drop high-cardinality 시리즈/라벨)
+// 7. Cardinality 보호 (drop high-cardinality 시리즈/라벨)
 // -----------------------------------------------------------------------------
 prometheus.relabel "cleanup" {
   rule {
@@ -117,7 +198,7 @@ prometheus.relabel "cleanup" {
 }
 
 // -----------------------------------------------------------------------------
-// 6. Remote write → Grafana Cloud Prometheus
+// 8. Remote write → Grafana Cloud Prometheus
 // -----------------------------------------------------------------------------
 prometheus.remote_write "gc" {
   external_labels = {
@@ -142,9 +223,9 @@ prometheus.remote_write "gc" {
   }
 }
 
-{% if observability_alloy_enable_logs %}
+{% if observability_alloy_enable_logs | bool %}
 // -----------------------------------------------------------------------------
-// 7. Docker stdout/stderr → Loki (prod only)
+// 9. Docker stdout/stderr → Loki (prod only)
 // -----------------------------------------------------------------------------
 discovery.docker "containers" {
   host = "unix:///var/run/docker.sock"
@@ -222,9 +303,9 @@ loki.write "gc" {
 }
 {% endif %}
 
-{% if observability_alloy_enable_k6_metrics %}
+{% if observability_alloy_enable_k6_metrics | bool %}
 // -----------------------------------------------------------------------------
-// 8. k6 OTLP metrics → Grafana Cloud Prometheus
+// 10. k6 OTLP metrics → Grafana Cloud Prometheus
 // -----------------------------------------------------------------------------
 otelcol.receiver.otlp "k6" {
   grpc {
@@ -259,9 +340,9 @@ otelcol.exporter.prometheus "k6" {
 }
 {% endif %}
 
-{% if observability_alloy_enable_traces %}
+{% if observability_alloy_enable_traces | bool %}
 // -----------------------------------------------------------------------------
-// 9. Application OTLP traces → tail sampling → Grafana Cloud Tempo
+// 11. Application OTLP traces → normalize resources → Grafana Cloud Tempo
 // -----------------------------------------------------------------------------
 otelcol.receiver.otlp "apps" {
   grpc {
@@ -271,47 +352,46 @@ otelcol.receiver.otlp "apps" {
     endpoint = "{{ observability_alloy_otlp_http_addr }}"
   }
   output {
-    traces = [otelcol.processor.tail_sampling.policy.input]
+    traces = [otelcol.processor.memory_limiter.apps.input]
   }
 }
 
-otelcol.processor.tail_sampling "policy" {
-  // BEAT 트래픽 실측 기반 보수적 buffer. trace당 평균 5 spans 가정 시 25k spans (~50MB).
-  // expected_new_traces_per_sec는 평상시 10~30 추정, 50으로 여유.
-  // 실측 후 부족하면 num_traces 단계적 증액.
-  decision_wait               = "10s"
-  num_traces                  = 5000
-  expected_new_traces_per_sec = 50
+otelcol.processor.memory_limiter "apps" {
+  check_interval = "1s"
+  limit          = "{{ observability_alloy_trace_memory_limit }}"
+  spike_limit    = "{{ observability_alloy_trace_memory_spike_limit }}"
 
-  policy {
-    name = "errors"
-    type = "status_code"
-    status_code {
-      status_codes = ["ERROR"]
-    }
+  output {
+    traces = [otelcol.processor.transform.apps.input]
   }
-  policy {
-    name = "http_5xx_errors"
-    type = "string_attribute"
-    string_attribute {
-      key = "http.status_code"
-      values = ["500", "501", "502", "503", "504"]
-    }
+}
+
+otelcol.processor.transform "apps" {
+  error_mode = "ignore"
+
+  trace_statements {
+    context = "resource"
+    statements = [
+      `set(attributes["service.namespace"], "beat")`,
+      `set(attributes["deployment.environment.name"], "{{ observability_alloy_otel_environment_name }}")`,
+    ]
   }
-  policy {
-    name = "slow"
-    type = "latency"
-    latency {
-      threshold_ms = 1000
-    }
+  trace_statements {
+    context = "span"
+    statements = [
+      `set(attributes["http.response.status_code"], attributes["http.status_code"]) where attributes["http.response.status_code"] == nil and attributes["http.status_code"] != nil`,
+    ]
   }
-  policy {
-    name = "default_probabilistic"
-    type = "probabilistic"
-    probabilistic {
-      sampling_percentage = 100
-    }
+
+  output {
+    traces = [otelcol.processor.batch.apps.input]
   }
+}
+
+otelcol.processor.batch "apps" {
+  timeout            = "{{ observability_alloy_trace_batch_timeout }}"
+  send_batch_size    = {{ observability_alloy_trace_batch_size }}
+  send_batch_max_size = {{ observability_alloy_trace_batch_max_size }}
 
   output {
     traces = [otelcol.exporter.otlp.gc.input]

@@ -1,10 +1,14 @@
+import { sha256 } from 'k6/crypto';
 import { SharedArray } from 'k6/data';
 
 export function loadCases(env, config) {
-  const cases = new SharedArray('ticket-confirmation-db-queue-cases', () =>
-    JSON.parse(open(env.DATA_FILE || './cases.json')),
+  const dataFile = env.DATA_FILE || './cases.json';
+  const dataSource = open(dataFile);
+  const cases = new SharedArray(
+    'ticket-confirmation-db-queue-cases',
+    () => JSON.parse(dataSource),
   );
-  const requiredCases = config.targetRps * config.durationSeconds;
+  const requiredCases = config.plannedIterations;
   if (cases.length < requiredCases) {
     throw new Error(`At least ${requiredCases} unique cases are required, but only ${cases.length} were provided.`);
   }
@@ -37,5 +41,5 @@ export function loadCases(env, config) {
       bookingIds.add(booking.bookingId);
     });
   });
-  return cases;
+  return { cases, datasetHash: sha256(dataSource, 'hex') };
 }

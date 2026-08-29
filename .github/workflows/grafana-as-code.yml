@@ -1,0 +1,93 @@
+name: grafana-as-code
+
+on:
+  pull_request:
+    paths:
+      - "ops/grafana/**"
+      - ".github/workflows/grafana-as-code.yml"
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - "ops/grafana/**"
+      - ".github/workflows/grafana-as-code.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ops/grafana
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ops/grafana/package-lock.json
+
+      - name: Install SDK dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Typecheck generator
+        run: npm run typecheck
+
+      - name: Verify deterministic dashboard generation
+        run: |
+          npm run generate
+          git diff --exit-code -- generated
+          npm run check:generated
+
+      - name: Validate generated JSON and datasource variables
+        run: |
+          node --input-type=module <<'NODE'
+          import { readdirSync, readFileSync } from "node:fs";
+
+          const files = readdirSync("generated")
+            .filter((file) => file.endsWith(".json"))
+            .map((file) => `generated/${file}`);
+          if (files.length !== 7) throw new Error(`expected 7 dashboards, found ${files.length}`);
+          for (const file of files) {
+            const dashboard = JSON.parse(readFileSync(file, "utf8"));
+            const visit = (value) => {
+              if (!value || typeof value !== "object") return;
+              if (value.datasource?.uid && !String(value.datasource.uid).startsWith("${DS_")) {
+                throw new Error(`${file}: datasource UID is not a dashboard variable`);
+              }
+              Object.values(value).forEach(visit);
+            };
+            visit(dashboard);
+          }
+          NODE
+
+      - name: Validate recording rule YAML
+        run: |
+          ruby -e 'require "yaml"; Dir["rules/recording/*.yml"].each { |file| YAML.safe_load(File.read(file), aliases: true) }'
+
+      - name: Lint and check Mimir recording rules
+        run: |
+          mimirtool_image="grafana/mimirtool@sha256:82d04bdbf907adf609eea2f4a1354b28ead54cf0dc36adcf2f71fd0bb26e4b3c" # 3.2.0 linux/amd64
+          docker run --rm --volume "$GITHUB_WORKSPACE:/workspace:ro" --workdir /workspace "$mimirtool_image" rules lint -n ops/grafana/rules/recording/beat-application-success.yml
+          docker run --rm --volume "$GITHUB_WORKSPACE:/workspace:ro" --workdir /workspace "$mimirtool_image" rules check ops/grafana/rules/recording/beat-application-success.yml
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.9.8"
+
+      - name: Validate Terraform syntax
+        working-directory: ops/grafana/terraform
+        run: |
+          terraform fmt -check -diff -recursive
+          terraform init -backend=false -input=false -no-color
+          terraform validate -no-color
