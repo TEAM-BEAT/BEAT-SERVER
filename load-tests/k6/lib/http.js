@@ -16,9 +16,7 @@ export function assertPreflight(config) {
   }
 }
 
-export function isTimeoutResponse(response) {
-  return typeof response.error === 'string' && /timeout/i.test(response.error);
-}
+export { isTimeoutResponse } from './timeout.js';
 
 export function warnIfProduction(config) {
   if (config.targetEnv === 'prod') {

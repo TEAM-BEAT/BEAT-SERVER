@@ -46,6 +46,11 @@ jobs:
         run: |
           npm run generate
           git diff --exit-code -- generated
+          if [[ -n "$(git status --short --untracked-files=all -- generated)" ]]; then
+            echo "Generated dashboard files contain untracked output." >&2
+            git status --short --untracked-files=all -- generated
+            exit 1
+          fi
           npm run check:generated
 
       - name: Validate generated JSON and datasource variables

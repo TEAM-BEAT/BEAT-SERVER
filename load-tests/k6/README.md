@@ -77,7 +77,7 @@ MAX_P95_MS="500" k6 run ...
 ```
 
 `TARGET_RPS`, `DURATION`, `PRE_ALLOCATED_VUS`, `MAX_VUS` 같은 budget override는 실행 전에 거부됩니다.
-`dropped_iterations`, preflight 실패, fixture 소진, 30초 지연 후 5% 초과 expected-status 실패·timeout
+`dropped_iterations`, preflight 실패, fixture 소진, 30초 지연 후 5% 이상 expected-status 실패·timeout
 급증은 threshold로 실행을 중단합니다. `TARGET_ENV=prod`이면 shared RDS 영향 경고를 먼저 출력합니다.
 
 ### OTLP 전송

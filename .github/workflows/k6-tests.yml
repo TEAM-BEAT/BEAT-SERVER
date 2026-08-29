@@ -40,4 +40,4 @@ jobs:
             done
 
       - name: Run k6 configuration tests
-        run: node --test load-tests/k6/tests/config.test.mjs
+        run: node --test load-tests/k6/tests/*.test.mjs

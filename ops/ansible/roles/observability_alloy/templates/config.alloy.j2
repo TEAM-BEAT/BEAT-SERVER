@@ -318,8 +318,8 @@ otelcol.receiver.otlp "k6" {
 
 otelcol.processor.memory_limiter "k6" {
   check_interval = "1s"
-  limit          = "{{ observability_alloy_k6_memory_limit }}"
-  spike_limit    = "{{ observability_alloy_k6_memory_spike_limit }}"
+  limit          = "{{ observability_alloy_memory_limit }}"
+  spike_limit    = "{{ observability_alloy_memory_spike_limit }}"
 
   output {
     metrics = [otelcol.processor.batch.k6.input]
@@ -358,8 +358,8 @@ otelcol.receiver.otlp "apps" {
 
 otelcol.processor.memory_limiter "apps" {
   check_interval = "1s"
-  limit          = "{{ observability_alloy_trace_memory_limit }}"
-  spike_limit    = "{{ observability_alloy_trace_memory_spike_limit }}"
+  limit          = "{{ observability_alloy_memory_limit }}"
+  spike_limit    = "{{ observability_alloy_memory_spike_limit }}"
 
   output {
     traces = [otelcol.processor.transform.apps.input]

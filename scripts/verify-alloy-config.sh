@@ -79,15 +79,35 @@ for environment in dev prod; do
   grep -q 'prometheus.exporter.self "alloy"' "$output_path"
   grep -q 'prometheus.exporter.redis "redis"' "$output_path"
   grep -q 'otelcol.processor.memory_limiter "apps"' "$output_path"
+  if [[ "$environment" == "dev" ]] && ! grep -q 'otelcol.processor.memory_limiter "k6"' "$output_path"; then
+    echo "dev config is missing the k6 memory limiter" >&2
+    exit 1
+  fi
+  expected_memory_limiters=1
+  if [[ "$environment" == "dev" ]]; then expected_memory_limiters=2; fi
+  if [[ "$(grep -c 'otelcol.processor.memory_limiter "' "$output_path")" -ne "$expected_memory_limiters" ]]; then
+    echo "$environment config has an unexpected number of signal memory limiters" >&2
+    exit 1
+  fi
   grep -q 'otelcol.processor.batch "apps"' "$output_path"
-  grep -q 'limit          = "64MiB"' "$output_path"
-  grep -q 'spike_limit    = "16MiB"' "$output_path"
+  if [[ "$(grep -c 'limit          = "192MiB"' "$output_path")" -ne "$expected_memory_limiters" ]]; then
+    echo "$environment config does not apply the shared memory limit to every signal" >&2
+    exit 1
+  fi
+  if [[ "$(grep -c 'spike_limit    = "32MiB"' "$output_path")" -ne "$expected_memory_limiters" ]]; then
+    echo "$environment config does not apply the shared spike limit to every signal" >&2
+    exit 1
+  fi
   if grep -Eq 'tail_sampling|sampling_percentage' "$output_path"; then
     echo "$environment config still contains removed sampling pipeline" >&2
     exit 1
   fi
   if [[ "$environment" == "dev" ]] && ! grep -q 'otelcol.receiver.otlp "k6"' "$output_path"; then
     echo "dev config is missing the k6 OTLP receiver" >&2
+    exit 1
+  fi
+  if [[ "$environment" == "dev" ]] && ! grep -Fq 'metrics = [otelcol.processor.memory_limiter.k6.input]' "$output_path"; then
+    echo "dev config is missing the k6 memory limiter route" >&2
     exit 1
   fi
   if [[ "$environment" == "prod" ]] && grep -q 'otelcol.receiver.otlp "k6"' "$output_path"; then

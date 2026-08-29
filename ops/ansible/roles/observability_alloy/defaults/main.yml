@@ -40,13 +40,12 @@ observability_alloy_shared_mysql_secret_filename: "shared_mysql_dsn"
 observability_alloy_scrape_interval: "30s"
 observability_alloy_wal_truncate: "2h"
 
-# Shared 256 MiB Alloy budget (dev runs k6 and traces simultaneously):
-#   trace 64+16 MiB + k6 64+16 MiB = 160 MiB
-# This leaves 96 MiB for Alloy itself, exporters, WAL, and logs. The limiter
-# values are intentionally budgeted additively even though each processor
-# observes process memory independently.
-observability_alloy_trace_memory_limit: "64MiB"
-observability_alloy_trace_memory_spike_limit: "16MiB"
+# One process-wide OpenTelemetry memory budget for the 256 MiB Alloy cgroup.
+# Both signal-specific limiters observe the same process and use a 192 MiB hard
+# limit with a 32 MiB spike allowance. This keeps the soft limiter at 160 MiB
+# and leaves 64 MiB below the cgroup for runtime, exporters, WAL, and logs.
+observability_alloy_memory_limit: "192MiB"
+observability_alloy_memory_spike_limit: "32MiB"
 observability_alloy_trace_batch_timeout: "1s"
 observability_alloy_trace_batch_size: 128
 observability_alloy_trace_batch_max_size: 256
@@ -62,10 +61,8 @@ observability_alloy_otlp_grpc_addr: "0.0.0.0:4317"
 observability_alloy_otlp_http_addr: "0.0.0.0:4318"
 observability_alloy_k6_otlp_grpc_addr: "0.0.0.0:4327"
 
-# k6 OTLP metrics pipeline. Its 64+16 MiB allocation is part of the shared
-# budget above; a smaller batch bounds transient allocations as well.
-observability_alloy_k6_memory_limit: "64MiB"
-observability_alloy_k6_memory_spike_limit: "16MiB"
+# k6 OTLP metrics pipeline. It shares the process-wide memory limiter above;
+# the smaller batch bounds transient allocations as well.
 observability_alloy_k6_batch_timeout: "1s"
 observability_alloy_k6_batch_size: 256
 
