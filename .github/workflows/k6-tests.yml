@@ -1,0 +1,43 @@
+name: k6-tests
+
+on:
+  pull_request:
+    paths:
+      - "load-tests/k6/**"
+      - ".github/workflows/k6-tests.yml"
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - "load-tests/k6/**"
+      - ".github/workflows/k6-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: Check JavaScript syntax
+        run: |
+          find load-tests/k6 -type f -name '*.js' -print0 |
+            while IFS= read -r -d '' file; do
+              node --check "$file"
+            done
+
+      - name: Run k6 configuration tests
+        run: node --test load-tests/k6/tests/*.test.mjs

@@ -238,7 +238,7 @@ jobs:
       - resolve-ref
       - verify
     if: needs.detect-changes.outputs.has_modules == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     permissions:
       contents: read

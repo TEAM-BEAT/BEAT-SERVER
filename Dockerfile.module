@@ -4,7 +4,10 @@ ARG MODULE
 
 # Alpine repositories retain current patch revisions; Trivy is the vulnerability gate.
 RUN apk add --no-cache --upgrade \
+    libcrypto3 \
     libexpat \
+    libssl3 \
+    openssl \
     p11-kit \
     p11-kit-trust
 

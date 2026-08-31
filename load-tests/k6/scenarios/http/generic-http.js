@@ -3,25 +3,43 @@ import exec from 'k6/execution';
 import http from 'k6/http';
 import { Rate } from 'k6/metrics';
 import {
+  addAbortableRateThreshold,
+  addDroppedIterationsThreshold,
   addOptionalP95Threshold,
   constantArrivalRateScenario,
   loadConfig,
+  withDatasetHash,
 } from '../../lib/config.js';
-import { assertPreflight, authorizationHeaders } from '../../lib/http.js';
+import {
+  assertPreflight,
+  authorizationHeaders,
+  isTimeoutResponse,
+  warnIfProduction,
+} from '../../lib/http.js';
+import { handleSummaryWithMetadata } from '../../lib/summary.js';
 import { loadRequests } from './requests.js';
 
-const config = loadConfig(__ENV);
+const initialConfig = loadConfig(__ENV, { scenario: 'generic_http' });
 const requestFailed = new Rate('api_request_failed');
-const { requests, reuseRequests } = loadRequests(__ENV, config);
+const requestTimedOut = new Rate('api_request_timeout');
+const loadedRequests = loadRequests(__ENV, initialConfig);
+const { requests, reuseRequests } = loadedRequests;
+const config = withDatasetHash(initialConfig, loadedRequests.datasetHash);
 
-const thresholds = { dropped_iterations: ['count==0'] };
+const thresholds = {};
+addAbortableRateThreshold(thresholds, 'api_request_failed');
+addAbortableRateThreshold(thresholds, 'api_request_timeout');
+addDroppedIterationsThreshold(thresholds);
 [...new Set(requests.map((request) => request.name))].forEach((name) => {
-  thresholds[`api_request_failed{name:${name}}`] = ['rate<0.01'];
+  thresholds[`api_request_failed{name:${name}}`] = [
+    { threshold: 'rate<0.05', abortOnFail: true, delayAbortEval: '30s' },
+  ];
   addOptionalP95Threshold(thresholds, `http_req_duration{name:${name}}`, config.maxP95Ms);
 });
 
 export const options = {
   discardResponseBodies: true,
+  tags: config.tags,
   systemTags: ['status', 'method', 'name', 'scenario', 'expected_response', 'error_code'],
   scenarios: {
     generic_http: constantArrivalRateScenario('generic_http', config),
@@ -30,7 +48,12 @@ export const options = {
 };
 
 export function setup() {
+  warnIfProduction(config);
   assertPreflight(config);
+}
+
+export function handleSummary(data) {
+  return handleSummaryWithMetadata(data, config);
 }
 
 export default function () {
@@ -61,5 +84,6 @@ export default function () {
   });
   const succeeded = request.expectedStatuses.includes(response.status);
   requestFailed.add(!succeeded, { name: request.name });
+  requestTimedOut.add(isTimeoutResponse(response), { name: request.name });
   check(response, { expected_status: () => succeeded }, { name: request.name });
 }
