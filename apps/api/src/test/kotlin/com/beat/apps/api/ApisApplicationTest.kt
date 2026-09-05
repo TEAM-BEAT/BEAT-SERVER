@@ -12,6 +12,7 @@ import com.beat.apps.api.config.InfraConfig
 import com.beat.apps.api.swagger.config.SwaggerConfig
 import com.beat.infrastructure.EnableInfraBaseConfig
 import com.beat.infrastructure.InfraBaseConfigGroup
+import com.beat.infrastructure.booking.booker.experiment.StockContentionExperimentInfraConfig
 import com.beat.infrastructure.persistence.InfraPersistenceConfig
 import com.beat.infrastructure.redis.auth.AuthRedisConfig
 import com.beat.support.observability.ObservabilityModuleConfig
@@ -135,6 +136,7 @@ class ApisApplicationTest : FunSpec() {
                 setOf(
                     InfraPersistenceConfig::class.java.name,
                     AuthRedisConfig::class.java.name,
+                    StockContentionExperimentInfraConfig::class.java.name,
                 )
         }
 
