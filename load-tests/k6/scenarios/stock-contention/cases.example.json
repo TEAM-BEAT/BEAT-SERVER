@@ -1,0 +1,21 @@
+{
+  "schema_version": "v1",
+  "cases": [
+    {
+      "phase": "warmup",
+      "accessToken": "<local-only-warmup-token>",
+      "scheduleId": 9001,
+      "purchaseTicketCount": 1,
+      "bookerName": "LoadTest",
+      "bookerPhoneNumber": "010-0000-0001"
+    },
+    {
+      "phase": "flash",
+      "accessToken": "<local-only-flash-token>",
+      "scheduleId": 9002,
+      "purchaseTicketCount": 1,
+      "bookerName": "LoadTest",
+      "bookerPhoneNumber": "010-0001-0001"
+    }
+  ]
+}

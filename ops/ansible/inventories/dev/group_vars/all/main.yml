@@ -65,6 +65,8 @@ modules:
     blue_container_name: apis-blue
     green_container_name: apis-green
     backend_upstream_name: backend
+    env:
+      BOOKING_EXPERIMENT_ENABLED: "true"
   admin:
     deploy_mode: stop_start
     spring_profile: dev
