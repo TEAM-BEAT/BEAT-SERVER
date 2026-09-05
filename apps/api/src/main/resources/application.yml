@@ -85,6 +85,10 @@ app:
   server:
     url: ${APIS_SERVER_URL:${DEV_SERVER_URL}}
 
+booking:
+  experiment:
+    enabled: true
+
 ---
 spring:
   config:
