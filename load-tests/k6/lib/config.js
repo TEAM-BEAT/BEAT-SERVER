@@ -169,7 +169,10 @@ export function loadConfig(env, defaults = {}) {
     targetEnvironment.serverType,
   );
   const datasetHash = validateDatasetHash(env.DATASET_HASH);
-  const summaryFile = validateSummaryFile(env.SUMMARY_FILE || `summary-${testId}.json`);
+  const defaultSummaryFile = defaults.includeProfileInSummaryFile
+    ? `summary-${testId}-${profile}.json`
+    : `summary-${testId}.json`;
+  const summaryFile = validateSummaryFile(env.SUMMARY_FILE || defaultSummaryFile);
 
   const config = {
     accessToken: env.ACCESS_TOKEN || '',

@@ -1,4 +1,4 @@
-export function handleSummaryWithMetadata(data, config) {
+export function handleSummaryWithMetadata(data, config, extraMetadata = {}) {
   const summary = {
     schema_version: 'v1',
     generated_at: new Date().toISOString(),
@@ -9,6 +9,7 @@ export function handleSummaryWithMetadata(data, config) {
       dataset_hash: config.datasetHash,
       target_env: config.targetEnv,
       server_type: config.serverType,
+      ...extraMetadata,
     },
     workload: {
       profile: config.profile,
