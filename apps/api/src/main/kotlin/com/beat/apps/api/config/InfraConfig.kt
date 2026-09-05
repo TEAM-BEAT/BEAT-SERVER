@@ -2,6 +2,7 @@ package com.beat.apps.api.config
 
 import com.beat.infrastructure.EnableInfraBaseConfig
 import com.beat.infrastructure.InfraBaseConfigGroup
+import com.beat.infrastructure.booking.booker.experiment.StockContentionExperimentInfraConfig
 import com.beat.infrastructure.persistence.InfraPersistenceConfig
 import com.beat.infrastructure.redis.auth.AuthRedisConfig
 import org.springframework.context.annotation.Configuration
@@ -22,5 +23,6 @@ import org.springframework.context.annotation.Import
 @Import(
     InfraPersistenceConfig::class,
     AuthRedisConfig::class,
+    StockContentionExperimentInfraConfig::class,
 )
 class InfraConfig

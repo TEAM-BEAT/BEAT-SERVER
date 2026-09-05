@@ -33,6 +33,18 @@ beat:
   scheduler:
     owner: false
 
+# Stock contention is an explicitly opt-in dev experiment. The profile guard on its beans
+# remains effective even if an operator accidentally exports this variable in another profile.
+booking:
+  experiment:
+    enabled: ${BOOKING_EXPERIMENT_ENABLED:false}
+    optimistic-max-attempts: 50
+    optimistic-backoff-millis: 1
+    transaction-timeout-seconds: 30
+    redis:
+      lease-seconds: 60
+      acquire-timeout-seconds: 30
+
 springdoc:
   api-docs:
     version: OPENAPI_3_1
