@@ -11,8 +11,7 @@ Conditional Atomic UPDATE 구현을 한 번 배포한 서버에서 비교하는 
 - `BASE_URL=https://api-dev.beatlive.kr`만 허용하며, 기존 공통 HTTPS allowlist 검증을 사용합니다.
 - `STRATEGY`는 `PESSIMISTIC`, `OPTIMISTIC`, `REDIS`, `ATOMIC` 중 하나이며 필수입니다.
 - 요청 timeout은 `35s`로 고정하며 실행 환경에서 덮어쓸 수 없습니다.
-- 서버는 dev profile과 `BOOKING_EXPERIMENT_ENABLED=true`로 한 번만 배포하고, strategy는 URL 경로로 선택합니다.
-- dev Ansible inventory의 `modules.apis.env.BOOKING_EXPERIMENT_ENABLED: "true"`가 일반 dev deploy에서 위 설정을 활성화합니다. prod inventory에는 이 값이 없습니다.
+- 서버는 dev profile의 실험 flag 활성화 설정으로 한 번만 배포하고, strategy는 URL 경로로 선택합니다.
 - endpoint는 기존 회원 Bearer 인증과 요청 validation을 그대로 사용합니다.
 - 실험 endpoint는 `BookingCreatedEvent`를 발행하지 않아 Slack 전송 없이 부하를 측정합니다.
 - 공통 `ACCESS_TOKEN`은 사용하지 않습니다. 모든 case가 서로 다른 회원의 access token을 가집니다.
@@ -24,8 +23,8 @@ Conditional Atomic UPDATE 구현을 한 번 배포한 서버에서 비교하는 
 flag 활성화 또는 dev 배포 전에 SSH tunnel로 로컬 MySQL에 연결한 뒤,
 `scripts/apply-local-dev-booking-migration.sh`를 실행해 `beatDev.schedule.version`
 (`BIGINT NOT NULL DEFAULT 0`)을 적용·검증합니다. migration과 version 검증이 끝난 뒤에만
-`BOOKING_EXPERIMENT_ENABLED=true`로 dev app을 시작합니다. 앱도 시작 시 같은 version 계약을
-재검증하며, 누락되거나 호환되지 않으면 fail-fast 합니다.
+dev app을 시작합니다. 앱도 시작 시 같은 version 계약을 재검증하며, 누락되거나 호환되지
+않으면 fail-fast 합니다.
 
 응답 계약은 다음과 같습니다.
 
