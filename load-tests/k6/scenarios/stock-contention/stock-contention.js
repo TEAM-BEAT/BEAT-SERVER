@@ -283,6 +283,7 @@ export default function (runContext) {
         strategy,
       },
       timeout: config.requestTimeout,
+      redirects: 0,
     },
   );
   const result = parseBookingResult(response.body);

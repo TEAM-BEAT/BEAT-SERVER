@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { loadConfig } from '../lib/config.js';
 import { handleSummaryWithMetadata } from '../lib/summary.js';
@@ -21,6 +22,11 @@ import {
   validateStockCases,
   validateStrategy,
 } from '../scenarios/stock-contention/contract.js';
+
+const stockContentionScenarioSource = readFileSync(
+  new URL('../scenarios/stock-contention/stock-contention.js', import.meta.url),
+  'utf8',
+);
 
 const baseEnvironment = Object.freeze({
   BASE_URL: 'https://api-dev.beatlive.kr',
@@ -261,6 +267,10 @@ test('stock contention profiles keep warmup and flash budgets versioned', () => 
 test('stock contention request timeout cannot drift from the 35-second contract', () => {
   assert.equal(assertStockContentionTimeout(STOCK_CONTENTION_REQUEST_TIMEOUT), '35s');
   assert.throws(() => assertStockContentionTimeout('30s'), /fixed to 35s/);
+});
+
+test('stock contention booking request does not follow redirects', () => {
+  assert.match(stockContentionScenarioSource, /redirects:\s*0/);
 });
 
 test('stock contention strategy is restricted to the four comparison strategies', () => {
