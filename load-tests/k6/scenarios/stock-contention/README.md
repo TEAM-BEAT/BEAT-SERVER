@@ -14,8 +14,8 @@ Conditional Atomic UPDATE 구현을 한 번 배포한 서버에서 비교하는 
 - 서버는 dev profile의 실험 flag 활성화 설정으로 한 번만 배포하고, strategy는 URL 경로로 선택합니다.
 - endpoint는 기존 회원 Bearer 인증과 요청 validation을 그대로 사용합니다.
 - 실험 endpoint는 `BookingCreatedEvent`를 발행하지 않아 Slack 전송 없이 부하를 측정합니다.
-- 공통 `ACCESS_TOKEN` 환경 변수는 사용하지 않습니다. `cases.json` 최상위의 accessToken 하나를 모든 1,100개 case가 공유합니다.
-- case 안의 accessToken이나 다른 token 필드는 허용하지 않습니다.
+- 공통 `ACCESS_TOKEN` 환경 변수는 사용하지 않습니다. `cases.json` 최상위의 accessToken 하나를 모든 booking이 공유합니다.
+- `cases.json`은 1,100개 행을 저장하지 않고, k6가 profile별 동일 request를 생성·재사용합니다.
 - `cases.json`과 summary 파일은 로컬에서만 사용하며 Git에 추가하지 않습니다.
 - 외부 adapter, 배포, 배치 작업이 없는 dev 시간대에 실행합니다.
 
@@ -41,19 +41,18 @@ dev app을 시작합니다. 앱도 시작 시 같은 version 계약을 재검증
 
 ## 데이터 준비
 
-`cases.example.json`은 필드 예시만 담고 있으므로 그대로 실행할 수 없습니다. 실제
-`cases.json`은 다음 조건을 모두 만족해야 합니다.
+`cases.example.json`을 복사해 실제 dev fixture의 값으로 바꿔 `cases.json`을 만듭니다. 설정 파일은
+다음 여섯 필드만 가질 수 있습니다.
 
-- `schema_version`은 `v2`
-- 최상위 `accessToken`은 비어 있지 않고 whitespace를 포함하지 않아야 하며, 모든 case가 이 하나의 token을 사용
-- 전체 1,100개 case 중 `warmup` 900개, `flash` 200개
-- warmup case는 하나의 warmup schedule ID만 사용
-- flash case는 하나의 flash schedule ID만 사용
-- warmup과 flash schedule ID는 서로 다름
-- 모든 case의 `purchaseTicketCount`는 1
+- `schema_version`은 `v3`
+- `accessToken`은 비어 있지 않고 whitespace를 포함하지 않아야 하며 모든 booking이 이 하나의 token을 사용
+- `warmupScheduleId`와 `flashScheduleId`는 양의 정수이고 서로 달라야 함
+- `bookerName`과 `bookerPhoneNumber`는 모든 booking에 재사용되며 API validation을 통과해야 함
 - warmup schedule stock은 최소 900
 - flash schedule stock은 정확히 100
-- 각 case의 `bookerName`과 `bookerPhoneNumber`는 API validation을 통과해야 함
+
+`purchaseTicketCount`는 설정 파일에 넣지 않으며 runner가 항상 1로 고정합니다. warmup profile은
+동일 warmup schedule request를 900번, flash profile은 동일 flash schedule request를 200번 생성·재사용합니다.
 
 최상위 accessToken은 파일 안에만 존재하고 metric tag, 로그, summary metadata에 기록하지 않습니다.
 `DATASET_HASH`에는 원본을 역으로 복원할 수 없는 SHA-256 digest만 기록합니다.
@@ -63,7 +62,7 @@ dev app을 시작합니다. 앱도 시작 시 같은 version 계약을 재검증
 profile은 실행 인자로 RPS를 바꾸지 못하도록 `lib/budgets.js`에서 versioned budget으로
 관리합니다.
 
-| profile | workload | case 수 | 용도 |
+| profile | workload | iteration 수 | 용도 |
 | --- | --- | ---: | --- |
 | `warmup` | 5 RPS × 180초 | 900 | JVM, Hikari, DB page warm-up |
 | `flash` | 200 RPS × 1초 | 200 | stock 100에 대한 경쟁 측정 |

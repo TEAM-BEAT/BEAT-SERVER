@@ -1,4 +1,4 @@
-export const STOCK_CONTENTION_SCHEMA_VERSION = 'v2';
+export const STOCK_CONTENTION_SCHEMA_VERSION = 'v3';
 
 export const STOCK_CONTENTION_PHASES = Object.freeze(['warmup', 'flash']);
 
@@ -6,6 +6,9 @@ export const STOCK_CONTENTION_CASE_COUNTS = Object.freeze({
   warmup: 900,
   flash: 200,
 });
+
+export const STOCK_CONTENTION_TOTAL_CASE_COUNT =
+  STOCK_CONTENTION_CASE_COUNTS.warmup + STOCK_CONTENTION_CASE_COUNTS.flash;
 
 export const STOCK_CONTENTION_STRATEGIES = Object.freeze([
   'PESSIMISTIC',
@@ -49,11 +52,11 @@ export const STOCK_CONTENTION_OUTCOMES = Object.freeze([
 
 export const SOLD_OUT_ERROR_CODE = 'SCHEDULE_INSUFFICIENT_TICKETS';
 
-const DATASET_KEYS = new Set(['schema_version', 'accessToken', 'cases']);
-const CASE_KEYS = new Set([
-  'phase',
-  'scheduleId',
-  'purchaseTicketCount',
+const DATASET_KEYS = new Set([
+  'schema_version',
+  'accessToken',
+  'warmupScheduleId',
+  'flashScheduleId',
   'bookerName',
   'bookerPhoneNumber',
 ]);
@@ -78,31 +81,6 @@ function rejectUnknownKeys(value, allowedKeys, description) {
   });
 }
 
-function validateCase(caseData, phase, index) {
-  requireObject(caseData, `Case phase=${phase} index=${index}`);
-  rejectUnknownKeys(caseData, CASE_KEYS, `Case phase=${phase} index=${index}`);
-
-  if (caseData.phase !== phase) {
-    throw new Error(`Case phase=${phase} index=${index} has an invalid phase.`);
-  }
-
-  if (!Number.isInteger(caseData.scheduleId) || caseData.scheduleId < 1) {
-    throw new Error(`Case phase=${phase} index=${index} has an invalid scheduleId.`);
-  }
-  if (caseData.purchaseTicketCount !== 1) {
-    throw new Error(`Case phase=${phase} index=${index} must purchase exactly one ticket.`);
-  }
-  if (typeof caseData.bookerName !== 'string' || !BOOKER_NAME_PATTERN.test(caseData.bookerName)) {
-    throw new Error(`Case phase=${phase} index=${index} has an invalid bookerName.`);
-  }
-  if (
-    typeof caseData.bookerPhoneNumber !== 'string'
-    || !PHONE_PATTERN.test(caseData.bookerPhoneNumber)
-  ) {
-    throw new Error(`Case phase=${phase} index=${index} has an invalid bookerPhoneNumber.`);
-  }
-}
-
 export function validateStockCases(dataset) {
   requireObject(dataset, 'Stock contention dataset');
   rejectUnknownKeys(dataset, DATASET_KEYS, 'Stock contention dataset');
@@ -117,46 +95,47 @@ export function validateStockCases(dataset) {
   ) {
     throw new Error('Stock contention dataset must contain a non-empty accessToken.');
   }
-  if (!Array.isArray(dataset.cases)) {
-    throw new Error('Stock contention dataset cases must be an array.');
+
+  if (!Number.isInteger(dataset.warmupScheduleId) || dataset.warmupScheduleId < 1) {
+    throw new Error('Stock contention dataset has an invalid warmupScheduleId.');
   }
-
-  const casesByPhase = { warmup: [], flash: [] };
-  dataset.cases.forEach((caseData, index) => {
-    if (!caseData || !PHASE_SET.has(caseData.phase)) {
-      throw new Error(`Case index=${index} must use warmup or flash phase.`);
-    }
-    casesByPhase[caseData.phase].push(caseData);
-  });
-
-  const scheduleIds = {};
-  STOCK_CONTENTION_PHASES.forEach((phase) => {
-    const phaseCases = casesByPhase[phase];
-    const expectedCount = STOCK_CONTENTION_CASE_COUNTS[phase];
-    if (phaseCases.length !== expectedCount) {
-      throw new Error(
-        `Stock contention ${phase} cases must contain exactly ${expectedCount} entries.`,
-      );
-    }
-
-    scheduleIds[phase] = phaseCases[0].scheduleId;
-    phaseCases.forEach((caseData, index) => {
-      validateCase(caseData, phase, index);
-      if (caseData.scheduleId !== scheduleIds[phase]) {
-        throw new Error(`Stock contention ${phase} cases must use one scheduleId.`);
-      }
-    });
-  });
-
-  if (scheduleIds.warmup === scheduleIds.flash) {
-    throw new Error('Warmup and flash cases must use different scheduleId values.');
+  if (!Number.isInteger(dataset.flashScheduleId) || dataset.flashScheduleId < 1) {
+    throw new Error('Stock contention dataset has an invalid flashScheduleId.');
+  }
+  if (dataset.warmupScheduleId === dataset.flashScheduleId) {
+    throw new Error('Warmup and flash scheduleId values must be different.');
+  }
+  if (typeof dataset.bookerName !== 'string' || !BOOKER_NAME_PATTERN.test(dataset.bookerName)) {
+    throw new Error('Stock contention dataset has an invalid bookerName.');
+  }
+  if (
+    typeof dataset.bookerPhoneNumber !== 'string'
+    || !PHONE_PATTERN.test(dataset.bookerPhoneNumber)
+  ) {
+    throw new Error('Stock contention dataset has an invalid bookerPhoneNumber.');
   }
 
   return Object.freeze({
     accessToken: dataset.accessToken,
-    warmup: Object.freeze(casesByPhase.warmup.slice()),
-    flash: Object.freeze(casesByPhase.flash.slice()),
-    totalCases: dataset.cases.length,
+    warmupScheduleId: dataset.warmupScheduleId,
+    flashScheduleId: dataset.flashScheduleId,
+    bookerName: dataset.bookerName,
+    bookerPhoneNumber: dataset.bookerPhoneNumber,
+    totalCases: STOCK_CONTENTION_TOTAL_CASE_COUNT,
+  });
+}
+
+export function buildStockContentionRequest(validatedDataset, phase) {
+  if (!PHASE_SET.has(phase)) {
+    throw new Error('Invalid stock contention phase.');
+  }
+  return Object.freeze({
+    scheduleId: phase === 'warmup'
+      ? validatedDataset.warmupScheduleId
+      : validatedDataset.flashScheduleId,
+    purchaseTicketCount: 1,
+    bookerName: validatedDataset.bookerName,
+    bookerPhoneNumber: validatedDataset.bookerPhoneNumber,
   });
 }
 

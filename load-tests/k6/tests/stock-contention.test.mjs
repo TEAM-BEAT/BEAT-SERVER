@@ -6,6 +6,7 @@ import { handleSummaryWithMetadata } from '../lib/summary.js';
 import {
   assertDevOnlyTarget,
   assertStockContentionTimeout,
+  buildStockContentionRequest,
   buildStockMetricTags,
   classifyBookingResponse,
   counterMetricCount,
@@ -16,8 +17,10 @@ import {
   STOCK_CONTENTION_REQUEST_TIMEOUT,
   STOCK_CONTENTION_QUIET_PERIOD_SECONDS,
   STOCK_CONTENTION_REPETITIONS,
+  STOCK_CONTENTION_SCHEMA_VERSION,
   STOCK_CONTENTION_STRATEGIES,
   STOCK_CONTENTION_STRATEGY_ROTATIONS,
+  STOCK_CONTENTION_TOTAL_CASE_COUNT,
   stockContentionBookingPath,
   validateStockCases,
   validateStrategy,
@@ -50,31 +53,14 @@ function load(profile, overrides = {}) {
   );
 }
 
-function makeCase(phase, index, scheduleId) {
-  const phoneGroup = phase === 'warmup' ? '0000' : '0001';
-  return {
-    phase,
-    scheduleId,
-    purchaseTicketCount: 1,
-    bookerName: 'LoadTest',
-    bookerPhoneNumber: `010-${phoneGroup}-${String(index + 1).padStart(4, '0')}`,
-  };
-}
-
 function validDataset() {
   return {
-    schema_version: 'v2',
+    schema_version: 'v3',
     accessToken: 'test-token-shared',
-    cases: [
-      ...Array.from(
-        { length: STOCK_CONTENTION_CASE_COUNTS.warmup },
-        (_, index) => makeCase('warmup', index, 9001),
-      ),
-      ...Array.from(
-        { length: STOCK_CONTENTION_CASE_COUNTS.flash },
-        (_, index) => makeCase('flash', index, 9002),
-      ),
-    ],
+    warmupScheduleId: 9001,
+    flashScheduleId: 9002,
+    bookerName: 'LoadTest',
+    bookerPhoneNumber: '010-0000-0001',
   };
 }
 
@@ -83,29 +69,32 @@ test('stock contention target accepts only dev', () => {
   assert.throws(() => assertDevOnlyTarget('prod'), /dev-only/);
 });
 
-test('stock contention dataset keeps the exact phase counts and one shared token', () => {
+test('stock contention dataset keeps the fixed iteration counts and exact six-field config', () => {
   const result = validateStockCases(validDataset());
 
-  assert.equal(result.warmup.length, 900);
-  assert.equal(result.flash.length, 200);
-  assert.equal(result.totalCases, 1100);
+  assert.equal(STOCK_CONTENTION_SCHEMA_VERSION, 'v3');
+  assert.deepEqual(Object.keys(validDataset()).sort(), [
+    'accessToken',
+    'bookerName',
+    'bookerPhoneNumber',
+    'flashScheduleId',
+    'schema_version',
+    'warmupScheduleId',
+  ]);
+  assert.equal(STOCK_CONTENTION_CASE_COUNTS.warmup, 900);
+  assert.equal(STOCK_CONTENTION_CASE_COUNTS.flash, 200);
+  assert.equal(result.totalCases, STOCK_CONTENTION_TOTAL_CASE_COUNT);
   assert.equal(result.accessToken, 'test-token-shared');
-  assert.equal(Object.hasOwn(result.warmup[0], 'accessToken'), false);
-  assert.equal(Object.hasOwn(result.flash[0], 'accessToken'), false);
-  assert.notEqual(result.warmup[0].scheduleId, result.flash[0].scheduleId);
+  assert.equal(result.warmupScheduleId, 9001);
+  assert.equal(result.flashScheduleId, 9002);
 });
 
 test('stock contention dataset rejects case-level and unknown token fields', () => {
-  const caseTokenDataset = validDataset();
-  caseTokenDataset.cases[0].accessToken = 'case-token';
-  assert.throws(
-    () => validateStockCases(caseTokenDataset),
-    /unsupported field/,
-  );
-
-  const unknownTokenDataset = validDataset();
-  unknownTokenDataset.memberAccessToken = 'unknown-token';
-  assert.throws(() => validateStockCases(unknownTokenDataset), /unsupported field/);
+  for (const unknownField of ['cases', 'memberAccessToken', 'purchaseTicketCount']) {
+    const unknownDataset = validDataset();
+    unknownDataset[unknownField] = unknownField;
+    assert.throws(() => validateStockCases(unknownDataset), /unsupported field/);
+  }
 });
 
 test('stock contention dataset requires one valid top-level accessToken', () => {
@@ -120,28 +109,58 @@ test('stock contention dataset requires one valid top-level accessToken', () => 
   }
 });
 
+test('stock contention dataset rejects invalid schedule IDs and contact fields', () => {
+  for (const field of ['warmupScheduleId', 'flashScheduleId']) {
+    for (const invalidValue of [0, -1, 1.5, '9001', null]) {
+      const invalidDataset = validDataset();
+      invalidDataset[field] = invalidValue;
+      assert.throws(() => validateStockCases(invalidDataset), new RegExp(`invalid ${field}`));
+    }
+  }
+
+  for (const invalidName of ['', 'Load Test', 'LoadTest1']) {
+    const invalidDataset = validDataset();
+    invalidDataset.bookerName = invalidName;
+    assert.throws(() => validateStockCases(invalidDataset), /invalid bookerName/);
+  }
+  for (const invalidPhone of ['', '010-0000-000', '010 0000 0001']) {
+    const invalidDataset = validDataset();
+    invalidDataset.bookerPhoneNumber = invalidPhone;
+    assert.throws(() => validateStockCases(invalidDataset), /invalid bookerPhoneNumber/);
+  }
+});
+
 test('stock contention sends the validated shared token through loadCases to Authorization', () => {
   assert.match(stockContentionCasesSource, /const validated = validateStockCases\(dataset\);/);
   assert.match(stockContentionCasesSource, /accessToken:\s*validated\.accessToken/);
-  assert.match(stockContentionScenarioSource, /const \{ accessToken, cases \} = loadedCases;/);
+  assert.match(stockContentionCasesSource, /request:\s*buildStockContentionRequest\(validated,\s*config\.profile\)/);
+  assert.match(stockContentionScenarioSource, /const \{ accessToken, request, phaseCaseCount \} = loadedCases;/);
   assert.match(stockContentionScenarioSource, /\.\.\.authorizationHeaders\(accessToken\)/);
   assert.doesNotMatch(stockContentionScenarioSource, /const \{ accessToken,\s*phase:/);
 });
 
 test('stock contention dataset keeps one schedule per phase and requires one ticket', () => {
-  const mixedScheduleDataset = validDataset();
-  mixedScheduleDataset.cases[1].scheduleId = 9003;
-  assert.throws(() => validateStockCases(mixedScheduleDataset), /one scheduleId/);
-
   const sameScheduleDataset = validDataset();
-  for (const stockCase of sameScheduleDataset.cases.slice(900)) {
-    stockCase.scheduleId = 9001;
-  }
-  assert.throws(() => validateStockCases(sameScheduleDataset), /different scheduleId/);
+  sameScheduleDataset.flashScheduleId = sameScheduleDataset.warmupScheduleId;
+  assert.throws(() => validateStockCases(sameScheduleDataset), /scheduleId values must be different/);
 
-  const multipleTicketDataset = validDataset();
-  multipleTicketDataset.cases[900].purchaseTicketCount = 2;
-  assert.throws(() => validateStockCases(multipleTicketDataset), /exactly one ticket/);
+  const validated = validateStockCases(validDataset());
+  assert.deepEqual(buildStockContentionRequest(validated, 'warmup'), {
+    scheduleId: 9001,
+    purchaseTicketCount: 1,
+    bookerName: 'LoadTest',
+    bookerPhoneNumber: '010-0000-0001',
+  });
+  assert.deepEqual(buildStockContentionRequest(validated, 'flash'), {
+    scheduleId: 9002,
+    purchaseTicketCount: 1,
+    bookerName: 'LoadTest',
+    bookerPhoneNumber: '010-0000-0001',
+  });
+  assert.throws(
+    () => buildStockContentionRequest(validated, 'invalid'),
+    /Invalid stock contention phase/,
+  );
 });
 
 test('stock contention classifier parses every experiment outcome and attempt count', () => {

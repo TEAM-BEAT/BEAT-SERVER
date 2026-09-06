@@ -45,7 +45,7 @@ if (initialConfig.accessToken) {
 const strategy = validateStrategy(__ENV.STRATEGY);
 const bookingPath = stockContentionBookingPath(strategy);
 const loadedCases = loadCases(__ENV, initialConfig);
-const { accessToken, cases } = loadedCases;
+const { accessToken, request, phaseCaseCount } = loadedCases;
 const config = Object.freeze({
   ...withDatasetHash(initialConfig, loadedCases.datasetHash),
   strategy,
@@ -213,7 +213,7 @@ export function handleSummary(data) {
     strategy,
     phase,
     endpoint: `POST ${bookingPath}`,
-    phase_case_count: cases.length,
+    phase_case_count: phaseCaseCount,
     total_case_count: loadedCases.totalCases,
     expected_accepted: expected.accepted,
     expected_sold_out: expected.sold_out,
@@ -257,14 +257,8 @@ export function handleSummary(data) {
 
 export default function (runContext) {
   const index = exec.scenario.iterationInTest;
-  if (index >= cases.length) {
-    exec.test.abort(`Test data exhausted: index=${index}, size=${cases.length}`);
-  }
-
-  const testCase = cases[index];
-  const { phase: casePhase, ...request } = testCase;
-  if (casePhase !== phase) {
-    exec.test.abort(`Test data phase mismatch: expected=${phase}`);
+  if (index >= phaseCaseCount) {
+    exec.test.abort(`Test data exhausted: index=${index}, size=${phaseCaseCount}`);
   }
 
   const startedAt = Date.now();
