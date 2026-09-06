@@ -39,13 +39,13 @@ const initialConfig = loadConfig(__ENV, {
 assertDevOnlyTarget(initialConfig.targetEnv);
 assertStockContentionTimeout(initialConfig.requestTimeout);
 if (initialConfig.accessToken) {
-  throw new Error('stock_contention requires one accessToken per case; ACCESS_TOKEN is not allowed.');
+  throw new Error('stock_contention requires the dataset accessToken; ACCESS_TOKEN is not allowed.');
 }
 
 const strategy = validateStrategy(__ENV.STRATEGY);
 const bookingPath = stockContentionBookingPath(strategy);
 const loadedCases = loadCases(__ENV, initialConfig);
-const { cases } = loadedCases;
+const { accessToken, cases } = loadedCases;
 const config = Object.freeze({
   ...withDatasetHash(initialConfig, loadedCases.datasetHash),
   strategy,
@@ -262,7 +262,7 @@ export default function (runContext) {
   }
 
   const testCase = cases[index];
-  const { accessToken, phase: casePhase, ...request } = testCase;
+  const { phase: casePhase, ...request } = testCase;
   if (casePhase !== phase) {
     exec.test.abort(`Test data phase mismatch: expected=${phase}`);
   }

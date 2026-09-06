@@ -1,4 +1,4 @@
-export const STOCK_CONTENTION_SCHEMA_VERSION = 'v1';
+export const STOCK_CONTENTION_SCHEMA_VERSION = 'v2';
 
 export const STOCK_CONTENTION_PHASES = Object.freeze(['warmup', 'flash']);
 
@@ -49,10 +49,9 @@ export const STOCK_CONTENTION_OUTCOMES = Object.freeze([
 
 export const SOLD_OUT_ERROR_CODE = 'SCHEDULE_INSUFFICIENT_TICKETS';
 
-const DATASET_KEYS = new Set(['schema_version', 'cases']);
+const DATASET_KEYS = new Set(['schema_version', 'accessToken', 'cases']);
 const CASE_KEYS = new Set([
   'phase',
-  'accessToken',
   'scheduleId',
   'purchaseTicketCount',
   'bookerName',
@@ -79,25 +78,13 @@ function rejectUnknownKeys(value, allowedKeys, description) {
   });
 }
 
-function validateCase(caseData, phase, index, tokenSet) {
+function validateCase(caseData, phase, index) {
   requireObject(caseData, `Case phase=${phase} index=${index}`);
   rejectUnknownKeys(caseData, CASE_KEYS, `Case phase=${phase} index=${index}`);
 
   if (caseData.phase !== phase) {
     throw new Error(`Case phase=${phase} index=${index} has an invalid phase.`);
   }
-  if (
-    typeof caseData.accessToken !== 'string'
-    || caseData.accessToken.length === 0
-    || caseData.accessToken.trim() !== caseData.accessToken
-    || /\s/.test(caseData.accessToken)
-  ) {
-    throw new Error(`Case phase=${phase} index=${index} must contain a non-empty accessToken.`);
-  }
-  if (tokenSet.has(caseData.accessToken)) {
-    throw new Error(`Duplicate accessToken at phase=${phase} index=${index}.`);
-  }
-  tokenSet.add(caseData.accessToken);
 
   if (!Number.isInteger(caseData.scheduleId) || caseData.scheduleId < 1) {
     throw new Error(`Case phase=${phase} index=${index} has an invalid scheduleId.`);
@@ -122,6 +109,14 @@ export function validateStockCases(dataset) {
   if (dataset.schema_version !== STOCK_CONTENTION_SCHEMA_VERSION) {
     throw new Error(`Stock contention dataset schema_version must be ${STOCK_CONTENTION_SCHEMA_VERSION}.`);
   }
+  if (
+    typeof dataset.accessToken !== 'string'
+    || dataset.accessToken.length === 0
+    || dataset.accessToken.trim() !== dataset.accessToken
+    || /\s/.test(dataset.accessToken)
+  ) {
+    throw new Error('Stock contention dataset must contain a non-empty accessToken.');
+  }
   if (!Array.isArray(dataset.cases)) {
     throw new Error('Stock contention dataset cases must be an array.');
   }
@@ -134,7 +129,6 @@ export function validateStockCases(dataset) {
     casesByPhase[caseData.phase].push(caseData);
   });
 
-  const tokenSet = new Set();
   const scheduleIds = {};
   STOCK_CONTENTION_PHASES.forEach((phase) => {
     const phaseCases = casesByPhase[phase];
@@ -147,7 +141,7 @@ export function validateStockCases(dataset) {
 
     scheduleIds[phase] = phaseCases[0].scheduleId;
     phaseCases.forEach((caseData, index) => {
-      validateCase(caseData, phase, index, tokenSet);
+      validateCase(caseData, phase, index);
       if (caseData.scheduleId !== scheduleIds[phase]) {
         throw new Error(`Stock contention ${phase} cases must use one scheduleId.`);
       }
@@ -159,6 +153,7 @@ export function validateStockCases(dataset) {
   }
 
   return Object.freeze({
+    accessToken: dataset.accessToken,
     warmup: Object.freeze(casesByPhase.warmup.slice()),
     flash: Object.freeze(casesByPhase.flash.slice()),
     totalCases: dataset.cases.length,

@@ -27,6 +27,7 @@ export function loadCases(env, config) {
   }
 
   return {
+    accessToken: validated.accessToken,
     cases: phaseCases,
     datasetHash: sha256(dataSource, 'hex'),
     counts: {

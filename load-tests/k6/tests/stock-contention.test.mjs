@@ -27,6 +27,10 @@ const stockContentionScenarioSource = readFileSync(
   new URL('../scenarios/stock-contention/stock-contention.js', import.meta.url),
   'utf8',
 );
+const stockContentionCasesSource = readFileSync(
+  new URL('../scenarios/stock-contention/cases.js', import.meta.url),
+  'utf8',
+);
 
 const baseEnvironment = Object.freeze({
   BASE_URL: 'https://api-dev.beatlive.kr',
@@ -50,7 +54,6 @@ function makeCase(phase, index, scheduleId) {
   const phoneGroup = phase === 'warmup' ? '0000' : '0001';
   return {
     phase,
-    accessToken: `test-token-${phase}-${index}`,
     scheduleId,
     purchaseTicketCount: 1,
     bookerName: 'LoadTest',
@@ -60,7 +63,8 @@ function makeCase(phase, index, scheduleId) {
 
 function validDataset() {
   return {
-    schema_version: 'v1',
+    schema_version: 'v2',
+    accessToken: 'test-token-shared',
     cases: [
       ...Array.from(
         { length: STOCK_CONTENTION_CASE_COUNTS.warmup },
@@ -79,27 +83,49 @@ test('stock contention target accepts only dev', () => {
   assert.throws(() => assertDevOnlyTarget('prod'), /dev-only/);
 });
 
-test('stock contention dataset keeps the exact phase counts and unique tokens', () => {
+test('stock contention dataset keeps the exact phase counts and one shared token', () => {
   const result = validateStockCases(validDataset());
 
   assert.equal(result.warmup.length, 900);
   assert.equal(result.flash.length, 200);
   assert.equal(result.totalCases, 1100);
+  assert.equal(result.accessToken, 'test-token-shared');
+  assert.equal(Object.hasOwn(result.warmup[0], 'accessToken'), false);
+  assert.equal(Object.hasOwn(result.flash[0], 'accessToken'), false);
   assert.notEqual(result.warmup[0].scheduleId, result.flash[0].scheduleId);
 });
 
-test('stock contention dataset rejects duplicate or empty tokens without exposing token values', () => {
-  const duplicateDataset = validDataset();
-  duplicateDataset.cases[1000].accessToken = duplicateDataset.cases[0].accessToken;
+test('stock contention dataset rejects case-level and unknown token fields', () => {
+  const caseTokenDataset = validDataset();
+  caseTokenDataset.cases[0].accessToken = 'case-token';
   assert.throws(
-    () => validateStockCases(duplicateDataset),
-    (error) => error.message.includes('Duplicate accessToken')
-      && !error.message.includes('test-token-'),
+    () => validateStockCases(caseTokenDataset),
+    /unsupported field/,
   );
 
-  const emptyDataset = validDataset();
-  emptyDataset.cases[0].accessToken = '';
-  assert.throws(() => validateStockCases(emptyDataset), /non-empty accessToken/);
+  const unknownTokenDataset = validDataset();
+  unknownTokenDataset.memberAccessToken = 'unknown-token';
+  assert.throws(() => validateStockCases(unknownTokenDataset), /unsupported field/);
+});
+
+test('stock contention dataset requires one valid top-level accessToken', () => {
+  const absentDataset = validDataset();
+  delete absentDataset.accessToken;
+  assert.throws(() => validateStockCases(absentDataset), /non-empty accessToken/);
+
+  for (const invalidToken of ['', ' token', 'token ', 'to ken', '\n']) {
+    const invalidDataset = validDataset();
+    invalidDataset.accessToken = invalidToken;
+    assert.throws(() => validateStockCases(invalidDataset), /non-empty accessToken/);
+  }
+});
+
+test('stock contention sends the validated shared token through loadCases to Authorization', () => {
+  assert.match(stockContentionCasesSource, /const validated = validateStockCases\(dataset\);/);
+  assert.match(stockContentionCasesSource, /accessToken:\s*validated\.accessToken/);
+  assert.match(stockContentionScenarioSource, /const \{ accessToken, cases \} = loadedCases;/);
+  assert.match(stockContentionScenarioSource, /\.\.\.authorizationHeaders\(accessToken\)/);
+  assert.doesNotMatch(stockContentionScenarioSource, /const \{ accessToken,\s*phase:/);
 });
 
 test('stock contention dataset keeps one schedule per phase and requires one ticket', () => {
@@ -215,6 +241,46 @@ test('stock contention metric tags contain only low-cardinality fields', () => {
       outcome: 'schedule-9002',
     }),
     /Invalid stock contention metric outcome/,
+  );
+});
+
+test('stock contention never exposes the shared token in artifacts or validation errors', () => {
+  const sharedToken = 'do-not-emit-shared-token';
+  const tags = buildStockMetricTags({
+    testId: 'stock-contention-test',
+    gitSha: 'test-sha',
+    strategy: 'ATOMIC',
+    phase: 'flash',
+    outcome: 'accepted',
+  });
+  assert.equal(JSON.stringify(tags).includes(sharedToken), false);
+
+  const output = handleSummaryWithMetadata(
+    { metrics: {}, root_group: {} },
+    {
+      testId: 'stock-contention-test',
+      gitSha: 'test-sha',
+      scenario: 'stock_contention',
+      datasetHash: 'a'.repeat(64),
+      targetEnv: 'dev',
+      serverType: 't4g.small',
+      profile: 'flash',
+      budgetVersion: 'v1',
+      duration: '1s',
+      peakRps: 200,
+      plannedIterations: 200,
+      summaryFile: 'summary.json',
+      accessToken: sharedToken,
+    },
+  );
+  assert.equal(output['summary.json'].includes(sharedToken), false);
+
+  const invalidDataset = validDataset();
+  invalidDataset.accessToken = ` ${sharedToken}`;
+  assert.throws(
+    () => validateStockCases(invalidDataset),
+    (error) => error.message.includes('non-empty accessToken')
+      && !error.message.includes(sharedToken),
   );
 });
 

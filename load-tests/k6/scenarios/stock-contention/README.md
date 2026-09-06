@@ -1,7 +1,7 @@
 # 재고 경쟁 예매 성능 테스트
 
-`POST /internal/experiments/stock-contention/{STRATEGY}/bookings`에 합성 회원의 고유 access token을
-사용해 동일 회차의 재고 경쟁을 재현합니다. 목적은 Pessimistic, Optimistic, Redis Lock,
+`POST /internal/experiments/stock-contention/{STRATEGY}/bookings`에 합성 회원 1명의 access token 하나를
+사용해 동일 회차의 재고 경쟁을 재현합니다. 모든 warmup/flash booking이 같은 회원으로 인증됩니다. 목적은 Pessimistic, Optimistic, Redis Lock,
 Conditional Atomic UPDATE 구현을 한 번 배포한 서버에서 비교하는 것입니다. 기존
 [`ticket-confirmation`](../ticket-confirmation/README.md) 시나리오는 변경하지 않습니다.
 
@@ -14,7 +14,8 @@ Conditional Atomic UPDATE 구현을 한 번 배포한 서버에서 비교하는 
 - 서버는 dev profile의 실험 flag 활성화 설정으로 한 번만 배포하고, strategy는 URL 경로로 선택합니다.
 - endpoint는 기존 회원 Bearer 인증과 요청 validation을 그대로 사용합니다.
 - 실험 endpoint는 `BookingCreatedEvent`를 발행하지 않아 Slack 전송 없이 부하를 측정합니다.
-- 공통 `ACCESS_TOKEN`은 사용하지 않습니다. 모든 case가 서로 다른 회원의 access token을 가집니다.
+- 공통 `ACCESS_TOKEN` 환경 변수는 사용하지 않습니다. `cases.json` 최상위의 accessToken 하나를 모든 1,100개 case가 공유합니다.
+- case 안의 accessToken이나 다른 token 필드는 허용하지 않습니다.
 - `cases.json`과 summary 파일은 로컬에서만 사용하며 Git에 추가하지 않습니다.
 - 외부 adapter, 배포, 배치 작업이 없는 dev 시간대에 실행합니다.
 
@@ -43,9 +44,9 @@ dev app을 시작합니다. 앱도 시작 시 같은 version 계약을 재검증
 `cases.example.json`은 필드 예시만 담고 있으므로 그대로 실행할 수 없습니다. 실제
 `cases.json`은 다음 조건을 모두 만족해야 합니다.
 
-- `schema_version`은 `v1`
+- `schema_version`은 `v2`
+- 최상위 `accessToken`은 비어 있지 않고 whitespace를 포함하지 않아야 하며, 모든 case가 이 하나의 token을 사용
 - 전체 1,100개 case 중 `warmup` 900개, `flash` 200개
-- 두 phase 전체에서 access token 중복 금지 및 빈 값 금지
 - warmup case는 하나의 warmup schedule ID만 사용
 - flash case는 하나의 flash schedule ID만 사용
 - warmup과 flash schedule ID는 서로 다름
@@ -54,7 +55,7 @@ dev app을 시작합니다. 앱도 시작 시 같은 version 계약을 재검증
 - flash schedule stock은 정확히 100
 - 각 case의 `bookerName`과 `bookerPhoneNumber`는 API validation을 통과해야 함
 
-토큰은 파일 안에만 존재하고 metric tag, 로그, summary metadata에 기록하지 않습니다.
+최상위 accessToken은 파일 안에만 존재하고 metric tag, 로그, summary metadata에 기록하지 않습니다.
 `DATASET_HASH`에는 원본을 역으로 복원할 수 없는 SHA-256 digest만 기록합니다.
 
 ## 고정 profile
