@@ -30,7 +30,7 @@ export const STOCK_CONTENTION_STRATEGY_ROTATIONS = Object.freeze([
 export const STOCK_CONTENTION_REPETITIONS = 5;
 export const STOCK_CONTENTION_QUIET_PERIOD_SECONDS = 60;
 
-export const STOCK_CONTENTION_EXPERIMENT_PATH = '/internal/experiments/stock-contention';
+export const STOCK_CONTENTION_EXPERIMENT_PATH = '/api/internal/experiments/stock-contention';
 
 export const STOCK_CONTENTION_REQUEST_TIMEOUT = '35s';
 

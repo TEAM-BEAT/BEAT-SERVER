@@ -336,6 +336,10 @@ otelcol.processor.batch "k6" {
 }
 
 otelcol.exporter.prometheus "k6" {
+  // Keep k6's OTLP names stable: counters stay unsuffixed, Rate metrics keep
+  // the k6 `.total` discriminator as `_total`, and Trends expose classic
+  // `<name>_bucket/_sum/_count` series in their declared unit.
+  add_metric_suffixes = false
   forward_to = [prometheus.remote_write.gc.receiver]
 }
 {% endif %}

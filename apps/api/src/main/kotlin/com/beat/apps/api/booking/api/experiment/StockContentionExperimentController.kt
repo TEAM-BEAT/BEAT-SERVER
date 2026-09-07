@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController
     name = ["enabled"],
     havingValue = "true",
 )
-@RequestMapping("/internal/experiments/stock-contention")
+@RequestMapping("/api/internal/experiments/stock-contention")
 class StockContentionExperimentController(
     private val experimentService: StockContentionExperimentService
 ) {

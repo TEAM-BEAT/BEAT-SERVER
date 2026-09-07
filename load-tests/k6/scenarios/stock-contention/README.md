@@ -1,6 +1,6 @@
 # 재고 경쟁 예매 성능 테스트
 
-`POST /internal/experiments/stock-contention/{STRATEGY}/bookings`에 합성 회원 1명의 access token 하나를
+`POST /api/internal/experiments/stock-contention/{STRATEGY}/bookings`에 합성 회원 1명의 access token 하나를
 사용해 동일 회차의 재고 경쟁을 재현합니다. 모든 warmup/flash booking이 같은 회원으로 인증됩니다. 목적은 Pessimistic, Optimistic, Redis Lock,
 Conditional Atomic UPDATE 구현을 한 번 배포한 서버에서 비교하는 것입니다. 기존
 [`ticket-confirmation`](../ticket-confirmation/README.md) 시나리오는 변경하지 않습니다.
@@ -97,6 +97,7 @@ run_profile() {
   LOAD_PROFILE="${profile}" \
   K6_OTEL_SERVICE_NAME="beat-k6" \
   K6_OTEL_METRIC_PREFIX="k6_" \
+  K6_OTEL_SINGLE_COUNTER_FOR_RATE="true" \
   K6_OTEL_GRPC_EXPORTER_ENDPOINT="127.0.0.1:4327" \
   K6_OTEL_GRPC_EXPORTER_INSECURE="true" \
   k6 run --out opentelemetry stock-contention.js
@@ -150,9 +151,23 @@ stock_contention_unexpected_response
 stock_contention_request_timeout
 stock_contention_timeouts
 stock_contention_accepted_latency_ms
+stock_contention_terminal_latency_ms
+stock_contention_request_start_elapsed_ms
 stock_contention_completion_elapsed_ms
+stock_contention_drain_time_ms
 stock_contention_attempt_count
 ```
+
+각 custom metric에는 `test_id`, `git_sha`, `strategy`, `phase`가 붙고, 공통 k6
+tag로 `load_profile`과 `scenario`도 전달됩니다. 현재 Alloy의
+`otelcol.exporter.prometheus.k6`는 `add_metric_suffixes = false`이므로
+`K6_OTEL_METRIC_PREFIX=k6_`가 붙은 뒤 Counter는 그 이름 그대로,
+Rate인 `stock_contention_request_timeout`은
+기본 `K6_OTEL_SINGLE_COUNTER_FOR_RATE=true` 기준
+`k6_stock_contention_request_timeout_total`, Trend는
+`k6_<name>_bucket/_sum/_count`로 Grafana에 나타납니다. Trend p95/p99는 OTLP
+histogram bucket 기반 운영용 추정값이며, exact accepted latency·attempt·drain
+판정은 local JSON summary를 기준으로 합니다.
 
 `http_req_failed`는 응답 상태만으로 결과를 판정하므로 threshold에 사용하지 않습니다.
 대신 recognized response, accepted/sold_out/conflict/lock-timeout/unexpected Counter, attempt,

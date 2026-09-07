@@ -412,10 +412,10 @@ test('stock contention summary metadata keeps strategy and endpoint in the JSON 
     {
       strategy: 'ATOMIC',
       phase: 'flash',
-      endpoint: 'POST /internal/experiments/stock-contention/ATOMIC/bookings',
+      endpoint: 'POST /api/internal/experiments/stock-contention/ATOMIC/bookings',
     },
   );
   const summary = JSON.parse(output['summary.json']);
   assert.equal(summary.metadata.strategy, 'ATOMIC');
-  assert.equal(summary.metadata.endpoint, 'POST /internal/experiments/stock-contention/ATOMIC/bookings');
+  assert.equal(summary.metadata.endpoint, 'POST /api/internal/experiments/stock-contention/ATOMIC/bookings');
 });

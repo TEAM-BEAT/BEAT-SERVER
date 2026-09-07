@@ -58,6 +58,7 @@ const metricContext = {
   strategy,
   phase,
 };
+const metricTags = buildStockMetricTags(metricContext);
 
 const REQUESTS_SUBMITTED_METRIC = 'stock_contention_requests_submitted';
 const BOOKINGS_ACCEPTED_METRIC = 'stock_contention_bookings_accepted';
@@ -71,6 +72,7 @@ const ACCEPTED_LATENCY_METRIC = 'stock_contention_accepted_latency_ms';
 const TERMINAL_LATENCY_METRIC = 'stock_contention_terminal_latency_ms';
 const REQUEST_START_ELAPSED_METRIC = 'stock_contention_request_start_elapsed_ms';
 const COMPLETION_ELAPSED_METRIC = 'stock_contention_completion_elapsed_ms';
+const DRAIN_TIME_METRIC = 'stock_contention_drain_time_ms';
 const ATTEMPT_COUNT_METRIC = 'stock_contention_attempt_count';
 
 const requestsSubmitted = new Counter(REQUESTS_SUBMITTED_METRIC);
@@ -85,6 +87,7 @@ const acceptedLatency = new Trend(ACCEPTED_LATENCY_METRIC);
 const terminalLatency = new Trend(TERMINAL_LATENCY_METRIC);
 const requestStartElapsed = new Trend(REQUEST_START_ELAPSED_METRIC);
 const completionElapsed = new Trend(COMPLETION_ELAPSED_METRIC);
+const drainTime = new Trend(DRAIN_TIME_METRIC);
 const attemptCount = new Trend(ATTEMPT_COUNT_METRIC);
 
 const exactThresholds = exactOutcomeThresholds(phase);
@@ -181,6 +184,7 @@ export function handleSummary(data) {
   const terminalLatencyValues = metricValues(data, TERMINAL_LATENCY_METRIC);
   const requestStartValues = metricValues(data, REQUEST_START_ELAPSED_METRIC);
   const completionValues = metricValues(data, COMPLETION_ELAPSED_METRIC);
+  const drainTimeValues = metricValues(data, DRAIN_TIME_METRIC);
   const lastCompletionElapsedMs = finiteValue(completionValues?.max);
   const firstRequestStartElapsedMs = finiteValue(requestStartValues?.min);
   const measurementDurationMs = lastCompletionElapsedMs !== null
@@ -241,6 +245,7 @@ export function handleSummary(data) {
     p95_ms: acceptedLatencySummary.p95,
     p99_ms: acceptedLatencySummary.p99,
     terminal_latency_ms: latencySummary(terminalLatencyValues, recognized),
+    drain_time_metric_ms: latencySummary(drainTimeValues, submitted),
     attempts: attemptsSummary(metricValues(data, ATTEMPT_COUNT_METRIC), submitted),
     timeouts: timeoutSummary,
     dropped: {
@@ -262,7 +267,7 @@ export default function (runContext) {
   }
 
   const startedAt = Date.now();
-  requestStartElapsed.add(startedAt - runContext.startedAt);
+  requestStartElapsed.add(startedAt - runContext.startedAt, metricTags);
   const response = http.post(
     `${config.baseUrl}${bookingPath}`,
     JSON.stringify(request),
@@ -291,6 +296,7 @@ export default function (runContext) {
     || isTimeoutResponse(response);
   const completedAt = Date.now();
   const elapsedMs = completedAt - runContext.startedAt;
+  const drainElapsedMs = Math.max(0, elapsedMs - config.durationSeconds * 1000);
 
   requestsSubmitted.add(1, buildStockMetricTags({ ...metricContext, outcome: 'submitted' }));
   bookingsAccepted.add(outcome === 'accepted' ? 1 : 0, outcomeTags);
@@ -301,12 +307,13 @@ export default function (runContext) {
   requestTimedOut.add(timedOut, outcomeTags);
   timeouts.add(timedOut ? 1 : 0, outcomeTags);
   attemptCount.add(result?.attemptCount ?? 0, outcomeTags);
-  completionElapsed.add(elapsedMs);
+  completionElapsed.add(elapsedMs, metricTags);
+  drainTime.add(drainElapsedMs, metricTags);
   if (outcome !== 'unexpected') {
-    terminalLatency.add(response.timings.duration);
+    terminalLatency.add(response.timings.duration, metricTags);
   }
   if (outcome === 'accepted') {
-    acceptedLatency.add(response.timings.duration);
+    acceptedLatency.add(response.timings.duration, metricTags);
   }
 
   check(

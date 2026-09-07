@@ -424,6 +424,8 @@
           },
           "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"CPUUtilization\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
           "id": "rds_cpuutilization",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
           "namespace": "AWS/RDS",
           "queryMode": "Metrics",
           "refId": "A",
@@ -653,6 +655,7 @@
         "label": "Shared RDS instance",
         "multi": false,
         "name": "rds_instance_identifier",
+        "query": "beat-prod-database",
         "skipUrlSync": false,
         "type": "textbox"
       }

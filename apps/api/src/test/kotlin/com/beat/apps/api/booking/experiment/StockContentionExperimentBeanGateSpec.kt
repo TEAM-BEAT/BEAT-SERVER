@@ -18,6 +18,7 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Profile
+import org.springframework.web.bind.annotation.RequestMapping
 
 class StockContentionExperimentBeanGateSpec : FunSpec() {
     init {
@@ -42,6 +43,8 @@ class StockContentionExperimentBeanGateSpec : FunSpec() {
                 type.getAnnotation(Profile::class.java).value.toList() shouldBe
                     listOf("dev & !prod")
                 if (type == StockContentionExperimentController::class.java) {
+                    type.getAnnotation(RequestMapping::class.java).value.toList() shouldBe
+                        listOf("/api/internal/experiments/stock-contention")
                     type.getAnnotation(ConditionalOnProperty::class.java).havingValue shouldBe
                         "true"
                     type.getAnnotation(ConditionalOnProperty::class.java).name.toList() shouldBe
