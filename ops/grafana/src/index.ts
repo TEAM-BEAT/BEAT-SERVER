@@ -7,10 +7,13 @@ import {
   DashboardBuilder,
   DatasourceVariableBuilder,
   QueryVariableBuilder,
+  ThresholdsConfigBuilder,
+  ThresholdsMode,
   TextBoxVariableBuilder,
   VariableHide,
   VariableRefresh,
   type Panel,
+  type ThresholdsConfig,
   type VariableModel,
 } from "@grafana/grafana-foundation-sdk/dashboard";
 import type { Builder as FoundationBuilder, Dataquery } from "@grafana/grafana-foundation-sdk/cog";
@@ -42,6 +45,19 @@ const CLOUDWATCH: DataSourceRef = {
   type: "cloudwatch",
   uid: "${DS_CLOUDWATCH}",
 };
+const CLOUD_USAGE: DataSourceRef = {
+  type: "prometheus",
+  uid: "${DS_GRAFANA_CLOUD_USAGE}",
+};
+const GRAFANA_CLOUD_LOGS_DATASOURCE_REGEX =
+  "/^grafanacloud-.*-logs$/i";
+const FREE_PLAN_ACTIVE_SERIES_THRESHOLDS = new ThresholdsConfigBuilder()
+  .mode(ThresholdsMode.Absolute)
+  .steps([
+    { value: null, color: "green" },
+    { value: 7000, color: "orange" },
+    { value: 10000, color: "red" },
+  ]);
 
 const ROUTE_EXCLUSIONS =
   "^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$";
@@ -60,11 +76,16 @@ const datasourceVariable = (
   name: string,
   type: string,
   label: string,
+  regex?: string,
 ): Builder<VariableModel> =>
-  new DatasourceVariableBuilder(name)
+  (() => {
+    const builder = new DatasourceVariableBuilder(name)
     .type(type)
     .label(label)
     .description(`${label} is selected at dashboard load; its UID is never committed.`);
+    if (regex) builder.regex(regex);
+    return builder;
+  })();
 
 function queryVariable(
   name: string,
@@ -94,6 +115,7 @@ function dashboardVariables(options: {
   logs?: boolean;
   traces?: boolean;
   cloudwatch?: boolean;
+  cloudUsage?: boolean;
   loadTest?: boolean;
 }): Builder<VariableModel>[] {
   const variables: Builder<VariableModel>[] = [
@@ -127,7 +149,12 @@ function dashboardVariables(options: {
 
   if (options.logs) {
     variables.push(
-      datasourceVariable("DS_LOKI", "loki", "Loki"),
+      datasourceVariable(
+        "DS_LOKI",
+        "loki",
+        "Loki",
+        GRAFANA_CLOUD_LOGS_DATASOURCE_REGEX,
+      ),
       queryVariable(
         "module",
         "Log module",
@@ -160,6 +187,17 @@ function dashboardVariables(options: {
         .description(
           "Required CloudWatch dimension filter. Enter the existing shared RDS DBInstanceIdentifier; panels never search all RDS instances.",
         ),
+    );
+  }
+
+  if (options.cloudUsage) {
+    variables.push(
+      datasourceVariable(
+        "DS_GRAFANA_CLOUD_USAGE",
+        "prometheus",
+        "Grafana Cloud usage",
+        "/^grafanacloud-usage$/",
+      ),
     );
   }
 
@@ -208,11 +246,12 @@ function promQuery(
   refId = "A",
   legendFormat?: string,
   instant = false,
+  datasource: DataSourceRef = PROMETHEUS,
 ): Builder<Dataquery> {
   const query = new PrometheusQuery()
     .refId(refId)
     .expr(expression)
-    .datasource(PROMETHEUS)
+    .datasource(datasource)
     .exemplar(true);
 
   if (legendFormat) {
@@ -241,13 +280,15 @@ function metricPanel(
     span?: number;
     height?: number;
     refId?: string;
+    datasource?: DataSourceRef;
+    thresholds?: Builder<ThresholdsConfig>;
   } = {},
 ): PanelBuilder {
   const Panel = options.stat ? StatPanel : TimeseriesPanel;
   const panel = new Panel()
     .id(id)
     .title(title)
-    .datasource(PROMETHEUS)
+    .datasource(options.datasource ?? PROMETHEUS)
     .span(options.span ?? 12)
     .height(options.height ?? 8)
     .withTarget(
@@ -256,6 +297,7 @@ function metricPanel(
         options.refId ?? "A",
         options.legendFormat,
         options.instant ?? Boolean(options.stat),
+        options.datasource ?? PROMETHEUS,
       ),
     );
 
@@ -264,6 +306,9 @@ function metricPanel(
   }
   if (options.unit) {
     panel.unit(options.unit);
+  }
+  if (options.thresholds) {
+    panel.thresholds(options.thresholds);
   }
 
   return panel;
@@ -281,16 +326,17 @@ function dualMetricPanel(
     secondLegend?: string;
     span?: number;
     height?: number;
+    datasource?: DataSourceRef;
   } = {},
 ): PanelBuilder {
   const panel = new TimeseriesPanel()
     .id(id)
     .title(title)
-    .datasource(PROMETHEUS)
+    .datasource(options.datasource ?? PROMETHEUS)
     .span(options.span ?? 12)
     .height(options.height ?? 8)
-    .withTarget(promQuery(firstExpression, "A", options.firstLegend))
-    .withTarget(promQuery(secondExpression, "B", options.secondLegend));
+    .withTarget(promQuery(firstExpression, "A", options.firstLegend, false, options.datasource ?? PROMETHEUS))
+    .withTarget(promQuery(secondExpression, "B", options.secondLegend, false, options.datasource ?? PROMETHEUS));
 
   if (options.description) {
     panel.description(options.description);
@@ -410,8 +456,8 @@ function addOverviewPanels(builder: DashboardBuilder): void {
       dualMetricPanel(
         3,
         "5xx and 429 rate",
-        `sum(rate(http_server_requests_seconds_count{${HTTP_SELECTOR},status=~"5.."}[$__rate_interval]))`,
-        `sum(rate(http_server_requests_seconds_count{${HTTP_SELECTOR},status="429"}[$__rate_interval]))`,
+        `sum(rate(http_server_requests_seconds_count{${HTTP_SELECTOR},status=~"5.."}[$__rate_interval])) or 0 * sum(rate(http_server_requests_seconds_count{${HTTP_SELECTOR}}[$__rate_interval]))`,
+        `sum(rate(http_server_requests_seconds_count{${HTTP_SELECTOR},status="429"}[$__rate_interval])) or 0 * sum(rate(http_server_requests_seconds_count{${HTTP_SELECTOR}}[$__rate_interval]))`,
         {
           unit: "reqps",
           firstLegend: "5xx",
@@ -602,7 +648,7 @@ function jvmAndHikari(): DashboardBuilder {
       }),
     )
     .withPanel(
-      metricPanel(3, "Allocation rate", `sum by (instance, color) (rate(jvm_memory_allocated_bytes_total{${SERVICE_SELECTOR}}[$__rate_interval]))`, {
+      metricPanel(3, "Allocation rate", `sum by (instance, color) (rate(jvm_gc_memory_allocated_bytes_total{${SERVICE_SELECTOR}}[$__rate_interval]))`, {
         unit: "Bps",
         legendFormat: "{{instance}} {{color}}",
       }),
@@ -643,6 +689,24 @@ function jvmAndHikari(): DashboardBuilder {
 
 const sharedRdsDescription =
   "SHARED RDS — dev load can affect prod. CloudWatch and MySQL exporter cannot separate beatDev and beatProd schemas at the instance level.";
+
+function cadvisorMetric(
+  sample: (selector: string) => string,
+): string {
+  const labeledSeries = (label: string, selector: string): string =>
+    `sum by (container) (label_replace(${sample(selector)}, "container", "$1", "${label}", "(.+)"))`;
+
+  return [
+    labeledSeries(
+      "container_label_com_docker_compose_service",
+      'env=~"$env",container_label_com_docker_compose_service!=""',
+    ),
+    labeledSeries(
+      "name",
+      'env=~"$env",container_label_com_docker_compose_service="",name!=""',
+    ),
+  ].join(" or ");
+}
 
 function sharedRds(): DashboardBuilder {
   const builder = baseDashboard(
@@ -747,18 +811,36 @@ function infrastructure(): DashboardBuilder {
       ),
     )
     .withPanel(
-      metricPanel(5, "Container CPU (prod only)", `sum by (name) (rate(container_cpu_usage_seconds_total{env=~"$env",name!=""}[$__rate_interval]))`, {
+      metricPanel(
+        5,
+        "Container CPU (prod only)",
+        cadvisorMetric(
+          (selector) =>
+            `rate(container_cpu_usage_seconds_total{${selector}}[$__rate_interval])`,
+        ),
+        {
         unit: "percentunit",
-        legendFormat: "{{name}}",
-        description: "cAdvisor is enabled for prod only; an empty dev panel is expected and documented by the dashboard description.",
-      }),
+          legendFormat: "{{container}}",
+          description:
+            "cAdvisor is enabled for prod only; compose service is preferred, with a name fallback for exporter label compatibility.",
+        },
+      ),
     )
     .withPanel(
-      metricPanel(6, "Container memory (prod only)", `sum by (name) (container_memory_working_set_bytes{env=~"$env",name!=""})`, {
-        unit: "bytes",
-        legendFormat: "{{name}}",
-        description: "cAdvisor is enabled for prod only; an empty dev panel is expected and documented by the dashboard description.",
-      }),
+      metricPanel(
+        6,
+        "Container memory (prod only)",
+        cadvisorMetric(
+          (selector) =>
+            `container_memory_working_set_bytes{${selector}}`,
+        ),
+        {
+          unit: "bytes",
+          legendFormat: "{{container}}",
+          description:
+            "cAdvisor is enabled for prod only; compose service is preferred, with a name fallback for exporter label compatibility.",
+        },
+      ),
     )
     .withPanel(
       metricPanel(7, "Redis up", `redis_up{env=~"$env"}`, {
@@ -797,7 +879,7 @@ function pipeline(): DashboardBuilder {
     "05 Observability Pipeline",
     "beat-observability-pipeline",
     "Alloy self-monitoring, scrape health, and remote-write pipeline pressure. Cloud usage is tracked against the Free plan outside the data plane.",
-    { defaultEnvironment: "prod" },
+    { defaultEnvironment: "prod", cloudUsage: true },
   );
 
   return builder
@@ -852,13 +934,27 @@ function pipeline(): DashboardBuilder {
       }),
     )
     .withPanel(
-      textPanel(
+      metricPanel(
         9,
+        "Grafana Cloud active series",
+        "sum(grafanacloud_instance_active_series)",
+        {
+          datasource: CLOUD_USAGE,
+          span: 24,
+          unit: "short",
+          stat: true,
+          thresholds: FREE_PLAN_ACTIVE_SERIES_THRESHOLDS,
+          description:
+            "Grafana Cloud Free plan allows 10,000 active series. This sums grafanacloud_instance_active_series across the usage datasource's id labels; keep below the 70% target (7,000).",
+        },
+      ),
+    )
+    .withPanel(
+      textPanel(
+        10,
         "Free plan guardrail",
         `
-The first 14-day operating window targets **<70% of the Grafana Cloud Free plan limits** before adding more signals. Check Cloud Usage in the Grafana Cloud portal for the authoritative active-series and logs/traces usage numbers.
-
-This dashboard deliberately does not invent a Cloud Usage metric name or datasource UID.
+The first 14-day operating window targets **<70% of the Grafana Cloud Free plan limits** before adding more signals. The active-series stat uses the selected Grafana Cloud usage datasource and marks the 7,000 target and 10,000 Free plan limit.
 `,
       ),
     );

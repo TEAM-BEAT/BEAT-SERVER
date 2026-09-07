@@ -407,15 +407,82 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_GRAFANA_CLOUD_USAGE}"
+      },
+      "description": "Grafana Cloud Free plan allows 10,000 active series. This sums grafanacloud_instance_active_series across the usage datasource's id labels; keep below the 70% target (7,000).",
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 7000
+              },
+              {
+                "color": "red",
+                "value": 10000
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
       "gridPos": {
-        "h": 6,
+        "h": 8,
         "w": 24,
         "x": 0,
         "y": 32
       },
       "id": 9,
       "options": {
-        "content": "\nThe first 14-day operating window targets **<70% of the Grafana Cloud Free plan limits** before adding more signals. Check Cloud Usage in the Grafana Cloud portal for the authoritative active-series and logs/traces usage numbers.\n\nThis dashboard deliberately does not invent a Cloud Usage metric name or datasource UID.\n",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": []
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_GRAFANA_CLOUD_USAGE}"
+          },
+          "exemplar": true,
+          "expr": "sum(grafanacloud_instance_active_series)",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Grafana Cloud active series",
+      "transparent": false,
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "id": 10,
+      "options": {
+        "content": "\nThe first 14-day operating window targets **<70% of the Grafana Cloud Free plan limits** before adding more signals. The active-series stat uses the selected Grafana Cloud usage datasource and marks the 7,000 target and 10,000 Free plan limit.\n",
         "mode": "markdown"
       },
       "repeatDirection": "h",
@@ -526,6 +593,21 @@
         "refresh": 1,
         "skipUrlSync": false,
         "type": "query"
+      },
+      {
+        "allowCustomValue": true,
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "description": "Grafana Cloud usage is selected at dashboard load; its UID is never committed.",
+        "includeAll": false,
+        "label": "Grafana Cloud usage",
+        "multi": false,
+        "name": "DS_GRAFANA_CLOUD_USAGE",
+        "query": "prometheus",
+        "regex": "/^grafanacloud-usage$/",
+        "skipUrlSync": false,
+        "type": "datasource"
       }
     ]
   },

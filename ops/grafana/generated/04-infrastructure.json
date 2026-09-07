@@ -222,7 +222,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "cAdvisor is enabled for prod only; an empty dev panel is expected and documented by the dashboard description.",
+      "description": "cAdvisor is enabled for prod only; compose service is preferred, with a name fallback for exporter label compatibility.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -257,9 +257,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{env=~\"$env\",name!=\"\"}[$__rate_interval]))",
+          "expr": "sum by (container) (label_replace(rate(container_cpu_usage_seconds_total{env=~\"$env\",container_label_com_docker_compose_service!=\"\"}[$__rate_interval]), \"container\", \"$1\", \"container_label_com_docker_compose_service\", \"(.+)\")) or sum by (container) (label_replace(rate(container_cpu_usage_seconds_total{env=~\"$env\",container_label_com_docker_compose_service=\"\",name!=\"\"}[$__rate_interval]), \"container\", \"$1\", \"name\", \"(.+)\"))",
           "instant": false,
-          "legendFormat": "{{name}}",
+          "legendFormat": "{{container}}",
           "range": true,
           "refId": "A"
         }
@@ -273,7 +273,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "cAdvisor is enabled for prod only; an empty dev panel is expected and documented by the dashboard description.",
+      "description": "cAdvisor is enabled for prod only; compose service is preferred, with a name fallback for exporter label compatibility.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -308,9 +308,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (name) (container_memory_working_set_bytes{env=~\"$env\",name!=\"\"})",
+          "expr": "sum by (container) (label_replace(container_memory_working_set_bytes{env=~\"$env\",container_label_com_docker_compose_service!=\"\"}, \"container\", \"$1\", \"container_label_com_docker_compose_service\", \"(.+)\")) or sum by (container) (label_replace(container_memory_working_set_bytes{env=~\"$env\",container_label_com_docker_compose_service=\"\",name!=\"\"}, \"container\", \"$1\", \"name\", \"(.+)\"))",
           "instant": false,
-          "legendFormat": "{{name}}",
+          "legendFormat": "{{container}}",
           "range": true,
           "refId": "A"
         }
