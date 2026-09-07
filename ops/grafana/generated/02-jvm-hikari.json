@@ -144,7 +144,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (instance, color) (rate(jvm_memory_allocated_bytes_total{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"}[$__rate_interval]))",
+          "expr": "sum by (instance, color) (rate(jvm_gc_memory_allocated_bytes_total{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"}[$__rate_interval]))",
           "instant": false,
           "legendFormat": "{{instance}} {{color}}",
           "range": true,

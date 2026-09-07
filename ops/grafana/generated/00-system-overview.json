@@ -145,7 +145,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum(rate(http_server_requests_seconds_count{env=~\"$env\",application=~\"$application\",uri=~\"^/api(/.*)?$\",uri!~\"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$\",status=~\"5..\"}[$__rate_interval]))",
+          "expr": "sum(rate(http_server_requests_seconds_count{env=~\"$env\",application=~\"$application\",uri=~\"^/api(/.*)?$\",uri!~\"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$\",status=~\"5..\"}[$__rate_interval])) or 0 * sum(rate(http_server_requests_seconds_count{env=~\"$env\",application=~\"$application\",uri=~\"^/api(/.*)?$\",uri!~\"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$\"}[$__rate_interval]))",
           "instant": false,
           "legendFormat": "5xx",
           "range": true,
@@ -157,7 +157,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum(rate(http_server_requests_seconds_count{env=~\"$env\",application=~\"$application\",uri=~\"^/api(/.*)?$\",uri!~\"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$\",status=\"429\"}[$__rate_interval]))",
+          "expr": "sum(rate(http_server_requests_seconds_count{env=~\"$env\",application=~\"$application\",uri=~\"^/api(/.*)?$\",uri!~\"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$\",status=\"429\"}[$__rate_interval])) or 0 * sum(rate(http_server_requests_seconds_count{env=~\"$env\",application=~\"$application\",uri=~\"^/api(/.*)?$\",uri!~\"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$\"}[$__rate_interval]))",
           "instant": false,
           "legendFormat": "429",
           "range": true,
@@ -606,6 +606,7 @@
         "multi": false,
         "name": "DS_LOKI",
         "query": "loki",
+        "regex": "/^grafanacloud-.*-logs$/i",
         "skipUrlSync": false,
         "type": "datasource"
       },

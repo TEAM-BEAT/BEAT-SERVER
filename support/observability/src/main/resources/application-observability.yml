@@ -31,9 +31,12 @@ management:
       env: ${spring.profiles.active:unknown}
     distribution:
       percentiles-histogram:
-        http.server.requests: true
+        # Keep aggregatable Prometheus p95/p99 through explicit SLO buckets only;
+        # disabling percentile histograms avoids Micrometer's default ~73 buckets.
+        http.server.requests: false
       slo:
-        http.server.requests: 100ms, 200ms, 500ms, 1s, 2s
+        # Existing API SLOs plus contention-test tail boundaries through the 35s timeout.
+        http.server.requests: 100ms, 200ms, 500ms, 1s, 2s, 5s, 10s, 20s, 30s, 35s
 
   tracing:
     export:

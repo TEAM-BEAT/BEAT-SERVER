@@ -510,6 +510,7 @@
         "multi": false,
         "name": "DS_LOKI",
         "query": "loki",
+        "regex": "/^grafanacloud-.*-logs$/i",
         "skipUrlSync": false,
         "type": "datasource"
       },
