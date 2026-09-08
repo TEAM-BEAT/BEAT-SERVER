@@ -245,12 +245,31 @@ jobs:
           trivy-config: .trivy-image.yaml
 
   verify:
-    needs: [openapi, gradle-check, sonar]
+    if: ${{ !cancelled() }}
+    needs: [openapi, gradle-check, sonar, scan-images]
     runs-on: ubuntu-24.04
     permissions:
       contents: read
 
     steps:
       - name: Confirm required checks passed
-        run: echo "Required CI checks passed"
+        env:
+          OPENAPI_RESULT: ${{ needs.openapi.result }}
+          GRADLE_CHECK_RESULT: ${{ needs.gradle-check.result }}
+          SONAR_RESULT: ${{ needs.sonar.result }}
+          SCAN_IMAGES_RESULT: ${{ needs.scan-images.result }}
+        run: |
+          results=(
+            "openapi=${OPENAPI_RESULT}"
+            "gradle-check=${GRADLE_CHECK_RESULT}"
+            "sonar=${SONAR_RESULT}"
+            "scan-images=${SCAN_IMAGES_RESULT}"
+          )
+          for result in "${results[@]}"; do
+            if [[ "${result#*=}" != "success" ]]; then
+              echo "Required CI check did not pass: ${result}" >&2
+              exit 1
+            fi
+          done
+          echo "Required CI checks passed"
         shell: bash
