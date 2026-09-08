@@ -82,14 +82,14 @@ modules:
     hikari_max_pool_size: 1
     container_name: batch
 
-# observability_alloy — dev는 이제 metrics+logs+traces 활성화 (t4g.small 2GB 환경)
+# observability_alloy — dev/prod 동일 사양에서 동시성 실험의 컨테이너 자원 사용량을 비교한다.
 observability_alloy_mem_limit: "256m"
 observability_alloy_cpus: "0.5"
 observability_alloy_scrape_interval: "30s"
 observability_alloy_wal_truncate: "1h"
 observability_alloy_enable_logs: true
 observability_alloy_enable_traces: true
-observability_alloy_enable_cadvisor: false
+observability_alloy_enable_cadvisor: true
 observability_alloy_enable_k6_metrics: true
 observability_alloy_published_ports:
   - "127.0.0.1:12345:12345"

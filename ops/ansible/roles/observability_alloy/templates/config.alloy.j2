@@ -81,11 +81,15 @@ prometheus.scrape "node" {
 
 {% if observability_alloy_enable_cadvisor | bool %}
 // -----------------------------------------------------------------------------
-// 3. Container metrics — cAdvisor 대체 (prod only)
+// 3. Container metrics — cAdvisor
 // -----------------------------------------------------------------------------
 prometheus.exporter.cadvisor "containers" {
-  docker_host = "unix:///var/run/docker.sock"
-  storage_duration = "5m"
+  docker_host                  = "unix:///var/run/docker.sock"
+  storage_duration             = "5m"
+  // Compose 서비스명만 보존한다. 모든 Docker label을 remote-write 하지 않아
+  // dev/prod의 series cardinality가 컨테이너 환경변수에 따라 늘어나는 것을 막는다.
+  store_container_labels       = false
+  allowlisted_container_labels = ["com.docker.compose.service"]
 }
 
 prometheus.scrape "containers" {

@@ -841,7 +841,7 @@ function infrastructure(): DashboardBuilder {
   const builder = baseDashboard(
     "04 Infrastructure",
     "beat-infrastructure",
-    "EC2 node, production containers, and environment-local Redis. dev cAdvisor is intentionally not collected.",
+    "EC2 node, Docker Compose containers, and environment-local Redis. Container metrics retain only the Compose service label.",
     { defaultEnvironment: "prod" },
   );
 
@@ -876,7 +876,7 @@ function infrastructure(): DashboardBuilder {
     .withPanel(
       metricPanel(
         5,
-        "Container CPU (prod only)",
+        "Container CPU",
         cadvisorMetric(
           (selector) =>
             `rate(container_cpu_usage_seconds_total{${selector}}[$__rate_interval])`,
@@ -885,14 +885,14 @@ function infrastructure(): DashboardBuilder {
         unit: "percentunit",
           legendFormat: "{{container}}",
           description:
-            "cAdvisor is enabled for prod only; compose service is preferred, with a name fallback for exporter label compatibility.",
+            "cAdvisor retains the Docker Compose service label; the name fallback supports older exporter series during rollout.",
         },
       ),
     )
     .withPanel(
       metricPanel(
         6,
-        "Container memory (prod only)",
+        "Container memory",
         cadvisorMetric(
           (selector) =>
             `container_memory_working_set_bytes{${selector}}`,
@@ -929,9 +929,7 @@ function infrastructure(): DashboardBuilder {
         10,
         "Collection boundary",
         `
-\`env=dev|prod\` separates the environment-local EC2 and Redis signals. The shared MySQL/RDS instance belongs on **03 Shared RDS / MySQL**.
-
-The dev host intentionally does not collect cAdvisor container metrics; do not interpret those two panels as an outage.
+\`env=dev|prod\` separates the environment-local EC2, container, and Redis signals. The shared MySQL/RDS instance belongs on **03 Shared RDS / MySQL**.
 `,
       ),
     );
