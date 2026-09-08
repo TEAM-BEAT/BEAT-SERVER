@@ -117,8 +117,8 @@ jobs:
             exit 1
           }
           secrets_file="ops/ansible/inventories/prod/group_vars/all/secrets.sops.yml"
-          remote_write_url="$(sops --decrypt --extract '[\"gc_prom_url\"]' "$secrets_file")"
-          mimir_user="$(sops --decrypt --extract '[\"gc_prom_user\"]' "$secrets_file")"
+          remote_write_url="$(sops --decrypt --extract '["gc_prom_url"]' "$secrets_file")"
+          mimir_user="$(sops --decrypt --extract '["gc_prom_user"]' "$secrets_file")"
           {
             echo "MIMIR_ADDRESS=${remote_write_url%/api/prom/push}"
             echo "MIMIR_API_USER=$mimir_user"
