@@ -33,11 +33,11 @@ beat:
   scheduler:
     owner: false
 
-# Stock contention is an explicitly opt-in dev experiment. The profile guard on its beans
-# remains effective even if an operator accidentally exports this variable in another profile.
+# Stock contention is enabled only for this temporary dev experiment. Every experiment bean
+# is still guarded by the `dev & !prod` profile, so production cannot activate this endpoint.
 booking:
   experiment:
-    enabled: ${BOOKING_EXPERIMENT_ENABLED:false}
+    enabled: true
     optimistic-max-attempts: 50
     optimistic-backoff-millis: 1
     transaction-timeout-seconds: 30
