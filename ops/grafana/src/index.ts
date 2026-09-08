@@ -354,6 +354,10 @@ function metricPanel(
     panel.thresholds(options.thresholds);
   } else if (options.unit === "percentunit") {
     panel.thresholds(PERCENT_UNIT_THRESHOLDS);
+    // Ratios cannot exceed 1. This also pins the y-axis to 0-100% when the
+    // series are all zero, where autoscale would otherwise fall back to a
+    // default raw max (rendered as 10000%).
+    panel.min(0).max(1);
   }
 
   return panel;
