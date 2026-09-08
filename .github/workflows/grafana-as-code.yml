@@ -1,5 +1,9 @@
 name: grafana-as-code
 
+concurrency:
+  group: grafana-mimir-rules
+  cancel-in-progress: false
+
 on:
   pull_request:
     paths:
@@ -84,3 +88,53 @@ jobs:
           mimirtool_image="grafana/mimirtool@sha256:82d04bdbf907adf609eea2f4a1354b28ead54cf0dc36adcf2f71fd0bb26e4b3c" # 3.2.0 linux/amd64
           docker run --rm --volume "$GITHUB_WORKSPACE:/workspace:ro" --workdir /workspace "$mimirtool_image" rules lint -n ops/grafana/rules/recording/beat-application-success.yml
           docker run --rm --volume "$GITHUB_WORKSPACE:/workspace:ro" --workdir /workspace "$mimirtool_image" rules check ops/grafana/rules/recording/beat-application-success.yml
+
+  deploy-recording-rules:
+    if: github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      SOPS_AGE_KEY: ${{ secrets.AGE_SECRET_KEY }}
+      MIMIR_API_KEY: ${{ secrets.GRAFANA_CLOUD_RULES_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Ansible tooling
+        uses: ./.github/actions/setup-ansible-tooling
+
+      - name: Resolve Grafana Cloud Mimir endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${MIMIR_API_KEY:-}" || {
+            echo "GRAFANA_CLOUD_RULES_TOKEN must be configured with rules:read and rules:write scopes." >&2
+            exit 1
+          }
+          secrets_file="ops/ansible/inventories/prod/group_vars/all/secrets.sops.yml"
+          remote_write_url="$(sops --decrypt --extract '[\"gc_prom_url\"]' "$secrets_file")"
+          mimir_user="$(sops --decrypt --extract '[\"gc_prom_user\"]' "$secrets_file")"
+          {
+            echo "MIMIR_ADDRESS=${remote_write_url%/api/prom/push}"
+            echo "MIMIR_API_USER=$mimir_user"
+            echo "MIMIR_TENANT_ID=$mimir_user"
+          } >> "$GITHUB_ENV"
+
+      - name: Sync Mimir recording rules
+        shell: bash
+        run: |
+          set -euo pipefail
+          mimirtool_image="grafana/mimirtool@sha256:82d04bdbf907adf609eea2f4a1354b28ead54cf0dc36adcf2f71fd0bb26e4b3c" # 3.2.0 linux/amd64
+          docker run --rm \
+            --env MIMIR_ADDRESS \
+            --env MIMIR_API_USER \
+            --env MIMIR_API_KEY \
+            --env MIMIR_TENANT_ID \
+            --volume "$GITHUB_WORKSPACE:/workspace:ro" \
+            --workdir /workspace \
+            "$mimirtool_image" rules sync --namespaces=beat ops/grafana/rules/recording/beat-application-success.yml

@@ -59,7 +59,7 @@ YAML
 for environment in dev prod; do
   output_path="$work_dir/${environment}.alloy"
   if [[ "$environment" == "dev" ]]; then
-    enable_cadvisor=false
+    enable_cadvisor=true
     enable_k6=true
   else
     enable_cadvisor=true
@@ -78,6 +78,8 @@ for environment in dev prod; do
 
   grep -q 'prometheus.exporter.self "alloy"' "$output_path"
   grep -q 'prometheus.exporter.redis "redis"' "$output_path"
+  grep -q 'prometheus.exporter.cadvisor "containers"' "$output_path"
+  grep -Fq 'allowlisted_container_labels = ["com.docker.compose.service"]' "$output_path"
   grep -q 'otelcol.processor.memory_limiter "apps"' "$output_path"
   if [[ "$environment" == "dev" ]] && ! grep -q 'otelcol.processor.memory_limiter "k6"' "$output_path"; then
     echo "dev config is missing the k6 memory limiter" >&2

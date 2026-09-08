@@ -12,6 +12,8 @@ dependencies {
     runtimeOnly(libs.log4j.layout.template.json)
 
     implementation(libs.spring.boot.starter.opentelemetry)
+    implementation(libs.datasource.micrometer.spring.boot)
+    implementation(libs.datasource.micrometer.opentelemetry)
 
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.boot.starter.web)

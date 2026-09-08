@@ -68,6 +68,8 @@ groups:
               uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
             }[5m])
           )
+          or on (env, application)
+          (0 * beat_application_requests:rate5m)
 
       - record: beat_application_bad_requests:rate30m
         expr: |
@@ -79,6 +81,8 @@ groups:
               uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
             }[30m])
           )
+          or on (env, application)
+          (0 * beat_application_requests:rate30m)
 
       - record: beat_application_bad_requests:rate1h
         expr: |
@@ -90,6 +94,8 @@ groups:
               uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
             }[1h])
           )
+          or on (env, application)
+          (0 * beat_application_requests:rate1h)
 
       - record: beat_application_bad_requests:rate6h
         expr: |
@@ -101,6 +107,8 @@ groups:
               uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
             }[6h])
           )
+          or on (env, application)
+          (0 * beat_application_requests:rate6h)
 
       - record: beat_application_bad_requests:14d
         expr: |
@@ -112,6 +120,8 @@ groups:
               uri!~"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$"
             }[14d])
           )
+          or on (env, application)
+          (0 * beat_application_requests:14d)
 
       - record: beat_application_good_requests:rate5m
         expr: |

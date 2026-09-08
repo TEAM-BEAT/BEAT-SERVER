@@ -1,6 +1,6 @@
 {
   "annotations": {},
-  "description": "EC2 node, production containers, and environment-local Redis. dev cAdvisor is intentionally not collected.",
+  "description": "EC2 node, Docker Compose containers, and environment-local Redis. Container metrics retain only the Compose service label.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -222,7 +222,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "cAdvisor is enabled for prod only; compose service is preferred, with a name fallback for exporter label compatibility.",
+      "description": "cAdvisor retains the Docker Compose service label; the name fallback supports older exporter series during rollout.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -264,7 +264,7 @@
           "refId": "A"
         }
       ],
-      "title": "Container CPU (prod only)",
+      "title": "Container CPU",
       "transparent": false,
       "type": "timeseries"
     },
@@ -315,7 +315,7 @@
           "refId": "A"
         }
       ],
-      "title": "Container memory (prod only)",
+      "title": "Container memory",
       "transparent": false,
       "type": "timeseries"
     },
@@ -478,7 +478,7 @@
       },
       "id": 10,
       "options": {
-        "content": "\n`env=dev|prod` separates the environment-local EC2 and Redis signals. The shared MySQL/RDS instance belongs on **03 Shared RDS / MySQL**.\n\nThe dev host intentionally does not collect cAdvisor container metrics; do not interpret those two panels as an outage.\n",
+        "content": "\n`env=dev|prod` separates the environment-local EC2, container, and Redis signals. The shared MySQL/RDS instance belongs on **03 Shared RDS / MySQL**.\n",
         "mode": "markdown"
       },
       "repeatDirection": "h",

@@ -310,7 +310,7 @@
         "type": "tempo",
         "uid": "${DS_TEMPO}"
       },
-      "description": "DB span names only; SQL text is intentionally not used as a label or dashboard variable.",
+      "description": "JDBC observations use OpenTelemetry database semantic attributes; SQL text is intentionally not used as a label or dashboard variable.",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -348,7 +348,7 @@
           "filters": [],
           "limit": 50,
           "refId": "A",
-          "search": "{ resource.service.name =~ \"beat-.*\" && resource.deployment.environment.name = \"$tempo_environment\" && (name =~ \"(?i).*mysql.*\" || name =~ \"(?i).*jdbc.*\") }"
+          "search": "{ resource.service.name =~ \"beat-.*\" && resource.deployment.environment.name = \"$tempo_environment\" && (span.db.system.name = \"mysql\" || span.db.system = \"mysql\") }"
         }
       ],
       "title": "Database spans",

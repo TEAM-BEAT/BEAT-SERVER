@@ -92,6 +92,15 @@ management:
     sampling:
       probability: 1.0
 
+jdbc:
+  include: QUERY
+  opentelemetry:
+    enabled: true
+    spans:
+      enabled: true
+    metrics:
+      enabled: false
+
 sentry:
   environment: dev
   traces-sample-rate: 0.0
@@ -116,6 +125,15 @@ management:
       enabled: true
     sampling:
       probability: 1.0
+
+jdbc:
+  include: QUERY
+  opentelemetry:
+    enabled: true
+    spans:
+      enabled: true
+    metrics:
+      enabled: false
 
 sentry:
   environment: prod

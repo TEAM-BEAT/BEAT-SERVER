@@ -1,0 +1,8 @@
+{
+  "schema_version": "v3",
+  "accessToken": "<local-only-access-token>",
+  "warmupScheduleId": 9001,
+  "flashScheduleId": 9002,
+  "bookerName": "LoadTest",
+  "bookerPhoneNumber": "010-0000-0001"
+}
