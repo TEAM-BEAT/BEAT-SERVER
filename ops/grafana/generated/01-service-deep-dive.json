@@ -260,7 +260,7 @@
         "type": "tempo",
         "uid": "${DS_TEMPO}"
       },
-      "description": "Trace search is scoped by the OTel environment mapping; use trace-to-logs for the same trace ID.",
+      "description": "Known Tempo search-display issue (cf. grafana/tempo#6762): the trace itself is complete, but the search result table may show an empty Service column. Click the trace ID to open the trace directly. Trace search is scoped by the OTel environment mapping; use trace-to-logs for the same trace ID.",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -310,7 +310,7 @@
         "type": "tempo",
         "uid": "${DS_TEMPO}"
       },
-      "description": "JDBC observations use OpenTelemetry database semantic attributes; SQL text is intentionally not used as a label or dashboard variable.",
+      "description": "JDBC/MySQL client spans are not instrumented yet, so this panel is expected to be empty. Use the InnoDB pre/post SQL snapshots for database evidence; SQL text is intentionally not used as a label or dashboard variable.",
       "fieldConfig": {
         "defaults": {
           "custom": {

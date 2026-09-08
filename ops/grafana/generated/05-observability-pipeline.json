@@ -362,7 +362,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Failed OTLP export attempts reported by the Alloy exporter. A sustained non-zero rate requires investigation.",
+      "description": "Spans failed or refused at the Alloy receiver. 0 or an empty graph means no span loss (healthy).",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -397,14 +397,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (env) (rate(otelcol_exporter_send_failed_spans_total{env=~\"$env\"}[$__rate_interval]))",
+          "expr": "sum by (env) (rate(otelcol_receiver_failed_spans_total{env=~\"$env\"}[$__rate_interval])) + sum by (env) (rate(otelcol_receiver_refused_spans_total{env=~\"$env\"}[$__rate_interval]))",
           "instant": false,
           "legendFormat": "{{env}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Failed span exports",
+      "title": "Span receive failures",
       "transparent": false,
       "type": "timeseries"
     },

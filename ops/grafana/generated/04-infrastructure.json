@@ -226,6 +226,19 @@
       "fieldConfig": {
         "defaults": {
           "custom": {},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.8
+              }
+            ]
+          },
           "unit": "percentunit"
         },
         "overrides": []
