@@ -19,7 +19,7 @@ npm run check:generated
 - Separate Alertmanager: not installed; all Slack notifications use the single Grafana contact point.
 
 Pushes to `develop` and `main` sync the committed Mimir recording rules after
-validation. Configure the `prod` GitHub environment secret
+validation. Configure the repository secret
 `GRAFANA_CLOUD_RULES_TOKEN` with `rules:read` and `rules:write` scopes. The
 metrics instance ID and endpoint remain sourced from the encrypted prod
 inventory; the remote-write token is intentionally not reused for rule changes.
