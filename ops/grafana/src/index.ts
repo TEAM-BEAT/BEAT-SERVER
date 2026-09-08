@@ -62,6 +62,15 @@ const FREE_PLAN_ACTIVE_SERIES_THRESHOLDS = new ThresholdsConfigBuilder()
     { value: 7000, color: "orange" },
     { value: 10000, color: "red" },
   ]);
+// Timeseries panels default to a red threshold at raw value 80. With
+// percentunit (raw 0-1) that renders as 8000% and stretches the y-axis to
+// 10000%, so percentunit panels always declare 0.8 explicitly.
+const PERCENT_UNIT_THRESHOLDS = new ThresholdsConfigBuilder()
+  .mode(ThresholdsMode.Absolute)
+  .steps([
+    { value: null, color: "green" },
+    { value: 0.8, color: "red" },
+  ]);
 
 const ROUTE_EXCLUSIONS =
   "^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$";
@@ -343,6 +352,8 @@ function metricPanel(
   }
   if (options.thresholds) {
     panel.thresholds(options.thresholds);
+  } else if (options.unit === "percentunit") {
+    panel.thresholds(PERCENT_UNIT_THRESHOLDS);
   }
 
   return panel;
@@ -668,7 +679,7 @@ function serviceDeepDive(): DashboardBuilder {
         6,
         "Outbound HTTP spans",
         '{ resource.service.name =~ "beat-.*" && resource.deployment.environment.name = "$tempo_environment" && name =~ "(?i).*http.*" }',
-        "Trace search is scoped by the OTel environment mapping; use trace-to-logs for the same trace ID.",
+        "Known Tempo search-display issue (cf. grafana/tempo#6762): the trace itself is complete, but the search result table may show an empty Service column. Click the trace ID to open the trace directly. Trace search is scoped by the OTel environment mapping; use trace-to-logs for the same trace ID.",
       ),
     )
     .withPanel(
@@ -676,7 +687,7 @@ function serviceDeepDive(): DashboardBuilder {
         7,
         "Database spans",
         '{ resource.service.name =~ "beat-.*" && resource.deployment.environment.name = "$tempo_environment" && (span.db.system.name = "mysql" || span.db.system = "mysql") }',
-        "JDBC observations use OpenTelemetry database semantic attributes; SQL text is intentionally not used as a label or dashboard variable.",
+        "JDBC/MySQL client spans are not instrumented yet, so this panel is expected to be empty. Use the InnoDB pre/post SQL snapshots for database evidence; SQL text is intentionally not used as a label or dashboard variable.",
       ),
     )
     .withPanel(
@@ -990,10 +1001,10 @@ function pipeline(): DashboardBuilder {
       }),
     )
     .withPanel(
-      metricPanel(8, "Failed span exports", `sum by (env) (rate(otelcol_exporter_send_failed_spans_total{env=~"$env"}[$__rate_interval]))`, {
+      metricPanel(8, "Span receive failures", `sum by (env) (rate(otelcol_receiver_failed_spans_total{env=~"$env"}[$__rate_interval])) + sum by (env) (rate(otelcol_receiver_refused_spans_total{env=~"$env"}[$__rate_interval]))`, {
         unit: "reqps",
         legendFormat: "{{env}}",
-        description: "Failed OTLP export attempts reported by the Alloy exporter. A sustained non-zero rate requires investigation.",
+        description: "Spans failed or refused at the Alloy receiver. 0 or an empty graph means no span loss (healthy).",
       }),
     )
     .withPanel(

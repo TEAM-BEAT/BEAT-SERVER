@@ -81,14 +81,14 @@ prod 트래픽이 낮다는 전제는 실험을 허용하는 운영 판단이며
 
 dev cAdvisor는 활성화한다. Docker Compose service label만 보존해 `apis`, `admin`, `batch`, `redis`, `nginx`, `alloy`의 CPU·memory를 dev/prod 모두 같은 기준으로 본다. 모든 Docker label을 보내지 않아 series cardinality를 제한한다.
 
-### 현재 통제할 수 없는 것
+### 완전히 초기화하지 않고 관측하는 것
 
 - shared RDS의 아주 작은 외부 read/write
-- MySQL buffer pool 안의 정확한 page 배치와 write/index page 상태
+- shared RDS의 MySQL buffer pool page 배치와 전역 counter에 섞이는 외부 접근
 - 로컬 Mac runner의 CPU·network jitter
-- JVM JIT/GC와 OS page cache의 완전한 초기화
+- 장시간 실행 중 변하는 JVM JIT/GC와 OS page cache
 
-이들은 숨기지 않는다. 5회 반복의 중앙값과 run별 Grafana/JSON artifact를 함께 남긴다. 전용 RDS와 전용 runner를 만들기 전에는 절대 capacity 결론을 내리지 않는다.
+이들은 강제로 초기화하지 않는다. 애플리케이션을 매 run 재시작하면 비교 대상이 steady-state lock 전략이 아니라 cold-start가 되고, 애플리케이션 재시작으로 shared RDS buffer pool도 초기화되지 않는다. 동일 프로세스에서 고정 warmup, randomized block, 5회 반복을 사용하고 run별 Grafana/JSON artifact를 함께 남긴다. 전용 RDS와 전용 runner를 만들기 전에는 절대 capacity 결론을 내리지 않는다.
 
 ## 5. fixture reset 계약
 
@@ -111,13 +111,17 @@ warmup이 만든 900 booking은 flash가 끝날 때까지 유지한다. 그래�
 1. 배포된 `develop` SHA와 dev apis health를 확인한다.
 2. Grafana `90 Load Test`에서 environment를 `dev`, RDS identifier를 `beat-prod-database`로 둔다.
 3. SSH tunnel을 한 번 연다. k6 지표를 대시보드에 남기는 용도이며 HTTP 부하는 직접 dev API로 간다.
-4. fixture reset 및 read-back을 수행하고 60초 quiet period를 둔다.
-5. RDS/node/container/Hikari baseline을 저장한다.
-6. 해당 strategy로 warmup을 실행한다. accepted 900, dropped 0이어야 한다.
+4. 최초 배포 후 고정 settle과 10분 baseline을 확보한다. 측정 block 중 재시작·배포가 발생하면 해당 run을 폐기한다.
+5. fixture reset/read-back 후 60초 quiet period를 두고 RDS/node/container/GC/heap/Hikari 및 InnoDB 전역 counter의 pre snapshot을 저장한다.
+6. 해당 strategy로 warmup을 실행한다. accepted 900, dropped 0이어야 하며 warmup booking은 flash가 끝날 때까지 유지한다.
 7. 60초 quiet period 후 flash schedule 17의 stock/version을 다시 read-back한다.
 8. 동일 strategy로 flash를 실행한다. accepted 100, sold-out 100, dropped 0이어야 한다.
-9. DB invariant와 Redis lock 잔존 여부를 확인하고 local JSON summary 및 Grafana URL/time range를 보관한다.
-10. 최소 60초 cooldown 후 baseline 복귀를 기록하고, 다음 strategy 전 fixture reset을 수행한다.
+9. DB invariant, Redis lock, InnoDB post counter와 서버 post snapshot을 확인하고 local JSON summary 및 Grafana URL/time range를 보관한다.
+10. drain 후 최소 90초 cooldown을 두고 연속 scrape에서 baseline 복귀를 확인한 다음 cleanup/reset한다.
+
+InnoDB는 `Innodb_buffer_pool_read_requests`, `Innodb_buffer_pool_reads`, `Innodb_buffer_pool_read_ahead`, `Innodb_buffer_pool_read_ahead_evicted`, `Innodb_buffer_pool_pages_dirty`를 같은 순서로 기록한다. 이 값은 RDS 전역 누적값이므로 strategy별 물리 I/O로 귀속하지 않고 외부 개입과 cache 상태를 설명하는 정황 증거로만 사용한다. fixture 세 행의 `SELECT *`는 buffer pool 전체를 동일하게 만드는 pre-touch로 간주하지 않는다.
+
+Mac runner에서는 `sntp time.apple.com`으로 offset만 기록한다. `sntp -sS`는 시스템 시각을 slew/set할 수 있어 사용하지 않는다. 같은 Mac·전원·네트워크에서 `caffeinate -i k6 run --out opentelemetry stock-contention.js`를 사용하고 모델, macOS, k6 version, 유·무선, 전원, offset, 전후 runner CPU, dropped, attempts를 기록한다. `dropped_iterations >= 1`, unexpected 응답, 네트워크 단절 또는 설정 arrival rate를 만들지 못한 runner saturation이 있으면 새 `TEST_ID`로 재실행한다. 전체 Mac CPU 80%만으로는 단독 폐기하지 않는다.
 
 전략 순서는 아래 다섯 block을 사용한다.
 
@@ -154,6 +158,7 @@ dropped_iterations=0
 - Hikari acquire timeout이 발생함
 - flash 종료 60초 뒤에도 Hikari pending이 지속되며 saturation/timeout이 동반됨
 - RDS CPU, connection, latency, IOPS 또는 DiskQueueDepth가 baseline에서 비정상적으로 이탈함
+- gp2 RDS에서만 BurstBalance가 사전 정의한 허용치 아래로 하락함
 - dev node 또는 apis container가 지속적으로 CPU/memory pressure를 보임
 - Grafana Alloy remote-write failure/pending이 지속 증가함
 
@@ -180,6 +185,9 @@ MySQL exporter는 아직 별도 read-only DSN 설정이 없으므로 buffer-pool
 - `summary-<test_id>-warmup.json`, `summary-<test_id>-flash.json`
 - test ID, deployed Git SHA, strategy, block, 실행 시각
 - fixture reset read-back 결과와 DB invariant 결과
+- InnoDB buffer-pool 전역 counter의 pre/post 값
+- Mac 모델, macOS·k6 version, 유·무선, 전원, clock offset, 전후 runner CPU, dropped/attempts
+- settle/baseline, warmup, flash, drain, cooldown과 baseline 복귀 snapshot
 - Grafana `90 Load Test`, `02 JVM & Hikari`, `03 Shared RDS / MySQL`, `04 Infrastructure`의 UTC time range
 - baseline/invalid reason/cooldown recovery 기록
 
