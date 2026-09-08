@@ -18,6 +18,12 @@ npm run check:generated
 - Grafana Cloud Mimir, Loki, and Tempo datasources: Grafana Cloud-owned.
 - Separate Alertmanager: not installed; all Slack notifications use the single Grafana contact point.
 
+Pushes to `develop` and `main` sync the committed Mimir recording rules after
+validation. Configure the `prod` GitHub environment secret
+`GRAFANA_CLOUD_RULES_TOKEN` with `rules:read` and `rules:write` scopes. The
+metrics instance ID and endpoint remain sourced from the encrypted prod
+inventory; the remote-write token is intentionally not reused for rule changes.
+
 The alert plane is intentionally not managed by Terraform. Keep the following
 inventory aligned with the Grafana UI configuration:
 

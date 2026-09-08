@@ -68,3 +68,19 @@ The names and monitoring-period constraints are from the [Amazon RDS
 metrics](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html)
 and [Amazon EC2 CloudWatch metrics](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html)
 references.
+
+## Runtime instrumentation contracts
+
+- Alloy container metrics follow the official
+  [`prometheus.exporter.cadvisor` Docker deployment](https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.exporter.cadvisor/),
+  including the host rootfs, runtime, sysfs, Docker data, device mounts, and
+  privileged mode required for container metadata rather than only the root
+  cgroup.
+- JDBC query spans use
+  [`datasource-micrometer`](https://github.com/jdbc-observations/datasource-micrometer)
+  2.x for Spring Boot 4.x. Only `QUERY` observations and OpenTelemetry spans
+  are enabled; JDBC metrics are disabled to avoid adding active series.
+- Mimir recording rules are synchronized with
+  [`mimirtool rules sync`](https://grafana.com/docs/mimir/latest/manage/tools/mimirtool/)
+  and a dedicated Grafana Cloud token scoped to `rules:read` and
+  `rules:write`.

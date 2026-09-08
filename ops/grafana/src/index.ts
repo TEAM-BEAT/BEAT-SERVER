@@ -675,8 +675,8 @@ function serviceDeepDive(): DashboardBuilder {
       tempoSearchPanel(
         7,
         "Database spans",
-        '{ resource.service.name =~ "beat-.*" && resource.deployment.environment.name = "$tempo_environment" && (name =~ "(?i).*mysql.*" || name =~ "(?i).*jdbc.*") }',
-        "DB span names only; SQL text is intentionally not used as a label or dashboard variable.",
+        '{ resource.service.name =~ "beat-.*" && resource.deployment.environment.name = "$tempo_environment" && (span.db.system.name = "mysql" || span.db.system = "mysql") }',
+        "JDBC observations use OpenTelemetry database semantic attributes; SQL text is intentionally not used as a label or dashboard variable.",
       ),
     )
     .withPanel(
@@ -955,7 +955,7 @@ function pipeline(): DashboardBuilder {
       }),
     )
     .withPanel(
-      metricPanel(2, "Alloy resident memory", `process_resident_memory_bytes{job=~".*alloy.*",env=~"$env"}`, {
+      metricPanel(2, "Alloy resident memory", `alloy_resources_process_resident_memory_bytes{env=~"$env"}`, {
         unit: "bytes",
         legendFormat: "{{instance}}",
       }),
@@ -979,9 +979,10 @@ function pipeline(): DashboardBuilder {
       }),
     )
     .withPanel(
-      metricPanel(6, "Remote-write WAL size", `sum by (remote_name) (prometheus_remote_storage_wal_storage_size_bytes{env=~"$env"})`, {
-        unit: "bytes",
-        legendFormat: "{{remote_name}}",
+      metricPanel(6, "Alloy component health", `sum by (health_type) (alloy_component_controller_running_components{env=~"$env"})`, {
+        unit: "short",
+        legendFormat: "{{health_type}}",
+        description: "Alloy does not expose a stable remote-write WAL-size metric; component health and pending samples are the supported pressure signals.",
       }),
     )
     .withPanel(
@@ -991,9 +992,10 @@ function pipeline(): DashboardBuilder {
       }),
     )
     .withPanel(
-      metricPanel(8, "Dropped spans", `sum by (env) (rate(otelcol_processor_dropped_spans_total{env=~"$env"}[$__rate_interval]))`, {
+      metricPanel(8, "Failed span exports", `sum by (env) (rate(otelcol_exporter_send_failed_spans_total{env=~"$env"}[$__rate_interval]))`, {
         unit: "reqps",
         legendFormat: "{{env}}",
+        description: "Failed OTLP export attempts reported by the Alloy exporter. A sustained non-zero rate requires investigation.",
       }),
     )
     .withPanel(

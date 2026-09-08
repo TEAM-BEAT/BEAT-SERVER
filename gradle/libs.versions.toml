@@ -18,6 +18,7 @@ testcontainers = "2.0.5"
 redis-testcontainers = "2.2.4"
 sentry = "8.41.0"
 sentry-gradle-plugin = "6.6.0"
+datasource-micrometer = "2.2.1"
 # Micrometer Tracing / OpenTelemetry 버전은 Spring Boot 4.0 BOM 이 관리 (spring-boot-starter-opentelemetry 가 정렬된 transitive 제공)
 # JUnit Platform/Jupiter is the baseline for existing Java tests and Spring Boot starter-test.
 # Kotlin migration may add Kotest/MockK as an optional Kotlin test layer on top of this baseline,
@@ -98,6 +99,8 @@ nurigo-java-sdk = { module = "net.nurigo:javaSDK", version = "2.2" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 # Spring Boot 4.0 OTLP tracing starter — micrometer-tracing-bridge-otel + opentelemetry-sdk + opentelemetry-exporter-otlp + opentelemetry-api 를 BOM 정렬된 버전으로 transitive 제공
 spring-boot-starter-opentelemetry = { module = "org.springframework.boot:spring-boot-starter-opentelemetry", version.ref = "spring-boot" }
+datasource-micrometer-spring-boot = { module = "net.ttddyy.observation:datasource-micrometer-spring-boot", version.ref = "datasource-micrometer" }
+datasource-micrometer-opentelemetry = { module = "net.ttddyy.observation:datasource-micrometer-opentelemetry", version.ref = "datasource-micrometer" }
 testcontainers-mysql = { module = "org.testcontainers:testcontainers-mysql", version.ref = "testcontainers" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:testcontainers-junit-jupiter", version.ref = "testcontainers" }
 testcontainers-redis = { module = "com.redis:testcontainers-redis", version.ref = "redis-testcontainers" }
