@@ -3,7 +3,7 @@
   "extends": ["config:recommended"],
   "enabledManagers": ["gradle", "gradle-wrapper", "dockerfile", "github-actions"],
   "vulnerabilityAlerts": {
-    "enabled": true
+    "enabled": false
   },
   "packageRules": [
     {
