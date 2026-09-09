@@ -92,10 +92,22 @@ prometheus.exporter.cadvisor "containers" {
   allowlisted_container_labels = ["com.docker.compose.service"]
 }
 
+// 부하 실험에는 컨테이너별 CPU·메모리와 scrape 상태만 필요하다.
+// 다른 scrape job에 영향을 주지 않도록 cAdvisor 전용 allowlist로 제한한다.
+prometheus.relabel "cadvisor_metrics" {
+  rule {
+    source_labels = ["__name__"]
+    regex         = "^(up|container_cpu_usage_seconds_total|container_memory_working_set_bytes)$"
+    action        = "keep"
+  }
+
+  forward_to = [prometheus.relabel.cleanup.receiver]
+}
+
 prometheus.scrape "containers" {
   targets         = prometheus.exporter.cadvisor.containers.targets
   scrape_interval = "{{ observability_alloy_scrape_interval }}"
-  forward_to      = [prometheus.relabel.cleanup.receiver]
+  forward_to      = [prometheus.relabel.cadvisor_metrics.receiver]
 }
 {% endif %}
 
@@ -126,9 +138,6 @@ prometheus.exporter.mysql "shared_rds" {
   data_source_name = local.file.shared_mysql_dsn.content
   set_collectors = [
     "global_status",
-    "global_variables",
-    "info_schema.innodb_metrics",
-    "engine_innodb_status",
   ]
   lock_wait_timeout = 2
 }
