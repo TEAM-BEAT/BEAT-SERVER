@@ -9,35 +9,43 @@
 | Dependabot Alerts | 취약점 탐지와 alert 제공 | 직접 PR을 만들지 않음 |
 | Renovate | 일반·보안 dependency PR 생성의 유일한 bot | PR별 CI와 사람 승인 필요 |
 | Dependency Review | PR에서 새로 유입되는 runtime dependency의 HIGH 이상 차단 | `HIGH`와 `CRITICAL` 실패 |
-| Trivy | JVM/Lambda 실제 artifact와 production dependency 검증 | fix 가능한 `HIGH`/`CRITICAL` 실패 |
-| Dependency Submission | Gradle resolved graph 제출 | 병합 후 dependency graph 갱신 |
+| Trivy | JVM image와 Lambda production dependency의 fix 가능한 취약점 검증 | `HIGH`/`CRITICAL` 실패 |
+| Dependency Submission | PR resolved snapshot 제공 + 병합 후 default-branch dependency graph 갱신 | 직접 PR을 만들거나 dependency를 수정하지 않음 |
 
 ## 업데이트 정책
 
 일반 업데이트는 `Asia/Seoul` 기준 월요일에만 새 PR을 만듭니다. 일반 PR은 최대 5개, 시간당 최대 2개이며 `dependencies` 라벨을 붙입니다. major 업데이트는 다른 업데이트와 묶지 않습니다. 자동 병합은 사용하지 않고 승인 1명과 필수 CI를 통과시킨 뒤 병합합니다.
 
-Spring Boot와 Spring Cloud는 일반 라이브러리 그룹이 아니라 managed platform baseline입니다. Renovate는 검증된 Boot `4.0.x` release line과 Cloud `2025.1.x` release train 안에서만 stable patch PR을 만듭니다. Boot `4.1.x` 또는 다른 Cloud release train으로의 변경은 자동 PR 대상이 아니며, 공식 compatibility matrix 확인, 별도 migration PR, 전체 CI를 거쳐 사람이 baseline 제한을 변경합니다. platform baseline PR에는 `platform-baseline` 라벨을 추가합니다.
+Spring Boot와 Spring Cloud는 일반 라이브러리 그룹이 아니라 managed platform baseline입니다. Renovate는 검증된 Boot `4.0.x` release line과 Cloud `2025.1.x` release train 안에서만 stable patch PR을 만듭니다. Boot `4.1.x` 또는 다른 Cloud release train으로의 변경은 자동 PR 대상이 아니며, 변경 시점의 공식 Spring compatibility 정보를 확인하고 별도 migration PR과 전체 CI를 거쳐 사람이 baseline 제한을 변경합니다. platform baseline PR에는 `platform-baseline` 라벨을 추가합니다.
 
 보안 업데이트는 취약점 alert를 기준으로 즉시 처리합니다. 일반 업데이트의 schedule과 hourly limit을 적용하지 않으며, 보안 PR에도 `dependencies`와 `security` 라벨을 붙입니다. 보안 PR에는 별도 동시 PR 예산(최대 5개)을 사용합니다. 보안 업데이트도 자동 병합하지 않고 승인 1명과 필수 CI를 요구합니다.
 
+Gradle build tooling 중 코드에서 동적으로 marker/version을 조립하던 항목은 Renovate의 정적 분석이 package 좌표와 version을 연결할 수 있도록 version catalog에 명시적인 library 좌표를 둡니다. build logic은 같은 catalog entry를 실제로 사용하므로 중복 버전 소스나 unused alias를 만들지 않습니다.
+
 ## PR 검증
 
-같은 저장소에서 생성된 PR은 Gradle `runtimeClasspath` resolved graph를 dependency submission으로 먼저 제출한 뒤 Dependency Review를 실행합니다. Dependency Review는 runtime scope의 신규 dependency 변경을 검사하고 `HIGH` 이상을 차단합니다. snapshot 경고는 같은 저장소 PR에서만 최대 300초 재시도합니다.
+같은 저장소에서 생성된 PR은 Gradle `runtimeClasspath` resolved graph를 Dependency Submission으로 먼저 제출한 뒤 Dependency Review를 실행합니다. 이 PR snapshot은 default branch graph를 대체하지 않고, Dependency Review가 base와 PR의 resolved dependency 차이를 비교하는 입력으로 사용합니다. Dependency Review는 runtime scope의 신규 dependency 변경을 검사하고 `HIGH` 이상을 차단합니다. snapshot 경고는 같은 저장소 PR에서만 최대 300초 재시도합니다.
 
-JVM과 Lambda는 Trivy로 실제 검증 대상 artifact를 검사합니다. Lambda는 배포와 동일한 ARM64 production dependency 설치를 확인한 뒤 filesystem scan을 수행합니다. 이 검사는 ARM64 실행 성능을 증명하는 것이 아니라 배포 패키지의 설치 가능성과 취약점을 검증합니다.
+병합 후에는 기존 `develop`/`main` push 기반 Dependency Submission이 최종 resolved graph를 GitHub Dependency Graph에 제출하고 Dependabot Alerts의 inventory를 갱신합니다.
+
+JVM 애플리케이션은 실제 Docker image를 Trivy image scan으로 검사합니다. Lambda는 `ubuntu-24.04-arm` ARM64 runner에서 Node.js 22로 production/optional dependency를 `--ignore-scripts`와 함께 설치하고, `@img/sharp-linux-arm64`, `@img/sharp-libvips-linux-arm64` 존재 여부와 실제 `sharp` native module import를 확인합니다. 이후 Lambda directory의 npm dependency graph를 Trivy filesystem scan으로 검사합니다. 이 검사는 ARM64 실행 성능 benchmark가 아니라, 배포 대상 아키텍처에서 native dependency가 load 가능한지와 production dependency에 fix 가능한 HIGH/CRITICAL 취약점이 없는지를 검증합니다.
+
+실제 Ansible Lambda 패키징도 `npm ci --ignore-scripts`를 사용하고 ARM64 Sharp optional package의 존재를 확인합니다. Sharp `0.35+`는 install lifecycle script 없이 prebuilt optional package를 사용하므로, 패키징 중 third-party lifecycle script 실행을 허용할 필요가 없습니다.
 
 외부 fork PR에서는 read-only token으로 Gradle snapshot을 제출하지 않고 snapshot job을 정상적으로 skip합니다. Dependency Review의 manifest/lock 기반 정적 검사와 read-only CI는 계속 실행합니다.
 
 ## 외부 fork dependency PR
 
-다음 변경을 포함한 fork PR은 maintainer-owned branch로 커밋을 옮긴 뒤 병합합니다.
+`fork-dependency-policy`는 외부 fork PR의 changed-files 목록을 GitHub REST API로 read-only 조회합니다. 다음 dependency-sensitive 경로를 변경한 외부 fork PR은 `verify`에서 실패시켜 maintainer-owned branch 전환을 강제합니다.
 
-- dependency manifest 또는 lockfile
-- Gradle build logic
-- Dockerfile 또는 GitHub Actions dependency
-- Ansible/Python dependency
+- Renovate/Dependabot 설정
+- Gradle wrapper, version catalog, build scripts와 `build-logic`
+- npm manifest/lockfile
+- Dockerfile
+- GitHub Actions workflow/composite action
+- Python/Ansible requirements
 
-maintainer branch에서 resolved dependency snapshot과 전체 `verify`를 실행하고, 필수 CI와 사람 승인을 확인한 뒤 병합합니다. dependency와 무관한 일반 코드 변경 fork PR은 기존 read-only CI와 동일한 승인 절차를 따릅니다.
+같은 저장소 PR과 dependency-sensitive 파일을 바꾸지 않은 일반 fork 코드 PR은 이 정책 job을 통과합니다. dependency-sensitive fork PR은 maintainer-owned branch로 커밋을 옮긴 뒤 resolved dependency snapshot과 전체 `verify`를 다시 실행하고, 필수 CI와 사람 승인을 확인한 뒤 병합합니다.
 
 ## Transitive CVE 대응
 
@@ -56,7 +64,7 @@ release-line 제한 때문에 수정 버전이 다음 Boot line 또는 다른 Cl
 
 1. workflow와 Renovate 설정 변경을 PR로 병합하고 새 `verify`가 통과하는지 확인합니다.
 2. Renovate App 권한(Dependabot Alerts 읽기, contents/PR/issues 쓰기)과 Dependency Dashboard 생성을 확인합니다.
-3. 각 manager가 dependency를 탐지하고, 일반 PR의 월요일 일정·동시성·라벨 및 보안 PR의 즉시 생성·라벨을 실제 실행에서 확인합니다.
+3. 각 manager가 dependency를 탐지하고, 일반 PR의 월요일 일정·동시성·라벨 및 보안 PR의 즉시 생성·라벨을 실제 실행에서 확인합니다. build-tool catalog 좌표(`dependency-management-gradle-plugin`, `sentry-gradle-plugin`, `ktfmt`)도 Mend 로그에서 추출되는지 확인합니다.
 4. Renovate의 보안 PR 생성이 확인된 뒤 Dependabot Security Updates를 끕니다. Dependabot Alerts와 Dependency Graph는 계속 활성화합니다.
 5. Ruleset required check 이름을 실제 성공 workflow run의 check context와 대조한 뒤 Ruleset을 활성화합니다. 대상 보호 branch에는 PR, 승인 1명, stale approval 해제, 필수 `verify`를 적용합니다.
 

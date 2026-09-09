@@ -46,7 +46,9 @@
     cmd: >
       bash -c "cd '{{ image_cdn_repo_root }}/{{ image_cdn_lambda_src_relpath }}'
       && rm -rf node_modules
-      && npm ci --omit=dev --include=optional --os=linux --cpu=arm64 --libc=glibc --no-audit --no-fund"
+      && npm ci --omit=dev --include=optional --ignore-scripts --os=linux --cpu=arm64 --libc=glibc --no-audit --no-fund
+      && test -d node_modules/@img/sharp-linux-arm64
+      && test -d node_modules/@img/sharp-libvips-linux-arm64"
   changed_when: true
 
 - name: Compute Lambda package hash for versioning

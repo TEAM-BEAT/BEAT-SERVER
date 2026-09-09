@@ -15,7 +15,8 @@ group = rootProject.group.toString()
 version = rootProject.version.toString()
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
-val ktfmtVersion = libsCatalog.findVersion("ktfmt").get().requiredVersion
+val ktfmtVersion =
+    libsCatalog.findLibrary("ktfmt").get().get().versionConstraint.requiredVersion
 
 spotless {
     kotlin {

@@ -50,6 +50,13 @@ kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref =
 kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlin-logging" }
 kotlinx-coroutines-slf4j = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-slf4j", version.ref = "kotlinx-coroutines" }
 lombok = { module = "org.projectlombok:lombok", version = "1.18.44" }
+
+# Build-tool coordinates are catalogued explicitly so static dependency tooling
+# (including Renovate's Gradle manager) can associate each version with a package.
+dependency-management-gradle-plugin = { module = "io.spring.dependency-management:io.spring.dependency-management.gradle.plugin", version.ref = "dependency-management" }
+sentry-gradle-plugin = { module = "io.sentry.jvm.gradle:io.sentry.jvm.gradle.gradle.plugin", version.ref = "sentry-gradle-plugin" }
+ktfmt = { module = "com.facebook:ktfmt", version.ref = "ktfmt" }
+
 sentry-spring-boot-starter = { module = "io.sentry:sentry-spring-boot-4-starter", version.ref = "sentry" }
 sentry-async-profiler = { module = "io.sentry:sentry-async-profiler", version.ref = "sentry" }
 sentry-log4j2 = { module = "io.sentry:sentry-log4j2", version.ref = "sentry" }

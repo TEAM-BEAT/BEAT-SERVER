@@ -54,8 +54,8 @@
       "groupName": "Testcontainers non-major"
     },
     {
-      "description": "Group Sentry non-major updates.",
-      "matchPackageNames": ["/^io\\.sentry:/", "/^@sentry\\//"],
+      "description": "Group Sentry non-major updates, including the Gradle plugin marker.",
+      "matchPackageNames": ["/^io\\.sentry(?::|\\.)/", "/^@sentry\\//"],
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "Sentry non-major"
     },
