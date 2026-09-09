@@ -12,12 +12,9 @@ group = "com.beat.buildlogic"
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 val kotlinVersion = libsCatalog.findVersion("kotlin").get().requiredVersion
 val springBootVersion = libsCatalog.findVersion("spring-boot").get().requiredVersion
-val dependencyManagementVersion = libsCatalog.findVersion("dependency-management").get().requiredVersion
-val sentryGradlePluginVersion = libsCatalog.findVersion("sentry-gradle-plugin").get().requiredVersion
 val dependencyAnalysisVersion = libsCatalog.findVersion("dependency-analysis").get().requiredVersion
 val koverVersion = libsCatalog.findVersion("kover").get().requiredVersion
 val spotlessVersion = libsCatalog.findVersion("spotless").get().requiredVersion
-val ktfmtVersion = libsCatalog.findVersion("ktfmt").get().requiredVersion
 
 fun pluginMarker(group: String, artifact: String, version: String): String =
     "$group:$artifact:$version"
@@ -45,20 +42,8 @@ dependencies {
     implementation(pluginMarker("org.jetbrains.kotlin.plugin.spring", "org.jetbrains.kotlin.plugin.spring.gradle.plugin", kotlinVersion))
     implementation(pluginMarker("org.jetbrains.kotlin.plugin.jpa", "org.jetbrains.kotlin.plugin.jpa.gradle.plugin", kotlinVersion))
     implementation(pluginMarker("org.springframework.boot", "org.springframework.boot.gradle.plugin", springBootVersion))
-    implementation(
-        pluginMarker(
-            "io.spring.dependency-management",
-            "io.spring.dependency-management.gradle.plugin",
-            dependencyManagementVersion,
-        )
-    )
-    implementation(
-        pluginMarker(
-            "io.sentry.jvm.gradle",
-            "io.sentry.jvm.gradle.gradle.plugin",
-            sentryGradlePluginVersion,
-        )
-    )
+    implementation(libsCatalog.findLibrary("dependency-management-gradle-plugin").get())
+    implementation(libsCatalog.findLibrary("sentry-gradle-plugin").get())
     implementation(pluginMarker("org.jetbrains.kotlinx.kover", "org.jetbrains.kotlinx.kover.gradle.plugin", koverVersion))
     implementation(pluginMarker("com.diffplug.spotless", "com.diffplug.spotless.gradle.plugin", spotlessVersion))
 }

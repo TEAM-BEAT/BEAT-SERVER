@@ -123,7 +123,7 @@ image_cdn_alarm_email: alerts@example.com
 
 플레이북 실행 호스트(GHA runner 또는 로컬) 에 다음이 설치되어 있어야 합니다.
 
-- Node.js 22 이상 (`npm install` 용)
+- Node.js 22 이상 (`npm ci` 용)
 - `zip` CLI (Lambda 패키지 생성용)
 
 ---
@@ -181,8 +181,8 @@ AWS_PROFILE=beat-prod ansible-playbook \
 
 #### 역할 내부 동작 순서
 
-1. `npm ci --omit=dev --include=optional --os=linux --cpu=arm64 --libc=glibc --no-audit --no-fund`로 Linux/arm64용
-   `sharp` 바이너리를 포함한 Lambda 패키지 빌드
+1. `npm ci --omit=dev --include=optional --ignore-scripts --os=linux --cpu=arm64 --libc=glibc --no-audit --no-fund`로 lifecycle script 실행 없이 Linux/arm64용 `sharp` optional package를 포함한 Lambda 패키지를 빌드하고, ARM64 Sharp/libvips package가 실제 설치됐는지 확인합니다.
+   실제 native module load 가능 여부는 PR CI의 `ubuntu-24.04-arm` runner에서 `import('sharp')`로 검증합니다.
 2. 패키지 내용의 SHA 해시를 산출하여
    `s3://<deploy-artifacts-bucket-name>/image-cdn/<hash>/image-processing.zip`
    경로로 업로드
