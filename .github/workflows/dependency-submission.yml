@@ -29,3 +29,4 @@ jobs:
         with:
           cache-provider: basic
           dependency-graph: generate-and-submit
+          dependency-graph-include-configurations: "^runtimeClasspath$"
