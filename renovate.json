@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
-  "enabledManagers": ["dockerfile"],
+  "enabledManagers": ["gradle", "gradle-wrapper", "dockerfile", "github-actions"],
   "vulnerabilityAlerts": {
     "enabled": false
   },
