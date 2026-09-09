@@ -1,6 +1,6 @@
 {
   "annotations": {},
-  "description": "k6 test_id correlation with server RPS, JVM/Hikari saturation and shared RDS. Default environment is dev; prod remains selectable with an explicit shared-RDS warning.",
+  "description": "k6 stock-contention test_id correlation with outcome counters, latency histograms, completion/drain timing, server RPS, JVM/Hikari saturation, shared RDS and an optional burstable load-generator signal. Default environment is dev; prod remains selectable with an explicit shared-RDS warning.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -10,6 +10,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
+      "description": "k6 Counter http_reqs is exported as k6_http_reqs by Alloy with add_metric_suffixes=false; select test_id, strategy and load profile before comparing runs.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -44,9 +45,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum(rate(k6_http_reqs_total{test_id=~\"$test_id\",scenario=~\"$test_scenario\"}[$__rate_interval]))",
+          "expr": "sum(rate(k6_http_reqs{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "{{scenario}}",
+          "legendFormat": "{{strategy}} {{load_profile}}",
           "range": true,
           "refId": "A"
         }
@@ -60,6 +61,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
+      "description": "k6 Rate http_req_failed is exported as k6_http_req_failed_total with condition=nonzero; this is transport/status failure visibility, not the stock outcome verdict.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -94,7 +96,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "100 * sum(rate(k6_http_req_failed{test_id=~\"$test_id\",scenario=~\"$test_scenario\"}[$__rate_interval])) / sum(rate(k6_http_reqs_total{test_id=~\"$test_id\",scenario=~\"$test_scenario\"}[$__rate_interval]))",
+          "expr": "100 * sum(rate(k6_http_req_failed_total{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",condition=\"nonzero\"}[$__rate_interval])) / sum(rate(k6_http_reqs{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval]))",
           "instant": false,
           "legendFormat": "failed",
           "range": true,
@@ -110,10 +112,11 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
+      "description": "k6 Trend http_req_duration is an OTLP histogram in milliseconds; with Alloy add_metric_suffixes=false its classic bucket series is k6_http_req_duration_bucket. Prometheus quantiles are estimates; the local k6 summary remains authoritative.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
-          "unit": "s"
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -144,9 +147,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(k6_http_req_duration_seconds_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le, strategy, load_profile) (rate(k6_http_req_duration_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "p95",
+          "legendFormat": "{{strategy}} {{load_profile}} p95",
           "range": true,
           "refId": "A"
         },
@@ -156,9 +159,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.99, sum by (le) (rate(k6_http_req_duration_seconds_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.99, sum by (le, strategy, load_profile) (rate(k6_http_req_duration_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "p99",
+          "legendFormat": "{{strategy}} {{load_profile}} p99",
           "range": true,
           "refId": "B"
         }
@@ -172,6 +175,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
+      "description": "k6 dropped_iterations is a Counter and is exported without an added _total suffix. Any non-zero local dropped count invalidates the stock-contention run.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -206,7 +210,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "max(k6_vus{test_id=~\"$test_id\",scenario=~\"$test_scenario\"})",
+          "expr": "max(k6_vus{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"})",
           "instant": false,
           "legendFormat": "VUs",
           "range": true,
@@ -218,7 +222,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum(rate(k6_dropped_iterations_total{test_id=~\"$test_id\",scenario=~\"$test_scenario\"}[$__rate_interval]))",
+          "expr": "sum(rate(k6_dropped_iterations{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval]))",
           "instant": false,
           "legendFormat": "dropped iterations",
           "range": true,
@@ -234,7 +238,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Compare trend with k6 request rate; k6 and server RPS are separate signals.",
+      "description": "The business /api selector includes /api/internal/experiments/stock-contention/{strategy}/bookings; compare this server-side RPS with k6 request rate as separate signals.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -289,6 +293,21 @@
       "fieldConfig": {
         "defaults": {
           "custom": {},
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.8
+              }
+            ]
+          },
           "unit": "percentunit"
         },
         "overrides": []
@@ -336,10 +355,11 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
+      "description": "Pending waiters indicate pool pressure even when active/max utilization has not reached 100%.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
-          "unit": "percent"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -350,6 +370,56 @@
         "y": 24
       },
       "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (application, instance, color, pool) (hikaricp_connections_pending{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"})",
+          "instant": false,
+          "legendFormat": "{{application}} {{instance}} {{color}} {{pool}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Server Hikari pending connections",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 8,
       "options": {
         "legend": {
           "calcs": [],
@@ -386,7 +456,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "SHARED RDS — dev load can affect prod. Stop the run if CPU is >=80% for 5m, freeable memory <=128MiB, or connections exceed 80% of max.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. Stop the run if CPU is >=80% for 5m, freeable memory <=128MiB, or connections exceed 80% of max.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -397,10 +467,10 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 24
+        "x": 0,
+        "y": 32
       },
-      "id": 8,
+      "id": 9,
       "options": {
         "legend": {
           "calcs": [],
@@ -420,8 +490,10 @@
             "type": "cloudwatch",
             "uid": "${DS_CLOUDWATCH}"
           },
-          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"CPUUtilization\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"CPUUtilization\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 60)",
           "id": "rds_cpuutilization",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
           "namespace": "AWS/RDS",
           "queryMode": "Metrics",
           "refId": "A",
@@ -433,19 +505,851 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"FreeableMemory\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 60)",
+          "id": "rds_freeablememory",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — freeable memory during test",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"DatabaseConnections\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 60)",
+          "id": "rds_databaseconnections",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — connections during test",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"ReadLatency\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 60)",
+          "id": "rds_readlatency",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — read latency during test",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 48
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"WriteLatency\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 60)",
+          "id": "rds_writelatency",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — write latency during test",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Custom k6 Counters are correlated by test_id, git_sha, strategy, phase and load_profile. The local JSON summary and read-only DB invariant decide exact accepted/sold_out counts.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 48
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_bookings_accepted{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{strategy}} {{load_profile}} accepted",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_bookings_sold_out{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{strategy}} {{load_profile}} sold_out",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Stock outcomes — accepted / sold out",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Any conflict_exhausted or lock_timeout sample is a failed experiment outcome, even if the HTTP status is 200.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 56
+      },
+      "id": 15,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_conflict_exhausted{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{strategy}} {{load_profile}} conflict",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_lock_timeout{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{strategy}} {{load_profile}} lock timeout",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Stock outcomes — conflict exhausted / lock timeout",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "The timeout Counter is a terminal request timeout count. For the Rate-based request-timeout signal, see the next panel; both remain separate from local exact counts.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 56
+      },
+      "id": 16,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_unexpected_response{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{strategy}} unexpected",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_timeouts{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{strategy}} timeout",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Stock outcomes — unexpected / timeout",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Rate metrics retain k6's condition label; condition=nonzero selects timed-out requests. The submitted Counter is shown as a rate to make timeout volume comparable with the planned request stream.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 64
+      },
+      "id": 17,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_request_timeout_total{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\",condition=\"nonzero\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{strategy}} request timeout rate",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_requests_submitted{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{strategy}} submitted",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Stock request timeout rate / submitted rate",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Accepted-only k6 Trend histogram. The Prometheus p95/p99 are histogram_quantile estimates; exact accepted latency percentiles are preserved in the local JSON summary.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 64
+      },
+      "id": 18,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.95, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_accepted_latency_ms_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{strategy}} {{load_profile}} p95",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.99, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_accepted_latency_ms_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{strategy}} {{load_profile}} p99",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Accepted latency p95 / p99",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Response attemptCount Trend; values above one expose retry work. The local JSON summary is authoritative for exact samples and maxima.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 72
+      },
+      "id": 19,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.5, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_attempt_count_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{strategy}} {{load_profile}} p50",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.99, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_attempt_count_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{strategy}} {{load_profile}} p99",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Attempt count p50 / p99",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Elapsed milliseconds from k6 setup start until each response completed; this makes tail work after the arrival window visible.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 72
+      },
+      "id": 20,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.95, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_completion_elapsed_ms_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{strategy}} {{load_profile}} p95",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.99, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_completion_elapsed_ms_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{strategy}} {{load_profile}} p99",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Completion elapsed p95 / p99",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "max(0, completion elapsed - planned profile duration). Zero means the response completed inside the planned window; positive values show completion/drain tail. Exact max drain_time_ms remains in local JSON.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 80
+      },
+      "id": 21,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.95, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_drain_time_ms_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{strategy}} {{load_profile}} p95",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.99, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_drain_time_ms_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{strategy}} {{load_profile}} p99",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Drain time p95 / p99",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "mysqld_exporter global_status names: Innodb_buffer_pool_reads and Innodb_buffer_pool_read_requests. The panel is conditional on the shared read-only MySQL exporter being enabled; an empty panel is expected otherwise.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 80
+      },
+      "id": 22,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "rate(mysql_global_status_innodb_buffer_pool_reads{env=\"shared\",scope=\"beat-shared-rds\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "physical reads",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "rate(mysql_global_status_innodb_buffer_pool_read_requests{env=\"shared\",scope=\"beat-shared-rds\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "buffer-pool read requests",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "MySQL warm-cache support — physical reads / read requests",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "Optional load-generator signal. CPUCreditBalance is an AWS/EC2 metric for burstable instances and is queried at its 5-minute basic-monitoring period; enter one exact InstanceId above.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 88
+      },
+      "id": 23,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/EC2,InstanceId} MetricName=\"CPUCreditBalance\" InstanceId=\"$ec2_instance_id\"', 'Average', 300)",
+          "id": "ec2_cpucreditbalance",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/EC2",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Load generator EC2 — CPU credit balance",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
       "gridPos": {
         "h": 6,
         "w": 24,
-        "x": 0,
-        "y": 32
+        "x": 12,
+        "y": 88
       },
-      "id": 9,
+      "id": 24,
       "options": {
-        "content": "\n- `test_id` is the only correlation selector; user ID and booking ID are never metric tags.\n- The run must be preflighted against the environment allowlist and workload budget before traffic starts.\n- Shared RDS is always in scope, including when the selected target environment is `dev`.\n- Keep the local JSON summary/artifact after the 14-day metrics window expires.\n",
+        "content": "\n- Select `test_id` first, then strategy, load_profile and phase. User ID, access token and booking ID are never metric tags.\n- k6 OTLP naming assumes Alloy `otelcol.exporter.prometheus.k6 { add_metric_suffixes = false }`: Counter names are unsuffixed, Rate `.total` names become `_total`, and Trend histograms expose `_bucket/_sum/_count` in milliseconds.\n- Grafana histogram p95/p99 values are estimates from exported buckets. Exact outcome counts, TPS, overselling/duplicate checks and exact local percentiles come from the retained JSON summary plus read-only DB invariant query.\n- The /api HTTP selector includes the stock-contention endpoint, so server-side RPS includes this experiment while remaining independent from k6 RPS.\n- CloudWatch RDS panels use a 60s period and require the exact shared DBInstanceIdentifier. EC2 CPUCreditBalance uses the exact InstanceId above and a 300s basic-monitoring period; a blank selector intentionally yields no series.\n- The warm-cache panel is supporting evidence only: shared MySQL exporter collection must be enabled and the physical/read-request comparison does not replace the local/DB verdict.\n- The run must be preflighted against the environment allowlist and workload budget before traffic starts.\n- Shared RDS is always in scope, including when the selected target environment is `dev`.\n- Keep the local JSON summary/artifact after the 14-day metrics window expires.\n",
         "mode": "markdown"
       },
       "repeatDirection": "h",
-      "title": "Load-test safety contract",
+      "title": "Load-test observability and safety contract",
       "transparent": false,
       "type": "text"
     }
@@ -577,6 +1481,20 @@
         "label": "Shared RDS instance",
         "multi": false,
         "name": "rds_instance_identifier",
+        "query": "beat-prod-database",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "allowCustomValue": true,
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "description": "Required exact AWS/EC2 InstanceId for CPUCreditBalance. Leave blank when the load generator is not a burstable EC2 instance.",
+        "includeAll": false,
+        "label": "Load generator EC2 instance",
+        "multi": false,
+        "name": "ec2_instance_id",
         "skipUrlSync": false,
         "type": "textbox"
       },
@@ -594,7 +1512,64 @@
         "label": "Load test",
         "multi": false,
         "name": "test_id",
-        "query": "label_values(k6_http_reqs_total, test_id)",
+        "query": "label_values(k6_http_reqs, test_id)",
+        "refresh": 1,
+        "skipUrlSync": false,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "includeAll": true,
+        "label": "Strategy",
+        "multi": false,
+        "name": "strategy",
+        "query": "label_values(k6_http_reqs{test_id=~\"$test_id\"}, strategy)",
+        "refresh": 1,
+        "skipUrlSync": false,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "includeAll": true,
+        "label": "Load profile",
+        "multi": false,
+        "name": "load_profile",
+        "query": "label_values(k6_http_reqs{test_id=~\"$test_id\"}, load_profile)",
+        "refresh": 1,
+        "skipUrlSync": false,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "includeAll": true,
+        "label": "Experiment phase",
+        "multi": false,
+        "name": "phase",
+        "query": "label_values(k6_stock_contention_requests_submitted{test_id=~\"$test_id\"}, phase)",
         "refresh": 1,
         "skipUrlSync": false,
         "type": "query"

@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.compile.JavaCompile
+import org.sonarqube.gradle.SonarExtension
 
 plugins {
     id("beat.kotlin-base")
@@ -72,12 +73,22 @@ dependencies {
     kover(project(":support:observability"))
 }
 
+val aggregateKoverXmlReport = layout.buildDirectory.file("reports/kover/report.xml")
+
 sonar {
     properties {
         property("sonar.projectKey", "TEAM-BEAT_BEAT-SERVER")
         property("sonar.organization", "team-beat")
-        // Sonar 공식 property는 sonar.coverage.jacoco.xmlReportPaths — Kover가 JaCoCo 호환 XML을 생성하므로 동일 경로 사용 (와일드카드 없이 단일 경로)
-        property("sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get().asFile.absolutePath}/reports/kover/report.xml")
+        property("sonar.coverage.jacoco.xmlReportPaths", aggregateKoverXmlReport.get().asFile.absolutePath)
+    }
+}
+
+subprojects {
+    extensions.configure<SonarExtension> {
+        properties {
+            // Root Kover report aggregates every module, but Sonar matches each entry in the owning subproject.
+            property("sonar.coverage.jacoco.xmlReportPaths", aggregateKoverXmlReport.get().asFile.absolutePath)
+        }
     }
 }
 

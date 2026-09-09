@@ -46,6 +46,8 @@
           },
           "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"CPUUtilization\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
           "id": "rds_cpuutilization",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
           "namespace": "AWS/RDS",
           "queryMode": "Metrics",
           "refId": "A",
@@ -97,6 +99,8 @@
           },
           "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"FreeableMemory\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
           "id": "rds_freeablememory",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
           "namespace": "AWS/RDS",
           "queryMode": "Metrics",
           "refId": "A",
@@ -148,6 +152,8 @@
           },
           "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"DatabaseConnections\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
           "id": "rds_databaseconnections",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
           "namespace": "AWS/RDS",
           "queryMode": "Metrics",
           "refId": "A",
@@ -199,6 +205,8 @@
           },
           "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"ReadIOPS\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
           "id": "rds_readiops",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
           "namespace": "AWS/RDS",
           "queryMode": "Metrics",
           "refId": "A",
@@ -250,6 +258,8 @@
           },
           "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"WriteIOPS\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
           "id": "rds_writeiops",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
           "namespace": "AWS/RDS",
           "queryMode": "Metrics",
           "refId": "A",
@@ -301,6 +311,8 @@
           },
           "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"DiskQueueDepth\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
           "id": "rds_diskqueuedepth",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
           "namespace": "AWS/RDS",
           "queryMode": "Metrics",
           "refId": "A",
@@ -352,6 +364,8 @@
           },
           "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"BurstBalance\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Minimum', 300)",
           "id": "rds_burstbalance",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
           "namespace": "AWS/RDS",
           "queryMode": "Metrics",
           "refId": "A",
@@ -536,6 +550,21 @@
       "fieldConfig": {
         "defaults": {
           "custom": {},
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.8
+              }
+            ]
+          },
           "unit": "percentunit"
         },
         "overrides": []
@@ -723,6 +752,7 @@
         "label": "Shared RDS instance",
         "multi": false,
         "name": "rds_instance_identifier",
+        "query": "beat-prod-database",
         "skipUrlSync": false,
         "type": "textbox"
       }

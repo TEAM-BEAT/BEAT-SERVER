@@ -1,11 +1,76 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
-  "enabledManagers": ["dockerfile"],
+  "enabledManagers": [
+    "gradle",
+    "gradle-wrapper",
+    "npm",
+    "dockerfile",
+    "github-actions",
+    "ansible-galaxy",
+    "pip_requirements"
+  ],
+  "timezone": "Asia/Seoul",
+  "schedule": ["* 0-11 * * 1"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "labels": ["dependencies"],
+  "dependencyDashboard": true,
+  "automerge": false,
+  "separateMajorMinor": true,
   "vulnerabilityAlerts": {
-    "enabled": false
+    "enabled": true,
+    "prConcurrentLimit": 5,
+    "addLabels": ["security"],
+    "automerge": false,
+    "vulnerabilityFixStrategy": "lowest"
   },
   "packageRules": [
+    {
+      "description": "Keep Spring Boot on the validated 4.0 release line.",
+      "matchPackageNames": ["/^org\\.springframework\\.boot(?::|$)/"],
+      "allowedVersions": "/^4\\.0\\./",
+      "addLabels": ["platform-baseline"]
+    },
+    {
+      "description": "Keep Spring Cloud on the validated 2025.1 release train.",
+      "matchPackageNames": ["/^org\\.springframework\\.cloud:/"],
+      "allowedVersions": "/^2025\\.1\\./",
+      "addLabels": ["platform-baseline"]
+    },
+    {
+      "description": "Group Kotlin core non-major updates.",
+      "matchPackageNames": [
+        "/^org\\.jetbrains\\.kotlin:/",
+        "/^org\\.jetbrains\\.kotlin\\./"
+      ],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Kotlin core non-major"
+    },
+    {
+      "description": "Group Testcontainers non-major updates.",
+      "matchPackageNames": ["/^org\\.testcontainers:/"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Testcontainers non-major"
+    },
+    {
+      "description": "Group Sentry non-major updates, including the Gradle plugin marker.",
+      "matchPackageNames": ["/^io\\.sentry(?::|\\.)/", "/^@sentry\\//"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Sentry non-major"
+    },
+    {
+      "description": "Group AWS SDK for JavaScript non-major updates.",
+      "matchPackageNames": ["/^@aws-sdk\\//"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "AWS SDK for JavaScript non-major"
+    },
+    {
+      "description": "Group GitHub Actions non-major updates.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "GitHub Actions non-major"
+    },
     {
       "description": "Only manage the Eclipse Temurin runtime image.",
       "matchDatasources": ["docker"],

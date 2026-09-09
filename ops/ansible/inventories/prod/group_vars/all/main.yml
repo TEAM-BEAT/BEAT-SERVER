@@ -92,6 +92,8 @@ observability_alloy_wal_truncate: "12h"
 observability_alloy_enable_logs: true
 observability_alloy_enable_traces: true
 observability_alloy_enable_cadvisor: true
+observability_alloy_shared_mysql_enabled: true
+observability_alloy_shared_mysql_read_only: true
 observability_alloy_published_ports:
   - "127.0.0.1:12345:12345"
   - "127.0.0.1:4317:4317"

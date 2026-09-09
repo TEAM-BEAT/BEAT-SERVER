@@ -79,6 +79,31 @@ const WORKLOAD_BUDGETS = Object.freeze({
       gracefulStop: '30s',
     }),
   }),
+  stock_contention: Object.freeze({
+    hardCap: Object.freeze({ maxRps: 200, maxDurationSeconds: 180 }),
+    warmup: Object.freeze({
+      executor: 'constant-arrival-rate',
+      targetRps: 5,
+      peakRps: 5,
+      duration: '3m',
+      durationSeconds: 180,
+      plannedIterations: 900,
+      preAllocatedVUs: 20,
+      maxVUs: 100,
+      gracefulStop: '35s',
+    }),
+    flash: Object.freeze({
+      executor: 'constant-arrival-rate',
+      targetRps: 200,
+      peakRps: 200,
+      duration: '1s',
+      durationSeconds: 1,
+      plannedIterations: 200,
+      preAllocatedVUs: 200,
+      maxVUs: 400,
+      gracefulStop: '35s',
+    }),
+  }),
 });
 
 export function getWorkloadBudget(workload, profile) {
@@ -89,8 +114,11 @@ export function getWorkloadBudget(workload, profile) {
 
   const budget = workloadBudgets[profile];
   if (!budget) {
+    const profileHint = workload === 'stock_contention'
+      ? 'warmup or flash'
+      : 'smoke, baseline, or step';
     throw new Error(
-      `Unknown LOAD_PROFILE=${profile} for ${workload}. Use smoke, baseline, or step.`,
+      `Unknown LOAD_PROFILE=${profile} for ${workload}. Use ${profileHint}.`,
     );
   }
 

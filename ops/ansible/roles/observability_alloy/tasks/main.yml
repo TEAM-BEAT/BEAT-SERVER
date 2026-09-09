@@ -122,6 +122,7 @@
       - name: "{{ docker_network }}"
     memory: "{{ observability_alloy_mem_limit }}"
     cpus: "{{ observability_alloy_cpus }}"
+    privileged: "{{ observability_alloy_enable_cadvisor | bool }}"
     published_ports: "{{ observability_alloy_published_ports }}"
     command:
       - "run"
@@ -129,8 +130,8 @@
       - "--storage.path=/var/lib/alloy/data"
       - "--stability.level=generally-available"
       - "/etc/alloy/config.alloy"
-    # docker.sock은 docker discovery가 필요한 logs/cAdvisor 활성 시에만 마운트 (최소권한)
-    # privileged는 제거 — host /proc /sys 는 read-only bind mount로 node_exporter 동작 가능
+    # cAdvisor는 Docker host의 cgroup/container metadata를 읽기 위해 공식 Docker 배포 계약의
+    # privileged + rootfs/run/sys/docker-data/dev-disk mount가 모두 필요하다.
     volumes: >-
       {{
         [
@@ -141,8 +142,15 @@
           '/sys:/host/sys:ro',
           '/:/host/rootfs:ro,rslave'
         ]
+        + ([
+             '/:/rootfs:ro',
+             '/var/run:/var/run:rw',
+             '/sys:/sys:ro',
+             '/var/lib/docker:/var/lib/docker:ro',
+             '/dev/disk:/dev/disk:ro'
+           ] if observability_alloy_enable_cadvisor | bool else [])
         + (['/var/run/docker.sock:/var/run/docker.sock:ro']
-           if (observability_alloy_enable_logs | bool) or (observability_alloy_enable_cadvisor | bool)
+           if (observability_alloy_enable_logs | bool) and not (observability_alloy_enable_cadvisor | bool)
            else [])
       }}
 

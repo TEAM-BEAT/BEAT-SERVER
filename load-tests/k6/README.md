@@ -89,10 +89,30 @@ OTLP 설정은 서버 부하 모양이 아니라 측정값을 Alloy로 전달하
 | --- | --- | --- | --- |
 | `K6_OTEL_SERVICE_NAME` | `beat-k6` | 여러 부하 발생기를 서비스별로 구분할 때 | OTLP resource의 service name으로 사용됩니다. k6 공식 기본값은 `k6`입니다. |
 | `K6_OTEL_METRIC_PREFIX` | `k6_` | 기존 애플리케이션 지표와 이름 충돌을 피할 때 | 내보내는 k6 metric 이름 앞에 붙습니다. 공식 기본값은 빈 문자열입니다. |
+| `K6_OTEL_SINGLE_COUNTER_FOR_RATE` | 공식 기본값 `true` | Rate metric의 Prometheus 시계열 계약을 유지할 때 | `false`로 바꾸면 deprecated pair-of-counters 이름으로 바뀌므로 현재 Grafana 패널과 함께 변경해야 합니다. |
 | `K6_OTEL_GRPC_EXPORTER_ENDPOINT` | `127.0.0.1:4327` | Alloy tunnel의 주소나 포트가 바뀔 때 | k6 metric을 받을 OTLP gRPC endpoint를 지정합니다. |
 | `K6_OTEL_GRPC_EXPORTER_INSECURE` | `true` | 현재처럼 loopback SSH tunnel로 전송할 때 | 로컬 구간에서 TLS 없이 gRPC를 사용합니다. 외부 네트워크에 직접 노출할 때는 사용하지 않습니다. |
 | `K6_OTEL_EXPORT_INTERVAL` | 공식 기본값 `10s` | Grafana 반영 주기와 export 호출량을 조정할 때 | 낮추면 지표가 더 자주 보이지만 export 오버헤드가 증가합니다. 현재는 기본값을 사용합니다. |
 | `K6_OTEL_FLUSH_INTERVAL` | 공식 기본값 `1s` | k6 내부 metric flush 해상도를 조정할 때 | 일반적인 부하 테스트에서는 변경할 필요가 없습니다. |
+
+Alloy의 k6 OTLP receiver는 `otelcol.exporter.prometheus.k6`에서
+`add_metric_suffixes = false`를 사용합니다. 따라서 현재 Grafana 쿼리는
+다음처럼 공식 k6 OTLP 이름을 Prometheus 시계열로 변환해 사용합니다.
+
+| k6 metric kind | Grafana 시계열 | 비고 |
+| --- | --- | --- |
+| `Counter` (`http_reqs`) | `k6_http_reqs` | Alloy가 `_total`을 추가하지 않음 |
+| `Rate` (`http_req_failed`) | `k6_http_req_failed_total` | k6의 `.total` discriminator가 Prometheus 이름으로 정규화되고 `condition=nonzero`가 실패임 |
+| `Trend` (`http_req_duration`, custom latency) | `k6_<name>_bucket`, `k6_<name>_sum`, `k6_<name>_count` | `K6_OTEL_METRIC_PREFIX=k6_`, OTLP unit은 `ms`; Grafana p95/p99는 bucket 기반 추정값 |
+
+이 매핑은 [k6 OpenTelemetry output
+문서](https://grafana.com/docs/k6/latest/results-output/real-time/opentelemetry/),
+[k6 OTLP exporter source](https://github.com/grafana/k6/tree/v1.4.0/internal/output/opentelemetry),
+및 [Alloy Prometheus exporter
+문서](https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.prometheus/)
+기준입니다. 정확한 accepted TPS·outcome 수·overselling/duplicate 여부와
+정확한 percentile은 Grafana histogram이 아니라 실행별 local JSON summary와
+read-only DB invariant로 판정합니다.
 
 관련 공식 문서:
 

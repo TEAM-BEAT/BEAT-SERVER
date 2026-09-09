@@ -95,7 +95,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "process_resident_memory_bytes{job=~\".*alloy.*\",env=~\"$env\"}",
+          "expr": "alloy_resources_process_resident_memory_bytes{env=~\"$env\"}",
           "instant": false,
           "legendFormat": "{{instance}}",
           "range": true,
@@ -261,10 +261,11 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
+      "description": "Alloy does not expose a stable remote-write WAL-size metric; component health and pending samples are the supported pressure signals.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
-          "unit": "bytes"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -295,14 +296,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (remote_name) (prometheus_remote_storage_wal_storage_size_bytes{env=~\"$env\"})",
+          "expr": "sum by (health_type) (alloy_component_controller_running_components{env=~\"$env\"})",
           "instant": false,
-          "legendFormat": "{{remote_name}}",
+          "legendFormat": "{{health_type}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Remote-write WAL size",
+      "title": "Alloy component health",
       "transparent": false,
       "type": "timeseries"
     },
@@ -361,6 +362,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
+      "description": "Spans failed or refused at the Alloy receiver. 0 or an empty graph means no span loss (healthy).",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -395,14 +397,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (env) (rate(otelcol_processor_dropped_spans_total{env=~\"$env\"}[$__rate_interval]))",
+          "expr": "sum by (env) (rate(otelcol_receiver_failed_spans_total{env=~\"$env\"}[$__rate_interval])) + sum by (env) (rate(otelcol_receiver_refused_spans_total{env=~\"$env\"}[$__rate_interval]))",
           "instant": false,
           "legendFormat": "{{env}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Dropped spans",
+      "title": "Span receive failures",
       "transparent": false,
       "type": "timeseries"
     },
