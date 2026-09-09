@@ -28,6 +28,8 @@ default branch인 `develop`을 대상으로 같은 저장소에서 생성된 PR�
 
 `develop`에서 `main`으로 승격하는 release PR은 Dependency Snapshot과 Dependency Review를 의도적으로 skip합니다. GitHub Dependency Graph는 default branch snapshot만 repository dependency 결과의 기준으로 사용하므로 non-default `main` snapshot은 release PR의 비교 기준을 만들지 못합니다. release 대상 커밋은 `develop` 유입 시 Dependency Review를 이미 통과했으며, release PR에서는 Gradle check, Sonar, JVM image Trivy, Lambda security 등 산출물 검증을 다시 수행합니다.
 
+긴급 수정이 `main`에 직접 병합되어 두 branch의 이력이 갈라졌다면 다음 release 전에 `main`을 `develop`로 merge commit 방식으로 동기화합니다. 충돌은 최신 검증 정책을 가진 `develop` 내용을 기준으로 해결하며, squash하면 `main` ancestry가 기록되지 않아 같은 충돌이 반복되므로 이 동기화에만 squash를 사용하지 않습니다.
+
 병합 후에는 default branch인 `develop`의 push 기반 Dependency Submission이 최종 resolved graph를 GitHub Dependency Graph에 제출하고 Dependabot Alerts의 inventory를 갱신합니다. `main`은 non-default branch이므로 push snapshot을 별도로 제출하지 않습니다.
 
 JVM 애플리케이션은 실제 Docker image를 Trivy image scan으로 검사합니다. Lambda는 `ubuntu-24.04-arm` ARM64 runner에서 Node.js 22로 production/optional dependency를 `--ignore-scripts`와 함께 설치하고, `@img/sharp-linux-arm64`, `@img/sharp-libvips-linux-arm64` 존재 여부와 실제 `sharp` native module import를 확인합니다. 이후 Lambda directory의 npm dependency graph를 Trivy filesystem scan으로 검사합니다. 이 검사는 ARM64 실행 성능 benchmark가 아니라, 배포 대상 아키텍처에서 native dependency가 load 가능한지와 production dependency에 fix 가능한 HIGH/CRITICAL 취약점이 없는지를 검증합니다.
