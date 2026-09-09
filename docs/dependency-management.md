@@ -24,15 +24,17 @@ Gradle build tooling 중 코드에서 동적으로 marker/version을 조립하�
 
 ## PR 검증
 
-같은 저장소에서 생성된 PR은 Gradle `runtimeClasspath` resolved graph를 Dependency Submission으로 먼저 제출한 뒤 Dependency Review를 실행합니다. 이 PR snapshot은 default branch graph를 대체하지 않고, Dependency Review가 base와 PR의 resolved dependency 차이를 비교하는 입력으로 사용합니다. Dependency Review는 runtime scope의 신규 dependency 변경을 검사하고 `HIGH` 이상을 차단합니다. snapshot 경고는 같은 저장소 PR에서만 최대 300초 재시도합니다.
+default branch인 `develop`을 대상으로 같은 저장소에서 생성된 PR은 Gradle `runtimeClasspath` resolved graph를 Dependency Submission으로 먼저 제출한 뒤 Dependency Review를 실행합니다. 이 PR snapshot은 default branch graph를 대체하지 않고, Dependency Review가 base와 PR의 resolved dependency 차이를 비교하는 입력으로 사용합니다. Dependency Review는 runtime scope의 신규 dependency 변경을 검사하고 `HIGH` 이상을 차단합니다. snapshot 경고는 같은 저장소 PR에서만 최대 300초 재시도합니다.
 
-병합 후에는 기존 `develop`/`main` push 기반 Dependency Submission이 최종 resolved graph를 GitHub Dependency Graph에 제출하고 Dependabot Alerts의 inventory를 갱신합니다.
+`develop`에서 `main`으로 승격하는 release PR은 Dependency Snapshot과 Dependency Review를 의도적으로 skip합니다. GitHub Dependency Graph는 default branch snapshot만 repository dependency 결과의 기준으로 사용하므로 non-default `main` snapshot은 release PR의 비교 기준을 만들지 못합니다. release 대상 커밋은 `develop` 유입 시 Dependency Review를 이미 통과했으며, release PR에서는 Gradle check, Sonar, JVM image Trivy, Lambda security 등 산출물 검증을 다시 수행합니다.
+
+병합 후에는 default branch인 `develop`의 push 기반 Dependency Submission이 최종 resolved graph를 GitHub Dependency Graph에 제출하고 Dependabot Alerts의 inventory를 갱신합니다. `main`은 non-default branch이므로 push snapshot을 별도로 제출하지 않습니다.
 
 JVM 애플리케이션은 실제 Docker image를 Trivy image scan으로 검사합니다. Lambda는 `ubuntu-24.04-arm` ARM64 runner에서 Node.js 22로 production/optional dependency를 `--ignore-scripts`와 함께 설치하고, `@img/sharp-linux-arm64`, `@img/sharp-libvips-linux-arm64` 존재 여부와 실제 `sharp` native module import를 확인합니다. 이후 Lambda directory의 npm dependency graph를 Trivy filesystem scan으로 검사합니다. 이 검사는 ARM64 실행 성능 benchmark가 아니라, 배포 대상 아키텍처에서 native dependency가 load 가능한지와 production dependency에 fix 가능한 HIGH/CRITICAL 취약점이 없는지를 검증합니다.
 
 실제 Ansible Lambda 패키징도 `npm ci --ignore-scripts`를 사용하고 ARM64 Sharp optional package의 존재를 확인합니다. Sharp `0.35+`는 install lifecycle script 없이 prebuilt optional package를 사용하므로, 패키징 중 third-party lifecycle script 실행을 허용할 필요가 없습니다.
 
-외부 fork PR에서는 read-only token으로 Gradle snapshot을 제출하지 않고 snapshot job을 정상적으로 skip합니다. Dependency Review의 manifest/lock 기반 정적 검사와 read-only CI는 계속 실행합니다.
+`develop` 대상 외부 fork PR에서는 read-only token으로 Gradle snapshot을 제출하지 않고 snapshot job을 정상적으로 skip합니다. Dependency Review의 manifest/lock 기반 정적 검사와 read-only CI는 계속 실행합니다.
 
 ## 외부 fork dependency PR
 
