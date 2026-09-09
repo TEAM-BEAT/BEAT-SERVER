@@ -148,6 +148,8 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+    outputs:
+      analysis-result: ${{ steps.sonar-analysis.outcome }}
     # secrets는 if: 조건식에서 직접 참조할 수 없다(GitHub 공식 문서).
     # job-level env로 승격 후 env 컨텍스트로 검사한다.
     env:
@@ -184,6 +186,7 @@ jobs:
           path: .
 
       - name: SonarQube Cloud Analysis (Kover coverage, JDK 25)
+        id: sonar-analysis
         if: ${{ env.SONAR_TOKEN != '' }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -257,6 +260,7 @@ jobs:
           OPENAPI_RESULT: ${{ needs.openapi.result }}
           GRADLE_CHECK_RESULT: ${{ needs.gradle-check.result }}
           SONAR_RESULT: ${{ needs.sonar.result }}
+          SONAR_ANALYSIS_RESULT: ${{ needs.sonar.outputs.analysis-result }}
           SCAN_IMAGES_RESULT: ${{ needs.scan-images.result }}
         run: |
           results=(
@@ -271,5 +275,17 @@ jobs:
               exit 1
             fi
           done
+
+          case "${SONAR_ANALYSIS_RESULT}" in
+            success)
+              ;;
+            skipped)
+              echo "Sonar analysis skipped because SONAR_TOKEN is unavailable"
+              ;;
+            *)
+              echo "Sonar analysis did not complete: ${SONAR_ANALYSIS_RESULT}" >&2
+              exit 1
+              ;;
+          esac
           echo "Required CI checks passed"
         shell: bash

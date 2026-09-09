@@ -5,7 +5,6 @@ on:
     branches:
       - develop
       - main
-  workflow_dispatch:
 
 jobs:
   dependency-submission:
@@ -16,6 +15,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 25
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
