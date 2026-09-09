@@ -61,9 +61,11 @@ for environment in dev prod; do
   if [[ "$environment" == "dev" ]]; then
     enable_cadvisor=true
     enable_k6=true
+    enable_shared_mysql=false
   else
     enable_cadvisor=true
     enable_k6=false
+    enable_shared_mysql=true
   fi
 
   ansible-playbook -i 'localhost,' "$render_playbook" \
@@ -74,12 +76,16 @@ for environment in dev prod; do
     -e "observability_alloy_enable_logs=true" \
     -e "observability_alloy_enable_traces=true" \
     -e "observability_alloy_enable_cadvisor=$enable_cadvisor" \
+    -e "observability_alloy_shared_mysql_enabled=$enable_shared_mysql" \
     -e "observability_alloy_enable_k6_metrics=$enable_k6"
 
   grep -q 'prometheus.exporter.self "alloy"' "$output_path"
   grep -q 'prometheus.exporter.redis "redis"' "$output_path"
   grep -q 'prometheus.exporter.cadvisor "containers"' "$output_path"
   grep -Fq 'allowlisted_container_labels = ["com.docker.compose.service"]' "$output_path"
+  grep -q 'prometheus.relabel "cadvisor_metrics"' "$output_path"
+  grep -Fq 'regex         = "^(up|container_cpu_usage_seconds_total|container_memory_working_set_bytes)$"' "$output_path"
+  grep -Fq 'forward_to      = [prometheus.relabel.cadvisor_metrics.receiver]' "$output_path"
   grep -q 'otelcol.processor.memory_limiter "apps"' "$output_path"
   if [[ "$environment" == "dev" ]] && ! grep -q 'otelcol.processor.memory_limiter "k6"' "$output_path"; then
     echo "dev config is missing the k6 memory limiter" >&2
@@ -116,6 +122,17 @@ for environment in dev prod; do
     echo "prod config unexpectedly enables the k6 OTLP receiver" >&2
     exit 1
   fi
+  if [[ "$environment" == "prod" ]]; then
+    grep -q 'prometheus.exporter.mysql "shared_rds"' "$output_path"
+    grep -Fq '    "global_status",' "$output_path"
+    if grep -Eq 'global_variables|info_schema\.innodb_metrics|engine_innodb_status' "$output_path"; then
+      echo "prod config enables an unexpected MySQL collector" >&2
+      exit 1
+    fi
+  elif grep -q 'prometheus.exporter.mysql "shared_rds"' "$output_path"; then
+    echo "dev config unexpectedly enables the shared MySQL exporter" >&2
+    exit 1
+  fi
 done
 
 if [[ "$skip_image_validation" == "1" ]]; then
@@ -126,7 +143,7 @@ fi
 for environment in dev prod; do
   secret_dir="$work_dir/secrets-$environment"
   mkdir -m 700 "$secret_dir"
-  for secret_name in gc_token gc_prom_user gc_loki_user gc_tempo_user redis_password; do
+  for secret_name in gc_token gc_prom_user gc_loki_user gc_tempo_user redis_password shared_mysql_dsn; do
     printf '%s\n' "synthetic-$secret_name" >"$secret_dir/$secret_name"
     chmod 600 "$secret_dir/$secret_name"
   done
