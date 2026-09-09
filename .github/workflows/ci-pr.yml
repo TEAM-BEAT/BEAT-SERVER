@@ -193,7 +193,7 @@ jobs:
           SENTRY_RELEASE: beat-server@${{ github.sha }}
         run: |
           chmod +x gradlew
-          ./gradlew sonar -x koverXmlReport --build-cache
+          ./gradlew sonar -x koverXmlReport --build-cache -Dsonar.qualitygate.wait=true
         shell: bash
 
   scan-images:
