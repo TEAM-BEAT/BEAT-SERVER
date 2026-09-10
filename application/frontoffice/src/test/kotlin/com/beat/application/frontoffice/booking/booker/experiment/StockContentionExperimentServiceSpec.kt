@@ -184,7 +184,7 @@ class StockContentionExperimentServiceSpec : FunSpec() {
             verify(exactly = 0) { scheduleStore.find(any(), any(), any()) }
         }
 
-        test("Redis lock은 공통 조회가 끝난 뒤 transaction과 reservation을 감싼다") {
+        test("Redis lock 안에서 공통 조회와 reservation transaction이 함께 실행된다") {
             val strategyRegistry = mockk<StockContentionStrategyRegistry>()
             val memberRepository = mockk<MemberRepository>()
             val performanceRepository = mockk<PerformanceRepository>()
@@ -201,13 +201,16 @@ class StockContentionExperimentServiceSpec : FunSpec() {
                 RecordingReservationStrategy(
                     strategy = StockContentionStrategy.REDIS,
                     onLock = {
-                        verify(exactly = 1) { memberRepository.findById(1L) }
-                        verify(exactly = 1) { scheduleStore.findBookingMetadataById(10L) }
-                        verify(exactly = 1) { performanceRepository.findById(20L) }
                         verify(exactly = 0) { transactionManager.getTransaction(any()) }
                         lockEntered = true
                     },
-                    onReserve = { reservationInsideLock = lockEntered },
+                    onReserve = {
+                        reservationInsideLock = lockEntered
+                        verify(exactly = 1) { memberRepository.findById(1L) }
+                        verify(exactly = 1) { scheduleStore.findBookingMetadataById(10L) }
+                        verify(exactly = 1) { performanceRepository.findById(20L) }
+                        verify(exactly = 1) { transactionManager.getTransaction(any()) }
+                    },
                     onUnlock = {
                         verify(exactly = 1) { transactionManager.commit(transactionStatus) }
                         commitCompletedBeforeUnlock = true
@@ -241,7 +244,7 @@ class StockContentionExperimentServiceSpec : FunSpec() {
             verify(exactly = 1) { bookingRepository.save(any()) }
         }
 
-        test("Optimistic conflict retry는 공통 조회를 반복하지 않고 reservation transaction만 재시도한다") {
+        test("Optimistic conflict retry는 공통 조회와 reservation을 시도마다 함께 재실행한다") {
             val strategyRegistry = mockk<StockContentionStrategyRegistry>()
             val memberRepository = mockk<MemberRepository>()
             val performanceRepository = mockk<PerformanceRepository>()
@@ -281,9 +284,9 @@ class StockContentionExperimentServiceSpec : FunSpec() {
 
             response.attemptCount shouldBe 3
             response.outcome shouldBe StockContentionOutcome.ACCEPTED
-            verify(exactly = 1) { memberRepository.findById(1L) }
-            verify(exactly = 1) { scheduleStore.findBookingMetadataById(10L) }
-            verify(exactly = 1) { performanceRepository.findById(20L) }
+            verify(exactly = 3) { memberRepository.findById(1L) }
+            verify(exactly = 3) { scheduleStore.findBookingMetadataById(10L) }
+            verify(exactly = 3) { performanceRepository.findById(20L) }
             verify(exactly = 3) { transactionManager.getTransaction(any()) }
             verify(exactly = 2) { transactionManager.rollback(transactionStatus) }
             verify(exactly = 1) { transactionManager.commit(transactionStatus) }
