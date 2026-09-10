@@ -45,9 +45,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum(rate(k6_http_reqs{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval]))",
+          "expr": "sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile) (rate(k6_http_reqs{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}}",
+          "legendFormat": "{{test_id}} {{strategy}} {{load_profile}}",
           "range": true,
           "refId": "A"
         }
@@ -96,9 +96,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "100 * sum(rate(k6_http_req_failed_total{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",condition=\"nonzero\"}[$__rate_interval])) / sum(rate(k6_http_reqs{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval]))",
+          "expr": "100 * sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile) (rate(k6_http_req_failed_total{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",condition=\"nonzero\"}[$__rate_interval])) / sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile) (rate(k6_http_reqs{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "failed",
+          "legendFormat": "{{test_id}} {{strategy}} failed",
           "range": true,
           "refId": "A"
         }
@@ -147,9 +147,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.95, sum by (le, strategy, load_profile) (rate(k6_http_req_duration_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile) (rate(k6_http_req_duration_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} p95",
+          "legendFormat": "{{test_id}} {{strategy}} p95",
           "range": true,
           "refId": "A"
         },
@@ -159,9 +159,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.99, sum by (le, strategy, load_profile) (rate(k6_http_req_duration_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.99, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile) (rate(k6_http_req_duration_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} p99",
+          "legendFormat": "{{test_id}} {{strategy}} p99",
           "range": true,
           "refId": "B"
         }
@@ -210,9 +210,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "max(k6_vus{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"})",
+          "expr": "max by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile) (k6_vus{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"})",
           "instant": false,
-          "legendFormat": "VUs",
+          "legendFormat": "{{test_id}} VUs",
           "range": true,
           "refId": "A"
         },
@@ -222,9 +222,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum(rate(k6_dropped_iterations{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval]))",
+          "expr": "sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile) (rate(k6_dropped_iterations{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "dropped iterations",
+          "legendFormat": "{{test_id}} dropped",
           "range": true,
           "refId": "B"
         }
@@ -238,7 +238,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "The business /api selector includes /api/internal/experiments/stock-contention/{strategy}/bookings; compare this server-side RPS with k6 request rate as separate signals.",
+      "description": "Only beat-apis stock-contention requests are included. Server metrics have no k6 test_id, so correlate them with the retained UTC run window.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -273,14 +273,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum(rate(http_server_requests_seconds_count{env=~\"$env\",application=~\"$application\",uri=~\"^/api(/.*)?$\",uri!~\"^/(actuator|health|metrics|v3/api-docs|swagger-ui)(/.*)?$|^(UNKNOWN|NOT_FOUND)$\"}[$__rate_interval]))",
+          "expr": "sum by (instance, color, uri) (rate(http_server_requests_seconds_count{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\",uri=~\"^/api/internal/experiments/stock-contention/[^/]+/bookings$\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "{{application}}",
+          "legendFormat": "{{instance}} {{color}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Server-side RPS",
+      "title": "Experiment endpoint — server-side RPS",
       "transparent": false,
       "type": "timeseries"
     },
@@ -339,7 +339,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "max by (application, instance, color, pool) (hikaricp_connections_active{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"} / hikaricp_connections_max{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"})",
+          "expr": "max by (application, instance, color, pool) (hikaricp_connections_active{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"} / hikaricp_connections_max{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"})",
           "instant": false,
           "legendFormat": "{{application}} {{instance}} {{color}} {{pool}}",
           "range": true,
@@ -390,7 +390,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "max by (application, instance, color, pool) (hikaricp_connections_pending{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"})",
+          "expr": "max by (application, instance, color, pool) (hikaricp_connections_pending{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"})",
           "instant": false,
           "legendFormat": "{{application}} {{instance}} {{color}} {{pool}}",
           "range": true,
@@ -440,7 +440,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "100 * sum by (application, instance, color) (jvm_memory_used_bytes{area=\"heap\",env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"}) / sum by (application, instance, color) (jvm_memory_max_bytes{area=\"heap\",env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"})",
+          "expr": "100 * sum by (application, instance, color) (jvm_memory_used_bytes{area=\"heap\",env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"}) / sum by (application, instance, color) (jvm_memory_max_bytes{area=\"heap\",env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"})",
           "instant": false,
           "legendFormat": "{{application}} {{instance}} {{color}}",
           "range": true,
@@ -809,9 +809,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_bookings_accepted{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "expr": "sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_bookings_accepted{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} accepted",
+          "legendFormat": "{{test_id}} {{strategy}} accepted",
           "range": true,
           "refId": "A"
         },
@@ -821,9 +821,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_bookings_sold_out{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "expr": "sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_bookings_sold_out{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} sold_out",
+          "legendFormat": "{{test_id}} {{strategy}} sold_out",
           "range": true,
           "refId": "B"
         }
@@ -872,9 +872,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_conflict_exhausted{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "expr": "sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_conflict_exhausted{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} conflict",
+          "legendFormat": "{{test_id}} {{strategy}} conflict",
           "range": true,
           "refId": "A"
         },
@@ -884,9 +884,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_lock_timeout{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "expr": "sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_lock_timeout{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} lock timeout",
+          "legendFormat": "{{test_id}} {{strategy}} lock timeout",
           "range": true,
           "refId": "B"
         }
@@ -935,9 +935,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_unexpected_response{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "expr": "sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_unexpected_response{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "{{strategy}} unexpected",
+          "legendFormat": "{{test_id}} {{strategy}} unexpected",
           "range": true,
           "refId": "A"
         },
@@ -947,9 +947,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_timeouts{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "expr": "sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_timeouts{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "{{strategy}} timeout",
+          "legendFormat": "{{test_id}} {{strategy}} timeout",
           "range": true,
           "refId": "B"
         }
@@ -998,9 +998,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_request_timeout_total{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\",condition=\"nonzero\"}[$__rate_interval]))",
+          "expr": "sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_request_timeout_total{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\",condition=\"nonzero\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "{{strategy}} request timeout rate",
+          "legendFormat": "{{test_id}} {{strategy}} request timeout",
           "range": true,
           "refId": "A"
         },
@@ -1010,9 +1010,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "sum by (strategy, load_profile, phase) (rate(k6_stock_contention_requests_submitted{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "expr": "sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_requests_submitted{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "{{strategy}} submitted",
+          "legendFormat": "{{test_id}} {{strategy}} submitted",
           "range": true,
           "refId": "B"
         }
@@ -1061,9 +1061,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.95, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_accepted_latency_ms_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_accepted_latency_ms_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} p95",
+          "legendFormat": "{{test_id}} {{strategy}} p95",
           "range": true,
           "refId": "A"
         },
@@ -1073,9 +1073,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.99, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_accepted_latency_ms_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.99, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_accepted_latency_ms_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} p99",
+          "legendFormat": "{{test_id}} {{strategy}} p99",
           "range": true,
           "refId": "B"
         }
@@ -1124,9 +1124,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.5, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_attempt_count_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.5, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_attempt_count_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} p50",
+          "legendFormat": "{{test_id}} {{strategy}} p50",
           "range": true,
           "refId": "A"
         },
@@ -1136,9 +1136,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.99, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_attempt_count_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.99, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_attempt_count_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} p99",
+          "legendFormat": "{{test_id}} {{strategy}} p99",
           "range": true,
           "refId": "B"
         }
@@ -1187,9 +1187,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.95, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_completion_elapsed_ms_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_completion_elapsed_ms_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} p95",
+          "legendFormat": "{{test_id}} {{strategy}} p95",
           "range": true,
           "refId": "A"
         },
@@ -1199,9 +1199,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.99, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_completion_elapsed_ms_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.99, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_completion_elapsed_ms_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} p99",
+          "legendFormat": "{{test_id}} {{strategy}} p99",
           "range": true,
           "refId": "B"
         }
@@ -1250,9 +1250,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.95, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_drain_time_ms_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_drain_time_ms_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} p95",
+          "legendFormat": "{{test_id}} {{strategy}} p95",
           "range": true,
           "refId": "A"
         },
@@ -1262,9 +1262,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.99, sum by (le, strategy, load_profile, phase) (rate(k6_stock_contention_drain_time_ms_bucket{test_id=~\"$test_id\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.99, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_drain_time_ms_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
           "instant": false,
-          "legendFormat": "{{strategy}} {{load_profile}} p99",
+          "legendFormat": "{{test_id}} {{strategy}} p99",
           "range": true,
           "refId": "B"
         }
@@ -1390,15 +1390,1302 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Server-side histogram for only the stock-contention endpoint. The 30s scrape interval makes this supporting evidence; local k6 JSON remains authoritative for the 1s flash.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 96
+      },
+      "id": 26,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.95, sum by (le, instance, color) (rate(http_server_requests_seconds_bucket{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\",uri=~\"^/api/internal/experiments/stock-contention/[^/]+/bookings$\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}} p95",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.99, sum by (le, instance, color) (rate(http_server_requests_seconds_bucket{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\",uri=~\"^/api/internal/experiments/stock-contention/[^/]+/bookings$\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}} p99",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Experiment endpoint — server latency p95 / p99",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.8
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 96
+      },
+      "id": 27,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (instance, color) (process_cpu_usage{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"})",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "beat-apis process CPU",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Seconds spent in GC per second, summed across cause/action series for the active beat-apis process.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 104
+      },
+      "id": 28,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (instance, color) (rate(jvm_gc_pause_seconds_sum{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "beat-apis GC pause time rate",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 104
+      },
+      "id": 29,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (instance, color) (rate(jvm_gc_memory_allocated_bytes_total{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "beat-apis allocation rate",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Node-wide CPU detects noisy-neighbor or host saturation that cannot be attributed to the application strategy.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 112
+      },
+      "id": 30,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\",env=~\"$env\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{instance}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Selected environment — node CPU",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 112
+      },
+      "id": 31,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "100 * (1 - node_memory_MemAvailable_bytes{env=~\"$env\"} / node_memory_MemTotal_bytes{env=~\"$env\"})",
+          "instant": false,
+          "legendFormat": "{{instance}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Selected environment — node memory used",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "All dev containers remain visible so application pressure can be distinguished from Redis, Alloy, nginx or another container.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.8
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 120
+      },
+      "id": 32,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (container) (label_replace(rate(container_cpu_usage_seconds_total{env=~\"$env\",container_label_com_docker_compose_service!=\"\"}[$__rate_interval]), \"container\", \"$1\", \"container_label_com_docker_compose_service\", \"(.+)\")) or sum by (container) (label_replace(rate(container_cpu_usage_seconds_total{env=~\"$env\",container_label_com_docker_compose_service=\"\",name!=\"\"}[$__rate_interval]), \"container\", \"$1\", \"name\", \"(.+)\"))",
+          "instant": false,
+          "legendFormat": "{{container}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Container CPU",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 120
+      },
+      "id": 33,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (container) (label_replace(container_memory_working_set_bytes{env=~\"$env\",container_label_com_docker_compose_service!=\"\"}, \"container\", \"$1\", \"container_label_com_docker_compose_service\", \"(.+)\")) or sum by (container) (label_replace(container_memory_working_set_bytes{env=~\"$env\",container_label_com_docker_compose_service=\"\",name!=\"\"}, \"container\", \"$1\", \"name\", \"(.+)\"))",
+          "instant": false,
+          "legendFormat": "{{container}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Container memory",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 128
+      },
+      "id": 34,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"ReadIOPS\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 60)",
+          "id": "rds_readiops",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — read IOPS",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 128
+      },
+      "id": 46,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"WriteIOPS\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 60)",
+          "id": "rds_writeiops",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — write IOPS",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 136
+      },
+      "id": 35,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"DiskQueueDepth\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 60)",
+          "id": "rds_diskqueuedepth",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — disk queue",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "Relevant only when the RDS storage type exposes BurstBalance; otherwise No data is expected.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 136
+      },
+      "id": 36,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"BurstBalance\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Minimum', 60)",
+          "id": "rds_burstbalance",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — burst balance",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Shared-instance signal. Compare pre/run/post windows and do not attribute unrelated traffic to a strategy.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 144
+      },
+      "id": 37,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "rate(mysql_global_status_questions{env=\"shared\",scope=\"beat-shared-rds\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "questions",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "MySQL queries per second",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 144
+      },
+      "id": 38,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "mysql_global_status_threads_connected{env=\"shared\",scope=\"beat-shared-rds\"}",
+          "instant": false,
+          "legendFormat": "connected",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "mysql_global_status_threads_running{env=\"shared\",scope=\"beat-shared-rds\"}",
+          "instant": false,
+          "legendFormat": "running",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "MySQL connected / running threads",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Shared-RDS cumulative counter converted to waits per second. Compare the same UTC run windows and retain pre/post deltas.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 152
+      },
+      "id": 39,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "rate(mysql_global_status_innodb_row_lock_waits{env=\"shared\",scope=\"beat-shared-rds\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "waits/s",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "InnoDB row-lock waits",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Milliseconds added to the cumulative InnoDB row-lock wait-time counter per second. This is shared-instance supporting evidence, not request latency.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 152
+      },
+      "id": 47,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "rate(mysql_global_status_innodb_row_lock_time{env=\"shared\",scope=\"beat-shared-rds\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "wait ms/s",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "InnoDB row-lock wait time rate",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Confirms that REDIS strategy activity reaches the environment-local Redis; it does not measure lock ownership correctness.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 160
+      },
+      "id": 40,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "rate(redis_commands_processed_total{env=~\"$env\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "{{instance}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Redis commands per second",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "A sustained pending increase or any failed-sample rate invalidates the observability window even when the application result is correct.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 160
+      },
+      "id": 41,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (remote_name) (prometheus_remote_storage_samples_pending{env=~\"$env\"})",
+          "instant": false,
+          "legendFormat": "{{remote_name}} pending",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (remote_name) (rate(prometheus_remote_storage_samples_failed_total{env=~\"$env\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{remote_name}} failed/s",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Alloy remote-write pending / failed",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_GRAFANA_CLOUD_USAGE}"
+      },
+      "description": "Keep below the 7,000 operating target and investigate before the tenant limit can cause ingestion loss.",
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 7000
+              },
+              {
+                "color": "red",
+                "value": 10000
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 168
+      },
+      "id": 42,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": []
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_GRAFANA_CLOUD_USAGE}"
+          },
+          "exemplar": true,
+          "expr": "sum(grafanacloud_instance_active_series)",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Grafana Cloud active series",
+      "transparent": false,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_GRAFANA_CLOUD_USAGE}"
+      },
+      "description": "Must remain zero for a valid run; otherwise application, host and RDS correlations may have missing samples.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 168
+      },
+      "id": 43,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_GRAFANA_CLOUD_USAGE}"
+          },
+          "exemplar": true,
+          "expr": "sum by (reason) (grafanacloud_instance_samples_discarded_per_second{reason=~\"per_user.*|rate_limited\"})",
+          "instant": false,
+          "legendFormat": "{{reason}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Grafana Cloud discarded samples",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "All selected-environment application/cAdvisor/Redis targets and the single shared MySQL target must be present. Blue/Green application color health remains visible in 04/05 for detailed diagnosis.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 176
+      },
+      "id": 48,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (env, job) (up{env=~\"$env\",job=~\"apis|integrations/cadvisor|integrations/redis\"}) or max by (env, job) (up{env=\"shared\",job=\"integrations/mysql\"})",
+          "instant": false,
+          "legendFormat": "{{env}} {{job}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Required scrape targets",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Must stay close to the configured scrape interval. A rising value means the DB panels are stale even if historical lines remain visible.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 176
+      },
+      "id": 49,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "time() - timestamp(mysql_global_status_uptime{env=\"shared\",scope=\"beat-shared-rds\"})",
+          "instant": false,
+          "legendFormat": "shared MySQL age",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "MySQL exporter sample age",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Only OPTIMISTIC should be non-zero. Exact total retries and average per request remain authoritative in the local JSON summary.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 184
+      },
+      "id": 44,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_optimistic_retries{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{test_id}} retries/s",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_optimistic_retries{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])) / sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_requests_submitted{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{test_id}} retries/request",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Optimistic retry cost",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 12,
+        "y": 184
+      },
+      "id": 45,
+      "options": {
+        "content": "\n**test_id:** `$test_id`<br>\n**git_sha:** `$git_sha`<br>\n**dataset_hash:** `$dataset_hash`<br>\n**budget_version:** `$budget_version`<br>\n**strategy/profile/phase:** `$strategy / $load_profile / $phase`\n\nMultiple test IDs may be selected for an overlay. Every k6 aggregation retains the full run identity, so different code, fixture or budget versions are never silently merged.\n",
+        "mode": "markdown"
+      },
+      "repeatDirection": "h",
+      "title": "Selected run identity",
+      "transparent": false,
+      "type": "text"
+    },
+    {
       "gridPos": {
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 96
+        "y": 192
       },
       "id": 24,
       "options": {
-        "content": "\n- Select `test_id` first, then strategy, load_profile and phase. User ID, access token and booking ID are never metric tags.\n- k6 OTLP naming assumes Alloy `otelcol.exporter.prometheus.k6 { add_metric_suffixes = false }`: Counter names are unsuffixed, Rate `.total` names become `_total`, and Trend histograms expose `_bucket/_sum/_count` in milliseconds.\n- Grafana histogram p95/p99 values are estimates from exported buckets. Exact outcome counts, TPS, overselling/duplicate checks and exact local percentiles come from the retained JSON summary plus read-only DB invariant query.\n- The /api HTTP selector includes the stock-contention endpoint, so server-side RPS includes this experiment while remaining independent from k6 RPS.\n- CloudWatch RDS panels use a 60s period and require the exact shared DBInstanceIdentifier. EC2 CPUCreditBalance uses the exact InstanceId above and a 300s basic-monitoring period; a blank selector intentionally yields no series.\n- The warm-cache panel is supporting evidence only: shared MySQL exporter collection must be enabled and the physical/read-request comparison does not replace the local/DB verdict.\n- The run must be preflighted against the environment allowlist and workload budget before traffic starts.\n- Shared RDS is always in scope, including when the selected target environment is `dev`.\n- Keep the local JSON summary/artifact after the 14-day metrics window expires.\n",
+        "content": "\n- Select one or more `test_id` values, then confirm git_sha, dataset_hash and budget_version before comparing strategy, load_profile and phase. User ID, access token and booking ID are never metric tags.\n- k6 OTLP naming assumes Alloy `otelcol.exporter.prometheus.k6 { add_metric_suffixes = false }`: Counter names are unsuffixed, Rate `.total` names become `_total`, and Trend histograms expose `_bucket/_sum/_count` in milliseconds.\n- Grafana histogram p95/p99 values are estimates from exported buckets. Exact outcome counts, TPS, overselling/duplicate checks and exact local percentiles come from the retained JSON summary plus read-only DB invariant query.\n- Server HTTP panels select only beat-apis stock-contention routes. Server/JVM/Hikari/container/RDS/MySQL metrics do not carry k6 test_id, so correlate them with the retained UTC run window.\n- CloudWatch RDS panels use a 60s period and require the exact shared DBInstanceIdentifier. EC2 CPUCreditBalance uses the exact InstanceId above and a 300s basic-monitoring period; a blank selector intentionally yields no series.\n- MySQL and CloudWatch are shared-RDS supporting evidence. Buffer-pool, row-lock, IOPS and queue signals do not replace the local/DB verdict and cannot exclusively attribute unrelated shared traffic to one strategy.\n- The run must be preflighted against the environment allowlist and workload budget before traffic starts.\n- Shared RDS is always in scope, including when the selected target environment is `dev`.\n- Keep the local JSON summary/artifact after the 14-day metrics window expires.\n",
         "mode": "markdown"
       },
       "repeatDirection": "h",
@@ -1553,6 +2840,39 @@
       },
       {
         "allowCustomValue": true,
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "description": "Grafana Cloud usage is selected at dashboard load; its UID is never committed.",
+        "includeAll": false,
+        "label": "Grafana Cloud usage",
+        "multi": false,
+        "name": "DS_GRAFANA_CLOUD_USAGE",
+        "query": "prometheus",
+        "regex": "/^grafanacloud-usage$/",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "allowCustomValue": true,
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "includeAll": false,
+        "label": "Load test",
+        "multi": true,
+        "name": "test_id",
+        "query": "label_values(k6_stock_contention_requests_submitted{target_env=~\"$env\"}, test_id)",
+        "refresh": 2,
+        "skipUrlSync": false,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": true,
         "allValue": ".*",
         "auto": false,
         "auto_count": 30,
@@ -1562,11 +2882,49 @@
           "uid": "${DS_PROMETHEUS}"
         },
         "includeAll": true,
-        "label": "Load test",
+        "label": "Deployed Git SHA",
         "multi": false,
-        "name": "test_id",
-        "query": "label_values(k6_http_reqs, test_id)",
-        "refresh": 1,
+        "name": "git_sha",
+        "query": "label_values(k6_stock_contention_requests_submitted{test_id=~\"$test_id\"}, git_sha)",
+        "refresh": 2,
+        "skipUrlSync": false,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "includeAll": true,
+        "label": "Dataset SHA-256",
+        "multi": false,
+        "name": "dataset_hash",
+        "query": "label_values(k6_stock_contention_requests_submitted{test_id=~\"$test_id\",git_sha=~\"$git_sha\"}, dataset_hash)",
+        "refresh": 2,
+        "skipUrlSync": false,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "includeAll": true,
+        "label": "Workload budget",
+        "multi": false,
+        "name": "budget_version",
+        "query": "label_values(k6_stock_contention_requests_submitted{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\"}, budget_version)",
+        "refresh": 2,
         "skipUrlSync": false,
         "type": "query"
       },
@@ -1584,8 +2942,8 @@
         "label": "Strategy",
         "multi": false,
         "name": "strategy",
-        "query": "label_values(k6_http_reqs{test_id=~\"$test_id\"}, strategy)",
-        "refresh": 1,
+        "query": "label_values(k6_stock_contention_requests_submitted{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\"}, strategy)",
+        "refresh": 2,
         "skipUrlSync": false,
         "type": "query"
       },
@@ -1603,8 +2961,8 @@
         "label": "Load profile",
         "multi": false,
         "name": "load_profile",
-        "query": "label_values(k6_http_reqs{test_id=~\"$test_id\"}, load_profile)",
-        "refresh": 1,
+        "query": "label_values(k6_stock_contention_requests_submitted{test_id=~\"$test_id\",strategy=~\"$strategy\"}, load_profile)",
+        "refresh": 2,
         "skipUrlSync": false,
         "type": "query"
       },
@@ -1623,7 +2981,7 @@
         "multi": false,
         "name": "phase",
         "query": "label_values(k6_stock_contention_requests_submitted{test_id=~\"$test_id\"}, phase)",
-        "refresh": 1,
+        "refresh": 2,
         "skipUrlSync": false,
         "type": "query"
       },

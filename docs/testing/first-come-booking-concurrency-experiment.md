@@ -17,11 +17,13 @@
 | 전략 | 재고 경쟁 방식 | 고정 파라미터 |
 | --- | --- | --- |
 | `PESSIMISTIC` | Schedule row `FOR UPDATE` 후 조건부 차감 | 공통 transaction timeout 30초 |
-| `OPTIMISTIC` | `schedule.version` CAS 실패 시 전체 transaction 재시도 | 최대 50회, backoff 1ms |
+| `OPTIMISTIC` | `schedule.version` CAS 실패 시 reservation transaction 재시도 | 최대 50회, backoff 1ms |
 | `REDIS` | Redis token lock을 획득한 뒤 DB 조건부 차감 | acquire 30초, lease 60초, poll 10ms |
 | `ATOMIC` | 재고 조건을 포함한 단일 `UPDATE` | 사전 재고 read 없음 |
 
-공통 경로는 member 조회, schedule/performance 메타데이터 검증, 예매 가능 시간 확인, 가격 계산, Booking INSERT다. 전략마다 재고 경쟁 부분 외의 비즈니스 동작을 바꾸지 않는다.
+공통 준비 경로는 member 조회, schedule/performance 메타데이터 검증, 예매 가능 시간 확인과 가격
+계산이며 lock/retry 전에 요청당 한 번 실행한다. 이후 네 전략 모두 재고 확보와 Booking INSERT를
+하나의 DB transaction으로 실행한다. Redis lock은 이 transaction 직전에 획득하고 commit 뒤 해제한다.
 
 ## 2. 실행 경로와 안전 경계
 
@@ -179,13 +181,19 @@ RDS의 CloudWatch는 60초 해상도이므로 1초 flash의 원인을 단독으�
 | --- | --- | --- |
 | 정합성/oversell/중복 | DB read-only invariant query | k6 outcome counter |
 | accepted TPS, exact outcome, p50/p95/p99, drain | local k6 JSON summary | 90 Load Test k6 panels |
-| 서버 HTTP RPS | Spring actuator metric | 90 Load Test panel 5 |
-| JVM, Hikari | `02 JVM & Hikari`, 90 panels 6~8 | app metric raw series |
-| dev container CPU/memory | `04 Infrastructure` cAdvisor panels | node CPU/memory |
-| RDS CPU/memory/connection/I/O | `03 Shared RDS / MySQL`, 90 panels 9~13 | CloudWatch 60s points |
+| run identity와 workload 동일성 | `test_id`, `git_sha`, `dataset_hash`, `budget_version` | 90 Load Test selector/identity panel |
+| 서버 HTTP RPS/latency | stock-contention endpoint 전용 Spring actuator metric | 90 Load Test server panels |
+| JVM, GC, process CPU, Hikari | `90 Load Test`와 `02 JVM & Hikari` | app metric raw series |
+| dev node/container CPU·memory | `90 Load Test`와 `04 Infrastructure` | node/cAdvisor raw series |
+| RDS CPU/memory/swap/connection/latency/IOPS/queue | `90 Load Test`와 `03 Shared RDS / MySQL` | CloudWatch 60s points |
+| MySQL QPS/thread/buffer-pool/row-lock | `90 Load Test`와 `03 Shared RDS / MySQL` | shared exporter pre/post delta |
 | Redis 상태 | `04 Infrastructure` Redis panels | experiment response lock timeout |
+| 관측 파이프라인 무결성 | Alloy pending/failed, Cloud discarded samples | `05 Observability Pipeline` |
 
-MySQL exporter는 아직 별도 read-only DSN 설정이 없으므로 buffer-pool physical-read/read-request 패널은 `No data`가 정상이다. RDS IOPS/latency/queue는 CloudWatch로 확인한다. paging을 핵심 결론으로 쓰려면 MySQL exporter를 먼저 구축해야 한다.
+MySQL exporter는 shared RDS를 prod Alloy 한 곳에서만 scrape하며 `env=shared`,
+`scope=beat-shared-rds`로 노출한다. buffer-pool과 row-lock counter는 run 전후 delta를
+기록하되 공유 instance의 외부 접근이 섞일 수 있으므로 단독으로 전략에 귀속하지 않는다.
+RDS IOPS/latency/queue는 CloudWatch 60초 지표로 함께 확인한다.
 
 ## 9. artifact와 결과 보고
 

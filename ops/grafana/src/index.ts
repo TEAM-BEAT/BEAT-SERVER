@@ -123,6 +123,28 @@ function queryVariable(
   return builder;
 }
 
+function loadTestVariable(
+  name: string,
+  label: string,
+  query: string,
+  options: { multi?: boolean; includeAll?: boolean } = {},
+): Builder<VariableModel> {
+  const includeAll = options.includeAll ?? true;
+  const builder = new QueryVariableBuilder(name)
+    .label(label)
+    .query(query)
+    .datasource(PROMETHEUS)
+    .refresh(VariableRefresh.OnTimeRangeChanged)
+    .multi(options.multi ?? false)
+    .includeAll(includeAll);
+
+  if (includeAll) {
+    builder.allValue(".*");
+  }
+
+  return builder;
+}
+
 function dashboardVariables(options: {
   defaultEnvironment: "dev" | "prod";
   logs?: boolean;
@@ -228,29 +250,41 @@ function dashboardVariables(options: {
 
   if (options.loadTest) {
     variables.push(
-      queryVariable(
+      loadTestVariable(
         "test_id",
         "Load test",
-        "label_values(k6_http_reqs, test_id)",
-        PROMETHEUS,
+        'label_values(k6_stock_contention_requests_submitted{target_env=~"$env"}, test_id)',
+        { multi: true, includeAll: false },
       ),
-      queryVariable(
+      loadTestVariable(
+        "git_sha",
+        "Deployed Git SHA",
+        'label_values(k6_stock_contention_requests_submitted{test_id=~"$test_id"}, git_sha)',
+      ),
+      loadTestVariable(
+        "dataset_hash",
+        "Dataset SHA-256",
+        'label_values(k6_stock_contention_requests_submitted{test_id=~"$test_id",git_sha=~"$git_sha"}, dataset_hash)',
+      ),
+      loadTestVariable(
+        "budget_version",
+        "Workload budget",
+        'label_values(k6_stock_contention_requests_submitted{test_id=~"$test_id",git_sha=~"$git_sha",dataset_hash=~"$dataset_hash"}, budget_version)',
+      ),
+      loadTestVariable(
         "strategy",
         "Strategy",
-        'label_values(k6_http_reqs{test_id=~"$test_id"}, strategy)',
-        PROMETHEUS,
+        'label_values(k6_stock_contention_requests_submitted{test_id=~"$test_id",git_sha=~"$git_sha",dataset_hash=~"$dataset_hash",budget_version=~"$budget_version"}, strategy)',
       ),
-      queryVariable(
+      loadTestVariable(
         "load_profile",
         "Load profile",
-        'label_values(k6_http_reqs{test_id=~"$test_id"}, load_profile)',
-        PROMETHEUS,
+        'label_values(k6_stock_contention_requests_submitted{test_id=~"$test_id",strategy=~"$strategy"}, load_profile)',
       ),
-      queryVariable(
+      loadTestVariable(
         "phase",
         "Experiment phase",
         'label_values(k6_stock_contention_requests_submitted{test_id=~"$test_id"}, phase)',
-        PROMETHEUS,
       ),
       new TextBoxVariableBuilder("test_scenario")
         .label("Scenario (optional)")
@@ -1043,21 +1077,23 @@ function loadTest(): DashboardBuilder {
     "90 Load Test",
     "beat-load-test",
     "k6 stock-contention test_id correlation with outcome counters, latency histograms, completion/drain timing, server RPS, JVM/Hikari saturation, shared RDS and an optional burstable load-generator signal. Default environment is dev; prod remains selectable with an explicit shared-RDS warning.",
-    { defaultEnvironment: "dev", cloudwatch: true, loadTest: true, ec2Instance: true },
+    { defaultEnvironment: "dev", cloudwatch: true, cloudUsage: true, loadTest: true, ec2Instance: true },
   );
 
-  const k6Selector = 'test_id=~"$test_id",scenario=~"$test_scenario",strategy=~"$strategy",load_profile=~"$load_profile"';
+  const runIdentitySelector = 'test_id=~"$test_id",git_sha=~"$git_sha",dataset_hash=~"$dataset_hash",budget_version=~"$budget_version",target_env=~"$env"';
+  const k6Selector = `${runIdentitySelector},scenario=~"$test_scenario",strategy=~"$strategy",load_profile=~"$load_profile"`;
   const experimentSelector = `${k6Selector},phase=~"$phase"`;
-  const experimentGroup = "strategy, load_profile, phase";
+  const runGroup = "test_id, git_sha, dataset_hash, budget_version, strategy, load_profile";
+  const experimentGroup = `${runGroup}, phase`;
   const k6Metric = (metric: string) => `k6_${metric}`;
   const experimentRate = (metric: string, extraSelector = "") =>
     `sum by (${experimentGroup}) (rate(${k6Metric(metric)}{${experimentSelector}${extraSelector}}[$__rate_interval]))`;
   const experimentQuantile = (metric: string, quantile: number) =>
     `histogram_quantile(${quantile}, sum by (le, ${experimentGroup}) (rate(${k6Metric(metric)}_bucket{${experimentSelector}}[$__rate_interval])))`;
-  // k6 test_id is emitted by the external runner, not by Spring server metrics.
-  // The server selector intentionally includes every /api route, including the
-  // stock-contention endpoint after its /api prefix was added.
-  const serverSelector = HTTP_SELECTOR;
+  // Server metrics cannot carry the external k6 test_id. Restrict them to the
+  // experiment route and correlate by the retained UTC run window.
+  const loadServiceSelector = 'env=~"$env",application="beat-apis",instance=~"$instance",color=~"$color"';
+  const serverSelector = `${loadServiceSelector},uri=~"^/api/internal/experiments/stock-contention/[^/]+/bookings$"`;
   const rdsExperimentDescription =
     "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.";
   const rdsMemoryGuardrail =
@@ -1065,17 +1101,17 @@ function loadTest(): DashboardBuilder {
 
   return builder
     .withPanel(
-      metricPanel(1, "k6 request rate", `sum(rate(k6_http_reqs{${k6Selector}}[$__rate_interval]))`, {
+      metricPanel(1, "k6 request rate", `sum by (${runGroup}) (rate(k6_http_reqs{${k6Selector}}[$__rate_interval]))`, {
         unit: "reqps",
-        legendFormat: "{{strategy}} {{load_profile}}",
+        legendFormat: "{{test_id}} {{strategy}} {{load_profile}}",
         description:
           "k6 Counter http_reqs is exported as k6_http_reqs by Alloy with add_metric_suffixes=false; select test_id, strategy and load profile before comparing runs.",
       }),
     )
     .withPanel(
-      metricPanel(2, "k6 failed request rate", `100 * sum(rate(k6_http_req_failed_total{${k6Selector},condition="nonzero"}[$__rate_interval])) / sum(rate(k6_http_reqs{${k6Selector}}[$__rate_interval]))`, {
+      metricPanel(2, "k6 failed request rate", `100 * sum by (${runGroup}) (rate(k6_http_req_failed_total{${k6Selector},condition="nonzero"}[$__rate_interval])) / sum by (${runGroup}) (rate(k6_http_reqs{${k6Selector}}[$__rate_interval]))`, {
         unit: "percent",
-        legendFormat: "failed",
+        legendFormat: "{{test_id}} {{strategy}} failed",
         description:
           "k6 Rate http_req_failed is exported as k6_http_req_failed_total with condition=nonzero; this is transport/status failure visibility, not the stock outcome verdict.",
       }),
@@ -1084,12 +1120,12 @@ function loadTest(): DashboardBuilder {
       dualMetricPanel(
         3,
         "k6 latency p95 / p99",
-        `histogram_quantile(0.95, sum by (le, strategy, load_profile) (rate(k6_http_req_duration_bucket{${k6Selector}}[$__rate_interval])))`,
-        `histogram_quantile(0.99, sum by (le, strategy, load_profile) (rate(k6_http_req_duration_bucket{${k6Selector}}[$__rate_interval])))`,
+        `histogram_quantile(0.95, sum by (le, ${runGroup}) (rate(k6_http_req_duration_bucket{${k6Selector}}[$__rate_interval])))`,
+        `histogram_quantile(0.99, sum by (le, ${runGroup}) (rate(k6_http_req_duration_bucket{${k6Selector}}[$__rate_interval])))`,
         {
           unit: "ms",
-          firstLegend: "{{strategy}} {{load_profile}} p95",
-          secondLegend: "{{strategy}} {{load_profile}} p99",
+          firstLegend: "{{test_id}} {{strategy}} p95",
+          secondLegend: "{{test_id}} {{strategy}} p99",
           description:
             "k6 Trend http_req_duration is an OTLP histogram in milliseconds; with Alloy add_metric_suffixes=false its classic bucket series is k6_http_req_duration_bucket. Prometheus quantiles are estimates; the local k6 summary remains authoritative.",
         },
@@ -1099,11 +1135,11 @@ function loadTest(): DashboardBuilder {
       dualMetricPanel(
         4,
         "k6 VUs / dropped iterations",
-        `max(k6_vus{${k6Selector}})`,
-        `sum(rate(k6_dropped_iterations{${k6Selector}}[$__rate_interval]))`,
+        `max by (${runGroup}) (k6_vus{${k6Selector}})`,
+        `sum by (${runGroup}) (rate(k6_dropped_iterations{${k6Selector}}[$__rate_interval]))`,
         {
-          firstLegend: "VUs",
-          secondLegend: "dropped iterations",
+          firstLegend: "{{test_id}} VUs",
+          secondLegend: "{{test_id}} dropped",
           unit: "short",
           description:
             "k6 dropped_iterations is a Counter and is exported without an added _total suffix. Any non-zero local dropped count invalidates the stock-contention run.",
@@ -1111,28 +1147,28 @@ function loadTest(): DashboardBuilder {
       ),
     )
     .withPanel(
-      metricPanel(5, "Server-side RPS", `sum(rate(http_server_requests_seconds_count{${serverSelector}}[$__rate_interval]))`, {
+      metricPanel(5, "Experiment endpoint — server-side RPS", `sum by (instance, color, uri) (rate(http_server_requests_seconds_count{${serverSelector}}[$__rate_interval]))`, {
         unit: "reqps",
-        legendFormat: "{{application}}",
-        description: "The business /api selector includes /api/internal/experiments/stock-contention/{strategy}/bookings; compare this server-side RPS with k6 request rate as separate signals.",
+        legendFormat: "{{instance}} {{color}}",
+        description: "Only beat-apis stock-contention requests are included. Server metrics have no k6 test_id, so correlate them with the retained UTC run window.",
       }),
     )
     .withPanel(
-      metricPanel(6, "Server Hikari utilization", `max by (application, instance, color, pool) (hikaricp_connections_active{${HIKARI_SELECTOR}} / hikaricp_connections_max{${HIKARI_SELECTOR}})`, {
+      metricPanel(6, "Server Hikari utilization", `max by (application, instance, color, pool) (hikaricp_connections_active{${loadServiceSelector}} / hikaricp_connections_max{${loadServiceSelector}})`, {
         unit: "percentunit",
         legendFormat: "{{application}} {{instance}} {{color}} {{pool}}",
         description: "Blue/Green pools are evaluated independently; sum(active)/sum(max) is intentionally not used.",
       }),
     )
     .withPanel(
-      metricPanel(7, "Server Hikari pending connections", `max by (application, instance, color, pool) (hikaricp_connections_pending{${HIKARI_SELECTOR}})`, {
+      metricPanel(7, "Server Hikari pending connections", `max by (application, instance, color, pool) (hikaricp_connections_pending{${loadServiceSelector}})`, {
         unit: "short",
         legendFormat: "{{application}} {{instance}} {{color}} {{pool}}",
         description: "Pending waiters indicate pool pressure even when active/max utilization has not reached 100%.",
       }),
     )
     .withPanel(
-      metricPanel(8, "Server JVM heap", `100 * sum by (application, instance, color) (jvm_memory_used_bytes{area="heap",${SERVICE_SELECTOR}}) / sum by (application, instance, color) (jvm_memory_max_bytes{area="heap",${SERVICE_SELECTOR}})`, {
+      metricPanel(8, "Server JVM heap", `100 * sum by (application, instance, color) (jvm_memory_used_bytes{area="heap",${loadServiceSelector}}) / sum by (application, instance, color) (jvm_memory_max_bytes{area="heap",${loadServiceSelector}})`, {
         unit: "percent",
         legendFormat: "{{application}} {{instance}} {{color}}",
       }),
@@ -1211,8 +1247,8 @@ function loadTest(): DashboardBuilder {
         experimentRate("stock_contention_bookings_sold_out"),
         {
           unit: "reqps",
-          firstLegend: "{{strategy}} {{load_profile}} accepted",
-          secondLegend: "{{strategy}} {{load_profile}} sold_out",
+          firstLegend: "{{test_id}} {{strategy}} accepted",
+          secondLegend: "{{test_id}} {{strategy}} sold_out",
           description:
             "Custom k6 Counters are correlated by test_id, git_sha, strategy, phase and load_profile. The local JSON summary and read-only DB invariant decide exact accepted/sold_out counts.",
         },
@@ -1226,8 +1262,8 @@ function loadTest(): DashboardBuilder {
         experimentRate("stock_contention_lock_timeout"),
         {
           unit: "reqps",
-          firstLegend: "{{strategy}} {{load_profile}} conflict",
-          secondLegend: "{{strategy}} {{load_profile}} lock timeout",
+          firstLegend: "{{test_id}} {{strategy}} conflict",
+          secondLegend: "{{test_id}} {{strategy}} lock timeout",
           description:
             "Any conflict_exhausted or lock_timeout sample is a failed experiment outcome, even if the HTTP status is 200.",
         },
@@ -1241,8 +1277,8 @@ function loadTest(): DashboardBuilder {
         experimentRate("stock_contention_timeouts"),
         {
           unit: "reqps",
-          firstLegend: "{{strategy}} unexpected",
-          secondLegend: "{{strategy}} timeout",
+          firstLegend: "{{test_id}} {{strategy}} unexpected",
+          secondLegend: "{{test_id}} {{strategy}} timeout",
           description:
             "The timeout Counter is a terminal request timeout count. For the Rate-based request-timeout signal, see the next panel; both remain separate from local exact counts.",
         },
@@ -1256,8 +1292,8 @@ function loadTest(): DashboardBuilder {
         experimentRate("stock_contention_requests_submitted"),
         {
           unit: "reqps",
-          firstLegend: "{{strategy}} request timeout rate",
-          secondLegend: "{{strategy}} submitted",
+          firstLegend: "{{test_id}} {{strategy}} request timeout",
+          secondLegend: "{{test_id}} {{strategy}} submitted",
           description:
             "Rate metrics retain k6's condition label; condition=nonzero selects timed-out requests. The submitted Counter is shown as a rate to make timeout volume comparable with the planned request stream.",
         },
@@ -1271,8 +1307,8 @@ function loadTest(): DashboardBuilder {
         experimentQuantile("stock_contention_accepted_latency_ms", 0.99),
         {
           unit: "ms",
-          firstLegend: "{{strategy}} {{load_profile}} p95",
-          secondLegend: "{{strategy}} {{load_profile}} p99",
+          firstLegend: "{{test_id}} {{strategy}} p95",
+          secondLegend: "{{test_id}} {{strategy}} p99",
           description:
             "Accepted-only k6 Trend histogram. The Prometheus p95/p99 are histogram_quantile estimates; exact accepted latency percentiles are preserved in the local JSON summary.",
         },
@@ -1286,8 +1322,8 @@ function loadTest(): DashboardBuilder {
         experimentQuantile("stock_contention_attempt_count", 0.99),
         {
           unit: "short",
-          firstLegend: "{{strategy}} {{load_profile}} p50",
-          secondLegend: "{{strategy}} {{load_profile}} p99",
+          firstLegend: "{{test_id}} {{strategy}} p50",
+          secondLegend: "{{test_id}} {{strategy}} p99",
           description:
             "Response attemptCount Trend; values above one expose retry work. The local JSON summary is authoritative for exact samples and maxima.",
         },
@@ -1301,8 +1337,8 @@ function loadTest(): DashboardBuilder {
         experimentQuantile("stock_contention_completion_elapsed_ms", 0.99),
         {
           unit: "ms",
-          firstLegend: "{{strategy}} {{load_profile}} p95",
-          secondLegend: "{{strategy}} {{load_profile}} p99",
+          firstLegend: "{{test_id}} {{strategy}} p95",
+          secondLegend: "{{test_id}} {{strategy}} p99",
           description:
             "Elapsed milliseconds from k6 setup start until each response completed; this makes tail work after the arrival window visible.",
         },
@@ -1316,8 +1352,8 @@ function loadTest(): DashboardBuilder {
         experimentQuantile("stock_contention_drain_time_ms", 0.99),
         {
           unit: "ms",
-          firstLegend: "{{strategy}} {{load_profile}} p95",
-          secondLegend: "{{strategy}} {{load_profile}} p99",
+          firstLegend: "{{test_id}} {{strategy}} p95",
+          secondLegend: "{{test_id}} {{strategy}} p99",
           description:
             "max(0, completion elapsed - planned profile duration). Zero means the response completed inside the planned window; positive values show completion/drain tail. Exact max drain_time_ms remains in local JSON.",
         },
@@ -1342,16 +1378,200 @@ function loadTest(): DashboardBuilder {
       ec2CpuCreditPanel(23),
     )
     .withPanel(
+      dualMetricPanel(
+        26,
+        "Experiment endpoint — server latency p95 / p99",
+        `histogram_quantile(0.95, sum by (le, instance, color) (rate(http_server_requests_seconds_bucket{${serverSelector}}[$__rate_interval])))`,
+        `histogram_quantile(0.99, sum by (le, instance, color) (rate(http_server_requests_seconds_bucket{${serverSelector}}[$__rate_interval])))`,
+        {
+          unit: "s",
+          firstLegend: "{{instance}} {{color}} p95",
+          secondLegend: "{{instance}} {{color}} p99",
+          description: "Server-side histogram for only the stock-contention endpoint. The 30s scrape interval makes this supporting evidence; local k6 JSON remains authoritative for the 1s flash.",
+        },
+      ),
+    )
+    .withPanel(
+      metricPanel(27, "beat-apis process CPU", `max by (instance, color) (process_cpu_usage{${loadServiceSelector}})`, {
+        unit: "percentunit",
+        legendFormat: "{{instance}} {{color}}",
+      }),
+    )
+    .withPanel(
+      metricPanel(28, "beat-apis GC pause time rate", `sum by (instance, color) (rate(jvm_gc_pause_seconds_sum{${loadServiceSelector}}[$__rate_interval]))`, {
+        unit: "s",
+        legendFormat: "{{instance}} {{color}}",
+        description: "Seconds spent in GC per second, summed across cause/action series for the active beat-apis process.",
+      }),
+    )
+    .withPanel(
+      metricPanel(29, "beat-apis allocation rate", `sum by (instance, color) (rate(jvm_gc_memory_allocated_bytes_total{${loadServiceSelector}}[$__rate_interval]))`, {
+        unit: "Bps",
+        legendFormat: "{{instance}} {{color}}",
+      }),
+    )
+    .withPanel(
+      metricPanel(30, "Selected environment — node CPU", `100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle",env=~"$env"}[$__rate_interval])))`, {
+        unit: "percent",
+        legendFormat: "{{instance}}",
+        description: "Node-wide CPU detects noisy-neighbor or host saturation that cannot be attributed to the application strategy.",
+      }),
+    )
+    .withPanel(
+      metricPanel(31, "Selected environment — node memory used", `100 * (1 - node_memory_MemAvailable_bytes{env=~"$env"} / node_memory_MemTotal_bytes{env=~"$env"})`, {
+        unit: "percent",
+        legendFormat: "{{instance}}",
+      }),
+    )
+    .withPanel(
+      metricPanel(32, "Container CPU", cadvisorMetric(
+        (selector) => `rate(container_cpu_usage_seconds_total{${selector}}[$__rate_interval])`,
+      ), {
+        unit: "percentunit",
+        legendFormat: "{{container}}",
+        description: "All dev containers remain visible so application pressure can be distinguished from Redis, Alloy, nginx or another container.",
+      }),
+    )
+    .withPanel(
+      metricPanel(33, "Container memory", cadvisorMetric(
+        (selector) => `container_memory_working_set_bytes{${selector}}`,
+      ), {
+        unit: "bytes",
+        legendFormat: "{{container}}",
+      }),
+    )
+    .withPanel(cloudWatchSearchPanel(34, "Shared RDS — read IOPS", "ReadIOPS", "Average", "short", rdsExperimentDescription, 60))
+    .withPanel(cloudWatchSearchPanel(46, "Shared RDS — write IOPS", "WriteIOPS", "Average", "short", rdsExperimentDescription, 60))
+    .withPanel(cloudWatchSearchPanel(35, "Shared RDS — disk queue", "DiskQueueDepth", "Average", "short", rdsExperimentDescription, 60))
+    .withPanel(cloudWatchSearchPanel(36, "Shared RDS — burst balance", "BurstBalance", "Minimum", "percent", "Relevant only when the RDS storage type exposes BurstBalance; otherwise No data is expected.", 60))
+    .withPanel(
+      metricPanel(37, "MySQL queries per second", `rate(mysql_global_status_questions{${MYSQL_SELECTOR}}[$__rate_interval])`, {
+        unit: "reqps",
+        legendFormat: "questions",
+        description: "Shared-instance signal. Compare pre/run/post windows and do not attribute unrelated traffic to a strategy.",
+      }),
+    )
+    .withPanel(
+      dualMetricPanel(
+        38,
+        "MySQL connected / running threads",
+        `mysql_global_status_threads_connected{${MYSQL_SELECTOR}}`,
+        `mysql_global_status_threads_running{${MYSQL_SELECTOR}}`,
+        { unit: "short", firstLegend: "connected", secondLegend: "running" },
+      ),
+    )
+    .withPanel(
+      metricPanel(
+        39,
+        "InnoDB row-lock waits",
+        `rate(mysql_global_status_innodb_row_lock_waits{${MYSQL_SELECTOR}}[$__rate_interval])`,
+        {
+          unit: "reqps",
+          legendFormat: "waits/s",
+          description: "Shared-RDS cumulative counter converted to waits per second. Compare the same UTC run windows and retain pre/post deltas.",
+        },
+      ),
+    )
+    .withPanel(
+      metricPanel(47, "InnoDB row-lock wait time rate", `rate(mysql_global_status_innodb_row_lock_time{${MYSQL_SELECTOR}}[$__rate_interval])`, {
+        unit: "short",
+        legendFormat: "wait ms/s",
+        description: "Milliseconds added to the cumulative InnoDB row-lock wait-time counter per second. This is shared-instance supporting evidence, not request latency.",
+      }),
+    )
+    .withPanel(
+      metricPanel(40, "Redis commands per second", `rate(redis_commands_processed_total{env=~"$env"}[$__rate_interval])`, {
+        unit: "reqps",
+        legendFormat: "{{instance}}",
+        description: "Confirms that REDIS strategy activity reaches the environment-local Redis; it does not measure lock ownership correctness.",
+      }),
+    )
+    .withPanel(
+      dualMetricPanel(
+        41,
+        "Alloy remote-write pending / failed",
+        `sum by (remote_name) (prometheus_remote_storage_samples_pending{env=~"$env"})`,
+        `sum by (remote_name) (rate(prometheus_remote_storage_samples_failed_total{env=~"$env"}[$__rate_interval]))`,
+        {
+          unit: "short",
+          firstLegend: "{{remote_name}} pending",
+          secondLegend: "{{remote_name}} failed/s",
+          description: "A sustained pending increase or any failed-sample rate invalidates the observability window even when the application result is correct.",
+        },
+      ),
+    )
+    .withPanel(
+      metricPanel(42, "Grafana Cloud active series", "sum(grafanacloud_instance_active_series)", {
+        datasource: CLOUD_USAGE,
+        span: 12,
+        unit: "short",
+        stat: true,
+        thresholds: FREE_PLAN_ACTIVE_SERIES_THRESHOLDS,
+        description: "Keep below the 7,000 operating target and investigate before the tenant limit can cause ingestion loss.",
+      }),
+    )
+    .withPanel(
+      metricPanel(43, "Grafana Cloud discarded samples", 'sum by (reason) (grafanacloud_instance_samples_discarded_per_second{reason=~"per_user.*|rate_limited"})', {
+        datasource: CLOUD_USAGE,
+        unit: "reqps",
+        legendFormat: "{{reason}}",
+        description: "Must remain zero for a valid run; otherwise application, host and RDS correlations may have missing samples.",
+      }),
+    )
+    .withPanel(
+      metricPanel(48, "Required scrape targets", `max by (env, job) (up{env=~"$env",job=~"apis|integrations/cadvisor|integrations/redis"}) or max by (env, job) (up{env="shared",job="integrations/mysql"})`, {
+        unit: "short",
+        legendFormat: "{{env}} {{job}}",
+        description: "All selected-environment application/cAdvisor/Redis targets and the single shared MySQL target must be present. Blue/Green application color health remains visible in 04/05 for detailed diagnosis.",
+      }),
+    )
+    .withPanel(
+      metricPanel(49, "MySQL exporter sample age", `time() - timestamp(mysql_global_status_uptime{${MYSQL_SELECTOR}})`, {
+        unit: "s",
+        legendFormat: "shared MySQL age",
+        description: "Must stay close to the configured scrape interval. A rising value means the DB panels are stale even if historical lines remain visible.",
+      }),
+    )
+    .withPanel(
+      dualMetricPanel(
+        44,
+        "Optimistic retry cost",
+        `sum by (${experimentGroup}) (rate(${k6Metric("stock_contention_optimistic_retries")}{${experimentSelector}}[$__rate_interval]))`,
+        `sum by (${experimentGroup}) (rate(${k6Metric("stock_contention_optimistic_retries")}{${experimentSelector}}[$__rate_interval])) / sum by (${experimentGroup}) (rate(${k6Metric("stock_contention_requests_submitted")}{${experimentSelector}}[$__rate_interval]))`,
+        {
+          unit: "short",
+          firstLegend: "{{test_id}} retries/s",
+          secondLegend: "{{test_id}} retries/request",
+          description: "Only OPTIMISTIC should be non-zero. Exact total retries and average per request remain authoritative in the local JSON summary.",
+        },
+      ),
+    )
+    .withPanel(
+      textPanel(
+        45,
+        "Selected run identity",
+        `
+**test_id:** \`$test_id\`<br>
+**git_sha:** \`$git_sha\`<br>
+**dataset_hash:** \`$dataset_hash\`<br>
+**budget_version:** \`$budget_version\`<br>
+**strategy/profile/phase:** \`$strategy / $load_profile / $phase\`
+
+Multiple test IDs may be selected for an overlay. Every k6 aggregation retains the full run identity, so different code, fixture or budget versions are never silently merged.
+`,
+      ),
+    )
+    .withPanel(
       textPanel(
         24,
         "Load-test observability and safety contract",
         `
-- Select \`test_id\` first, then strategy, load_profile and phase. User ID, access token and booking ID are never metric tags.
+- Select one or more \`test_id\` values, then confirm git_sha, dataset_hash and budget_version before comparing strategy, load_profile and phase. User ID, access token and booking ID are never metric tags.
 - k6 OTLP naming assumes Alloy \`otelcol.exporter.prometheus.k6 { add_metric_suffixes = false }\`: Counter names are unsuffixed, Rate \`.total\` names become \`_total\`, and Trend histograms expose \`_bucket/_sum/_count\` in milliseconds.
 - Grafana histogram p95/p99 values are estimates from exported buckets. Exact outcome counts, TPS, overselling/duplicate checks and exact local percentiles come from the retained JSON summary plus read-only DB invariant query.
-- The /api HTTP selector includes the stock-contention endpoint, so server-side RPS includes this experiment while remaining independent from k6 RPS.
+- Server HTTP panels select only beat-apis stock-contention routes. Server/JVM/Hikari/container/RDS/MySQL metrics do not carry k6 test_id, so correlate them with the retained UTC run window.
 - CloudWatch RDS panels use a 60s period and require the exact shared DBInstanceIdentifier. EC2 CPUCreditBalance uses the exact InstanceId above and a 300s basic-monitoring period; a blank selector intentionally yields no series.
-- The warm-cache panel is supporting evidence only: shared MySQL exporter collection must be enabled and the physical/read-request comparison does not replace the local/DB verdict.
+- MySQL and CloudWatch are shared-RDS supporting evidence. Buffer-pool, row-lock, IOPS and queue signals do not replace the local/DB verdict and cannot exclusively attribute unrelated shared traffic to one strategy.
 - The run must be preflighted against the environment allowlist and workload budget before traffic starts.
 - Shared RDS is always in scope, including when the selected target environment is \`dev\`.
 - Keep the local JSON summary/artifact after the 14-day metrics window expires.

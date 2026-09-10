@@ -358,6 +358,19 @@ test('stock contention booking request does not follow redirects', () => {
   assert.match(stockContentionScenarioSource, /redirects:\s*0/);
 });
 
+test('stock contention summary explicitly collects p99 and optimistic retry cost', () => {
+  assert.match(
+    stockContentionScenarioSource,
+    /summaryTrendStats:\s*\['med', 'p\(95\)', 'p\(99\)', 'avg', 'min', 'max', 'count'\]/,
+  );
+  assert.match(
+    stockContentionScenarioSource,
+    /const OPTIMISTIC_RETRY_METRIC = 'stock_contention_optimistic_retries';/,
+  );
+  assert.match(stockContentionScenarioSource, /Math\.max\(0, result\.attemptCount - 1\)/);
+  assert.match(stockContentionScenarioSource, /average_per_request:/);
+});
+
 test('stock contention strategy is restricted to the four comparison strategies', () => {
   assert.equal(validateStrategy('ATOMIC'), 'ATOMIC');
   assert.throws(() => validateStrategy('atomic_update'), /STRATEGY must be/);

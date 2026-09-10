@@ -73,57 +73,30 @@ flash는 k6 open arrival-rate 모델이므로 200 VU가 DB transaction 200개와
 ## 실행
 
 dev 서버를 한 번 배포한 뒤, 각 strategy마다 합성 warmup/flash schedule을 같은 초기 상태로
-복원하고 아래 두 profile을 순서대로 실행합니다. reset API는 추가하지 않으므로 fixture 복원은
-실험 운영 절차에서 수행합니다. 각 warmup 뒤 flash 전, 그리고 strategy 사이에는 60초 quiet
-period를 둡니다. 다섯 repetition block은 서로 다른 strategy 순서를 사용합니다.
+복원하고 아래 runner로 profile 하나씩 실행합니다. 이 runner는 macOS 기본 shell이 zsh여도 Bash로
+동작하며 workload 값은 받지 않습니다. reset API는 추가하지 않으므로 fixture 복원과 DB invariant
+검증은 실행자가 별도로 수행해야 합니다.
 
 ```bash
 cd load-tests/k6/scenarios/stock-contention
-set -euo pipefail
-
-GIT_SHA="$(git rev-parse HEAD)"
-DATASET_HASH="$(sha256sum cases.json | awk '{print $1}')"
-
-run_profile() {
-  local strategy="$1"
-  local profile="$2"
-  TARGET_ENV="dev" \
-  BASE_URL="https://api-dev.beatlive.kr" \
-  STRATEGY="${strategy}" \
-  DATA_FILE="./cases.json" \
-  TEST_ID="${TEST_ID}" \
-  GIT_SHA="${GIT_SHA}" \
-  DATASET_HASH="${DATASET_HASH}" \
-  LOAD_PROFILE="${profile}" \
-  K6_OTEL_SERVICE_NAME="beat-k6" \
-  K6_OTEL_METRIC_PREFIX="k6_" \
-  K6_OTEL_SINGLE_COUNTER_FOR_RATE="true" \
-  K6_OTEL_GRPC_EXPORTER_ENDPOINT="127.0.0.1:4327" \
-  K6_OTEL_GRPC_EXPORTER_INSECURE="true" \
-  k6 run --out opentelemetry stock-contention.js
-}
-
-STRATEGY_ORDERS=(
-  "PESSIMISTIC OPTIMISTIC REDIS ATOMIC"
-  "OPTIMISTIC REDIS ATOMIC PESSIMISTIC"
-  "REDIS ATOMIC PESSIMISTIC OPTIMISTIC"
-  "ATOMIC PESSIMISTIC OPTIMISTIC REDIS"
-  "PESSIMISTIC REDIS ATOMIC OPTIMISTIC"
-)
-
-for REPETITION in 1 2 3 4 5; do
-  read -r -a STRATEGIES <<< "${STRATEGY_ORDERS[$((REPETITION - 1))]}"
-  for STRATEGY in "${STRATEGIES[@]}"; do
-    # 매 repetition/strategy마다 동일한 fixture와 dataset을 복원한다.
-    TEST_ID="stock-contention-${STRATEGY}-r${REPETITION}-$(date +%Y%m%d-%H%M%S)"
-    run_profile "${STRATEGY}" warmup
-    sleep 60
-    # flash schedule을 stock 100으로 복원한 뒤 flash를 제공한다.
-    run_profile "${STRATEGY}" flash
-    sleep 60
-  done
-done
+TEST_ID="stock-contention-PESSIMISTIC-r1-$(date +%Y%m%d-%H%M%S)"
+./run-stock-contention.sh PESSIMISTIC warmup "$TEST_ID"
+# 60초 quiet period와 flash fixture read-back 후 실행
+./run-stock-contention.sh PESSIMISTIC flash "$TEST_ID"
 ```
+
+Grafana로 OTLP metric도 보낼 때만 tunnel을 연 뒤 다음 환경변수를 추가합니다.
+
+```bash
+K6_OUTPUT=opentelemetry \
+K6_OTEL_GRPC_EXPORTER_ENDPOINT=127.0.0.1:4327 \
+K6_OTEL_GRPC_EXPORTER_INSECURE=true \
+./run-stock-contention.sh PESSIMISTIC flash "$TEST_ID"
+```
+
+다섯 repetition의 strategy 순서는 아래 rotation 계약을 따르되 자동 반복하지 않습니다. 각
+strategy 앞의 선택적 cleanup/reset/read-back과 종료 뒤 invariant/cooldown 확인이 성공한 뒤에만
+다음 run을 시작해야 하기 때문입니다.
 
 기본 결과 파일은 다음처럼 profile별로 생성됩니다.
 
@@ -134,7 +107,7 @@ summary-<test_id>-flash.json
 
 summary에는 strategy, profile, budget version, case count, accepted/sold_out/
 conflict_exhausted/lock_timeout/unexpected 수, accepted TPS, accepted latency p50/p95/p99,
-attempts, timeouts, dropped, drain time 추정값이 포함됩니다. 최종 schedule stock,
+attempts, optimistic retry 총수와 요청당 평균, timeouts, dropped, drain time 추정값이 포함됩니다. 최종 schedule stock,
 overselling, duplicate booking, negative stock은 DB read-only query로 별도 검증해야 합니다.
 
 ## 판정 지표와 중단
@@ -156,6 +129,7 @@ stock_contention_request_start_elapsed_ms
 stock_contention_completion_elapsed_ms
 stock_contention_drain_time_ms
 stock_contention_attempt_count
+stock_contention_optimistic_retries
 ```
 
 각 custom metric에는 `test_id`, `git_sha`, `strategy`, `phase`가 붙고, 공통 k6
