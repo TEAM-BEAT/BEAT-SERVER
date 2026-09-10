@@ -82,22 +82,7 @@ class StockContentionExperimentServiceSpec : FunSpec() {
                     bookingOpen = true,
                     version = null,
                 )
-            val savedBooking =
-                Booking.rehydrate(
-                    id = 99L,
-                    purchaseTicketCount = 1,
-                    bookerName = "홍길동",
-                    bookerPhoneNumber = "010-1234-5678",
-                    bookingStatus = com.beat.domain.booking.model.BookingStatus.CHECKING_PAYMENT,
-                    createdAt = LocalDateTime.of(2026, 8, 23, 9, 0),
-                    cancellationDate = null,
-                    birthDate = null,
-                    password = null,
-                    refundAccount = null,
-                    scheduleId = 10L,
-                    userId = 30L,
-                    totalPaymentAmount = 100,
-                )
+            val savedBooking = savedBooking()
             val reservationStrategy = AcceptingReservationStrategy()
 
             every { transactionManager.getTransaction(any()) } returns transactionStatus
@@ -198,6 +183,112 @@ class StockContentionExperimentServiceSpec : FunSpec() {
             verify(exactly = 0) { performanceRepository.findById(any()) }
             verify(exactly = 0) { scheduleStore.find(any(), any(), any()) }
         }
+
+        test("Redis lock은 공통 조회가 끝난 뒤 transaction과 reservation을 감싼다") {
+            val strategyRegistry = mockk<StockContentionStrategyRegistry>()
+            val memberRepository = mockk<MemberRepository>()
+            val performanceRepository = mockk<PerformanceRepository>()
+            val bookingRepository = mockk<BookingRepository>()
+            val scheduleStore = mockk<StockContentionScheduleStore>()
+            val transactionManager = mockk<PlatformTransactionManager>(relaxed = true)
+            val transactionStatus = mockk<TransactionStatus>(relaxed = true)
+            val member = mockk<Member>()
+            val performance = mockk<com.beat.domain.performance.model.Performance>()
+            var lockEntered = false
+            var reservationInsideLock = false
+            var commitCompletedBeforeUnlock = false
+            val reservationStrategy =
+                RecordingReservationStrategy(
+                    strategy = StockContentionStrategy.REDIS,
+                    onLock = {
+                        verify(exactly = 1) { memberRepository.findById(1L) }
+                        verify(exactly = 1) { scheduleStore.findBookingMetadataById(10L) }
+                        verify(exactly = 1) { performanceRepository.findById(20L) }
+                        verify(exactly = 0) { transactionManager.getTransaction(any()) }
+                        lockEntered = true
+                    },
+                    onReserve = { reservationInsideLock = lockEntered },
+                    onUnlock = {
+                        verify(exactly = 1) { transactionManager.commit(transactionStatus) }
+                        commitCompletedBeforeUnlock = true
+                    },
+                )
+
+            every { member.userId } returns 30L
+            every { performance.ticketPrice } returns 100
+            every { transactionManager.getTransaction(any()) } returns transactionStatus
+            every { strategyRegistry.get(StockContentionStrategy.REDIS) } returns
+                reservationStrategy
+            every { memberRepository.findById(1L) } returns member
+            every { scheduleStore.findBookingMetadataById(10L) } returns
+                ScheduleBookingMetadata(performanceId = 20L, bookingOpen = true)
+            every { performanceRepository.findById(20L) } returns performance
+            every { bookingRepository.save(any()) } returns savedBooking()
+
+            experimentService(
+                    strategyRegistry,
+                    memberRepository,
+                    performanceRepository,
+                    bookingRepository,
+                    scheduleStore,
+                    transactionManager,
+                )
+                .createMemberBooking(1L, StockContentionStrategy.REDIS, bookingCommand())
+
+            reservationInsideLock shouldBe true
+            commitCompletedBeforeUnlock shouldBe true
+            verify(exactly = 1) { transactionManager.commit(transactionStatus) }
+            verify(exactly = 1) { bookingRepository.save(any()) }
+        }
+
+        test("Optimistic conflict retry는 공통 조회를 반복하지 않고 reservation transaction만 재시도한다") {
+            val strategyRegistry = mockk<StockContentionStrategyRegistry>()
+            val memberRepository = mockk<MemberRepository>()
+            val performanceRepository = mockk<PerformanceRepository>()
+            val bookingRepository = mockk<BookingRepository>()
+            val scheduleStore = mockk<StockContentionScheduleStore>()
+            val transactionManager = mockk<PlatformTransactionManager>(relaxed = true)
+            val transactionStatus = mockk<TransactionStatus>(relaxed = true)
+            val member = mockk<Member>()
+            val performance = mockk<com.beat.domain.performance.model.Performance>()
+            val reservationStrategy =
+                RecordingReservationStrategy(
+                    strategy = StockContentionStrategy.OPTIMISTIC,
+                    conflictsBeforeAcceptance = 2,
+                )
+
+            every { member.userId } returns 30L
+            every { performance.ticketPrice } returns 100
+            every { transactionManager.getTransaction(any()) } returns transactionStatus
+            every { strategyRegistry.get(StockContentionStrategy.OPTIMISTIC) } returns
+                reservationStrategy
+            every { memberRepository.findById(1L) } returns member
+            every { scheduleStore.findBookingMetadataById(10L) } returns
+                ScheduleBookingMetadata(performanceId = 20L, bookingOpen = true)
+            every { performanceRepository.findById(20L) } returns performance
+            every { bookingRepository.save(any()) } returns savedBooking()
+
+            val response =
+                experimentService(
+                        strategyRegistry,
+                        memberRepository,
+                        performanceRepository,
+                        bookingRepository,
+                        scheduleStore,
+                        transactionManager,
+                    )
+                    .createMemberBooking(1L, StockContentionStrategy.OPTIMISTIC, bookingCommand())
+
+            response.attemptCount shouldBe 3
+            response.outcome shouldBe StockContentionOutcome.ACCEPTED
+            verify(exactly = 1) { memberRepository.findById(1L) }
+            verify(exactly = 1) { scheduleStore.findBookingMetadataById(10L) }
+            verify(exactly = 1) { performanceRepository.findById(20L) }
+            verify(exactly = 3) { transactionManager.getTransaction(any()) }
+            verify(exactly = 2) { transactionManager.rollback(transactionStatus) }
+            verify(exactly = 1) { transactionManager.commit(transactionStatus) }
+            verify(exactly = 1) { bookingRepository.save(any()) }
+        }
     }
 }
 
@@ -207,3 +298,77 @@ private class AcceptingReservationStrategy : StockContentionReservationStrategy 
     override fun reserve(request: StockReservationRequest): StockReservationDecision =
         StockReservationDecision(StockContentionOutcome.ACCEPTED)
 }
+
+private class RecordingReservationStrategy(
+    override val strategy: StockContentionStrategy,
+    private val onLock: () -> Unit = {},
+    private val onReserve: () -> Unit = {},
+    private val onUnlock: () -> Unit = {},
+    private var conflictsBeforeAcceptance: Int = 0,
+) : StockContentionReservationStrategy {
+    override fun reserve(request: StockReservationRequest): StockReservationDecision {
+        onReserve()
+        if (conflictsBeforeAcceptance > 0) {
+            conflictsBeforeAcceptance--
+            throw OptimisticReservationConflict()
+        }
+        return StockReservationDecision(StockContentionOutcome.ACCEPTED)
+    }
+
+    override fun <T> executeWithReservationLock(scheduleId: Long, operation: () -> T): T {
+        onLock()
+        return try {
+            operation()
+        } finally {
+            onUnlock()
+        }
+    }
+}
+
+private fun experimentService(
+    strategyRegistry: StockContentionStrategyRegistry,
+    memberRepository: MemberRepository,
+    performanceRepository: PerformanceRepository,
+    bookingRepository: BookingRepository,
+    scheduleStore: StockContentionScheduleStore,
+    transactionManager: PlatformTransactionManager,
+): StockContentionExperimentService =
+    StockContentionExperimentService(
+        strategyRegistry = strategyRegistry,
+        memberRepository = memberRepository,
+        performanceRepository = performanceRepository,
+        bookingRepository = bookingRepository,
+        scheduleStore = scheduleStore,
+        transactionManager = transactionManager,
+        clock =
+            Clock.fixed(
+                Instant.parse("2026-08-23T00:00:00Z"),
+                ZoneId.of("Asia/Seoul"),
+            ),
+        properties = StockContentionExperimentProperties().apply { optimisticBackoffMillis = 0 },
+    )
+
+private fun bookingCommand(): StockContentionBookingCommand =
+    StockContentionBookingCommand(
+        scheduleId = 10L,
+        purchaseTicketCount = 1,
+        bookerName = "홍길동",
+        bookerPhoneNumber = "010-1234-5678",
+    )
+
+private fun savedBooking(): Booking =
+    Booking.rehydrate(
+        id = 99L,
+        purchaseTicketCount = 1,
+        bookerName = "홍길동",
+        bookerPhoneNumber = "010-1234-5678",
+        bookingStatus = com.beat.domain.booking.model.BookingStatus.CHECKING_PAYMENT,
+        createdAt = LocalDateTime.of(2026, 8, 23, 9, 0),
+        cancellationDate = null,
+        birthDate = null,
+        password = null,
+        refundAccount = null,
+        scheduleId = 10L,
+        userId = 30L,
+        totalPaymentAmount = 100,
+    )

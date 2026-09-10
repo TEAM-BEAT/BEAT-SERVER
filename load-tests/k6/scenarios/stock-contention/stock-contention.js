@@ -74,6 +74,7 @@ const REQUEST_START_ELAPSED_METRIC = 'stock_contention_request_start_elapsed_ms'
 const COMPLETION_ELAPSED_METRIC = 'stock_contention_completion_elapsed_ms';
 const DRAIN_TIME_METRIC = 'stock_contention_drain_time_ms';
 const ATTEMPT_COUNT_METRIC = 'stock_contention_attempt_count';
+const OPTIMISTIC_RETRY_METRIC = 'stock_contention_optimistic_retries';
 
 const requestsSubmitted = new Counter(REQUESTS_SUBMITTED_METRIC);
 const bookingsAccepted = new Counter(BOOKINGS_ACCEPTED_METRIC);
@@ -89,6 +90,7 @@ const requestStartElapsed = new Trend(REQUEST_START_ELAPSED_METRIC);
 const completionElapsed = new Trend(COMPLETION_ELAPSED_METRIC);
 const drainTime = new Trend(DRAIN_TIME_METRIC);
 const attemptCount = new Trend(ATTEMPT_COUNT_METRIC);
+const optimisticRetries = new Counter(OPTIMISTIC_RETRY_METRIC);
 
 const exactThresholds = exactOutcomeThresholds(phase);
 const thresholds = {
@@ -106,6 +108,7 @@ addOptionalP95Threshold(thresholds, ACCEPTED_LATENCY_METRIC, config.maxP95Ms);
 export const options = {
   // The response body carries the outcome and attemptCount contract.
   discardResponseBodies: false,
+  summaryTrendStats: ['med', 'p(95)', 'p(99)', 'avg', 'min', 'max', 'count'],
   tags: { ...config.tags, strategy },
   systemTags: ['status', 'method', 'name', 'scenario', 'expected_response', 'error_code'],
   scenarios: {
@@ -178,6 +181,7 @@ export function handleSummary(data) {
   const unexpected = metricCount(data, UNEXPECTED_RESPONSES_METRIC);
   const submitted = metricCount(data, REQUESTS_SUBMITTED_METRIC);
   const timeoutCount = metricCount(data, TIMEOUTS_METRIC);
+  const optimisticRetryCount = metricCount(data, OPTIMISTIC_RETRY_METRIC);
   const droppedValues = metricValues(data, 'dropped_iterations');
   const droppedCount = counterMetricCount(droppedValues);
   const acceptedLatencyValues = metricValues(data, ACCEPTED_LATENCY_METRIC);
@@ -247,6 +251,10 @@ export function handleSummary(data) {
     terminal_latency_ms: latencySummary(terminalLatencyValues, recognized),
     drain_time_metric_ms: latencySummary(drainTimeValues, submitted),
     attempts: attemptsSummary(metricValues(data, ATTEMPT_COUNT_METRIC), submitted),
+    optimistic_retries: {
+      count: optimisticRetryCount,
+      average_per_request: submitted > 0 ? optimisticRetryCount / submitted : null,
+    },
     timeouts: timeoutSummary,
     dropped: {
       ...(droppedValues || {}),
@@ -307,6 +315,10 @@ export default function (runContext) {
   requestTimedOut.add(timedOut, outcomeTags);
   timeouts.add(timedOut ? 1 : 0, outcomeTags);
   attemptCount.add(result?.attemptCount ?? 0, outcomeTags);
+  optimisticRetries.add(
+    strategy === 'OPTIMISTIC' && result ? Math.max(0, result.attemptCount - 1) : 0,
+    outcomeTags,
+  );
   completionElapsed.add(elapsedMs, metricTags);
   drainTime.add(drainElapsedMs, metricTags);
   if (outcome !== 'unexpected') {

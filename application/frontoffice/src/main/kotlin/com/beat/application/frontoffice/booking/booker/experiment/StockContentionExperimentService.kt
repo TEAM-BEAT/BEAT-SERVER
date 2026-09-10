@@ -79,13 +79,14 @@ class StockContentionExperimentService(
         validateBookerContact(command.bookerName, command.bookerPhoneNumber)
         validatePurchaseTicketCount(command.purchaseTicketCount)
 
+        val prepared = prepareBooking(memberId, command)
         val selectedStrategy = strategyRegistry.get(strategy)
         return try {
             selectedStrategy.executeWithReservationLock(command.scheduleId) {
                 if (strategy == StockContentionStrategy.OPTIMISTIC) {
-                    createWithOptimisticRetry(memberId, command, selectedStrategy)
+                    createWithOptimisticRetry(prepared, command, selectedStrategy)
                 } else {
-                    executeAttempt(memberId, command, selectedStrategy, 1)
+                    executeReservationAttempt(prepared, command, selectedStrategy, 1)
                 }
             }
         } catch (_: StockContentionLockTimeout) {
@@ -103,14 +104,46 @@ class StockContentionExperimentService(
         }
     }
 
-    private fun createWithOptimisticRetry(
+    private fun prepareBooking(
         memberId: Long,
+        command: StockContentionBookingCommand,
+    ): PreparedStockContentionBooking {
+        val member =
+            memberRepository.findById(memberId)
+                ?: throw FrontofficeApplicationException(
+                    BookingApplicationErrorCode.MEMBER_NOT_FOUND
+                )
+        val scheduleMetadata =
+            scheduleStore.findBookingMetadataById(command.scheduleId)
+                ?: throw FrontofficeApplicationException(
+                    BookingApplicationErrorCode.SCHEDULE_NOT_FOUND
+                )
+        if (!scheduleMetadata.bookingOpen) {
+            throw FrontofficeApplicationException(BookingApplicationErrorCode.BOOKING_CLOSED)
+        }
+        val performance =
+            // Common validation must not serialize requests on the performance row. The selected
+            // schedule strategy is the only contention mechanism in this experiment.
+            performanceRepository.findById(scheduleMetadata.performanceId)
+                ?: throw FrontofficeApplicationException(
+                    BookingApplicationErrorCode.PERFORMANCE_NOT_FOUND
+                )
+        return PreparedStockContentionBooking(
+            userId = member.userId,
+            performanceId = scheduleMetadata.performanceId,
+            totalPaymentAmount =
+                calculatePaymentAmount(performance.ticketPrice, command.purchaseTicketCount),
+        )
+    }
+
+    private fun createWithOptimisticRetry(
+        prepared: PreparedStockContentionBooking,
         command: StockContentionBookingCommand,
         strategy: StockContentionReservationStrategy,
     ): StockContentionExperimentResponse {
         for (attempt in 1..optimisticAttemptLimit) {
             try {
-                return executeAttempt(memberId, command, strategy, attempt)
+                return executeReservationAttempt(prepared, command, strategy, attempt)
             } catch (_: OptimisticReservationConflict) {
                 if (attempt == optimisticAttemptLimit) {
                     return StockContentionExperimentResponse(
@@ -132,43 +165,19 @@ class StockContentionExperimentService(
         error("Optimistic retry loop did not execute")
     }
 
-    private fun executeAttempt(
-        memberId: Long,
+    private fun executeReservationAttempt(
+        prepared: PreparedStockContentionBooking,
         command: StockContentionBookingCommand,
         strategy: StockContentionReservationStrategy,
         attempt: Int,
     ): StockContentionExperimentResponse =
         checkNotNull(
             transactionTemplate.execute {
-                val member =
-                    memberRepository.findById(memberId)
-                        ?: throw FrontofficeApplicationException(
-                            BookingApplicationErrorCode.MEMBER_NOT_FOUND
-                        )
-                val scheduleMetadata =
-                    scheduleStore.findBookingMetadataById(command.scheduleId)
-                        ?: throw FrontofficeApplicationException(
-                            BookingApplicationErrorCode.SCHEDULE_NOT_FOUND
-                        )
-                if (!scheduleMetadata.bookingOpen) {
-                    throw FrontofficeApplicationException(
-                        BookingApplicationErrorCode.BOOKING_CLOSED
-                    )
-                }
-                val performanceId = scheduleMetadata.performanceId
-                val performance =
-                    // Common validation must not serialize requests on the performance row. The
-                    // selected schedule strategy is the only contention mechanism in this
-                    // experiment.
-                    performanceRepository.findById(performanceId)
-                        ?: throw FrontofficeApplicationException(
-                            BookingApplicationErrorCode.PERFORMANCE_NOT_FOUND
-                        )
                 val reservation =
                     strategy.reserve(
                         StockReservationRequest(
                             scheduleId = command.scheduleId,
-                            performanceId = performanceId,
+                            performanceId = prepared.performanceId,
                             purchaseTicketCount = command.purchaseTicketCount,
                         )
                     )
@@ -179,9 +188,6 @@ class StockContentionExperimentService(
                         attemptCount = attempt,
                     )
                 }
-
-                val totalPaymentAmount =
-                    calculatePaymentAmount(performance.ticketPrice, command.purchaseTicketCount)
                 val booking =
                     Booking.create(
                         purchaseTicketCount = command.purchaseTicketCount,
@@ -190,9 +196,9 @@ class StockContentionExperimentService(
                         birthDate = null,
                         password = null,
                         scheduleId = command.scheduleId,
-                        userId = member.userId,
+                        userId = prepared.userId,
                         createdAt = LocalDateTime.now(clock),
-                        totalPaymentAmount = totalPaymentAmount,
+                        totalPaymentAmount = prepared.totalPaymentAmount,
                     )
                 val savedBooking = bookingRepository.save(booking)
                 StockContentionExperimentResponse(
@@ -210,6 +216,12 @@ class StockContentionExperimentService(
             )
         }
     }
+
+    private data class PreparedStockContentionBooking(
+        val userId: Long,
+        val performanceId: Long,
+        val totalPaymentAmount: Int,
+    )
 
     private fun validatePurchaseTicketCount(ticketCount: Int) {
         if (ticketCount !in MIN_PURCHASE_TICKET_COUNT..MAX_PURCHASE_TICKET_COUNT) {

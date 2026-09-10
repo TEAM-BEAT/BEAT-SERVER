@@ -60,10 +60,13 @@ names:
 `mysql_global_status_innodb_buffer_pool_reads` and
 `mysql_global_status_innodb_buffer_pool_read_requests`; it is intentionally
 empty when the shared read-only MySQL exporter is disabled. RDS panels use the
-AWS/RDS `CPUUtilization`, `FreeableMemory`, `DatabaseConnections`,
-`ReadLatency`, and `WriteLatency` metrics with a 60-second period during the
-experiment. The optional EC2 panel uses the AWS/EC2 `CPUCreditBalance` metric,
-an exact `InstanceId` textbox, and its 300-second basic-monitoring period.
+AWS/RDS `CPUUtilization`, `FreeableMemory`, `SwapUsage`,
+`DatabaseConnections`, `ReadLatency`, `WriteLatency`, `ReadIOPS`, `WriteIOPS`,
+`DiskQueueDepth`, and `BurstBalance` metrics with a 60-second period during the
+experiment. `BurstBalance` can be absent for storage configurations where AWS
+does not publish it and must not be interpreted as zero. The optional EC2 panel
+uses the AWS/EC2 `CPUCreditBalance` metric, an exact `InstanceId` textbox, and
+its 300-second basic-monitoring period.
 The names and monitoring-period constraints are from the [Amazon RDS
 metrics](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html)
 and [Amazon EC2 CloudWatch metrics](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html)
