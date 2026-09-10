@@ -110,6 +110,50 @@ conflict_exhausted/lock_timeout/unexpected 수, accepted TPS, accepted latency p
 attempts, optimistic retry 총수와 요청당 평균, timeouts, dropped, drain time 추정값이 포함됩니다. 최종 schedule stock,
 overselling, duplicate booking, negative stock은 DB read-only query로 별도 검증해야 합니다.
 
+### Grafana MCP로 같은 시간대 원인 확인
+
+세 관측 수단의 책임을 섞지 않습니다.
+
+| 수단 | 책임 |
+| --- | --- |
+| local `summary-*.json` | 정확한 TPS, outcome, p95/p99, retry, timeout, dropped 판정 |
+| DB read-only invariant query | 최종 재고, overselling, duplicate booking 정합성 판정 |
+| Grafana Cloud MCP | 같은 UTC 구간의 app/JVM/Hikari, host/container, RDS/MySQL, Redis, Alloy 상태와 성능 차이의 원인 설명 |
+
+Grafana MCP는 부하를 실행하거나 최종 결과를 대신 판정하지 않습니다. 실행자는 각 profile의 시작·종료
+UTC와 `test_id`를 기록합니다. AI는 90 Load Test 대시보드와 원본 datasource를 read-only로 조회하고,
+`git_sha`, `dataset_hash`, `budget_version`이 같은 run끼리만 비교해야 합니다. k6 tag를 갖지 않는 서버·RDS
+지표는 해당 run의 UTC 구간으로 상관 분석합니다.
+
+실행 후 AI에게 아래 형식으로 요청합니다.
+
+```text
+BEAT stock-contention 부하 실험을 read-only로 분석해줘.
+
+- Grafana folder: BEAT Observability
+- Dashboard: 90 Load Test
+- test_id: <TEST_ID>
+- strategy/profile: <STRATEGY>/<warmup|flash>
+- UTC 시작: <YYYY-MM-DDTHH:mm:ssZ>
+- UTC 종료: <YYYY-MM-DDTHH:mm:ssZ>
+- local summary: <summary JSON 경로 또는 내용>
+- DB invariant 결과: <최종 stock, accepted, duplicate, overselling 결과>
+
+Grafana Cloud MCP로 같은 UTC 구간의 원본 datasource를 조회해 다음을 확인해줘.
+1. run identity(test_id, git_sha, dataset_hash, budget_version)가 기대값과 일치하는지
+2. experiment endpoint RPS와 server p95/p99
+3. process CPU, JVM heap/GC/allocation, Hikari active/pending
+4. node/container CPU·memory
+5. RDS CPU·FreeableMemory·Swap·connections·latency·IOPS·DiskQueueDepth·BurstBalance
+6. MySQL QPS·threads·buffer-pool reads/read requests·row-lock waits/time과 exporter freshness
+7. Redis commands/sec와 redis_up
+8. Alloy remote-write pending/failed, discarded samples, 429, 필수 scrape up
+
+local JSON과 DB invariant를 최종 판정 기준으로 삼고 Grafana는 원인 설명에만 사용해줘.
+No data를 0으로 해석하지 말고, 직접 확인한 사실과 추정을 분리해 표로 보고해줘.
+다른 run과 비교할 때는 git_sha, dataset_hash, budget_version이 모두 같은 경우만 수치 비교해줘.
+```
+
 ## 판정 지표와 중단
 
 custom metric은 HTTP status를 정상/실패로 잘못 해석하지 않도록 다음을 사용합니다.
