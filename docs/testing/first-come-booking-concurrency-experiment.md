@@ -79,6 +79,13 @@ flash는 constant-arrival-rate이며 200 VU가 곧 200개의 동시 DB transacti
 
 prod 트래픽이 낮다는 전제는 실험을 허용하는 운영 판단이며, “RDS가 완전히 격리됐다”는 뜻은 아니다. 각 run 전후의 RDS CPU, FreeableMemory, connections, read/write latency, IOPS와 DiskQueueDepth를 기록한다. baseline에서 유의하게 벗어나거나 batch·배포·backup이 겹친 run은 결과표에서 제외한다.
 
+RDS memory는 고정 `128MiB`를 하한으로 사용하지 않는다. `db.t3.micro`의 2026-09-10 직전 7일 관측치는 FreeableMemory p1 약 96.8MiB, p5 약 102.6MiB, 중앙값 약 118.3MiB였으므로 `128MiB`는 정상 상태까지 중단시키는 기준이다. 이 값은 AWS 공통 사양이 아니라 현재 instance·parameter group·상시 연결을 포함한 운영 baseline이며, instance class나 parameter group이 바뀌면 다시 산정한다.
+
+- 시작 조건: quiet window 10분의 FreeableMemory 중앙값이 100MiB 이상이고 지속 하락하지 않으며, SwapUsage가 안정적이어야 한다.
+- 중단 조건: FreeableMemory가 5분 연속 96MiB 미만이거나, 실험 직전 10분 중앙값보다 20% 이상 낮은 상태가 5분 지속된다.
+- 중단 조건: SwapUsage가 실험 직전 baseline보다 32MiB 이상 증가한 뒤 계속 상승한다.
+- 판정 방식: FreeableMemory 또는 SwapUsage의 순간값 하나만으로 run을 폐기하지 않고 CPU, Hikari pending/timeout, latency와 함께 본다.
+
 dev cAdvisor는 활성화한다. Docker Compose service label만 보존해 `apis`, `admin`, `batch`, `redis`, `nginx`, `alloy`의 CPU·memory를 dev/prod 모두 같은 기준으로 본다. 모든 Docker label을 보내지 않아 series cardinality를 제한한다.
 
 ### 완전히 초기화하지 않고 관측하는 것
@@ -112,7 +119,7 @@ warmup이 만든 900 booking은 flash가 끝날 때까지 유지한다. 그래�
 2. Grafana `90 Load Test`에서 environment를 `dev`, RDS identifier를 `beat-prod-database`로 둔다.
 3. SSH tunnel을 한 번 연다. k6 지표를 대시보드에 남기는 용도이며 HTTP 부하는 직접 dev API로 간다.
 4. 최초 배포 후 고정 settle과 10분 baseline을 확보한다. 측정 block 중 재시작·배포가 발생하면 해당 run을 폐기한다.
-5. fixture reset/read-back 후 60초 quiet period를 두고 RDS/node/container/GC/heap/Hikari 및 InnoDB 전역 counter의 pre snapshot을 저장한다.
+5. fixture reset/read-back 후 60초 quiet period를 둔다. 직전 quiet baseline 10분의 RDS FreeableMemory 중앙값과 SwapUsage 추세, node/container/GC/heap/Hikari 및 InnoDB 전역 counter의 pre snapshot을 저장한다.
 6. 해당 strategy로 warmup을 실행한다. accepted 900, dropped 0이어야 하며 warmup booking은 flash가 끝날 때까지 유지한다.
 7. 60초 quiet period 후 flash schedule 17의 stock/version을 다시 read-back한다.
 8. 동일 strategy로 flash를 실행한다. accepted 100, sold-out 100, dropped 0이어야 한다.
@@ -157,6 +164,8 @@ dropped_iterations=0
 - 배포, batch job, backup이 run 중 시작됨
 - Hikari acquire timeout이 발생함
 - flash 종료 60초 뒤에도 Hikari pending이 지속되며 saturation/timeout이 동반됨
+- RDS FreeableMemory가 5분 연속 96MiB 미만이거나, pre-run 10분 중앙값보다 20% 이상 낮은 상태가 5분 지속됨
+- RDS SwapUsage가 pre-run baseline보다 32MiB 이상 증가한 뒤 계속 상승함
 - RDS CPU, connection, latency, IOPS 또는 DiskQueueDepth가 baseline에서 비정상적으로 이탈함
 - gp2 RDS에서만 BurstBalance가 사전 정의한 허용치 아래로 하락함
 - dev node 또는 apis container가 지속적으로 CPU/memory pressure를 보임

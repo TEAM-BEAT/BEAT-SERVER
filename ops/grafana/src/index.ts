@@ -1060,6 +1060,8 @@ function loadTest(): DashboardBuilder {
   const serverSelector = HTTP_SELECTOR;
   const rdsExperimentDescription =
     "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.";
+  const rdsMemoryGuardrail =
+    "Use the pre-run 10m quiet-window median as the memory baseline; 128MiB is not a valid absolute floor for this db.t3.micro. Start only when median FreeableMemory is >=100MiB with no sustained decline. Stop if FreeableMemory stays below 96MiB for 5m or at least 20% below baseline for 5m, or if SwapUsage grows by at least 32MiB from baseline and keeps rising.";
 
   return builder
     .withPanel(
@@ -1142,7 +1144,7 @@ function loadTest(): DashboardBuilder {
         "CPUUtilization",
         "Average",
         "percent",
-        `${rdsExperimentDescription} Stop the run if CPU is >=80% for 5m, freeable memory <=128MiB, or connections exceed 80% of max.`,
+        `${rdsExperimentDescription} ${rdsMemoryGuardrail} Also stop if CPU is >=80% for 5m or connections exceed 80% of max.`,
         60,
       ),
     )
@@ -1153,7 +1155,18 @@ function loadTest(): DashboardBuilder {
         "FreeableMemory",
         "Average",
         "bytes",
-        rdsExperimentDescription,
+        `${rdsExperimentDescription} ${rdsMemoryGuardrail}`,
+        60,
+      ),
+    )
+    .withPanel(
+      cloudWatchSearchPanel(
+        25,
+        "Shared RDS — swap usage during test",
+        "SwapUsage",
+        "Average",
+        "bytes",
+        `${rdsExperimentDescription} Compare against the pre-run baseline; stop only when SwapUsage rises by at least 32MiB and continues rising. A stable non-zero value is not an abort condition.`,
         60,
       ),
     )

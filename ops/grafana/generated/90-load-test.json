@@ -456,7 +456,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. Stop the run if CPU is >=80% for 5m, freeable memory <=128MiB, or connections exceed 80% of max.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. Use the pre-run 10m quiet-window median as the memory baseline; 128MiB is not a valid absolute floor for this db.t3.micro. Start only when median FreeableMemory is >=100MiB with no sustained decline. Stop if FreeableMemory stays below 96MiB for 5m or at least 20% below baseline for 5m, or if SwapUsage grows by at least 32MiB from baseline and keeps rising. Also stop if CPU is >=80% for 5m or connections exceed 80% of max.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -509,7 +509,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. Use the pre-run 10m quiet-window median as the memory baseline; 128MiB is not a valid absolute floor for this db.t3.micro. Start only when median FreeableMemory is >=100MiB with no sustained decline. Stop if FreeableMemory stays below 96MiB for 5m or at least 20% below baseline for 5m, or if SwapUsage grows by at least 32MiB from baseline and keeps rising.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -562,6 +562,59 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. Compare against the pre-run baseline; stop only when SwapUsage rises by at least 32MiB and continues rising. A stable non-zero value is not an abort condition.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "id": 25,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"SwapUsage\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 60)",
+          "id": "rds_swapusage",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — swap usage during test",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
       "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
       "fieldConfig": {
         "defaults": {
@@ -573,7 +626,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 40
       },
       "id": 11,
@@ -626,8 +679,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 40
+        "x": 0,
+        "y": 48
       },
       "id": 12,
       "options": {
@@ -679,7 +732,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 48
       },
       "id": 13,
@@ -732,8 +785,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 48
+        "x": 0,
+        "y": 56
       },
       "id": 14,
       "options": {
@@ -795,7 +848,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 56
       },
       "id": 15,
@@ -858,8 +911,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 56
+        "x": 0,
+        "y": 64
       },
       "id": 16,
       "options": {
@@ -921,7 +974,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 64
       },
       "id": 17,
@@ -984,8 +1037,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 64
+        "x": 0,
+        "y": 72
       },
       "id": 18,
       "options": {
@@ -1047,7 +1100,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 72
       },
       "id": 19,
@@ -1110,8 +1163,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 72
+        "x": 0,
+        "y": 80
       },
       "id": 20,
       "options": {
@@ -1173,7 +1226,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 80
       },
       "id": 21,
@@ -1236,8 +1289,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 80
+        "x": 0,
+        "y": 88
       },
       "id": 22,
       "options": {
@@ -1299,7 +1352,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 88
       },
       "id": 23,
@@ -1340,8 +1393,8 @@
       "gridPos": {
         "h": 6,
         "w": 24,
-        "x": 12,
-        "y": 88
+        "x": 0,
+        "y": 96
       },
       "id": 24,
       "options": {
