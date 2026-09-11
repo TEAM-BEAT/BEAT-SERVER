@@ -80,6 +80,12 @@ spring:
     activate:
       on-profile: dev
 
+server:
+  tomcat:
+    # Micrometer's thread-pool binder reads Tomcat MBeans; the registry is disabled by default.
+    mbeanregistry:
+      enabled: true
+
 management:
   server:
     port: ${DEV_ACTUATOR_PORT}
@@ -113,6 +119,11 @@ spring:
   config:
     activate:
       on-profile: prod
+
+server:
+  tomcat:
+    mbeanregistry:
+      enabled: true
 
 management:
   server:

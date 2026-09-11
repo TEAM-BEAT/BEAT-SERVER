@@ -2601,7 +2601,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Only OPTIMISTIC should be non-zero. Exact total retries and average per request remain authoritative in the local JSON summary.",
+      "description": "Requires the embedded Tomcat MBean registry. This is the server admission/concurrency layer; compare it with Hikari pending before attributing latency to the database.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -2614,6 +2614,741 @@
         "w": 12,
         "x": 0,
         "y": 184
+      },
+      "id": 50,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (instance, color, name) (tomcat_threads_busy_threads{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"})",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}} {{name}} busy",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (instance, color, name) (tomcat_threads_config_max_threads{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"})",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}} {{name}} max",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Server Tomcat busy / configured max threads",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Acquire max is time spent waiting for a connection; usage max is checkout duration. Together with active/max, pending and timeout rate they separate pool queueing from long transactions.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 184
+      },
+      "id": 51,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (instance, color, pool) (hikaricp_connections_acquire_seconds_max{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"})",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}} acquire",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (instance, color, pool) (hikaricp_connections_usage_seconds_max{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"})",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}} usage",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Server Hikari acquire / usage max",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Must remain zero. A non-zero value makes the benchmark invalid even when retries hide the failure at the HTTP layer.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 192
+      },
+      "id": 52,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (instance, color, pool) (rate(hikaricp_connections_timeout_total{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}} {{pool}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Server Hikari connection timeout rate",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Shows how request starts were spread across the planned arrival window. It does not prove every inter-arrival gap; the versioned constant-arrival-rate budget and local summary remain authoritative.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 192
+      },
+      "id": 53,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.5, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_request_start_elapsed_ms_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{test_id}} {{strategy}} p50",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.99, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_request_start_elapsed_ms_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{test_id}} {{strategy}} p99",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "k6 request-start elapsed p50 / p99",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Separates server/network response wait (TTFB) from load-generator connection-slot and socket setup delay. Large blocked time is runner-side contamination, not application latency.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 200
+      },
+      "id": 54,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.95, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile) (rate(k6_http_req_waiting_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{test_id}} TTFB p95",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "histogram_quantile(0.95, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile) (rate(k6_http_req_blocked_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\"}[$__rate_interval])))",
+          "instant": false,
+          "legendFormat": "{{test_id}} blocked p95",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "k6 TTFB / blocked latency p95",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. A zero balance means the burstable RDS compute regime changed and the run must not be compared with a credited run.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 200
+      },
+      "id": 55,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"CPUCreditBalance\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Minimum', 300)",
+          "id": "rds_cpucreditbalance",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — CPU credit balance",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. In Unlimited mode, a rising surplus balance marks a different CPU regime.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 208
+      },
+      "id": 56,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"CPUSurplusCreditBalance\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Maximum', 300)",
+          "id": "rds_cpusurpluscreditbalance",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — surplus CPU credit balance",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. A rising charged-credit value marks a different CPU regime. No data is acceptable only when the selected RDS class does not publish this metric.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 208
+      },
+      "id": 57,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"CPUSurplusCreditsCharged\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Maximum', 300)",
+          "id": "rds_cpusurpluscreditscharged",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — surplus CPU credits charged",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Windowed maximum pause. Use with pause-time rate, CPU and heap to identify a JVM stop rather than attributing the latency tail to database locking.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 216
+      },
+      "id": 58,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (instance, color) (jvm_gc_pause_seconds_max{env=~\"$env\",application=\"beat-apis\",instance=~\"$instance\",color=~\"$color\"})",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "beat-apis GC pause max",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Shared-instance transaction outcome signal. Compare S0/S1/S2 deltas; unrelated shared traffic prevents exclusive attribution from this panel alone.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 216
+      },
+      "id": 59,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "rate(mysql_global_status_commands_total{env=\"shared\",scope=\"beat-shared-rds\",command=\"commit\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "commits/s",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "rate(mysql_global_status_commands_total{env=\"shared\",scope=\"beat-shared-rds\",command=\"rollback\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "rollbacks/s",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "MySQL commits / rollbacks per second",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. Remaining EBS throughput burst balance. No data is acceptable when the selected storage or instance class does not publish it.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 224
+      },
+      "id": 60,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"EBSByteBalance%\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Minimum', 60)",
+          "id": "rds_ebsbytebalance%",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — EBS throughput balance",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. Remaining EBS IOPS burst balance. Read with IOPS, latency and DiskQueueDepth; No data is acceptable when unsupported.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 224
+      },
+      "id": 61,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"EBSIOBalance%\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Minimum', 60)",
+          "id": "rds_ebsiobalance%",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — EBS I/O balance",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "${DS_CLOUDWATCH}"
+      },
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. CPU credits consumed in the 5-minute publication interval. Compare the same buckets across every strategy block.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 232
+      },
+      "id": 62,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "${DS_CLOUDWATCH}"
+          },
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"CPUCreditUsage\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Average', 300)",
+          "id": "rds_cpucreditusage",
+          "metricEditorMode": 1,
+          "metricQueryType": 0,
+          "namespace": "AWS/RDS",
+          "queryMode": "Metrics",
+          "refId": "A",
+          "region": "ap-northeast-2"
+        }
+      ],
+      "title": "Shared RDS — CPU credit usage",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Only OPTIMISTIC should be non-zero. Exact total retries and average per request remain authoritative in the local JSON summary.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 232
       },
       "id": 44,
       "options": {
@@ -2663,8 +3398,8 @@
       "gridPos": {
         "h": 6,
         "w": 24,
-        "x": 12,
-        "y": 184
+        "x": 0,
+        "y": 240
       },
       "id": 45,
       "options": {
@@ -2681,11 +3416,11 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 192
+        "y": 246
       },
       "id": 24,
       "options": {
-        "content": "\n- Select one or more `test_id` values, then confirm git_sha, dataset_hash and budget_version before comparing strategy, load_profile and phase. User ID, access token and booking ID are never metric tags.\n- k6 OTLP naming assumes Alloy `otelcol.exporter.prometheus.k6 { add_metric_suffixes = false }`: Counter names are unsuffixed, Rate `.total` names become `_total`, and Trend histograms expose `_bucket/_sum/_count` in milliseconds.\n- Grafana histogram p95/p99 values are estimates from exported buckets. Exact outcome counts, TPS, overselling/duplicate checks and exact local percentiles come from the retained JSON summary plus read-only DB invariant query.\n- Server HTTP panels select only beat-apis stock-contention routes. Server/JVM/Hikari/container/RDS/MySQL metrics do not carry k6 test_id, so correlate them with the retained UTC run window.\n- CloudWatch RDS panels use a 60s period and require the exact shared DBInstanceIdentifier. EC2 CPUCreditBalance uses the exact InstanceId above and a 300s basic-monitoring period; a blank selector intentionally yields no series.\n- MySQL and CloudWatch are shared-RDS supporting evidence. Buffer-pool, row-lock, IOPS and queue signals do not replace the local/DB verdict and cannot exclusively attribute unrelated shared traffic to one strategy.\n- The run must be preflighted against the environment allowlist and workload budget before traffic starts.\n- Shared RDS is always in scope, including when the selected target environment is `dev`.\n- Keep the local JSON summary/artifact after the 14-day metrics window expires.\n",
+        "content": "\n- Select one or more `test_id` values, then confirm git_sha, dataset_hash and budget_version before comparing strategy, load_profile and phase. User ID, access token and booking ID are never metric tags.\n- k6 OTLP naming assumes Alloy `otelcol.exporter.prometheus.k6 { add_metric_suffixes = false }`: Counter names are unsuffixed, Rate `.total` names become `_total`, and Trend histograms expose `_bucket/_sum/_count` in milliseconds.\n- Grafana histogram p95/p99 values are estimates from exported buckets. Exact outcome counts, TPS, overselling/duplicate checks and exact local percentiles come from the retained JSON summary plus read-only DB invariant query.\n- Server HTTP panels select only beat-apis stock-contention routes. Server/JVM/Hikari/container/RDS/MySQL metrics do not carry k6 test_id, so correlate them with the retained UTC run window.\n- CloudWatch RDS resource panels use a 60s period and require the exact shared DBInstanceIdentifier. RDS/EC2 CPU credit panels use their 300s publication period; a blank selector intentionally yields no series. Unsupported EBS or surplus-credit metrics may legitimately show No data.\n- Tomcat busy/current/max, Hikari active/pending/timeout/acquire/usage, GC max/rate and k6 TTFB/blocked must be read on the same UTC axis. This separates servlet admission, DB-pool queueing, JVM pauses and load-generator contamination.\n- MySQL and CloudWatch are shared-RDS supporting evidence. Buffer-pool, row-lock, IOPS and queue signals do not replace the local/DB verdict and cannot exclusively attribute unrelated shared traffic to one strategy.\n- The run must be preflighted against the environment allowlist and workload budget before traffic starts.\n- Shared RDS is always in scope, including when the selected target environment is `dev`.\n- Keep the local JSON summary/artifact after the 14-day metrics window expires.\n",
         "mode": "markdown"
       },
       "repeatDirection": "h",

@@ -796,6 +796,55 @@ function jvmAndHikari(): DashboardBuilder {
         legendFormat: "{{instance}} {{color}} {{pool}}",
         description: "Pending > 0 for one minute is an alert regardless of the other color's utilization.",
       }),
+    )
+    .withPanel(
+      dualMetricPanel(
+        9,
+        "Hikari acquire / usage max",
+        `max by (instance, color, pool) (hikaricp_connections_acquire_seconds_max{${HIKARI_SELECTOR}})`,
+        `max by (instance, color, pool) (hikaricp_connections_usage_seconds_max{${HIKARI_SELECTOR}})`,
+        {
+          unit: "s",
+          firstLegend: "{{instance}} {{color}} {{pool}} acquire",
+          secondLegend: "{{instance}} {{color}} {{pool}} usage",
+          description: "Acquire max exposes pool wait; usage max exposes how long a borrowed connection stayed checked out. Read them with active/max and pending.",
+        },
+      ),
+    )
+    .withPanel(
+      metricPanel(10, "Hikari connection timeouts", `sum by (instance, color, pool) (rate(hikaricp_connections_timeout_total{${HIKARI_SELECTOR}}[$__rate_interval]))`, {
+        unit: "reqps",
+        legendFormat: "{{instance}} {{color}} {{pool}}",
+        description: "Any non-zero timeout rate is a failed benchmark window even if the business outcome eventually looks correct.",
+      }),
+    )
+    .withPanel(
+      dualMetricPanel(
+        11,
+        "Tomcat busy / current threads",
+        `max by (instance, color, name) (tomcat_threads_busy_threads{${SERVICE_SELECTOR}})`,
+        `max by (instance, color, name) (tomcat_threads_current_threads{${SERVICE_SELECTOR}})`,
+        {
+          unit: "short",
+          firstLegend: "{{instance}} {{color}} {{name}} busy",
+          secondLegend: "{{instance}} {{color}} {{name}} current",
+          description: "Requires server.tomcat.mbeanregistry.enabled=true. Busy threads show request concurrency; compare against the configured maximum below.",
+        },
+      ),
+    )
+    .withPanel(
+      metricPanel(12, "Tomcat thread saturation", `max by (instance, color, name) (tomcat_threads_busy_threads{${SERVICE_SELECTOR}} / tomcat_threads_config_max_threads{${SERVICE_SELECTOR}})`, {
+        unit: "percentunit",
+        legendFormat: "{{instance}} {{color}} {{name}}",
+        description: "Busy/configured-max per connector. A rising ratio alongside Hikari pending distinguishes servlet-thread pressure from database-pool pressure.",
+      }),
+    )
+    .withPanel(
+      metricPanel(13, "GC pause max", `max by (instance, color) (jvm_gc_pause_seconds_max{${SERVICE_SELECTOR}})`, {
+        unit: "s",
+        legendFormat: "{{instance}} {{color}}",
+        description: "Windowed maximum pause complements pause-rate. A short stop-the-world event can explain latency even when average CPU and aggregate pause time look low.",
+      }),
     );
 }
 
@@ -1534,6 +1583,156 @@ function loadTest(): DashboardBuilder {
     )
     .withPanel(
       dualMetricPanel(
+        50,
+        "Server Tomcat busy / configured max threads",
+        `max by (instance, color, name) (tomcat_threads_busy_threads{${loadServiceSelector}})`,
+        `max by (instance, color, name) (tomcat_threads_config_max_threads{${loadServiceSelector}})`,
+        {
+          unit: "short",
+          firstLegend: "{{instance}} {{color}} {{name}} busy",
+          secondLegend: "{{instance}} {{color}} {{name}} max",
+          description: "Requires the embedded Tomcat MBean registry. This is the server admission/concurrency layer; compare it with Hikari pending before attributing latency to the database.",
+        },
+      ),
+    )
+    .withPanel(
+      dualMetricPanel(
+        51,
+        "Server Hikari acquire / usage max",
+        `max by (instance, color, pool) (hikaricp_connections_acquire_seconds_max{${loadServiceSelector}})`,
+        `max by (instance, color, pool) (hikaricp_connections_usage_seconds_max{${loadServiceSelector}})`,
+        {
+          unit: "s",
+          firstLegend: "{{instance}} {{color}} acquire",
+          secondLegend: "{{instance}} {{color}} usage",
+          description: "Acquire max is time spent waiting for a connection; usage max is checkout duration. Together with active/max, pending and timeout rate they separate pool queueing from long transactions.",
+        },
+      ),
+    )
+    .withPanel(
+      metricPanel(52, "Server Hikari connection timeout rate", `sum by (instance, color, pool) (rate(hikaricp_connections_timeout_total{${loadServiceSelector}}[$__rate_interval]))`, {
+        unit: "reqps",
+        legendFormat: "{{instance}} {{color}} {{pool}}",
+        description: "Must remain zero. A non-zero value makes the benchmark invalid even when retries hide the failure at the HTTP layer.",
+      }),
+    )
+    .withPanel(
+      dualMetricPanel(
+        53,
+        "k6 request-start elapsed p50 / p99",
+        experimentQuantile("stock_contention_request_start_elapsed_ms", 0.5),
+        experimentQuantile("stock_contention_request_start_elapsed_ms", 0.99),
+        {
+          unit: "ms",
+          firstLegend: "{{test_id}} {{strategy}} p50",
+          secondLegend: "{{test_id}} {{strategy}} p99",
+          description: "Shows how request starts were spread across the planned arrival window. It does not prove every inter-arrival gap; the versioned constant-arrival-rate budget and local summary remain authoritative.",
+        },
+      ),
+    )
+    .withPanel(
+      dualMetricPanel(
+        54,
+        "k6 TTFB / blocked latency p95",
+        `histogram_quantile(0.95, sum by (le, ${runGroup}) (rate(k6_http_req_waiting_bucket{${k6Selector}}[$__rate_interval])))`,
+        `histogram_quantile(0.95, sum by (le, ${runGroup}) (rate(k6_http_req_blocked_bucket{${k6Selector}}[$__rate_interval])))`,
+        {
+          unit: "ms",
+          firstLegend: "{{test_id}} TTFB p95",
+          secondLegend: "{{test_id}} blocked p95",
+          description: "Separates server/network response wait (TTFB) from load-generator connection-slot and socket setup delay. Large blocked time is runner-side contamination, not application latency.",
+        },
+      ),
+    )
+    .withPanel(
+      cloudWatchSearchPanel(
+        55,
+        "Shared RDS — CPU credit balance",
+        "CPUCreditBalance",
+        "Minimum",
+        "short",
+        `${rdsExperimentDescription} A zero balance means the burstable RDS compute regime changed and the run must not be compared with a credited run.`,
+        300,
+      ),
+    )
+    .withPanel(
+      cloudWatchSearchPanel(
+        56,
+        "Shared RDS — surplus CPU credit balance",
+        "CPUSurplusCreditBalance",
+        "Maximum",
+        "short",
+        `${rdsExperimentDescription} In Unlimited mode, a rising surplus balance marks a different CPU regime.`,
+        300,
+      ),
+    )
+    .withPanel(
+      cloudWatchSearchPanel(
+        57,
+        "Shared RDS — surplus CPU credits charged",
+        "CPUSurplusCreditsCharged",
+        "Maximum",
+        "short",
+        `${rdsExperimentDescription} A rising charged-credit value marks a different CPU regime. No data is acceptable only when the selected RDS class does not publish this metric.`,
+        300,
+      ),
+    )
+    .withPanel(
+      metricPanel(58, "beat-apis GC pause max", `max by (instance, color) (jvm_gc_pause_seconds_max{${loadServiceSelector}})`, {
+        unit: "s",
+        legendFormat: "{{instance}} {{color}}",
+        description: "Windowed maximum pause. Use with pause-time rate, CPU and heap to identify a JVM stop rather than attributing the latency tail to database locking.",
+      }),
+    )
+    .withPanel(
+      dualMetricPanel(
+        59,
+        "MySQL commits / rollbacks per second",
+        `rate(mysql_global_status_commands_total{${MYSQL_SELECTOR},command="commit"}[$__rate_interval])`,
+        `rate(mysql_global_status_commands_total{${MYSQL_SELECTOR},command="rollback"}[$__rate_interval])`,
+        {
+          unit: "reqps",
+          firstLegend: "commits/s",
+          secondLegend: "rollbacks/s",
+          description: "Shared-instance transaction outcome signal. Compare S0/S1/S2 deltas; unrelated shared traffic prevents exclusive attribution from this panel alone.",
+        },
+      ),
+    )
+    .withPanel(
+      cloudWatchSearchPanel(
+        60,
+        "Shared RDS — EBS throughput balance",
+        "EBSByteBalance%",
+        "Minimum",
+        "percent",
+        `${rdsExperimentDescription} Remaining EBS throughput burst balance. No data is acceptable when the selected storage or instance class does not publish it.`,
+        60,
+      ),
+    )
+    .withPanel(
+      cloudWatchSearchPanel(
+        61,
+        "Shared RDS — EBS I/O balance",
+        "EBSIOBalance%",
+        "Minimum",
+        "percent",
+        `${rdsExperimentDescription} Remaining EBS IOPS burst balance. Read with IOPS, latency and DiskQueueDepth; No data is acceptable when unsupported.`,
+        60,
+      ),
+    )
+    .withPanel(
+      cloudWatchSearchPanel(
+        62,
+        "Shared RDS — CPU credit usage",
+        "CPUCreditUsage",
+        "Average",
+        "short",
+        `${rdsExperimentDescription} CPU credits consumed in the 5-minute publication interval. Compare the same buckets across every strategy block.`,
+        300,
+      ),
+    )
+    .withPanel(
+      dualMetricPanel(
         44,
         "Optimistic retry cost",
         `sum by (${experimentGroup}) (rate(${k6Metric("stock_contention_optimistic_retries")}{${experimentSelector}}[$__rate_interval]))`,
@@ -1570,7 +1769,8 @@ Multiple test IDs may be selected for an overlay. Every k6 aggregation retains t
 - k6 OTLP naming assumes Alloy \`otelcol.exporter.prometheus.k6 { add_metric_suffixes = false }\`: Counter names are unsuffixed, Rate \`.total\` names become \`_total\`, and Trend histograms expose \`_bucket/_sum/_count\` in milliseconds.
 - Grafana histogram p95/p99 values are estimates from exported buckets. Exact outcome counts, TPS, overselling/duplicate checks and exact local percentiles come from the retained JSON summary plus read-only DB invariant query.
 - Server HTTP panels select only beat-apis stock-contention routes. Server/JVM/Hikari/container/RDS/MySQL metrics do not carry k6 test_id, so correlate them with the retained UTC run window.
-- CloudWatch RDS panels use a 60s period and require the exact shared DBInstanceIdentifier. EC2 CPUCreditBalance uses the exact InstanceId above and a 300s basic-monitoring period; a blank selector intentionally yields no series.
+- CloudWatch RDS resource panels use a 60s period and require the exact shared DBInstanceIdentifier. RDS/EC2 CPU credit panels use their 300s publication period; a blank selector intentionally yields no series. Unsupported EBS or surplus-credit metrics may legitimately show No data.
+- Tomcat busy/current/max, Hikari active/pending/timeout/acquire/usage, GC max/rate and k6 TTFB/blocked must be read on the same UTC axis. This separates servlet admission, DB-pool queueing, JVM pauses and load-generator contamination.
 - MySQL and CloudWatch are shared-RDS supporting evidence. Buffer-pool, row-lock, IOPS and queue signals do not replace the local/DB verdict and cannot exclusively attribute unrelated shared traffic to one strategy.
 - The run must be preflighted against the environment allowlist and workload budget before traffic starts.
 - Shared RDS is always in scope, including when the selected target environment is \`dev\`.

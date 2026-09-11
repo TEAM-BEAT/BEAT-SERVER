@@ -421,6 +421,300 @@
       "title": "Hikari pending connections",
       "transparent": false,
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Acquire max exposes pool wait; usage max exposes how long a borrowed connection stayed checked out. Read them with active/max and pending.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (instance, color, pool) (hikaricp_connections_acquire_seconds_max{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"})",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}} {{pool}} acquire",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (instance, color, pool) (hikaricp_connections_usage_seconds_max{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"})",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}} {{pool}} usage",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Hikari acquire / usage max",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Any non-zero timeout rate is a failed benchmark window even if the business outcome eventually looks correct.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "sum by (instance, color, pool) (rate(hikaricp_connections_timeout_total{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}} {{pool}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Hikari connection timeouts",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Requires server.tomcat.mbeanregistry.enabled=true. Busy threads show request concurrency; compare against the configured maximum below.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (instance, color, name) (tomcat_threads_busy_threads{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"})",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}} {{name}} busy",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (instance, color, name) (tomcat_threads_current_threads{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"})",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}} {{name}} current",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Tomcat busy / current threads",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Busy/configured-max per connector. A rising ratio alongside Hikari pending distinguishes servlet-thread pressure from database-pool pressure.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.8
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (instance, color, name) (tomcat_threads_busy_threads{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"} / tomcat_threads_config_max_threads{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"})",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}} {{name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Tomcat thread saturation",
+      "transparent": false,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Windowed maximum pause complements pause-rate. A short stop-the-world event can explain latency even when average CPU and aggregate pause time look low.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 48
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "asc"
+        }
+      },
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "exemplar": true,
+          "expr": "max by (instance, color) (jvm_gc_pause_seconds_max{env=~\"$env\",application=~\"$application\",instance=~\"$instance\",color=~\"$color\"})",
+          "instant": false,
+          "legendFormat": "{{instance}} {{color}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "GC pause max",
+      "transparent": false,
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",
