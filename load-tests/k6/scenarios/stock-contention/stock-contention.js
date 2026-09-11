@@ -17,6 +17,7 @@ import {
   counterMetricCount,
   exactOutcomeThresholds,
   expectedOutcomeCounts,
+  isPlannedStockContentionIteration,
   isTimeoutStatus,
   parseBookingResult,
   stockContentionBookingPath,
@@ -77,6 +78,7 @@ const COMPLETION_ELAPSED_METRIC = 'stock_contention_completion_elapsed_ms';
 const DRAIN_TIME_METRIC = 'stock_contention_drain_time_ms';
 const ATTEMPT_COUNT_METRIC = 'stock_contention_attempt_count';
 const OPTIMISTIC_RETRY_METRIC = 'stock_contention_optimistic_retries';
+const SCHEDULER_BOUNDARY_NOOP_METRIC = 'stock_contention_scheduler_boundary_noop';
 
 const requestsSubmitted = new Counter(REQUESTS_SUBMITTED_METRIC);
 const bookingsAccepted = new Counter(BOOKINGS_ACCEPTED_METRIC);
@@ -93,10 +95,12 @@ const completionElapsed = new Trend(COMPLETION_ELAPSED_METRIC);
 const drainTime = new Trend(DRAIN_TIME_METRIC);
 const attemptCount = new Trend(ATTEMPT_COUNT_METRIC);
 const optimisticRetries = new Counter(OPTIMISTIC_RETRY_METRIC);
+const schedulerBoundaryNoops = new Counter(SCHEDULER_BOUNDARY_NOOP_METRIC);
 
 const exactThresholds = exactOutcomeThresholds(phase);
 const thresholds = {
   'checks{name:stock_contention_response_recognized}': ['rate==1'],
+  [REQUESTS_SUBMITTED_METRIC]: [`count==${phaseCaseCount}`],
   [BOOKINGS_ACCEPTED_METRIC]: [exactThresholds.accepted],
   [BOOKINGS_SOLD_OUT_METRIC]: [exactThresholds.sold_out],
   [CONFLICT_EXHAUSTED_METRIC]: ['count==0'],
@@ -184,6 +188,7 @@ export function handleSummary(data) {
   const submitted = metricCount(data, REQUESTS_SUBMITTED_METRIC);
   const timeoutCount = metricCount(data, TIMEOUTS_METRIC);
   const optimisticRetryCount = metricCount(data, OPTIMISTIC_RETRY_METRIC);
+  const schedulerBoundaryNoopCount = metricCount(data, SCHEDULER_BOUNDARY_NOOP_METRIC);
   const droppedValues = metricValues(data, 'dropped_iterations');
   const droppedCount = counterMetricCount(droppedValues);
   const acceptedLatencyValues = metricValues(data, ACCEPTED_LATENCY_METRIC);
@@ -236,6 +241,7 @@ export function handleSummary(data) {
     phase,
     endpoint: `POST ${bookingPath}`,
     submitted,
+    scheduler_boundary_noop: schedulerBoundaryNoopCount,
     accepted,
     sold_out: soldOut,
     conflict_exhausted: conflicts,
@@ -274,8 +280,11 @@ export function handleSummary(data) {
 
 export default function (runContext) {
   const index = exec.scenario.iterationInTest;
-  if (index >= phaseCaseCount) {
-    exec.test.abort(`Test data exhausted: index=${index}, size=${phaseCaseCount}`);
+  if (!isPlannedStockContentionIteration(index, phaseCaseCount)) {
+    // Arrival-rate executors control start rate over time, not an exact total.
+    // A scheduler tick on the duration boundary must never become business traffic.
+    schedulerBoundaryNoops.add(1, metricTags);
+    return;
   }
 
   const startedAt = Date.now();

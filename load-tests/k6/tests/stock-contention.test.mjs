@@ -11,6 +11,7 @@ import {
   classifyBookingResponse,
   counterMetricCount,
   exactOutcomeThresholds,
+  isPlannedStockContentionIteration,
   parseBookingResult,
   STOCK_CONTENTION_CASE_COUNTS,
   STOCK_CONTENTION_EXPERIMENT_PATH,
@@ -339,6 +340,20 @@ test('stock contention outcome thresholds enforce exact warmup and flash semanti
     sold_out: 'count==100',
     unexpected: 'count==0',
   });
+});
+
+test('arrival-rate 경계 iteration은 business request로 실행하지 않는다', () => {
+  assert.equal(isPlannedStockContentionIteration(0, 900), true);
+  assert.equal(isPlannedStockContentionIteration(899, 900), true);
+  assert.equal(isPlannedStockContentionIteration(900, 900), false);
+  assert.equal(isPlannedStockContentionIteration(200, 200), false);
+  assert.equal(isPlannedStockContentionIteration(-1, 900), false);
+});
+
+test('stock contention은 정확한 business request 수를 threshold로 강제한다', () => {
+  assert.match(stockContentionScenarioSource, /\[REQUESTS_SUBMITTED_METRIC\]: \[`count==\$\{phaseCaseCount\}`\]/);
+  assert.match(stockContentionScenarioSource, /schedulerBoundaryNoops\.add\(1, metricTags\);\s+return;/);
+  assert.doesNotMatch(stockContentionScenarioSource, /Test data exhausted/);
 });
 
 test('stock contention profiles keep warmup and flash budgets versioned', () => {

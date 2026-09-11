@@ -85,7 +85,8 @@ shared RDS·OS cache처럼 안전하게 초기화할 수 없는 것은 같은 �
 
 - 한 측정 block 동안 동일한 dev Git SHA·Docker image·JVM option·Hikari pool을 유지하고 배포하지 않습니다.
 - 동일한 `cases.json`, endpoint, token, request body, timeout과 versioned workload budget을 사용합니다.
-- warmup/flash schedule은 매 strategy 전에 동일한 stock, sold count, version으로 reset하고 read-back합니다.
+- warmup/flash schedule은 **strategy 시작 전에 한 번만** 동일한 stock, sold count, version으로 reset하고
+  read-back합니다. warmup과 flash 사이에는 booking 삭제나 schedule reset을 하지 않습니다.
 - 동일한 Mac, k6 version, 전원과 네트워크를 사용합니다. Time Machine·대용량 동기화·회의 앱은 중지합니다.
 - strategy별 유효 flash run을 5회 수집하고 문서에 정한 rotation 순서로 실행해 시간·순서 효과를 분산합니다.
 
@@ -102,8 +103,8 @@ warmup한 뒤 60초 quiet period를 두고, 종료 후 최소 90초 동안 basel
 
 ### run 경계별 필수 snapshot
 
-DB에서는 매 run마다 같은 쿼리 순서로 세 경계를 기록합니다. `S0`는 fixture reset/read-back과
-최초 quiet period 뒤, `S1`은 warmup과 두 번째 quiet period 뒤이자 flash 직전, `S2`는 flash
+DB에서는 매 run마다 같은 쿼리 순서로 세 경계를 기록합니다. `S0`는 fixture reset/read-back 뒤
+확보한 10분 quiet baseline의 끝, `S1`은 warmup과 60초 quiet period 뒤이자 flash 직전, `S2`는 flash
 drain 직후입니다. 전 구간에 걸쳐 transaction을 열어 두지 않고 각 경계에서 짧은 read-only
 session으로 조회합니다.
 
@@ -136,10 +137,18 @@ pressure입니다. shared RDS의 누적값에는 외부 접근이 섞일 수 있
 
 Grafana Cloud MCP로 run 전 10분 baseline과 실행·cooldown 구간에서 다음을 기록합니다.
 
-- app: process/container/node CPU·memory, JVM heap·GC·allocation, Hikari active/pending
-- RDS: CPU, FreeableMemory, SwapUsage, connection, read/write latency·IOPS, DiskQueueDepth
-- MySQL/Redis: QPS, thread, buffer-pool, row-lock, Redis command rate와 exporter freshness
+- client: request rate·outcome·p95/p99·dropped iteration, request-start 분포, TTFB와 blocked time
+- app: process/container/node CPU·memory, JVM heap·GC pause max/rate·allocation,
+  Tomcat busy/current/max thread, Hikari active/idle/pending/timeout/acquire/usage
+- RDS: CPU, FreeableMemory, SwapUsage, connection, read/write latency·IOPS, DiskQueueDepth,
+  BurstBalance/EBS balance와 CPU credit regime
+- MySQL/Redis: QPS, commit/rollback, thread, buffer-pool, row-lock, Redis command rate와 exporter freshness
 - pipeline: Alloy pending/failed, discarded samples, 429와 필수 scrape `up`
+
+이 목록은 대시보드에 보이는 값만 늘리기 위한 것이 아닙니다. client → Tomcat → Hikari → MySQL/RDS
+순서로 같은 UTC 축을 대조해 병목의 최초 발생 계층을 찾고, DB invariant로 빠르지만 틀린 결과를
+제외하기 위한 최소 진단 세트입니다. 지원되지 않아 정상적으로 No data인 RDS credit metric과,
+필수 producer가 사라져 No data인 경우를 동일하게 취급하지 않습니다.
 
 ### AWS burst credit 통제
 
@@ -192,6 +201,54 @@ credit 소진 뒤에도 실행을 허용하는 과금 방식이지, 실험 변�
 비교하기에는 충분하지만 절대 capacity를 증명하지는 않습니다. 절대 처리 한계가 필요하면 전용 RDS,
 non-burstable application server와 전용 load generator에서 별도 실험합니다.
 
+### 실행 상태 머신 — 순서 변경 금지
+
+아래 경계는 한 strategy run의 원자적 절차입니다. 각 gate의 증거 파일이 없거나 값이 다르면 다음
+단계로 넘어가지 않습니다.
+
+```text
+MCP 실제 쿼리 성공 + dev/SHA/fixture preflight
+  -> fixture reset (16=900/0/0, 17=100/0/0, 실험 booking=0, Redis lock=0)
+  -> 10분 quiet baseline
+  -> S0 DB/app/RDS/pipeline snapshot
+  -> warmup 5 RPS x 180초 (900 accepted)
+  -> warmup DB read-back (16 sold=900, booking=900)
+  -> warmup booking을 유지한 채 60초 quiet
+  -> S1 DB/app/RDS/pipeline snapshot + 17=100/0/0 read-back
+  -> flash 200 RPS x 1초 (100 accepted + 100 sold-out)
+  -> drain
+  -> S2 DB/app/RDS/pipeline snapshot + invariant 확인
+  -> 90초 이상 cooldown + baseline 복귀 확인
+  -> 마지막에만 실험 booking 삭제 및 16/17 reset
+  -> cleanup read-back
+```
+
+특히 다음 작업은 금지합니다.
+
+- warmup과 flash 사이에 warmup booking을 삭제하는 것
+- warmup과 flash 사이에 schedule 16 또는 17을 reset하는 것
+- S0를 빠뜨린 뒤 S1/S2 값으로 소급 추정하는 것
+- Grafana UI의 connected 표시만 보고 MCP가 동작한다고 간주하는 것
+- 실패한 run의 `TEST_ID`를 재사용하거나 일부 phase만 재실행하는 것
+
+Grafana MCP readiness는 실험 시작 전에 Prometheus instant query와 Loki range query를 각각 실제로
+실행해 확인합니다. OAuth 오류, datasource 오류 또는 권한 오류가 있으면 DB를 변경하거나 k6를
+시작하지 않습니다. 실행 중에는 Alloy receiver accepted/refused, remote-write pending/failed,
+tenant discard/429를 확인하고, telemetry 유실이 있으면 업무 결과가 맞더라도 비교 표본에서 제외합니다.
+
+### 결과 등급
+
+- `FUNCTIONAL_PASS`: warmup/flash outcome과 최종 DB invariant는 맞지만 비교용 관측 증거가 하나 이상
+  빠진 smoke 결과입니다.
+- `BENCHMARK_VALID`: preflight, S0/S1/S2, local summary, DB invariant, Grafana 원본, pipeline 무결성,
+  cooldown 복귀와 cleanup 증거가 모두 있는 결과입니다. 전략 비교표에는 이 등급만 넣습니다.
+- `INVALID`: 정합성 실패, dropped/unexpected/timeout, 배포 개입, 자원 중단 조건, telemetry 유실 또는
+  실행 순서 위반이 있는 결과입니다.
+
+`FUNCTIONAL_PASS`를 `BENCHMARK_VALID`로 승격하지 않습니다. 과거 Grafana 구간을 나중에 조회해
+보충할 수 있는 것은 저장된 원본 telemetry뿐이며, 누락된 S0 DB snapshot이나 잘못된 fixture 상태는
+사후 복구할 수 없습니다.
+
 ## 실행
 
 dev 서버를 한 번 배포한 뒤, 각 strategy마다 합성 warmup/flash schedule을 같은 초기 상태로
@@ -237,7 +294,7 @@ summary-<test_id>-flash.json
 
 summary에는 strategy, profile, budget version, 실제 EC2 instance ID와 CPU credit mode, case count, accepted/sold_out/
 conflict_exhausted/lock_timeout/unexpected 수, accepted TPS, accepted latency p50/p95/p99,
-attempts, optimistic retry 총수와 요청당 평균, timeouts, dropped, drain time 추정값이 포함됩니다. 최종 schedule stock,
+attempts, optimistic retry 총수와 요청당 평균, timeouts, dropped, scheduler boundary no-op 수, drain time 추정값이 포함됩니다. 최종 schedule stock,
 overselling, duplicate booking, negative stock은 DB read-only query로 별도 검증해야 합니다.
 
 ## 판정 지표와 중단
@@ -260,6 +317,7 @@ stock_contention_completion_elapsed_ms
 stock_contention_drain_time_ms
 stock_contention_attempt_count
 stock_contention_optimistic_retries
+stock_contention_scheduler_boundary_noop
 ```
 
 각 custom metric에는 `test_id`, `git_sha`, `strategy`, `phase`가 붙고, 공통 k6
@@ -277,7 +335,10 @@ histogram bucket 기반 운영용 추정값이며, exact accepted latency·attem
 대신 recognized response, accepted/sold_out/conflict/lock-timeout/unexpected Counter, attempt,
 timeout, dropped iteration threshold를 사용합니다. warmup은 accepted/sold_out/unexpected를
 정확히 900/0/0으로, flash는 100/100/0으로 검증하고 conflict/lock-timeout과 timeout rate도
-0이어야 합니다.
+0이어야 합니다. `constant-arrival-rate`는 시간 동안의 시작률을 제어하며 정확한 총 iteration 수를
+보장하지 않으므로 duration 경계의 추가 scheduler iteration은 HTTP 요청 전 no-op 처리합니다.
+`stock_contention_requests_submitted` threshold가 warmup 900건/flash 200건의 실제 business request 수를
+강제하고, `scheduler_boundary_noop`은 이 경계 보호가 동작한 횟수를 증거로 남깁니다.
 
 실행 폐기 여부는 위의 단일 canonical `run 무효화 조건`을 그대로 적용합니다. 이 목록을 모두
 통과하지 않은 run은 summary가 생성됐더라도 strategy 비교에 포함하지 않습니다.
@@ -285,3 +346,87 @@ timeout, dropped iteration threshold를 사용합니다. warmup은 accepted/sold
 실험 전후 RDS, Hikari, JVM, Redis와 shared DB의 영향을 별도로 기록합니다. 200건 flash의
 p50/p95/p99는 summary에 저장하되, 작은 표본의 대표 latency는 p95로 보고하고 절대 TPS는
 별도 non-burstable 환경에서 검증합니다.
+
+## AI 실행 요청용 프롬프트
+
+아래 프롬프트는 PESSIMISTIC smoke 1회를 사람이 자리를 비운 동안 맡길 때 사용합니다. 실행자는
+이 README를 source of truth로 사용하며, 임의의 생략이나 순서 변경을 해서는 안 됩니다.
+
+```text
+BEAT-SERVER/load-tests/k6/scenarios/stock-contention/README.md를 처음부터 끝까지 읽고,
+PESSIMISTIC warmup -> flash 1회를 문서의 실행 상태 머신 그대로 수행해줘.
+
+이 실행의 목표는 단순 API 성공이 아니라 BENCHMARK_VALID 증거 세트를 만드는 것이다.
+
+0. 시작 전 hard gate
+- Grafana Cloud MCP로 Prometheus instant query와 Loki 최근 5분 range query를 실제 호출한다.
+  connected 배지만 보지 말고 결과가 반환돼야 한다. OAuth/datasource/permission 오류면 아무 DB
+  변경도 하지 말고 중단한다.
+- TARGET_ENV=dev, BASE_URL=https://api-dev.beatlive.kr만 허용한다. prod에는 어떤 요청도 보내지 않는다.
+- cases.json 존재, schema_version=v3, 필드 계약, warmupScheduleId=16,
+  flashScheduleId=17을 검증한다. 파일은 수정하거나 커밋하지 않는다.
+- 배포된 dev app SHA/active color/health, 최근 배포·batch 부재, EC2 instance ID와 credit mode,
+  k6/Mac/network/clock 상태를 기록한다.
+
+1. TEST_ID와 evidence
+- TEST_ID="stock-contention-PESSIMISTIC-r1-$(date +%Y%m%d-%H%M%S)"를 새로 만든다.
+- ~/evidence/<TEST_ID>/ 아래에 preflight, S0/S1/S2, warmup/flash 전체 로그와 summary JSON,
+  DB read-back, Grafana query 결과/URL, pipeline, cooldown, cleanup 증거를 저장한다.
+- 기존 TEST_ID나 summary를 덮어쓰지 않는다.
+
+2. 최초 reset과 baseline
+- beatDev에서 schedule 16/17이면서 cases.json의 bookerName/bookerPhoneNumber와 정확히 일치하는
+  실험 booking 및 실제 종속 row만 allowlist로 삭제한다. broad DELETE/TRUNCATE/RDS 재시작/cache
+  flush는 금지한다.
+- schedule 16=total 900/sold 0/version 0, schedule 17=total 100/sold 0/version 0으로 복원한다.
+- Redis key beat:stock-contention:schedule:16/17이 0개인지 확인한다.
+- fixture와 실험 booking=0을 read-back하고 10분 quiet baseline을 확보한다.
+- S0 DB global status, app/JVM/GC/Hikari/Tomcat, node/container, RDS/CloudWatch,
+  MySQL/Redis, Alloy/tenant 상태를 저장한다. 하나라도 없으면 시작하지 않는다.
+
+3. warmup
+- RPS/duration을 덮어쓰지 말고 run-stock-contention.sh PESSIMISTIC warmup을 OTLP 출력과 함께 실행한다.
+- 터미널 전체 출력을 warmup.log에 tee한다.
+- submitted=900, accepted=900, sold_out=0, unexpected/conflict/lock_timeout/timeout/dropped=0을 확인한다.
+- schedule 16 sold=900, 실험 booking=900을 read-back한다.
+- 중요: 여기서 booking을 삭제하거나 schedule 16/17을 reset하지 않는다. 900건을 그대로 유지한다.
+- 하나라도 다르면 즉시 INVALID로 중단하고 안전하게 마지막 cleanup만 수행한다. flash는 실행하지 않는다.
+
+4. quiet와 S1
+- warmup booking 900건을 유지한 상태로 정확히 60초 기다린다.
+- S1을 S0와 동일한 순서로 저장하고 schedule 17=100/0/0, 해당 booking=0을 read-back한다.
+
+5. flash
+- RPS/duration을 덮어쓰지 말고 run-stock-contention.sh PESSIMISTIC flash를 같은 TEST_ID와 OTLP로 실행한다.
+- 터미널 전체 출력을 flash.log에 tee한다.
+- submitted=200, accepted=100, sold_out=100,
+  unexpected/conflict/lock_timeout/timeout/dropped=0을 확인한다.
+- drain 뒤 schedule 17 sold=100, 실험 booking=100, oversold=0, negative stock=0,
+  duplicate experiment booking=0을 read-back한다.
+- S2를 S0/S1과 동일한 순서로 저장한다.
+
+6. telemetry와 cooldown
+- 정확한 UTC run window로 Grafana 원본을 조회한다: k6 outcome/start 간격, server RPS/latency,
+  Hikari active/idle/pending/timeout/acquire/usage, Tomcat threads, JVM heap/GC/allocation,
+  process/node/container CPU와 memory, MySQL threads/QPS/buffer-pool/row-lock/deadlock,
+  RDS CPU/FreeableMemory/SwapUsage/connections/latency/IOPS/DiskQueueDepth/credits,
+  Redis, Alloy pending/failed/refused, tenant discard/429, 관련 로그와 trace.
+- 90초 이상 cooldown 뒤 연속 표본이 baseline으로 복귀했는지 확인한다.
+- telemetry 유실, Hikari timeout/지속 pending, 자원 무효화 조건이 있으면 INVALID다.
+
+7. 마지막 cleanup
+- warmup과 flash가 모두 끝난 뒤에만 정확한 실험 booking을 삭제하고 schedule 16/17을 최초값으로 복원한다.
+- 두 schedule read-back, 실험 booking=0, Redis lock=0을 cleanup 증거로 저장한다.
+
+8. 증거와 판정
+- summary JSON 2개와 핵심 값이 보이는 터미널 화면을 screencapture -w로 1장 저장한다.
+- Grafana 90 Load Test의 TEST_ID/UTC 범위 화면을 1장 저장한다.
+- FUNCTIONAL_PASS와 BENCHMARK_VALID를 구분한다. S0/S1/S2 또는 Grafana 원본이 빠졌거나 순서가
+  어긋나면 수치가 좋아도 BENCHMARK_VALID라고 보고하지 않는다.
+- 마지막 보고에는 TEST_ID, UTC/KST 구간, deployed SHA/color, exact outcome, accepted TPS/p95/drain,
+  DB invariant, 자원 peak/baseline, pipeline 무결성, cleanup 결과, evidence 절대 경로,
+  VALID/INVALID 사유를 간결하게 적는다.
+
+실행 중 실패하면 원인을 숨기거나 우회하지 말고 다음 부하 단계만 중단한다. 가능한 read-only 진단과
+정확한 allowlist cleanup은 수행한 뒤 증거 경로와 함께 보고한다.
+```

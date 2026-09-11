@@ -302,3 +302,11 @@ export function exactOutcomeThresholds(phase) {
     unexpected: 'count==0',
   });
 }
+
+export function isPlannedStockContentionIteration(iterationInTest, phaseCaseCount) {
+  return Number.isInteger(iterationInTest)
+    && iterationInTest >= 0
+    && Number.isInteger(phaseCaseCount)
+    && phaseCaseCount > 0
+    && iterationInTest < phaseCaseCount;
+}
