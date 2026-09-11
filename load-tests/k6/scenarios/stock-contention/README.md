@@ -13,6 +13,10 @@ Conditional Atomic UPDATE 구현을 한 번 배포한 서버에서 비교하는 
 - 요청 timeout은 `35s`로 고정하며 실행 환경에서 덮어쓸 수 없습니다.
 - 서버는 dev profile의 실험 flag 활성화 설정으로 한 번만 배포하고, strategy는 URL 경로로 선택합니다.
 - endpoint는 기존 회원 Bearer 인증과 요청 validation을 그대로 사용합니다.
+- 공통 회원·schedule·performance 조회는 요청당 한 번의 짧은 read-only transaction으로 실행하고
+  connection을 반환합니다. OSIV는 비활성화하며 request 전체에 EntityManager나 connection을 유지하지 않습니다.
+- 각 strategy의 재고 변경과 booking 저장은 하나의 reservation transaction에서 함께 commit 또는 rollback됩니다.
+  Optimistic retry는 공통 조회를 반복하지 않고 reservation transaction만 새로 실행합니다.
 - 실험 endpoint는 `BookingCreatedEvent`를 발행하지 않아 Slack 전송 없이 부하를 측정합니다.
 - 공통 `ACCESS_TOKEN` 환경 변수는 사용하지 않습니다. `cases.json` 최상위의 accessToken 하나를 모든 booking이 공유합니다.
 - `cases.json`은 1,100개 행을 저장하지 않고, k6가 profile별 동일 request를 생성·재사용합니다.
@@ -69,6 +73,95 @@ profile은 실행 인자로 RPS를 바꾸지 못하도록 `lib/budgets.js`에서
 
 flash는 k6 open arrival-rate 모델이므로 200 VU가 DB transaction 200개와 같은 의미는
 아닙니다. dropped iteration이 발생하면 결과를 사용하지 않습니다.
+
+## 현재 환경의 변인 통제
+
+이 실험은 cache와 JVM을 매번 강제로 초기화하는 cold-start benchmark가 아니라, 현재 dev의
+steady-state에서 lock strategy만 바꾸는 비교 실험입니다. 통제할 수 있는 것은 고정하고,
+shared RDS·OS cache처럼 안전하게 초기화할 수 없는 것은 같은 방식으로 예열한 뒤 run 전후 값을
+기록합니다.
+
+### 고정하는 조건
+
+- 한 측정 block 동안 동일한 dev Git SHA·Docker image·JVM option·Hikari pool을 유지하고 배포하지 않습니다.
+- 동일한 `cases.json`, endpoint, token, request body, timeout과 versioned workload budget을 사용합니다.
+- warmup/flash schedule은 매 strategy 전에 동일한 stock, sold count, version으로 reset하고 read-back합니다.
+- 동일한 Mac, k6 version, 전원과 네트워크를 사용합니다. Time Machine·대용량 동기화·회의 앱은 중지합니다.
+- strategy별 유효 flash run을 5회 수집하고 문서에 정한 rotation 순서로 실행해 시간·순서 효과를 분산합니다.
+
+### 강제로 초기화하지 않는 상태
+
+- InnoDB buffer pool과 RDS OS page cache
+- JVM JIT, heap과 GC 상태
+- Hikari connection pool
+- Redis 내부 cache와 shared RDS의 소량 외부 트래픽
+
+RDS 재시작, cache flush, `drop_caches`, `TRUNCATE`와 광범위한 `DELETE`는 금지합니다. 이런 조작은
+운영 환경과 다른 상태를 만들거나 다른 서비스에 영향을 줍니다. 대신 모든 strategy에서 동일하게
+warmup한 뒤 60초 quiet period를 두고, 종료 후 최소 90초 동안 baseline 복귀를 확인합니다.
+
+### run 전후 필수 snapshot
+
+DB에서는 동일 connection으로 flash 직전과 drain 직후 아래 누적값을 같은 순서로 기록하고
+`post - pre` delta를 결과에 남깁니다.
+
+```sql
+SHOW GLOBAL STATUS WHERE Variable_name IN (
+  'Innodb_buffer_pool_read_requests',
+  'Innodb_buffer_pool_reads',
+  'Innodb_buffer_pool_read_ahead',
+  'Innodb_buffer_pool_read_ahead_evicted',
+  'Innodb_buffer_pool_pages_dirty',
+  'Innodb_row_lock_waits',
+  'Innodb_row_lock_time',
+  'Threads_connected',
+  'Threads_running',
+  'Questions'
+);
+```
+
+`Innodb_buffer_pool_reads`는 storage까지 간 physical read이고
+`Innodb_buffer_pool_read_requests`는 logical read입니다. `SwapUsage`는 별개의 RDS OS memory
+pressure입니다. shared RDS의 누적값에는 외부 접근이 섞일 수 있으므로 DB delta만으로 strategy의
+우열을 판정하지 않고 같은 UTC 구간의 CloudWatch와 함께 설명합니다.
+
+Grafana Cloud MCP로 run 전 10분 baseline과 실행·cooldown 구간에서 다음을 기록합니다.
+
+- app: process/container/node CPU·memory, JVM heap·GC·allocation, Hikari active/pending
+- RDS: CPU, FreeableMemory, SwapUsage, connection, read/write latency·IOPS, DiskQueueDepth
+- MySQL/Redis: QPS, thread, buffer-pool, row-lock, Redis command rate와 exporter freshness
+- pipeline: Alloy pending/failed, discarded samples, 429와 필수 scrape `up`
+
+### AWS burst credit 통제
+
+현재 k6 발생기는 Mac이므로 발생기에는 AWS CPU credit가 없습니다. 반면 dev application EC2와
+shared `db.t3.micro` RDS는 burstable 계열입니다. RDS db.t3는 AWS가 Unlimited mode로 운영하며,
+EC2는 실제 instance의 credit specification을 실험 전에 AWS Console/CLI로 확인합니다.
+
+```bash
+aws ec2 describe-instance-credit-specifications \
+  --region ap-northeast-2 \
+  --instance-ids <DEV_EC2_INSTANCE_ID>
+```
+
+각 block 전후 동일 instance의 `CPUCreditBalance`, `CPUCreditUsage`,
+`CPUSurplusCreditBalance`, `CPUSurplusCreditsCharged`를 CloudWatch/Grafana MCP로 기록합니다.
+EC2 또는 RDS credit balance가 run 중 0에 도달하거나 surplus balance/charged가 새로 증가하면
+다른 CPU credit regime에서 실행된 것이므로 해당 run을 성능 비교에서 제외합니다. Unlimited는
+credit 소진 뒤에도 실행을 허용하는 과금 방식이지, 실험 변인이 사라진다는 뜻이 아닙니다.
+
+### run 무효화 조건
+
+- `dropped_iterations`, unexpected response, timeout, lock timeout 또는 DB invariant 실패
+- 실행 중 배포·batch·RDS backup·network interruption 발생
+- CPU credit regime 변경 또는 cooldown 뒤 CPU/JVM/Hikari가 baseline으로 복귀하지 않음
+- Hikari acquire timeout이나 지속 pending 발생
+- RDS FreeableMemory·SwapUsage·latency·IOPS·DiskQueueDepth가 사전 baseline에서 지속 이탈
+- Alloy pending/discard/429 때문에 해당 시간대 지표가 유실됨
+
+위 조건을 통과한 run끼리만 비교합니다. 이 방식은 현재 shared dev/RDS에서 strategy의 상대 성능을
+비교하기에는 충분하지만 절대 capacity를 증명하지는 않습니다. 절대 처리 한계가 필요하면 전용 RDS,
+non-burstable application server와 전용 load generator에서 별도 실험합니다.
 
 ## 실행
 

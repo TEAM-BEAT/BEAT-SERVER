@@ -65,7 +65,13 @@ class StockContentionExperimentService(
     private val optimisticBackoffNanos =
         properties.optimisticBackoffMillis.coerceIn(0L, MAX_OPTIMISTIC_BACKOFF_MILLIS) *
             NANOS_PER_MILLISECOND
-    private val transactionTemplate =
+    private val preparationTransactionTemplate =
+        TransactionTemplate(transactionManager).apply {
+            isReadOnly = true
+            timeout =
+                properties.transactionTimeoutSeconds.coerceIn(1, MAX_TRANSACTION_TIMEOUT_SECONDS)
+        }
+    private val reservationTransactionTemplate =
         TransactionTemplate(transactionManager).apply {
             timeout =
                 properties.transactionTimeoutSeconds.coerceIn(1, MAX_TRANSACTION_TIMEOUT_SECONDS)
@@ -79,7 +85,10 @@ class StockContentionExperimentService(
         validateBookerContact(command.bookerName, command.bookerPhoneNumber)
         validatePurchaseTicketCount(command.purchaseTicketCount)
 
-        val prepared = prepareBooking(memberId, command)
+        val prepared =
+            checkNotNull(
+                preparationTransactionTemplate.execute { prepareBooking(memberId, command) }
+            )
         val selectedStrategy = strategyRegistry.get(strategy)
         return try {
             selectedStrategy.executeWithReservationLock(command.scheduleId) {
@@ -172,7 +181,7 @@ class StockContentionExperimentService(
         attempt: Int,
     ): StockContentionExperimentResponse =
         checkNotNull(
-            transactionTemplate.execute {
+            reservationTransactionTemplate.execute {
                 val reservation =
                     strategy.reserve(
                         StockReservationRequest(
