@@ -10,7 +10,9 @@ set -euo pipefail
 #
 # 1. Shared RDS / InnoDB buffer pool
 #    - Read back performance and schedules 16/17 in the same order every time.
-#    - Capture these global counters immediately before warmup and after flash:
+#    - Capture S0 after reset/read-back and the initial quiet period, S1 after
+#      warmup and the next quiet period (immediately before flash), and S2 after
+#      flash drain. Use the same query and boundary order for every run:
 #        SHOW GLOBAL STATUS WHERE Variable_name IN (
 #          'Innodb_buffer_pool_read_requests',
 #          'Innodb_buffer_pool_reads',
@@ -18,11 +20,14 @@ set -euo pipefail
 #          'Innodb_buffer_pool_read_ahead_evicted',
 #          'Innodb_buffer_pool_pages_dirty'
 #        );
-#    - Treat counter deltas only as shared-RDS context, never as a strategy-
-#      attributable result. SELECT * of three fixture rows does not normalize
-#      the buffer pool and must not be described as cache pre-touch.
-#    - Fixed order: fixture reset/read-back -> quiet >=60s -> pre snapshot ->
-#      warmup -> quiet >=60s -> flash -> post snapshot -> cleanup.
+#    - Use S1-S0 for warmup counter deltas and S2-S1 for flash counter deltas.
+#      Record Innodb_buffer_pool_pages_dirty as boundary snapshots, not a
+#      cumulative delta. Treat all values only as shared-RDS context, never as
+#      a strategy-attributable result. SELECT * of three fixture rows does not
+#      normalize the buffer pool and must not be described as cache pre-touch.
+#    - Fixed order: fixture reset/read-back -> quiet >=60s -> S0 -> warmup ->
+#      quiet >=60s -> S1 -> flash -> drain -> S2 -> cleanup. Do not hold a DB
+#      transaction open across these phases.
 #      Keep warmup bookings until flash completes; cleanup between warmup and
 #      flash would erase part of the cache/table-state control.
 #    - Never restart shared RDS, FLUSH TABLES, drop caches, TRUNCATE, or issue a

@@ -41,6 +41,19 @@ command -v k6 >/dev/null || {
   exit 69
 }
 
+if [[ ! "${EC2_INSTANCE_ID:-}" =~ ^i-[0-9a-f]{8,17}$ ]]; then
+  echo "EC2_INSTANCE_ID must be the actual dev EC2 instance ID." >&2
+  exit 64
+fi
+
+case "${EC2_CPU_CREDITS:-}" in
+  standard | unlimited) ;;
+  *)
+    echo "EC2_CPU_CREDITS must be exactly standard or unlimited." >&2
+    exit 64
+    ;;
+esac
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(git -C "$script_dir" rev-parse --show-toplevel)"
 data_file="${DATA_FILE:-$script_dir/cases.json}"
@@ -64,6 +77,8 @@ STRATEGY="$strategy" \
 DATA_FILE="$data_file" \
 TEST_ID="$test_id" \
 GIT_SHA="$git_sha" \
+EC2_INSTANCE_ID="$EC2_INSTANCE_ID" \
+EC2_CPU_CREDITS="$EC2_CPU_CREDITS" \
 LOAD_PROFILE="$profile" \
 K6_OTEL_SERVICE_NAME="${K6_OTEL_SERVICE_NAME:-beat-k6}" \
 K6_OTEL_METRIC_PREFIX="${K6_OTEL_METRIC_PREFIX:-k6_}" \

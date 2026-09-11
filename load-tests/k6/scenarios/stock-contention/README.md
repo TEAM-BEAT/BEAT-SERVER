@@ -100,10 +100,12 @@ RDS 재시작, cache flush, `drop_caches`, `TRUNCATE`와 광범위한 `DELETE`�
 운영 환경과 다른 상태를 만들거나 다른 서비스에 영향을 줍니다. 대신 모든 strategy에서 동일하게
 warmup한 뒤 60초 quiet period를 두고, 종료 후 최소 90초 동안 baseline 복귀를 확인합니다.
 
-### run 전후 필수 snapshot
+### run 경계별 필수 snapshot
 
-DB에서는 동일 connection으로 flash 직전과 drain 직후 아래 누적값을 같은 순서로 기록하고
-`post - pre` delta를 결과에 남깁니다.
+DB에서는 매 run마다 같은 쿼리 순서로 세 경계를 기록합니다. `S0`는 fixture reset/read-back과
+최초 quiet period 뒤, `S1`은 warmup과 두 번째 quiet period 뒤이자 flash 직전, `S2`는 flash
+drain 직후입니다. 전 구간에 걸쳐 transaction을 열어 두지 않고 각 경계에서 짧은 read-only
+session으로 조회합니다.
 
 ```sql
 SHOW GLOBAL STATUS WHERE Variable_name IN (
@@ -119,6 +121,13 @@ SHOW GLOBAL STATUS WHERE Variable_name IN (
   'Questions'
 );
 ```
+
+누적 counter인 `Innodb_buffer_pool_read_requests`, `Innodb_buffer_pool_reads`,
+`Innodb_buffer_pool_read_ahead`, `Innodb_buffer_pool_read_ahead_evicted`,
+`Innodb_row_lock_waits`, `Innodb_row_lock_time`, `Questions`만 `S1-S0`(warmup)와
+`S2-S1`(flash) delta를 계산합니다. `Innodb_buffer_pool_pages_dirty`, `Threads_connected`,
+`Threads_running`은 gauge이므로 S0/S1/S2 원값과 Grafana 구간 max/average를 기록하고 delta를
+누적량처럼 해석하지 않습니다.
 
 `Innodb_buffer_pool_reads`는 storage까지 간 physical read이고
 `Innodb_buffer_pool_read_requests`는 logical read입니다. `SwapUsage`는 별개의 RDS OS memory
@@ -139,20 +148,35 @@ shared `db.t3.micro` RDS는 burstable 계열입니다. RDS db.t3는 AWS가 Unlim
 EC2는 실제 instance의 credit specification을 실험 전에 AWS Console/CLI로 확인합니다.
 
 ```bash
+read -r -p "Dev EC2 InstanceId (i-...): " EC2_INSTANCE_ID
+export EC2_INSTANCE_ID
+export EC2_CPU_CREDITS="$(aws ec2 describe-instance-credit-specifications \
+  --region ap-northeast-2 \
+  --instance-ids "$EC2_INSTANCE_ID" \
+  --query 'InstanceCreditSpecifications[0].CpuCredits' \
+  --output text)"
+
 aws ec2 describe-instance-credit-specifications \
   --region ap-northeast-2 \
-  --instance-ids <DEV_EC2_INSTANCE_ID>
+  --instance-ids "$EC2_INSTANCE_ID"
 ```
 
-각 block 전후 동일 instance의 `CPUCreditBalance`, `CPUCreditUsage`,
-`CPUSurplusCreditBalance`, `CPUSurplusCreditsCharged`를 CloudWatch/Grafana MCP로 기록합니다.
-EC2 또는 RDS credit balance가 run 중 0에 도달하거나 surplus balance/charged가 새로 증가하면
-다른 CPU credit regime에서 실행된 것이므로 해당 run을 성능 비교에서 제외합니다. Unlimited는
+runner는 실제 `EC2_INSTANCE_ID`와 조회된 `EC2_CPU_CREDITS`(`standard` 또는 `unlimited`)가
+없으면 실행을 거부하며 두 값을 warmup/flash summary metadata에 저장합니다.
+
+각 block의 baseline 시작 전 bucket부터 cooldown 종료 뒤 bucket까지 동일 instance의
+`CPUCreditBalance`, `CPUCreditUsage`, `CPUSurplusCreditBalance`,
+`CPUSurplusCreditsCharged`를 CloudWatch/Grafana MCP에서 5분 해상도로 기록합니다. 관측된 5분
+bucket에서 EC2 또는 RDS credit balance가 0이거나 surplus balance/charged가 직전 bucket보다
+증가하면 해당 run을 제외합니다. 이 지표로 1초 flash 안의 일시적 credit 전환까지 증명할 수는
+없으므로 credit 지표는 block의 실행 regime을 판별하는 정황 근거로만 사용합니다. Unlimited는
 credit 소진 뒤에도 실행을 허용하는 과금 방식이지, 실험 변인이 사라진다는 뜻이 아닙니다.
 
 ### run 무효화 조건
 
+- preflight·fixture read-back 실패 또는 실제 EC2 instance/credit metadata 누락
 - `dropped_iterations`, unexpected response, timeout, lock timeout 또는 DB invariant 실패
+- warmup 900 accepted 또는 flash 100 accepted/100 sold-out 불일치
 - 실행 중 배포·batch·RDS backup·network interruption 발생
 - CPU credit regime 변경 또는 cooldown 뒤 CPU/JVM/Hikari가 baseline으로 복귀하지 않음
 - Hikari acquire timeout이나 지속 pending 발생
@@ -172,9 +196,12 @@ dev 서버를 한 번 배포한 뒤, 각 strategy마다 합성 warmup/flash sche
 
 ```bash
 cd load-tests/k6/scenarios/stock-contention
+# 위 AWS 조회를 실행한 동일 shell에서 실제 두 값이 유지되어야 합니다.
+: "${EC2_INSTANCE_ID:?AWS burst credit 절차를 먼저 실행하세요}"
+: "${EC2_CPU_CREDITS:?AWS burst credit 절차를 먼저 실행하세요}"
 TEST_ID="stock-contention-PESSIMISTIC-r1-$(date +%Y%m%d-%H%M%S)"
 ./run-stock-contention.sh PESSIMISTIC warmup "$TEST_ID"
-# 60초 quiet period와 flash fixture read-back 후 실행
+# 60초 quiet period, S1 snapshot과 flash fixture read-back 후 실행
 ./run-stock-contention.sh PESSIMISTIC flash "$TEST_ID"
 ```
 
@@ -191,6 +218,14 @@ K6_OTEL_GRPC_EXPORTER_INSECURE=true \
 strategy 앞의 선택적 cleanup/reset/read-back과 종료 뒤 invariant/cooldown 확인이 성공한 뒤에만
 다음 run을 시작해야 하기 때문입니다.
 
+| repetition | 실행 순서 |
+| --- | --- |
+| r1 | PESSIMISTIC → OPTIMISTIC → REDIS → ATOMIC |
+| r2 | OPTIMISTIC → REDIS → ATOMIC → PESSIMISTIC |
+| r3 | REDIS → ATOMIC → PESSIMISTIC → OPTIMISTIC |
+| r4 | ATOMIC → PESSIMISTIC → OPTIMISTIC → REDIS |
+| r5 | PESSIMISTIC → REDIS → ATOMIC → OPTIMISTIC |
+
 기본 결과 파일은 다음처럼 profile별로 생성됩니다.
 
 ```text
@@ -198,7 +233,7 @@ summary-<test_id>-warmup.json
 summary-<test_id>-flash.json
 ```
 
-summary에는 strategy, profile, budget version, case count, accepted/sold_out/
+summary에는 strategy, profile, budget version, 실제 EC2 instance ID와 CPU credit mode, case count, accepted/sold_out/
 conflict_exhausted/lock_timeout/unexpected 수, accepted TPS, accepted latency p50/p95/p99,
 attempts, optimistic retry 총수와 요청당 평균, timeouts, dropped, drain time 추정값이 포함됩니다. 최종 schedule stock,
 overselling, duplicate booking, negative stock은 DB read-only query로 별도 검증해야 합니다.
@@ -242,14 +277,8 @@ timeout, dropped iteration threshold를 사용합니다. warmup은 accepted/sold
 정확히 900/0/0으로, flash는 100/100/0으로 검증하고 conflict/lock-timeout과 timeout rate도
 0이어야 합니다.
 
-다음 중 하나라도 발생하면 실행을 폐기합니다.
-
-- preflight 실패
-- fixture data exhausted
-- `dropped_iterations > 0`
-- unexpected response, conflict/lock-timeout 또는 timeout이 1건 이상
-- flash 결과가 accepted 100, sold_out 100이 아님
-- DB invariant 검증 실패
+실행 폐기 여부는 위의 단일 canonical `run 무효화 조건`을 그대로 적용합니다. 이 목록을 모두
+통과하지 않은 run은 summary가 생성됐더라도 strategy 비교에 포함하지 않습니다.
 
 실험 전후 RDS, Hikari, JVM, Redis와 shared DB의 영향을 별도로 기록합니다. 200건 flash의
 p50/p95/p99는 summary에 저장하되, 작은 표본의 대표 latency는 p95로 보고하고 절대 TPS는
