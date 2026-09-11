@@ -23,6 +23,7 @@ import {
   STOCK_CONTENTION_TOTAL_CASE_COUNT,
   stockContentionBookingPath,
   validateStockCases,
+  validateExperimentHostMetadata,
   validateStrategy,
 } from '../scenarios/stock-contention/contract.js';
 
@@ -67,6 +68,24 @@ function validDataset() {
 test('stock contention target accepts only dev', () => {
   assert.doesNotThrow(() => assertDevOnlyTarget('dev'));
   assert.throws(() => assertDevOnlyTarget('prod'), /dev-only/);
+});
+
+test('stock contention run은 실제 EC2 instance와 CPU credit mode를 요구한다', () => {
+  assert.deepEqual(
+    validateExperimentHostMetadata({
+      EC2_INSTANCE_ID: 'i-0123456789abcdef0',
+      EC2_CPU_CREDITS: 'unlimited',
+    }),
+    { ec2InstanceId: 'i-0123456789abcdef0', ec2CpuCredits: 'unlimited' },
+  );
+  assert.throws(
+    () => validateExperimentHostMetadata({ EC2_CPU_CREDITS: 'unlimited' }),
+    /EC2_INSTANCE_ID/,
+  );
+  assert.throws(
+    () => validateExperimentHostMetadata({ EC2_INSTANCE_ID: 'i-0123456789abcdef0' }),
+    /EC2_CPU_CREDITS/,
+  );
 });
 
 test('stock contention dataset keeps the fixed iteration counts and exact six-field config', () => {
@@ -426,9 +445,13 @@ test('stock contention summary metadata keeps strategy and endpoint in the JSON 
       strategy: 'ATOMIC',
       phase: 'flash',
       endpoint: 'POST /api/internal/experiments/stock-contention/ATOMIC/bookings',
+      ec2_instance_id: 'i-0123456789abcdef0',
+      ec2_cpu_credits: 'unlimited',
     },
   );
   const summary = JSON.parse(output['summary.json']);
   assert.equal(summary.metadata.strategy, 'ATOMIC');
   assert.equal(summary.metadata.endpoint, 'POST /api/internal/experiments/stock-contention/ATOMIC/bookings');
+  assert.equal(summary.metadata.ec2_instance_id, 'i-0123456789abcdef0');
+  assert.equal(summary.metadata.ec2_cpu_credits, 'unlimited');
 });

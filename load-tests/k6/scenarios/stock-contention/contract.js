@@ -34,6 +34,9 @@ export const STOCK_CONTENTION_EXPERIMENT_PATH = '/api/internal/experiments/stock
 
 export const STOCK_CONTENTION_REQUEST_TIMEOUT = '35s';
 
+const EC2_INSTANCE_ID_PATTERN = /^i-[0-9a-f]{8,17}$/;
+const EC2_CPU_CREDIT_MODES = new Set(['standard', 'unlimited']);
+
 export const STOCK_CONTENTION_RESPONSE_OUTCOMES = Object.freeze([
   'ACCEPTED',
   'SOLD_OUT',
@@ -150,6 +153,18 @@ export function validateStrategy(strategy) {
     throw new Error('STRATEGY must be PESSIMISTIC, OPTIMISTIC, REDIS, or ATOMIC.');
   }
   return strategy;
+}
+
+export function validateExperimentHostMetadata(env) {
+  const ec2InstanceId = String(env.EC2_INSTANCE_ID || '').trim();
+  const ec2CpuCredits = String(env.EC2_CPU_CREDITS || '').trim().toLowerCase();
+  if (!EC2_INSTANCE_ID_PATTERN.test(ec2InstanceId)) {
+    throw new Error('EC2_INSTANCE_ID must be the actual dev EC2 instance ID.');
+  }
+  if (!EC2_CPU_CREDIT_MODES.has(ec2CpuCredits)) {
+    throw new Error('EC2_CPU_CREDITS must be exactly standard or unlimited.');
+  }
+  return Object.freeze({ ec2InstanceId, ec2CpuCredits });
 }
 
 export function stockContentionBookingPath(strategy) {

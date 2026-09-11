@@ -21,6 +21,7 @@ import {
   parseBookingResult,
   stockContentionBookingPath,
   STOCK_CONTENTION_REQUEST_TIMEOUT,
+  validateExperimentHostMetadata,
   validateStrategy,
 } from './contract.js';
 import {
@@ -43,6 +44,7 @@ if (initialConfig.accessToken) {
 }
 
 const strategy = validateStrategy(__ENV.STRATEGY);
+const experimentHost = validateExperimentHostMetadata(__ENV);
 const bookingPath = stockContentionBookingPath(strategy);
 const loadedCases = loadCases(__ENV, initialConfig);
 const { accessToken, request, phaseCaseCount } = loadedCases;
@@ -225,6 +227,8 @@ export function handleSummary(data) {
     total_case_count: loadedCases.totalCases,
     expected_accepted: expected.accepted,
     expected_sold_out: expected.sold_out,
+    ec2_instance_id: experimentHost.ec2InstanceId,
+    ec2_cpu_credits: experimentHost.ec2CpuCredits,
   });
   const summary = JSON.parse(summaryOutput[config.summaryFile]);
   summary.results = {
