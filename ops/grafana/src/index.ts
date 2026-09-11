@@ -484,10 +484,11 @@ function cloudWatchSearchPanel(
   description: string,
   periodSeconds = 300,
 ): PanelBuilder {
+  const queryId = `rds_${metricName.toLowerCase().replace(/[^a-z0-9_]/g, "_")}`;
   const query = new CloudWatchQuery()
     .metricQueryType(MetricQueryType.Search)
     .metricEditorMode(MetricEditorMode.Code)
-    .id(`rds_${metricName.toLowerCase()}`)
+    .id(queryId)
     .refId("A")
     .region("ap-northeast-2")
     .namespace("AWS/RDS")
@@ -1144,7 +1145,7 @@ function loadTest(): DashboardBuilder {
   const loadServiceSelector = 'env=~"$env",application="beat-apis",instance=~"$instance",color=~"$color"';
   const serverSelector = `${loadServiceSelector},uri=~"^/api/internal/experiments/stock-contention/[^/]+/bookings$"`;
   const rdsExperimentDescription =
-    "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.";
+    "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev.";
   const rdsMemoryGuardrail =
     "Use the pre-run 10m quiet-window median as the memory baseline; 128MiB is not a valid absolute floor for this db.t3.micro. Start only when median FreeableMemory is >=100MiB with no sustained decline. Stop if FreeableMemory stays below 96MiB for 5m or at least 20% below baseline for 5m, or if SwapUsage grows by at least 32MiB from baseline and keeps rising.";
 
@@ -1617,16 +1618,14 @@ function loadTest(): DashboardBuilder {
       }),
     )
     .withPanel(
-      dualMetricPanel(
+      metricPanel(
         53,
-        "k6 request-start elapsed p50 / p99",
-        experimentQuantile("stock_contention_request_start_elapsed_ms", 0.5),
-        experimentQuantile("stock_contention_request_start_elapsed_ms", 0.99),
+        "k6 business request-start rate",
+        `sum by (${experimentGroup}) (rate(${k6Metric("stock_contention_request_start_elapsed_ms")}_count{${experimentSelector}}[$__rate_interval]))`,
         {
-          unit: "ms",
-          firstLegend: "{{test_id}} {{strategy}} p50",
-          secondLegend: "{{test_id}} {{strategy}} p99",
-          description: "Shows how request starts were spread across the planned arrival window. It does not prove every inter-arrival gap; the versioned constant-arrival-rate budget and local summary remain authoritative.",
+          unit: "reqps",
+          legendFormat: "{{test_id}} {{strategy}} {{phase}}",
+          description: "Counts the request-start observation emitted immediately before each HTTP call. Use it to detect coarse pacing collapse; exact start spacing and the fixed arrival-rate budget remain local-summary evidence.",
         },
       ),
     )
@@ -1706,7 +1705,7 @@ function loadTest(): DashboardBuilder {
         "Minimum",
         "percent",
         `${rdsExperimentDescription} Remaining EBS throughput burst balance. No data is acceptable when the selected storage or instance class does not publish it.`,
-        60,
+        300,
       ),
     )
     .withPanel(
@@ -1717,7 +1716,7 @@ function loadTest(): DashboardBuilder {
         "Minimum",
         "percent",
         `${rdsExperimentDescription} Remaining EBS IOPS burst balance. Read with IOPS, latency and DiskQueueDepth; No data is acceptable when unsupported.`,
-        60,
+        300,
       ),
     )
     .withPanel(

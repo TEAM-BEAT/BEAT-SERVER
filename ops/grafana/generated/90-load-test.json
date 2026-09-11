@@ -456,7 +456,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. Use the pre-run 10m quiet-window median as the memory baseline; 128MiB is not a valid absolute floor for this db.t3.micro. Start only when median FreeableMemory is >=100MiB with no sustained decline. Stop if FreeableMemory stays below 96MiB for 5m or at least 20% below baseline for 5m, or if SwapUsage grows by at least 32MiB from baseline and keeps rising. Also stop if CPU is >=80% for 5m or connections exceed 80% of max.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev. Use the pre-run 10m quiet-window median as the memory baseline; 128MiB is not a valid absolute floor for this db.t3.micro. Start only when median FreeableMemory is >=100MiB with no sustained decline. Stop if FreeableMemory stays below 96MiB for 5m or at least 20% below baseline for 5m, or if SwapUsage grows by at least 32MiB from baseline and keeps rising. Also stop if CPU is >=80% for 5m or connections exceed 80% of max.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -509,7 +509,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. Use the pre-run 10m quiet-window median as the memory baseline; 128MiB is not a valid absolute floor for this db.t3.micro. Start only when median FreeableMemory is >=100MiB with no sustained decline. Stop if FreeableMemory stays below 96MiB for 5m or at least 20% below baseline for 5m, or if SwapUsage grows by at least 32MiB from baseline and keeps rising.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev. Use the pre-run 10m quiet-window median as the memory baseline; 128MiB is not a valid absolute floor for this db.t3.micro. Start only when median FreeableMemory is >=100MiB with no sustained decline. Stop if FreeableMemory stays below 96MiB for 5m or at least 20% below baseline for 5m, or if SwapUsage grows by at least 32MiB from baseline and keeps rising.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -562,7 +562,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. Compare against the pre-run baseline; stop only when SwapUsage rises by at least 32MiB and continues rising. A stable non-zero value is not an abort condition.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev. Compare against the pre-run baseline; stop only when SwapUsage rises by at least 32MiB and continues rising. A stable non-zero value is not an abort condition.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -615,7 +615,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -668,7 +668,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -721,7 +721,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -1840,7 +1840,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -1893,7 +1893,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -1946,7 +1946,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -2778,11 +2778,11 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Shows how request starts were spread across the planned arrival window. It does not prove every inter-arrival gap; the versioned constant-arrival-rate budget and local summary remain authoritative.",
+      "description": "Counts the request-start observation emitted immediately before each HTTP call. Use it to detect coarse pacing collapse; exact start spacing and the fixed arrival-rate budget remain local-summary evidence.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
-          "unit": "ms"
+          "unit": "reqps"
         },
         "overrides": []
       },
@@ -2813,26 +2813,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.5, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_request_start_elapsed_ms_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
+          "expr": "sum by (test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_request_start_elapsed_ms_count{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval]))",
           "instant": false,
-          "legendFormat": "{{test_id}} {{strategy}} p50",
+          "legendFormat": "{{test_id}} {{strategy}} {{phase}}",
           "range": true,
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "exemplar": true,
-          "expr": "histogram_quantile(0.99, sum by (le, test_id, git_sha, dataset_hash, budget_version, strategy, load_profile, phase) (rate(k6_stock_contention_request_start_elapsed_ms_bucket{test_id=~\"$test_id\",git_sha=~\"$git_sha\",dataset_hash=~\"$dataset_hash\",budget_version=~\"$budget_version\",target_env=~\"$env\",scenario=~\"$test_scenario\",strategy=~\"$strategy\",load_profile=~\"$load_profile\",phase=~\"$phase\"}[$__rate_interval])))",
-          "instant": false,
-          "legendFormat": "{{test_id}} {{strategy}} p99",
-          "range": true,
-          "refId": "B"
         }
       ],
-      "title": "k6 request-start elapsed p50 / p99",
+      "title": "k6 business request-start rate",
       "transparent": false,
       "type": "timeseries"
     },
@@ -2904,7 +2892,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. A zero balance means the burstable RDS compute regime changed and the run must not be compared with a credited run.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev. A zero balance means the burstable RDS compute regime changed and the run must not be compared with a credited run.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -2957,7 +2945,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. In Unlimited mode, a rising surplus balance marks a different CPU regime.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev. In Unlimited mode, a rising surplus balance marks a different CPU regime.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -3010,7 +2998,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. A rising charged-credit value marks a different CPU regime. No data is acceptable only when the selected RDS class does not publish this metric.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev. A rising charged-credit value marks a different CPU regime. No data is acceptable only when the selected RDS class does not publish this metric.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -3177,7 +3165,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. Remaining EBS throughput burst balance. No data is acceptable when the selected storage or instance class does not publish it.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev. Remaining EBS throughput burst balance. No data is acceptable when the selected storage or instance class does not publish it.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -3211,8 +3199,8 @@
             "type": "cloudwatch",
             "uid": "${DS_CLOUDWATCH}"
           },
-          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"EBSByteBalance%\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Minimum', 60)",
-          "id": "rds_ebsbytebalance%",
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"EBSByteBalance%\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Minimum', 300)",
+          "id": "rds_ebsbytebalance_",
           "metricEditorMode": 1,
           "metricQueryType": 0,
           "namespace": "AWS/RDS",
@@ -3230,7 +3218,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. Remaining EBS IOPS burst balance. Read with IOPS, latency and DiskQueueDepth; No data is acceptable when unsupported.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev. Remaining EBS IOPS burst balance. Read with IOPS, latency and DiskQueueDepth; No data is acceptable when unsupported.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -3264,8 +3252,8 @@
             "type": "cloudwatch",
             "uid": "${DS_CLOUDWATCH}"
           },
-          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"EBSIOBalance%\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Minimum', 60)",
-          "id": "rds_ebsiobalance%",
+          "expression": "SEARCH('{AWS/RDS,DBInstanceIdentifier} MetricName=\"EBSIOBalance%\" DBInstanceIdentifier=\"$rds_instance_identifier\"', 'Minimum', 300)",
+          "id": "rds_ebsiobalance_",
           "metricEditorMode": 1,
           "metricQueryType": 0,
           "namespace": "AWS/RDS",
@@ -3283,7 +3271,7 @@
         "type": "cloudwatch",
         "uid": "${DS_CLOUDWATCH}"
       },
-      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier and uses a 60s period for the experiment. Shared RDS is still in scope when the selected target environment is dev. CPU credits consumed in the 5-minute publication interval. Compare the same buckets across every strategy block.",
+      "description": "AWS/RDS SEARCH is constrained to the entered DBInstanceIdentifier. Workload metrics use 60s periods; basic-monitoring credit metrics use their native 300s period. Shared RDS is still in scope when the selected target environment is dev. CPU credits consumed in the 5-minute publication interval. Compare the same buckets across every strategy block.",
       "fieldConfig": {
         "defaults": {
           "custom": {},
