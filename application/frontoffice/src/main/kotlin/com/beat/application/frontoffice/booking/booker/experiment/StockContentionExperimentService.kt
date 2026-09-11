@@ -65,7 +65,13 @@ class StockContentionExperimentService(
     private val optimisticBackoffNanos =
         properties.optimisticBackoffMillis.coerceIn(0L, MAX_OPTIMISTIC_BACKOFF_MILLIS) *
             NANOS_PER_MILLISECOND
-    private val transactionTemplate =
+    private val preparationTransactionTemplate =
+        TransactionTemplate(transactionManager).apply {
+            isReadOnly = true
+            timeout =
+                properties.transactionTimeoutSeconds.coerceIn(1, MAX_TRANSACTION_TIMEOUT_SECONDS)
+        }
+    private val reservationTransactionTemplate =
         TransactionTemplate(transactionManager).apply {
             timeout =
                 properties.transactionTimeoutSeconds.coerceIn(1, MAX_TRANSACTION_TIMEOUT_SECONDS)
@@ -79,13 +85,17 @@ class StockContentionExperimentService(
         validateBookerContact(command.bookerName, command.bookerPhoneNumber)
         validatePurchaseTicketCount(command.purchaseTicketCount)
 
+        val prepared =
+            checkNotNull(
+                preparationTransactionTemplate.execute { prepareBooking(memberId, command) }
+            )
         val selectedStrategy = strategyRegistry.get(strategy)
         return try {
             selectedStrategy.executeWithReservationLock(command.scheduleId) {
                 if (strategy == StockContentionStrategy.OPTIMISTIC) {
-                    createWithOptimisticRetry(memberId, command, selectedStrategy)
+                    createWithOptimisticRetry(prepared, command, selectedStrategy)
                 } else {
-                    executeReservationAttempt(memberId, command, selectedStrategy, 1)
+                    executeReservationAttempt(prepared, command, selectedStrategy, 1)
                 }
             }
         } catch (_: StockContentionLockTimeout) {
@@ -136,13 +146,13 @@ class StockContentionExperimentService(
     }
 
     private fun createWithOptimisticRetry(
-        memberId: Long,
+        prepared: PreparedStockContentionBooking,
         command: StockContentionBookingCommand,
         strategy: StockContentionReservationStrategy,
     ): StockContentionExperimentResponse {
         for (attempt in 1..optimisticAttemptLimit) {
             try {
-                return executeReservationAttempt(memberId, command, strategy, attempt)
+                return executeReservationAttempt(prepared, command, strategy, attempt)
             } catch (_: OptimisticReservationConflict) {
                 if (attempt == optimisticAttemptLimit) {
                     return StockContentionExperimentResponse(
@@ -165,17 +175,13 @@ class StockContentionExperimentService(
     }
 
     private fun executeReservationAttempt(
-        memberId: Long,
+        prepared: PreparedStockContentionBooking,
         command: StockContentionBookingCommand,
         strategy: StockContentionReservationStrategy,
         attempt: Int,
     ): StockContentionExperimentResponse =
         checkNotNull(
-            transactionTemplate.execute {
-                // Every reservation attempt owns one transaction. Common reads and the stock
-                // mutation therefore share the transaction-bound JPA/JDBC connection, and a
-                // booking can never commit without its corresponding stock reservation.
-                val prepared = prepareBooking(memberId, command)
+            reservationTransactionTemplate.execute {
                 val reservation =
                     strategy.reserve(
                         StockReservationRequest(

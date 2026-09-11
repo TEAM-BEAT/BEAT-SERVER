@@ -13,6 +13,10 @@ Conditional Atomic UPDATE 구현을 한 번 배포한 서버에서 비교하는 
 - 요청 timeout은 `35s`로 고정하며 실행 환경에서 덮어쓸 수 없습니다.
 - 서버는 dev profile의 실험 flag 활성화 설정으로 한 번만 배포하고, strategy는 URL 경로로 선택합니다.
 - endpoint는 기존 회원 Bearer 인증과 요청 validation을 그대로 사용합니다.
+- 공통 회원·schedule·performance 조회는 요청당 한 번의 짧은 read-only transaction으로 실행하고
+  connection을 반환합니다. OSIV는 비활성화하며 request 전체에 EntityManager나 connection을 유지하지 않습니다.
+- 각 strategy의 재고 변경과 booking 저장은 하나의 reservation transaction에서 함께 commit 또는 rollback됩니다.
+  Optimistic retry는 공통 조회를 반복하지 않고 reservation transaction만 새로 실행합니다.
 - 실험 endpoint는 `BookingCreatedEvent`를 발행하지 않아 Slack 전송 없이 부하를 측정합니다.
 - 공통 `ACCESS_TOKEN` 환경 변수는 사용하지 않습니다. `cases.json` 최상위의 accessToken 하나를 모든 booking이 공유합니다.
 - `cases.json`은 1,100개 행을 저장하지 않고, k6가 profile별 동일 request를 생성·재사용합니다.
