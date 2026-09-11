@@ -18,7 +18,12 @@ set -euo pipefail
 #          'Innodb_buffer_pool_reads',
 #          'Innodb_buffer_pool_read_ahead',
 #          'Innodb_buffer_pool_read_ahead_evicted',
-#          'Innodb_buffer_pool_pages_dirty'
+#          'Innodb_buffer_pool_pages_dirty',
+#          'Innodb_row_lock_waits',
+#          'Innodb_row_lock_time',
+#          'Threads_connected',
+#          'Threads_running',
+#          'Questions'
 #        );
 #    - Use S1-S0 for warmup counter deltas and S2-S1 for flash counter deltas.
 #      Record Innodb_buffer_pool_pages_dirty as boundary snapshots, not a

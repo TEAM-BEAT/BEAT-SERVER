@@ -145,15 +145,20 @@ Grafana Cloud MCP로 run 전 10분 baseline과 실행·cooldown 구간에서 다
 
 현재 k6 발생기는 Mac이므로 발생기에는 AWS CPU credit가 없습니다. 반면 dev application EC2와
 shared `db.t3.micro` RDS는 burstable 계열입니다. RDS db.t3는 AWS가 Unlimited mode로 운영하며,
-EC2는 실제 instance의 credit specification을 실험 전에 AWS Console/CLI로 확인합니다.
+EC2는 실제 instance의 credit specification을 실험 전에 AWS Console/CLI로 확인합니다. runner는
+SOPS의 dev `ansible_host`를 복호화하고 그 public IP에 연결된 running EC2를 AWS에서 역조회하므로,
+다른 계정·instance를 가리키거나 두 instance가 조회되면 실행을 중단합니다. 올바른 AWS profile과
+SOPS key가 준비되어 있어야 합니다.
 
 ```bash
-read -r -p "Dev EC2 InstanceId (i-...): " EC2_INSTANCE_ID
-export EC2_INSTANCE_ID
-export EC2_CPU_CREDITS="$(aws ec2 describe-instance-credit-specifications \
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+DEV_HOST="$(sops --decrypt --extract '["ansible_host"]' \
+  "$REPO_ROOT/ops/ansible/inventories/dev/group_vars/all/secrets.sops.yml")"
+EC2_INSTANCE_ID="$(aws ec2 describe-instances \
   --region ap-northeast-2 \
-  --instance-ids "$EC2_INSTANCE_ID" \
-  --query 'InstanceCreditSpecifications[0].CpuCredits' \
+  --filters "Name=network-interface.association.public-ip,Values=$DEV_HOST" \
+            "Name=instance-state-name,Values=running" \
+  --query 'Reservations[].Instances[].InstanceId' \
   --output text)"
 
 aws ec2 describe-instance-credit-specifications \
@@ -161,8 +166,8 @@ aws ec2 describe-instance-credit-specifications \
   --instance-ids "$EC2_INSTANCE_ID"
 ```
 
-runner는 실제 `EC2_INSTANCE_ID`와 조회된 `EC2_CPU_CREDITS`(`standard` 또는 `unlimited`)가
-없으면 실행을 거부하며 두 값을 warmup/flash summary metadata에 저장합니다.
+runner는 이 경로에서 검증한 실제 `EC2_INSTANCE_ID`와 조회된 `EC2_CPU_CREDITS`(`standard` 또는
+`unlimited`)를 warmup/flash summary metadata에 저장합니다.
 
 각 block의 baseline 시작 전 bucket부터 cooldown 종료 뒤 bucket까지 동일 instance의
 `CPUCreditBalance`, `CPUCreditUsage`, `CPUSurplusCreditBalance`,
@@ -196,9 +201,6 @@ dev 서버를 한 번 배포한 뒤, 각 strategy마다 합성 warmup/flash sche
 
 ```bash
 cd load-tests/k6/scenarios/stock-contention
-# 위 AWS 조회를 실행한 동일 shell에서 실제 두 값이 유지되어야 합니다.
-: "${EC2_INSTANCE_ID:?AWS burst credit 절차를 먼저 실행하세요}"
-: "${EC2_CPU_CREDITS:?AWS burst credit 절차를 먼저 실행하세요}"
 TEST_ID="stock-contention-PESSIMISTIC-r1-$(date +%Y%m%d-%H%M%S)"
 ./run-stock-contention.sh PESSIMISTIC warmup "$TEST_ID"
 # 60초 quiet period, S1 snapshot과 flash fixture read-back 후 실행
