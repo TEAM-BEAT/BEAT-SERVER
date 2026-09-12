@@ -8,10 +8,6 @@ import com.beat.domain.member.model.Member
 import com.beat.domain.member.model.SocialType
 import com.beat.domain.member.repository.MemberRepository
 import com.beat.domain.member.vo.SocialIdentity
-import com.beat.domain.performance.repository.PerformanceRepository
-import com.beat.domain.performance.vo.PaymentAccount
-import com.beat.domain.performance.vo.PerformancePeriod
-import com.beat.domain.sharedkernel.vo.BankName
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -20,7 +16,6 @@ import io.mockk.mockk
 import io.mockk.verify
 import java.time.Clock
 import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import org.springframework.transaction.PlatformTransactionManager
@@ -29,10 +24,9 @@ import org.springframework.transaction.TransactionStatus
 
 class StockContentionExperimentServiceSpec : FunSpec() {
     init {
-        test("공통 validation은 performance 행 잠금 없이 비잠금 조회를 사용한다") {
+        test("공통 validation은 schedule과 ticket price projection만 한 번 조회한다") {
             val strategyRegistry = mockk<StockContentionStrategyRegistry>()
             val memberRepository = mockk<MemberRepository>()
-            val performanceRepository = mockk<PerformanceRepository>()
             val bookingRepository = mockk<BookingRepository>()
             val scheduleStore = mockk<StockContentionScheduleStore>()
             val transactionManager = mockk<PlatformTransactionManager>(relaxed = true)
@@ -49,28 +43,6 @@ class StockContentionExperimentServiceSpec : FunSpec() {
                     email = "experiment-member@example.com",
                     userId = 30L,
                     socialIdentity = SocialIdentity.of(SocialType.KAKAO, 30L),
-                )
-            val performance =
-                com.beat.domain.performance.model.Performance.create(
-                    performanceTitle = "experiment-performance",
-                    genre = com.beat.domain.performance.model.Genre.BAND,
-                    runningTime = com.beat.domain.performance.vo.RunningTime.of(120),
-                    performanceDescription = "description",
-                    performanceAttentionNote = "attention",
-                    paymentAccount = PaymentAccount.of(BankName.BUSAN, "1234-5678", "실험자"),
-                    posterImage = "poster.jpg",
-                    performanceTeamName = "team",
-                    performanceVenue = "venue",
-                    roadAddressName = "road",
-                    placeDetailAddress = "detail",
-                    latitude = "37.0",
-                    longitude = "127.0",
-                    performanceContact = "010-0000-0000",
-                    performancePeriod =
-                        PerformancePeriod.of(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)),
-                    ticketPrice = com.beat.domain.performance.vo.TicketPrice.of(100),
-                    totalScheduleCount = 1,
-                    userId = 30L,
                 )
             val scheduleState =
                 ScheduleStockState(
@@ -93,8 +65,7 @@ class StockContentionExperimentServiceSpec : FunSpec() {
                 reservationStrategy
             every { memberRepository.findById(1L) } returns member
             every { scheduleStore.findBookingMetadataById(10L) } returns
-                ScheduleBookingMetadata(performanceId = 20L, bookingOpen = true)
-            every { performanceRepository.findById(20L) } returns performance
+                ScheduleBookingMetadata(performanceId = 20L, bookingOpen = true, ticketPrice = 100)
             every { scheduleStore.find(10L, true, false) } returns scheduleState
             every { scheduleStore.reserveWithPessimisticLock(10L, 1) } returns 1
             every { bookingRepository.save(any()) } returns savedBooking
@@ -103,7 +74,6 @@ class StockContentionExperimentServiceSpec : FunSpec() {
                 StockContentionExperimentService(
                     strategyRegistry = strategyRegistry,
                     memberRepository = memberRepository,
-                    performanceRepository = performanceRepository,
                     bookingRepository = bookingRepository,
                     scheduleStore = scheduleStore,
                     transactionManager = transactionManager,
@@ -128,15 +98,13 @@ class StockContentionExperimentServiceSpec : FunSpec() {
                     attemptCount = 1,
                 )
 
-            verify(exactly = 1) { performanceRepository.findById(20L) }
-            verify(exactly = 0) { performanceRepository.lockById(20L) }
+            verify(exactly = 1) { scheduleStore.findBookingMetadataById(10L) }
             transactionDefinitions.map { it.isReadOnly } shouldBe listOf(true, false)
         }
 
         test("공통 metadata가 닫힌 schedule이면 전략 실행 전에 BOOKING_CLOSED를 반환한다") {
             val strategyRegistry = mockk<StockContentionStrategyRegistry>()
             val memberRepository = mockk<MemberRepository>()
-            val performanceRepository = mockk<PerformanceRepository>()
             val bookingRepository = mockk<BookingRepository>()
             val scheduleStore = mockk<StockContentionScheduleStore>()
             val transactionManager = mockk<PlatformTransactionManager>(relaxed = true)
@@ -154,13 +122,12 @@ class StockContentionExperimentServiceSpec : FunSpec() {
                 reservationStrategy
             every { memberRepository.findById(1L) } returns member
             every { scheduleStore.findBookingMetadataById(10L) } returns
-                ScheduleBookingMetadata(performanceId = 20L, bookingOpen = false)
+                ScheduleBookingMetadata(performanceId = 20L, bookingOpen = false, ticketPrice = 100)
 
             val service =
                 StockContentionExperimentService(
                     strategyRegistry = strategyRegistry,
                     memberRepository = memberRepository,
-                    performanceRepository = performanceRepository,
                     bookingRepository = bookingRepository,
                     scheduleStore = scheduleStore,
                     transactionManager = transactionManager,
@@ -184,20 +151,17 @@ class StockContentionExperimentServiceSpec : FunSpec() {
                 }
 
             exception.errorCode shouldBe BookingApplicationErrorCode.BOOKING_CLOSED
-            verify(exactly = 0) { performanceRepository.findById(any()) }
             verify(exactly = 0) { scheduleStore.find(any(), any(), any()) }
         }
 
         test("Redis lock은 공통 read transaction 종료 후 reservation transaction을 감싼다") {
             val strategyRegistry = mockk<StockContentionStrategyRegistry>()
             val memberRepository = mockk<MemberRepository>()
-            val performanceRepository = mockk<PerformanceRepository>()
             val bookingRepository = mockk<BookingRepository>()
             val scheduleStore = mockk<StockContentionScheduleStore>()
             val transactionManager = mockk<PlatformTransactionManager>(relaxed = true)
             val transactionStatus = mockk<TransactionStatus>(relaxed = true)
             val member = mockk<Member>()
-            val performance = mockk<com.beat.domain.performance.model.Performance>()
             var lockEntered = false
             var reservationInsideLock = false
             var commitCompletedBeforeUnlock = false
@@ -207,7 +171,6 @@ class StockContentionExperimentServiceSpec : FunSpec() {
                     onLock = {
                         verify(exactly = 1) { memberRepository.findById(1L) }
                         verify(exactly = 1) { scheduleStore.findBookingMetadataById(10L) }
-                        verify(exactly = 1) { performanceRepository.findById(20L) }
                         verify(exactly = 1) { transactionManager.getTransaction(any()) }
                         verify(exactly = 1) { transactionManager.commit(transactionStatus) }
                         lockEntered = true
@@ -223,20 +186,17 @@ class StockContentionExperimentServiceSpec : FunSpec() {
                 )
 
             every { member.userId } returns 30L
-            every { performance.ticketPrice } returns 100
             every { transactionManager.getTransaction(any()) } returns transactionStatus
             every { strategyRegistry.get(StockContentionStrategy.REDIS) } returns
                 reservationStrategy
             every { memberRepository.findById(1L) } returns member
             every { scheduleStore.findBookingMetadataById(10L) } returns
-                ScheduleBookingMetadata(performanceId = 20L, bookingOpen = true)
-            every { performanceRepository.findById(20L) } returns performance
+                ScheduleBookingMetadata(performanceId = 20L, bookingOpen = true, ticketPrice = 100)
             every { bookingRepository.save(any()) } returns savedBooking()
 
             experimentService(
                     strategyRegistry,
                     memberRepository,
-                    performanceRepository,
                     bookingRepository,
                     scheduleStore,
                     transactionManager,
@@ -252,13 +212,11 @@ class StockContentionExperimentServiceSpec : FunSpec() {
         test("Optimistic conflict retry는 공통 조회를 반복하지 않고 reservation transaction만 재시도한다") {
             val strategyRegistry = mockk<StockContentionStrategyRegistry>()
             val memberRepository = mockk<MemberRepository>()
-            val performanceRepository = mockk<PerformanceRepository>()
             val bookingRepository = mockk<BookingRepository>()
             val scheduleStore = mockk<StockContentionScheduleStore>()
             val transactionManager = mockk<PlatformTransactionManager>(relaxed = true)
             val transactionStatus = mockk<TransactionStatus>(relaxed = true)
             val member = mockk<Member>()
-            val performance = mockk<com.beat.domain.performance.model.Performance>()
             val reservationStrategy =
                 RecordingReservationStrategy(
                     strategy = StockContentionStrategy.OPTIMISTIC,
@@ -266,21 +224,18 @@ class StockContentionExperimentServiceSpec : FunSpec() {
                 )
 
             every { member.userId } returns 30L
-            every { performance.ticketPrice } returns 100
             every { transactionManager.getTransaction(any()) } returns transactionStatus
             every { strategyRegistry.get(StockContentionStrategy.OPTIMISTIC) } returns
                 reservationStrategy
             every { memberRepository.findById(1L) } returns member
             every { scheduleStore.findBookingMetadataById(10L) } returns
-                ScheduleBookingMetadata(performanceId = 20L, bookingOpen = true)
-            every { performanceRepository.findById(20L) } returns performance
+                ScheduleBookingMetadata(performanceId = 20L, bookingOpen = true, ticketPrice = 100)
             every { bookingRepository.save(any()) } returns savedBooking()
 
             val response =
                 experimentService(
                         strategyRegistry,
                         memberRepository,
-                        performanceRepository,
                         bookingRepository,
                         scheduleStore,
                         transactionManager,
@@ -291,7 +246,6 @@ class StockContentionExperimentServiceSpec : FunSpec() {
             response.outcome shouldBe StockContentionOutcome.ACCEPTED
             verify(exactly = 1) { memberRepository.findById(1L) }
             verify(exactly = 1) { scheduleStore.findBookingMetadataById(10L) }
-            verify(exactly = 1) { performanceRepository.findById(20L) }
             verify(exactly = 4) { transactionManager.getTransaction(any()) }
             verify(exactly = 2) { transactionManager.rollback(transactionStatus) }
             verify(exactly = 2) { transactionManager.commit(transactionStatus) }
@@ -336,7 +290,6 @@ private class RecordingReservationStrategy(
 private fun experimentService(
     strategyRegistry: StockContentionStrategyRegistry,
     memberRepository: MemberRepository,
-    performanceRepository: PerformanceRepository,
     bookingRepository: BookingRepository,
     scheduleStore: StockContentionScheduleStore,
     transactionManager: PlatformTransactionManager,
@@ -344,7 +297,6 @@ private fun experimentService(
     StockContentionExperimentService(
         strategyRegistry = strategyRegistry,
         memberRepository = memberRepository,
-        performanceRepository = performanceRepository,
         bookingRepository = bookingRepository,
         scheduleStore = scheduleStore,
         transactionManager = transactionManager,

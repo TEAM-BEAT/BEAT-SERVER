@@ -30,6 +30,7 @@ data class StockContentionBookingCommand(
 data class ScheduleBookingMetadata(
     val performanceId: Long,
     val bookingOpen: Boolean,
+    val ticketPrice: Int?,
 )
 
 data class StockReservationRequest(

@@ -16,27 +16,31 @@ import org.springframework.stereotype.Repository
 class JdbcStockContentionScheduleStore(private val jdbcTemplate: JdbcTemplate) :
     StockContentionScheduleStore {
     /**
-     * Resolves the schedule link and booking window without acquiring a row lock. Inventory columns
+     * Resolves only the common booking projection without acquiring a row lock. Inventory columns
      * are intentionally not read here; Atomic can keep its conditional UPDATE as the first stock
-     * operation after this common metadata validation.
+     * operation after this validation.
      */
     override fun findBookingMetadataById(scheduleId: Long): ScheduleBookingMetadata? =
         jdbcTemplate
             .query(
                 """
-                SELECT performance_id,
+                SELECT s.performance_id,
+                       p.ticket_price,
                        CASE
-                           WHEN CURRENT_TIMESTAMP(6) < booking_close_at THEN 1
+                           WHEN CURRENT_TIMESTAMP(6) < s.booking_close_at THEN 1
                            ELSE 0
                        END AS booking_open
-                FROM schedule
-                WHERE id = ?
+                FROM schedule s
+                LEFT JOIN performance p ON p.id = s.performance_id
+                WHERE s.id = ?
                 """
                     .trimIndent(),
                 { resultSet: ResultSet, _: Int ->
                     ScheduleBookingMetadata(
                         performanceId = resultSet.getLong("performance_id"),
                         bookingOpen = resultSet.getInt("booking_open") == 1,
+                        ticketPrice =
+                            resultSet.getObject("ticket_price", Int::class.javaObjectType),
                     )
                 },
                 scheduleId,

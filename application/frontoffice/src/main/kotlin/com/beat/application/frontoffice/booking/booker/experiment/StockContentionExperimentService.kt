@@ -5,7 +5,6 @@ import com.beat.application.frontoffice.exception.FrontofficeApplicationExceptio
 import com.beat.domain.booking.model.Booking
 import com.beat.domain.booking.repository.BookingRepository
 import com.beat.domain.member.repository.MemberRepository
-import com.beat.domain.performance.repository.PerformanceRepository
 import java.time.Clock
 import java.time.LocalDateTime
 import java.util.concurrent.locks.LockSupport
@@ -53,7 +52,6 @@ class StockContentionStrategyRegistry(strategies: List<StockContentionReservatio
 class StockContentionExperimentService(
     private val strategyRegistry: StockContentionStrategyRegistry,
     private val memberRepository: MemberRepository,
-    private val performanceRepository: PerformanceRepository,
     private val bookingRepository: BookingRepository,
     private val scheduleStore: StockContentionScheduleStore,
     transactionManager: PlatformTransactionManager,
@@ -130,18 +128,15 @@ class StockContentionExperimentService(
         if (!scheduleMetadata.bookingOpen) {
             throw FrontofficeApplicationException(BookingApplicationErrorCode.BOOKING_CLOSED)
         }
-        val performance =
-            // Common validation must not serialize requests on the performance row. The selected
-            // schedule strategy is the only contention mechanism in this experiment.
-            performanceRepository.findById(scheduleMetadata.performanceId)
+        val ticketPrice =
+            scheduleMetadata.ticketPrice
                 ?: throw FrontofficeApplicationException(
                     BookingApplicationErrorCode.PERFORMANCE_NOT_FOUND
                 )
         return PreparedStockContentionBooking(
             userId = member.userId,
             performanceId = scheduleMetadata.performanceId,
-            totalPaymentAmount =
-                calculatePaymentAmount(performance.ticketPrice, command.purchaseTicketCount),
+            totalPaymentAmount = calculatePaymentAmount(ticketPrice, command.purchaseTicketCount),
         )
     }
 
