@@ -10,7 +10,7 @@
   "devDependencies": {
     "@grafana/grafana-foundation-sdk": "0.0.18",
     "@types/node": "24.10.1",
-    "tsx": "4.23.12",
+    "tsx": "4.23.13",
     "typescript": "5.9.3"
   }
 }
