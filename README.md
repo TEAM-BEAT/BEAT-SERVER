@@ -63,8 +63,8 @@ BEAT와 함께 효율적이고 체계적으로 공연을 관리해 볼까요? �
 
 | 이동훈 | 황혜린 | 김채현 |
 |:---:|:---:|:---:|
-| <img width="220" alt="hoonyworld" src="https://github.com/user-attachments/assets/bb69bc1c-50d1-44cb-bdcd-febe11fc1a66"> | <img width="220" alt="hyerinhwang-sailin" src="https://github.com/user-attachments/assets/fa31601a-48f8-4af8-9690-b8f4f351c04a"> | <img width="220" alt="imddoy" src="https://github.com/user-attachments/assets/734cc263-5c17-4023-bc6b-734d363ad3f9"> |
-| [hoonyworld](https://github.com/hoonyworld) | [hyerinhwang-sailin](https://github.com/hyerinhwang-sailin) | [imddoy](https://github.com/imddoy) |
+| <img width="220" alt="move-hoon" src="https://github.com/user-attachments/assets/bb69bc1c-50d1-44cb-bdcd-febe11fc1a66"> | <img width="220" alt="hyerinhwang-sailin" src="https://github.com/user-attachments/assets/fa31601a-48f8-4af8-9690-b8f4f351c04a"> | <img width="220" alt="imddoy" src="https://github.com/user-attachments/assets/734cc263-5c17-4023-bc6b-734d363ad3f9"> |
+| [move-hoon](https://github.com/move-hoon) | [hyerinhwang-sailin](https://github.com/hyerinhwang-sailin) | [imddoy](https://github.com/imddoy) |
 
 <br>
 
