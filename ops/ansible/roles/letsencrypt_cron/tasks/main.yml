@@ -13,5 +13,8 @@
       docker run --rm
       -v {{ letsencrypt_cron_conf_dir }}:/etc/letsencrypt
       -v {{ letsencrypt_cron_www_dir }}:/var/www/certbot
-      {{ letsencrypt_cron_certbot_image }} renew
+      -v /var/log/letsencrypt:/var/log/letsencrypt
+      {{ letsencrypt_cron_certbot_image }} renew --non-interactive
+      --cert-name {{ letsencrypt_cert_name }} --webroot --webroot-path /var/www/certbot
+      && docker exec {{ letsencrypt_cron_nginx_container }} nginx -t
       && docker exec {{ letsencrypt_cron_nginx_container }} nginx -s reload
